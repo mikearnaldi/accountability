@@ -294,3 +294,8 @@
 **Story**: 4.4.3 - Implement minority interest calculation
 **Status**: complete
 ---
+
+## Iteration 1 - 2026-01-10 22:34
+**Story**: 5.0.1 - Set up testcontainers for persistence tests
+**Status**: complete
+---

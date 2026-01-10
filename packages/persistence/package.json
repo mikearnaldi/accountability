@@ -11,9 +11,14 @@
   },
   "dependencies": {
     "@accountability/core": "workspace:*",
+    "@effect/experimental": "^0.45.0",
+    "@effect/platform": "^0.81.0",
     "@effect/sql": "^0.34.0",
     "@effect/sql-pg": "^0.32.0",
     "@effect/sql-drizzle": "^0.29.0",
     "effect": "^3.19.0"
+  },
+  "devDependencies": {
+    "@testcontainers/postgresql": "^10.25.0"
   }
 }

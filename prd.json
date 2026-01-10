@@ -983,7 +983,7 @@
         "container_layer_pattern": "Layer.unwrapEffect(Effect.gen) to get container URI then create PgClient.layer",
         "test_pattern": "it.layer(PgContainer.ClientLive, { timeout: '30 seconds' })('description', (it) => { ... })"
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "medium"
     },
     {
