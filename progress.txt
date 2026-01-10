@@ -269,3 +269,8 @@
 **Story**: 4.2.2 - Implement intercompany matching service
 **Status**: complete
 ---
+
+## Iteration 6 - 2026-01-10 21:54
+**Story**: 4.3.1 - Implement elimination rule entity
+**Status**: complete
+---

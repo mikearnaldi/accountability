@@ -880,7 +880,7 @@
         "Priority for ordering",
         "100% test coverage"
       ],
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "medium"
     },
     {
