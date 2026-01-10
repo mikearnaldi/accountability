@@ -267,8 +267,8 @@ run_iteration() {
     log "INFO" "Running Claude Code agent..."
     echo ""  # Blank line before agent output
 
-    # Pipe prompt from file to avoid command line length limits
-    if cat "$prompt_file" | $AGENT_CMD --print 2>&1 | tee "$output_file"; then
+    # Use stream-json for real-time output display
+    if cat "$prompt_file" | $AGENT_CMD --print --output-format stream-json 2>&1 | tee "$output_file"; then
         echo ""  # Blank line after agent output
         log "SUCCESS" "Agent completed iteration $iteration"
     else
