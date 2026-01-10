@@ -930,23 +930,52 @@ layer(MyService.Live, { excludeTestServices: true })("live tests", (it) => {
 })
 ```
 
-**Property-based testing:**
+**Property-based testing with @effect/vitest:**
+
+FastCheck is re-exported from `effect/FastCheck`. The `Arbitrary` module provides `Arbitrary.make()` to create arbitraries from Schema. @effect/vitest provides `it.prop` and `it.effect.prop` for property testing.
 
 ```typescript
-import { FastCheck, Schema } from "effect"
+import { it } from "@effect/vitest"
+import { Effect, FastCheck, Schema, Arbitrary } from "effect"
 
-// With Schema
-it.effect.prop("money addition is commutative", [MoneySchema, MoneySchema], ([a, b]) =>
+// Synchronous property test - array syntax
+it.prop("symmetry", [Schema.Number, FastCheck.integer()], ([a, b]) =>
+  a + b === b + a
+)
+
+// Synchronous property test - object syntax
+it.prop("symmetry with object", { a: Schema.Number, b: FastCheck.integer() }, ({ a, b }) =>
+  a + b === b + a
+)
+
+// Effectful property test
+it.effect.prop("symmetry in effect", [Schema.Number, FastCheck.integer()], ([a, b]) =>
   Effect.gen(function* () {
-    const sum1 = yield* addMoney(a, b)
-    const sum2 = yield* addMoney(b, a)
-    return Equal.equals(sum1, sum2)
+    yield* Effect.void
+    return a + b === b + a
   })
 )
 
-// With FastCheck arbitraries
-it.prop("numbers commute", [FastCheck.integer(), FastCheck.integer()], ([a, b]) =>
-  a + b === b + a
+// Scoped property test
+it.scoped.prop("substring detection", { a: Schema.String, b: Schema.String }, ({ a, b }) =>
+  Effect.gen(function* () {
+    yield* Effect.scope
+    return (a + b).includes(b)
+  })
+)
+
+// With custom fastCheck options
+it.effect.prop(
+  "with options",
+  [Schema.Number],
+  ([n]) => Effect.succeed(n === n),
+  { fastCheck: { numRuns: 200 } }
+)
+
+// Create arbitrary from Schema manually
+const accountArb = Arbitrary.make(Account)
+it.prop("account test", [accountArb], ([account]) =>
+  account.name.length > 0
 )
 ```
 
