@@ -423,12 +423,10 @@ const checkError = (error: unknown) => {
 
 ### Schema.Class for Domain Entities
 
-Use `Schema.Class` for domain entities. Reference: `repos/effect/packages/cluster/src/EntityAddress.ts`
+Use `Schema.Class` for domain entities. Equal and Hash are auto-implemented.
 
 ```typescript
 import * as Schema from "effect/Schema"
-import * as Equal from "effect/Equal"
-import * as Hash from "effect/Hash"
 
 export class Account extends Schema.Class<Account>("Account")({
   id: AccountId,
@@ -438,14 +436,9 @@ export class Account extends Schema.Class<Account>("Account")({
   normalBalance: Schema.Literal("Debit", "Credit"),
   isActive: Schema.Boolean
 }) {
-  // Optional: Implement Equal for value comparison
-  [Equal.symbol](that: Account): boolean {
-    return this.id === that.id
-  }
-
-  // Optional: Implement Hash for use in HashSet/HashMap
-  [Hash.symbol]() {
-    return Hash.cached(this, Hash.string(this.id))
+  // Add custom methods as needed
+  get isExpenseOrRevenue(): boolean {
+    return this.type === "Expense" || this.type === "Revenue"
   }
 }
 
@@ -470,6 +463,32 @@ export const Money = Schema.Struct({
 }).annotations({ identifier: "Money" })
 
 export type Money = typeof Money.Type
+```
+
+### Schema Decoding/Encoding - Use Effect Variants
+
+**NEVER** use `decodeUnknownSync` or `encodeUnknownSync` - they throw exceptions.
+Always use the Effect variants that return `Effect<A, ParseError>`:
+
+```typescript
+import * as Schema from "effect/Schema"
+import * as Effect from "effect/Effect"
+
+// WRONG - throws exceptions
+const account = Schema.decodeUnknownSync(Account)(data)  // DON'T DO THIS
+
+// CORRECT - returns Effect
+const accountEffect = Schema.decodeUnknown(Account)(data)  // Effect<Account, ParseError>
+
+// Usage in Effect.gen
+const program = Effect.gen(function* () {
+  const account = yield* Schema.decodeUnknown(Account)(data)
+  // account is now typed as Account
+  return account
+})
+
+// For encoding
+const encoded = yield* Schema.encode(Account)(account)  // Effect<AccountEncoded, ParseError>
 ```
 
 ### Using Effect.catchTag for Error Handling
@@ -538,12 +557,13 @@ export const AccountServiceLive = Layer.succeed(
 1. **Always search the reference repos** for patterns before implementing
 2. **Follow Effect conventions** from `repos/effect/packages/effect/src/`
 3. **Use Schema.TaggedError** for all domain errors - type guards via `Schema.is()`
-4. **Use Schema.Class** for domain entities - optionally add Equal and Hash
+4. **Use Schema.Class** for domain entities - Equal and Hash are auto-implemented
 5. **Use branded types** for IDs (AccountId, CompanyId, etc.)
 6. **Use BigDecimal** for all monetary calculations
 7. **Derive type guards** using `Schema.is(MySchema)` - never write manual type guards
-8. **Write tests** alongside implementation using `repos/effect/packages/vitest/`
-9. **Follow TanStack patterns** for API routes and server functions
+8. **NEVER use Sync variants** - use `Schema.decodeUnknown` not `decodeUnknownSync` (throws)
+9. **Write tests** alongside implementation using `repos/effect/packages/vitest/`
+10. **Follow TanStack patterns** for API routes and server functions
 
 ---
 
