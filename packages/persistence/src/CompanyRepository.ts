@@ -8,11 +8,11 @@
  */
 
 import * as Context from "effect/Context"
-import * as Effect from "effect/Effect"
-import * as Option from "effect/Option"
-import type { Company, CompanyId } from "@accountability/core/domain/Company.js"
-import type { OrganizationId } from "@accountability/core/domain/Organization.js"
-import type { EntityNotFoundError, PersistenceError } from "./RepositoryError.js"
+import type * as Effect from "effect/Effect"
+import type * as Option from "effect/Option"
+import type { Company, CompanyId } from "@accountability/core/domain/Company"
+import type { OrganizationId } from "@accountability/core/domain/Organization"
+import type { EntityNotFoundError, PersistenceError } from "./RepositoryError.ts"
 
 /**
  * CompanyRepository - Service interface for Company persistence

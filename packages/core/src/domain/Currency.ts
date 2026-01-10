@@ -8,7 +8,7 @@
  */
 
 import * as Schema from "effect/Schema"
-import { CurrencyCode } from "./CurrencyCode.js"
+import { CurrencyCode } from "./CurrencyCode.ts"
 
 /**
  * DecimalPlaces - Valid decimal places for currencies

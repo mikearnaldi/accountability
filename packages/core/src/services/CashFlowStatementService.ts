@@ -25,21 +25,22 @@ import * as Option from "effect/Option"
 import * as Order from "effect/Order"
 import * as ReadonlyArray from "effect/Array"
 import * as Schema from "effect/Schema"
+import type {
+  Account} from "../domain/Account.ts";
 import {
-  Account,
   AccountId,
   getNormalBalanceForType
-} from "../domain/Account.js"
-import { CompanyId } from "../domain/Company.js"
-import { CurrencyCode } from "../domain/CurrencyCode.js"
-import { LocalDate } from "../domain/LocalDate.js"
-import { MonetaryAmount } from "../domain/MonetaryAmount.js"
-import { Timestamp, nowEffect as timestampNowEffect } from "../domain/Timestamp.js"
+} from "../domain/Account.ts"
+import { CompanyId } from "../domain/Company.ts"
+import { CurrencyCode } from "../domain/CurrencyCode.ts"
+import { LocalDate } from "../domain/LocalDate.ts"
+import { MonetaryAmount } from "../domain/MonetaryAmount.ts"
+import { Timestamp, nowEffect as timestampNowEffect } from "../domain/Timestamp.ts"
+import type { JournalEntryWithLines } from "../domain/AccountBalance.ts"
 import {
-  JournalEntryWithLines,
   calculateBalance,
   calculatePeriodBalance
-} from "../domain/AccountBalance.js"
+} from "../domain/AccountBalance.ts"
 
 // =============================================================================
 // Error Types

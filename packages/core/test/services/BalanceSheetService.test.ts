@@ -17,24 +17,25 @@ import {
   isCompanyNotFoundError,
   isBalanceSheetNotBalancedError,
   getSectionDisplayName
-} from "../../src/services/BalanceSheetService.js"
+} from "../../src/services/BalanceSheetService.ts"
+import type {
+  AccountType,
+  AccountCategory} from "../../src/domain/Account.ts";
 import {
   Account,
   AccountId,
-  AccountType,
-  AccountCategory,
   getNormalBalanceForType
-} from "../../src/domain/Account.js"
-import { JournalEntry, JournalEntryId, UserId, EntryNumber } from "../../src/domain/JournalEntry.js"
-import { JournalEntryLine, JournalEntryLineId } from "../../src/domain/JournalEntryLine.js"
-import { JournalEntryWithLines } from "../../src/domain/AccountBalance.js"
-import { CompanyId } from "../../src/domain/Company.js"
-import { CurrencyCode } from "../../src/domain/CurrencyCode.js"
-import { MonetaryAmount } from "../../src/domain/MonetaryAmount.js"
-import { LocalDate } from "../../src/domain/LocalDate.js"
-import { FiscalPeriodRef } from "../../src/domain/FiscalPeriodRef.js"
-import { Timestamp } from "../../src/domain/Timestamp.js"
-import { AccountNumber } from "../../src/domain/AccountNumber.js"
+} from "../../src/domain/Account.ts"
+import { JournalEntry, JournalEntryId, UserId, EntryNumber } from "../../src/domain/JournalEntry.ts"
+import { JournalEntryLine, JournalEntryLineId } from "../../src/domain/JournalEntryLine.ts"
+import type { JournalEntryWithLines } from "../../src/domain/AccountBalance.ts"
+import { CompanyId } from "../../src/domain/Company.ts"
+import { CurrencyCode } from "../../src/domain/CurrencyCode.ts"
+import { MonetaryAmount } from "../../src/domain/MonetaryAmount.ts"
+import { LocalDate } from "../../src/domain/LocalDate.ts"
+import { FiscalPeriodRef } from "../../src/domain/FiscalPeriodRef.ts"
+import { Timestamp } from "../../src/domain/Timestamp.ts"
+import { AccountNumber } from "../../src/domain/AccountNumber.ts"
 
 describe("BalanceSheetService", () => {
   // Test UUIDs

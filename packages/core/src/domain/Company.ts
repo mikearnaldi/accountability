@@ -9,11 +9,11 @@
 
 import * as Schema from "effect/Schema"
 import * as Option from "effect/Option"
-import { CurrencyCode } from "./CurrencyCode.js"
-import { JurisdictionCode } from "./JurisdictionCode.js"
-import { Timestamp } from "./Timestamp.js"
-import { Percentage } from "./Percentage.js"
-import { OrganizationId } from "./Organization.js"
+import { CurrencyCode } from "./CurrencyCode.ts"
+import { JurisdictionCode } from "./JurisdictionCode.ts"
+import { Timestamp } from "./Timestamp.ts"
+import { Percentage } from "./Percentage.ts"
+import { OrganizationId } from "./Organization.ts"
 
 /**
  * CompanyId - Branded UUID string for company identification

@@ -15,8 +15,8 @@
 import * as BigDecimal from "effect/BigDecimal"
 import * as Effect from "effect/Effect"
 import * as Schema from "effect/Schema"
-import { CurrencyCode } from "./CurrencyCode.js"
-import { MonetaryAmount, multiply } from "./MonetaryAmount.js"
+import { CurrencyCode } from "./CurrencyCode.ts"
+import { MonetaryAmount, multiply } from "./MonetaryAmount.ts"
 
 /**
  * MissingExchangeRateError - Error when exchange rate is not provided for currency conversion

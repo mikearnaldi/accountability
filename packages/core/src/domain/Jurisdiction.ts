@@ -9,8 +9,8 @@
 
 import * as Schema from "effect/Schema"
 import * as Chunk from "effect/Chunk"
-import { JurisdictionCode, US, GB } from "./JurisdictionCode.js"
-import { CurrencyCode, USD, GBP } from "./CurrencyCode.js"
+import { JurisdictionCode, US, GB } from "./JurisdictionCode.ts"
+import { CurrencyCode, USD, GBP } from "./CurrencyCode.ts"
 
 // =============================================================================
 // TaxSettings - Configurable tax rules for a jurisdiction

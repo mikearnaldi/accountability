@@ -1040,7 +1040,7 @@
         "no_barrel_files": "Import from specific modules, not from index.ts re-exports",
         "note": "rewriteRelativeImportExtensions (TS 5.7+) rewrites .ts to .js in emitted files"
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "medium"
     },
     {

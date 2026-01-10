@@ -12,7 +12,7 @@ import * as Effect from "effect/Effect"
 import * as Order from "effect/Order"
 import * as ParseResult from "effect/ParseResult"
 import * as Schema from "effect/Schema"
-import { LocalDate } from "./LocalDate.js"
+import { LocalDate } from "./LocalDate.ts"
 
 /**
  * Timestamp - A Schema.Class wrapping DateTime.Utc for UTC timestamps

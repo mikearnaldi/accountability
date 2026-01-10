@@ -15,16 +15,17 @@
 import * as Schema from "effect/Schema"
 import * as Either from "effect/Either"
 import * as Option from "effect/Option"
+import type {
+  Account} from "./Account.ts";
 import {
-  Account,
   AccountId,
   AccountType,
   NormalBalance,
   CashFlowCategory,
   getNormalBalanceForType
-} from "./Account.js"
-import { AccountNumber, getAccountType as getAccountTypeFromNumber } from "./AccountNumber.js"
-import { CompanyId } from "./Company.js"
+} from "./Account.ts"
+import { AccountNumber, getAccountType as getAccountTypeFromNumber } from "./AccountNumber.ts"
+import { CompanyId } from "./Company.ts"
 
 /**
  * Error for account number not matching expected range for account type

@@ -8,20 +8,20 @@
  */
 
 import * as Context from "effect/Context"
-import * as Effect from "effect/Effect"
-import * as Option from "effect/Option"
+import type * as Effect from "effect/Effect"
+import type * as Option from "effect/Option"
 import type {
   ConsolidationGroup,
   ConsolidationGroupId
-} from "@accountability/core/domain/ConsolidationGroup.js"
+} from "@accountability/core/domain/ConsolidationGroup"
 import type {
   ConsolidationRun,
   ConsolidationRunId,
   ConsolidationRunStatus
-} from "@accountability/core/domain/ConsolidationRun.js"
-import type { OrganizationId } from "@accountability/core/domain/Organization.js"
-import type { FiscalPeriodRef } from "@accountability/core/domain/FiscalPeriodRef.js"
-import type { EntityNotFoundError, PersistenceError } from "./RepositoryError.js"
+} from "@accountability/core/domain/ConsolidationRun"
+import type { OrganizationId } from "@accountability/core/domain/Organization"
+import type { FiscalPeriodRef } from "@accountability/core/domain/FiscalPeriodRef"
+import type { EntityNotFoundError, PersistenceError } from "./RepositoryError.ts"
 
 /**
  * ConsolidationRepository - Service interface for ConsolidationGroup and ConsolidationRun persistence

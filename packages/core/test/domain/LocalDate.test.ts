@@ -23,7 +23,7 @@ import {
   endOfYear,
   isLeapYear,
   daysInMonth
-} from "../../src/domain/LocalDate.js"
+} from "../../src/domain/LocalDate.ts"
 import * as DateTime from "effect/DateTime"
 
 describe("LocalDate", () => {

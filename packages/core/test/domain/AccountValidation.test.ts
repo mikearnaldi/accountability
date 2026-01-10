@@ -20,18 +20,20 @@ import {
   validateAccounts,
   isValidAccount,
   getValidationErrors
-} from "../../src/domain/AccountValidation.js"
-import {
-  Account,
-  AccountId,
+} from "../../src/domain/AccountValidation.ts"
+import type {
   AccountType,
   AccountCategory,
   NormalBalance,
   CashFlowCategory
-} from "../../src/domain/Account.js"
-import { AccountNumber } from "../../src/domain/AccountNumber.js"
-import { CompanyId } from "../../src/domain/Company.js"
-import { Timestamp } from "../../src/domain/Timestamp.js"
+} from "../../src/domain/Account.ts";
+import {
+  Account,
+  AccountId
+} from "../../src/domain/Account.ts"
+import { AccountNumber } from "../../src/domain/AccountNumber.ts"
+import { CompanyId } from "../../src/domain/Company.ts"
+import { Timestamp } from "../../src/domain/Timestamp.ts"
 
 /**
  * Helper functions for creating test accounts

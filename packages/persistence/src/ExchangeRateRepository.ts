@@ -8,16 +8,16 @@
  */
 
 import * as Context from "effect/Context"
-import * as Effect from "effect/Effect"
-import * as Option from "effect/Option"
+import type * as Effect from "effect/Effect"
+import type * as Option from "effect/Option"
 import type {
   ExchangeRate,
   ExchangeRateId,
   RateType
-} from "@accountability/core/domain/ExchangeRate.js"
-import type { CurrencyCode } from "@accountability/core/domain/CurrencyCode.js"
-import type { LocalDate } from "@accountability/core/domain/LocalDate.js"
-import type { EntityNotFoundError, PersistenceError } from "./RepositoryError.js"
+} from "@accountability/core/domain/ExchangeRate"
+import type { CurrencyCode } from "@accountability/core/domain/CurrencyCode"
+import type { LocalDate } from "@accountability/core/domain/LocalDate"
+import type { EntityNotFoundError, PersistenceError } from "./RepositoryError.ts"
 
 /**
  * ExchangeRateRepository - Service interface for ExchangeRate persistence

@@ -1,11 +1,12 @@
 import { describe, it, expect } from "@effect/vitest"
 import { BigDecimal, Effect, Exit, Layer, Option } from "effect"
+import type {
+  RateNotFoundError} from "../../src/services/CurrencyService.ts";
 import {
   CurrencyService,
   CurrencyServiceWithRevaluationLive,
   ExchangeRateRepository,
   AccountBalanceRepository,
-  RateNotFoundError,
   NoForeignCurrencyBalancesError,
   UnrealizedGainLossAccountNotFoundError,
   isNoForeignCurrencyBalancesError,
@@ -21,17 +22,17 @@ import {
   type ExchangeRateRepositoryService,
   type AccountBalanceRepositoryService,
   type RevalueInput
-} from "../../src/services/CurrencyService.js"
-import { ExchangeRate, ExchangeRateId, Rate, type RateType } from "../../src/domain/ExchangeRate.js"
-import { CurrencyCode } from "../../src/domain/CurrencyCode.js"
-import { LocalDate } from "../../src/domain/LocalDate.js"
-import { Timestamp } from "../../src/domain/Timestamp.js"
-import { MonetaryAmount } from "../../src/domain/MonetaryAmount.js"
-import { JournalEntryId, UserId } from "../../src/domain/JournalEntry.js"
-import { JournalEntryLineId } from "../../src/domain/JournalEntryLine.js"
-import { FiscalPeriodRef } from "../../src/domain/FiscalPeriodRef.js"
-import type { AccountId } from "../../src/domain/Account.js"
-import type { CompanyId } from "../../src/domain/Company.js"
+} from "../../src/services/CurrencyService.ts"
+import { ExchangeRate, ExchangeRateId, Rate, type RateType } from "../../src/domain/ExchangeRate.ts"
+import { CurrencyCode } from "../../src/domain/CurrencyCode.ts"
+import { LocalDate } from "../../src/domain/LocalDate.ts"
+import { Timestamp } from "../../src/domain/Timestamp.ts"
+import { MonetaryAmount } from "../../src/domain/MonetaryAmount.ts"
+import type { JournalEntryId, UserId } from "../../src/domain/JournalEntry.ts"
+import type { JournalEntryLineId } from "../../src/domain/JournalEntryLine.ts"
+import { FiscalPeriodRef } from "../../src/domain/FiscalPeriodRef.ts"
+import type { AccountId } from "../../src/domain/Account.ts"
+import type { CompanyId } from "../../src/domain/Company.ts"
 
 describe("CurrencyService - Period-End Revaluation", () => {
   // Test data constants

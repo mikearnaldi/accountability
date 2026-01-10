@@ -18,15 +18,18 @@ import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import * as Array from "effect/Array"
 import * as Schema from "effect/Schema"
-import { JournalEntry, JournalEntryId, EntryNumber, UserId } from "../domain/JournalEntry.js"
-import { nowEffect as timestampNowEffect } from "../domain/Timestamp.js"
-import { today as localDateToday } from "../domain/LocalDate.js"
-import { JournalEntryLine, JournalEntryLineId } from "../domain/JournalEntryLine.js"
-import type { Account, AccountId } from "../domain/Account.js"
-import type { CompanyId } from "../domain/Company.js"
-import type { CurrencyCode } from "../domain/CurrencyCode.js"
-import type { FiscalPeriodRef } from "../domain/FiscalPeriodRef.js"
-import { validateBalance, UnbalancedEntryError } from "../domain/BalanceValidation.js"
+import type { JournalEntryId, UserId } from "../domain/JournalEntry.ts";
+import { JournalEntry, EntryNumber } from "../domain/JournalEntry.ts"
+import { nowEffect as timestampNowEffect } from "../domain/Timestamp.ts"
+import { today as localDateToday } from "../domain/LocalDate.ts"
+import type { JournalEntryLineId } from "../domain/JournalEntryLine.ts";
+import { JournalEntryLine } from "../domain/JournalEntryLine.ts"
+import type { Account, AccountId } from "../domain/Account.ts"
+import type { CompanyId } from "../domain/Company.ts"
+import type { CurrencyCode } from "../domain/CurrencyCode.ts"
+import type { FiscalPeriodRef } from "../domain/FiscalPeriodRef.ts"
+import type { UnbalancedEntryError } from "../domain/BalanceValidation.ts";
+import { validateBalance } from "../domain/BalanceValidation.ts"
 
 // =============================================================================
 // Error Types

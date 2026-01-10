@@ -31,11 +31,11 @@ import {
   isInvalidOwnershipPercentageError,
   isNCICalculationError,
   type SubsidiaryData
-} from "../../src/services/NCIService.js"
-import { CompanyId } from "../../src/domain/Company.js"
-import { CurrencyCode } from "../../src/domain/CurrencyCode.js"
-import { MonetaryAmount } from "../../src/domain/MonetaryAmount.js"
-import { Percentage } from "../../src/domain/Percentage.js"
+} from "../../src/services/NCIService.ts"
+import { CompanyId } from "../../src/domain/Company.ts"
+import { CurrencyCode } from "../../src/domain/CurrencyCode.ts"
+import { MonetaryAmount } from "../../src/domain/MonetaryAmount.ts"
+import { Percentage } from "../../src/domain/Percentage.ts"
 
 // =============================================================================
 // Test Helpers

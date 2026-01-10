@@ -9,9 +9,9 @@
 
 import * as BigDecimal from "effect/BigDecimal"
 import * as Schema from "effect/Schema"
-import { CurrencyCode } from "./CurrencyCode.js"
-import { LocalDate } from "./LocalDate.js"
-import { Timestamp } from "./Timestamp.js"
+import { CurrencyCode } from "./CurrencyCode.ts"
+import { LocalDate } from "./LocalDate.ts"
+import { Timestamp } from "./Timestamp.ts"
 
 /**
  * ExchangeRateId - Branded UUID string for exchange rate identification

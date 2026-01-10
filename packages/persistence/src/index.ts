@@ -20,40 +20,40 @@ export {
   ConcurrencyError,
   isConcurrencyError,
   type RepositoryError
-} from "./RepositoryError.js"
+} from "./RepositoryError.ts"
 
 // Company Repository
 export {
   CompanyRepository,
   type CompanyRepositoryService
-} from "./CompanyRepository.js"
+} from "./CompanyRepository.ts"
 
 // Account Repository
 export {
   AccountRepository,
   type AccountRepositoryService
-} from "./AccountRepository.js"
+} from "./AccountRepository.ts"
 
 // Journal Entry Repository
 export {
   JournalEntryRepository,
   type JournalEntryRepositoryService
-} from "./JournalEntryRepository.js"
+} from "./JournalEntryRepository.ts"
 
 // Exchange Rate Repository
 export {
   ExchangeRateRepository,
   type ExchangeRateRepositoryService
-} from "./ExchangeRateRepository.js"
+} from "./ExchangeRateRepository.ts"
 
 // Fiscal Period Repository
 export {
   FiscalPeriodRepository,
   type FiscalPeriodRepositoryService
-} from "./FiscalPeriodRepository.js"
+} from "./FiscalPeriodRepository.ts"
 
 // Consolidation Repository
 export {
   ConsolidationRepository,
   type ConsolidationRepositoryService
-} from "./ConsolidationRepository.js"
+} from "./ConsolidationRepository.ts"

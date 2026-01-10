@@ -23,15 +23,16 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
-import type { CompanyId } from "../domain/Company.js"
+import type { CompanyId } from "../domain/Company.ts"
 import {
   ConsolidationGroupId,
   type ConsolidationMember
-} from "../domain/ConsolidationGroup.js"
+} from "../domain/ConsolidationGroup.ts"
+import type {
+  ConsolidationRunOptions} from "../domain/ConsolidationRun.ts";
 import {
   ConsolidationRun,
   ConsolidationRunId,
-  ConsolidationRunOptions,
   ConsolidationStep,
   ConsolidatedTrialBalance,
   ConsolidatedTrialBalanceLineItem,
@@ -42,14 +43,15 @@ import {
   defaultConsolidationRunOptions,
   type ConsolidationStepType,
   type ConsolidationRunStatus
-} from "../domain/ConsolidationRun.js"
-import { CurrencyCode } from "../domain/CurrencyCode.js"
-import type { EliminationRule } from "../domain/EliminationRule.js"
-import { FiscalPeriodRef } from "../domain/FiscalPeriodRef.js"
-import { LocalDate } from "../domain/LocalDate.js"
-import { MonetaryAmount } from "../domain/MonetaryAmount.js"
-import { Timestamp, nowEffect as timestampNowEffect } from "../domain/Timestamp.js"
-import type { TrialBalanceReport } from "./TrialBalanceService.js"
+} from "../domain/ConsolidationRun.ts"
+import type { CurrencyCode } from "../domain/CurrencyCode.ts"
+import type { EliminationRule } from "../domain/EliminationRule.ts"
+import { FiscalPeriodRef } from "../domain/FiscalPeriodRef.ts"
+import type { LocalDate } from "../domain/LocalDate.ts"
+import { MonetaryAmount } from "../domain/MonetaryAmount.ts"
+import type { Timestamp} from "../domain/Timestamp.ts";
+import { nowEffect as timestampNowEffect } from "../domain/Timestamp.ts"
+import type { TrialBalanceReport } from "./TrialBalanceService.ts"
 
 // =============================================================================
 // Error Types
@@ -914,7 +916,7 @@ const executeStep = (
   repository: ConsolidationRepositoryService,
   options: ConsolidationRunOptions,
   aggregatedBalances: Chunk.Chunk<AggregatedBalance>,
-  validationResult: Option.Option<ValidationResult>
+  _validationResult: Option.Option<ValidationResult>
 ): Effect.Effect<StepExecutionResult, Error> => {
   switch (stepType) {
     case "Validate":

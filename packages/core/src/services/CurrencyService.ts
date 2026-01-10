@@ -19,16 +19,19 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
-import { ExchangeRate, ExchangeRateId, Rate, RateType, RateSource, getInverseRate } from "../domain/ExchangeRate.js"
-import { CurrencyCode } from "../domain/CurrencyCode.js"
-import { LocalDate } from "../domain/LocalDate.js"
-import { MonetaryAmount } from "../domain/MonetaryAmount.js"
-import { Timestamp, nowEffect as timestampNowEffect } from "../domain/Timestamp.js"
-import { JournalEntry, JournalEntryId, UserId } from "../domain/JournalEntry.js"
-import { JournalEntryLine, JournalEntryLineId } from "../domain/JournalEntryLine.js"
-import type { AccountId, AccountType } from "../domain/Account.js"
-import type { CompanyId } from "../domain/Company.js"
-import type { FiscalPeriodRef } from "../domain/FiscalPeriodRef.js"
+import type { ExchangeRateId, Rate, RateType, RateSource} from "../domain/ExchangeRate.ts";
+import { ExchangeRate, getInverseRate } from "../domain/ExchangeRate.ts"
+import { CurrencyCode } from "../domain/CurrencyCode.ts"
+import { LocalDate } from "../domain/LocalDate.ts"
+import { MonetaryAmount } from "../domain/MonetaryAmount.ts"
+import { Timestamp, nowEffect as timestampNowEffect } from "../domain/Timestamp.ts"
+import type { JournalEntryId, UserId } from "../domain/JournalEntry.ts";
+import { JournalEntry } from "../domain/JournalEntry.ts"
+import type { JournalEntryLineId } from "../domain/JournalEntryLine.ts";
+import { JournalEntryLine } from "../domain/JournalEntryLine.ts"
+import type { AccountId, AccountType } from "../domain/Account.ts"
+import type { CompanyId } from "../domain/Company.ts"
+import type { FiscalPeriodRef } from "../domain/FiscalPeriodRef.ts"
 
 // =============================================================================
 // Error Types

@@ -24,7 +24,7 @@ import {
   isICMatchResult,
   isNCICalculation,
   type ConsolidationRepositoryService
-} from "../../src/services/ConsolidationService.js"
+} from "../../src/services/ConsolidationService.ts"
 import {
   ConsolidationRun,
   ConsolidationRunId,
@@ -33,16 +33,16 @@ import {
   ValidationIssue,
   createInitialSteps,
   defaultConsolidationRunOptions
-} from "../../src/domain/ConsolidationRun.js"
-import { ConsolidationGroupId, ConsolidationMember } from "../../src/domain/ConsolidationGroup.js"
-import { CompanyId } from "../../src/domain/Company.js"
-import { CurrencyCode } from "../../src/domain/CurrencyCode.js"
-import { FiscalPeriodRef } from "../../src/domain/FiscalPeriodRef.js"
-import { LocalDate } from "../../src/domain/LocalDate.js"
-import { MonetaryAmount } from "../../src/domain/MonetaryAmount.js"
-import { Timestamp } from "../../src/domain/Timestamp.js"
-import { TrialBalanceLineItem, TrialBalanceReport, TrialBalanceReportMetadata } from "../../src/services/TrialBalanceService.js"
-import { AccountId } from "../../src/domain/Account.js"
+} from "../../src/domain/ConsolidationRun.ts"
+import { ConsolidationGroupId, ConsolidationMember } from "../../src/domain/ConsolidationGroup.ts"
+import { CompanyId } from "../../src/domain/Company.ts"
+import { CurrencyCode } from "../../src/domain/CurrencyCode.ts"
+import { FiscalPeriodRef } from "../../src/domain/FiscalPeriodRef.ts"
+import { LocalDate } from "../../src/domain/LocalDate.ts"
+import { MonetaryAmount } from "../../src/domain/MonetaryAmount.ts"
+import { Timestamp } from "../../src/domain/Timestamp.ts"
+import { TrialBalanceLineItem, TrialBalanceReport, TrialBalanceReportMetadata } from "../../src/services/TrialBalanceService.ts"
+import { AccountId } from "../../src/domain/Account.ts"
 
 // =============================================================================
 // Test Helpers

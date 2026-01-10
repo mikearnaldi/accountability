@@ -35,18 +35,18 @@ import {
   type AccountRepositoryService,
   type PeriodRepositoryService,
   type EntryNumberGeneratorService
-} from "../../src/services/JournalEntryService.js"
-import { JournalEntry, JournalEntryId, UserId, EntryNumber } from "../../src/domain/JournalEntry.js"
-import { JournalEntryLine, JournalEntryLineId } from "../../src/domain/JournalEntryLine.js"
-import { Account, AccountId, type AccountType, type AccountCategory, type NormalBalance } from "../../src/domain/Account.js"
-import { CompanyId } from "../../src/domain/Company.js"
-import { CurrencyCode } from "../../src/domain/CurrencyCode.js"
-import { FiscalPeriodRef } from "../../src/domain/FiscalPeriodRef.js"
-import { LocalDate } from "../../src/domain/LocalDate.js"
-import { Timestamp } from "../../src/domain/Timestamp.js"
-import { AccountNumber } from "../../src/domain/AccountNumber.js"
-import { MonetaryAmount } from "../../src/domain/MonetaryAmount.js"
-import { isUnbalancedEntryError } from "../../src/domain/BalanceValidation.js"
+} from "../../src/services/JournalEntryService.ts"
+import { JournalEntry, JournalEntryId, UserId, EntryNumber } from "../../src/domain/JournalEntry.ts"
+import { JournalEntryLine, JournalEntryLineId } from "../../src/domain/JournalEntryLine.ts"
+import { Account, AccountId, type AccountType, type AccountCategory, type NormalBalance } from "../../src/domain/Account.ts"
+import { CompanyId } from "../../src/domain/Company.ts"
+import { CurrencyCode } from "../../src/domain/CurrencyCode.ts"
+import { FiscalPeriodRef } from "../../src/domain/FiscalPeriodRef.ts"
+import { LocalDate } from "../../src/domain/LocalDate.ts"
+import { Timestamp } from "../../src/domain/Timestamp.ts"
+import { AccountNumber } from "../../src/domain/AccountNumber.ts"
+import { MonetaryAmount } from "../../src/domain/MonetaryAmount.ts"
+import { isUnbalancedEntryError } from "../../src/domain/BalanceValidation.ts"
 
 describe("JournalEntryService", () => {
   // Test data constants

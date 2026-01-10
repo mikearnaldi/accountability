@@ -7,7 +7,6 @@
     "rootDir": "src",
     "tsBuildInfoFile": ".tsbuildinfo/src.tsbuildinfo",
     "paths": {
-      "@accountability/core": ["../core/src/index.ts"],
       "@accountability/core/*": ["../core/src/*"],
       "@accountability/persistence": ["./src/index.ts"],
       "@accountability/persistence/*": ["./src/*"]

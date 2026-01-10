@@ -27,13 +27,13 @@ import {
   isConsolidatedTrialBalance,
   isConsolidationRunOptions,
   isConsolidationRun
-} from "../../src/domain/ConsolidationRun.js"
-import { ConsolidationGroupId } from "../../src/domain/ConsolidationGroup.js"
-import { CurrencyCode } from "../../src/domain/CurrencyCode.js"
-import { FiscalPeriodRef } from "../../src/domain/FiscalPeriodRef.js"
-import { LocalDate } from "../../src/domain/LocalDate.js"
-import { MonetaryAmount } from "../../src/domain/MonetaryAmount.js"
-import { Timestamp } from "../../src/domain/Timestamp.js"
+} from "../../src/domain/ConsolidationRun.ts"
+import { ConsolidationGroupId } from "../../src/domain/ConsolidationGroup.ts"
+import { CurrencyCode } from "../../src/domain/CurrencyCode.ts"
+import { FiscalPeriodRef } from "../../src/domain/FiscalPeriodRef.ts"
+import { LocalDate } from "../../src/domain/LocalDate.ts"
+import { MonetaryAmount } from "../../src/domain/MonetaryAmount.ts"
+import { Timestamp } from "../../src/domain/Timestamp.ts"
 
 // =============================================================================
 // Test Helpers

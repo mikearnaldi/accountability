@@ -16,10 +16,11 @@ import {
   isTriggerCondition,
   EliminationRule,
   isEliminationRule
-} from "../../src/domain/EliminationRule.js"
-import { AccountId, AccountCategory } from "../../src/domain/Account.js"
-import { AccountNumber } from "../../src/domain/AccountNumber.js"
-import { ConsolidationGroupId, EliminationRuleId } from "../../src/domain/ConsolidationGroup.js"
+} from "../../src/domain/EliminationRule.ts"
+import type { AccountCategory } from "../../src/domain/Account.ts";
+import { AccountId } from "../../src/domain/Account.ts"
+import { AccountNumber } from "../../src/domain/AccountNumber.ts"
+import { ConsolidationGroupId, EliminationRuleId } from "../../src/domain/ConsolidationGroup.ts"
 
 describe("EliminationType", () => {
   const validTypes: Array<typeof EliminationType.Type> = [

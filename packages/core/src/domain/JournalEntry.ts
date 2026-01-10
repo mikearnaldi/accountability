@@ -24,10 +24,10 @@
 
 import * as Schema from "effect/Schema"
 import * as Option from "effect/Option"
-import { CompanyId } from "./Company.js"
-import { FiscalPeriodRef } from "./FiscalPeriodRef.js"
-import { LocalDate } from "./LocalDate.js"
-import { Timestamp } from "./Timestamp.js"
+import { CompanyId } from "./Company.ts"
+import { FiscalPeriodRef } from "./FiscalPeriodRef.ts"
+import { LocalDate } from "./LocalDate.ts"
+import { Timestamp } from "./Timestamp.ts"
 
 /**
  * JournalEntryId - Branded UUID string for journal entry identification

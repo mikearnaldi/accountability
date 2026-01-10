@@ -1,7 +1,7 @@
 import { PgClient } from "@effect/sql-pg"
 import { expect, it } from "@effect/vitest"
 import { Effect } from "effect"
-import { PgContainer } from "./utils.js"
+import { PgContainer } from "./utils.ts"
 
 it.layer(PgContainer.ClientLive, { timeout: "30 seconds" })("PgContainer", (it) => {
   it.effect("creates table, inserts row, and queries it back", () =>

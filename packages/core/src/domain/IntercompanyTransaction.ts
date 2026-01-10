@@ -25,11 +25,11 @@
 
 import * as Schema from "effect/Schema"
 import * as Option from "effect/Option"
-import { CompanyId } from "./Company.js"
-import { JournalEntryId } from "./JournalEntry.js"
-import { LocalDate } from "./LocalDate.js"
-import { MonetaryAmount } from "./MonetaryAmount.js"
-import { Timestamp } from "./Timestamp.js"
+import { CompanyId } from "./Company.ts"
+import { JournalEntryId } from "./JournalEntry.ts"
+import { LocalDate } from "./LocalDate.ts"
+import { MonetaryAmount } from "./MonetaryAmount.ts"
+import { Timestamp } from "./Timestamp.ts"
 
 /**
  * IntercompanyTransactionId - Branded UUID string for intercompany transaction identification

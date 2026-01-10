@@ -23,11 +23,11 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
-import type { AccountType } from "../domain/Account.js"
-import type { CompanyId } from "../domain/Company.js"
-import { CurrencyCode } from "../domain/CurrencyCode.js"
-import { LocalDate } from "../domain/LocalDate.js"
-import { MonetaryAmount } from "../domain/MonetaryAmount.js"
+import type { AccountType } from "../domain/Account.ts"
+import type { CompanyId } from "../domain/Company.ts"
+import { CurrencyCode } from "../domain/CurrencyCode.ts"
+import { LocalDate } from "../domain/LocalDate.ts"
+import { MonetaryAmount } from "../domain/MonetaryAmount.ts"
 
 // =============================================================================
 // Error Types

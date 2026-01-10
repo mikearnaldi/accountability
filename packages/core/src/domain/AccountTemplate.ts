@@ -24,10 +24,10 @@ import {
   NormalBalance,
   CashFlowCategory,
   getNormalBalanceForType
-} from "./Account.js"
-import { AccountNumber } from "./AccountNumber.js"
-import { CompanyId } from "./Company.js"
-import { Timestamp } from "./Timestamp.js"
+} from "./Account.ts"
+import { AccountNumber } from "./AccountNumber.ts"
+import type { CompanyId } from "./Company.ts"
+import { Timestamp } from "./Timestamp.ts"
 
 /**
  * TemplateAccountDefinition - Definition for an account within a template

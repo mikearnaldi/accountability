@@ -14,8 +14,8 @@
  * @module ConsolidationMethodDetermination
  */
 
-import type { ConsolidationMethod } from "./Company.js"
-import type { Percentage } from "./Percentage.js"
+import type { ConsolidationMethod } from "./Company.ts"
+import type { Percentage } from "./Percentage.ts"
 
 /**
  * Threshold for full consolidation (majority ownership)

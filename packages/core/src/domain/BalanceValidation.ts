@@ -17,9 +17,9 @@ import * as Effect from "effect/Effect"
 import * as Option from "effect/Option"
 import * as ReadonlyArray from "effect/Array"
 import * as Schema from "effect/Schema"
-import { CurrencyCode } from "./CurrencyCode.js"
-import { JournalEntryLine } from "./JournalEntryLine.js"
-import { MonetaryAmount } from "./MonetaryAmount.js"
+import type { CurrencyCode } from "./CurrencyCode.ts"
+import type { JournalEntryLine } from "./JournalEntryLine.ts"
+import { MonetaryAmount } from "./MonetaryAmount.ts"
 
 /**
  * UnbalancedEntryError - Error when journal entry debits do not equal credits

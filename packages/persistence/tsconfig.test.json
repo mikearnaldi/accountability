@@ -6,8 +6,9 @@
     "rootDir": ".",
     "tsBuildInfoFile": ".tsbuildinfo/test.tsbuildinfo",
     "noEmit": true,
+    "rewriteRelativeImportExtensions": false,
+    "allowImportingTsExtensions": true,
     "paths": {
-      "@accountability/core": ["../core/src/index.ts"],
       "@accountability/core/*": ["../core/src/*"],
       "@accountability/persistence": ["./src/index.ts"],
       "@accountability/persistence/*": ["./src/*"]

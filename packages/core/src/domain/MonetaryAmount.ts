@@ -11,9 +11,9 @@
 import * as BigDecimal from "effect/BigDecimal"
 import * as Effect from "effect/Effect"
 import * as Option from "effect/Option"
-import * as ParseResult from "effect/ParseResult"
+import type * as ParseResult from "effect/ParseResult"
 import * as Schema from "effect/Schema"
-import { CurrencyCode, isCurrencyCode } from "./CurrencyCode.js"
+import { CurrencyCode, isCurrencyCode } from "./CurrencyCode.ts"
 
 /**
  * Minimum decimal precision for monetary amounts

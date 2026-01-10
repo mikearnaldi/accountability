@@ -25,12 +25,13 @@
 import * as BigDecimal from "effect/BigDecimal"
 import * as Option from "effect/Option"
 import * as ReadonlyArray from "effect/Array"
-import { AccountId, NormalBalance } from "./Account.js"
-import { CurrencyCode } from "./CurrencyCode.js"
-import { JournalEntry } from "./JournalEntry.js"
-import { JournalEntryLine } from "./JournalEntryLine.js"
-import { LocalDate, isBefore, isAfter, equals as dateEquals } from "./LocalDate.js"
-import { MonetaryAmount } from "./MonetaryAmount.js"
+import type { AccountId, NormalBalance } from "./Account.ts"
+import type { CurrencyCode } from "./CurrencyCode.ts"
+import type { JournalEntry } from "./JournalEntry.ts"
+import type { JournalEntryLine } from "./JournalEntryLine.ts"
+import type { LocalDate} from "./LocalDate.ts";
+import { isBefore, isAfter, equals as dateEquals } from "./LocalDate.ts"
+import { MonetaryAmount } from "./MonetaryAmount.ts"
 
 /**
  * Input data for balance calculations.
@@ -87,7 +88,7 @@ const filterPostedEntries = (
  */
 const sumAccountDebits = (
   lines: ReadonlyArray<JournalEntryLine>,
-  currency: CurrencyCode
+  _currency: CurrencyCode
 ): BigDecimal.BigDecimal =>
   ReadonlyArray.reduce(lines, BigDecimal.fromBigInt(0n), (total, line) =>
     Option.match(line.functionalCurrencyDebitAmount, {
@@ -105,7 +106,7 @@ const sumAccountDebits = (
  */
 const sumAccountCredits = (
   lines: ReadonlyArray<JournalEntryLine>,
-  currency: CurrencyCode
+  _currency: CurrencyCode
 ): BigDecimal.BigDecimal =>
   ReadonlyArray.reduce(lines, BigDecimal.fromBigInt(0n), (total, line) =>
     Option.match(line.functionalCurrencyCreditAmount, {

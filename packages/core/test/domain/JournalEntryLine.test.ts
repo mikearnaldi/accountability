@@ -11,12 +11,12 @@ import {
   isJournalEntryLine,
   InvalidDebitCreditError,
   isInvalidDebitCreditError
-} from "../../src/domain/JournalEntryLine.js"
-import { AccountId } from "../../src/domain/Account.js"
-import { CompanyId } from "../../src/domain/Company.js"
-import { CurrencyCode } from "../../src/domain/CurrencyCode.js"
-import { JournalEntryId } from "../../src/domain/JournalEntry.js"
-import { MonetaryAmount } from "../../src/domain/MonetaryAmount.js"
+} from "../../src/domain/JournalEntryLine.ts"
+import { AccountId } from "../../src/domain/Account.ts"
+import { CompanyId } from "../../src/domain/Company.ts"
+import { CurrencyCode } from "../../src/domain/CurrencyCode.ts"
+import { JournalEntryId } from "../../src/domain/JournalEntry.ts"
+import { MonetaryAmount } from "../../src/domain/MonetaryAmount.ts"
 
 describe("JournalEntryLineId", () => {
   const validUUID = "550e8400-e29b-41d4-a716-446655440000"

@@ -9,8 +9,8 @@
  */
 
 import * as Schema from "effect/Schema"
-import { CurrencyCode } from "./CurrencyCode.js"
-import { Timestamp } from "./Timestamp.js"
+import { CurrencyCode } from "./CurrencyCode.ts"
+import { Timestamp } from "./Timestamp.ts"
 
 /**
  * OrganizationId - Branded UUID string for organization identification

@@ -8,9 +8,9 @@ import {
   isOrganizationSettings,
   Organization,
   isOrganization
-} from "../../src/domain/Organization.js"
-import { USD, EUR, GBP } from "../../src/domain/CurrencyCode.js"
-import { Timestamp } from "../../src/domain/Timestamp.js"
+} from "../../src/domain/Organization.ts"
+import { USD, EUR, GBP } from "../../src/domain/CurrencyCode.ts"
+import { Timestamp } from "../../src/domain/Timestamp.ts"
 
 describe("OrganizationId", () => {
   const validUUID = "550e8400-e29b-41d4-a716-446655440000"

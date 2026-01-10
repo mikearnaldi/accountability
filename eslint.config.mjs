@@ -3,6 +3,87 @@ import tsParser from "@typescript-eslint/parser"
 import tsPlugin from "@typescript-eslint/eslint-plugin"
 import prettierConfig from "eslint-config-prettier"
 
+/**
+ * Custom ESLint rule to enforce import extension conventions:
+ * - Relative imports (./foo or ../foo) must use .ts extension
+ * - Package imports (effect/Schema, @effect/sql) must be extensionless
+ */
+const importExtensionsRule = {
+  meta: {
+    type: "problem",
+    docs: {
+      description: "Enforce .ts extension for relative imports and no extension for package imports"
+    },
+    messages: {
+      relativeRequiresTs: "Relative imports must use .ts extension. Change '{{source}}' to '{{source}}.ts'",
+      relativeNoJs: "Relative imports must use .ts extension, not .js. Change '{{source}}' to '{{fixed}}'",
+      packageNoExtension: "Package imports must not have an extension. Change '{{source}}' to '{{fixed}}'"
+    },
+    schema: []
+  },
+  create(context) {
+    function checkImportSource(node, source) {
+      if (!source || typeof source !== "string") return
+
+      const isRelative = source.startsWith("./") || source.startsWith("../")
+
+      if (isRelative) {
+        // Relative imports must use .ts
+        if (source.endsWith(".js")) {
+          const fixed = source.replace(/\.js$/, ".ts")
+          context.report({
+            node,
+            messageId: "relativeNoJs",
+            data: { source, fixed }
+          })
+        } else if (!source.endsWith(".ts") && !source.endsWith(".json")) {
+          // Missing extension on relative import
+          context.report({
+            node,
+            messageId: "relativeRequiresTs",
+            data: { source }
+          })
+        }
+      } else {
+        // Package imports must be extensionless
+        if (source.endsWith(".ts") || source.endsWith(".js")) {
+          const fixed = source.replace(/\.(ts|js)$/, "")
+          context.report({
+            node,
+            messageId: "packageNoExtension",
+            data: { source, fixed }
+          })
+        }
+      }
+    }
+
+    return {
+      ImportDeclaration(node) {
+        checkImportSource(node, node.source?.value)
+      },
+      ImportExpression(node) {
+        if (node.source?.type === "Literal") {
+          checkImportSource(node, node.source.value)
+        }
+      },
+      ExportNamedDeclaration(node) {
+        if (node.source) {
+          checkImportSource(node, node.source.value)
+        }
+      },
+      ExportAllDeclaration(node) {
+        checkImportSource(node, node.source?.value)
+      }
+    }
+  }
+}
+
+const importExtensionsPlugin = {
+  rules: {
+    "import-extensions": importExtensionsRule
+  }
+}
+
 export default [
   {
     ignores: [
@@ -24,10 +105,13 @@ export default [
       }
     },
     plugins: {
-      "@typescript-eslint": tsPlugin
+      "@typescript-eslint": tsPlugin,
+      "local": importExtensionsPlugin
     },
     rules: {
       ...tsPlugin.configs.recommended.rules,
+      // Import extension conventions
+      "local/import-extensions": "error",
       // Allow unused variables starting with underscore
       "no-unused-vars": "off",
       "@typescript-eslint/no-unused-vars": [
@@ -42,6 +126,8 @@ export default [
       "@typescript-eslint/no-empty-object-type": "off",
       "@typescript-eslint/ban-ts-comment": "off",
       "@typescript-eslint/no-namespace": "off",
+      // Effect pattern: export both Schema constant and Type type with same name
+      "no-redeclare": "off",
       // Effect uses generator functions that may not have explicit yield
       "require-yield": "off",
       // Prefer const assertions

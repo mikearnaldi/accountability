@@ -8,17 +8,17 @@
  */
 
 import * as Context from "effect/Context"
-import * as Effect from "effect/Effect"
-import * as Option from "effect/Option"
+import type * as Effect from "effect/Effect"
+import type * as Option from "effect/Option"
 import type {
   FiscalYear,
   FiscalYearId,
   FiscalPeriod,
   FiscalPeriodId,
   FiscalPeriodStatus
-} from "@accountability/core/services/PeriodService.js"
-import type { CompanyId } from "@accountability/core/domain/Company.js"
-import type { EntityNotFoundError, PersistenceError } from "./RepositoryError.js"
+} from "@accountability/core/services/PeriodService"
+import type { CompanyId } from "@accountability/core/domain/Company"
+import type { EntityNotFoundError, PersistenceError } from "./RepositoryError.ts"
 
 /**
  * FiscalPeriodRepository - Service interface for FiscalYear and FiscalPeriod persistence

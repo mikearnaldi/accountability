@@ -22,11 +22,11 @@
 import * as BigDecimal from "effect/BigDecimal"
 import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
-import { AccountId } from "./Account.js"
-import { CompanyId } from "./Company.js"
-import { CurrencyCode } from "./CurrencyCode.js"
-import { JournalEntryId } from "./JournalEntry.js"
-import { MonetaryAmount } from "./MonetaryAmount.js"
+import { AccountId } from "./Account.ts"
+import { CompanyId } from "./Company.ts"
+import type { CurrencyCode } from "./CurrencyCode.ts"
+import { JournalEntryId } from "./JournalEntry.ts"
+import { MonetaryAmount } from "./MonetaryAmount.ts"
 
 /**
  * JournalEntryLineId - Branded UUID string for journal entry line identification

@@ -1269,7 +1269,7 @@ export class PgContainer extends Effect.Service<PgContainer>()("test/PgContainer
 import { it, expect } from "@effect/vitest"
 import { PgClient } from "@effect/sql-pg"
 import { Effect } from "effect"
-import { PgContainer } from "./utils.js"
+import { PgContainer } from "./utils.ts"
 
 // Use it.layer with 30s timeout (container startup is slow)
 it.layer(PgContainer.ClientLive, { timeout: "30 seconds" })("AccountRepository", (it) => {

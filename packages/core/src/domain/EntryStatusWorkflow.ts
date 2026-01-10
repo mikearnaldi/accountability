@@ -23,7 +23,7 @@ import * as Effect from "effect/Effect"
 import * as Match from "effect/Match"
 import * as Array from "effect/Array"
 import * as Option from "effect/Option"
-import type { JournalEntryStatus } from "./JournalEntry.js"
+import type { JournalEntryStatus } from "./JournalEntry.ts"
 
 /**
  * StatusTransition - Represents a single allowed status transition

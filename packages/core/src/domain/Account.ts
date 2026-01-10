@@ -21,10 +21,10 @@
 
 import * as Schema from "effect/Schema"
 import * as Option from "effect/Option"
-import { AccountNumber } from "./AccountNumber.js"
-import { CompanyId } from "./Company.js"
-import { CurrencyCode } from "./CurrencyCode.js"
-import { Timestamp } from "./Timestamp.js"
+import { AccountNumber } from "./AccountNumber.ts"
+import { CompanyId } from "./Company.ts"
+import { CurrencyCode } from "./CurrencyCode.ts"
+import { Timestamp } from "./Timestamp.ts"
 
 /**
  * AccountId - Branded UUID string for account identification

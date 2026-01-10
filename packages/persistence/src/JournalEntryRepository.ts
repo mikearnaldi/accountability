@@ -8,17 +8,17 @@
  */
 
 import * as Context from "effect/Context"
-import * as Effect from "effect/Effect"
-import * as Option from "effect/Option"
+import type * as Effect from "effect/Effect"
+import type * as Option from "effect/Option"
 import type {
   JournalEntry,
   JournalEntryId,
   JournalEntryStatus,
   JournalEntryType
-} from "@accountability/core/domain/JournalEntry.js"
-import type { CompanyId } from "@accountability/core/domain/Company.js"
-import type { FiscalPeriodRef } from "@accountability/core/domain/FiscalPeriodRef.js"
-import type { EntityNotFoundError, PersistenceError } from "./RepositoryError.js"
+} from "@accountability/core/domain/JournalEntry"
+import type { CompanyId } from "@accountability/core/domain/Company"
+import type { FiscalPeriodRef } from "@accountability/core/domain/FiscalPeriodRef"
+import type { EntityNotFoundError, PersistenceError } from "./RepositoryError.ts"
 
 /**
  * JournalEntryRepository - Service interface for JournalEntry persistence

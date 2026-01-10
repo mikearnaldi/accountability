@@ -14,7 +14,7 @@ import {
   CNY,
   HKD,
   SGD
-} from "../../src/domain/CurrencyCode.js"
+} from "../../src/domain/CurrencyCode.ts"
 
 describe("CurrencyCode", () => {
   describe("validation", () => {

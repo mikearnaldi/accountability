@@ -19,17 +19,17 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
-import { CompanyId } from "../domain/Company.js"
-import { ConsolidationGroupId } from "../domain/ConsolidationGroup.js"
-import { FiscalPeriodRef } from "../domain/FiscalPeriodRef.js"
+import { CompanyId } from "../domain/Company.ts"
+import { ConsolidationGroupId } from "../domain/ConsolidationGroup.ts"
+import { FiscalPeriodRef } from "../domain/FiscalPeriodRef.ts"
 import {
   IntercompanyTransaction,
   IntercompanyTransactionId,
   type MatchingStatus
-} from "../domain/IntercompanyTransaction.js"
-import { LocalDate, diffInDays } from "../domain/LocalDate.js"
-import { MonetaryAmount, subtract } from "../domain/MonetaryAmount.js"
-import { Timestamp, nowEffect } from "../domain/Timestamp.js"
+} from "../domain/IntercompanyTransaction.ts"
+import { LocalDate, diffInDays } from "../domain/LocalDate.ts"
+import { MonetaryAmount, subtract } from "../domain/MonetaryAmount.ts"
+import { Timestamp, nowEffect } from "../domain/Timestamp.ts"
 
 // =============================================================================
 // Error Types

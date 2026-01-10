@@ -20,12 +20,12 @@
 import * as Schema from "effect/Schema"
 import * as Chunk from "effect/Chunk"
 import * as Option from "effect/Option"
-import { ConsolidationGroupId } from "./ConsolidationGroup.js"
-import { CurrencyCode } from "./CurrencyCode.js"
-import { FiscalPeriodRef } from "./FiscalPeriodRef.js"
-import { LocalDate } from "./LocalDate.js"
-import { MonetaryAmount } from "./MonetaryAmount.js"
-import { Timestamp } from "./Timestamp.js"
+import { ConsolidationGroupId } from "./ConsolidationGroup.ts"
+import { CurrencyCode } from "./CurrencyCode.ts"
+import { FiscalPeriodRef } from "./FiscalPeriodRef.ts"
+import { LocalDate } from "./LocalDate.ts"
+import { MonetaryAmount } from "./MonetaryAmount.ts"
+import { Timestamp } from "./Timestamp.ts"
 
 // =============================================================================
 // ConsolidationRunId
@@ -299,6 +299,8 @@ export class ConsolidationStep extends Schema.Class<ConsolidationStep>("Consolid
         return "Calculate Minority Interest"
       case "GenerateTB":
         return "Generate Consolidated TB"
+      default:
+        return this.stepType
     }
   }
 }

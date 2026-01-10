@@ -11,9 +11,9 @@ import {
   createSameCurrencyResult,
   createMultiCurrencyResult,
   validateExchangeRate
-} from "../../src/domain/MultiCurrencyLineHandling.js"
-import { CurrencyCode } from "../../src/domain/CurrencyCode.js"
-import { MonetaryAmount } from "../../src/domain/MonetaryAmount.js"
+} from "../../src/domain/MultiCurrencyLineHandling.ts"
+import { CurrencyCode } from "../../src/domain/CurrencyCode.ts"
+import { MonetaryAmount } from "../../src/domain/MonetaryAmount.ts"
 
 describe("MultiCurrencyLineHandling", () => {
   const usdCurrency = CurrencyCode.make("USD")

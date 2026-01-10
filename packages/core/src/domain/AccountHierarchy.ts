@@ -12,7 +12,7 @@ import * as Option from "effect/Option"
 import * as Array from "effect/Array"
 import * as Chunk from "effect/Chunk"
 import * as Either from "effect/Either"
-import { Account, AccountId, AccountType } from "./Account.js"
+import { Account, AccountId, AccountType } from "./Account.ts"
 
 /**
  * Encoded type interface for AccountNode (required for recursive Schema)

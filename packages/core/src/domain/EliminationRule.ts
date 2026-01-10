@@ -26,9 +26,9 @@
 
 import * as Schema from "effect/Schema"
 import * as Chunk from "effect/Chunk"
-import { AccountId, AccountCategory } from "./Account.js"
-import { AccountNumber } from "./AccountNumber.js"
-import { ConsolidationGroupId, EliminationRuleId } from "./ConsolidationGroup.js"
+import { AccountId, AccountCategory } from "./Account.ts"
+import { AccountNumber } from "./AccountNumber.ts"
+import { ConsolidationGroupId, EliminationRuleId } from "./ConsolidationGroup.ts"
 
 /**
  * EliminationType - Classification of elimination rule types
