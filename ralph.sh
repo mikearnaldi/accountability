@@ -282,19 +282,17 @@ run_iteration() {
 
         # Run CI checks before committing
         if run_ci_checks; then
-            # Commit the changes
+            # Update prd.json and progress log BEFORE committing so they're included
+            update_story_status "$story_id" "complete"
+
+            echo "" >> "$PROGRESS_FILE"
+            echo "## Iteration $iteration - $(date '+%Y-%m-%d %H:%M')" >> "$PROGRESS_FILE"
+            echo "**Story**: $story_id - $story_title" >> "$PROGRESS_FILE"
+            echo "**Status**: complete" >> "$PROGRESS_FILE"
+            echo "---" >> "$PROGRESS_FILE"
+
+            # Commit the changes (includes code, prd.json, and progress.txt)
             if commit_story "$story_id" "$story_title" "$story_phase" "$iteration"; then
-                # Mark story as complete
-                update_story_status "$story_id" "complete"
-
-                # Append to progress log
-                echo "" >> "$PROGRESS_FILE"
-                echo "## Iteration $iteration - $(date '+%Y-%m-%d %H:%M')" >> "$PROGRESS_FILE"
-                echo "**Story**: $story_id - $story_title" >> "$PROGRESS_FILE"
-                echo "**Status**: complete" >> "$PROGRESS_FILE"
-                echo "**Commit**: $(git rev-parse --short HEAD)" >> "$PROGRESS_FILE"
-                echo "---" >> "$PROGRESS_FILE"
-
                 log "SUCCESS" "Story $story_id completed and committed"
             else
                 log "ERROR" "Failed to commit story $story_id"
