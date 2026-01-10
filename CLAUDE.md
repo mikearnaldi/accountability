@@ -532,21 +532,84 @@ export class AccountService extends Context.Tag("AccountService")<
   AccountService,
   AccountService
 >() {}
+```
 
-// Live implementation
-export const AccountServiceLive = Layer.succeed(
-  AccountService,
-  AccountService.of({
+### Creating Layers - Use Layer.effect or Layer.scoped
+
+**Avoid** `Layer.succeed` and `Tag.of` - they're rarely needed.
+
+**Layer.effect** - When the service creation is effectful but doesn't need cleanup:
+
+```typescript
+// make function returns Effect<AccountService, Error, Dependencies>
+const make = Effect.gen(function* () {
+  const config = yield* Config
+  const sql = yield* SqlClient.SqlClient
+
+  return {
     findById: (id) => Effect.gen(function* () {
-      // implementation
+      const rows = yield* sql`SELECT * FROM accounts WHERE id = ${id}`
+      // ...
     }),
     findAll: () => Effect.gen(function* () {
-      // implementation
+      // ...
     }),
     create: (account) => Effect.gen(function* () {
-      // implementation
+      // ...
     })
-  })
+  }
+})
+
+// Layer using Layer.effect
+export const AccountServiceLive: Layer.Layer<
+  AccountService,
+  ConfigError,
+  Config | SqlClient.SqlClient
+> = Layer.effect(AccountService, make)
+```
+
+**Layer.scoped** - When the service needs resource cleanup (connections, subscriptions, etc.):
+
+```typescript
+// make function returns Effect<AccountService, Error, Scope | Dependencies>
+const make = Effect.gen(function* () {
+  const sql = yield* SqlClient.SqlClient
+
+  // Acquire resources that need cleanup
+  const connection = yield* Effect.acquireRelease(
+    sql.reserve,
+    (conn) => conn.release
+  )
+
+  return {
+    findById: (id) => Effect.gen(function* () {
+      // use connection
+    }),
+    // ...
+  }
+})
+
+// Layer using Layer.scoped - automatically handles Scope
+export const AccountServiceLive: Layer.Layer<
+  AccountService,
+  SqlError,
+  SqlClient.SqlClient
+> = Layer.scoped(AccountService, make)
+```
+
+**Composing layers:**
+
+```typescript
+// Provide dependencies to a layer
+export const AccountServiceWithDeps = AccountServiceLive.pipe(
+  Layer.provide(SqlClientLive),
+  Layer.provide(ConfigLive)
+)
+
+// Or use Layer.provideMerge to keep dependencies in context
+export const FullLayer = Layer.provideMerge(
+  AccountServiceLive,
+  SqlClientLive
 )
 ```
 
