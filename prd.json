@@ -809,7 +809,7 @@
         "Reporting currency for consolidated statements",
         "100% test coverage"
       ],
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "medium"
     },
     {

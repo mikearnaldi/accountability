@@ -249,3 +249,8 @@
 **Story**: 3.5.2 - Replace Array/ReadonlyArray with Chunk in domain models
 **Status**: complete
 ---
+
+## Iteration 2 - 2026-01-10 21:30
+**Story**: 4.1.1 - Implement consolidation group entity
+**Status**: complete
+---
