@@ -49,3 +49,8 @@
 **Story**: 1.2.2 - Implement CurrencyCode value object
 **Status**: complete
 ---
+
+## Iteration 3 - 2026-01-10 12:51
+**Story**: 1.2.3 - Implement AccountNumber value object
+**Status**: complete
+---
