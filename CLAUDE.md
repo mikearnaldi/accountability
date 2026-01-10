@@ -540,6 +540,31 @@ const id = AccountId.make("acc_123")
 const fromDb = AccountId.make(row.id, { disableValidation: true })
 ```
 
+### Never Use *FromSelf Schemas
+
+**Never use `*FromSelf` schemas** like `Schema.OptionFromSelf`, `Schema.EitherFromSelf`, `Schema.ChunkFromSelf`, etc. These are for advanced use cases where you need to work with the runtime representation directly.
+
+```typescript
+// WRONG - don't use *FromSelf variants
+export class Account extends Schema.Class<Account>("Account")({
+  id: AccountId,
+  parentId: Schema.OptionFromSelf(AccountId)  // NO!
+}) {}
+
+// CORRECT - use the standard variants
+export class Account extends Schema.Class<Account>("Account")({
+  id: AccountId,
+  parentId: Schema.Option(AccountId)  // YES - encodes to JSON properly
+}) {}
+```
+
+**Why:**
+- `Schema.Option(X)` encodes to `{ _tag: "Some", value: X } | { _tag: "None" }` - JSON serializable
+- `Schema.OptionFromSelf(X)` expects the runtime `Option` type - not JSON serializable
+- Same applies to `Either`, `Chunk`, `List`, `HashMap`, `HashSet`, etc.
+
+Use the standard schema variants for all domain models.
+
 ### Schema.TaggedError for Domain Errors
 
 Use `Schema.TaggedError` for all domain errors. Schema automatically provides type guards via `Schema.is()`.
