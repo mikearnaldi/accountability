@@ -44,3 +44,8 @@
 **Story**: 1.2.1 - Implement MonetaryAmount value object
 **Status**: complete
 ---
+
+## Iteration 2 - 2026-01-10 12:48
+**Story**: 1.2.2 - Implement CurrencyCode value object
+**Status**: complete
+---
