@@ -375,29 +375,18 @@ export const make = (id: string): AccountId => id as AccountId
 
 ### Schema.TaggedError for Domain Errors
 
-Use `Schema.TaggedError` for all domain errors. Reference: `repos/effect/packages/cluster/src/ClusterError.ts`
+Use `Schema.TaggedError` for all domain errors. Schema automatically provides type guards via `Schema.is()`.
 
 ```typescript
 import * as Schema from "effect/Schema"
-import { hasProperty, isTagged } from "effect/Predicate"
+import * as Effect from "effect/Effect"
+import * as Cause from "effect/Cause"
 
-// TypeId for the error module
-export const TypeId: unique symbol = Symbol.for("@accountability/core/AccountError")
-export type TypeId = typeof TypeId
-
-// Define the error
+// Simple error with fields
 export class AccountNotFound extends Schema.TaggedError<AccountNotFound>()(
   "AccountNotFound",
   { accountId: AccountId }
 ) {
-  // Add TypeId to all errors in this module
-  readonly [TypeId] = TypeId
-
-  // Type guard - REQUIRED for all errors
-  static is(u: unknown): u is AccountNotFound {
-    return hasProperty(u, TypeId) && isTagged(u, "AccountNotFound")
-  }
-
   // Optional: custom message getter
   get message(): string {
     return `Account not found: ${this.accountId}`
@@ -409,8 +398,6 @@ export class PersistenceError extends Schema.TaggedError<PersistenceError>()(
   "PersistenceError",
   { cause: Schema.Defect }
 ) {
-  readonly [TypeId] = TypeId
-
   // Helper to wrap effects that may fail
   static refail<A, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<A, PersistenceError, R> {
     return Effect.catchAllCause(effect, (cause) =>
@@ -422,9 +409,16 @@ export class PersistenceError extends Schema.TaggedError<PersistenceError>()(
 // Union type for all errors in module
 export type AccountError = AccountNotFound | PersistenceError
 
-// Type guard for the module
-export const isAccountError = (u: unknown): u is AccountError =>
-  hasProperty(u, TypeId)
+// Type guards are automatically derived using Schema.is()
+export const isAccountNotFound = Schema.is(AccountNotFound)
+export const isPersistenceError = Schema.is(PersistenceError)
+
+// Usage example
+const checkError = (error: unknown) => {
+  if (isAccountNotFound(error)) {
+    console.log(`Account ${error.accountId} not found`)
+  }
+}
 ```
 
 ### Schema.Class for Domain Entities
@@ -436,12 +430,7 @@ import * as Schema from "effect/Schema"
 import * as Equal from "effect/Equal"
 import * as Hash from "effect/Hash"
 
-const SymbolKey = "@accountability/core/Account"
-
-export const TypeId: unique symbol = Symbol.for(SymbolKey)
-export type TypeId = typeof TypeId
-
-export class Account extends Schema.Class<Account>(SymbolKey)({
+export class Account extends Schema.Class<Account>("Account")({
   id: AccountId,
   code: Schema.NonEmptyTrimmedString,
   name: Schema.NonEmptyTrimmedString,
@@ -449,22 +438,19 @@ export class Account extends Schema.Class<Account>(SymbolKey)({
   normalBalance: Schema.Literal("Debit", "Credit"),
   isActive: Schema.Boolean
 }) {
-  // Add TypeId for type identification
-  readonly [TypeId] = TypeId
-
-  // Implement Equal for value comparison
+  // Optional: Implement Equal for value comparison
   [Equal.symbol](that: Account): boolean {
     return this.id === that.id
   }
 
-  // Implement Hash for use in HashSet/HashMap
+  // Optional: Implement Hash for use in HashSet/HashMap
   [Hash.symbol]() {
     return Hash.cached(this, Hash.string(this.id))
   }
 }
 
-// Schema for self-reference (when entity is already constructed)
-export const AccountFromSelf: Schema.Schema<Account> = Schema.typeSchema(Account)
+// Type guard is automatically derived
+export const isAccount = Schema.is(Account)
 
 // Constructor that bypasses validation (for internal use)
 export const make = (options: typeof Account.Encoded): Account =>
@@ -551,12 +537,13 @@ export const AccountServiceLive = Layer.succeed(
 
 1. **Always search the reference repos** for patterns before implementing
 2. **Follow Effect conventions** from `repos/effect/packages/effect/src/`
-3. **Use Schema.TaggedError** for all domain errors with TypeId and `is` type guard
-4. **Use Schema.Class** for domain entities with TypeId, Equal, and Hash
+3. **Use Schema.TaggedError** for all domain errors - type guards via `Schema.is()`
+4. **Use Schema.Class** for domain entities - optionally add Equal and Hash
 5. **Use branded types** for IDs (AccountId, CompanyId, etc.)
 6. **Use BigDecimal** for all monetary calculations
-7. **Write tests** alongside implementation using `repos/effect/packages/vitest/`
-8. **Follow TanStack patterns** for API routes and server functions
+7. **Derive type guards** using `Schema.is(MySchema)` - never write manual type guards
+8. **Write tests** alongside implementation using `repos/effect/packages/vitest/`
+9. **Follow TanStack patterns** for API routes and server functions
 
 ---
 
