@@ -29,12 +29,10 @@ import {
   isDivisionByZeroError
 } from "../src/MonetaryAmount.js"
 
-const bd = BigDecimal.unsafeFromString
-
 describe("MonetaryAmount", () => {
   describe("creation", () => {
     it("creates from BigDecimal and CurrencyCode", () => {
-      const amount = MonetaryAmount.fromBigDecimal(bd("100.50"), USD)
+      const amount = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100.50"), USD)
 
       expect(amount.currency).toBe("USD")
       // BigDecimal.format normalizes trailing zeros
@@ -42,14 +40,14 @@ describe("MonetaryAmount", () => {
     })
 
     it("ensures minimum 4 decimal places in internal representation", () => {
-      const amount = MonetaryAmount.fromBigDecimal(bd("100"), USD)
+      const amount = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100"), USD)
 
       // Should have at least 4 decimal places internally for precision
       expect(amount.amount.scale).toBeGreaterThanOrEqual(4)
     })
 
     it("preserves precision beyond 4 decimal places", () => {
-      const amount = MonetaryAmount.fromBigDecimal(bd("100.123456"), USD)
+      const amount = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100.123456"), USD)
 
       expect(BigDecimal.format(amount.amount)).toBe("100.123456")
     })
@@ -98,12 +96,12 @@ describe("MonetaryAmount", () => {
     })
 
     it("isZero returns false for non-zero amount", () => {
-      const amount = MonetaryAmount.fromBigDecimal(bd("100"), USD)
+      const amount = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100"), USD)
       expect(amount.isZero).toBe(false)
     })
 
     it("isPositive returns true for positive amount", () => {
-      const amount = MonetaryAmount.fromBigDecimal(bd("100"), USD)
+      const amount = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100"), USD)
       expect(amount.isPositive).toBe(true)
     })
 
@@ -113,12 +111,12 @@ describe("MonetaryAmount", () => {
     })
 
     it("isPositive returns false for negative amount", () => {
-      const amount = MonetaryAmount.fromBigDecimal(bd("-100"), USD)
+      const amount = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("-100"), USD)
       expect(amount.isPositive).toBe(false)
     })
 
     it("isNegative returns true for negative amount", () => {
-      const amount = MonetaryAmount.fromBigDecimal(bd("-100"), USD)
+      const amount = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("-100"), USD)
       expect(amount.isNegative).toBe(true)
     })
 
@@ -128,14 +126,14 @@ describe("MonetaryAmount", () => {
     })
 
     it("isNegative returns false for positive amount", () => {
-      const amount = MonetaryAmount.fromBigDecimal(bd("100"), USD)
+      const amount = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100"), USD)
       expect(amount.isNegative).toBe(false)
     })
   })
 
   describe("type guard", () => {
     it("isMonetaryAmount returns true for MonetaryAmount instances", () => {
-      const amount = MonetaryAmount.fromBigDecimal(bd("100"), USD)
+      const amount = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100"), USD)
       expect(isMonetaryAmount(amount)).toBe(true)
     })
 
@@ -153,7 +151,7 @@ describe("MonetaryAmount", () => {
 
   describe("transformations", () => {
     it("abs returns absolute value", () => {
-      const negative = MonetaryAmount.fromBigDecimal(bd("-100"), USD)
+      const negative = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("-100"), USD)
       const positive = negative.abs()
 
       expect(positive.isPositive).toBe(true)
@@ -161,14 +159,14 @@ describe("MonetaryAmount", () => {
     })
 
     it("abs returns same value for positive", () => {
-      const positive = MonetaryAmount.fromBigDecimal(bd("100"), USD)
+      const positive = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100"), USD)
       const result = positive.abs()
 
       expect(BigDecimal.format(result.amount)).toBe("100")
     })
 
     it("negate returns negated value", () => {
-      const positive = MonetaryAmount.fromBigDecimal(bd("100"), USD)
+      const positive = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100"), USD)
       const negated = positive.negate()
 
       expect(negated.isNegative).toBe(true)
@@ -176,7 +174,7 @@ describe("MonetaryAmount", () => {
     })
 
     it("double negate returns original", () => {
-      const original = MonetaryAmount.fromBigDecimal(bd("100"), USD)
+      const original = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100"), USD)
       const doubleNegated = original.negate().negate()
 
       expect(BigDecimal.equals(original.amount, doubleNegated.amount)).toBe(true)
@@ -185,49 +183,49 @@ describe("MonetaryAmount", () => {
 
   describe("formatting", () => {
     it("format returns amount as string", () => {
-      const amount = MonetaryAmount.fromBigDecimal(bd("1234.56"), USD)
+      const amount = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("1234.56"), USD)
       expect(amount.format()).toBe("1234.56")
     })
 
     it("toString includes currency", () => {
-      const amount = MonetaryAmount.fromBigDecimal(bd("1234.56"), USD)
+      const amount = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("1234.56"), USD)
       expect(amount.toString()).toBe("1234.56 USD")
     })
   })
 
   describe("equality", () => {
     it("equal amounts are equal", () => {
-      const a = MonetaryAmount.fromBigDecimal(bd("100"), USD)
-      const b = MonetaryAmount.fromBigDecimal(bd("100"), USD)
+      const a = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100"), USD)
+      const b = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100"), USD)
 
       expect(Equal.equals(a, b)).toBe(true)
     })
 
     it("different amounts are not equal", () => {
-      const a = MonetaryAmount.fromBigDecimal(bd("100"), USD)
-      const b = MonetaryAmount.fromBigDecimal(bd("200"), USD)
+      const a = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100"), USD)
+      const b = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("200"), USD)
 
       expect(Equal.equals(a, b)).toBe(false)
     })
 
     it("same amount different currency are not equal", () => {
-      const a = MonetaryAmount.fromBigDecimal(bd("100"), USD)
-      const b = MonetaryAmount.fromBigDecimal(bd("100"), EUR)
+      const a = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100"), USD)
+      const b = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100"), EUR)
 
       expect(Equal.equals(a, b)).toBe(false)
     })
 
     it("amounts with different precision but same value are equal", () => {
-      const a = MonetaryAmount.fromBigDecimal(bd("100"), USD)
-      const b = MonetaryAmount.fromBigDecimal(bd("100.0000"), USD)
+      const a = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100"), USD)
+      const b = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100.0000"), USD)
 
       expect(Equal.equals(a, b)).toBe(true)
     })
 
     it("MonetaryAmount is not equal to non-MonetaryAmount objects", () => {
-      const amount = MonetaryAmount.fromBigDecimal(bd("100"), USD)
+      const amount = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100"), USD)
 
-      expect(Equal.equals(amount, { amount: bd("100"), currency: "USD" })).toBe(false)
+      expect(Equal.equals(amount, { amount: BigDecimal.unsafeFromString("100"), currency: "USD" })).toBe(false)
       expect(Equal.equals(amount, "100 USD")).toBe(false)
       expect(Equal.equals(amount, 100)).toBe(false)
     })
@@ -235,8 +233,8 @@ describe("MonetaryAmount", () => {
     it("Schema.Class uses value-based equality via Data.Class", () => {
       // Schema.Class extends Data.Class which provides value-based equality
       // Two MonetaryAmount instances with same values are equal
-      const amount1 = MonetaryAmount.fromBigDecimal(bd("100"), USD)
-      const amount2 = MonetaryAmount.fromBigDecimal(bd("100"), USD)
+      const amount1 = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100"), USD)
+      const amount2 = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100"), USD)
 
       // Value-based equality means separate instances with same values are equal
       expect(Equal.equals(amount1, amount2)).toBe(true)
@@ -247,8 +245,8 @@ describe("MonetaryAmount", () => {
   describe("arithmetic - add", () => {
     it.effect("adds two amounts with same currency", () =>
       Effect.gen(function* () {
-        const a = MonetaryAmount.fromBigDecimal(bd("100.50"), USD)
-        const b = MonetaryAmount.fromBigDecimal(bd("50.25"), USD)
+        const a = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100.50"), USD)
+        const b = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("50.25"), USD)
         const result = yield* add(a, b)
 
         expect(result.currency).toBe("USD")
@@ -258,8 +256,8 @@ describe("MonetaryAmount", () => {
 
     it.effect("fails with CurrencyMismatchError for different currencies", () =>
       Effect.gen(function* () {
-        const a = MonetaryAmount.fromBigDecimal(bd("100"), USD)
-        const b = MonetaryAmount.fromBigDecimal(bd("100"), EUR)
+        const a = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100"), USD)
+        const b = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100"), EUR)
         const result = yield* Effect.exit(add(a, b))
 
         expect(Exit.isFailure(result)).toBe(true)
@@ -272,8 +270,8 @@ describe("MonetaryAmount", () => {
 
     it.effect("handles negative amounts", () =>
       Effect.gen(function* () {
-        const a = MonetaryAmount.fromBigDecimal(bd("100"), USD)
-        const b = MonetaryAmount.fromBigDecimal(bd("-30"), USD)
+        const a = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100"), USD)
+        const b = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("-30"), USD)
         const result = yield* add(a, b)
 
         expect(BigDecimal.format(result.amount)).toBe("70")
@@ -284,8 +282,8 @@ describe("MonetaryAmount", () => {
   describe("arithmetic - subtract", () => {
     it.effect("subtracts two amounts with same currency", () =>
       Effect.gen(function* () {
-        const a = MonetaryAmount.fromBigDecimal(bd("100.50"), USD)
-        const b = MonetaryAmount.fromBigDecimal(bd("50.25"), USD)
+        const a = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100.50"), USD)
+        const b = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("50.25"), USD)
         const result = yield* subtract(a, b)
 
         expect(result.currency).toBe("USD")
@@ -295,8 +293,8 @@ describe("MonetaryAmount", () => {
 
     it.effect("fails with CurrencyMismatchError for different currencies", () =>
       Effect.gen(function* () {
-        const a = MonetaryAmount.fromBigDecimal(bd("100"), USD)
-        const b = MonetaryAmount.fromBigDecimal(bd("100"), EUR)
+        const a = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100"), USD)
+        const b = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100"), EUR)
         const result = yield* Effect.exit(subtract(a, b))
 
         expect(Exit.isFailure(result)).toBe(true)
@@ -305,8 +303,8 @@ describe("MonetaryAmount", () => {
 
     it.effect("can result in negative amount", () =>
       Effect.gen(function* () {
-        const a = MonetaryAmount.fromBigDecimal(bd("50"), USD)
-        const b = MonetaryAmount.fromBigDecimal(bd("100"), USD)
+        const a = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("50"), USD)
+        const b = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100"), USD)
         const result = yield* subtract(a, b)
 
         expect(result.isNegative).toBe(true)
@@ -317,30 +315,30 @@ describe("MonetaryAmount", () => {
 
   describe("arithmetic - multiply", () => {
     it("multiplies by BigDecimal scalar", () => {
-      const amount = MonetaryAmount.fromBigDecimal(bd("100"), USD)
-      const result = multiply(amount, bd("2.5"))
+      const amount = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100"), USD)
+      const result = multiply(amount, BigDecimal.unsafeFromString("2.5"))
 
       expect(result.currency).toBe("USD")
       expect(BigDecimal.format(result.amount)).toBe("250")
     })
 
     it("multiplies by number", () => {
-      const amount = MonetaryAmount.fromBigDecimal(bd("100"), USD)
+      const amount = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100"), USD)
       const result = multiplyByNumber(amount, 3)
 
       expect(BigDecimal.format(result.amount)).toBe("300")
     })
 
     it("handles fractional multiplier", () => {
-      const amount = MonetaryAmount.fromBigDecimal(bd("100"), USD)
-      const result = multiply(amount, bd("0.1"))
+      const amount = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100"), USD)
+      const result = multiply(amount, BigDecimal.unsafeFromString("0.1"))
 
       expect(BigDecimal.format(result.amount)).toBe("10")
     })
 
     it("multiplying by zero gives zero", () => {
-      const amount = MonetaryAmount.fromBigDecimal(bd("100"), USD)
-      const result = multiply(amount, bd("0"))
+      const amount = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100"), USD)
+      const result = multiply(amount, BigDecimal.unsafeFromString("0"))
 
       expect(result.isZero).toBe(true)
     })
@@ -349,8 +347,8 @@ describe("MonetaryAmount", () => {
   describe("arithmetic - divide", () => {
     it.effect("divides by BigDecimal scalar", () =>
       Effect.gen(function* () {
-        const amount = MonetaryAmount.fromBigDecimal(bd("100"), USD)
-        const result = yield* divide(amount, bd("4"))
+        const amount = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100"), USD)
+        const result = yield* divide(amount, BigDecimal.unsafeFromString("4"))
 
         expect(result.currency).toBe("USD")
         expect(BigDecimal.format(result.amount)).toBe("25")
@@ -359,7 +357,7 @@ describe("MonetaryAmount", () => {
 
     it.effect("divides by number", () =>
       Effect.gen(function* () {
-        const amount = MonetaryAmount.fromBigDecimal(bd("100"), USD)
+        const amount = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100"), USD)
         const result = yield* divideByNumber(amount, 4)
 
         expect(BigDecimal.format(result.amount)).toBe("25")
@@ -368,8 +366,8 @@ describe("MonetaryAmount", () => {
 
     it.effect("handles non-exact division with precision", () =>
       Effect.gen(function* () {
-        const amount = MonetaryAmount.fromBigDecimal(bd("100"), USD)
-        const result = yield* divide(amount, bd("3"))
+        const amount = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100"), USD)
+        const result = yield* divide(amount, BigDecimal.unsafeFromString("3"))
 
         // Should have high precision
         expect(result.amount.scale).toBeGreaterThanOrEqual(4)
@@ -378,8 +376,8 @@ describe("MonetaryAmount", () => {
 
     it.effect("fails with DivisionByZeroError when dividing by zero BigDecimal", () =>
       Effect.gen(function* () {
-        const amount = MonetaryAmount.fromBigDecimal(bd("100"), USD)
-        const result = yield* Effect.exit(divide(amount, bd("0")))
+        const amount = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100"), USD)
+        const result = yield* Effect.exit(divide(amount, BigDecimal.unsafeFromString("0")))
 
         expect(Exit.isFailure(result)).toBe(true)
         if (Exit.isFailure(result)) {
@@ -391,7 +389,7 @@ describe("MonetaryAmount", () => {
 
     it.effect("fails with DivisionByZeroError when dividing by zero number", () =>
       Effect.gen(function* () {
-        const amount = MonetaryAmount.fromBigDecimal(bd("100"), USD)
+        const amount = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100"), USD)
         const result = yield* Effect.exit(divideByNumber(amount, 0))
 
         expect(Exit.isFailure(result)).toBe(true)
@@ -399,17 +397,17 @@ describe("MonetaryAmount", () => {
     )
 
     it("unsafeDivide throws on division by zero", () => {
-      const amount = MonetaryAmount.fromBigDecimal(bd("100"), USD)
-      expect(() => unsafeDivide(amount, bd("0"))).toThrow()
+      const amount = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100"), USD)
+      expect(() => unsafeDivide(amount, BigDecimal.unsafeFromString("0"))).toThrow()
     })
   })
 
   describe("comparison", () => {
     it.effect("compare returns correct ordering", () =>
       Effect.gen(function* () {
-        const a = MonetaryAmount.fromBigDecimal(bd("100"), USD)
-        const b = MonetaryAmount.fromBigDecimal(bd("200"), USD)
-        const c = MonetaryAmount.fromBigDecimal(bd("100"), USD)
+        const a = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100"), USD)
+        const b = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("200"), USD)
+        const c = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100"), USD)
 
         expect(yield* compare(a, b)).toBe(-1)
         expect(yield* compare(b, a)).toBe(1)
@@ -419,8 +417,8 @@ describe("MonetaryAmount", () => {
 
     it.effect("greaterThan works correctly", () =>
       Effect.gen(function* () {
-        const a = MonetaryAmount.fromBigDecimal(bd("200"), USD)
-        const b = MonetaryAmount.fromBigDecimal(bd("100"), USD)
+        const a = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("200"), USD)
+        const b = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100"), USD)
 
         expect(yield* greaterThan(a, b)).toBe(true)
         expect(yield* greaterThan(b, a)).toBe(false)
@@ -430,8 +428,8 @@ describe("MonetaryAmount", () => {
 
     it.effect("lessThan works correctly", () =>
       Effect.gen(function* () {
-        const a = MonetaryAmount.fromBigDecimal(bd("100"), USD)
-        const b = MonetaryAmount.fromBigDecimal(bd("200"), USD)
+        const a = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100"), USD)
+        const b = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("200"), USD)
 
         expect(yield* lessThan(a, b)).toBe(true)
         expect(yield* lessThan(b, a)).toBe(false)
@@ -441,9 +439,9 @@ describe("MonetaryAmount", () => {
 
     it.effect("greaterThanOrEqualTo works correctly", () =>
       Effect.gen(function* () {
-        const a = MonetaryAmount.fromBigDecimal(bd("200"), USD)
-        const b = MonetaryAmount.fromBigDecimal(bd("100"), USD)
-        const c = MonetaryAmount.fromBigDecimal(bd("200"), USD)
+        const a = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("200"), USD)
+        const b = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100"), USD)
+        const c = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("200"), USD)
 
         expect(yield* greaterThanOrEqualTo(a, b)).toBe(true)
         expect(yield* greaterThanOrEqualTo(a, c)).toBe(true)
@@ -453,9 +451,9 @@ describe("MonetaryAmount", () => {
 
     it.effect("lessThanOrEqualTo works correctly", () =>
       Effect.gen(function* () {
-        const a = MonetaryAmount.fromBigDecimal(bd("100"), USD)
-        const b = MonetaryAmount.fromBigDecimal(bd("200"), USD)
-        const c = MonetaryAmount.fromBigDecimal(bd("100"), USD)
+        const a = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100"), USD)
+        const b = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("200"), USD)
+        const c = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100"), USD)
 
         expect(yield* lessThanOrEqualTo(a, b)).toBe(true)
         expect(yield* lessThanOrEqualTo(a, c)).toBe(true)
@@ -465,9 +463,9 @@ describe("MonetaryAmount", () => {
 
     it.effect("equals works correctly", () =>
       Effect.gen(function* () {
-        const a = MonetaryAmount.fromBigDecimal(bd("100"), USD)
-        const b = MonetaryAmount.fromBigDecimal(bd("100"), USD)
-        const c = MonetaryAmount.fromBigDecimal(bd("200"), USD)
+        const a = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100"), USD)
+        const b = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100"), USD)
+        const c = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("200"), USD)
 
         expect(yield* equals(a, b)).toBe(true)
         expect(yield* equals(a, c)).toBe(false)
@@ -476,8 +474,8 @@ describe("MonetaryAmount", () => {
 
     it.effect("comparison fails for different currencies", () =>
       Effect.gen(function* () {
-        const a = MonetaryAmount.fromBigDecimal(bd("100"), USD)
-        const b = MonetaryAmount.fromBigDecimal(bd("100"), EUR)
+        const a = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100"), USD)
+        const b = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100"), EUR)
 
         expect(Exit.isFailure(yield* Effect.exit(compare(a, b)))).toBe(true)
         expect(Exit.isFailure(yield* Effect.exit(greaterThan(a, b)))).toBe(true)
@@ -493,9 +491,9 @@ describe("MonetaryAmount", () => {
     it.effect("sum adds multiple amounts", () =>
       Effect.gen(function* () {
         const amounts = [
-          MonetaryAmount.fromBigDecimal(bd("100"), USD),
-          MonetaryAmount.fromBigDecimal(bd("200"), USD),
-          MonetaryAmount.fromBigDecimal(bd("300"), USD)
+          MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100"), USD),
+          MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("200"), USD),
+          MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("300"), USD)
         ]
 
         const result = yield* sum(amounts, USD)
@@ -517,8 +515,8 @@ describe("MonetaryAmount", () => {
     it.effect("sum fails for mixed currencies", () =>
       Effect.gen(function* () {
         const amounts = [
-          MonetaryAmount.fromBigDecimal(bd("100"), USD),
-          MonetaryAmount.fromBigDecimal(bd("200"), EUR)
+          MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100"), USD),
+          MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("200"), EUR)
         ]
 
         const result = yield* Effect.exit(sum(amounts, USD))
@@ -528,14 +526,14 @@ describe("MonetaryAmount", () => {
     )
 
     it("round rounds to specified decimal places", () => {
-      const amount = MonetaryAmount.fromBigDecimal(bd("100.4567"), USD)
+      const amount = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100.4567"), USD)
       const rounded = round(amount, 2)
 
       expect(BigDecimal.format(rounded.amount)).toBe("100.46")
     })
 
     it("round defaults to 2 decimal places", () => {
-      const amount = MonetaryAmount.fromBigDecimal(bd("100.4567"), USD)
+      const amount = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100.4567"), USD)
       const rounded = round(amount)
 
       expect(BigDecimal.format(rounded.amount)).toBe("100.46")
@@ -543,20 +541,20 @@ describe("MonetaryAmount", () => {
 
     it("round uses half-from-zero rounding", () => {
       // 100.455 should round to 100.46 (round away from zero)
-      const amount1 = MonetaryAmount.fromBigDecimal(bd("100.455"), USD)
+      const amount1 = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100.455"), USD)
       const rounded1 = round(amount1, 2)
       expect(BigDecimal.format(rounded1.amount)).toBe("100.46")
 
       // 100.444 should round to 100.44
-      const amount2 = MonetaryAmount.fromBigDecimal(bd("100.444"), USD)
+      const amount2 = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100.444"), USD)
       const rounded2 = round(amount2, 2)
       expect(BigDecimal.format(rounded2.amount)).toBe("100.44")
     })
 
     it.effect("max returns the larger amount", () =>
       Effect.gen(function* () {
-        const a = MonetaryAmount.fromBigDecimal(bd("100"), USD)
-        const b = MonetaryAmount.fromBigDecimal(bd("200"), USD)
+        const a = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100"), USD)
+        const b = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("200"), USD)
 
         const result = yield* max(a, b)
 
@@ -566,8 +564,8 @@ describe("MonetaryAmount", () => {
 
     it.effect("max fails for different currencies", () =>
       Effect.gen(function* () {
-        const a = MonetaryAmount.fromBigDecimal(bd("100"), USD)
-        const b = MonetaryAmount.fromBigDecimal(bd("200"), EUR)
+        const a = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100"), USD)
+        const b = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("200"), EUR)
 
         const result = yield* Effect.exit(max(a, b))
 
@@ -577,8 +575,8 @@ describe("MonetaryAmount", () => {
 
     it.effect("min returns the smaller amount", () =>
       Effect.gen(function* () {
-        const a = MonetaryAmount.fromBigDecimal(bd("100"), USD)
-        const b = MonetaryAmount.fromBigDecimal(bd("200"), USD)
+        const a = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100"), USD)
+        const b = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("200"), USD)
 
         const result = yield* min(a, b)
 
@@ -588,8 +586,8 @@ describe("MonetaryAmount", () => {
 
     it.effect("min fails for different currencies", () =>
       Effect.gen(function* () {
-        const a = MonetaryAmount.fromBigDecimal(bd("100"), USD)
-        const b = MonetaryAmount.fromBigDecimal(bd("200"), EUR)
+        const a = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100"), USD)
+        const b = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("200"), EUR)
 
         const result = yield* Effect.exit(min(a, b))
 
@@ -643,7 +641,7 @@ describe("MonetaryAmount", () => {
 
     it.effect("encodes to JSON-serializable form", () =>
       Effect.gen(function* () {
-        const amount = MonetaryAmount.fromBigDecimal(bd("100.50"), USD)
+        const amount = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("100.50"), USD)
         const encoded = yield* Schema.encode(MonetaryAmount)(amount)
 
         expect(encoded.currency).toBe("USD")
@@ -682,8 +680,8 @@ describe("MonetaryAmount", () => {
     it.effect("maintains precision through arithmetic operations", () =>
       Effect.gen(function* () {
         // Classic floating point issue: 0.1 + 0.2 = 0.30000000000000004
-        const a = MonetaryAmount.fromBigDecimal(bd("0.1"), USD)
-        const b = MonetaryAmount.fromBigDecimal(bd("0.2"), USD)
+        const a = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("0.1"), USD)
+        const b = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("0.2"), USD)
         const result = yield* add(a, b)
 
         expect(BigDecimal.format(result.amount)).toBe("0.3")
@@ -691,19 +689,19 @@ describe("MonetaryAmount", () => {
     )
 
     it("handles very small amounts", () => {
-      const amount = MonetaryAmount.fromBigDecimal(bd("0.0001"), USD)
+      const amount = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("0.0001"), USD)
       expect(BigDecimal.format(amount.amount)).toBe("0.0001")
     })
 
     it("handles very large amounts", () => {
-      const amount = MonetaryAmount.fromBigDecimal(bd("999999999999.9999"), USD)
+      const amount = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("999999999999.9999"), USD)
       expect(BigDecimal.format(amount.amount)).toBe("999999999999.9999")
     })
 
     it.effect("division maintains precision for repeating decimals", () =>
       Effect.gen(function* () {
-        const amount = MonetaryAmount.fromBigDecimal(bd("10"), USD)
-        const result = yield* divide(amount, bd("3"))
+        const amount = MonetaryAmount.fromBigDecimal(BigDecimal.unsafeFromString("10"), USD)
+        const result = yield* divide(amount, BigDecimal.unsafeFromString("3"))
 
         // Should have many decimal places for precision
         expect(result.amount.scale).toBeGreaterThanOrEqual(4)

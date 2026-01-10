@@ -230,7 +230,7 @@
         "Remove the bd() utility use the BigDecimal.unsafeFromString in tests"
       ],
       "priority": 10,
-      "status": "in_progress",
+      "status": "complete",
       "estimated_complexity": "medium"
     },
     {

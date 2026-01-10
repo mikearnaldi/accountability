@@ -74,3 +74,8 @@
 **Story**: 1.2.5 - Align all value objects to Schema constructor standards
 **Status**: complete
 ---
+
+## Iteration 1 - 2026-01-10 16:45
+**Story**: 1.2.5 - Align all value objects to Schema constructor standards
+**Status**: complete
+---
