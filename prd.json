@@ -1052,6 +1052,7 @@
       "acceptance_criteria": [
         "Find and delete all index.ts files in packages/core/src",
         "Update all imports that used index.ts to import from specific modules",
+        "Fix all docstrings to use correct import paths (no /src/ in package imports)",
         "Verify no circular dependency issues",
         "Verify pnpm typecheck passes",
         "Verify pnpm test passes"
