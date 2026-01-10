@@ -1,5 +1,5 @@
 import { describe, it, expect } from "@effect/vitest"
-import { Effect, Exit, Equal } from "effect"
+import { Effect, Exit, Equal, TestClock, Duration } from "effect"
 import * as Schema from "effect/Schema"
 import {
   LocalDate,
@@ -9,6 +9,7 @@ import {
   fromDate,
   fromDateTime,
   today,
+  todayEffect,
   Order_,
   isBefore,
   isAfter,
@@ -214,6 +215,58 @@ describe("LocalDate", () => {
       expect(t.month).toBe(now.getUTCMonth() + 1)
       expect(t.day).toBe(now.getUTCDate())
     })
+  })
+
+  describe("todayEffect", () => {
+    it.effect("returns the date from TestClock (starts at epoch)", () =>
+      Effect.gen(function* () {
+        // TestClock starts at epoch (1970-01-01)
+        const date = yield* todayEffect
+        expect(date.year).toBe(1970)
+        expect(date.month).toBe(1)
+        expect(date.day).toBe(1)
+      })
+    )
+
+    it.effect("advances with TestClock.adjust", () =>
+      Effect.gen(function* () {
+        // Start at epoch (1970-01-01)
+        const initial = yield* todayEffect
+        expect(initial.toISOString()).toBe("1970-01-01")
+
+        // Advance 365 days
+        yield* TestClock.adjust(Duration.days(365))
+
+        const afterYear = yield* todayEffect
+        expect(afterYear.year).toBe(1971)
+        expect(afterYear.month).toBe(1)
+        expect(afterYear.day).toBe(1)
+      })
+    )
+
+    it.effect("handles specific date via TestClock.setTime", () =>
+      Effect.gen(function* () {
+        // Set clock to 2024-06-15 midnight UTC
+        const targetDate = new Date(Date.UTC(2024, 5, 15, 0, 0, 0, 0))
+        yield* TestClock.setTime(targetDate.getTime())
+
+        const date = yield* todayEffect
+        expect(date.year).toBe(2024)
+        expect(date.month).toBe(6)
+        expect(date.day).toBe(15)
+      })
+    )
+
+    it.live("returns real current date with live effect", () =>
+      Effect.gen(function* () {
+        const date = yield* todayEffect
+        const now = new Date()
+        // Should be today's date (UTC)
+        expect(date.year).toBe(now.getUTCFullYear())
+        expect(date.month).toBe(now.getUTCMonth() + 1)
+        expect(date.day).toBe(now.getUTCDate())
+      })
+    )
   })
 
   describe("Order", () => {

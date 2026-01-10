@@ -205,7 +205,8 @@
         "LocalDate using Schema wrapper around effect/DateTime",
         "Timestamp for UTC timestamps using DateTime.Utc",
         "FiscalPeriodRef as Schema.Struct with year (number) and period (1-13)",
-        "100% test coverage for all"
+        "100% test coverage for all",
+        "Use TestClock to test the nowEffect"
       ],
       "priority": 9,
       "status": "complete",

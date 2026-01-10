@@ -1,5 +1,5 @@
 import { describe, it, expect } from "@effect/vitest"
-import { Effect, Exit, Equal } from "effect"
+import { Effect, Exit, Equal, TestClock, Duration } from "effect"
 import * as Schema from "effect/Schema"
 import * as DateTime from "effect/DateTime"
 import {
@@ -119,23 +119,68 @@ describe("Timestamp", () => {
   })
 
   describe("nowEffect", () => {
-    it.effect("returns current timestamp using Clock", () =>
+    it.effect("returns timestamp from TestClock (starts at epoch)", () =>
       Effect.gen(function* () {
+        // TestClock starts at epoch (0 ms)
         const ts = yield* nowEffect
-        // Note: effect-vitest uses a test clock that starts at 0
-        // Just verify it returns a valid timestamp (non-negative integer)
-        expect(ts.epochMillis).toBeGreaterThanOrEqual(0)
-        expect(Number.isInteger(ts.epochMillis)).toBe(true)
+        expect(ts.epochMillis).toBe(0)
+        expect(ts.toISOString()).toBe("1970-01-01T00:00:00.000Z")
       })
     )
 
-    it("returns real timestamp with runSync", () => {
-      const before = Date.now()
-      const ts = Effect.runSync(nowEffect)
-      const after = Date.now()
-      expect(ts.epochMillis).toBeGreaterThanOrEqual(before)
-      expect(ts.epochMillis).toBeLessThanOrEqual(after)
-    })
+    it.effect("advances with TestClock.adjust", () =>
+      Effect.gen(function* () {
+        // Start at epoch
+        const initial = yield* nowEffect
+        expect(initial.epochMillis).toBe(0)
+
+        // Advance 1 hour
+        yield* TestClock.adjust(Duration.hours(1))
+
+        const afterHour = yield* nowEffect
+        expect(afterHour.epochMillis).toBe(3600000) // 1 hour in ms
+      })
+    )
+
+    it.effect("handles TestClock.setTime for specific timestamp", () =>
+      Effect.gen(function* () {
+        // Set clock to a specific date/time (2024-06-15T12:30:45.123Z)
+        const targetTime = new Date("2024-06-15T12:30:45.123Z").getTime()
+        yield* TestClock.setTime(targetTime)
+
+        const ts = yield* nowEffect
+        expect(ts.epochMillis).toBe(targetTime)
+        expect(ts.toISOString()).toBe("2024-06-15T12:30:45.123Z")
+      })
+    )
+
+    it.effect("demonstrates time-based logic testing with TestClock", () =>
+      Effect.gen(function* () {
+        // Set a starting time
+        yield* TestClock.setTime(1000000)
+        const start = yield* nowEffect
+
+        // Advance by 5 seconds
+        yield* TestClock.adjust(Duration.seconds(5))
+        const end = yield* nowEffect
+
+        // Verify the difference
+        expect(diffInMillis(end, start)).toBe(5000)
+        expect(diffInSeconds(end, start)).toBe(5)
+      })
+    )
+
+    it.live("returns real current timestamp with live effect", () =>
+      Effect.gen(function* () {
+        const before = Date.now()
+        const ts = yield* nowEffect
+        const after = Date.now()
+
+        // Should be within the time window
+        expect(ts.epochMillis).toBeGreaterThanOrEqual(before)
+        expect(ts.epochMillis).toBeLessThanOrEqual(after)
+      })
+    )
   })
 
   describe("toDateTime", () => {

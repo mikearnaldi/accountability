@@ -147,6 +147,15 @@ export const today = (): LocalDate => {
 }
 
 /**
+ * Get the current date (UTC) as an Effect using the Clock service
+ * This is testable with TestClock
+ */
+export const todayEffect: Effect.Effect<LocalDate> = Effect.map(
+  Effect.clockWith((clock) => clock.currentTimeMillis),
+  (millis) => fromDate(new Date(Number(millis)))
+)
+
+/**
  * Order for LocalDate - compares chronologically
  */
 export const Order_: Order.Order<LocalDate> = Order.make((a, b) => {
