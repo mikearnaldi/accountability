@@ -14,7 +14,7 @@
 
 import * as Schema from "effect/Schema"
 import * as Option from "effect/Option"
-import * as Array from "effect/Array"
+import * as Chunk from "effect/Chunk"
 import * as Effect from "effect/Effect"
 import {
   Account,
@@ -151,28 +151,29 @@ export class AccountTemplate extends Schema.Class<AccountTemplate>("AccountTempl
 
   /**
    * The account definitions in this template
+   * Uses Chunk for proper structural equality with Equal.equals
    */
-  accounts: Schema.Array(TemplateAccountDefinition)
+  accounts: Schema.Chunk(TemplateAccountDefinition)
 }) {
   /**
    * Get the number of accounts in this template
    */
   get accountCount(): number {
-    return this.accounts.length
+    return Chunk.size(this.accounts)
   }
 
   /**
    * Get accounts by type
    */
-  getAccountsByType(accountType: AccountType): ReadonlyArray<TemplateAccountDefinition> {
-    return Array.filter(this.accounts, (acc) => acc.accountType === accountType)
+  getAccountsByType(accountType: AccountType): Chunk.Chunk<TemplateAccountDefinition> {
+    return Chunk.filter(this.accounts, (acc) => acc.accountType === accountType)
   }
 
   /**
    * Find an account definition by account number
    */
   findByAccountNumber(accountNumber: AccountNumber): Option.Option<TemplateAccountDefinition> {
-    return Array.findFirst(this.accounts, (acc) => acc.accountNumber === accountNumber)
+    return Chunk.findFirst(this.accounts, (acc) => acc.accountNumber === accountNumber)
   }
 }
 
@@ -220,7 +221,7 @@ const makeAccountDef = (params: {
  * A comprehensive chart of accounts for standard commercial entities.
  * Covers all five account types with common sub-categories.
  */
-const generalBusinessAccounts: ReadonlyArray<TemplateAccountDefinition> = [
+const generalBusinessAccounts: TemplateAccountDefinition[] = [
   // ========== CURRENT ASSETS (1000-1499) ==========
   makeAccountDef({
     accountNumber: "1000",
@@ -938,7 +939,7 @@ export const GeneralBusinessTemplate: AccountTemplate = AccountTemplate.make({
   templateType: "GeneralBusiness",
   name: "General Business",
   description: "A comprehensive chart of accounts for standard commercial entities. Includes accounts for all five account types with common sub-categories suitable for most businesses.",
-  accounts: generalBusinessAccounts
+  accounts: Chunk.fromIterable(generalBusinessAccounts)
 })
 
 /**
@@ -949,7 +950,7 @@ export const GeneralBusinessTemplate: AccountTemplate = AccountTemplate.make({
  * - Manufacturing overhead
  * - Detailed COGS breakdown
  */
-const manufacturingAccounts: ReadonlyArray<TemplateAccountDefinition> = [
+const manufacturingAccounts: TemplateAccountDefinition[] = [
   ...generalBusinessAccounts,
 
   // Additional inventory accounts
@@ -1134,7 +1135,7 @@ export const ManufacturingTemplate: AccountTemplate = AccountTemplate.make({
   templateType: "Manufacturing",
   name: "Manufacturing",
   description: "Extended chart of accounts for manufacturing companies. Includes detailed inventory tracking (raw materials, work-in-process, finished goods) and comprehensive cost of goods sold breakdown with manufacturing overhead accounts.",
-  accounts: manufacturingAccounts
+  accounts: Chunk.fromIterable(manufacturingAccounts)
 })
 
 /**
@@ -1145,7 +1146,7 @@ export const ManufacturingTemplate: AccountTemplate = AccountTemplate.make({
  * - Enhanced service revenue categories
  * - More detailed service cost accounts
  */
-const serviceBusinessAccounts: ReadonlyArray<TemplateAccountDefinition> = [
+const serviceBusinessAccounts: TemplateAccountDefinition[] = [
   // ========== CURRENT ASSETS (1000-1499) - Reduced inventory ==========
   makeAccountDef({
     accountNumber: "1000",
@@ -1895,7 +1896,7 @@ export const ServiceBusinessTemplate: AccountTemplate = AccountTemplate.make({
   templateType: "ServiceBusiness",
   name: "Service Business",
   description: "Chart of accounts optimized for professional service firms. Features enhanced service revenue categorization, minimal inventory, and detailed cost of services tracking including direct labor and subcontractor costs.",
-  accounts: serviceBusinessAccounts
+  accounts: Chunk.fromIterable(serviceBusinessAccounts)
 })
 
 /**
@@ -1907,7 +1908,7 @@ export const ServiceBusinessTemplate: AccountTemplate = AccountTemplate.make({
  * - Dividend income
  * - Limited operating accounts
  */
-const holdingCompanyAccounts: ReadonlyArray<TemplateAccountDefinition> = [
+const holdingCompanyAccounts: TemplateAccountDefinition[] = [
   // ========== CURRENT ASSETS (1000-1499) ==========
   makeAccountDef({
     accountNumber: "1000",
@@ -2538,7 +2539,7 @@ export const HoldingCompanyTemplate: AccountTemplate = AccountTemplate.make({
   templateType: "HoldingCompany",
   name: "Holding Company",
   description: "Specialized chart of accounts for holding and investment companies. Includes investment tracking by subsidiary, intercompany accounts for intra-group transactions, dividend income tracking, and equity method accounting support.",
-  accounts: holdingCompanyAccounts
+  accounts: Chunk.fromIterable(holdingCompanyAccounts)
 })
 
 /**
@@ -2572,7 +2573,7 @@ export const getAllTemplates = (): ReadonlyArray<AccountTemplate> => [
  * for resolving parent references
  */
 const buildAccountIdMap = (
-  accounts: ReadonlyArray<TemplateAccountDefinition>,
+  accounts: Chunk.Chunk<TemplateAccountDefinition>,
   generateId: () => AccountId
 ): Map<string, AccountId> => {
   const map = new Map<string, AccountId>()
@@ -2587,7 +2588,7 @@ const buildAccountIdMap = (
  */
 const calculateHierarchyLevel = (
   accountNumber: AccountNumber,
-  accounts: ReadonlyArray<TemplateAccountDefinition>,
+  accounts: Chunk.Chunk<TemplateAccountDefinition>,
   visited: Set<string> = new Set()
 ): number => {
   // Prevent circular references
@@ -2595,7 +2596,7 @@ const calculateHierarchyLevel = (
     return 1
   }
 
-  const account = Array.findFirst(accounts, (acc) => acc.accountNumber === accountNumber)
+  const account = Chunk.findFirst(accounts, (acc) => acc.accountNumber === accountNumber)
 
   return Option.match(account, {
     onNone: () => 1,
@@ -2625,13 +2626,13 @@ export const instantiateTemplate = (
   template: AccountTemplate,
   companyId: CompanyId,
   generateId: () => AccountId = () => AccountId.make(crypto.randomUUID())
-): ReadonlyArray<Account> => {
+): Chunk.Chunk<Account> => {
   const timestamp = Timestamp.make({ epochMillis: Date.now() })
 
   // Build a map of account numbers to IDs for parent resolution
   const accountIdMap = buildAccountIdMap(template.accounts, generateId)
 
-  return Array.map(template.accounts, (def) => {
+  return Chunk.map(template.accounts, (def) => {
     const accountId = accountIdMap.get(def.accountNumber)!
 
     // Resolve parent account ID from parent account number
@@ -2684,7 +2685,7 @@ export const instantiateTemplateEffect = <E, R>(
   template: AccountTemplate,
   companyId: CompanyId,
   generateIdEffect: Effect.Effect<AccountId, E, R>
-): Effect.Effect<ReadonlyArray<Account>, E, R> => {
+): Effect.Effect<Chunk.Chunk<Account>, E, R> => {
   return Effect.gen(function* () {
     const timestamp = Timestamp.make({ epochMillis: Date.now() })
 
@@ -2695,7 +2696,7 @@ export const instantiateTemplateEffect = <E, R>(
       accountIdMap.set(acc.accountNumber, id)
     }
 
-    return Array.map(template.accounts, (def) => {
+    return Chunk.map(template.accounts, (def) => {
       const accountId = accountIdMap.get(def.accountNumber)!
 
       // Resolve parent account ID from parent account number

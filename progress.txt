@@ -244,3 +244,8 @@
 **Story**: 3.5.1 - Implement statement of changes in equity
 **Status**: complete
 ---
+
+## Iteration 1 - 2026-01-10 21:26
+**Story**: 3.5.2 - Replace Array/ReadonlyArray with Chunk in domain models
+**Status**: complete
+---

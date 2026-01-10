@@ -1,5 +1,5 @@
 import { describe, it, expect } from "@effect/vitest"
-import { Effect, Exit, Equal } from "effect"
+import { Effect, Exit, Equal, Chunk, Option } from "effect"
 import * as Schema from "effect/Schema"
 import {
   TaxRule,
@@ -210,13 +210,13 @@ describe("TaxRule", () => {
 describe("TaxSettings", () => {
   const createValidTaxSettings = () => {
     return TaxSettings.make({
-      taxRules: [
+      taxRules: Chunk.make(
         TaxRule.make({
           name: "Income Tax",
           rate: 0.21,
           isApplicable: true
         })
-      ],
+      ),
       defaultFiscalYearEndMonth: 12,
       hasVat: false,
       hasWithholdingTax: true
@@ -227,7 +227,7 @@ describe("TaxSettings", () => {
     it.effect("accepts valid tax settings", () =>
       Effect.gen(function* () {
         const settings = createValidTaxSettings()
-        expect(settings.taxRules.length).toBe(1)
+        expect(Chunk.size(settings.taxRules)).toBe(1)
         expect(settings.defaultFiscalYearEndMonth).toBe(12)
         expect(settings.hasVat).toBe(false)
         expect(settings.hasWithholdingTax).toBe(true)
@@ -237,35 +237,35 @@ describe("TaxSettings", () => {
     it.effect("accepts empty tax rules array", () =>
       Effect.gen(function* () {
         const settings = TaxSettings.make({
-          taxRules: [],
+          taxRules: Chunk.empty(),
           defaultFiscalYearEndMonth: 6,
           hasVat: true,
           hasWithholdingTax: false
         })
-        expect(settings.taxRules.length).toBe(0)
+        expect(Chunk.size(settings.taxRules)).toBe(0)
       })
     )
 
     it.effect("accepts multiple tax rules", () =>
       Effect.gen(function* () {
         const settings = TaxSettings.make({
-          taxRules: [
+          taxRules: Chunk.make(
             TaxRule.make({ name: "Tax 1", rate: 0.1, isApplicable: true }),
             TaxRule.make({ name: "Tax 2", rate: 0.2, isApplicable: false }),
             TaxRule.make({ name: "Tax 3", rate: 0.05, isApplicable: true })
-          ],
+          ),
           defaultFiscalYearEndMonth: 3,
           hasVat: true,
           hasWithholdingTax: true
         })
-        expect(settings.taxRules.length).toBe(3)
+        expect(Chunk.size(settings.taxRules)).toBe(3)
       })
     )
 
     it.effect("accepts fiscal year end month 1 (January)", () =>
       Effect.gen(function* () {
         const settings = TaxSettings.make({
-          taxRules: [],
+          taxRules: Chunk.empty(),
           defaultFiscalYearEndMonth: 1,
           hasVat: false,
           hasWithholdingTax: false
@@ -277,7 +277,7 @@ describe("TaxSettings", () => {
     it.effect("accepts fiscal year end month 12 (December)", () =>
       Effect.gen(function* () {
         const settings = TaxSettings.make({
-          taxRules: [],
+          taxRules: Chunk.empty(),
           defaultFiscalYearEndMonth: 12,
           hasVat: false,
           hasWithholdingTax: false
@@ -290,7 +290,7 @@ describe("TaxSettings", () => {
       Effect.gen(function* () {
         const decode = Schema.decodeUnknown(TaxSettings)
         const result = yield* Effect.exit(decode({
-          taxRules: [],
+          taxRules: Chunk.empty(),
           defaultFiscalYearEndMonth: 0,
           hasVat: false,
           hasWithholdingTax: false
@@ -303,7 +303,7 @@ describe("TaxSettings", () => {
       Effect.gen(function* () {
         const decode = Schema.decodeUnknown(TaxSettings)
         const result = yield* Effect.exit(decode({
-          taxRules: [],
+          taxRules: Chunk.empty(),
           defaultFiscalYearEndMonth: 13,
           hasVat: false,
           hasWithholdingTax: false
@@ -316,7 +316,7 @@ describe("TaxSettings", () => {
       Effect.gen(function* () {
         const decode = Schema.decodeUnknown(TaxSettings)
         const result = yield* Effect.exit(decode({
-          taxRules: [],
+          taxRules: Chunk.empty(),
           defaultFiscalYearEndMonth: 6.5,
           hasVat: false,
           hasWithholdingTax: false
@@ -362,7 +362,7 @@ describe("TaxSettings", () => {
     it("isTaxSettings returns false for plain objects (Schema.Class behavior)", () => {
       // Schema.Class type guards return false for plain objects
       expect(isTaxSettings({
-        taxRules: [],
+        taxRules: Chunk.empty(),
         defaultFiscalYearEndMonth: 12,
         hasVat: false,
         hasWithholdingTax: true
@@ -384,9 +384,9 @@ describe("Jurisdiction", () => {
       name: "United States",
       defaultCurrency: CurrencyCode.make("USD"),
       taxSettings: TaxSettings.make({
-        taxRules: [
+        taxRules: Chunk.make(
           TaxRule.make({ name: "Federal Tax", rate: 0.21, isApplicable: true })
-        ],
+        ),
         defaultFiscalYearEndMonth: 12,
         hasVat: false,
         hasWithholdingTax: true
@@ -401,7 +401,7 @@ describe("Jurisdiction", () => {
         expect(jurisdiction.code).toBe("US")
         expect(jurisdiction.name).toBe("United States")
         expect(jurisdiction.defaultCurrency).toBe("USD")
-        expect(jurisdiction.taxSettings.taxRules.length).toBe(1)
+        expect(Chunk.size(jurisdiction.taxSettings.taxRules)).toBe(1)
       })
     )
 
@@ -412,16 +412,16 @@ describe("Jurisdiction", () => {
           name: "United Kingdom",
           defaultCurrency: CurrencyCode.make("GBP"),
           taxSettings: TaxSettings.make({
-            taxRules: [
+            taxRules: Chunk.make(
               TaxRule.make({ name: "Corporation Tax", rate: 0.25, isApplicable: true }),
               TaxRule.make({ name: "VAT", rate: 0.2, isApplicable: true })
-            ],
+            ),
             defaultFiscalYearEndMonth: 4,
             hasVat: true,
             hasWithholdingTax: true
           })
         })
-        expect(jurisdiction.taxSettings.taxRules.length).toBe(2)
+        expect(Chunk.size(jurisdiction.taxSettings.taxRules)).toBe(2)
       })
     )
 
@@ -432,13 +432,13 @@ describe("Jurisdiction", () => {
           name: "Canada",
           defaultCurrency: CurrencyCode.make("CAD"),
           taxSettings: TaxSettings.make({
-            taxRules: [],
+            taxRules: Chunk.empty(),
             defaultFiscalYearEndMonth: 12,
             hasVat: true,
             hasWithholdingTax: false
           })
         })
-        expect(jurisdiction.taxSettings.taxRules.length).toBe(0)
+        expect(Chunk.size(jurisdiction.taxSettings.taxRules)).toBe(0)
       })
     )
 
@@ -450,7 +450,7 @@ describe("Jurisdiction", () => {
           name: "Invalid",
           defaultCurrency: "USD",
           taxSettings: {
-            taxRules: [],
+            taxRules: Chunk.empty(),
             defaultFiscalYearEndMonth: 12,
             hasVat: false,
             hasWithholdingTax: false
@@ -468,7 +468,7 @@ describe("Jurisdiction", () => {
           name: "United States",
           defaultCurrency: "INVALID",
           taxSettings: {
-            taxRules: [],
+            taxRules: Chunk.empty(),
             defaultFiscalYearEndMonth: 12,
             hasVat: false,
             hasWithholdingTax: false
@@ -486,7 +486,7 @@ describe("Jurisdiction", () => {
           name: "",
           defaultCurrency: "USD",
           taxSettings: {
-            taxRules: [],
+            taxRules: Chunk.empty(),
             defaultFiscalYearEndMonth: 12,
             hasVat: false,
             hasWithholdingTax: false
@@ -504,7 +504,7 @@ describe("Jurisdiction", () => {
           name: "   ",
           defaultCurrency: "USD",
           taxSettings: {
-            taxRules: [],
+            taxRules: Chunk.empty(),
             defaultFiscalYearEndMonth: 12,
             hasVat: false,
             hasWithholdingTax: false
@@ -522,7 +522,7 @@ describe("Jurisdiction", () => {
           name: "United States",
           defaultCurrency: "USD",
           taxSettings: {
-            taxRules: [],
+            taxRules: Chunk.empty(),
             defaultFiscalYearEndMonth: 13, // Invalid
             hasVat: false,
             hasWithholdingTax: false
@@ -573,11 +573,11 @@ describe("Jurisdiction", () => {
         name: "United Kingdom",
         defaultCurrency: CurrencyCode.make("GBP"),
         taxSettings: TaxSettings.make({
-          taxRules: [
+          taxRules: Chunk.make(
             TaxRule.make({ name: "Tax 1", rate: 0.25, isApplicable: true }),
             TaxRule.make({ name: "Tax 2", rate: 0.2, isApplicable: true }),
             TaxRule.make({ name: "Tax 3", rate: 0.1, isApplicable: false }) // Not applicable
-          ],
+          ),
           defaultFiscalYearEndMonth: 4,
           hasVat: true,
           hasWithholdingTax: true
@@ -592,10 +592,10 @@ describe("Jurisdiction", () => {
         name: "Canada",
         defaultCurrency: CurrencyCode.make("CAD"),
         taxSettings: TaxSettings.make({
-          taxRules: [
+          taxRules: Chunk.make(
             TaxRule.make({ name: "Tax 1", rate: 0.1, isApplicable: false }),
             TaxRule.make({ name: "Tax 2", rate: 0.2, isApplicable: false })
-          ],
+          ),
           defaultFiscalYearEndMonth: 12,
           hasVat: false,
           hasWithholdingTax: false
@@ -610,7 +610,7 @@ describe("Jurisdiction", () => {
         name: "Australia",
         defaultCurrency: CurrencyCode.make("AUD"),
         taxSettings: TaxSettings.make({
-          taxRules: [],
+          taxRules: Chunk.empty(),
           defaultFiscalYearEndMonth: 6,
           hasVat: true,
           hasWithholdingTax: false
@@ -627,49 +627,49 @@ describe("Jurisdiction", () => {
         name: "United Kingdom",
         defaultCurrency: CurrencyCode.make("GBP"),
         taxSettings: TaxSettings.make({
-          taxRules: [
+          taxRules: Chunk.make(
             TaxRule.make({ name: "Corporation Tax", rate: 0.25, isApplicable: true }),
             TaxRule.make({ name: "VAT", rate: 0.2, isApplicable: true }),
             TaxRule.make({ name: "Stamp Duty", rate: 0.05, isApplicable: false })
-          ],
+          ),
           defaultFiscalYearEndMonth: 4,
           hasVat: true,
           hasWithholdingTax: true
         })
       })
-      expect(jurisdiction.applicableTaxNames).toEqual(["Corporation Tax", "VAT"])
+      expect(Equal.equals(jurisdiction.applicableTaxNames, Chunk.make("Corporation Tax", "VAT"))).toBe(true)
     })
 
-    it("returns empty array when no taxes are applicable", () => {
+    it("returns empty Chunk when no taxes are applicable", () => {
       const jurisdiction = Jurisdiction.make({
         code: JurisdictionCode.make("SG"),
         name: "Singapore",
         defaultCurrency: CurrencyCode.make("SGD"),
         taxSettings: TaxSettings.make({
-          taxRules: [
+          taxRules: Chunk.make(
             TaxRule.make({ name: "Tax", rate: 0.1, isApplicable: false })
-          ],
+          ),
           defaultFiscalYearEndMonth: 12,
           hasVat: false,
           hasWithholdingTax: false
         })
       })
-      expect(jurisdiction.applicableTaxNames).toEqual([])
+      expect(Chunk.isEmpty(jurisdiction.applicableTaxNames)).toBe(true)
     })
 
-    it("returns empty array when no tax rules exist", () => {
+    it("returns empty Chunk when no tax rules exist", () => {
       const jurisdiction = Jurisdiction.make({
         code: JurisdictionCode.make("HK"),
         name: "Hong Kong",
         defaultCurrency: CurrencyCode.make("HKD"),
         taxSettings: TaxSettings.make({
-          taxRules: [],
+          taxRules: Chunk.empty(),
           defaultFiscalYearEndMonth: 3,
           hasVat: false,
           hasWithholdingTax: false
         })
       })
-      expect(jurisdiction.applicableTaxNames).toEqual([])
+      expect(Chunk.isEmpty(jurisdiction.applicableTaxNames)).toBe(true)
     })
   })
 
@@ -679,14 +679,14 @@ describe("Jurisdiction", () => {
       expect(Equal.equals(jurisdiction, jurisdiction)).toBe(true)
     })
 
-    it("Equal.equals returns false for different Jurisdiction instances", () => {
-      // Note: Schema.Class equality with nested objects/arrays compares by reference
-      // Different instances of Jurisdiction will not be Equal even if structurally the same
+    it("Equal.equals returns true for structurally identical Jurisdiction instances", () => {
+      // With Chunk instead of Array, structural equality works correctly
+      // Different instances with the same data are Equal
       const jurisdiction1 = createValidJurisdiction()
       const jurisdiction2 = createValidJurisdiction()
 
-      // These are different object instances, so Equal.equals returns false
-      expect(Equal.equals(jurisdiction1, jurisdiction2)).toBe(false)
+      // These are different object instances but have identical values, so Equal.equals returns true
+      expect(Equal.equals(jurisdiction1, jurisdiction2)).toBe(true)
     })
 
     it("Equal.equals is false for different names", () => {
@@ -696,9 +696,9 @@ describe("Jurisdiction", () => {
         name: "USA",
         defaultCurrency: CurrencyCode.make("USD"),
         taxSettings: TaxSettings.make({
-          taxRules: [
+          taxRules: Chunk.make(
             TaxRule.make({ name: "Federal Tax", rate: 0.21, isApplicable: true })
-          ],
+          ),
           defaultFiscalYearEndMonth: 12,
           hasVat: false,
           hasWithholdingTax: true
@@ -715,9 +715,9 @@ describe("Jurisdiction", () => {
         name: "United States",
         defaultCurrency: CurrencyCode.make("USD"),
         taxSettings: TaxSettings.make({
-          taxRules: [
+          taxRules: Chunk.make(
             TaxRule.make({ name: "Federal Tax", rate: 0.25, isApplicable: true }) // Different rate
-          ],
+          ),
           defaultFiscalYearEndMonth: 12,
           hasVat: false,
           hasWithholdingTax: true
@@ -742,10 +742,12 @@ describe("Jurisdiction", () => {
         expect(decoded.taxSettings.defaultFiscalYearEndMonth).toBe(original.taxSettings.defaultFiscalYearEndMonth)
         expect(decoded.taxSettings.hasVat).toBe(original.taxSettings.hasVat)
         expect(decoded.taxSettings.hasWithholdingTax).toBe(original.taxSettings.hasWithholdingTax)
-        expect(decoded.taxSettings.taxRules.length).toBe(original.taxSettings.taxRules.length)
-        expect(decoded.taxSettings.taxRules[0].name).toBe(original.taxSettings.taxRules[0].name)
-        expect(decoded.taxSettings.taxRules[0].rate).toBe(original.taxSettings.taxRules[0].rate)
-        expect(decoded.taxSettings.taxRules[0].isApplicable).toBe(original.taxSettings.taxRules[0].isApplicable)
+        expect(Chunk.size(decoded.taxSettings.taxRules)).toBe(Chunk.size(original.taxSettings.taxRules))
+        const decodedFirstRule = Chunk.unsafeGet(decoded.taxSettings.taxRules, 0)
+        const originalFirstRule = Chunk.unsafeGet(original.taxSettings.taxRules, 0)
+        expect(decodedFirstRule.name).toBe(originalFirstRule.name)
+        expect(decodedFirstRule.rate).toBe(originalFirstRule.rate)
+        expect(decodedFirstRule.isApplicable).toBe(originalFirstRule.isApplicable)
       })
     )
 
@@ -781,28 +783,31 @@ describe("Predefined Tax Settings", () => {
     })
 
     it("has federal corporate income tax rule", () => {
-      const federalTax = US_TAX_SETTINGS.taxRules.find(
+      const federalTax = Chunk.findFirst(
+        US_TAX_SETTINGS.taxRules,
         (r) => r.name === "Federal Corporate Income Tax"
       )
-      expect(federalTax).toBeDefined()
-      expect(federalTax?.rate).toBe(0.21)
-      expect(federalTax?.isApplicable).toBe(true)
+      expect(Option.isSome(federalTax)).toBe(true)
+      expect(Option.getOrNull(federalTax)?.rate).toBe(0.21)
+      expect(Option.getOrNull(federalTax)?.isApplicable).toBe(true)
     })
 
     it("has state income tax rule (not applicable by default)", () => {
-      const stateTax = US_TAX_SETTINGS.taxRules.find(
+      const stateTax = Chunk.findFirst(
+        US_TAX_SETTINGS.taxRules,
         (r) => r.name === "State Income Tax"
       )
-      expect(stateTax).toBeDefined()
-      expect(stateTax?.isApplicable).toBe(false)
+      expect(Option.isSome(stateTax)).toBe(true)
+      expect(Option.getOrNull(stateTax)?.isApplicable).toBe(false)
     })
 
     it("has sales tax rule (not applicable by default)", () => {
-      const salesTax = US_TAX_SETTINGS.taxRules.find(
+      const salesTax = Chunk.findFirst(
+        US_TAX_SETTINGS.taxRules,
         (r) => r.name === "Sales Tax"
       )
-      expect(salesTax).toBeDefined()
-      expect(salesTax?.isApplicable).toBe(false)
+      expect(Option.isSome(salesTax)).toBe(true)
+      expect(Option.getOrNull(salesTax)?.isApplicable).toBe(false)
     })
 
     it("is valid TaxSettings", () => {
@@ -818,21 +823,23 @@ describe("Predefined Tax Settings", () => {
     })
 
     it("has corporation tax rule", () => {
-      const corpTax = GB_TAX_SETTINGS.taxRules.find(
+      const corpTax = Chunk.findFirst(
+        GB_TAX_SETTINGS.taxRules,
         (r) => r.name === "Corporation Tax"
       )
-      expect(corpTax).toBeDefined()
-      expect(corpTax?.rate).toBe(0.25)
-      expect(corpTax?.isApplicable).toBe(true)
+      expect(Option.isSome(corpTax)).toBe(true)
+      expect(Option.getOrNull(corpTax)?.rate).toBe(0.25)
+      expect(Option.getOrNull(corpTax)?.isApplicable).toBe(true)
     })
 
     it("has VAT rule", () => {
-      const vat = GB_TAX_SETTINGS.taxRules.find(
+      const vat = Chunk.findFirst(
+        GB_TAX_SETTINGS.taxRules,
         (r) => r.name === "Value Added Tax (VAT)"
       )
-      expect(vat).toBeDefined()
-      expect(vat?.rate).toBe(0.2)
-      expect(vat?.isApplicable).toBe(true)
+      expect(Option.isSome(vat)).toBe(true)
+      expect(Option.getOrNull(vat)?.rate).toBe(0.2)
+      expect(Option.getOrNull(vat)?.isApplicable).toBe(true)
     })
 
     it("is valid TaxSettings", () => {

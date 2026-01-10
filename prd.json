@@ -792,7 +792,7 @@
         "Verify Equal.equals works correctly on nested structures",
         "100% test coverage"
       ],
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "medium"
     },
     {

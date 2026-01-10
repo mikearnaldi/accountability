@@ -8,6 +8,7 @@
  */
 
 import * as Schema from "effect/Schema"
+import * as Chunk from "effect/Chunk"
 import { JurisdictionCode, US, GB } from "./JurisdictionCode.js"
 import { CurrencyCode, USD, GBP } from "./CurrencyCode.js"
 
@@ -119,9 +120,10 @@ export const isFiscalYearEndMonth = Schema.is(FiscalYearEndMonth)
  */
 export class TaxSettings extends Schema.Class<TaxSettings>("TaxSettings")({
   /**
-   * Array of tax rules applicable in this jurisdiction
+   * Collection of tax rules applicable in this jurisdiction
+   * Uses Chunk for proper structural equality with Equal.equals
    */
-  taxRules: Schema.Array(TaxRule).annotations({
+  taxRules: Schema.Chunk(TaxRule).annotations({
     title: "Tax Rules",
     description: "Collection of tax rules applicable in this jurisdiction"
   }),
@@ -151,18 +153,21 @@ export class TaxSettings extends Schema.Class<TaxSettings>("TaxSettings")({
    * Get the total applicable tax rate from all active tax rules
    */
   get totalApplicableTaxRate(): number {
-    return this.taxRules
-      .filter((rule) => rule.isApplicable)
-      .reduce((sum, rule) => sum + rule.rate, 0)
+    return Chunk.reduce(
+      Chunk.filter(this.taxRules, (rule) => rule.isApplicable),
+      0,
+      (sum, rule) => sum + rule.rate
+    )
   }
 
   /**
    * Get the names of all applicable taxes
    */
-  get applicableTaxNames(): ReadonlyArray<string> {
-    return this.taxRules
-      .filter((rule) => rule.isApplicable)
-      .map((rule) => rule.name)
+  get applicableTaxNames(): Chunk.Chunk<string> {
+    return Chunk.map(
+      Chunk.filter(this.taxRules, (rule) => rule.isApplicable),
+      (rule) => rule.name
+    )
   }
 }
 
@@ -217,7 +222,7 @@ export class Jurisdiction extends Schema.Class<Jurisdiction>("Jurisdiction")({
    * Get the names of all applicable taxes
    * Delegates to the TaxSettings class method
    */
-  get applicableTaxNames(): ReadonlyArray<string> {
+  get applicableTaxNames(): Chunk.Chunk<string> {
     return this.taxSettings.applicableTaxNames
   }
 }
@@ -236,7 +241,7 @@ export const isJurisdiction = Schema.is(Jurisdiction)
  */
 export const US_TAX_SETTINGS: TaxSettings = TaxSettings.make(
   {
-    taxRules: [
+    taxRules: Chunk.make(
       TaxRule.make({
         name: "Federal Corporate Income Tax",
         rate: 0.21,
@@ -255,7 +260,7 @@ export const US_TAX_SETTINGS: TaxSettings = TaxSettings.make(
         isApplicable: false,
         description: "State/local sales tax (varies by jurisdiction)"
       })
-    ],
+    ),
     defaultFiscalYearEndMonth: 12,
     hasVat: false,
     hasWithholdingTax: true
@@ -268,7 +273,7 @@ export const US_TAX_SETTINGS: TaxSettings = TaxSettings.make(
  */
 export const GB_TAX_SETTINGS: TaxSettings = TaxSettings.make(
   {
-    taxRules: [
+    taxRules: Chunk.make(
       TaxRule.make({
         name: "Corporation Tax",
         rate: 0.25,
@@ -281,7 +286,7 @@ export const GB_TAX_SETTINGS: TaxSettings = TaxSettings.make(
         isApplicable: true,
         description: "Standard VAT rate in the UK"
       })
-    ],
+    ),
     defaultFiscalYearEndMonth: 4,
     hasVat: true,
     hasWithholdingTax: true

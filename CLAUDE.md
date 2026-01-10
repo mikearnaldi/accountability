@@ -783,6 +783,63 @@ if (account1 === account2) { ... }  // Only true for same reference
 if (Equal.equals(account1, account2)) { ... }  // True for same values
 ```
 
+### Use Chunk Instead of Array for Structural Equality
+
+**Plain JavaScript arrays do NOT implement Equal/Hash** - this means `Equal.equals` doesn't work correctly with nested arrays, even inside Schema classes.
+
+```typescript
+import { Equal } from "effect"
+
+// Arrays break structural equality - WRONG
+const arr1 = [1, 2, 3]
+const arr2 = [1, 2, 3]
+Equal.equals(arr1, arr2)  // false! Arrays don't implement Equal
+
+// Even inside Schema classes - WRONG
+export class AccountHierarchy extends Schema.Class<AccountHierarchy>("AccountHierarchy")({
+  root: Account,
+  children: Schema.Array(Account)  // Arrays won't compare by value
+}) {}
+
+const h1 = AccountHierarchy.make({ root, children: [child1, child2] })
+const h2 = AccountHierarchy.make({ root, children: [child1, child2] })
+Equal.equals(h1, h2)  // false! Even though all fields are equal
+```
+
+**Always use `Chunk` instead of `Array`** in domain models - Chunk implements Equal and Hash properly:
+
+```typescript
+import { Chunk, Equal } from "effect"
+import * as Schema from "effect/Schema"
+
+// Chunks work with structural equality - CORRECT
+const c1 = Chunk.make(1, 2, 3)
+const c2 = Chunk.make(1, 2, 3)
+Equal.equals(c1, c2)  // true!
+
+// Use Schema.Chunk in domain models - CORRECT
+export class AccountHierarchy extends Schema.Class<AccountHierarchy>("AccountHierarchy")({
+  root: Account,
+  children: Schema.Chunk(Account)  // Chunk compares by value!
+}) {}
+
+const h1 = AccountHierarchy.make({ root, children: Chunk.make(child1, child2) })
+const h2 = AccountHierarchy.make({ root, children: Chunk.make(child1, child2) })
+Equal.equals(h1, h2)  // true! Structural equality works
+
+// Creating Chunk values
+const empty = Chunk.empty<Account>()
+const single = Chunk.of(account)
+const fromArray = Chunk.fromIterable([acc1, acc2])
+const built = Chunk.make(acc1, acc2, acc3)
+```
+
+**Why this matters:**
+- Domain models should be comparable by value for testing, caching, and change detection
+- Using `Array` silently breaks equality even when all elements are equal
+- `Chunk` is Effect's immutable sequence that properly implements Equal/Hash
+- This applies to all collection fields in Schema classes
+
 ### Schema Struct for Simple Value Objects
 
 For simpler value objects without methods, use `Schema.Struct`:

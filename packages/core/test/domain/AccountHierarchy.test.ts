@@ -408,7 +408,7 @@ describe("Error types", () => {
     it("creates error with correct message", () => {
       const error = new CircularReferenceError({
         accountId: AccountId.make(UUID1),
-        ancestorChain: [AccountId.make(UUID1), AccountId.make(UUID2), AccountId.make(UUID1)]
+        ancestorChain: Chunk.make(AccountId.make(UUID1), AccountId.make(UUID2), AccountId.make(UUID1))
       })
 
       expect(error._tag).toBe("CircularReferenceError")
@@ -419,7 +419,7 @@ describe("Error types", () => {
     it("isCircularReferenceError returns true for error instances", () => {
       const error = new CircularReferenceError({
         accountId: AccountId.make(UUID1),
-        ancestorChain: []
+        ancestorChain: Chunk.empty()
       })
       expect(isCircularReferenceError(error)).toBe(true)
     })

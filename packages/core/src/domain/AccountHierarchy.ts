@@ -119,11 +119,11 @@ export class CircularReferenceError extends Schema.TaggedError<CircularReference
   "CircularReferenceError",
   {
     accountId: AccountId,
-    ancestorChain: Schema.Array(AccountId)
+    ancestorChain: Schema.Chunk(AccountId)
   }
 ) {
   get message(): string {
-    return `Circular reference detected for account ${this.accountId}. Ancestor chain: ${this.ancestorChain.join(" -> ")}`
+    return `Circular reference detected for account ${this.accountId}. Ancestor chain: ${Chunk.join(this.ancestorChain, " -> ")}`
   }
 }
 
@@ -446,7 +446,7 @@ export const validateHierarchy = (
         errors.push(
           new CircularReferenceError({
             accountId: account.id,
-            ancestorChain: chain
+            ancestorChain: Chunk.fromIterable(chain)
           })
         )
         break

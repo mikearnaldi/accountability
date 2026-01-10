@@ -1,11 +1,12 @@
 import { describe, it, expect, beforeEach } from "@effect/vitest"
-import { Effect, Exit, Equal, Option, Array as Arr } from "effect"
+import { Effect, Exit, Equal, Option, Array as Arr, Chunk, Hash } from "effect"
 import * as Schema from "effect/Schema"
 import {
   TemplateAccountDefinition,
   isTemplateAccountDefinition,
   TemplateType,
   isTemplateType,
+  AccountTemplate,
   isAccountTemplate,
   GeneralBusinessTemplate,
   ManufacturingTemplate,
@@ -365,32 +366,32 @@ describe("AccountTemplate", () => {
   describe("getAccountsByType", () => {
     it("returns only Asset accounts for Asset type", () => {
       const assets = GeneralBusinessTemplate.getAccountsByType("Asset")
-      expect(assets.length).toBeGreaterThan(0)
-      expect(Arr.every(assets, (acc) => acc.accountType === "Asset")).toBe(true)
+      expect(Chunk.size(assets)).toBeGreaterThan(0)
+      expect(Chunk.every(assets, (acc) => acc.accountType === "Asset")).toBe(true)
     })
 
     it("returns only Liability accounts for Liability type", () => {
       const liabilities = GeneralBusinessTemplate.getAccountsByType("Liability")
-      expect(liabilities.length).toBeGreaterThan(0)
-      expect(Arr.every(liabilities, (acc) => acc.accountType === "Liability")).toBe(true)
+      expect(Chunk.size(liabilities)).toBeGreaterThan(0)
+      expect(Chunk.every(liabilities, (acc) => acc.accountType === "Liability")).toBe(true)
     })
 
     it("returns only Equity accounts for Equity type", () => {
       const equity = GeneralBusinessTemplate.getAccountsByType("Equity")
-      expect(equity.length).toBeGreaterThan(0)
-      expect(Arr.every(equity, (acc) => acc.accountType === "Equity")).toBe(true)
+      expect(Chunk.size(equity)).toBeGreaterThan(0)
+      expect(Chunk.every(equity, (acc) => acc.accountType === "Equity")).toBe(true)
     })
 
     it("returns only Revenue accounts for Revenue type", () => {
       const revenue = GeneralBusinessTemplate.getAccountsByType("Revenue")
-      expect(revenue.length).toBeGreaterThan(0)
-      expect(Arr.every(revenue, (acc) => acc.accountType === "Revenue")).toBe(true)
+      expect(Chunk.size(revenue)).toBeGreaterThan(0)
+      expect(Chunk.every(revenue, (acc) => acc.accountType === "Revenue")).toBe(true)
     })
 
     it("returns only Expense accounts for Expense type", () => {
       const expenses = GeneralBusinessTemplate.getAccountsByType("Expense")
-      expect(expenses.length).toBeGreaterThan(0)
-      expect(Arr.every(expenses, (acc) => acc.accountType === "Expense")).toBe(true)
+      expect(Chunk.size(expenses)).toBeGreaterThan(0)
+      expect(Chunk.every(expenses, (acc) => acc.accountType === "Expense")).toBe(true)
     })
   })
 
@@ -418,6 +419,79 @@ describe("AccountTemplate", () => {
     it("isAccountTemplate returns false for non-templates", () => {
       expect(isAccountTemplate(null)).toBe(false)
       expect(isAccountTemplate({})).toBe(false)
+    })
+  })
+
+  describe("structural equality with Chunk", () => {
+    const createTestAccountDef = (accountNumber: string, name: string) =>
+      TemplateAccountDefinition.make({
+        accountNumber: AccountNumber.make(accountNumber),
+        name,
+        description: Option.none(),
+        accountType: "Asset",
+        accountCategory: "CurrentAsset",
+        normalBalance: Option.none(),
+        parentAccountNumber: Option.none(),
+        isPostable: true,
+        isCashFlowRelevant: true,
+        cashFlowCategory: Option.none(),
+        isIntercompany: false
+      })
+
+    it("Equal.equals returns true for structurally identical templates", () => {
+      // Create two identical templates with the same accounts Chunk
+      const template1 = AccountTemplate.make({
+        templateType: "GeneralBusiness",
+        name: "Test Template",
+        description: "A test template",
+        accounts: Chunk.make(createTestAccountDef("1000", "Cash"))
+      })
+
+      const template2 = AccountTemplate.make({
+        templateType: "GeneralBusiness",
+        name: "Test Template",
+        description: "A test template",
+        accounts: Chunk.make(createTestAccountDef("1000", "Cash"))
+      })
+
+      // With Chunk, structural equality works correctly
+      expect(Equal.equals(template1, template2)).toBe(true)
+    })
+
+    it("Equal.equals returns false for templates with different accounts", () => {
+      const template1 = AccountTemplate.make({
+        templateType: "GeneralBusiness",
+        name: "Test Template",
+        description: "A test template",
+        accounts: Chunk.make(createTestAccountDef("1000", "Cash"))
+      })
+
+      const template2 = AccountTemplate.make({
+        templateType: "GeneralBusiness",
+        name: "Test Template",
+        description: "A test template",
+        accounts: Chunk.make(createTestAccountDef("1010", "Bank")) // Different account
+      })
+
+      expect(Equal.equals(template1, template2)).toBe(false)
+    })
+
+    it("Hash.hash returns consistent values for equal templates", () => {
+      const template1 = AccountTemplate.make({
+        templateType: "GeneralBusiness",
+        name: "Test Template",
+        description: "A test template",
+        accounts: Chunk.make(createTestAccountDef("1000", "Cash"))
+      })
+
+      const template2 = AccountTemplate.make({
+        templateType: "GeneralBusiness",
+        name: "Test Template",
+        description: "A test template",
+        accounts: Chunk.make(createTestAccountDef("1000", "Cash"))
+      })
+
+      expect(Hash.hash(template1)).toBe(Hash.hash(template2))
     })
   })
 })
@@ -481,16 +555,16 @@ describe("GeneralBusinessTemplate", () => {
 
   it("has parent-child relationships", () => {
     const accounts = GeneralBusinessTemplate.accounts
-    const childAccounts = Arr.filter(accounts, (acc) => Option.isSome(acc.parentAccountNumber))
-    expect(childAccounts.length).toBeGreaterThan(0)
+    const childAccounts = Chunk.filter(accounts, (acc) => Option.isSome(acc.parentAccountNumber))
+    expect(Chunk.size(childAccounts)).toBeGreaterThan(0)
   })
 
   it("has cash flow relevant accounts with categories", () => {
-    const cashFlowAccounts = Arr.filter(
+    const cashFlowAccounts = Chunk.filter(
       GeneralBusinessTemplate.accounts,
       (acc) => acc.isCashFlowRelevant
     )
-    expect(cashFlowAccounts.length).toBeGreaterThan(0)
+    expect(Chunk.size(cashFlowAccounts)).toBeGreaterThan(0)
 
     for (const acc of cashFlowAccounts) {
       expect(Option.isSome(acc.cashFlowCategory)).toBe(true)
@@ -679,8 +753,8 @@ describe("HoldingCompanyTemplate", () => {
   it("has limited operating expenses", () => {
     // Holding companies typically have minimal operating expenses
     const expenses = HoldingCompanyTemplate.getAccountsByType("Expense")
-    const operatingExpenses = Arr.filter(expenses, (acc) => acc.accountCategory === "OperatingExpense")
-    expect(operatingExpenses.length).toBeLessThan(15)
+    const operatingExpenses = Chunk.filter(expenses, (acc) => acc.accountCategory === "OperatingExpense")
+    expect(Chunk.size(operatingExpenses)).toBeLessThan(15)
   })
 
   it("has intercompany interest accounts", () => {
@@ -750,23 +824,23 @@ describe("instantiateTemplate", () => {
   it("creates Account entities from template", () => {
     const accounts = instantiateTemplate(GeneralBusinessTemplate, companyId, mockIdGenerator)
 
-    expect(accounts.length).toBe(GeneralBusinessTemplate.accountCount)
-    expect(Arr.every(accounts, (acc) => acc.companyId === companyId)).toBe(true)
+    expect(Chunk.size(accounts)).toBe(GeneralBusinessTemplate.accountCount)
+    expect(Chunk.every(accounts, (acc) => acc.companyId === companyId)).toBe(true)
   })
 
   it("assigns unique IDs to each account", () => {
     const accounts = instantiateTemplate(GeneralBusinessTemplate, companyId, mockIdGenerator)
 
-    const ids = Arr.map(accounts, (acc) => acc.id)
+    const ids = Chunk.map(accounts, (acc) => acc.id)
     const uniqueIds = new Set(ids)
-    expect(uniqueIds.size).toBe(accounts.length)
+    expect(uniqueIds.size).toBe(Chunk.size(accounts))
   })
 
   it("resolves parent-child relationships", () => {
     const accounts = instantiateTemplate(GeneralBusinessTemplate, companyId, mockIdGenerator)
 
     // Find a child account and verify its parent exists
-    const pettyCash = Arr.findFirst(accounts, (acc) => acc.accountNumber === "1030")
+    const pettyCash = Chunk.findFirst(accounts, (acc) => acc.accountNumber === "1030")
     expect(Option.isSome(pettyCash)).toBe(true)
 
     const pettyCashAcc = Option.getOrThrow(pettyCash)
@@ -774,7 +848,7 @@ describe("instantiateTemplate", () => {
 
     // Verify the parent account exists
     const parentId = Option.getOrThrow(pettyCashAcc.parentAccountId)
-    const parent = Arr.findFirst(accounts, (acc) => acc.id === parentId)
+    const parent = Chunk.findFirst(accounts, (acc) => acc.id === parentId)
     expect(Option.isSome(parent)).toBe(true)
     expect(Option.getOrNull(parent)?.accountNumber).toBe("1000")
   })
@@ -783,11 +857,11 @@ describe("instantiateTemplate", () => {
     const accounts = instantiateTemplate(GeneralBusinessTemplate, companyId, mockIdGenerator)
 
     // Root level account
-    const cash = Arr.findFirst(accounts, (acc) => acc.accountNumber === "1000")
+    const cash = Chunk.findFirst(accounts, (acc) => acc.accountNumber === "1000")
     expect(Option.getOrNull(cash)?.hierarchyLevel).toBe(1)
 
     // Second level account
-    const pettyCash = Arr.findFirst(accounts, (acc) => acc.accountNumber === "1030")
+    const pettyCash = Chunk.findFirst(accounts, (acc) => acc.accountNumber === "1030")
     expect(Option.getOrNull(pettyCash)?.hierarchyLevel).toBe(2)
   })
 
@@ -795,28 +869,28 @@ describe("instantiateTemplate", () => {
     const accounts = instantiateTemplate(GeneralBusinessTemplate, companyId, mockIdGenerator)
 
     // Standard asset - Debit
-    const cash = Arr.findFirst(accounts, (acc) => acc.accountNumber === "1010")
+    const cash = Chunk.findFirst(accounts, (acc) => acc.accountNumber === "1010")
     expect(Option.getOrNull(cash)?.normalBalance).toBe("Debit")
 
     // Contra asset - Credit
-    const allowance = Arr.findFirst(accounts, (acc) => acc.accountNumber === "1110")
+    const allowance = Chunk.findFirst(accounts, (acc) => acc.accountNumber === "1110")
     expect(Option.getOrNull(allowance)?.normalBalance).toBe("Credit")
 
     // Revenue - Credit
-    const revenue = Arr.findFirst(accounts, (acc) => acc.accountNumber === "4000")
+    const revenue = Chunk.findFirst(accounts, (acc) => acc.accountNumber === "4000")
     expect(Option.getOrNull(revenue)?.normalBalance).toBe("Credit")
   })
 
   it("sets all accounts as active", () => {
     const accounts = instantiateTemplate(GeneralBusinessTemplate, companyId, mockIdGenerator)
-    expect(Arr.every(accounts, (acc) => acc.isActive)).toBe(true)
+    expect(Chunk.every(accounts, (acc) => acc.isActive)).toBe(true)
   })
 
   it("sets intercompany partner and currency restriction to None", () => {
     const accounts = instantiateTemplate(HoldingCompanyTemplate, companyId, mockIdGenerator)
 
     // Even intercompany accounts should have None for partner
-    const icReceivable = Arr.findFirst(accounts, (acc) => acc.accountNumber === "1210")
+    const icReceivable = Chunk.findFirst(accounts, (acc) => acc.accountNumber === "1210")
     expect(Option.getOrNull(icReceivable)?.isIntercompany).toBe(true)
     expect(Option.isNone(Option.getOrNull(icReceivable)?.intercompanyPartnerId ?? Option.none())).toBe(true)
   })
@@ -824,11 +898,11 @@ describe("instantiateTemplate", () => {
   it("preserves cash flow settings", () => {
     const accounts = instantiateTemplate(GeneralBusinessTemplate, companyId, mockIdGenerator)
 
-    const cash = Arr.findFirst(accounts, (acc) => acc.accountNumber === "1010")
+    const cash = Chunk.findFirst(accounts, (acc) => acc.accountNumber === "1010")
     expect(Option.getOrNull(cash)?.isCashFlowRelevant).toBe(true)
     expect(Option.getOrNull(cash)?.cashFlowCategory).toEqual(Option.some("Operating"))
 
-    const depreciation = Arr.findFirst(accounts, (acc) => acc.accountNumber === "7000")
+    const depreciation = Chunk.findFirst(accounts, (acc) => acc.accountNumber === "7000")
     expect(Option.getOrNull(depreciation)?.isCashFlowRelevant).toBe(false)
   })
 
@@ -846,7 +920,7 @@ describe("instantiateTemplate", () => {
   it("works with default ID generator", () => {
     // This uses crypto.randomUUID
     const accounts = instantiateTemplate(GeneralBusinessTemplate, companyId)
-    expect(accounts.length).toBe(GeneralBusinessTemplate.accountCount)
+    expect(Chunk.size(accounts)).toBe(GeneralBusinessTemplate.accountCount)
 
     // All IDs should be valid UUIDs
     for (const acc of accounts) {
@@ -933,9 +1007,9 @@ describe("Template account validation", () => {
 
     for (const template of templates) {
       it(`${template.name} has unique account numbers`, () => {
-        const numbers = Arr.map(template.accounts, (acc) => acc.accountNumber)
+        const numbers = Chunk.map(template.accounts, (acc) => acc.accountNumber)
         const uniqueNumbers = new Set(numbers)
-        expect(uniqueNumbers.size).toBe(numbers.length)
+        expect(uniqueNumbers.size).toBe(Chunk.size(numbers))
       })
     }
   })
@@ -945,7 +1019,7 @@ describe("Template account validation", () => {
 
     for (const template of templates) {
       it(`${template.name} has valid parent references`, () => {
-        const accountNumbers = new Set(Arr.map(template.accounts, (acc) => acc.accountNumber))
+        const accountNumbers = new Set(Chunk.map(template.accounts, (acc) => acc.accountNumber))
 
         for (const acc of template.accounts) {
           if (Option.isSome(acc.parentAccountNumber)) {
