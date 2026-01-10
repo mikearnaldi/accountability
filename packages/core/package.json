@@ -6,7 +6,8 @@
   "main": "./src/index.ts",
   "scripts": {
     "build": "echo 'No build step yet'",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "test": "cd ../.. && vitest run packages/core/test"
   },
   "dependencies": {
     "effect": "^3.19.0"

@@ -102,7 +102,7 @@
         "Context and Layer patterns work for dependency injection"
       ],
       "priority": 3,
-      "status": "in_progress",
+      "status": "complete",
       "estimated_complexity": "small"
     },
     {
@@ -119,7 +119,7 @@
         "Example Effect test passes using @effect/vitest patterns"
       ],
       "priority": 4,
-      "status": "pending",
+      "status": "in_progress",
       "estimated_complexity": "small"
     },
     {

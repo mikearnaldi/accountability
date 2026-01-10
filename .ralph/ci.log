@@ -60,3 +60,21 @@ Cancelling test run. Press CTRL+c again to exit forcefully.
 [2m   Start at [22m 12:00:14
 [2m   Duration [22m 421ms[2m (transform 115ms, setup 0ms, collect 1.26s, tests 393ms, environment 1ms, prepare 274ms)[22m
 
+
+> accountability@ typecheck /Users/michaelarnaldi/repositories/accountability
+> tsc -b tsconfig.json
+
+
+> accountability@ test /Users/michaelarnaldi/repositories/accountability
+> vitest
+
+
+[1m[46m RUN [49m[22m [36mv3.2.4 [39m[90m/Users/michaelarnaldi/repositories/accountability[39m
+
+ [32m✓[39m packages/core/test/effect.test.ts [2m([22m[2m15 tests[22m[2m)[22m[32m 41[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[32m15 passed[39m[22m[90m (15)[39m
+[2m   Start at [22m 12:03:32
+[2m   Duration [22m 313ms[2m (transform 20ms, setup 0ms, collect 146ms, tests 41ms, environment 0ms, prepare 32ms)[22m
+
