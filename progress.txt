@@ -144,3 +144,8 @@
 **Story**: 1.5.2 - Implement JournalEntryLine entity
 **Status**: complete
 ---
+
+## Iteration 5 - 2026-01-10 18:30
+**Story**: 1.5.3 - Implement balance validation
+**Status**: complete
+---
