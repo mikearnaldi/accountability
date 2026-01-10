@@ -214,3 +214,8 @@
 **Story**: 2.3.5 - Reorganize core package tests into domain and services
 **Status**: complete
 ---
+
+## Iteration 2 - 2026-01-10 20:10
+**Story**: 3.1.1 - Implement account balance calculation
+**Status**: complete
+---
