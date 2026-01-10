@@ -139,3 +139,8 @@
 **Story**: 1.5.1 - Implement JournalEntry entity
 **Status**: complete
 ---
+
+## Iteration 4 - 2026-01-10 18:27
+**Story**: 1.5.2 - Implement JournalEntryLine entity
+**Status**: complete
+---
