@@ -552,6 +552,89 @@ export class JournalEntry extends Schema.Class<JournalEntry>("JournalEntry")({
 const entry = new JournalEntry({ id, date: new Date(), description: "..." })
 ```
 
+### Value-Based Equality in Effect
+
+Effect provides **value-based equality** through the `Equal` and `Hash` modules. This means two separate objects with the same field values are considered equal.
+
+**Why this matters for domain entities:**
+
+```typescript
+// With JavaScript ===, two objects with same data are NOT equal
+const acc1 = { id: "acc_123", name: "Cash" }
+const acc2 = { id: "acc_123", name: "Cash" }
+console.log(acc1 === acc2)  // false - different object references
+
+// With Effect's Equal.equals, objects with same data ARE equal
+import { Equal } from "effect"
+
+class Account extends Schema.Class<Account>("Account")({
+  id: AccountId,
+  name: Schema.String
+}) {}
+
+const account1 = Account.make({ id, name: "Cash" })
+const account2 = Account.make({ id, name: "Cash" })
+console.log(Equal.equals(account1, account2))  // true - same values!
+```
+
+**How it works:**
+
+1. **Schema.Class extends Data.Class** - which implements `Equal` and `Hash` traits
+2. **Fields are compared recursively** using `Equal.equals()`, not `===`
+3. **Nested Effect objects** (other Schema.Class instances, Options, etc.) are compared by value
+4. **Hash is consistent** - equal objects produce the same hash code
+
+**Automatic with Schema.Class - no manual implementation needed:**
+
+```typescript
+// WRONG - don't implement Equal/Hash manually
+export class Account extends Schema.Class<Account>("Account")({
+  id: AccountId,
+  name: Schema.String
+}) {
+  // DON'T DO THIS - it's automatic
+  [Equal.symbol](that: unknown) { ... }
+  [Hash.symbol]() { ... }
+}
+
+// CORRECT - just define the class, Equal/Hash are automatic
+export class Account extends Schema.Class<Account>("Account")({
+  id: AccountId,
+  name: Schema.String
+}) {}
+// Equal.equals() and Hash.hash() work automatically
+```
+
+**Using Equal.equals in practice:**
+
+```typescript
+import { Equal, Hash } from "effect"
+
+// Compare any two values
+if (Equal.equals(account1, account2)) {
+  console.log("Same account data")
+}
+
+// Works in collections - HashMap, HashSet use Equal/Hash
+import { HashMap, HashSet } from "effect"
+
+const accounts = HashSet.make(account1, account2)
+// If account1 and account2 have same values, set has size 1
+
+const map = HashMap.make([account1, "value1"])
+HashMap.get(map, account2)  // Returns "value1" because account2 equals account1
+```
+
+**Important:** Always use `Equal.equals()` to compare Effect objects, not `===`:
+
+```typescript
+// WRONG
+if (account1 === account2) { ... }  // Only true for same reference
+
+// CORRECT
+if (Equal.equals(account1, account2)) { ... }  // True for same values
+```
+
 ### Schema Struct for Simple Value Objects
 
 For simpler value objects without methods, use `Schema.Struct`:
