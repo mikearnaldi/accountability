@@ -777,6 +777,25 @@
       "estimated_complexity": "medium"
     },
     {
+      "id": "3.5.2",
+      "phase": "Reporting Engine",
+      "epic": "Data Integrity",
+      "title": "Replace Array/ReadonlyArray with Chunk in domain models",
+      "description": "Structural equality (Equal.equals) does not work correctly with nested plain arrays. Replace all Array and ReadonlyArray usages in domain models with Chunk from effect, which properly implements Equal and Hash for structural comparison.",
+      "acceptance_criteria": [
+        "Audit all domain models for Array/ReadonlyArray usage",
+        "Replace Schema.Array with Schema.Chunk where structural equality is needed",
+        "Update AccountHierarchy children to use Chunk",
+        "Update JournalEntry lines to use Chunk",
+        "Update any other models with array fields",
+        "Ensure all tests pass after migration",
+        "Verify Equal.equals works correctly on nested structures",
+        "100% test coverage"
+      ],
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
       "id": "4.1.1",
       "phase": "Consolidation",
       "epic": "Consolidation Structure",
