@@ -452,6 +452,57 @@ const node = AccountNode.make({ account, children: [] })
 Equal.equals(node1, node2)  // Works without manual implementation
 ```
 
+### Defining Recursive Schema Classes
+
+For self-referencing (recursive) types, use `Schema.suspend()` to defer the schema reference:
+
+```typescript
+import * as Schema from "effect/Schema"
+
+// Recursive Schema.Class - a tree node that contains children of the same type
+export class TreeNode extends Schema.Class<TreeNode>("TreeNode")({
+  value: Schema.String,
+  // Use Schema.suspend() for self-reference
+  children: Schema.Array(Schema.suspend((): Schema.Schema<TreeNode> => TreeNode))
+}) {}
+
+// Recursive Schema.TaggedClass
+export class Category extends Schema.TaggedClass<Category>()("Category", {
+  name: Schema.String,
+  // Self-referencing array of subcategories
+  subcategories: Schema.Array(Schema.suspend((): Schema.Schema<Category> => Category))
+}) {}
+
+// Mutually recursive types
+export class Expression extends Schema.Class<Expression>("Expression")({
+  type: Schema.Literal("expression"),
+  // Reference to Operation (defined below)
+  value: Schema.Union(Schema.Number, Schema.suspend((): Schema.Schema<Operation> => Operation))
+}) {}
+
+export class Operation extends Schema.Class<Operation>("Operation")({
+  type: Schema.Literal("operation"),
+  operator: Schema.Literal("+", "-"),
+  left: Expression,
+  right: Expression
+}) {}
+
+// Usage
+const tree = TreeNode.make({
+  value: "root",
+  children: [
+    TreeNode.make({ value: "child1", children: [] }),
+    TreeNode.make({ value: "child2", children: [] })
+  ]
+})
+```
+
+**Key points:**
+- Always use `Schema.suspend(() => MyClass)` for self-referencing fields
+- The thunk `(): Schema.Schema<MyClass> => MyClass` provides the type annotation
+- Works with both `Schema.Class` and `Schema.TaggedClass`
+- Supports mutually recursive types (A references B, B references A)
+
 ### Prefer Schema.Class Over Schema.Struct
 
 **Always prefer `Schema.Class`** - it gives you a proper class with constructor, type guard support, and Equal/Hash.
