@@ -36,20 +36,18 @@ export interface Logger {
 
 export class LoggerService extends Context.Tag("LoggerService")<LoggerService, Logger>() {}
 
-export const ConsoleLogger = Layer.succeed(
-  LoggerService,
-  {
-    log: (message: string) => Effect.sync(() => console.log(message))
-  }
-)
+export const ConsoleLogger = Layer.succeed(LoggerService, {
+  // eslint-disable-next-line no-console
+  log: (message: string) => Effect.sync(() => console.log(message))
+})
 
 export const TestLogger = (messages: string[]) =>
-  Layer.succeed(
-    LoggerService,
-    {
-      log: (message: string) => Effect.sync(() => { messages.push(message) })
-    }
-  )
+  Layer.succeed(LoggerService, {
+    log: (message: string) =>
+      Effect.sync(() => {
+        messages.push(message)
+      })
+  })
 
 export const logGreeting = (name: string): Effect.Effect<void, never, LoggerService> =>
   Effect.gen(function* () {
@@ -79,8 +77,4 @@ export const getAppInfo = (): Effect.Effect<string, never, ConfigService> =>
   })
 
 // Combined Layer example
-export const AppLayer = (config: Config) =>
-  Layer.mergeAll(
-    ConsoleLogger,
-    makeConfig(config)
-  )
+export const AppLayer = (config: Config) => Layer.mergeAll(ConsoleLogger, makeConfig(config))

@@ -8,7 +8,6 @@ import {
   LoggerService,
   TestLogger,
   logGreeting,
-  ConfigService,
   makeConfig,
   getAppInfo,
   AppLayer
@@ -92,12 +91,10 @@ describe("Context and Layer patterns", () => {
       const config = { appName: "MyApp", version: "2.0.0" }
       const messages: string[] = []
 
-      const testLayer = AppLayer(config).pipe(
-        (layer) => {
-          // Replace ConsoleLogger with TestLogger in the layer
-          return TestLogger(messages)
-        }
-      )
+      const testLayer = AppLayer(config).pipe((_layer) => {
+        // Replace ConsoleLogger with TestLogger in the layer
+        return TestLogger(messages)
+      })
 
       // Use the services provided by the layer
       yield* logGreeting("User").pipe(Effect.provide(testLayer))
@@ -121,19 +118,14 @@ describe("Context and Layer patterns", () => {
   it.effect("can access service directly via Context.Tag", () =>
     Effect.gen(function* () {
       const logger = yield* LoggerService
-      const messages: string[] = []
       yield* logger.log("Direct message")
-      // Note: The messages array is modified by the mock logger
-    }).pipe(
-      Effect.provide(TestLogger([]))
-    )
+    }).pipe(Effect.provide(TestLogger([])))
   )
 })
 
 describe("Layer composition", () => {
   it.effect("Layer.mergeAll combines multiple layers", () =>
     Effect.gen(function* () {
-      const config = { appName: "ComposedApp", version: "3.0.0" }
       const appInfo = yield* getAppInfo()
       expect(appInfo).toBe("ComposedApp v3.0.0")
     }).pipe(Effect.provide(AppLayer({ appName: "ComposedApp", version: "3.0.0" })))
