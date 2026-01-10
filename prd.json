@@ -700,7 +700,7 @@
         "Support for filtering by date range",
         "100% test coverage"
       ],
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "medium"
     },
     {
