@@ -352,15 +352,211 @@ jq '.version' repos/effect-atom/packages/atom/package.json
 
 ---
 
+## Effect Best Practices
+
+### Branded Types for IDs
+
+Use `Schema.brand` to create type-safe IDs. Reference: `repos/effect/packages/cluster/src/EntityId.ts`
+
+```typescript
+import * as Schema from "effect/Schema"
+
+// Define the branded type
+export const AccountId = Schema.NonEmptyTrimmedString.pipe(
+  Schema.brand("AccountId")
+)
+
+// Export the type
+export type AccountId = typeof AccountId.Type
+
+// Constructor for internal use (bypasses validation)
+export const make = (id: string): AccountId => id as AccountId
+```
+
+### Schema.TaggedError for Domain Errors
+
+Use `Schema.TaggedError` for all domain errors. Reference: `repos/effect/packages/cluster/src/ClusterError.ts`
+
+```typescript
+import * as Schema from "effect/Schema"
+import { hasProperty, isTagged } from "effect/Predicate"
+
+// TypeId for the error module
+export const TypeId: unique symbol = Symbol.for("@accountability/core/AccountError")
+export type TypeId = typeof TypeId
+
+// Define the error
+export class AccountNotFound extends Schema.TaggedError<AccountNotFound>()(
+  "AccountNotFound",
+  { accountId: AccountId }
+) {
+  // Add TypeId to all errors in this module
+  readonly [TypeId] = TypeId
+
+  // Type guard - REQUIRED for all errors
+  static is(u: unknown): u is AccountNotFound {
+    return hasProperty(u, TypeId) && isTagged(u, "AccountNotFound")
+  }
+
+  // Optional: custom message getter
+  get message(): string {
+    return `Account not found: ${this.accountId}`
+  }
+}
+
+// Error with cause (for wrapping other errors)
+export class PersistenceError extends Schema.TaggedError<PersistenceError>()(
+  "PersistenceError",
+  { cause: Schema.Defect }
+) {
+  readonly [TypeId] = TypeId
+
+  // Helper to wrap effects that may fail
+  static refail<A, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<A, PersistenceError, R> {
+    return Effect.catchAllCause(effect, (cause) =>
+      Effect.fail(new PersistenceError({ cause: Cause.squash(cause) }))
+    )
+  }
+}
+
+// Union type for all errors in module
+export type AccountError = AccountNotFound | PersistenceError
+
+// Type guard for the module
+export const isAccountError = (u: unknown): u is AccountError =>
+  hasProperty(u, TypeId)
+```
+
+### Schema.Class for Domain Entities
+
+Use `Schema.Class` for domain entities. Reference: `repos/effect/packages/cluster/src/EntityAddress.ts`
+
+```typescript
+import * as Schema from "effect/Schema"
+import * as Equal from "effect/Equal"
+import * as Hash from "effect/Hash"
+
+const SymbolKey = "@accountability/core/Account"
+
+export const TypeId: unique symbol = Symbol.for(SymbolKey)
+export type TypeId = typeof TypeId
+
+export class Account extends Schema.Class<Account>(SymbolKey)({
+  id: AccountId,
+  code: Schema.NonEmptyTrimmedString,
+  name: Schema.NonEmptyTrimmedString,
+  type: Schema.Literal("Asset", "Liability", "Equity", "Revenue", "Expense"),
+  normalBalance: Schema.Literal("Debit", "Credit"),
+  isActive: Schema.Boolean
+}) {
+  // Add TypeId for type identification
+  readonly [TypeId] = TypeId
+
+  // Implement Equal for value comparison
+  [Equal.symbol](that: Account): boolean {
+    return this.id === that.id
+  }
+
+  // Implement Hash for use in HashSet/HashMap
+  [Hash.symbol]() {
+    return Hash.cached(this, Hash.string(this.id))
+  }
+}
+
+// Schema for self-reference (when entity is already constructed)
+export const AccountFromSelf: Schema.Schema<Account> = Schema.typeSchema(Account)
+
+// Constructor that bypasses validation (for internal use)
+export const make = (options: typeof Account.Encoded): Account =>
+  new Account(options, { disableValidation: true })
+```
+
+### Schema Struct for Simple Value Objects
+
+For simpler value objects without methods, use `Schema.Struct`:
+
+```typescript
+import * as Schema from "effect/Schema"
+
+export const Money = Schema.Struct({
+  amount: Schema.BigDecimal,
+  currency: CurrencyCode
+}).annotations({ identifier: "Money" })
+
+export type Money = typeof Money.Type
+```
+
+### Using Effect.catchTag for Error Handling
+
+```typescript
+import { Effect, Match } from "effect"
+
+const program = fetchAccount(accountId).pipe(
+  Effect.catchTag("AccountNotFound", (error) =>
+    Effect.succeed(createDefaultAccount())
+  ),
+  Effect.catchTag("PersistenceError", (error) =>
+    Effect.logError(`Database error: ${error.cause}`)
+  )
+)
+
+// Or use Match for exhaustive handling
+const handleError = Match.type<AccountError>().pipe(
+  Match.tag("AccountNotFound", (err) => `Account ${err.accountId} not found`),
+  Match.tag("PersistenceError", (err) => `Database error occurred`),
+  Match.exhaustive
+)
+```
+
+### Service Pattern (Context.Tag + Layer)
+
+```typescript
+import * as Context from "effect/Context"
+import * as Layer from "effect/Layer"
+import * as Effect from "effect/Effect"
+
+// Service interface
+export interface AccountService {
+  readonly findById: (id: AccountId) => Effect.Effect<Account, AccountNotFound>
+  readonly findAll: () => Effect.Effect<ReadonlyArray<Account>>
+  readonly create: (account: Account) => Effect.Effect<Account, PersistenceError>
+}
+
+// Service tag
+export class AccountService extends Context.Tag("AccountService")<
+  AccountService,
+  AccountService
+>() {}
+
+// Live implementation
+export const AccountServiceLive = Layer.succeed(
+  AccountService,
+  AccountService.of({
+    findById: (id) => Effect.gen(function* () {
+      // implementation
+    }),
+    findAll: () => Effect.gen(function* () {
+      // implementation
+    }),
+    create: (account) => Effect.gen(function* () {
+      // implementation
+    })
+  })
+)
+```
+
+---
+
 ## Guidelines for Implementation
 
 1. **Always search the reference repos** for patterns before implementing
 2. **Follow Effect conventions** from `repos/effect/packages/effect/src/`
-3. **Use Schema for all entities** - see examples in Effect source
-4. **Use branded types** for IDs (AccountId, CompanyId, etc.)
-5. **Use BigDecimal** for all monetary calculations
-6. **Write tests** alongside implementation using `repos/effect/packages/vitest/`
-7. **Follow TanStack patterns** for API routes and server functions
+3. **Use Schema.TaggedError** for all domain errors with TypeId and `is` type guard
+4. **Use Schema.Class** for domain entities with TypeId, Equal, and Hash
+5. **Use branded types** for IDs (AccountId, CompanyId, etc.)
+6. **Use BigDecimal** for all monetary calculations
+7. **Write tests** alongside implementation using `repos/effect/packages/vitest/`
+8. **Follow TanStack patterns** for API routes and server functions
 
 ---
 
@@ -371,5 +567,7 @@ When working on stories:
 1. **Read SPECIFICATIONS.md** for domain requirements
 2. **Search repos/** for implementation patterns
 3. **Follow the technology stack** defined in this file
-4. **Signal STORY_COMPLETE** when done (don't commit, script handles it)
-5. **Run tests** before signaling completion: `pnpm test && pnpm typecheck`
+4. **Use Schema.TaggedError** for errors - see Best Practices section above
+5. **Use Schema.Class** for entities - see Best Practices section above
+6. **Signal STORY_COMPLETE** when done (don't commit, script handles it)
+7. **Run tests** before signaling completion: `pnpm test && pnpm typecheck`
