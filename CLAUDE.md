@@ -459,8 +459,8 @@ For self-referencing (recursive) types, use `Schema.suspend()` to defer the sche
 ```typescript
 import * as Schema from "effect/Schema"
 
-// Step 1: Declare the encoded type interface (before the class)
-interface TreeNodeEncoded extends Schema.Schema.Encoded<typeof TreeNode> {}
+// Step 1: Declare and export the encoded type interface (before the class)
+export interface TreeNodeEncoded extends Schema.Schema.Encoded<typeof TreeNode> {}
 
 // Step 2: Define the class with Schema.suspend referencing both type and encoded
 export class TreeNode extends Schema.TaggedClass<TreeNode>()("TreeNode", {
@@ -470,7 +470,7 @@ export class TreeNode extends Schema.TaggedClass<TreeNode>()("TreeNode", {
 }) {}
 
 // Another example with Schema.Class
-interface CategoryEncoded extends Schema.Schema.Encoded<typeof Category> {}
+export interface CategoryEncoded extends Schema.Schema.Encoded<typeof Category> {}
 
 export class Category extends Schema.Class<Category>("Category")({
   name: Schema.String,
@@ -488,7 +488,8 @@ const tree = TreeNode.make({
 ```
 
 **Key points:**
-- Declare `interface MyClassEncoded extends Schema.Schema.Encoded<typeof MyClass> {}` before the class
+- Declare `export interface MyClassEncoded extends Schema.Schema.Encoded<typeof MyClass> {}` before the class
+- Export both the class and the encoded interface together
 - Use `Schema.Schema<MyClass, MyClassEncoded>` in the suspend thunk
 - This pattern ensures proper typing for both the decoded and encoded types
 - Works with both `Schema.Class` and `Schema.TaggedClass`
