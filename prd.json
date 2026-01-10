@@ -151,10 +151,12 @@
         "Minimum 4 decimal places precision",
         "Validation rejects invalid currencies",
         "Arithmetic operations (add, subtract, multiply, divide) implemented using BigDecimal",
-        "100% test coverage"
+        "100% test coverage",
+        "Do not accept any less than 100% test coverage, don't back off from tasks!",
+        "Investigate deeply the issue of Equal not picking up"
       ],
       "priority": 6,
-      "status": "complete",
+      "status": "in_progress",
       "estimated_complexity": "medium"
     },
     {
