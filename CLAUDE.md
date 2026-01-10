@@ -399,6 +399,20 @@ import * as Schema from "effect/Schema.ts"
 
 Package resolution relies on properly configured `package.json` exports - no extensions needed.
 
+**NEVER include `/src/` in package imports:**
+
+```typescript
+// CORRECT - no /src/ in path
+import { CompanyRepository } from "@accountability/persistence/CompanyRepository"
+import { Account } from "@accountability/core/Account"
+
+// WRONG - NEVER include /src/ in imports
+import { CompanyRepository } from "@accountability/persistence/src/CompanyRepository"
+import { CompanyRepository } from "@accountability/persistence/src/CompanyRepository.ts"
+```
+
+The `package.json` exports field maps the public API - `/src/` is an implementation detail that should never appear in imports.
+
 ### NEVER Use index.ts Barrel Files
 
 **This is a strict rule: NEVER create index.ts files.** Barrel files cause:

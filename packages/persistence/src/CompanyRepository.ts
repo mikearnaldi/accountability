@@ -108,7 +108,7 @@ export interface CompanyRepositoryService {
  *
  * Usage:
  * ```typescript
- * import { CompanyRepository } from "@accountability/persistence"
+ * import { CompanyRepository } from "@accountability/persistence/src/CompanyRepository.ts"
  *
  * const program = Effect.gen(function* () {
  *   const repo = yield* CompanyRepository

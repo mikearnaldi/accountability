@@ -1056,7 +1056,7 @@
         "Verify pnpm typecheck passes",
         "Verify pnpm test passes"
       ],
-      "status": "pending",
+      "status": "in_progress",
       "estimated_complexity": "small"
     },
     {
