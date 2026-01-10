@@ -481,7 +481,7 @@ const checkError = (error: unknown) => {
 
 ### Schema.Class for Domain Entities
 
-Use `Schema.Class` for domain entities. Equal and Hash are auto-implemented.
+Use `Schema.Class` for domain entities. Equal, Hash, and constructors are auto-provided.
 
 ```typescript
 import * as Schema from "effect/Schema"
@@ -502,10 +502,35 @@ export class Account extends Schema.Class<Account>("Account")({
 
 // Type guard is automatically derived
 export const isAccount = Schema.is(Account)
+```
 
-// Constructor that bypasses validation (for internal use)
-export const make = (options: typeof Account.Encoded): Account =>
-  new Account(options, { disableValidation: true })
+**DO NOT create separate `make` or `create` functions** - Schema.Class already provides:
+
+```typescript
+// Both are equivalent and validate input by default
+const account1 = new Account({ id, code: "1000", name: "Cash", ... })
+const account2 = Account.make({ id, code: "1000", name: "Cash", ... })
+
+// Disable validation when you trust the input (e.g., from database)
+const fromDb = new Account(dbRow, { disableValidation: true })
+const fromDb2 = Account.make(dbRow, { disableValidation: true })
+```
+
+**Constructor defaults:**
+
+```typescript
+export class JournalEntry extends Schema.Class<JournalEntry>("JournalEntry")({
+  id: JournalEntryId,
+  date: Schema.DateFromSelf,
+  description: Schema.String,
+  // Default value for constructor
+  status: Schema.propertySignature(Schema.String).pipe(
+    Schema.withConstructorDefault(() => "draft")
+  )
+}) {}
+
+// status defaults to "draft"
+const entry = new JournalEntry({ id, date: new Date(), description: "..." })
 ```
 
 ### Schema Struct for Simple Value Objects
@@ -812,14 +837,15 @@ it.prop("numbers commute", [FastCheck.integer(), FastCheck.integer()], ([a, b]) 
 
 1. **Flat modules, no barrel files** - `CurrencyCode.ts` not `domain/currency/index.ts`
 2. **Prefer Schema.Class over Schema.Struct** - classes give you constructor, Equal, Hash
-3. **Use Schema.TaggedError** for all domain errors - type guards via `Schema.is()`
-4. **Use branded types** for IDs (AccountId, CompanyId, etc.)
-5. **Use BigDecimal** for all monetary calculations
-6. **Derive type guards** using `Schema.is(MySchema)` - never write manual type guards
-7. **NEVER use Sync variants** - use `Schema.decodeUnknown` not `decodeUnknownSync` (throws)
-8. **Use Layer.effect or Layer.scoped** - avoid Layer.succeed and Tag.of
-9. **Write tests** alongside implementation using `repos/effect/packages/vitest/`
-10. **Follow TanStack patterns** for API routes and server functions
+3. **DON'T create make/create functions** - use `new MyClass()` or `MyClass.make()` from Schema
+4. **Use Schema.TaggedError** for all domain errors - type guards via `Schema.is()`
+5. **Use branded types** for IDs (AccountId, CompanyId, etc.)
+6. **Use BigDecimal** for all monetary calculations
+7. **Derive type guards** using `Schema.is(MySchema)` - never write manual type guards
+8. **NEVER use Sync variants** - use `Schema.decodeUnknown` not `decodeUnknownSync` (throws)
+9. **Use Layer.effect or Layer.scoped** - avoid Layer.succeed and Tag.of
+10. **Write tests** alongside implementation using `@effect/vitest`
+11. **Follow TanStack patterns** for API routes and server functions
 
 ---
 
