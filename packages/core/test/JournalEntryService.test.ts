@@ -35,18 +35,18 @@ import {
   type AccountRepositoryService,
   type PeriodRepositoryService,
   type EntryNumberGeneratorService
-} from "../src/JournalEntryService.js"
-import { JournalEntry, JournalEntryId, UserId, EntryNumber } from "../src/JournalEntry.js"
-import { JournalEntryLine, JournalEntryLineId } from "../src/JournalEntryLine.js"
-import { Account, AccountId, type AccountType, type AccountCategory, type NormalBalance } from "../src/Account.js"
-import { CompanyId } from "../src/Company.js"
-import { CurrencyCode } from "../src/CurrencyCode.js"
-import { FiscalPeriodRef } from "../src/FiscalPeriodRef.js"
-import { LocalDate } from "../src/LocalDate.js"
-import { Timestamp } from "../src/Timestamp.js"
-import { AccountNumber } from "../src/AccountNumber.js"
-import { MonetaryAmount } from "../src/MonetaryAmount.js"
-import { isUnbalancedEntryError } from "../src/BalanceValidation.js"
+} from "../src/services/JournalEntryService.js"
+import { JournalEntry, JournalEntryId, UserId, EntryNumber } from "../src/domain/JournalEntry.js"
+import { JournalEntryLine, JournalEntryLineId } from "../src/domain/JournalEntryLine.js"
+import { Account, AccountId, type AccountType, type AccountCategory, type NormalBalance } from "../src/domain/Account.js"
+import { CompanyId } from "../src/domain/Company.js"
+import { CurrencyCode } from "../src/domain/CurrencyCode.js"
+import { FiscalPeriodRef } from "../src/domain/FiscalPeriodRef.js"
+import { LocalDate } from "../src/domain/LocalDate.js"
+import { Timestamp } from "../src/domain/Timestamp.js"
+import { AccountNumber } from "../src/domain/AccountNumber.js"
+import { MonetaryAmount } from "../src/domain/MonetaryAmount.js"
+import { isUnbalancedEntryError } from "../src/domain/BalanceValidation.js"
 
 describe("JournalEntryService", () => {
   // Test data constants

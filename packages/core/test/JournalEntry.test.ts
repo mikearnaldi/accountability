@@ -16,11 +16,11 @@ import {
   isUserId,
   JournalEntry,
   isJournalEntry
-} from "../src/JournalEntry.js"
-import { CompanyId } from "../src/Company.js"
-import { FiscalPeriodRef } from "../src/FiscalPeriodRef.js"
-import { LocalDate } from "../src/LocalDate.js"
-import { Timestamp } from "../src/Timestamp.js"
+} from "../src/domain/JournalEntry.js"
+import { CompanyId } from "../src/domain/Company.js"
+import { FiscalPeriodRef } from "../src/domain/FiscalPeriodRef.js"
+import { LocalDate } from "../src/domain/LocalDate.js"
+import { Timestamp } from "../src/domain/Timestamp.js"
 
 describe("JournalEntryId", () => {
   const validUUID = "550e8400-e29b-41d4-a716-446655440000"

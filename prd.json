@@ -680,7 +680,7 @@
         "All tests pass after reorganization"
       ],
       "priority": 33,
-      "status": "in_progress",
+      "status": "complete",
       "estimated_complexity": "medium"
     },
     {

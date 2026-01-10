@@ -20,7 +20,7 @@ import {
   validateAccounts,
   isValidAccount,
   getValidationErrors
-} from "../src/AccountValidation.js"
+} from "../src/domain/AccountValidation.js"
 import {
   Account,
   AccountId,
@@ -28,10 +28,10 @@ import {
   AccountCategory,
   NormalBalance,
   CashFlowCategory
-} from "../src/Account.js"
-import { AccountNumber } from "../src/AccountNumber.js"
-import { CompanyId } from "../src/Company.js"
-import { Timestamp } from "../src/Timestamp.js"
+} from "../src/domain/Account.js"
+import { AccountNumber } from "../src/domain/AccountNumber.js"
+import { CompanyId } from "../src/domain/Company.js"
+import { Timestamp } from "../src/domain/Timestamp.js"
 
 /**
  * Helper functions for creating test accounts

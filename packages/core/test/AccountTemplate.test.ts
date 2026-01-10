@@ -15,10 +15,10 @@ import {
   getAllTemplates,
   instantiateTemplate,
   instantiateTemplateEffect
-} from "../src/AccountTemplate.js"
-import { AccountId, getNormalBalanceForType, CashFlowCategory, NormalBalance } from "../src/Account.js"
-import { AccountNumber } from "../src/AccountNumber.js"
-import { CompanyId } from "../src/Company.js"
+} from "../src/domain/AccountTemplate.js"
+import { AccountId, getNormalBalanceForType, CashFlowCategory, NormalBalance } from "../src/domain/Account.js"
+import { AccountNumber } from "../src/domain/AccountNumber.js"
+import { CompanyId } from "../src/domain/Company.js"
 
 describe("TemplateAccountDefinition", () => {
   const createBasicDef = () =>

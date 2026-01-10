@@ -14,12 +14,12 @@ import {
   FISCAL_YEAR_END_SEPTEMBER,
   Company,
   isCompany
-} from "../src/Company.js"
-import { OrganizationId } from "../src/Organization.js"
-import { USD, EUR, GBP } from "../src/CurrencyCode.js"
-import { US, GB } from "../src/JurisdictionCode.js"
-import { Percentage } from "../src/Percentage.js"
-import { Timestamp } from "../src/Timestamp.js"
+} from "../src/domain/Company.js"
+import { OrganizationId } from "../src/domain/Organization.js"
+import { USD, EUR, GBP } from "../src/domain/CurrencyCode.js"
+import { US, GB } from "../src/domain/JurisdictionCode.js"
+import { Percentage } from "../src/domain/Percentage.js"
+import { Timestamp } from "../src/domain/Timestamp.js"
 
 describe("CompanyId", () => {
   const validUUID = "550e8400-e29b-41d4-a716-446655440000"

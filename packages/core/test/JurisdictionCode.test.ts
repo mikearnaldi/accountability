@@ -15,7 +15,7 @@ import {
   SG,
   HK,
   CH
-} from "../src/JurisdictionCode.js"
+} from "../src/domain/JurisdictionCode.js"
 
 describe("JurisdictionCode", () => {
   describe("validation", () => {

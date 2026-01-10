@@ -204,3 +204,8 @@
 **Story**: 2.3.3 - Implement year-end close process
 **Status**: complete
 ---
+
+## Iteration 1 - 2026-01-10 19:52
+**Story**: 2.3.4 - Reorganize core package into domain and services
+**Status**: complete
+---
