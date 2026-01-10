@@ -951,6 +951,38 @@
         "Separate NCI line items in consolidated statements",
         "100% test coverage"
       ],
+      "status": "in_progress",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "5.0.1",
+      "phase": "Persistence",
+      "epic": "Test Infrastructure",
+      "title": "Set up testcontainers for persistence tests",
+      "description": "Create testcontainers infrastructure for running persistence tests against a real PostgreSQL database. Follow the pattern from @effect/sql-pg where testcontainers are wrapped in Effect layers and provided to tests via it.layer(). This enables integration tests that verify actual database behavior.",
+      "acceptance_criteria": [
+        "Install @testcontainers/postgresql as dev dependency in persistence package",
+        "Create test/utils.ts with PgContainer Effect.Service following sql-pg pattern",
+        "Use Effect.acquireRelease to manage container lifecycle (start on acquire, stop on release)",
+        "Use Layer.unwrapEffect to create PgClient layer from container connection URI",
+        "Export PgContainer.ClientLive layer for use in tests",
+        "Create ContainerError as Data.TaggedError for container startup failures",
+        "Configure test timeout to 30 seconds (container startup is slow)",
+        "Verify pattern works with example test using it.layer(PgContainer.ClientLive)",
+        "Document pattern in CLAUDE.md under Testing section",
+        "Example test should create table, insert row, query it back"
+      ],
+      "technical_details": {
+        "pattern": "Effect.Service with scoped Effect.acquireRelease for container lifecycle",
+        "reference": "repos/effect/packages/sql-pg/test/utils.ts",
+        "key_imports": [
+          "PostgreSqlContainer from @testcontainers/postgresql",
+          "PgClient from @effect/sql-pg",
+          "Effect, Layer, Redacted, Data from effect"
+        ],
+        "container_layer_pattern": "Layer.unwrapEffect(Effect.gen) to get container URI then create PgClient.layer",
+        "test_pattern": "it.layer(PgContainer.ClientLive, { timeout: '30 seconds' })('description', (it) => { ... })"
+      },
       "status": "pending",
       "estimated_complexity": "medium"
     },
