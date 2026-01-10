@@ -86,7 +86,7 @@
         "Path aliases configured for cross-package imports"
       ],
       "priority": 2,
-      "status": "in_progress",
+      "status": "complete",
       "estimated_complexity": "small"
     },
     {
@@ -102,7 +102,7 @@
         "Context and Layer patterns work for dependency injection"
       ],
       "priority": 3,
-      "status": "pending",
+      "status": "in_progress",
       "estimated_complexity": "small"
     },
     {

@@ -18,19 +18,19 @@ Implement the user story below. Complete it fully, ensure all tests pass, and si
 
 ```json
 {
-  "id": "1.1.2",
+  "id": "1.1.3",
   "phase": "Foundation",
   "epic": "Project Setup",
-  "title": "Configure TypeScript with strict mode",
-  "description": "Set up TypeScript configuration with strict mode enabled. Create base tsconfig.json and package-specific configs that extend it. Reference repos/effect/tsconfig.base.json for configuration patterns.",
+  "title": "Set up Effect",
+  "description": "Install Effect package in core. Schema is included in the core effect package since v3.10.0 - import as 'effect/Schema'. Reference repos/effect/packages/effect/src/Schema.ts for Schema API.",
   "acceptance_criteria": [
-    "Root tsconfig.base.json with strict: true and modern settings",
-    "Each package has tsconfig.json extending base",
-    "TypeScript compiles without errors",
-    "Path aliases configured for cross-package imports"
+    "effect ^3.19.0 package installed in core",
+    "Basic Effect program runs successfully using Effect.gen",
+    "Schema validation works using import * as Schema from 'effect/Schema'",
+    "Context and Layer patterns work for dependency injection"
   ],
-  "priority": 2,
-  "status": "in_progress",
+  "priority": 3,
+  "status": "pending",
   "estimated_complexity": "small"
 }
 ```
@@ -148,6 +148,12 @@ The Ralph script will then:
 **Story**: 1.1.1 - Initialize monorepo structure
 **Status**: complete
 **Commit**: 5758272a21
+---
+
+## Iteration 1 - 2026-01-10 11:57
+**Story**: 1.1.2 - Configure TypeScript with strict mode
+**Status**: complete
+**Commit**: 885ae281b3
 ---
 ```
 
