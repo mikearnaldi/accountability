@@ -146,8 +146,8 @@ run_ci_checks() {
         return 1
     fi
 
-    # Tests (--run to avoid watch mode)
-    if ! pnpm test -- --run 2>&1 | tee -a "$OUTPUT_DIR/ci.log"; then
+    # Tests (CI=true makes vitest run once and exit)
+    if ! CI=true pnpm test 2>&1 | tee -a "$OUTPUT_DIR/ci.log"; then
         log "ERROR" "Tests failed"
         return 1
     fi
