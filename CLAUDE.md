@@ -354,6 +354,64 @@ jq '.version' repos/effect-atom/packages/atom/package.json
 
 ## Effect Best Practices
 
+### Module Structure - Flat Modules, No Barrel Files
+
+**Avoid barrel files** (index.ts re-exports). Create flat, focused modules:
+
+```
+packages/core/src/
+├── CurrencyCode.ts      # NOT domain/currency/CurrencyCode.ts + index.ts
+├── AccountId.ts
+├── Account.ts
+├── AccountError.ts
+├── AccountService.ts
+└── Money.ts
+```
+
+**Each module should be self-contained:**
+
+```typescript
+// CurrencyCode.ts - everything related to CurrencyCode in one file
+import * as Schema from "effect/Schema"
+
+export class CurrencyCode extends Schema.Class<CurrencyCode>("CurrencyCode")({
+  code: Schema.String.pipe(Schema.length(3)),
+  name: Schema.String,
+  symbol: Schema.String,
+  decimalPlaces: Schema.Number
+}) {}
+
+export const isoCurrencies = {
+  USD: new CurrencyCode({ code: "USD", name: "US Dollar", symbol: "$", decimalPlaces: 2 }),
+  EUR: new CurrencyCode({ code: "EUR", name: "Euro", symbol: "€", decimalPlaces: 2 }),
+  // ...
+}
+```
+
+### Prefer Schema.Class Over Schema.Struct
+
+**Always prefer `Schema.Class`** - it gives you a proper class with constructor, type guard support, and Equal/Hash.
+
+```typescript
+// WRONG - Schema.Struct creates plain objects
+export const Account = Schema.Struct({
+  id: AccountId,
+  name: Schema.String
+})
+type Account = typeof Account.Type  // just a plain object type
+
+// CORRECT - Schema.Class creates a proper class
+export class Account extends Schema.Class<Account>("Account")({
+  id: AccountId,
+  name: Schema.String
+}) {
+  // Can add methods
+  get displayName() {
+    return `${this.name} (${this.id})`
+  }
+}
+```
+
 ### Branded Types for IDs
 
 Use `Schema.brand` to create type-safe IDs. Reference: `repos/effect/packages/cluster/src/EntityId.ts`
@@ -623,14 +681,14 @@ export const FullLayer = Layer.provideMerge(
 
 ## Guidelines for Implementation
 
-1. **Always search the reference repos** for patterns before implementing
-2. **Follow Effect conventions** from `repos/effect/packages/effect/src/`
+1. **Flat modules, no barrel files** - `CurrencyCode.ts` not `domain/currency/index.ts`
+2. **Prefer Schema.Class over Schema.Struct** - classes give you constructor, Equal, Hash
 3. **Use Schema.TaggedError** for all domain errors - type guards via `Schema.is()`
-4. **Use Schema.Class** for domain entities - Equal and Hash are auto-implemented
-5. **Use branded types** for IDs (AccountId, CompanyId, etc.)
-6. **Use BigDecimal** for all monetary calculations
-7. **Derive type guards** using `Schema.is(MySchema)` - never write manual type guards
-8. **NEVER use Sync variants** - use `Schema.decodeUnknown` not `decodeUnknownSync` (throws)
+4. **Use branded types** for IDs (AccountId, CompanyId, etc.)
+5. **Use BigDecimal** for all monetary calculations
+6. **Derive type guards** using `Schema.is(MySchema)` - never write manual type guards
+7. **NEVER use Sync variants** - use `Schema.decodeUnknown` not `decodeUnknownSync` (throws)
+8. **Use Layer.effect or Layer.scoped** - avoid Layer.succeed and Tag.of
 9. **Write tests** alongside implementation using `repos/effect/packages/vitest/`
 10. **Follow TanStack patterns** for API routes and server functions
 
