@@ -388,6 +388,70 @@ export const isoCurrencies = {
 }
 ```
 
+### Always Use Schema for Data Classes
+
+**Never manually implement Equal/Hash** - always use Schema.Class or Schema.TaggedClass which provide them automatically.
+
+```typescript
+// WRONG - manual class with Equal/Hash implementation
+export class AccountNode implements Equal.Equal {
+  readonly _tag = "AccountNode"
+
+  constructor(
+    readonly account: Account,
+    readonly children: ReadonlyArray<AccountNode>
+  ) {}
+
+  get hasChildren(): boolean {
+    return this.children.length > 0
+  }
+
+  static make(params: { account: Account; children: ReadonlyArray<AccountNode> }): AccountNode {
+    return new AccountNode(params.account, params.children)
+  }
+
+  // DON'T DO THIS - Schema provides it automatically
+  [Equal.symbol](that: unknown): boolean {
+    return (
+      that instanceof AccountNode &&
+      Equal.equals(this.account, that.account) &&
+      this.children.length === that.children.length &&
+      this.children.every((child, i) => Equal.equals(child, that.children[i]))
+    )
+  }
+
+  // DON'T DO THIS - Schema provides it automatically
+  [Hash.symbol](): number {
+    return Hash.combine(Hash.hash(this.account))(Hash.array(this.children))
+  }
+}
+
+// CORRECT - Schema.TaggedClass with automatic Equal/Hash
+export class AccountNode extends Schema.TaggedClass<AccountNode>()("AccountNode", {
+  account: Account,
+  children: Schema.Array(Schema.suspend((): Schema.Schema<AccountNode> => AccountNode))
+}) {
+  get hasChildren(): boolean {
+    return this.children.length > 0
+  }
+
+  get childCount(): number {
+    return this.children.length
+  }
+
+  get descendantCount(): number {
+    return this.children.reduce(
+      (count, child) => count + 1 + child.descendantCount,
+      0
+    )
+  }
+}
+
+// Usage - .make() is automatic, Equal/Hash work automatically
+const node = AccountNode.make({ account, children: [] })
+Equal.equals(node1, node2)  // Works without manual implementation
+```
+
 ### Prefer Schema.Class Over Schema.Struct
 
 **Always prefer `Schema.Class`** - it gives you a proper class with constructor, type guard support, and Equal/Hash.
