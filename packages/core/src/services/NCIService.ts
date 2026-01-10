@@ -839,6 +839,247 @@ export class NCIService extends Context.Tag("NCIService")<
 >() {}
 
 // =============================================================================
+// Internal Implementation Functions
+// =============================================================================
+
+/**
+ * Internal pure function to calculate NCI for a subsidiary
+ * This is used by both calculateNCI service method and calculateConsolidatedNCI
+ */
+const calculateNCIForSubsidiary = (
+  subsidiary: SubsidiaryData
+): Effect.Effect<NCIResult, InvalidOwnershipPercentageError> =>
+  Effect.gen(function* () {
+    // Validate ownership percentage
+    if (subsidiary.parentOwnershipPercentage < 0 || subsidiary.parentOwnershipPercentage > 100) {
+      return yield* Effect.fail(
+        new InvalidOwnershipPercentageError({
+          ownershipPercentage: subsidiary.parentOwnershipPercentage,
+          reason: "Ownership percentage must be between 0 and 100" as any
+        })
+      )
+    }
+
+    // Calculate NCI percentage
+    const nciPercentageResult = calculateNCIPercentage(subsidiary.parentOwnershipPercentage)
+
+    // If 100% owned, return early with zero NCI
+    if (nciPercentageResult.isWhollyOwned) {
+      const zeroAmount = MonetaryAmount.zero(subsidiary.currency)
+
+      return NCIResult.make({
+        subsidiaryId: subsidiary.subsidiaryId,
+        subsidiaryName: subsidiary.subsidiaryName as any,
+        nciPercentage: nciPercentageResult,
+        equityAtAcquisition: NCIEquityAtAcquisition.make({
+          subsidiaryId: subsidiary.subsidiaryId,
+          fairValueNetAssets: subsidiary.fairValueNetAssetsAtAcquisition,
+          nciPercentage: 0 as Percentage,
+          nciShareOfFairValue: zeroAmount,
+          nciPremiumDiscount: Option.none(),
+          totalNCIAtAcquisition: zeroAmount
+        }),
+        subsequentChanges: NCISubsequentChanges.make({
+          changes: Chunk.empty(),
+          totalNetIncome: zeroAmount,
+          totalDividends: zeroAmount,
+          totalOCI: zeroAmount,
+          totalOther: zeroAmount,
+          netChange: zeroAmount
+        }),
+        currentPeriodNetIncome: NCINetIncome.make({
+          subsidiaryId: subsidiary.subsidiaryId,
+          subsidiaryNetIncome: subsidiary.subsidiaryNetIncome,
+          nciPercentage: 0 as Percentage,
+          nciShareOfNetIncome: zeroAmount,
+          periodYear: subsidiary.periodYear,
+          periodNumber: subsidiary.periodNumber
+        }),
+        totalNCIEquity: zeroAmount,
+        lineItems: Chunk.empty(),
+        currency: subsidiary.currency
+      })
+    }
+
+    // Calculate NCI equity at acquisition
+    const equityAtAcquisition = calculateNCIEquityAtAcquisition(
+      subsidiary.subsidiaryId,
+      subsidiary.fairValueNetAssetsAtAcquisition,
+      nciPercentageResult.nciPercentage,
+      subsidiary.nciPremiumDiscountAtAcquisition
+    )
+
+    // Calculate current period NCI net income
+    const currentPeriodNetIncome = calculateNCINetIncome(
+      subsidiary.subsidiaryId,
+      subsidiary.subsidiaryNetIncome,
+      nciPercentageResult.nciPercentage,
+      subsidiary.periodYear,
+      subsidiary.periodNumber
+    )
+
+    // Calculate NCI share of current period OCI
+    const currentPeriodNciOCI = calculateNCIShare(
+      subsidiary.subsidiaryOCI,
+      nciPercentageResult.nciPercentage
+    )
+
+    // Calculate NCI share of current period dividends
+    const currentPeriodNciDividends = calculateNCIShare(
+      subsidiary.dividendsDeclared,
+      nciPercentageResult.nciPercentage
+    )
+
+    // Build subsequent changes
+    const changes: NCIEquityChange[] = []
+
+    // Add cumulative net income change
+    if (!subsidiary.cumulativeNCINetIncome.isZero) {
+      changes.push(NCIEquityChange.make({
+        changeType: "NetIncome",
+        description: "Cumulative NCI share of net income" as any,
+        amount: subsidiary.cumulativeNCINetIncome,
+        periodYear: subsidiary.periodYear,
+        periodNumber: subsidiary.periodNumber
+      }))
+    }
+
+    // Add current period net income change
+    if (!currentPeriodNetIncome.nciShareOfNetIncome.isZero) {
+      changes.push(NCIEquityChange.make({
+        changeType: "NetIncome",
+        description: "Current period NCI share of net income" as any,
+        amount: currentPeriodNetIncome.nciShareOfNetIncome,
+        periodYear: subsidiary.periodYear,
+        periodNumber: subsidiary.periodNumber
+      }))
+    }
+
+    // Add cumulative dividends change
+    if (!subsidiary.cumulativeDividendsToNCI.isZero) {
+      changes.push(NCIEquityChange.make({
+        changeType: "Dividends",
+        description: "Cumulative dividends to NCI" as any,
+        amount: subsidiary.cumulativeDividendsToNCI.negate(),
+        periodYear: subsidiary.periodYear,
+        periodNumber: subsidiary.periodNumber
+      }))
+    }
+
+    // Add current period dividends change
+    if (!currentPeriodNciDividends.isZero) {
+      changes.push(NCIEquityChange.make({
+        changeType: "Dividends",
+        description: "Current period dividends to NCI" as any,
+        amount: currentPeriodNciDividends.negate(),
+        periodYear: subsidiary.periodYear,
+        periodNumber: subsidiary.periodNumber
+      }))
+    }
+
+    // Add cumulative OCI change
+    if (!subsidiary.cumulativeNCIOCI.isZero) {
+      changes.push(NCIEquityChange.make({
+        changeType: "OtherComprehensiveIncome",
+        description: "Cumulative NCI share of OCI" as any,
+        amount: subsidiary.cumulativeNCIOCI,
+        periodYear: subsidiary.periodYear,
+        periodNumber: subsidiary.periodNumber
+      }))
+    }
+
+    // Add current period OCI change
+    if (!currentPeriodNciOCI.isZero) {
+      changes.push(NCIEquityChange.make({
+        changeType: "OtherComprehensiveIncome",
+        description: "Current period NCI share of OCI" as any,
+        amount: currentPeriodNciOCI,
+        periodYear: subsidiary.periodYear,
+        periodNumber: subsidiary.periodNumber
+      }))
+    }
+
+    // Calculate totals for subsequent changes
+    const totalNetIncome = MonetaryAmount.fromBigDecimal(
+      BigDecimal.sum(
+        subsidiary.cumulativeNCINetIncome.amount,
+        currentPeriodNetIncome.nciShareOfNetIncome.amount
+      ),
+      subsidiary.currency
+    )
+
+    const totalDividends = MonetaryAmount.fromBigDecimal(
+      BigDecimal.sum(
+        subsidiary.cumulativeDividendsToNCI.amount,
+        currentPeriodNciDividends.amount
+      ),
+      subsidiary.currency
+    )
+
+    const totalOCI = MonetaryAmount.fromBigDecimal(
+      BigDecimal.sum(
+        subsidiary.cumulativeNCIOCI.amount,
+        currentPeriodNciOCI.amount
+      ),
+      subsidiary.currency
+    )
+
+    const totalOther = MonetaryAmount.zero(subsidiary.currency)
+
+    // Net change = net income - dividends + OCI + other
+    const netChange = MonetaryAmount.fromBigDecimal(
+      BigDecimal.subtract(
+        BigDecimal.sum(
+          BigDecimal.sum(totalNetIncome.amount, totalOCI.amount),
+          totalOther.amount
+        ),
+        totalDividends.amount
+      ),
+      subsidiary.currency
+    )
+
+    const subsequentChanges = NCISubsequentChanges.make({
+      changes: Chunk.fromIterable(changes),
+      totalNetIncome,
+      totalDividends,
+      totalOCI,
+      totalOther,
+      netChange
+    })
+
+    // Calculate total NCI equity
+    const totalNCIEquity = MonetaryAmount.fromBigDecimal(
+      BigDecimal.sum(
+        equityAtAcquisition.totalNCIAtAcquisition.amount,
+        netChange.amount
+      ),
+      subsidiary.currency
+    )
+
+    // Create line items
+    const lineItems = createNCILineItems(
+      subsidiary.subsidiaryId,
+      subsidiary.subsidiaryName,
+      totalNCIEquity,
+      currentPeriodNetIncome.nciShareOfNetIncome,
+      currentPeriodNciOCI,
+      currentPeriodNciDividends
+    )
+
+    return NCIResult.make({
+      subsidiaryId: subsidiary.subsidiaryId,
+      subsidiaryName: subsidiary.subsidiaryName as any,
+      nciPercentage: nciPercentageResult,
+      equityAtAcquisition,
+      subsequentChanges,
+      currentPeriodNetIncome,
+      totalNCIEquity,
+      lineItems,
+      currency: subsidiary.currency
+    })
+  })
+
+// =============================================================================
 // Service Implementation
 // =============================================================================
 
@@ -848,237 +1089,7 @@ export class NCIService extends Context.Tag("NCIService")<
 const make = Effect.gen(function* () {
   return {
     calculateNCI: (input: CalculateNCIInput) =>
-      Effect.gen(function* () {
-        const { subsidiary } = input
-
-        // Validate ownership percentage
-        if (subsidiary.parentOwnershipPercentage < 0 || subsidiary.parentOwnershipPercentage > 100) {
-          return yield* Effect.fail(
-            new InvalidOwnershipPercentageError({
-              ownershipPercentage: subsidiary.parentOwnershipPercentage,
-              reason: "Ownership percentage must be between 0 and 100" as any
-            })
-          )
-        }
-
-        // Calculate NCI percentage
-        const nciPercentageResult = calculateNCIPercentage(subsidiary.parentOwnershipPercentage)
-
-        // If 100% owned, return early with zero NCI
-        if (nciPercentageResult.isWhollyOwned) {
-          const zeroAmount = MonetaryAmount.zero(subsidiary.currency)
-
-          return NCIResult.make({
-            subsidiaryId: subsidiary.subsidiaryId,
-            subsidiaryName: subsidiary.subsidiaryName as any,
-            nciPercentage: nciPercentageResult,
-            equityAtAcquisition: NCIEquityAtAcquisition.make({
-              subsidiaryId: subsidiary.subsidiaryId,
-              fairValueNetAssets: subsidiary.fairValueNetAssetsAtAcquisition,
-              nciPercentage: 0 as Percentage,
-              nciShareOfFairValue: zeroAmount,
-              nciPremiumDiscount: Option.none(),
-              totalNCIAtAcquisition: zeroAmount
-            }),
-            subsequentChanges: NCISubsequentChanges.make({
-              changes: Chunk.empty(),
-              totalNetIncome: zeroAmount,
-              totalDividends: zeroAmount,
-              totalOCI: zeroAmount,
-              totalOther: zeroAmount,
-              netChange: zeroAmount
-            }),
-            currentPeriodNetIncome: NCINetIncome.make({
-              subsidiaryId: subsidiary.subsidiaryId,
-              subsidiaryNetIncome: subsidiary.subsidiaryNetIncome,
-              nciPercentage: 0 as Percentage,
-              nciShareOfNetIncome: zeroAmount,
-              periodYear: subsidiary.periodYear,
-              periodNumber: subsidiary.periodNumber
-            }),
-            totalNCIEquity: zeroAmount,
-            lineItems: Chunk.empty(),
-            currency: subsidiary.currency
-          })
-        }
-
-        // Calculate NCI equity at acquisition
-        const equityAtAcquisition = calculateNCIEquityAtAcquisition(
-          subsidiary.subsidiaryId,
-          subsidiary.fairValueNetAssetsAtAcquisition,
-          nciPercentageResult.nciPercentage,
-          subsidiary.nciPremiumDiscountAtAcquisition
-        )
-
-        // Calculate current period NCI net income
-        const currentPeriodNetIncome = calculateNCINetIncome(
-          subsidiary.subsidiaryId,
-          subsidiary.subsidiaryNetIncome,
-          nciPercentageResult.nciPercentage,
-          subsidiary.periodYear,
-          subsidiary.periodNumber
-        )
-
-        // Calculate NCI share of current period OCI
-        const currentPeriodNciOCI = calculateNCIShare(
-          subsidiary.subsidiaryOCI,
-          nciPercentageResult.nciPercentage
-        )
-
-        // Calculate NCI share of current period dividends
-        const currentPeriodNciDividends = calculateNCIShare(
-          subsidiary.dividendsDeclared,
-          nciPercentageResult.nciPercentage
-        )
-
-        // Build subsequent changes
-        const changes: NCIEquityChange[] = []
-
-        // Add cumulative net income change
-        if (!subsidiary.cumulativeNCINetIncome.isZero) {
-          changes.push(NCIEquityChange.make({
-            changeType: "NetIncome",
-            description: "Cumulative NCI share of net income" as any,
-            amount: subsidiary.cumulativeNCINetIncome,
-            periodYear: subsidiary.periodYear,
-            periodNumber: subsidiary.periodNumber
-          }))
-        }
-
-        // Add current period net income change
-        if (!currentPeriodNetIncome.nciShareOfNetIncome.isZero) {
-          changes.push(NCIEquityChange.make({
-            changeType: "NetIncome",
-            description: "Current period NCI share of net income" as any,
-            amount: currentPeriodNetIncome.nciShareOfNetIncome,
-            periodYear: subsidiary.periodYear,
-            periodNumber: subsidiary.periodNumber
-          }))
-        }
-
-        // Add cumulative dividends change
-        if (!subsidiary.cumulativeDividendsToNCI.isZero) {
-          changes.push(NCIEquityChange.make({
-            changeType: "Dividends",
-            description: "Cumulative dividends to NCI" as any,
-            amount: subsidiary.cumulativeDividendsToNCI.negate(),
-            periodYear: subsidiary.periodYear,
-            periodNumber: subsidiary.periodNumber
-          }))
-        }
-
-        // Add current period dividends change
-        if (!currentPeriodNciDividends.isZero) {
-          changes.push(NCIEquityChange.make({
-            changeType: "Dividends",
-            description: "Current period dividends to NCI" as any,
-            amount: currentPeriodNciDividends.negate(),
-            periodYear: subsidiary.periodYear,
-            periodNumber: subsidiary.periodNumber
-          }))
-        }
-
-        // Add cumulative OCI change
-        if (!subsidiary.cumulativeNCIOCI.isZero) {
-          changes.push(NCIEquityChange.make({
-            changeType: "OtherComprehensiveIncome",
-            description: "Cumulative NCI share of OCI" as any,
-            amount: subsidiary.cumulativeNCIOCI,
-            periodYear: subsidiary.periodYear,
-            periodNumber: subsidiary.periodNumber
-          }))
-        }
-
-        // Add current period OCI change
-        if (!currentPeriodNciOCI.isZero) {
-          changes.push(NCIEquityChange.make({
-            changeType: "OtherComprehensiveIncome",
-            description: "Current period NCI share of OCI" as any,
-            amount: currentPeriodNciOCI,
-            periodYear: subsidiary.periodYear,
-            periodNumber: subsidiary.periodNumber
-          }))
-        }
-
-        // Calculate totals for subsequent changes
-        const totalNetIncome = MonetaryAmount.fromBigDecimal(
-          BigDecimal.sum(
-            subsidiary.cumulativeNCINetIncome.amount,
-            currentPeriodNetIncome.nciShareOfNetIncome.amount
-          ),
-          subsidiary.currency
-        )
-
-        const totalDividends = MonetaryAmount.fromBigDecimal(
-          BigDecimal.sum(
-            subsidiary.cumulativeDividendsToNCI.amount,
-            currentPeriodNciDividends.amount
-          ),
-          subsidiary.currency
-        )
-
-        const totalOCI = MonetaryAmount.fromBigDecimal(
-          BigDecimal.sum(
-            subsidiary.cumulativeNCIOCI.amount,
-            currentPeriodNciOCI.amount
-          ),
-          subsidiary.currency
-        )
-
-        const totalOther = MonetaryAmount.zero(subsidiary.currency)
-
-        // Net change = net income - dividends + OCI + other
-        const netChange = MonetaryAmount.fromBigDecimal(
-          BigDecimal.subtract(
-            BigDecimal.sum(
-              BigDecimal.sum(totalNetIncome.amount, totalOCI.amount),
-              totalOther.amount
-            ),
-            totalDividends.amount
-          ),
-          subsidiary.currency
-        )
-
-        const subsequentChanges = NCISubsequentChanges.make({
-          changes: Chunk.fromIterable(changes),
-          totalNetIncome,
-          totalDividends,
-          totalOCI,
-          totalOther,
-          netChange
-        })
-
-        // Calculate total NCI equity
-        const totalNCIEquity = MonetaryAmount.fromBigDecimal(
-          BigDecimal.sum(
-            equityAtAcquisition.totalNCIAtAcquisition.amount,
-            netChange.amount
-          ),
-          subsidiary.currency
-        )
-
-        // Create line items
-        const lineItems = createNCILineItems(
-          subsidiary.subsidiaryId,
-          subsidiary.subsidiaryName,
-          totalNCIEquity,
-          currentPeriodNetIncome.nciShareOfNetIncome,
-          currentPeriodNciOCI,
-          currentPeriodNciDividends
-        )
-
-        return NCIResult.make({
-          subsidiaryId: subsidiary.subsidiaryId,
-          subsidiaryName: subsidiary.subsidiaryName as any,
-          nciPercentage: nciPercentageResult,
-          equityAtAcquisition,
-          subsequentChanges,
-          currentPeriodNetIncome,
-          totalNCIEquity,
-          lineItems,
-          currency: subsidiary.currency
-        })
-      }),
+      calculateNCIForSubsidiary(input.subsidiary),
 
     calculateConsolidatedNCI: (
       subsidiaries: ReadonlyArray<SubsidiaryData>,
@@ -1088,10 +1099,7 @@ const make = Effect.gen(function* () {
         const results: NCIResult[] = []
 
         for (const subsidiary of subsidiaries) {
-          const result = yield* Effect.gen(function* () {
-            const service = yield* NCIService
-            return yield* service.calculateNCI({ subsidiary })
-          }).pipe(Effect.provideService(NCIService, this))
+          const result = yield* calculateNCIForSubsidiary(subsidiary)
           results.push(result)
         }
 

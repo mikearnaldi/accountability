@@ -951,7 +951,7 @@
         "Separate NCI line items in consolidated statements",
         "100% test coverage"
       ],
-      "status": "in_progress",
+      "status": "complete",
       "estimated_complexity": "medium"
     },
     {
