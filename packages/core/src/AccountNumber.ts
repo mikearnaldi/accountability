@@ -69,11 +69,6 @@ export const AccountNumber = Schema.String.pipe(
 export type AccountNumber = typeof AccountNumber.Type
 
 /**
- * Constructor that bypasses validation (for internal use with known-valid numbers)
- */
-export const make = (number: string): AccountNumber => number as AccountNumber
-
-/**
  * Type guard for AccountNumber using Schema.is
  */
 export const isAccountNumber = Schema.is(AccountNumber)

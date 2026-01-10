@@ -29,25 +29,21 @@ export const CurrencyCode = Schema.String.pipe(
 export type CurrencyCode = typeof CurrencyCode.Type
 
 /**
- * Constructor that bypasses validation (for internal use with known-valid codes)
- */
-export const make = (code: string): CurrencyCode => code as CurrencyCode
-
-/**
  * Type guard for CurrencyCode using Schema.is
  */
 export const isCurrencyCode = Schema.is(CurrencyCode)
 
 /**
  * Common ISO 4217 currency codes
+ * Using Schema's .make() constructor which validates by default
  */
-export const USD: CurrencyCode = make("USD")
-export const EUR: CurrencyCode = make("EUR")
-export const GBP: CurrencyCode = make("GBP")
-export const JPY: CurrencyCode = make("JPY")
-export const CHF: CurrencyCode = make("CHF")
-export const CAD: CurrencyCode = make("CAD")
-export const AUD: CurrencyCode = make("AUD")
-export const CNY: CurrencyCode = make("CNY")
-export const HKD: CurrencyCode = make("HKD")
-export const SGD: CurrencyCode = make("SGD")
+export const USD: CurrencyCode = CurrencyCode.make("USD")
+export const EUR: CurrencyCode = CurrencyCode.make("EUR")
+export const GBP: CurrencyCode = CurrencyCode.make("GBP")
+export const JPY: CurrencyCode = CurrencyCode.make("JPY")
+export const CHF: CurrencyCode = CurrencyCode.make("CHF")
+export const CAD: CurrencyCode = CurrencyCode.make("CAD")
+export const AUD: CurrencyCode = CurrencyCode.make("AUD")
+export const CNY: CurrencyCode = CurrencyCode.make("CNY")
+export const HKD: CurrencyCode = CurrencyCode.make("HKD")
+export const SGD: CurrencyCode = CurrencyCode.make("SGD")

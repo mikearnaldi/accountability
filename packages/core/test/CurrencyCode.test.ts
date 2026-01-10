@@ -4,7 +4,6 @@ import * as Schema from "effect/Schema"
 import {
   CurrencyCode,
   isCurrencyCode,
-  make,
   USD,
   EUR,
   GBP,
@@ -122,9 +121,9 @@ describe("CurrencyCode", () => {
     })
   })
 
-  describe("make constructor", () => {
-    it("creates CurrencyCode without validation", () => {
-      const code = make("USD")
+  describe("Schema.make() constructor", () => {
+    it("creates CurrencyCode using Schema's .make()", () => {
+      const code = CurrencyCode.make("USD")
       expect(code).toBe("USD")
     })
   })

@@ -4,7 +4,6 @@ import * as Schema from "effect/Schema"
 import {
   FiscalPeriodRef,
   isFiscalPeriodRef,
-  make,
   Order_,
   isBefore,
   isAfter,
@@ -19,6 +18,9 @@ import {
   isWithinRange,
   periodsBetween
 } from "../src/FiscalPeriodRef.js"
+
+// Helper to create FiscalPeriodRef for tests
+const fp = (year: number, period: number) => FiscalPeriodRef.make({ year, period })
 
 describe("FiscalPeriodRef", () => {
   describe("validation", () => {
@@ -82,7 +84,7 @@ describe("FiscalPeriodRef", () => {
 
   describe("type guard", () => {
     it("isFiscalPeriodRef returns true for FiscalPeriodRef instances", () => {
-      const ref = make(2024, 6)
+      const ref = fp(2024, 6)
       expect(isFiscalPeriodRef(ref)).toBe(true)
     })
 
@@ -94,9 +96,9 @@ describe("FiscalPeriodRef", () => {
     })
   })
 
-  describe("make constructor", () => {
-    it("creates FiscalPeriodRef without validation", () => {
-      const ref = make(2024, 6)
+  describe("Schema.make() constructor", () => {
+    it("creates FiscalPeriodRef using Schema's .make()", () => {
+      const ref = FiscalPeriodRef.make({ year: 2024, period: 6 })
       expect(ref.year).toBe(2024)
       expect(ref.period).toBe(6)
     })
@@ -105,51 +107,51 @@ describe("FiscalPeriodRef", () => {
   describe("isRegularPeriod", () => {
     it("returns true for periods 1-12", () => {
       for (let i = 1; i <= 12; i++) {
-        expect(make(2024, i).isRegularPeriod).toBe(true)
+        expect(fp(2024, i).isRegularPeriod).toBe(true)
       }
     })
 
     it("returns false for period 13", () => {
-      expect(make(2024, 13).isRegularPeriod).toBe(false)
+      expect(fp(2024, 13).isRegularPeriod).toBe(false)
     })
   })
 
   describe("isAdjustmentPeriod", () => {
     it("returns true for period 13", () => {
-      expect(make(2024, 13).isAdjustmentPeriod).toBe(true)
+      expect(fp(2024, 13).isAdjustmentPeriod).toBe(true)
     })
 
     it("returns false for periods 1-12", () => {
       for (let i = 1; i <= 12; i++) {
-        expect(make(2024, i).isAdjustmentPeriod).toBe(false)
+        expect(fp(2024, i).isAdjustmentPeriod).toBe(false)
       }
     })
   })
 
   describe("toString", () => {
     it("formats as FY{year}-P{period}", () => {
-      expect(make(2024, 1).toString()).toBe("FY2024-P01")
-      expect(make(2024, 6).toString()).toBe("FY2024-P06")
-      expect(make(2024, 12).toString()).toBe("FY2024-P12")
-      expect(make(2024, 13).toString()).toBe("FY2024-P13")
+      expect(fp(2024, 1).toString()).toBe("FY2024-P01")
+      expect(fp(2024, 6).toString()).toBe("FY2024-P06")
+      expect(fp(2024, 12).toString()).toBe("FY2024-P12")
+      expect(fp(2024, 13).toString()).toBe("FY2024-P13")
     })
   })
 
   describe("toShortString", () => {
     it("formats as {year}.{period}", () => {
-      expect(make(2024, 1).toShortString()).toBe("2024.01")
-      expect(make(2024, 6).toShortString()).toBe("2024.06")
-      expect(make(2024, 12).toShortString()).toBe("2024.12")
-      expect(make(2024, 13).toShortString()).toBe("2024.13")
+      expect(fp(2024, 1).toShortString()).toBe("2024.01")
+      expect(fp(2024, 6).toShortString()).toBe("2024.06")
+      expect(fp(2024, 12).toShortString()).toBe("2024.12")
+      expect(fp(2024, 13).toShortString()).toBe("2024.13")
     })
   })
 
   describe("Order", () => {
     it("compares by year first, then period", () => {
-      const ref1 = make(2024, 6)
-      const ref2 = make(2024, 7)
-      const ref3 = make(2025, 1)
-      const ref4 = make(2024, 6)
+      const ref1 = fp(2024, 6)
+      const ref2 = fp(2024, 7)
+      const ref3 = fp(2025, 1)
+      const ref4 = fp(2024, 6)
 
       expect(Order_(ref1, ref2)).toBe(-1)
       expect(Order_(ref2, ref1)).toBe(1)
@@ -160,54 +162,54 @@ describe("FiscalPeriodRef", () => {
 
   describe("isBefore", () => {
     it("returns true when first is before second", () => {
-      expect(isBefore(make(2024, 6), make(2024, 7))).toBe(true)
-      expect(isBefore(make(2024, 12), make(2025, 1))).toBe(true)
+      expect(isBefore(fp(2024, 6), fp(2024, 7))).toBe(true)
+      expect(isBefore(fp(2024, 12), fp(2025, 1))).toBe(true)
     })
 
     it("returns false when first is not before second", () => {
-      expect(isBefore(make(2024, 7), make(2024, 6))).toBe(false)
-      expect(isBefore(make(2024, 6), make(2024, 6))).toBe(false)
+      expect(isBefore(fp(2024, 7), fp(2024, 6))).toBe(false)
+      expect(isBefore(fp(2024, 6), fp(2024, 6))).toBe(false)
     })
   })
 
   describe("isAfter", () => {
     it("returns true when first is after second", () => {
-      expect(isAfter(make(2024, 7), make(2024, 6))).toBe(true)
-      expect(isAfter(make(2025, 1), make(2024, 12))).toBe(true)
+      expect(isAfter(fp(2024, 7), fp(2024, 6))).toBe(true)
+      expect(isAfter(fp(2025, 1), fp(2024, 12))).toBe(true)
     })
 
     it("returns false when first is not after second", () => {
-      expect(isAfter(make(2024, 6), make(2024, 7))).toBe(false)
-      expect(isAfter(make(2024, 6), make(2024, 6))).toBe(false)
+      expect(isAfter(fp(2024, 6), fp(2024, 7))).toBe(false)
+      expect(isAfter(fp(2024, 6), fp(2024, 6))).toBe(false)
     })
   })
 
   describe("equals", () => {
     it("returns true for equal refs", () => {
-      expect(equals(make(2024, 6), make(2024, 6))).toBe(true)
+      expect(equals(fp(2024, 6), fp(2024, 6))).toBe(true)
     })
 
     it("returns false for different refs", () => {
-      expect(equals(make(2024, 6), make(2024, 7))).toBe(false)
-      expect(equals(make(2024, 6), make(2025, 6))).toBe(false)
+      expect(equals(fp(2024, 6), fp(2024, 7))).toBe(false)
+      expect(equals(fp(2024, 6), fp(2025, 6))).toBe(false)
     })
   })
 
   describe("nextPeriod", () => {
     it("advances to next period within year", () => {
-      const ref = nextPeriod(make(2024, 6))
+      const ref = nextPeriod(fp(2024, 6))
       expect(ref.year).toBe(2024)
       expect(ref.period).toBe(7)
     })
 
     it("advances from period 12 to period 1 of next year", () => {
-      const ref = nextPeriod(make(2024, 12))
+      const ref = nextPeriod(fp(2024, 12))
       expect(ref.year).toBe(2025)
       expect(ref.period).toBe(1)
     })
 
     it("advances from period 13 to period 1 of next year", () => {
-      const ref = nextPeriod(make(2024, 13))
+      const ref = nextPeriod(fp(2024, 13))
       expect(ref.year).toBe(2025)
       expect(ref.period).toBe(1)
     })
@@ -215,19 +217,19 @@ describe("FiscalPeriodRef", () => {
 
   describe("previousPeriod", () => {
     it("goes back to previous period within year", () => {
-      const ref = previousPeriod(make(2024, 6))
+      const ref = previousPeriod(fp(2024, 6))
       expect(ref.year).toBe(2024)
       expect(ref.period).toBe(5)
     })
 
     it("goes from period 1 to period 12 of previous year", () => {
-      const ref = previousPeriod(make(2024, 1))
+      const ref = previousPeriod(fp(2024, 1))
       expect(ref.year).toBe(2023)
       expect(ref.period).toBe(12)
     })
 
     it("goes from period 13 to period 12 of same year", () => {
-      const ref = previousPeriod(make(2024, 13))
+      const ref = previousPeriod(fp(2024, 13))
       expect(ref.year).toBe(2024)
       expect(ref.period).toBe(12)
     })
@@ -281,49 +283,49 @@ describe("FiscalPeriodRef", () => {
 
   describe("isWithinRange", () => {
     it("returns true when ref is within range", () => {
-      const start = make(2024, 3)
-      const end = make(2024, 9)
-      expect(isWithinRange(make(2024, 6), start, end)).toBe(true)
-      expect(isWithinRange(make(2024, 3), start, end)).toBe(true)
-      expect(isWithinRange(make(2024, 9), start, end)).toBe(true)
+      const start = fp(2024, 3)
+      const end = fp(2024, 9)
+      expect(isWithinRange(fp(2024, 6), start, end)).toBe(true)
+      expect(isWithinRange(fp(2024, 3), start, end)).toBe(true)
+      expect(isWithinRange(fp(2024, 9), start, end)).toBe(true)
     })
 
     it("returns false when ref is outside range", () => {
-      const start = make(2024, 3)
-      const end = make(2024, 9)
-      expect(isWithinRange(make(2024, 2), start, end)).toBe(false)
-      expect(isWithinRange(make(2024, 10), start, end)).toBe(false)
-      expect(isWithinRange(make(2023, 6), start, end)).toBe(false)
+      const start = fp(2024, 3)
+      const end = fp(2024, 9)
+      expect(isWithinRange(fp(2024, 2), start, end)).toBe(false)
+      expect(isWithinRange(fp(2024, 10), start, end)).toBe(false)
+      expect(isWithinRange(fp(2023, 6), start, end)).toBe(false)
     })
   })
 
   describe("periodsBetween", () => {
     it("counts periods within same year", () => {
-      expect(periodsBetween(make(2024, 1), make(2024, 12))).toBe(12)
-      expect(periodsBetween(make(2024, 3), make(2024, 6))).toBe(4)
-      expect(periodsBetween(make(2024, 6), make(2024, 6))).toBe(1)
+      expect(periodsBetween(fp(2024, 1), fp(2024, 12))).toBe(12)
+      expect(periodsBetween(fp(2024, 3), fp(2024, 6))).toBe(4)
+      expect(periodsBetween(fp(2024, 6), fp(2024, 6))).toBe(1)
     })
 
     it("counts periods across years", () => {
-      expect(periodsBetween(make(2024, 1), make(2025, 12))).toBe(24)
-      expect(periodsBetween(make(2024, 10), make(2025, 3))).toBe(6)
+      expect(periodsBetween(fp(2024, 1), fp(2025, 12))).toBe(24)
+      expect(periodsBetween(fp(2024, 10), fp(2025, 3))).toBe(6)
     })
 
     it("returns 0 when start is after end", () => {
-      expect(periodsBetween(make(2024, 6), make(2024, 3))).toBe(0)
+      expect(periodsBetween(fp(2024, 6), fp(2024, 3))).toBe(0)
     })
 
     it("treats period 13 as period 12", () => {
-      expect(periodsBetween(make(2024, 1), make(2024, 13))).toBe(12)
-      expect(periodsBetween(make(2024, 13), make(2024, 13))).toBe(1)
+      expect(periodsBetween(fp(2024, 1), fp(2024, 13))).toBe(12)
+      expect(periodsBetween(fp(2024, 13), fp(2024, 13))).toBe(1)
     })
   })
 
   describe("equality", () => {
     it("Equal.equals works for FiscalPeriodRef", () => {
-      const ref1 = make(2024, 6)
-      const ref2 = make(2024, 6)
-      const ref3 = make(2024, 7)
+      const ref1 = fp(2024, 6)
+      const ref2 = fp(2024, 6)
+      const ref3 = fp(2024, 7)
 
       expect(Equal.equals(ref1, ref2)).toBe(true)
       expect(Equal.equals(ref1, ref3)).toBe(false)
@@ -333,7 +335,7 @@ describe("FiscalPeriodRef", () => {
   describe("encoding", () => {
     it.effect("encodes and decodes FiscalPeriodRef", () =>
       Effect.gen(function* () {
-        const original = make(2024, 6)
+        const original = fp(2024, 6)
         const encoded = yield* Schema.encode(FiscalPeriodRef)(original)
         const decoded = yield* Schema.decodeUnknown(FiscalPeriodRef)(encoded)
 

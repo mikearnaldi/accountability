@@ -4,7 +4,6 @@ import * as Schema from "effect/Schema"
 import {
   Percentage,
   isPercentage,
-  make,
   ZERO,
   TWENTY,
   FIFTY,
@@ -106,7 +105,7 @@ describe("Percentage", () => {
 
   describe("make constructor", () => {
     it("creates Percentage without validation", () => {
-      const pct = make(50)
+      const pct = Percentage.make(50)
       expect(pct).toBe(50)
     })
   })
@@ -135,11 +134,11 @@ describe("Percentage", () => {
 
   describe("toDecimal", () => {
     it("converts percentage to decimal", () => {
-      expect(toDecimal(make(0))).toBe(0)
-      expect(toDecimal(make(50))).toBe(0.5)
-      expect(toDecimal(make(100))).toBe(1)
-      expect(toDecimal(make(25))).toBe(0.25)
-      expect(toDecimal(make(12.5))).toBe(0.125)
+      expect(toDecimal(Percentage.make(0))).toBe(0)
+      expect(toDecimal(Percentage.make(50))).toBe(0.5)
+      expect(toDecimal(Percentage.make(100))).toBe(1)
+      expect(toDecimal(Percentage.make(25))).toBe(0.25)
+      expect(toDecimal(Percentage.make(12.5))).toBe(0.125)
     })
   })
 
@@ -155,49 +154,49 @@ describe("Percentage", () => {
 
   describe("isZero", () => {
     it("returns true for zero", () => {
-      expect(isZero(make(0))).toBe(true)
+      expect(isZero(Percentage.make(0))).toBe(true)
     })
 
     it("returns false for non-zero", () => {
-      expect(isZero(make(1))).toBe(false)
-      expect(isZero(make(50))).toBe(false)
-      expect(isZero(make(100))).toBe(false)
+      expect(isZero(Percentage.make(1))).toBe(false)
+      expect(isZero(Percentage.make(50))).toBe(false)
+      expect(isZero(Percentage.make(100))).toBe(false)
     })
   })
 
   describe("isFull", () => {
     it("returns true for 100%", () => {
-      expect(isFull(make(100))).toBe(true)
+      expect(isFull(Percentage.make(100))).toBe(true)
     })
 
     it("returns false for non-100%", () => {
-      expect(isFull(make(0))).toBe(false)
-      expect(isFull(make(50))).toBe(false)
-      expect(isFull(make(99.99))).toBe(false)
+      expect(isFull(Percentage.make(0))).toBe(false)
+      expect(isFull(Percentage.make(50))).toBe(false)
+      expect(isFull(Percentage.make(99.99))).toBe(false)
     })
   })
 
   describe("complement", () => {
     it("calculates complement correctly", () => {
-      expect(complement(make(0))).toBe(100)
-      expect(complement(make(30))).toBe(70)
-      expect(complement(make(50))).toBe(50)
-      expect(complement(make(100))).toBe(0)
-      expect(complement(make(25))).toBe(75)
+      expect(complement(Percentage.make(0))).toBe(100)
+      expect(complement(Percentage.make(30))).toBe(70)
+      expect(complement(Percentage.make(50))).toBe(50)
+      expect(complement(Percentage.make(100))).toBe(0)
+      expect(complement(Percentage.make(25))).toBe(75)
     })
   })
 
   describe("format", () => {
     it("formats percentage with default decimal places", () => {
-      expect(format(make(50))).toBe("50.00%")
-      expect(format(make(12.5))).toBe("12.50%")
-      expect(format(make(99.99))).toBe("99.99%")
+      expect(format(Percentage.make(50))).toBe("50.00%")
+      expect(format(Percentage.make(12.5))).toBe("12.50%")
+      expect(format(Percentage.make(99.99))).toBe("99.99%")
     })
 
     it("formats percentage with custom decimal places", () => {
-      expect(format(make(50), 0)).toBe("50%")
-      expect(format(make(12.5), 1)).toBe("12.5%")
-      expect(format(make(33.333), 3)).toBe("33.333%")
+      expect(format(Percentage.make(50), 0)).toBe("50%")
+      expect(format(Percentage.make(12.5), 1)).toBe("12.5%")
+      expect(format(Percentage.make(33.333), 3)).toBe("33.333%")
     })
   })
 

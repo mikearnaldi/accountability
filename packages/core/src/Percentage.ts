@@ -32,22 +32,18 @@ export const Percentage = Schema.Number.pipe(
 export type Percentage = typeof Percentage.Type
 
 /**
- * Constructor that bypasses validation (for internal use with known-valid values)
- */
-export const make = (value: number): Percentage => value as Percentage
-
-/**
  * Type guard for Percentage using Schema.is
  */
 export const isPercentage = Schema.is(Percentage)
 
 /**
  * Common percentage values
+ * Using Schema's .make() constructor which validates by default
  */
-export const ZERO: Percentage = make(0)
-export const TWENTY: Percentage = make(20)
-export const FIFTY: Percentage = make(50)
-export const HUNDRED: Percentage = make(100)
+export const ZERO: Percentage = Percentage.make(0)
+export const TWENTY: Percentage = Percentage.make(20)
+export const FIFTY: Percentage = Percentage.make(50)
+export const HUNDRED: Percentage = Percentage.make(100)
 
 /**
  * Convert percentage to decimal (0-1 range)
@@ -58,9 +54,9 @@ export const toDecimal = (percentage: Percentage): number => percentage / 100
 /**
  * Convert decimal (0-1 range) to percentage
  * E.g., 0.5 -> 50%
- * Note: Does not validate input - use Schema.decodeUnknown for validation
+ * Note: Uses Schema's .make() for validation
  */
-export const fromDecimal = (decimal: number): Percentage => make(decimal * 100)
+export const fromDecimal = (decimal: number): Percentage => Percentage.make(decimal * 100)
 
 /**
  * Check if percentage is zero
@@ -76,7 +72,7 @@ export const isFull = (percentage: Percentage): boolean => percentage === 100
  * Get the complement of a percentage (100 - value)
  * E.g., 30% -> 70%
  */
-export const complement = (percentage: Percentage): Percentage => make(100 - percentage)
+export const complement = (percentage: Percentage): Percentage => Percentage.make(100 - percentage)
 
 /**
  * Format percentage as a display string

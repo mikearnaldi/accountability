@@ -10,11 +10,8 @@
 
 import * as DateTime from "effect/DateTime"
 import * as Effect from "effect/Effect"
-import * as Equal from "effect/Equal"
-import * as Hash from "effect/Hash"
 import * as Order from "effect/Order"
 import * as ParseResult from "effect/ParseResult"
-import { pipe } from "effect/Function"
 import * as Schema from "effect/Schema"
 
 /**
@@ -28,27 +25,6 @@ export class LocalDate extends Schema.Class<LocalDate>("LocalDate")({
   month: Schema.Number.pipe(Schema.int(), Schema.greaterThanOrEqualTo(1), Schema.lessThanOrEqualTo(12)),
   day: Schema.Number.pipe(Schema.int(), Schema.greaterThanOrEqualTo(1), Schema.lessThanOrEqualTo(31))
 }) {
-  /**
-   * Custom equality - dates are equal if year, month, day match
-   */
-  [Equal.symbol](that: unknown): boolean {
-    if (that instanceof LocalDate) {
-      return this.year === that.year && this.month === that.month && this.day === that.day
-    }
-    return false
-  }
-
-  /**
-   * Custom hash implementation
-   */
-  [Hash.symbol](): number {
-    return pipe(
-      Hash.number(this.year),
-      Hash.combine(Hash.number(this.month)),
-      Hash.combine(Hash.number(this.day))
-    )
-  }
-
   /**
    * Format as ISO 8601 date string (YYYY-MM-DD)
    */
@@ -87,14 +63,6 @@ export class LocalDate extends Schema.Class<LocalDate>("LocalDate")({
 export const isLocalDate = Schema.is(LocalDate)
 
 /**
- * Create a LocalDate from year, month, day
- * Bypasses validation - use for known-valid values only
- */
-export const make = (year: number, month: number, day: number): LocalDate => {
-  return new LocalDate({ year, month, day }, { disableValidation: true })
-}
-
-/**
  * Create a LocalDate from an ISO 8601 date string (YYYY-MM-DD)
  * Returns an Effect that may fail with ParseError
  */
@@ -126,7 +94,10 @@ export const fromString = (
  * Uses the UTC date components
  */
 export const fromDate = (date: Date): LocalDate => {
-  return make(date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate())
+  return LocalDate.make(
+    { year: date.getUTCFullYear(), month: date.getUTCMonth() + 1, day: date.getUTCDate() },
+    { disableValidation: true }
+  )
 }
 
 /**
@@ -135,7 +106,7 @@ export const fromDate = (date: Date): LocalDate => {
  */
 export const fromDateTime = (dateTime: DateTime.DateTime): LocalDate => {
   const parts = DateTime.toPartsUtc(dateTime)
-  return make(parts.year, parts.month, parts.day)
+  return LocalDate.make({ year: parts.year, month: parts.month, day: parts.day }, { disableValidation: true })
 }
 
 /**
@@ -227,7 +198,7 @@ export const diffInDays = (a: LocalDate, b: LocalDate): number => {
  * Get the start of the month for a LocalDate
  */
 export const startOfMonth = (date: LocalDate): LocalDate => {
-  return make(date.year, date.month, 1)
+  return LocalDate.make({ year: date.year, month: date.month, day: 1 }, { disableValidation: true })
 }
 
 /**
@@ -242,14 +213,14 @@ export const endOfMonth = (date: LocalDate): LocalDate => {
  * Get the start of the year for a LocalDate
  */
 export const startOfYear = (date: LocalDate): LocalDate => {
-  return make(date.year, 1, 1)
+  return LocalDate.make({ year: date.year, month: 1, day: 1 }, { disableValidation: true })
 }
 
 /**
  * Get the end of the year for a LocalDate
  */
 export const endOfYear = (date: LocalDate): LocalDate => {
-  return make(date.year, 12, 31)
+  return LocalDate.make({ year: date.year, month: 12, day: 31 }, { disableValidation: true })
 }
 
 /**

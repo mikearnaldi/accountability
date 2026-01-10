@@ -8,10 +8,7 @@
  * @module FiscalPeriodRef
  */
 
-import * as Equal from "effect/Equal"
-import * as Hash from "effect/Hash"
 import * as Order from "effect/Order"
-import { pipe } from "effect/Function"
 import * as Schema from "effect/Schema"
 
 /**
@@ -68,40 +65,12 @@ export class FiscalPeriodRef extends Schema.Class<FiscalPeriodRef>("FiscalPeriod
     const paddedPeriod = String(this.period).padStart(2, "0")
     return `${this.year}.${paddedPeriod}`
   }
-
-  /**
-   * Custom equality
-   */
-  [Equal.symbol](that: unknown): boolean {
-    if (that instanceof FiscalPeriodRef) {
-      return this.year === that.year && this.period === that.period
-    }
-    return false
-  }
-
-  /**
-   * Custom hash implementation
-   */
-  [Hash.symbol](): number {
-    return pipe(
-      Hash.number(this.year),
-      Hash.combine(Hash.number(this.period))
-    )
-  }
 }
 
 /**
  * Type guard for FiscalPeriodRef using Schema.is
  */
 export const isFiscalPeriodRef = Schema.is(FiscalPeriodRef)
-
-/**
- * Create a FiscalPeriodRef from year and period
- * Bypasses validation - use for known-valid values only
- */
-export const make = (year: number, period: number): FiscalPeriodRef => {
-  return new FiscalPeriodRef({ year, period }, { disableValidation: true })
-}
 
 /**
  * Order for FiscalPeriodRef - compares chronologically (year first, then period)
@@ -140,9 +109,9 @@ export const equals = (a: FiscalPeriodRef, b: FiscalPeriodRef): boolean => {
  */
 export const nextPeriod = (ref: FiscalPeriodRef): FiscalPeriodRef => {
   if (ref.period >= 12) {
-    return make(ref.year + 1, 1)
+    return FiscalPeriodRef.make({ year: ref.year + 1, period: 1 }, { disableValidation: true })
   }
-  return make(ref.year, ref.period + 1)
+  return FiscalPeriodRef.make({ year: ref.year, period: ref.period + 1 }, { disableValidation: true })
 }
 
 /**
@@ -152,47 +121,51 @@ export const nextPeriod = (ref: FiscalPeriodRef): FiscalPeriodRef => {
  */
 export const previousPeriod = (ref: FiscalPeriodRef): FiscalPeriodRef => {
   if (ref.period === 13) {
-    return make(ref.year, 12)
+    return FiscalPeriodRef.make({ year: ref.year, period: 12 }, { disableValidation: true })
   }
   if (ref.period === 1) {
-    return make(ref.year - 1, 12)
+    return FiscalPeriodRef.make({ year: ref.year - 1, period: 12 }, { disableValidation: true })
   }
-  return make(ref.year, ref.period - 1)
+  return FiscalPeriodRef.make({ year: ref.year, period: ref.period - 1 }, { disableValidation: true })
 }
 
 /**
  * Get the first period of the fiscal year
  */
 export const startOfYear = (year: number): FiscalPeriodRef => {
-  return make(year, 1)
+  return FiscalPeriodRef.make({ year, period: 1 }, { disableValidation: true })
 }
 
 /**
  * Get the last regular period (12) of the fiscal year
  */
 export const endOfYear = (year: number): FiscalPeriodRef => {
-  return make(year, 12)
+  return FiscalPeriodRef.make({ year, period: 12 }, { disableValidation: true })
 }
 
 /**
  * Get the adjustment period (13) of the fiscal year
  */
 export const adjustmentPeriod = (year: number): FiscalPeriodRef => {
-  return make(year, 13)
+  return FiscalPeriodRef.make({ year, period: 13 }, { disableValidation: true })
 }
 
 /**
  * Get all regular periods (1-12) for a fiscal year
  */
 export const allRegularPeriods = (year: number): ReadonlyArray<FiscalPeriodRef> => {
-  return Array.from({ length: 12 }, (_, i) => make(year, i + 1))
+  return Array.from({ length: 12 }, (_, i) =>
+    FiscalPeriodRef.make({ year, period: i + 1 }, { disableValidation: true })
+  )
 }
 
 /**
  * Get all periods (1-13) for a fiscal year including adjustment period
  */
 export const allPeriods = (year: number): ReadonlyArray<FiscalPeriodRef> => {
-  return Array.from({ length: 13 }, (_, i) => make(year, i + 1))
+  return Array.from({ length: 13 }, (_, i) =>
+    FiscalPeriodRef.make({ year, period: i + 1 }, { disableValidation: true })
+  )
 }
 
 /**

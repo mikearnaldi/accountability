@@ -5,7 +5,6 @@ import * as DateTime from "effect/DateTime"
 import {
   Timestamp,
   isTimestamp,
-  make,
   fromDateTime,
   fromDate,
   fromString,
@@ -26,6 +25,9 @@ import {
   max,
   EPOCH
 } from "../src/Timestamp.js"
+
+// Helper to create Timestamp for tests
+const mkTs = (epochMillis: number) => Timestamp.make({ epochMillis })
 
 describe("Timestamp", () => {
   describe("validation", () => {
@@ -49,7 +51,7 @@ describe("Timestamp", () => {
 
   describe("type guard", () => {
     it("isTimestamp returns true for Timestamp instances", () => {
-      const ts = make(1718409600000)
+      const ts = mkTs(1718409600000)
       expect(isTimestamp(ts)).toBe(true)
     })
 
@@ -62,10 +64,10 @@ describe("Timestamp", () => {
     })
   })
 
-  describe("make constructor", () => {
-    it("creates Timestamp without validation", () => {
-      const ts = make(1718409600000)
-      expect(ts.epochMillis).toBe(1718409600000)
+  describe("Schema.make() constructor", () => {
+    it("creates Timestamp using Schema's .make()", () => {
+      const timestamp = Timestamp.make({ epochMillis: 1718409600000 })
+      expect(timestamp.epochMillis).toBe(1718409600000)
     })
   })
 
@@ -185,7 +187,7 @@ describe("Timestamp", () => {
 
   describe("toDateTime", () => {
     it("converts to DateTime.Utc", () => {
-      const ts = make(1718409600000)
+      const ts = mkTs(1718409600000)
       const dt = ts.toDateTime()
       expect(dt.epochMillis).toBe(1718409600000)
     })
@@ -193,7 +195,7 @@ describe("Timestamp", () => {
 
   describe("toDate", () => {
     it("converts to JavaScript Date", () => {
-      const ts = make(1718409600000)
+      const ts = mkTs(1718409600000)
       const date = ts.toDate()
       expect(date.getTime()).toBe(1718409600000)
     })
@@ -201,21 +203,21 @@ describe("Timestamp", () => {
 
   describe("toISOString", () => {
     it("formats as ISO 8601 string", () => {
-      const ts = make(0) // Unix epoch
+      const ts = mkTs(0) // Unix epoch
       expect(ts.toISOString()).toBe("1970-01-01T00:00:00.000Z")
     })
   })
 
   describe("toString", () => {
     it("returns ISO string", () => {
-      const ts = make(0)
+      const ts = mkTs(0)
       expect(ts.toString()).toBe("1970-01-01T00:00:00.000Z")
     })
   })
 
   describe("toLocalDate", () => {
     it("extracts LocalDate portion", () => {
-      const ts = make(new Date("2024-06-15T12:30:45.123Z").getTime())
+      const ts = mkTs(new Date("2024-06-15T12:30:45.123Z").getTime())
       const date = ts.toLocalDate()
       expect(date.year).toBe(2024)
       expect(date.month).toBe(6)
@@ -225,9 +227,9 @@ describe("Timestamp", () => {
 
   describe("Order", () => {
     it("compares timestamps correctly", () => {
-      const ts1 = make(1000)
-      const ts2 = make(2000)
-      const ts3 = make(1000)
+      const ts1 = mkTs(1000)
+      const ts2 = mkTs(2000)
+      const ts3 = mkTs(1000)
 
       expect(Order_(ts1, ts2)).toBe(-1)
       expect(Order_(ts2, ts1)).toBe(1)
@@ -237,80 +239,80 @@ describe("Timestamp", () => {
 
   describe("isBefore", () => {
     it("returns true when first timestamp is before second", () => {
-      expect(isBefore(make(1000), make(2000))).toBe(true)
+      expect(isBefore(mkTs(1000), mkTs(2000))).toBe(true)
     })
 
     it("returns false when first timestamp is not before second", () => {
-      expect(isBefore(make(2000), make(1000))).toBe(false)
-      expect(isBefore(make(1000), make(1000))).toBe(false)
+      expect(isBefore(mkTs(2000), mkTs(1000))).toBe(false)
+      expect(isBefore(mkTs(1000), mkTs(1000))).toBe(false)
     })
   })
 
   describe("isAfter", () => {
     it("returns true when first timestamp is after second", () => {
-      expect(isAfter(make(2000), make(1000))).toBe(true)
+      expect(isAfter(mkTs(2000), mkTs(1000))).toBe(true)
     })
 
     it("returns false when first timestamp is not after second", () => {
-      expect(isAfter(make(1000), make(2000))).toBe(false)
-      expect(isAfter(make(1000), make(1000))).toBe(false)
+      expect(isAfter(mkTs(1000), mkTs(2000))).toBe(false)
+      expect(isAfter(mkTs(1000), mkTs(1000))).toBe(false)
     })
   })
 
   describe("equals", () => {
     it("returns true for equal timestamps", () => {
-      expect(equals(make(1000), make(1000))).toBe(true)
+      expect(equals(mkTs(1000), mkTs(1000))).toBe(true)
     })
 
     it("returns false for different timestamps", () => {
-      expect(equals(make(1000), make(2000))).toBe(false)
+      expect(equals(mkTs(1000), mkTs(2000))).toBe(false)
     })
   })
 
   describe("addMillis", () => {
     it("adds milliseconds", () => {
-      const ts = make(1000)
+      const ts = mkTs(1000)
       expect(addMillis(ts, 500).epochMillis).toBe(1500)
     })
 
     it("handles negative values", () => {
-      const ts = make(1000)
+      const ts = mkTs(1000)
       expect(addMillis(ts, -500).epochMillis).toBe(500)
     })
   })
 
   describe("addSeconds", () => {
     it("adds seconds", () => {
-      const ts = make(0)
+      const ts = mkTs(0)
       expect(addSeconds(ts, 5).epochMillis).toBe(5000)
     })
   })
 
   describe("addMinutes", () => {
     it("adds minutes", () => {
-      const ts = make(0)
+      const ts = mkTs(0)
       expect(addMinutes(ts, 2).epochMillis).toBe(120000)
     })
   })
 
   describe("addHours", () => {
     it("adds hours", () => {
-      const ts = make(0)
+      const ts = mkTs(0)
       expect(addHours(ts, 1).epochMillis).toBe(3600000)
     })
   })
 
   describe("addDays", () => {
     it("adds days", () => {
-      const ts = make(0)
+      const ts = mkTs(0)
       expect(addDays(ts, 1).epochMillis).toBe(86400000)
     })
   })
 
   describe("diffInMillis", () => {
     it("calculates difference in milliseconds", () => {
-      const ts1 = make(1000)
-      const ts2 = make(2500)
+      const ts1 = mkTs(1000)
+      const ts2 = mkTs(2500)
       expect(diffInMillis(ts2, ts1)).toBe(1500)
       expect(diffInMillis(ts1, ts2)).toBe(-1500)
     })
@@ -318,47 +320,47 @@ describe("Timestamp", () => {
 
   describe("diffInSeconds", () => {
     it("calculates difference in seconds", () => {
-      const ts1 = make(0)
-      const ts2 = make(5500)
+      const ts1 = mkTs(0)
+      const ts2 = mkTs(5500)
       expect(diffInSeconds(ts2, ts1)).toBe(5)
     })
   })
 
   describe("min", () => {
     it("returns the earlier timestamp", () => {
-      const ts1 = make(1000)
-      const ts2 = make(2000)
+      const ts1 = mkTs(1000)
+      const ts2 = mkTs(2000)
       expect(min(ts1, ts2).epochMillis).toBe(1000)
       expect(min(ts2, ts1).epochMillis).toBe(1000)
     })
 
     it("returns first when equal", () => {
-      const ts1 = make(1000)
-      const ts2 = make(1000)
+      const ts1 = mkTs(1000)
+      const ts2 = mkTs(1000)
       expect(min(ts1, ts2)).toBe(ts1)
     })
   })
 
   describe("max", () => {
     it("returns the later timestamp", () => {
-      const ts1 = make(1000)
-      const ts2 = make(2000)
+      const ts1 = mkTs(1000)
+      const ts2 = mkTs(2000)
       expect(max(ts1, ts2).epochMillis).toBe(2000)
       expect(max(ts2, ts1).epochMillis).toBe(2000)
     })
 
     it("returns first when equal", () => {
-      const ts1 = make(1000)
-      const ts2 = make(1000)
+      const ts1 = mkTs(1000)
+      const ts2 = mkTs(1000)
       expect(max(ts1, ts2)).toBe(ts1)
     })
   })
 
   describe("equality", () => {
     it("Equal.equals works for Timestamp", () => {
-      const ts1 = make(1000)
-      const ts2 = make(1000)
-      const ts3 = make(2000)
+      const ts1 = mkTs(1000)
+      const ts2 = mkTs(1000)
+      const ts3 = mkTs(2000)
 
       expect(Equal.equals(ts1, ts2)).toBe(true)
       expect(Equal.equals(ts1, ts3)).toBe(false)
@@ -368,7 +370,7 @@ describe("Timestamp", () => {
   describe("encoding", () => {
     it.effect("encodes and decodes Timestamp", () =>
       Effect.gen(function* () {
-        const original = make(1718409600000)
+        const original = mkTs(1718409600000)
         const encoded = yield* Schema.encode(Timestamp)(original)
         const decoded = yield* Schema.decodeUnknown(Timestamp)(encoded)
 

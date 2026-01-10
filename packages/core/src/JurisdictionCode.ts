@@ -29,26 +29,22 @@ export const JurisdictionCode = Schema.String.pipe(
 export type JurisdictionCode = typeof JurisdictionCode.Type
 
 /**
- * Constructor that bypasses validation (for internal use with known-valid codes)
- */
-export const make = (code: string): JurisdictionCode => code as JurisdictionCode
-
-/**
  * Type guard for JurisdictionCode using Schema.is
  */
 export const isJurisdictionCode = Schema.is(JurisdictionCode)
 
 /**
  * Common ISO 3166-1 alpha-2 country codes
+ * Using Schema's .make() constructor which validates by default
  */
-export const US: JurisdictionCode = make("US")
-export const GB: JurisdictionCode = make("GB")
-export const CA: JurisdictionCode = make("CA")
-export const AU: JurisdictionCode = make("AU")
-export const DE: JurisdictionCode = make("DE")
-export const FR: JurisdictionCode = make("FR")
-export const JP: JurisdictionCode = make("JP")
-export const CN: JurisdictionCode = make("CN")
-export const SG: JurisdictionCode = make("SG")
-export const HK: JurisdictionCode = make("HK")
-export const CH: JurisdictionCode = make("CH")
+export const US: JurisdictionCode = JurisdictionCode.make("US")
+export const GB: JurisdictionCode = JurisdictionCode.make("GB")
+export const CA: JurisdictionCode = JurisdictionCode.make("CA")
+export const AU: JurisdictionCode = JurisdictionCode.make("AU")
+export const DE: JurisdictionCode = JurisdictionCode.make("DE")
+export const FR: JurisdictionCode = JurisdictionCode.make("FR")
+export const JP: JurisdictionCode = JurisdictionCode.make("JP")
+export const CN: JurisdictionCode = JurisdictionCode.make("CN")
+export const SG: JurisdictionCode = JurisdictionCode.make("SG")
+export const HK: JurisdictionCode = JurisdictionCode.make("HK")
+export const CH: JurisdictionCode = JurisdictionCode.make("CH")

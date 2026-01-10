@@ -4,7 +4,6 @@ import * as Schema from "effect/Schema"
 import {
   JurisdictionCode,
   isJurisdictionCode,
-  make,
   US,
   GB,
   CA,
@@ -123,9 +122,9 @@ describe("JurisdictionCode", () => {
     })
   })
 
-  describe("make constructor", () => {
-    it("creates JurisdictionCode without validation", () => {
-      const code = make("US")
+  describe("Schema.make() constructor", () => {
+    it("creates JurisdictionCode using Schema's .make()", () => {
+      const code = JurisdictionCode.make("US")
       expect(code).toBe("US")
     })
   })
