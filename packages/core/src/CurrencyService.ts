@@ -5,20 +5,23 @@
  * - Create and update exchange rates
  * - Rate lookups by currency pair, date, and type
  * - Latest rate lookups
+ * - Currency translation between currencies
  *
  * Uses Context.Tag and Layer patterns for dependency injection.
  *
  * @module CurrencyService
  */
 
+import * as BigDecimal from "effect/BigDecimal"
 import * as Context from "effect/Context"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
-import { ExchangeRate, ExchangeRateId, Rate, RateType, RateSource } from "./ExchangeRate.js"
-import type { CurrencyCode } from "./CurrencyCode.js"
-import type { LocalDate } from "./LocalDate.js"
+import { ExchangeRate, ExchangeRateId, Rate, RateType, RateSource, getInverseRate } from "./ExchangeRate.js"
+import { CurrencyCode } from "./CurrencyCode.js"
+import { LocalDate } from "./LocalDate.js"
+import { MonetaryAmount } from "./MonetaryAmount.js"
 import { nowEffect as timestampNowEffect } from "./Timestamp.js"
 
 // =============================================================================
@@ -102,12 +105,40 @@ export class ExchangeRateIdNotFoundError extends Schema.TaggedError<ExchangeRate
 export const isExchangeRateIdNotFoundError = Schema.is(ExchangeRateIdNotFoundError)
 
 /**
+ * Error when inverse rate calculation fails (e.g., division by zero)
+ */
+export class InverseRateCalculationError extends Schema.TaggedError<InverseRateCalculationError>()(
+  "InverseRateCalculationError",
+  {
+    fromCurrency: Schema.String.pipe(Schema.brand("CurrencyCode")),
+    toCurrency: Schema.String.pipe(Schema.brand("CurrencyCode")),
+    effectiveDate: Schema.Struct({
+      year: Schema.Number,
+      month: Schema.Number,
+      day: Schema.Number
+    }),
+    rateType: Schema.Literal("Spot", "Average", "Historical", "Closing")
+  }
+) {
+  get message(): string {
+    const dateStr = `${this.effectiveDate.year}-${String(this.effectiveDate.month).padStart(2, "0")}-${String(this.effectiveDate.day).padStart(2, "0")}`
+    return `Failed to calculate inverse rate for ${this.fromCurrency}/${this.toCurrency} on ${dateStr} (${this.rateType})`
+  }
+}
+
+/**
+ * Type guard for InverseRateCalculationError
+ */
+export const isInverseRateCalculationError = Schema.is(InverseRateCalculationError)
+
+/**
  * Union type for all currency service errors
  */
 export type CurrencyServiceError =
   | RateNotFoundError
   | RateAlreadyExistsError
   | ExchangeRateIdNotFoundError
+  | InverseRateCalculationError
 
 // =============================================================================
 // Repository Interface
@@ -227,6 +258,55 @@ export interface UpdateExchangeRateInput {
 }
 
 // =============================================================================
+// Translation Types
+// =============================================================================
+
+/**
+ * TranslationResult - Result of translating an amount between currencies
+ *
+ * Contains the original amount, translated amount, and the rate information used.
+ */
+export class TranslationResult extends Schema.Class<TranslationResult>("TranslationResult")({
+  /**
+   * The original amount before translation
+   */
+  originalAmount: MonetaryAmount,
+
+  /**
+   * The translated amount in the target currency
+   */
+  translatedAmount: MonetaryAmount,
+
+  /**
+   * The exchange rate value used for the translation
+   */
+  rateUsed: Schema.BigDecimal,
+
+  /**
+   * The effective date of the rate used
+   */
+  rateDate: LocalDate,
+
+  /**
+   * Whether the rate was inverted (i.e., using EUR/USD rate to convert USD to EUR)
+   */
+  wasInverted: Schema.Boolean
+}) {
+  /**
+   * Get a human-readable string representation of the translation
+   */
+  toString(): string {
+    const inverted = this.wasInverted ? " (inverted)" : ""
+    return `${this.originalAmount.toString()} → ${this.translatedAmount.toString()} @ ${BigDecimal.format(this.rateUsed)}${inverted}`
+  }
+}
+
+/**
+ * Type guard for TranslationResult using Schema.is
+ */
+export const isTranslationResult = Schema.is(TranslationResult)
+
+// =============================================================================
 // Service Interface
 // =============================================================================
 
@@ -299,6 +379,33 @@ export interface CurrencyServiceShape {
   ) => Effect.Effect<
     ExchangeRate,
     RateNotFoundError,
+    never
+  >
+
+  /**
+   * Translate a monetary amount from one currency to another
+   *
+   * This operation:
+   * - First tries to find a direct rate (fromCurrency -> toCurrency)
+   * - If not found, tries to find an inverse rate (toCurrency -> fromCurrency) and calculates the inverse
+   * - Supports all rate types: Spot, Average, Historical, Closing
+   *
+   * @param amount - The monetary amount to translate
+   * @param toCurrency - The target currency code
+   * @param date - The date for which to use the exchange rate
+   * @param rateType - The type of exchange rate to use (Spot, Average, Historical, Closing)
+   * @returns Effect containing the TranslationResult with original, translated amounts, and rate info
+   * @throws RateNotFoundError if no rate is found in either direction
+   * @throws InverseRateCalculationError if inverse rate calculation fails
+   */
+  readonly translate: (
+    amount: MonetaryAmount,
+    toCurrency: CurrencyCode,
+    date: LocalDate,
+    rateType: RateType
+  ) => Effect.Effect<
+    TranslationResult,
+    RateNotFoundError | InverseRateCalculationError,
     never
   >
 }
@@ -437,6 +544,103 @@ const make = Effect.gen(function* () {
         }
 
         return rate.value
+      }),
+
+    translate: (
+      amount: MonetaryAmount,
+      toCurrency: CurrencyCode,
+      date: LocalDate,
+      rateType: RateType
+    ) =>
+      Effect.gen(function* () {
+        const fromCurrency = amount.currency
+
+        // If same currency, return identity translation
+        if (fromCurrency === toCurrency) {
+          return TranslationResult.make({
+            originalAmount: amount,
+            translatedAmount: amount,
+            rateUsed: BigDecimal.fromNumber(1),
+            rateDate: date,
+            wasInverted: false
+          })
+        }
+
+        // Try to find direct rate (fromCurrency -> toCurrency)
+        const directRate = yield* repository.findByPairDateAndType(
+          fromCurrency,
+          toCurrency,
+          date,
+          rateType
+        )
+
+        if (Option.isSome(directRate)) {
+          // Use direct rate
+          const translatedBigDecimal = BigDecimal.multiply(amount.amount, directRate.value.rate)
+          const translatedAmount = MonetaryAmount.fromBigDecimal(translatedBigDecimal, toCurrency)
+
+          return TranslationResult.make({
+            originalAmount: amount,
+            translatedAmount,
+            rateUsed: directRate.value.rate,
+            rateDate: directRate.value.effectiveDate,
+            wasInverted: false
+          })
+        }
+
+        // Try to find inverse rate (toCurrency -> fromCurrency)
+        const inverseRate = yield* repository.findByPairDateAndType(
+          toCurrency,
+          fromCurrency,
+          date,
+          rateType
+        )
+
+        if (Option.isSome(inverseRate)) {
+          // Calculate the inverse rate
+          const calculatedInverseRate = getInverseRate(inverseRate.value)
+
+          if (calculatedInverseRate === undefined) {
+            return yield* Effect.fail(
+              new InverseRateCalculationError({
+                fromCurrency,
+                toCurrency,
+                effectiveDate: {
+                  year: date.year,
+                  month: date.month,
+                  day: date.day
+                },
+                rateType
+              })
+            )
+          }
+
+          // Use the calculated inverse rate
+          const translatedBigDecimal = BigDecimal.multiply(amount.amount, calculatedInverseRate)
+          const translatedAmount = MonetaryAmount.fromBigDecimal(translatedBigDecimal, toCurrency)
+
+          return TranslationResult.make({
+            originalAmount: amount,
+            translatedAmount,
+            rateUsed: calculatedInverseRate,
+            rateDate: inverseRate.value.effectiveDate,
+            wasInverted: true
+          })
+        }
+
+        // No rate found in either direction
+        return yield* Effect.fail(
+          new RateNotFoundError({
+            fromCurrency,
+            toCurrency,
+            effectiveDate: {
+              year: date.year,
+              month: date.month,
+              day: date.day
+            },
+            rateType
+          })
+        )
       })
   } satisfies CurrencyServiceShape
 })

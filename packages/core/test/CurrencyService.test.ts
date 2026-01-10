@@ -7,9 +7,13 @@ import {
   RateNotFoundError,
   RateAlreadyExistsError,
   ExchangeRateIdNotFoundError,
+  InverseRateCalculationError,
+  TranslationResult,
   isRateNotFoundError,
   isRateAlreadyExistsError,
   isExchangeRateIdNotFoundError,
+  isInverseRateCalculationError,
+  isTranslationResult,
   type CreateExchangeRateInput,
   type UpdateExchangeRateInput,
   type ExchangeRateRepositoryService
@@ -18,6 +22,7 @@ import { ExchangeRate, ExchangeRateId, Rate, type RateType } from "../src/Exchan
 import { CurrencyCode } from "../src/CurrencyCode.js"
 import { LocalDate } from "../src/LocalDate.js"
 import { Timestamp } from "../src/Timestamp.js"
+import { MonetaryAmount } from "../src/MonetaryAmount.js"
 
 describe("CurrencyService", () => {
   // Test data constants
@@ -879,5 +884,469 @@ describe("CurrencyService", () => {
         expect(BigDecimal.equals(latest.rate, BigDecimal.unsafeFromString("1.27"))).toBe(true)
       }).pipe(Effect.provide(createTestLayer()))
     )
+  })
+
+  describe("translate", () => {
+    describe("same currency translation", () => {
+      it.effect("returns identity translation for same currency", () =>
+        Effect.gen(function* () {
+          const service = yield* CurrencyService
+          const amount = MonetaryAmount.unsafeFromString("100.00", "USD")
+
+          const result = yield* service.translate(amount, usd, date20250115, "Spot")
+
+          expect(isTranslationResult(result)).toBe(true)
+          expect(result.originalAmount.currency).toBe(usd)
+          expect(result.translatedAmount.currency).toBe(usd)
+          expect(BigDecimal.equals(result.originalAmount.amount, result.translatedAmount.amount)).toBe(true)
+          expect(BigDecimal.equals(result.rateUsed, BigDecimal.fromNumber(1))).toBe(true)
+          expect(result.wasInverted).toBe(false)
+        }).pipe(Effect.provide(createTestLayer()))
+      )
+
+      it.effect("preserves the exact amount for same currency", () =>
+        Effect.gen(function* () {
+          const service = yield* CurrencyService
+          const amount = MonetaryAmount.unsafeFromString("123.4567", "EUR")
+
+          const result = yield* service.translate(amount, eur, date20250115, "Average")
+
+          expect(BigDecimal.equals(result.translatedAmount.amount, BigDecimal.unsafeFromString("123.4567"))).toBe(true)
+        }).pipe(Effect.provide(createTestLayer()))
+      )
+    })
+
+    describe("direct rate translation", () => {
+      it.effect("translates using direct rate (USD to EUR)", () =>
+        Effect.gen(function* () {
+          const service = yield* CurrencyService
+          const amount = MonetaryAmount.unsafeFromString("100.00", "USD")
+
+          const result = yield* service.translate(amount, eur, date20250115, "Spot")
+
+          expect(result.originalAmount.currency).toBe(usd)
+          expect(result.translatedAmount.currency).toBe(eur)
+          // 100 * 0.85 = 85
+          expect(BigDecimal.equals(result.translatedAmount.amount, BigDecimal.unsafeFromString("85.00"))).toBe(true)
+          expect(BigDecimal.equals(result.rateUsed, BigDecimal.unsafeFromString("0.85"))).toBe(true)
+          expect(result.wasInverted).toBe(false)
+          expect(result.rateDate.day).toBe(15)
+        }).pipe(Effect.provide(createTestLayer([
+          createExchangeRate(rateUUID1, usd, eur, "0.85", date20250115, "Spot")
+        ])))
+      )
+
+      it.effect("translates using direct rate with high precision", () =>
+        Effect.gen(function* () {
+          const service = yield* CurrencyService
+          const amount = MonetaryAmount.unsafeFromString("1000.00", "USD")
+
+          const result = yield* service.translate(amount, eur, date20250115, "Spot")
+
+          // 1000 * 0.85123456 = 851.23456
+          expect(BigDecimal.equals(result.translatedAmount.amount, BigDecimal.unsafeFromString("851.23456"))).toBe(true)
+        }).pipe(Effect.provide(createTestLayer([
+          createExchangeRate(rateUUID1, usd, eur, "0.85123456", date20250115, "Spot")
+        ])))
+      )
+
+      it.effect("uses correct rate type for translation", () =>
+        Effect.gen(function* () {
+          const service = yield* CurrencyService
+          const amount = MonetaryAmount.unsafeFromString("100.00", "USD")
+
+          // Use Average rate
+          const avgResult = yield* service.translate(amount, eur, date20250115, "Average")
+          expect(BigDecimal.equals(avgResult.translatedAmount.amount, BigDecimal.unsafeFromString("84.00"))).toBe(true)
+
+          // Use Spot rate
+          const spotResult = yield* service.translate(amount, eur, date20250115, "Spot")
+          expect(BigDecimal.equals(spotResult.translatedAmount.amount, BigDecimal.unsafeFromString("85.00"))).toBe(true)
+        }).pipe(Effect.provide(createTestLayer([
+          createExchangeRate(rateUUID1, usd, eur, "0.85", date20250115, "Spot"),
+          createExchangeRate(rateUUID2, usd, eur, "0.84", date20250115, "Average")
+        ])))
+      )
+    })
+
+    describe("inverse rate translation", () => {
+      it.effect("translates using inverse rate (EUR to USD when only USD/EUR exists)", () =>
+        Effect.gen(function* () {
+          const service = yield* CurrencyService
+          const amount = MonetaryAmount.unsafeFromString("85.00", "EUR")
+
+          // We have USD/EUR = 0.85, so EUR/USD should be 1/0.85 ≈ 1.176470588...
+          const result = yield* service.translate(amount, usd, date20250115, "Spot")
+
+          expect(result.originalAmount.currency).toBe(eur)
+          expect(result.translatedAmount.currency).toBe(usd)
+          expect(result.wasInverted).toBe(true)
+
+          // 85 * (1/0.85) ≈ 100 (with some precision loss due to inverse rate calculation)
+          // The inverse rate is ~1.176470588... and 85 * 1.176470588... ≈ 99.9999999...
+          // So we check it's approximately 100 within a small tolerance
+          const translatedValue = result.translatedAmount.amount
+          const difference = BigDecimal.abs(
+            BigDecimal.subtract(translatedValue, BigDecimal.unsafeFromString("100"))
+          )
+          // Allow for small precision difference (less than 0.000001)
+          expect(BigDecimal.lessThan(difference, BigDecimal.unsafeFromString("0.000001"))).toBe(true)
+        }).pipe(Effect.provide(createTestLayer([
+          createExchangeRate(rateUUID1, usd, eur, "0.85", date20250115, "Spot")
+        ])))
+      )
+
+      it.effect("marks result as inverted when using inverse rate", () =>
+        Effect.gen(function* () {
+          const service = yield* CurrencyService
+          const amount = MonetaryAmount.unsafeFromString("100.00", "EUR")
+
+          const result = yield* service.translate(amount, usd, date20250115, "Spot")
+
+          expect(result.wasInverted).toBe(true)
+        }).pipe(Effect.provide(createTestLayer([
+          createExchangeRate(rateUUID1, usd, eur, "0.85", date20250115, "Spot")
+        ])))
+      )
+
+      it.effect("uses inverse rate for all rate types", () =>
+        Effect.gen(function* () {
+          const service = yield* CurrencyService
+          const amount = MonetaryAmount.unsafeFromString("100.00", "EUR")
+
+          const spotResult = yield* service.translate(amount, usd, date20250115, "Spot")
+          expect(spotResult.wasInverted).toBe(true)
+
+          const avgResult = yield* service.translate(amount, usd, date20250115, "Average")
+          expect(avgResult.wasInverted).toBe(true)
+
+          const historicalResult = yield* service.translate(amount, usd, date20250115, "Historical")
+          expect(historicalResult.wasInverted).toBe(true)
+
+          const closingResult = yield* service.translate(amount, usd, date20250115, "Closing")
+          expect(closingResult.wasInverted).toBe(true)
+        }).pipe(Effect.provide(createTestLayer([
+          createExchangeRate(rateUUID1, usd, eur, "0.85", date20250115, "Spot"),
+          createExchangeRate(rateUUID2, usd, eur, "0.84", date20250115, "Average"),
+          createExchangeRate(rateUUID3, usd, eur, "0.83", date20250115, "Historical"),
+          createExchangeRate(nonExistentUUID, usd, eur, "0.82", date20250115, "Closing")
+        ])))
+      )
+
+      it.effect("prefers direct rate over inverse rate when both exist", () =>
+        Effect.gen(function* () {
+          const service = yield* CurrencyService
+          const amount = MonetaryAmount.unsafeFromString("100.00", "USD")
+
+          const result = yield* service.translate(amount, eur, date20250115, "Spot")
+
+          expect(result.wasInverted).toBe(false)
+          expect(BigDecimal.equals(result.rateUsed, BigDecimal.unsafeFromString("0.85"))).toBe(true)
+        }).pipe(Effect.provide(createTestLayer([
+          createExchangeRate(rateUUID1, usd, eur, "0.85", date20250115, "Spot"),
+          createExchangeRate(rateUUID2, eur, usd, "1.18", date20250115, "Spot")
+        ])))
+      )
+    })
+
+    describe("rate type support", () => {
+      it.effect("supports Spot rate type", () =>
+        Effect.gen(function* () {
+          const service = yield* CurrencyService
+          const amount = MonetaryAmount.unsafeFromString("100.00", "USD")
+
+          const result = yield* service.translate(amount, eur, date20250115, "Spot")
+
+          expect(BigDecimal.equals(result.translatedAmount.amount, BigDecimal.unsafeFromString("85.00"))).toBe(true)
+        }).pipe(Effect.provide(createTestLayer([
+          createExchangeRate(rateUUID1, usd, eur, "0.85", date20250115, "Spot")
+        ])))
+      )
+
+      it.effect("supports Average rate type", () =>
+        Effect.gen(function* () {
+          const service = yield* CurrencyService
+          const amount = MonetaryAmount.unsafeFromString("100.00", "USD")
+
+          const result = yield* service.translate(amount, eur, date20250115, "Average")
+
+          expect(BigDecimal.equals(result.translatedAmount.amount, BigDecimal.unsafeFromString("84.00"))).toBe(true)
+        }).pipe(Effect.provide(createTestLayer([
+          createExchangeRate(rateUUID1, usd, eur, "0.84", date20250115, "Average")
+        ])))
+      )
+
+      it.effect("supports Historical rate type", () =>
+        Effect.gen(function* () {
+          const service = yield* CurrencyService
+          const amount = MonetaryAmount.unsafeFromString("100.00", "USD")
+
+          const result = yield* service.translate(amount, eur, date20250115, "Historical")
+
+          expect(BigDecimal.equals(result.translatedAmount.amount, BigDecimal.unsafeFromString("83.00"))).toBe(true)
+        }).pipe(Effect.provide(createTestLayer([
+          createExchangeRate(rateUUID1, usd, eur, "0.83", date20250115, "Historical")
+        ])))
+      )
+
+      it.effect("supports Closing rate type", () =>
+        Effect.gen(function* () {
+          const service = yield* CurrencyService
+          const amount = MonetaryAmount.unsafeFromString("100.00", "USD")
+
+          const result = yield* service.translate(amount, eur, date20250115, "Closing")
+
+          expect(BigDecimal.equals(result.translatedAmount.amount, BigDecimal.unsafeFromString("82.00"))).toBe(true)
+        }).pipe(Effect.provide(createTestLayer([
+          createExchangeRate(rateUUID1, usd, eur, "0.82", date20250115, "Closing")
+        ])))
+      )
+    })
+
+    describe("TranslationResult properties", () => {
+      it.effect("includes correct rateDate from used rate", () =>
+        Effect.gen(function* () {
+          const service = yield* CurrencyService
+          const amount = MonetaryAmount.unsafeFromString("100.00", "USD")
+
+          const result = yield* service.translate(amount, eur, date20250115, "Spot")
+
+          expect(result.rateDate.year).toBe(2025)
+          expect(result.rateDate.month).toBe(1)
+          expect(result.rateDate.day).toBe(15)
+        }).pipe(Effect.provide(createTestLayer([
+          createExchangeRate(rateUUID1, usd, eur, "0.85", date20250115, "Spot")
+        ])))
+      )
+
+      it.effect("toString produces readable format", () =>
+        Effect.gen(function* () {
+          const service = yield* CurrencyService
+          const amount = MonetaryAmount.unsafeFromString("100.00", "USD")
+
+          const result = yield* service.translate(amount, eur, date20250115, "Spot")
+          const str = result.toString()
+
+          expect(str).toContain("USD")
+          expect(str).toContain("EUR")
+          expect(str).toContain("→")
+        }).pipe(Effect.provide(createTestLayer([
+          createExchangeRate(rateUUID1, usd, eur, "0.85", date20250115, "Spot")
+        ])))
+      )
+
+      it.effect("toString includes (inverted) when using inverse rate", () =>
+        Effect.gen(function* () {
+          const service = yield* CurrencyService
+          const amount = MonetaryAmount.unsafeFromString("100.00", "EUR")
+
+          const result = yield* service.translate(amount, usd, date20250115, "Spot")
+          const str = result.toString()
+
+          expect(str).toContain("(inverted)")
+        }).pipe(Effect.provide(createTestLayer([
+          createExchangeRate(rateUUID1, usd, eur, "0.85", date20250115, "Spot")
+        ])))
+      )
+    })
+
+    describe("error scenarios", () => {
+      it.effect("fails with RateNotFoundError when no rate exists in either direction", () =>
+        Effect.gen(function* () {
+          const service = yield* CurrencyService
+          const amount = MonetaryAmount.unsafeFromString("100.00", "USD")
+
+          const result = yield* Effect.exit(service.translate(amount, eur, date20250115, "Spot"))
+
+          expect(Exit.isFailure(result)).toBe(true)
+          if (Exit.isFailure(result) && result.cause._tag === "Fail") {
+            expect(isRateNotFoundError(result.cause.error)).toBe(true)
+            if (isRateNotFoundError(result.cause.error)) {
+              expect(result.cause.error.fromCurrency).toBe(usd)
+              expect(result.cause.error.toCurrency).toBe(eur)
+              expect(result.cause.error.rateType).toBe("Spot")
+            }
+          }
+        }).pipe(Effect.provide(createTestLayer()))
+      )
+
+      it.effect("fails when rate exists for different date", () =>
+        Effect.gen(function* () {
+          const service = yield* CurrencyService
+          const amount = MonetaryAmount.unsafeFromString("100.00", "USD")
+
+          const result = yield* Effect.exit(service.translate(amount, eur, date20250116, "Spot"))
+
+          expect(Exit.isFailure(result)).toBe(true)
+          if (Exit.isFailure(result) && result.cause._tag === "Fail") {
+            expect(isRateNotFoundError(result.cause.error)).toBe(true)
+          }
+        }).pipe(Effect.provide(createTestLayer([
+          createExchangeRate(rateUUID1, usd, eur, "0.85", date20250115, "Spot")
+        ])))
+      )
+
+      it.effect("fails when rate exists for different rate type", () =>
+        Effect.gen(function* () {
+          const service = yield* CurrencyService
+          const amount = MonetaryAmount.unsafeFromString("100.00", "USD")
+
+          const result = yield* Effect.exit(service.translate(amount, eur, date20250115, "Closing"))
+
+          expect(Exit.isFailure(result)).toBe(true)
+          if (Exit.isFailure(result) && result.cause._tag === "Fail") {
+            expect(isRateNotFoundError(result.cause.error)).toBe(true)
+          }
+        }).pipe(Effect.provide(createTestLayer([
+          createExchangeRate(rateUUID1, usd, eur, "0.85", date20250115, "Spot")
+        ])))
+      )
+
+      it.effect("fails when only unrelated currency pairs exist", () =>
+        Effect.gen(function* () {
+          const service = yield* CurrencyService
+          const amount = MonetaryAmount.unsafeFromString("100.00", "USD")
+
+          const result = yield* Effect.exit(service.translate(amount, jpy, date20250115, "Spot"))
+
+          expect(Exit.isFailure(result)).toBe(true)
+          if (Exit.isFailure(result) && result.cause._tag === "Fail") {
+            expect(isRateNotFoundError(result.cause.error)).toBe(true)
+          }
+        }).pipe(Effect.provide(createTestLayer([
+          createExchangeRate(rateUUID1, usd, eur, "0.85", date20250115, "Spot")
+        ])))
+      )
+    })
+
+    describe("integration scenarios", () => {
+      it.effect("translate multiple currencies in sequence", () =>
+        Effect.gen(function* () {
+          const service = yield* CurrencyService
+
+          // USD -> EUR
+          const usdAmount = MonetaryAmount.unsafeFromString("100.00", "USD")
+          const eurResult = yield* service.translate(usdAmount, eur, date20250115, "Spot")
+          expect(eurResult.translatedAmount.currency).toBe(eur)
+
+          // EUR -> GBP
+          const gbpResult = yield* service.translate(eurResult.translatedAmount, gbp, date20250115, "Spot")
+          expect(gbpResult.translatedAmount.currency).toBe(gbp)
+        }).pipe(Effect.provide(createTestLayer([
+          createExchangeRate(rateUUID1, usd, eur, "0.85", date20250115, "Spot"),
+          createExchangeRate(rateUUID2, eur, gbp, "0.86", date20250115, "Spot")
+        ])))
+      )
+
+      it.effect("translate after creating a rate", () =>
+        Effect.gen(function* () {
+          const service = yield* CurrencyService
+
+          // Create a rate
+          yield* service.createRate({
+            id: ExchangeRateId.make(rateUUID1),
+            fromCurrency: usd,
+            toCurrency: jpy,
+            rate: Rate.make(BigDecimal.unsafeFromString("150.25")),
+            effectiveDate: date20250115,
+            rateType: "Spot",
+            source: "API"
+          })
+
+          // Translate using the newly created rate
+          const amount = MonetaryAmount.unsafeFromString("100.00", "USD")
+          const result = yield* service.translate(amount, jpy, date20250115, "Spot")
+
+          expect(result.translatedAmount.currency).toBe(jpy)
+          expect(BigDecimal.equals(result.translatedAmount.amount, BigDecimal.unsafeFromString("15025.00"))).toBe(true)
+        }).pipe(Effect.provide(createTestLayer()))
+      )
+
+      it.effect("translate with updated rate", () =>
+        Effect.gen(function* () {
+          const service = yield* CurrencyService
+
+          // Create initial rate
+          yield* service.createRate({
+            id: ExchangeRateId.make(rateUUID1),
+            fromCurrency: usd,
+            toCurrency: eur,
+            rate: Rate.make(BigDecimal.unsafeFromString("0.85")),
+            effectiveDate: date20250115,
+            rateType: "Spot",
+            source: "Manual"
+          })
+
+          // First translation
+          const amount = MonetaryAmount.unsafeFromString("100.00", "USD")
+          const firstResult = yield* service.translate(amount, eur, date20250115, "Spot")
+          expect(BigDecimal.equals(firstResult.translatedAmount.amount, BigDecimal.unsafeFromString("85.00"))).toBe(true)
+
+          // Update the rate
+          yield* service.updateRate({
+            id: ExchangeRateId.make(rateUUID1),
+            rate: Rate.make(BigDecimal.unsafeFromString("0.90")),
+            source: "API"
+          })
+
+          // Second translation should use updated rate
+          const secondResult = yield* service.translate(amount, eur, date20250115, "Spot")
+          expect(BigDecimal.equals(secondResult.translatedAmount.amount, BigDecimal.unsafeFromString("90.00"))).toBe(true)
+        }).pipe(Effect.provide(createTestLayer()))
+      )
+    })
+  })
+
+  describe("TranslationResult type", () => {
+    it("isTranslationResult returns true for TranslationResult", () => {
+      const result = TranslationResult.make({
+        originalAmount: MonetaryAmount.unsafeFromString("100.00", "USD"),
+        translatedAmount: MonetaryAmount.unsafeFromString("85.00", "EUR"),
+        rateUsed: BigDecimal.unsafeFromString("0.85"),
+        rateDate: date20250115,
+        wasInverted: false
+      })
+
+      expect(isTranslationResult(result)).toBe(true)
+    })
+
+    it("isTranslationResult returns false for other values", () => {
+      expect(isTranslationResult(null)).toBe(false)
+      expect(isTranslationResult(undefined)).toBe(false)
+      expect(isTranslationResult({ _tag: "TranslationResult" })).toBe(false)
+    })
+  })
+
+  describe("InverseRateCalculationError", () => {
+    it("isInverseRateCalculationError returns true for InverseRateCalculationError", () => {
+      const error = new InverseRateCalculationError({
+        fromCurrency: usd,
+        toCurrency: eur,
+        effectiveDate: { year: 2025, month: 1, day: 15 },
+        rateType: "Spot"
+      })
+      expect(isInverseRateCalculationError(error)).toBe(true)
+      expect(error._tag).toBe("InverseRateCalculationError")
+    })
+
+    it("isInverseRateCalculationError returns false for other values", () => {
+      expect(isInverseRateCalculationError(null)).toBe(false)
+      expect(isInverseRateCalculationError(undefined)).toBe(false)
+      expect(isInverseRateCalculationError(new Error("test"))).toBe(false)
+    })
+
+    it("InverseRateCalculationError has correct message", () => {
+      const error = new InverseRateCalculationError({
+        fromCurrency: usd,
+        toCurrency: eur,
+        effectiveDate: { year: 2025, month: 1, day: 15 },
+        rateType: "Spot"
+      })
+      expect(error.message).toContain("USD")
+      expect(error.message).toContain("EUR")
+      expect(error.message).toContain("2025-01-15")
+      expect(error.message).toContain("Spot")
+      expect(error.message).toContain("inverse rate")
+    })
   })
 })
