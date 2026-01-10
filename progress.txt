@@ -54,3 +54,8 @@
 **Story**: 1.2.3 - Implement AccountNumber value object
 **Status**: complete
 ---
+
+## Iteration 4 - 2026-01-10 12:59
+**Story**: 1.2.4 - Implement remaining core value objects
+**Status**: complete
+---
