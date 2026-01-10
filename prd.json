@@ -154,7 +154,7 @@
         "100% test coverage"
       ],
       "priority": 6,
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "medium"
     },
     {

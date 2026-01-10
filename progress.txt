@@ -34,3 +34,8 @@
 **Status**: complete
 **Commit**: 8cb539dfa5
 ---
+
+## Iteration 1 - 2026-01-10 12:41
+**Story**: 1.2.1 - Implement MonetaryAmount value object
+**Status**: complete
+---
