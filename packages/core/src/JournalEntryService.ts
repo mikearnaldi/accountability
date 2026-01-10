@@ -18,11 +18,10 @@ import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import * as Array from "effect/Array"
 import * as Schema from "effect/Schema"
-import type { JournalEntry } from "./JournalEntry.js"
-import { EntryNumber, UserId } from "./JournalEntry.js"
+import { JournalEntry, JournalEntryId, EntryNumber, UserId } from "./JournalEntry.js"
 import { nowEffect as timestampNowEffect } from "./Timestamp.js"
 import { today as localDateToday } from "./LocalDate.js"
-import type { JournalEntryLine } from "./JournalEntryLine.js"
+import { JournalEntryLine, JournalEntryLineId } from "./JournalEntryLine.js"
 import type { Account, AccountId } from "./Account.js"
 import type { CompanyId } from "./Company.js"
 import type { CurrencyCode } from "./CurrencyCode.js"
@@ -218,6 +217,46 @@ export class PeriodClosedError extends Schema.TaggedError<PeriodClosedError>()(
 export const isPeriodClosedError = Schema.is(PeriodClosedError)
 
 /**
+ * Error when attempting to reverse a journal entry that is not posted
+ */
+export class EntryNotPostedError extends Schema.TaggedError<EntryNotPostedError>()(
+  "EntryNotPostedError",
+  {
+    journalEntryId: Schema.UUID.pipe(Schema.brand("JournalEntryId")),
+    currentStatus: Schema.Literal("Draft", "PendingApproval", "Approved", "Posted", "Reversed")
+  }
+) {
+  get message(): string {
+    return `Journal entry ${this.journalEntryId} cannot be reversed: current status is '${this.currentStatus}', must be 'Posted'`
+  }
+}
+
+/**
+ * Type guard for EntryNotPostedError
+ */
+export const isEntryNotPostedError = Schema.is(EntryNotPostedError)
+
+/**
+ * Error when attempting to reverse a journal entry that has already been reversed
+ */
+export class EntryAlreadyReversedError extends Schema.TaggedError<EntryAlreadyReversedError>()(
+  "EntryAlreadyReversedError",
+  {
+    journalEntryId: Schema.UUID.pipe(Schema.brand("JournalEntryId")),
+    reversingEntryId: Schema.UUID.pipe(Schema.brand("JournalEntryId"))
+  }
+) {
+  get message(): string {
+    return `Journal entry ${this.journalEntryId} has already been reversed by entry ${this.reversingEntryId}`
+  }
+}
+
+/**
+ * Type guard for EntryAlreadyReversedError
+ */
+export const isEntryAlreadyReversedError = Schema.is(EntryAlreadyReversedError)
+
+/**
  * Union type for all journal entry service errors
  */
 export type JournalEntryError =
@@ -231,6 +270,8 @@ export type JournalEntryError =
   | DuplicateLineNumberError
   | NotApprovedError
   | PeriodClosedError
+  | EntryNotPostedError
+  | EntryAlreadyReversedError
 
 // =============================================================================
 // Repository Interfaces
@@ -363,6 +404,34 @@ export interface PostJournalEntryInput {
   readonly postedBy: typeof UserId.Type
 }
 
+/**
+ * ReverseJournalEntryInput - Input for reversing a posted journal entry
+ */
+export interface ReverseJournalEntryInput {
+  /** The journal entry to reverse (must be in 'Posted' status) */
+  readonly entry: JournalEntry
+  /** The original entry's lines to be reversed */
+  readonly lines: ReadonlyArray<JournalEntryLine>
+  /** The new reversal entry ID */
+  readonly reversalEntryId: typeof JournalEntryId.Type
+  /** New line IDs for the reversed lines (must match count of original lines) */
+  readonly reversalLineIds: ReadonlyArray<typeof JournalEntryLineId.Type>
+  /** The user performing the reversal */
+  readonly reversedBy: typeof UserId.Type
+}
+
+/**
+ * ReverseJournalEntryResult - Result of reversing a journal entry
+ */
+export interface ReverseJournalEntryResult {
+  /** The updated original entry (status: 'Reversed') */
+  readonly originalEntry: JournalEntry
+  /** The new reversal entry (status: 'Posted') */
+  readonly reversalEntry: JournalEntry
+  /** The reversed lines (debits/credits swapped) */
+  readonly reversalLines: ReadonlyArray<JournalEntryLine>
+}
+
 // =============================================================================
 // Service Interface
 // =============================================================================
@@ -415,6 +484,34 @@ export interface JournalEntryServiceShape {
   ) => Effect.Effect<
     JournalEntry,
     NotApprovedError | PeriodClosedError | PeriodNotFoundError,
+    never
+  >
+
+  /**
+   * Reverse a posted journal entry
+   *
+   * Creates a reversing entry that:
+   * - Has opposite debits/credits (swapped from original)
+   * - Has isReversing=true and reversedEntryId set to original entry
+   * - Is created as Posted (bypasses approval workflow)
+   * - Uses entryType='Reversing'
+   *
+   * Updates the original entry to:
+   * - Set status to 'Reversed'
+   * - Set reversingEntryId to the new reversal entry
+   *
+   * Validates:
+   * - Entry is in 'Posted' status
+   * - Entry has not already been reversed
+   *
+   * @param input - The journal entry to reverse with new IDs
+   * @returns Effect containing the updated original entry and new reversal entry with lines
+   */
+  readonly reverse: (
+    input: ReverseJournalEntryInput
+  ) => Effect.Effect<
+    ReverseJournalEntryResult,
+    EntryNotPostedError | EntryAlreadyReversedError,
     never
   >
 }
@@ -646,6 +743,104 @@ const make = Effect.gen(function* () {
           postedAt: Option.some(postedAt),
           postingDate: Option.some(postingDate)
         } as JournalEntry
+      }),
+
+    reverse: (input: ReverseJournalEntryInput) =>
+      Effect.gen(function* () {
+        const { entry, lines, reversalEntryId, reversalLineIds, reversedBy } = input
+
+        // Validate entry is in 'Posted' status
+        if (entry.status !== "Posted") {
+          return yield* Effect.fail(
+            new EntryNotPostedError({
+              journalEntryId: entry.id,
+              currentStatus: entry.status
+            })
+          )
+        }
+
+        // Validate entry has not already been reversed
+        if (Option.isSome(entry.reversingEntryId)) {
+          return yield* Effect.fail(
+            new EntryAlreadyReversedError({
+              journalEntryId: entry.id,
+              reversingEntryId: entry.reversingEntryId.value
+            })
+          )
+        }
+
+        // Get the current timestamp
+        const now = yield* timestampNowEffect
+
+        // Get the current date for postingDate
+        const postingDate = localDateToday()
+
+        // Generate entry number for the reversal entry
+        const reversalEntryNumber = yield* entryNumberGenerator.nextEntryNumber(
+          entry.companyId,
+          entry.fiscalPeriod.year
+        )
+
+        // Create the reversing lines by swapping debits and credits
+        const reversalLines: ReadonlyArray<JournalEntryLine> = Array.map(
+          lines,
+          (line, index) =>
+            JournalEntryLine.make({
+              id: reversalLineIds[index],
+              journalEntryId: reversalEntryId,
+              lineNumber: line.lineNumber,
+              accountId: line.accountId,
+              // Swap debit and credit: if original was debit, make it credit
+              debitAmount: line.creditAmount,
+              creditAmount: line.debitAmount,
+              // Swap functional currency amounts as well
+              functionalCurrencyDebitAmount: line.functionalCurrencyCreditAmount,
+              functionalCurrencyCreditAmount: line.functionalCurrencyDebitAmount,
+              exchangeRate: line.exchangeRate,
+              memo: line.memo,
+              dimensions: line.dimensions,
+              intercompanyPartnerId: line.intercompanyPartnerId,
+              matchingLineId: line.matchingLineId
+            })
+        )
+
+        // Create the reversal entry - it's created as Posted (bypasses approval)
+        const reversalEntry = JournalEntry.make({
+          id: reversalEntryId,
+          companyId: entry.companyId,
+          entryNumber: Option.some(EntryNumber.make(reversalEntryNumber)),
+          referenceNumber: entry.referenceNumber,
+          description: `Reversal of ${Option.isSome(entry.entryNumber) ? entry.entryNumber.value : entry.id}`,
+          transactionDate: postingDate,
+          postingDate: Option.some(postingDate),
+          documentDate: Option.none(),
+          fiscalPeriod: entry.fiscalPeriod,
+          entryType: "Reversing",
+          sourceModule: entry.sourceModule,
+          sourceDocumentRef: entry.sourceDocumentRef,
+          isMultiCurrency: entry.isMultiCurrency,
+          status: "Posted",
+          isReversing: true,
+          reversedEntryId: Option.some(entry.id),
+          reversingEntryId: Option.none(),
+          createdBy: reversedBy,
+          createdAt: now,
+          postedBy: Option.some(reversedBy),
+          postedAt: Option.some(now)
+        })
+
+        // Update the original entry to mark it as reversed
+        const updatedOriginalEntry = JournalEntry.make({
+          ...entry,
+          status: "Reversed",
+          reversingEntryId: Option.some(reversalEntryId)
+        })
+
+        return {
+          originalEntry: updatedOriginalEntry,
+          reversalEntry,
+          reversalLines
+        } satisfies ReverseJournalEntryResult
       })
   } satisfies JournalEntryServiceShape
 })

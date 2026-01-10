@@ -169,3 +169,8 @@
 **Story**: 2.1.2 - Implement journal entry posting
 **Status**: complete
 ---
+
+## Iteration 10 - 2026-01-10 18:58
+**Story**: 2.1.3 - Implement journal entry reversal
+**Status**: complete
+---
