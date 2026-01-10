@@ -20,6 +20,10 @@ import * as Schema from "effect/Schema"
 import { CompanyId, FiscalYearEnd } from "./Company.js"
 import { LocalDate, addMonths, daysInMonth } from "./LocalDate.js"
 import { Timestamp, nowEffect as timestampNowEffect } from "./Timestamp.js"
+import { UserId } from "./JournalEntry.js"
+
+// Re-export UserId for convenience
+export { UserId }
 
 // =============================================================================
 // Entity IDs
@@ -477,6 +481,182 @@ export class InvalidFiscalYearConfigError extends Schema.TaggedError<InvalidFisc
 export const isInvalidFiscalYearConfigError = Schema.is(InvalidFiscalYearConfigError)
 
 /**
+ * Error when a fiscal period is not found
+ */
+export class PeriodNotFoundError extends Schema.TaggedError<PeriodNotFoundError>()(
+  "PeriodNotFoundError",
+  {
+    periodId: Schema.UUID.pipe(Schema.brand("FiscalPeriodId"))
+  }
+) {
+  get message(): string {
+    return `Fiscal period not found: ${this.periodId}`
+  }
+}
+
+/**
+ * Type guard for PeriodNotFoundError
+ */
+export const isPeriodNotFoundError = Schema.is(PeriodNotFoundError)
+
+/**
+ * Error when attempting to close a period that has draft journal entries
+ */
+export class HasDraftEntriesError extends Schema.TaggedError<HasDraftEntriesError>()(
+  "HasDraftEntriesError",
+  {
+    periodId: Schema.UUID.pipe(Schema.brand("FiscalPeriodId")),
+    draftEntryCount: Schema.Number.pipe(Schema.int(), Schema.greaterThanOrEqualTo(1))
+  }
+) {
+  get message(): string {
+    return `Cannot close period ${this.periodId}: ${this.draftEntryCount} draft entries exist`
+  }
+}
+
+/**
+ * Type guard for HasDraftEntriesError
+ */
+export const isHasDraftEntriesError = Schema.is(HasDraftEntriesError)
+
+/**
+ * Error when attempting to close an already closed period
+ */
+export class AlreadyClosedError extends Schema.TaggedError<AlreadyClosedError>()(
+  "AlreadyClosedError",
+  {
+    periodId: Schema.UUID.pipe(Schema.brand("FiscalPeriodId")),
+    currentStatus: FiscalPeriodStatus
+  }
+) {
+  get message(): string {
+    return `Period ${this.periodId} is already ${this.currentStatus}`
+  }
+}
+
+/**
+ * Type guard for AlreadyClosedError
+ */
+export const isAlreadyClosedError = Schema.is(AlreadyClosedError)
+
+/**
+ * Error when attempting to open a period that is not in Future status
+ */
+export class PeriodNotFutureError extends Schema.TaggedError<PeriodNotFutureError>()(
+  "PeriodNotFutureError",
+  {
+    periodId: Schema.UUID.pipe(Schema.brand("FiscalPeriodId")),
+    currentStatus: FiscalPeriodStatus
+  }
+) {
+  get message(): string {
+    return `Cannot open period ${this.periodId}: current status is ${this.currentStatus}, must be Future`
+  }
+}
+
+/**
+ * Type guard for PeriodNotFutureError
+ */
+export const isPeriodNotFutureError = Schema.is(PeriodNotFutureError)
+
+/**
+ * Error when attempting to open a period that is Locked
+ */
+export class PeriodLockedError extends Schema.TaggedError<PeriodLockedError>()(
+  "PeriodLockedError",
+  {
+    periodId: Schema.UUID.pipe(Schema.brand("FiscalPeriodId"))
+  }
+) {
+  get message(): string {
+    return `Period ${this.periodId} is locked and cannot be modified`
+  }
+}
+
+/**
+ * Type guard for PeriodLockedError
+ */
+export const isPeriodLockedError = Schema.is(PeriodLockedError)
+
+/**
+ * Error when attempting to reopen a period that is not Closed
+ */
+export class PeriodNotClosedError extends Schema.TaggedError<PeriodNotClosedError>()(
+  "PeriodNotClosedError",
+  {
+    periodId: Schema.UUID.pipe(Schema.brand("FiscalPeriodId")),
+    currentStatus: FiscalPeriodStatus
+  }
+) {
+  get message(): string {
+    return `Cannot reopen period ${this.periodId}: current status is ${this.currentStatus}, must be Closed`
+  }
+}
+
+/**
+ * Type guard for PeriodNotClosedError
+ */
+export const isPeriodNotClosedError = Schema.is(PeriodNotClosedError)
+
+/**
+ * Error when attempting to soft close a period that is not Open
+ */
+export class PeriodNotOpenError extends Schema.TaggedError<PeriodNotOpenError>()(
+  "PeriodNotOpenError",
+  {
+    periodId: Schema.UUID.pipe(Schema.brand("FiscalPeriodId")),
+    currentStatus: FiscalPeriodStatus
+  }
+) {
+  get message(): string {
+    return `Cannot modify period ${this.periodId}: current status is ${this.currentStatus}, must be Open`
+  }
+}
+
+/**
+ * Type guard for PeriodNotOpenError
+ */
+export const isPeriodNotOpenError = Schema.is(PeriodNotOpenError)
+
+/**
+ * Error when attempting to close from SoftClose but not fully validated
+ */
+export class SoftCloseNotApprovedError extends Schema.TaggedError<SoftCloseNotApprovedError>()(
+  "SoftCloseNotApprovedError",
+  {
+    periodId: Schema.UUID.pipe(Schema.brand("FiscalPeriodId"))
+  }
+) {
+  get message(): string {
+    return `Period ${this.periodId} soft close requires approval before full close`
+  }
+}
+
+/**
+ * Type guard for SoftCloseNotApprovedError
+ */
+export const isSoftCloseNotApprovedError = Schema.is(SoftCloseNotApprovedError)
+
+/**
+ * Error when reopen reason is required but not provided
+ */
+export class ReopenReasonRequiredError extends Schema.TaggedError<ReopenReasonRequiredError>()(
+  "ReopenReasonRequiredError",
+  {
+    periodId: Schema.UUID.pipe(Schema.brand("FiscalPeriodId"))
+  }
+) {
+  get message(): string {
+    return `Reopening period ${this.periodId} requires a reason for audit trail`
+  }
+}
+
+/**
+ * Type guard for ReopenReasonRequiredError
+ */
+export const isReopenReasonRequiredError = Schema.is(ReopenReasonRequiredError)
+
+/**
  * Union type for all period service errors
  */
 export type PeriodServiceError =
@@ -484,6 +664,90 @@ export type PeriodServiceError =
   | FiscalYearNotFoundError
   | CompanyNotFoundError
   | InvalidFiscalYearConfigError
+  | PeriodNotFoundError
+  | HasDraftEntriesError
+  | AlreadyClosedError
+  | PeriodNotFutureError
+  | PeriodLockedError
+  | PeriodNotClosedError
+  | PeriodNotOpenError
+  | SoftCloseNotApprovedError
+  | ReopenReasonRequiredError
+
+// =============================================================================
+// Audit Entry for Period Reopening
+// =============================================================================
+
+/**
+ * PeriodReopenAuditEntryId - Branded UUID string for audit entry identification
+ */
+export const PeriodReopenAuditEntryId = Schema.UUID.pipe(
+  Schema.brand("PeriodReopenAuditEntryId"),
+  Schema.annotations({
+    identifier: "PeriodReopenAuditEntryId",
+    title: "Period Reopen Audit Entry ID",
+    description: "A unique identifier for a period reopen audit entry (UUID format)"
+  })
+)
+
+/**
+ * The branded PeriodReopenAuditEntryId type
+ */
+export type PeriodReopenAuditEntryId = typeof PeriodReopenAuditEntryId.Type
+
+/**
+ * Type guard for PeriodReopenAuditEntryId using Schema.is
+ */
+export const isPeriodReopenAuditEntryId = Schema.is(PeriodReopenAuditEntryId)
+
+/**
+ * PeriodReopenAuditEntry - Audit trail entry for period reopening
+ *
+ * Per SPECIFICATIONS.md: reopenPeriod with audit trail (requires reason)
+ */
+export class PeriodReopenAuditEntry extends Schema.Class<PeriodReopenAuditEntry>("PeriodReopenAuditEntry")({
+  /**
+   * Unique identifier for the audit entry
+   */
+  id: PeriodReopenAuditEntryId,
+
+  /**
+   * Reference to the fiscal period that was reopened
+   */
+  periodId: FiscalPeriodId,
+
+  /**
+   * The reason for reopening the period (required for audit)
+   */
+  reason: Schema.NonEmptyTrimmedString,
+
+  /**
+   * User who reopened the period
+   */
+  reopenedBy: UserId,
+
+  /**
+   * Timestamp when the period was reopened
+   */
+  reopenedAt: Timestamp,
+
+  /**
+   * Previous status before reopening
+   */
+  previousStatus: FiscalPeriodStatus
+}) {
+  /**
+   * Format as a display string
+   */
+  toString(): string {
+    return `Period ${this.periodId} reopened by ${this.reopenedBy}: ${this.reason}`
+  }
+}
+
+/**
+ * Type guard for PeriodReopenAuditEntry using Schema.is
+ */
+export const isPeriodReopenAuditEntry = Schema.is(PeriodReopenAuditEntry)
 
 // =============================================================================
 // Repository Interface
@@ -557,6 +821,38 @@ export interface FiscalYearRepositoryService {
   readonly saveFiscalPeriods: (
     periods: ReadonlyArray<FiscalPeriod>
   ) => Effect.Effect<ReadonlyArray<FiscalPeriod>>
+
+  /**
+   * Find a fiscal period by ID
+   * @param periodId - The period ID
+   * @returns Effect containing the period or None if not found
+   */
+  readonly findPeriodById: (
+    periodId: FiscalPeriodId
+  ) => Effect.Effect<Option.Option<FiscalPeriod>>
+
+  /**
+   * Update a fiscal period
+   * @param period - The updated period
+   * @returns Effect containing the saved period
+   */
+  readonly updatePeriod: (period: FiscalPeriod) => Effect.Effect<FiscalPeriod>
+
+  /**
+   * Count draft journal entries in a fiscal period
+   * @param periodId - The period ID
+   * @returns Effect containing the count of draft entries
+   */
+  readonly countDraftEntriesInPeriod: (periodId: FiscalPeriodId) => Effect.Effect<number>
+
+  /**
+   * Save a period reopen audit entry
+   * @param auditEntry - The audit entry to save
+   * @returns Effect containing the saved audit entry
+   */
+  readonly saveReopenAuditEntry: (
+    auditEntry: PeriodReopenAuditEntry
+  ) => Effect.Effect<PeriodReopenAuditEntry>
 }
 
 /**
@@ -597,6 +893,58 @@ export interface CreateFiscalYearResult {
   readonly periods: ReadonlyArray<FiscalPeriod>
 }
 
+/**
+ * OpenPeriodInput - Input for opening a fiscal period
+ */
+export interface OpenPeriodInput {
+  /** The ID of the period to open */
+  readonly periodId: FiscalPeriodId
+}
+
+/**
+ * ClosePeriodInput - Input for closing a fiscal period
+ */
+export interface ClosePeriodInput {
+  /** The ID of the period to close */
+  readonly periodId: FiscalPeriodId
+  /** User closing the period */
+  readonly closedBy: typeof UserId.Type
+}
+
+/**
+ * SoftClosePeriodInput - Input for soft closing a fiscal period
+ */
+export interface SoftClosePeriodInput {
+  /** The ID of the period to soft close */
+  readonly periodId: FiscalPeriodId
+  /** User soft closing the period */
+  readonly closedBy: typeof UserId.Type
+}
+
+/**
+ * ReopenPeriodInput - Input for reopening a closed fiscal period
+ */
+export interface ReopenPeriodInput {
+  /** The ID of the period to reopen */
+  readonly periodId: FiscalPeriodId
+  /** User reopening the period */
+  readonly reopenedBy: typeof UserId.Type
+  /** Reason for reopening (required for audit trail) */
+  readonly reason: string
+  /** ID for the audit entry */
+  readonly auditEntryId: PeriodReopenAuditEntryId
+}
+
+/**
+ * ReopenPeriodResult - Result of reopening a fiscal period
+ */
+export interface ReopenPeriodResult {
+  /** The reopened period */
+  readonly period: FiscalPeriod
+  /** The audit trail entry */
+  readonly auditEntry: PeriodReopenAuditEntry
+}
+
 // =============================================================================
 // Service Interface
 // =============================================================================
@@ -624,6 +972,90 @@ export interface PeriodServiceShape {
   ) => Effect.Effect<
     CreateFiscalYearResult,
     CompanyNotFoundError | FiscalYearOverlapError | InvalidFiscalYearConfigError,
+    never
+  >
+
+  /**
+   * Open a fiscal period for posting
+   *
+   * Changes a period from Future status to Open.
+   * Only periods in Future status can be opened.
+   *
+   * @param input - The period to open
+   * @returns Effect containing the opened period
+   * @throws PeriodNotFoundError if the period doesn't exist
+   * @throws PeriodNotFutureError if the period is not in Future status
+   */
+  readonly openPeriod: (
+    input: OpenPeriodInput
+  ) => Effect.Effect<
+    FiscalPeriod,
+    PeriodNotFoundError | PeriodNotFutureError,
+    never
+  >
+
+  /**
+   * Close a fiscal period
+   *
+   * Changes a period from Open or SoftClose status to Closed.
+   * Validates that no draft journal entries exist before closing.
+   *
+   * @param input - The period to close and user closing it
+   * @returns Effect containing the closed period
+   * @throws PeriodNotFoundError if the period doesn't exist
+   * @throws PeriodNotOpenError if the period is not Open or SoftClose
+   * @throws HasDraftEntriesError if draft entries exist in the period
+   * @throws PeriodLockedError if the period is locked
+   * @throws AlreadyClosedError if the period is already closed
+   */
+  readonly closePeriod: (
+    input: ClosePeriodInput
+  ) => Effect.Effect<
+    FiscalPeriod,
+    PeriodNotFoundError | PeriodNotOpenError | HasDraftEntriesError | PeriodLockedError | AlreadyClosedError,
+    never
+  >
+
+  /**
+   * Soft close a fiscal period for limited posting
+   *
+   * Changes a period from Open status to SoftClose.
+   * In SoftClose status, posting requires approval.
+   *
+   * @param input - The period to soft close and user closing it
+   * @returns Effect containing the soft closed period
+   * @throws PeriodNotFoundError if the period doesn't exist
+   * @throws PeriodNotOpenError if the period is not in Open status
+   * @throws PeriodLockedError if the period is locked
+   * @throws AlreadyClosedError if the period is already closed or soft closed
+   */
+  readonly softClosePeriod: (
+    input: SoftClosePeriodInput
+  ) => Effect.Effect<
+    FiscalPeriod,
+    PeriodNotFoundError | PeriodNotOpenError | PeriodLockedError | AlreadyClosedError,
+    never
+  >
+
+  /**
+   * Reopen a closed fiscal period
+   *
+   * Changes a period from Closed status back to Open.
+   * Requires a reason for audit trail.
+   * Cannot reopen Locked periods.
+   *
+   * @param input - The period to reopen, user, and reason
+   * @returns Effect containing the reopened period and audit entry
+   * @throws PeriodNotFoundError if the period doesn't exist
+   * @throws PeriodNotClosedError if the period is not in Closed status
+   * @throws PeriodLockedError if the period is locked
+   * @throws ReopenReasonRequiredError if no reason is provided
+   */
+  readonly reopenPeriod: (
+    input: ReopenPeriodInput
+  ) => Effect.Effect<
+    ReopenPeriodResult,
+    PeriodNotFoundError | PeriodNotClosedError | PeriodLockedError | ReopenReasonRequiredError,
     never
   >
 }
@@ -913,6 +1345,221 @@ const make = Effect.gen(function* () {
           fiscalYear: savedFiscalYear,
           periods: savedPeriods
         } satisfies CreateFiscalYearResult
+      }),
+
+    openPeriod: (input: OpenPeriodInput) =>
+      Effect.gen(function* () {
+        const { periodId } = input
+
+        // Find the period
+        const periodOption = yield* repository.findPeriodById(periodId)
+
+        if (Option.isNone(periodOption)) {
+          return yield* Effect.fail(new PeriodNotFoundError({ periodId }))
+        }
+
+        const period = periodOption.value
+
+        // Validate period is in Future status
+        if (period.status !== "Future") {
+          return yield* Effect.fail(
+            new PeriodNotFutureError({
+              periodId,
+              currentStatus: period.status
+            })
+          )
+        }
+
+        // Update period status to Open
+        const updatedPeriod = FiscalPeriod.make({
+          ...period,
+          status: "Open"
+        })
+
+        // Save and return the updated period
+        return yield* repository.updatePeriod(updatedPeriod)
+      }),
+
+    closePeriod: (input: ClosePeriodInput) =>
+      Effect.gen(function* () {
+        const { periodId, closedBy } = input
+
+        // Find the period
+        const periodOption = yield* repository.findPeriodById(periodId)
+
+        if (Option.isNone(periodOption)) {
+          return yield* Effect.fail(new PeriodNotFoundError({ periodId }))
+        }
+
+        const period = periodOption.value
+
+        // Check if period is locked
+        if (period.status === "Locked") {
+          return yield* Effect.fail(new PeriodLockedError({ periodId }))
+        }
+
+        // Check if period is already closed
+        if (period.status === "Closed") {
+          return yield* Effect.fail(
+            new AlreadyClosedError({
+              periodId,
+              currentStatus: period.status
+            })
+          )
+        }
+
+        // Validate period is Open or SoftClose
+        if (period.status !== "Open" && period.status !== "SoftClose") {
+          return yield* Effect.fail(
+            new PeriodNotOpenError({
+              periodId,
+              currentStatus: period.status
+            })
+          )
+        }
+
+        // Check for draft entries
+        const draftEntryCount = yield* repository.countDraftEntriesInPeriod(periodId)
+
+        if (draftEntryCount > 0) {
+          return yield* Effect.fail(
+            new HasDraftEntriesError({
+              periodId,
+              draftEntryCount
+            })
+          )
+        }
+
+        // Get current timestamp
+        const now = yield* timestampNowEffect
+
+        // Update period status to Closed
+        const updatedPeriod = FiscalPeriod.make({
+          ...period,
+          status: "Closed",
+          closedBy: Option.some(closedBy),
+          closedAt: Option.some(now)
+        })
+
+        // Save and return the updated period
+        return yield* repository.updatePeriod(updatedPeriod)
+      }),
+
+    softClosePeriod: (input: SoftClosePeriodInput) =>
+      Effect.gen(function* () {
+        const { periodId, closedBy } = input
+
+        // Find the period
+        const periodOption = yield* repository.findPeriodById(periodId)
+
+        if (Option.isNone(periodOption)) {
+          return yield* Effect.fail(new PeriodNotFoundError({ periodId }))
+        }
+
+        const period = periodOption.value
+
+        // Check if period is locked
+        if (period.status === "Locked") {
+          return yield* Effect.fail(new PeriodLockedError({ periodId }))
+        }
+
+        // Check if period is already closed or soft closed
+        if (period.status === "Closed" || period.status === "SoftClose") {
+          return yield* Effect.fail(
+            new AlreadyClosedError({
+              periodId,
+              currentStatus: period.status
+            })
+          )
+        }
+
+        // Validate period is Open
+        if (period.status !== "Open") {
+          return yield* Effect.fail(
+            new PeriodNotOpenError({
+              periodId,
+              currentStatus: period.status
+            })
+          )
+        }
+
+        // Get current timestamp
+        const now = yield* timestampNowEffect
+
+        // Update period status to SoftClose
+        const updatedPeriod = FiscalPeriod.make({
+          ...period,
+          status: "SoftClose",
+          closedBy: Option.some(closedBy),
+          closedAt: Option.some(now)
+        })
+
+        // Save and return the updated period
+        return yield* repository.updatePeriod(updatedPeriod)
+      }),
+
+    reopenPeriod: (input: ReopenPeriodInput) =>
+      Effect.gen(function* () {
+        const { periodId, reopenedBy, reason, auditEntryId } = input
+
+        // Validate reason is provided
+        if (!reason || reason.trim().length === 0) {
+          return yield* Effect.fail(new ReopenReasonRequiredError({ periodId }))
+        }
+
+        // Find the period
+        const periodOption = yield* repository.findPeriodById(periodId)
+
+        if (Option.isNone(periodOption)) {
+          return yield* Effect.fail(new PeriodNotFoundError({ periodId }))
+        }
+
+        const period = periodOption.value
+
+        // Check if period is locked
+        if (period.status === "Locked") {
+          return yield* Effect.fail(new PeriodLockedError({ periodId }))
+        }
+
+        // Validate period is Closed
+        if (period.status !== "Closed") {
+          return yield* Effect.fail(
+            new PeriodNotClosedError({
+              periodId,
+              currentStatus: period.status
+            })
+          )
+        }
+
+        // Get current timestamp
+        const now = yield* timestampNowEffect
+
+        // Create audit entry
+        const auditEntry = PeriodReopenAuditEntry.make({
+          id: auditEntryId,
+          periodId,
+          reason: reason.trim() as typeof Schema.NonEmptyTrimmedString.Type,
+          reopenedBy,
+          reopenedAt: now,
+          previousStatus: period.status
+        })
+
+        // Update period status to Open
+        const updatedPeriod = FiscalPeriod.make({
+          ...period,
+          status: "Open",
+          closedBy: Option.none(),
+          closedAt: Option.none()
+        })
+
+        // Save audit entry and updated period
+        const savedAuditEntry = yield* repository.saveReopenAuditEntry(auditEntry)
+        const savedPeriod = yield* repository.updatePeriod(updatedPeriod)
+
+        return {
+          period: savedPeriod,
+          auditEntry: savedAuditEntry
+        } satisfies ReopenPeriodResult
       })
   } satisfies PeriodServiceShape
 })

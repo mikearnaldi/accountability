@@ -11,9 +11,29 @@ import {
   FiscalYearOverlapError,
   CompanyNotFoundError,
   InvalidFiscalYearConfigError,
+  PeriodNotFoundError,
+  HasDraftEntriesError,
+  AlreadyClosedError,
+  PeriodNotFutureError,
+  PeriodLockedError,
+  PeriodNotClosedError,
+  PeriodNotOpenError,
+  ReopenReasonRequiredError,
+  PeriodReopenAuditEntry,
+  PeriodReopenAuditEntryId,
   isFiscalYearOverlapError,
   isCompanyNotFoundError,
   isInvalidFiscalYearConfigError,
+  isPeriodNotFoundError,
+  isHasDraftEntriesError,
+  isAlreadyClosedError,
+  isPeriodNotFutureError,
+  isPeriodLockedError,
+  isPeriodNotClosedError,
+  isPeriodNotOpenError,
+  isReopenReasonRequiredError,
+  isPeriodReopenAuditEntry,
+  isPeriodReopenAuditEntryId,
   isFiscalYear,
   isFiscalPeriod,
   isFiscalYearId,
@@ -22,6 +42,10 @@ import {
   isFiscalPeriodStatus,
   isFiscalPeriodType,
   type CreateFiscalYearInput,
+  type OpenPeriodInput,
+  type ClosePeriodInput,
+  type SoftClosePeriodInput,
+  type ReopenPeriodInput,
   type FiscalYearRepositoryService,
   type CompanyFiscalSettings,
   type ExistingFiscalYearInfo
@@ -29,6 +53,7 @@ import {
 import { CompanyId, FiscalYearEnd } from "../src/Company.js"
 import { LocalDate } from "../src/LocalDate.js"
 import { Timestamp } from "../src/Timestamp.js"
+import { UserId } from "../src/JournalEntry.js"
 
 describe("PeriodService", () => {
   // Test data constants
@@ -44,12 +69,25 @@ describe("PeriodService", () => {
     )
   }
 
+  // Test user ID
+  const userUUID = "990e8400-e29b-41d4-a716-446655440099"
+  const userId = UserId.make(userUUID)
+
   // Mock repository factory
   const createMockRepository = (options: {
     companySettings?: CompanyFiscalSettings | null
     existingYears?: ReadonlyArray<ExistingFiscalYearInfo>
+    periods?: Map<string, FiscalPeriod>
+    draftEntryCounts?: Map<string, number>
+    auditEntries?: Map<string, PeriodReopenAuditEntry>
   }): FiscalYearRepositoryService => {
-    const { companySettings = null, existingYears = [] } = options
+    const {
+      companySettings = null,
+      existingYears = [],
+      periods = new Map(),
+      draftEntryCounts = new Map(),
+      auditEntries = new Map()
+    } = options
 
     return {
       getCompanyFiscalSettings: (_companyId) =>
@@ -64,8 +102,24 @@ describe("PeriodService", () => {
       saveFiscalYear: (fiscalYear) =>
         Effect.succeed(fiscalYear),
 
-      saveFiscalPeriods: (periods) =>
-        Effect.succeed(periods)
+      saveFiscalPeriods: (ps) =>
+        Effect.succeed(ps),
+
+      findPeriodById: (periodId) =>
+        Effect.succeed(Option.fromNullable(periods.get(periodId))),
+
+      updatePeriod: (period) => {
+        periods.set(period.id, period)
+        return Effect.succeed(period)
+      },
+
+      countDraftEntriesInPeriod: (periodId) =>
+        Effect.succeed(draftEntryCounts.get(periodId) ?? 0),
+
+      saveReopenAuditEntry: (auditEntry) => {
+        auditEntries.set(auditEntry.id, auditEntry)
+        return Effect.succeed(auditEntry)
+      }
     }
   }
 
@@ -73,6 +127,9 @@ describe("PeriodService", () => {
   const createTestLayer = (options: {
     companySettings?: CompanyFiscalSettings | null
     existingYears?: ReadonlyArray<ExistingFiscalYearInfo>
+    periods?: Map<string, FiscalPeriod>
+    draftEntryCounts?: Map<string, number>
+    auditEntries?: Map<string, PeriodReopenAuditEntry>
   }) => {
     const repoLayer = Layer.succeed(
       FiscalYearRepository,
@@ -80,6 +137,25 @@ describe("PeriodService", () => {
     )
 
     return PeriodServiceLive.pipe(Layer.provide(repoLayer))
+  }
+
+  // Helper to create a test period
+  const createTestPeriod = (
+    id: string,
+    status: "Future" | "Open" | "SoftClose" | "Closed" | "Locked"
+  ): FiscalPeriod => {
+    return FiscalPeriod.make({
+      id: FiscalPeriodId.make(id),
+      fiscalYearId,
+      periodNumber: 1,
+      name: "January 2025",
+      periodType: "Regular",
+      startDate: LocalDate.make({ year: 2025, month: 1, day: 1 }),
+      endDate: LocalDate.make({ year: 2025, month: 1, day: 31 }),
+      status,
+      closedBy: status === "Closed" || status === "SoftClose" ? Option.some(userId) : Option.none(),
+      closedAt: status === "Closed" || status === "SoftClose" ? Option.some(Timestamp.make({ epochMillis: Date.now() })) : Option.none()
+    })
   }
 
   // Default calendar year end settings
@@ -820,6 +896,662 @@ describe("PeriodService", () => {
 
       expect(isInvalidFiscalYearConfigError(null)).toBe(false)
       expect(isInvalidFiscalYearConfigError(undefined)).toBe(false)
+    })
+
+    it("PeriodNotFoundError has correct message", () => {
+      const periodId = FiscalPeriodId.make("770e8400-e29b-41d4-a716-446655440001")
+      const error = new PeriodNotFoundError({ periodId })
+      expect(error.message).toContain("Fiscal period not found")
+      expect(error.message).toContain(periodId)
+      expect(isPeriodNotFoundError(error)).toBe(true)
+    })
+
+    it("HasDraftEntriesError has correct message", () => {
+      const periodId = FiscalPeriodId.make("770e8400-e29b-41d4-a716-446655440001")
+      const error = new HasDraftEntriesError({ periodId, draftEntryCount: 5 })
+      expect(error.message).toContain("Cannot close period")
+      expect(error.message).toContain("5 draft entries")
+      expect(isHasDraftEntriesError(error)).toBe(true)
+    })
+
+    it("AlreadyClosedError has correct message", () => {
+      const periodId = FiscalPeriodId.make("770e8400-e29b-41d4-a716-446655440001")
+      const error = new AlreadyClosedError({ periodId, currentStatus: "Closed" })
+      expect(error.message).toContain("already Closed")
+      expect(isAlreadyClosedError(error)).toBe(true)
+    })
+
+    it("PeriodNotFutureError has correct message", () => {
+      const periodId = FiscalPeriodId.make("770e8400-e29b-41d4-a716-446655440001")
+      const error = new PeriodNotFutureError({ periodId, currentStatus: "Open" })
+      expect(error.message).toContain("Cannot open period")
+      expect(error.message).toContain("must be Future")
+      expect(isPeriodNotFutureError(error)).toBe(true)
+    })
+
+    it("PeriodLockedError has correct message", () => {
+      const periodId = FiscalPeriodId.make("770e8400-e29b-41d4-a716-446655440001")
+      const error = new PeriodLockedError({ periodId })
+      expect(error.message).toContain("locked")
+      expect(error.message).toContain("cannot be modified")
+      expect(isPeriodLockedError(error)).toBe(true)
+    })
+
+    it("PeriodNotClosedError has correct message", () => {
+      const periodId = FiscalPeriodId.make("770e8400-e29b-41d4-a716-446655440001")
+      const error = new PeriodNotClosedError({ periodId, currentStatus: "Open" })
+      expect(error.message).toContain("Cannot reopen period")
+      expect(error.message).toContain("must be Closed")
+      expect(isPeriodNotClosedError(error)).toBe(true)
+    })
+
+    it("PeriodNotOpenError has correct message", () => {
+      const periodId = FiscalPeriodId.make("770e8400-e29b-41d4-a716-446655440001")
+      const error = new PeriodNotOpenError({ periodId, currentStatus: "Future" })
+      expect(error.message).toContain("Cannot modify period")
+      expect(error.message).toContain("must be Open")
+      expect(isPeriodNotOpenError(error)).toBe(true)
+    })
+
+    it("ReopenReasonRequiredError has correct message", () => {
+      const periodId = FiscalPeriodId.make("770e8400-e29b-41d4-a716-446655440001")
+      const error = new ReopenReasonRequiredError({ periodId })
+      expect(error.message).toContain("requires a reason")
+      expect(error.message).toContain("audit trail")
+      expect(isReopenReasonRequiredError(error)).toBe(true)
+    })
+
+    it("new error type guards return false for other values", () => {
+      expect(isPeriodNotFoundError(null)).toBe(false)
+      expect(isHasDraftEntriesError(null)).toBe(false)
+      expect(isAlreadyClosedError(null)).toBe(false)
+      expect(isPeriodNotFutureError(null)).toBe(false)
+      expect(isPeriodLockedError(null)).toBe(false)
+      expect(isPeriodNotClosedError(null)).toBe(false)
+      expect(isPeriodNotOpenError(null)).toBe(false)
+      expect(isReopenReasonRequiredError(null)).toBe(false)
+    })
+  })
+
+  describe("openPeriod", () => {
+    const testPeriodUUID = "770e8400-e29b-41d4-a716-446655440001"
+    const testPeriodId = FiscalPeriodId.make(testPeriodUUID)
+
+    it.effect("successfully opens a Future period", () =>
+      Effect.gen(function* () {
+        const periods = new Map<string, FiscalPeriod>()
+        const period = createTestPeriod(testPeriodUUID, "Future")
+        periods.set(testPeriodUUID, period)
+
+        const input: OpenPeriodInput = { periodId: testPeriodId }
+
+        const service = yield* PeriodService
+        const result = yield* service.openPeriod(input)
+
+        expect(result.id).toBe(testPeriodId)
+        expect(result.status).toBe("Open")
+      }).pipe(
+        Effect.provide(createTestLayer({ periods: new Map([[testPeriodUUID, createTestPeriod(testPeriodUUID, "Future")]]) }))
+      )
+    )
+
+    it.effect("fails with PeriodNotFoundError when period doesn't exist", () =>
+      Effect.gen(function* () {
+        const input: OpenPeriodInput = { periodId: testPeriodId }
+
+        const service = yield* PeriodService
+        const result = yield* Effect.exit(service.openPeriod(input))
+
+        expect(Exit.isFailure(result)).toBe(true)
+        if (Exit.isFailure(result) && result.cause._tag === "Fail") {
+          expect(isPeriodNotFoundError(result.cause.error)).toBe(true)
+        }
+      }).pipe(
+        Effect.provide(createTestLayer({}))
+      )
+    )
+
+    it.effect("fails with PeriodNotFutureError when period is Open", () =>
+      Effect.gen(function* () {
+        const input: OpenPeriodInput = { periodId: testPeriodId }
+
+        const service = yield* PeriodService
+        const result = yield* Effect.exit(service.openPeriod(input))
+
+        expect(Exit.isFailure(result)).toBe(true)
+        if (Exit.isFailure(result) && result.cause._tag === "Fail") {
+          expect(isPeriodNotFutureError(result.cause.error)).toBe(true)
+          if (isPeriodNotFutureError(result.cause.error)) {
+            expect(result.cause.error.currentStatus).toBe("Open")
+          }
+        }
+      }).pipe(
+        Effect.provide(createTestLayer({ periods: new Map([[testPeriodUUID, createTestPeriod(testPeriodUUID, "Open")]]) }))
+      )
+    )
+
+    it.effect("fails with PeriodNotFutureError when period is Closed", () =>
+      Effect.gen(function* () {
+        const input: OpenPeriodInput = { periodId: testPeriodId }
+
+        const service = yield* PeriodService
+        const result = yield* Effect.exit(service.openPeriod(input))
+
+        expect(Exit.isFailure(result)).toBe(true)
+        if (Exit.isFailure(result) && result.cause._tag === "Fail") {
+          expect(isPeriodNotFutureError(result.cause.error)).toBe(true)
+          if (isPeriodNotFutureError(result.cause.error)) {
+            expect(result.cause.error.currentStatus).toBe("Closed")
+          }
+        }
+      }).pipe(
+        Effect.provide(createTestLayer({ periods: new Map([[testPeriodUUID, createTestPeriod(testPeriodUUID, "Closed")]]) }))
+      )
+    )
+  })
+
+  describe("closePeriod", () => {
+    const testPeriodUUID = "770e8400-e29b-41d4-a716-446655440001"
+    const testPeriodId = FiscalPeriodId.make(testPeriodUUID)
+
+    it.effect("successfully closes an Open period with no draft entries", () =>
+      Effect.gen(function* () {
+        const input: ClosePeriodInput = { periodId: testPeriodId, closedBy: userId }
+
+        const service = yield* PeriodService
+        const result = yield* service.closePeriod(input)
+
+        expect(result.id).toBe(testPeriodId)
+        expect(result.status).toBe("Closed")
+        expect(Option.isSome(result.closedBy)).toBe(true)
+        expect(Option.isSome(result.closedAt)).toBe(true)
+      }).pipe(
+        Effect.provide(createTestLayer({
+          periods: new Map([[testPeriodUUID, createTestPeriod(testPeriodUUID, "Open")]]),
+          draftEntryCounts: new Map([[testPeriodUUID, 0]])
+        }))
+      )
+    )
+
+    it.effect("successfully closes a SoftClose period with no draft entries", () =>
+      Effect.gen(function* () {
+        const input: ClosePeriodInput = { periodId: testPeriodId, closedBy: userId }
+
+        const service = yield* PeriodService
+        const result = yield* service.closePeriod(input)
+
+        expect(result.id).toBe(testPeriodId)
+        expect(result.status).toBe("Closed")
+      }).pipe(
+        Effect.provide(createTestLayer({
+          periods: new Map([[testPeriodUUID, createTestPeriod(testPeriodUUID, "SoftClose")]]),
+          draftEntryCounts: new Map([[testPeriodUUID, 0]])
+        }))
+      )
+    )
+
+    it.effect("fails with PeriodNotFoundError when period doesn't exist", () =>
+      Effect.gen(function* () {
+        const input: ClosePeriodInput = { periodId: testPeriodId, closedBy: userId }
+
+        const service = yield* PeriodService
+        const result = yield* Effect.exit(service.closePeriod(input))
+
+        expect(Exit.isFailure(result)).toBe(true)
+        if (Exit.isFailure(result) && result.cause._tag === "Fail") {
+          expect(isPeriodNotFoundError(result.cause.error)).toBe(true)
+        }
+      }).pipe(
+        Effect.provide(createTestLayer({}))
+      )
+    )
+
+    it.effect("fails with HasDraftEntriesError when draft entries exist", () =>
+      Effect.gen(function* () {
+        const input: ClosePeriodInput = { periodId: testPeriodId, closedBy: userId }
+
+        const service = yield* PeriodService
+        const result = yield* Effect.exit(service.closePeriod(input))
+
+        expect(Exit.isFailure(result)).toBe(true)
+        if (Exit.isFailure(result) && result.cause._tag === "Fail") {
+          expect(isHasDraftEntriesError(result.cause.error)).toBe(true)
+          if (isHasDraftEntriesError(result.cause.error)) {
+            expect(result.cause.error.draftEntryCount).toBe(3)
+          }
+        }
+      }).pipe(
+        Effect.provide(createTestLayer({
+          periods: new Map([[testPeriodUUID, createTestPeriod(testPeriodUUID, "Open")]]),
+          draftEntryCounts: new Map([[testPeriodUUID, 3]])
+        }))
+      )
+    )
+
+    it.effect("fails with PeriodLockedError when period is Locked", () =>
+      Effect.gen(function* () {
+        const input: ClosePeriodInput = { periodId: testPeriodId, closedBy: userId }
+
+        const service = yield* PeriodService
+        const result = yield* Effect.exit(service.closePeriod(input))
+
+        expect(Exit.isFailure(result)).toBe(true)
+        if (Exit.isFailure(result) && result.cause._tag === "Fail") {
+          expect(isPeriodLockedError(result.cause.error)).toBe(true)
+        }
+      }).pipe(
+        Effect.provide(createTestLayer({
+          periods: new Map([[testPeriodUUID, createTestPeriod(testPeriodUUID, "Locked")]])
+        }))
+      )
+    )
+
+    it.effect("fails with AlreadyClosedError when period is already Closed", () =>
+      Effect.gen(function* () {
+        const input: ClosePeriodInput = { periodId: testPeriodId, closedBy: userId }
+
+        const service = yield* PeriodService
+        const result = yield* Effect.exit(service.closePeriod(input))
+
+        expect(Exit.isFailure(result)).toBe(true)
+        if (Exit.isFailure(result) && result.cause._tag === "Fail") {
+          expect(isAlreadyClosedError(result.cause.error)).toBe(true)
+          if (isAlreadyClosedError(result.cause.error)) {
+            expect(result.cause.error.currentStatus).toBe("Closed")
+          }
+        }
+      }).pipe(
+        Effect.provide(createTestLayer({
+          periods: new Map([[testPeriodUUID, createTestPeriod(testPeriodUUID, "Closed")]])
+        }))
+      )
+    )
+
+    it.effect("fails with PeriodNotOpenError when period is Future", () =>
+      Effect.gen(function* () {
+        const input: ClosePeriodInput = { periodId: testPeriodId, closedBy: userId }
+
+        const service = yield* PeriodService
+        const result = yield* Effect.exit(service.closePeriod(input))
+
+        expect(Exit.isFailure(result)).toBe(true)
+        if (Exit.isFailure(result) && result.cause._tag === "Fail") {
+          expect(isPeriodNotOpenError(result.cause.error)).toBe(true)
+          if (isPeriodNotOpenError(result.cause.error)) {
+            expect(result.cause.error.currentStatus).toBe("Future")
+          }
+        }
+      }).pipe(
+        Effect.provide(createTestLayer({
+          periods: new Map([[testPeriodUUID, createTestPeriod(testPeriodUUID, "Future")]])
+        }))
+      )
+    )
+  })
+
+  describe("softClosePeriod", () => {
+    const testPeriodUUID = "770e8400-e29b-41d4-a716-446655440001"
+    const testPeriodId = FiscalPeriodId.make(testPeriodUUID)
+
+    it.effect("successfully soft closes an Open period", () =>
+      Effect.gen(function* () {
+        const input: SoftClosePeriodInput = { periodId: testPeriodId, closedBy: userId }
+
+        const service = yield* PeriodService
+        const result = yield* service.softClosePeriod(input)
+
+        expect(result.id).toBe(testPeriodId)
+        expect(result.status).toBe("SoftClose")
+        expect(Option.isSome(result.closedBy)).toBe(true)
+        expect(Option.isSome(result.closedAt)).toBe(true)
+      }).pipe(
+        Effect.provide(createTestLayer({
+          periods: new Map([[testPeriodUUID, createTestPeriod(testPeriodUUID, "Open")]])
+        }))
+      )
+    )
+
+    it.effect("fails with PeriodNotFoundError when period doesn't exist", () =>
+      Effect.gen(function* () {
+        const input: SoftClosePeriodInput = { periodId: testPeriodId, closedBy: userId }
+
+        const service = yield* PeriodService
+        const result = yield* Effect.exit(service.softClosePeriod(input))
+
+        expect(Exit.isFailure(result)).toBe(true)
+        if (Exit.isFailure(result) && result.cause._tag === "Fail") {
+          expect(isPeriodNotFoundError(result.cause.error)).toBe(true)
+        }
+      }).pipe(
+        Effect.provide(createTestLayer({}))
+      )
+    )
+
+    it.effect("fails with PeriodLockedError when period is Locked", () =>
+      Effect.gen(function* () {
+        const input: SoftClosePeriodInput = { periodId: testPeriodId, closedBy: userId }
+
+        const service = yield* PeriodService
+        const result = yield* Effect.exit(service.softClosePeriod(input))
+
+        expect(Exit.isFailure(result)).toBe(true)
+        if (Exit.isFailure(result) && result.cause._tag === "Fail") {
+          expect(isPeriodLockedError(result.cause.error)).toBe(true)
+        }
+      }).pipe(
+        Effect.provide(createTestLayer({
+          periods: new Map([[testPeriodUUID, createTestPeriod(testPeriodUUID, "Locked")]])
+        }))
+      )
+    )
+
+    it.effect("fails with AlreadyClosedError when period is Closed", () =>
+      Effect.gen(function* () {
+        const input: SoftClosePeriodInput = { periodId: testPeriodId, closedBy: userId }
+
+        const service = yield* PeriodService
+        const result = yield* Effect.exit(service.softClosePeriod(input))
+
+        expect(Exit.isFailure(result)).toBe(true)
+        if (Exit.isFailure(result) && result.cause._tag === "Fail") {
+          expect(isAlreadyClosedError(result.cause.error)).toBe(true)
+          if (isAlreadyClosedError(result.cause.error)) {
+            expect(result.cause.error.currentStatus).toBe("Closed")
+          }
+        }
+      }).pipe(
+        Effect.provide(createTestLayer({
+          periods: new Map([[testPeriodUUID, createTestPeriod(testPeriodUUID, "Closed")]])
+        }))
+      )
+    )
+
+    it.effect("fails with AlreadyClosedError when period is already SoftClose", () =>
+      Effect.gen(function* () {
+        const input: SoftClosePeriodInput = { periodId: testPeriodId, closedBy: userId }
+
+        const service = yield* PeriodService
+        const result = yield* Effect.exit(service.softClosePeriod(input))
+
+        expect(Exit.isFailure(result)).toBe(true)
+        if (Exit.isFailure(result) && result.cause._tag === "Fail") {
+          expect(isAlreadyClosedError(result.cause.error)).toBe(true)
+          if (isAlreadyClosedError(result.cause.error)) {
+            expect(result.cause.error.currentStatus).toBe("SoftClose")
+          }
+        }
+      }).pipe(
+        Effect.provide(createTestLayer({
+          periods: new Map([[testPeriodUUID, createTestPeriod(testPeriodUUID, "SoftClose")]])
+        }))
+      )
+    )
+
+    it.effect("fails with PeriodNotOpenError when period is Future", () =>
+      Effect.gen(function* () {
+        const input: SoftClosePeriodInput = { periodId: testPeriodId, closedBy: userId }
+
+        const service = yield* PeriodService
+        const result = yield* Effect.exit(service.softClosePeriod(input))
+
+        expect(Exit.isFailure(result)).toBe(true)
+        if (Exit.isFailure(result) && result.cause._tag === "Fail") {
+          expect(isPeriodNotOpenError(result.cause.error)).toBe(true)
+          if (isPeriodNotOpenError(result.cause.error)) {
+            expect(result.cause.error.currentStatus).toBe("Future")
+          }
+        }
+      }).pipe(
+        Effect.provide(createTestLayer({
+          periods: new Map([[testPeriodUUID, createTestPeriod(testPeriodUUID, "Future")]])
+        }))
+      )
+    )
+  })
+
+  describe("reopenPeriod", () => {
+    const testPeriodUUID = "770e8400-e29b-41d4-a716-446655440001"
+    const testPeriodId = FiscalPeriodId.make(testPeriodUUID)
+    const auditEntryUUID = "880e8400-e29b-41d4-a716-446655440088"
+    const auditEntryId = PeriodReopenAuditEntryId.make(auditEntryUUID)
+
+    it.effect("successfully reopens a Closed period with reason", () =>
+      Effect.gen(function* () {
+        const input: ReopenPeriodInput = {
+          periodId: testPeriodId,
+          reopenedBy: userId,
+          reason: "Need to post additional adjustments",
+          auditEntryId
+        }
+
+        const service = yield* PeriodService
+        const result = yield* service.reopenPeriod(input)
+
+        expect(result.period.id).toBe(testPeriodId)
+        expect(result.period.status).toBe("Open")
+        expect(Option.isNone(result.period.closedBy)).toBe(true)
+        expect(Option.isNone(result.period.closedAt)).toBe(true)
+
+        expect(result.auditEntry.id).toBe(auditEntryId)
+        expect(result.auditEntry.periodId).toBe(testPeriodId)
+        expect(result.auditEntry.reopenedBy).toBe(userId)
+        expect(result.auditEntry.reason).toBe("Need to post additional adjustments")
+        expect(result.auditEntry.previousStatus).toBe("Closed")
+      }).pipe(
+        Effect.provide(createTestLayer({
+          periods: new Map([[testPeriodUUID, createTestPeriod(testPeriodUUID, "Closed")]])
+        }))
+      )
+    )
+
+    it.effect("fails with PeriodNotFoundError when period doesn't exist", () =>
+      Effect.gen(function* () {
+        const input: ReopenPeriodInput = {
+          periodId: testPeriodId,
+          reopenedBy: userId,
+          reason: "Test reason",
+          auditEntryId
+        }
+
+        const service = yield* PeriodService
+        const result = yield* Effect.exit(service.reopenPeriod(input))
+
+        expect(Exit.isFailure(result)).toBe(true)
+        if (Exit.isFailure(result) && result.cause._tag === "Fail") {
+          expect(isPeriodNotFoundError(result.cause.error)).toBe(true)
+        }
+      }).pipe(
+        Effect.provide(createTestLayer({}))
+      )
+    )
+
+    it.effect("fails with ReopenReasonRequiredError when reason is empty", () =>
+      Effect.gen(function* () {
+        const input: ReopenPeriodInput = {
+          periodId: testPeriodId,
+          reopenedBy: userId,
+          reason: "",
+          auditEntryId
+        }
+
+        const service = yield* PeriodService
+        const result = yield* Effect.exit(service.reopenPeriod(input))
+
+        expect(Exit.isFailure(result)).toBe(true)
+        if (Exit.isFailure(result) && result.cause._tag === "Fail") {
+          expect(isReopenReasonRequiredError(result.cause.error)).toBe(true)
+        }
+      }).pipe(
+        Effect.provide(createTestLayer({
+          periods: new Map([[testPeriodUUID, createTestPeriod(testPeriodUUID, "Closed")]])
+        }))
+      )
+    )
+
+    it.effect("fails with ReopenReasonRequiredError when reason is whitespace only", () =>
+      Effect.gen(function* () {
+        const input: ReopenPeriodInput = {
+          periodId: testPeriodId,
+          reopenedBy: userId,
+          reason: "   ",
+          auditEntryId
+        }
+
+        const service = yield* PeriodService
+        const result = yield* Effect.exit(service.reopenPeriod(input))
+
+        expect(Exit.isFailure(result)).toBe(true)
+        if (Exit.isFailure(result) && result.cause._tag === "Fail") {
+          expect(isReopenReasonRequiredError(result.cause.error)).toBe(true)
+        }
+      }).pipe(
+        Effect.provide(createTestLayer({
+          periods: new Map([[testPeriodUUID, createTestPeriod(testPeriodUUID, "Closed")]])
+        }))
+      )
+    )
+
+    it.effect("fails with PeriodLockedError when period is Locked", () =>
+      Effect.gen(function* () {
+        const input: ReopenPeriodInput = {
+          periodId: testPeriodId,
+          reopenedBy: userId,
+          reason: "Test reason",
+          auditEntryId
+        }
+
+        const service = yield* PeriodService
+        const result = yield* Effect.exit(service.reopenPeriod(input))
+
+        expect(Exit.isFailure(result)).toBe(true)
+        if (Exit.isFailure(result) && result.cause._tag === "Fail") {
+          expect(isPeriodLockedError(result.cause.error)).toBe(true)
+        }
+      }).pipe(
+        Effect.provide(createTestLayer({
+          periods: new Map([[testPeriodUUID, createTestPeriod(testPeriodUUID, "Locked")]])
+        }))
+      )
+    )
+
+    it.effect("fails with PeriodNotClosedError when period is Open", () =>
+      Effect.gen(function* () {
+        const input: ReopenPeriodInput = {
+          periodId: testPeriodId,
+          reopenedBy: userId,
+          reason: "Test reason",
+          auditEntryId
+        }
+
+        const service = yield* PeriodService
+        const result = yield* Effect.exit(service.reopenPeriod(input))
+
+        expect(Exit.isFailure(result)).toBe(true)
+        if (Exit.isFailure(result) && result.cause._tag === "Fail") {
+          expect(isPeriodNotClosedError(result.cause.error)).toBe(true)
+          if (isPeriodNotClosedError(result.cause.error)) {
+            expect(result.cause.error.currentStatus).toBe("Open")
+          }
+        }
+      }).pipe(
+        Effect.provide(createTestLayer({
+          periods: new Map([[testPeriodUUID, createTestPeriod(testPeriodUUID, "Open")]])
+        }))
+      )
+    )
+
+    it.effect("fails with PeriodNotClosedError when period is SoftClose", () =>
+      Effect.gen(function* () {
+        const input: ReopenPeriodInput = {
+          periodId: testPeriodId,
+          reopenedBy: userId,
+          reason: "Test reason",
+          auditEntryId
+        }
+
+        const service = yield* PeriodService
+        const result = yield* Effect.exit(service.reopenPeriod(input))
+
+        expect(Exit.isFailure(result)).toBe(true)
+        if (Exit.isFailure(result) && result.cause._tag === "Fail") {
+          expect(isPeriodNotClosedError(result.cause.error)).toBe(true)
+          if (isPeriodNotClosedError(result.cause.error)) {
+            expect(result.cause.error.currentStatus).toBe("SoftClose")
+          }
+        }
+      }).pipe(
+        Effect.provide(createTestLayer({
+          periods: new Map([[testPeriodUUID, createTestPeriod(testPeriodUUID, "SoftClose")]])
+        }))
+      )
+    )
+
+    it.effect("fails with PeriodNotClosedError when period is Future", () =>
+      Effect.gen(function* () {
+        const input: ReopenPeriodInput = {
+          periodId: testPeriodId,
+          reopenedBy: userId,
+          reason: "Test reason",
+          auditEntryId
+        }
+
+        const service = yield* PeriodService
+        const result = yield* Effect.exit(service.reopenPeriod(input))
+
+        expect(Exit.isFailure(result)).toBe(true)
+        if (Exit.isFailure(result) && result.cause._tag === "Fail") {
+          expect(isPeriodNotClosedError(result.cause.error)).toBe(true)
+          if (isPeriodNotClosedError(result.cause.error)) {
+            expect(result.cause.error.currentStatus).toBe("Future")
+          }
+        }
+      }).pipe(
+        Effect.provide(createTestLayer({
+          periods: new Map([[testPeriodUUID, createTestPeriod(testPeriodUUID, "Future")]])
+        }))
+      )
+    )
+  })
+
+  describe("PeriodReopenAuditEntry entity", () => {
+    const testPeriodUUID = "770e8400-e29b-41d4-a716-446655440001"
+    const testPeriodId = FiscalPeriodId.make(testPeriodUUID)
+    const auditEntryUUID = "880e8400-e29b-41d4-a716-446655440088"
+    const auditEntryId = PeriodReopenAuditEntryId.make(auditEntryUUID)
+
+    it("has correct properties", () => {
+      const auditEntry = PeriodReopenAuditEntry.make({
+        id: auditEntryId,
+        periodId: testPeriodId,
+        reason: "Adjustment posting required",
+        reopenedBy: userId,
+        reopenedAt: Timestamp.make({ epochMillis: Date.now() }),
+        previousStatus: "Closed"
+      })
+
+      expect(auditEntry.id).toBe(auditEntryId)
+      expect(auditEntry.periodId).toBe(testPeriodId)
+      expect(auditEntry.reason).toBe("Adjustment posting required")
+      expect(auditEntry.reopenedBy).toBe(userId)
+      expect(auditEntry.previousStatus).toBe("Closed")
+      expect(auditEntry.toString()).toContain("reopened by")
+    })
+
+    it("isPeriodReopenAuditEntry returns true for valid instances", () => {
+      const auditEntry = PeriodReopenAuditEntry.make({
+        id: auditEntryId,
+        periodId: testPeriodId,
+        reason: "Test reason",
+        reopenedBy: userId,
+        reopenedAt: Timestamp.make({ epochMillis: Date.now() }),
+        previousStatus: "Closed"
+      })
+      expect(isPeriodReopenAuditEntry(auditEntry)).toBe(true)
+    })
+
+    it("isPeriodReopenAuditEntryId returns true for valid ID", () => {
+      expect(isPeriodReopenAuditEntryId(auditEntryId)).toBe(true)
+      expect(isPeriodReopenAuditEntryId("not-a-uuid")).toBe(false)
     })
   })
 })
