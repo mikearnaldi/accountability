@@ -213,7 +213,11 @@ update_story_status() {
 # Build the prompt for the agent
 build_prompt() {
     local iteration=$1
-    local prd_content=$(cat "$PRD_FILE")
+    local story=$2
+
+    # Extract only what's needed from PRD
+    local technology=$(jq '.technology' "$PRD_FILE")
+    local reference_repos=$(jq '.reference_repos' "$PRD_FILE")
     local progress_content=$(cat "$PROGRESS_FILE")
     local prompt_template=$(cat "$PROMPT_FILE")
 
@@ -221,7 +225,9 @@ build_prompt() {
     local prompt="$prompt_template"
     prompt="${prompt//\{\{ITERATION\}\}/$iteration}"
     prompt="${prompt//\{\{MAX_ITERATIONS\}\}/$MAX_ITERATIONS}"
-    prompt="${prompt//\{\{PRD_CONTENT\}\}/$prd_content}"
+    prompt="${prompt//\{\{CURRENT_STORY\}\}/$story}"
+    prompt="${prompt//\{\{TECHNOLOGY\}\}/$technology}"
+    prompt="${prompt//\{\{REFERENCE_REPOS\}\}/$reference_repos}"
     prompt="${prompt//\{\{PROGRESS_CONTENT\}\}/$progress_content}"
 
     echo "$prompt"
@@ -250,8 +256,8 @@ run_iteration() {
     # Mark story as in_progress
     update_story_status "$story_id" "in_progress"
 
-    # Build the prompt
-    local prompt=$(build_prompt $iteration)
+    # Build the prompt with current story
+    local prompt=$(build_prompt "$iteration" "$story")
 
     # Save prompt for debugging
     local prompt_file="$OUTPUT_DIR/iteration_${iteration}_prompt.md"
