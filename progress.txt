@@ -39,3 +39,8 @@
 **Story**: 1.2.1 - Implement MonetaryAmount value object
 **Status**: complete
 ---
+
+## Iteration 1 - 2026-01-10 12:47
+**Story**: 1.2.1 - Implement MonetaryAmount value object
+**Status**: complete
+---
