@@ -1018,7 +1018,8 @@
         "Change all .js imports to .ts imports across packages/core/test",
         "Remove all index.ts barrel files from packages/core/src",
         "Update imports that used index.ts to import from specific modules",
-        "Add ESLint rule to error on .js imports in .ts files",
+        "Add ESLint rule to error on .js extension in relative imports (use .ts)",
+        "Add ESLint rule to error on any extension in package imports (use extensionless)",
         "Verify pnpm typecheck passes",
         "Verify pnpm test passes",
         "Verify pnpm lint passes",
@@ -1030,9 +1031,10 @@
           "rewriteRelativeImportExtensions": true,
           "verbatimModuleSyntax": true
         },
-        "eslint_rule": {
-          "rule": "no-restricted-syntax",
-          "config": "Selector for ImportDeclaration with .js extension, error message: Use .ts imports"
+        "eslint_rules": {
+          "relative_imports": "Error on .js in relative imports (./foo.js) - must use .ts",
+          "package_imports": "Error on any extension in package imports (effect/Schema.js) - must be extensionless",
+          "pattern": "Relative imports start with ./ or ../, package imports don't"
         },
         "import_pattern": "import { Foo } from './domain/Foo.ts' - TS rewrites to .js in output",
         "no_barrel_files": "Import from specific modules, not from index.ts re-exports",

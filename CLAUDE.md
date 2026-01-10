@@ -371,20 +371,33 @@ This project uses `moduleResolution: "bundler"` with direct `.ts` imports. TypeS
 
 The `rewriteRelativeImportExtensions` option (TypeScript 5.7+) automatically rewrites `.ts` imports to `.js` in the compiled output, so you write `.ts` in source but get valid `.js` imports in dist.
 
-**Always use `.ts` extensions in imports:**
+**Relative imports: Always use `.ts` extension:**
 
 ```typescript
-// CORRECT - use .ts extension
+// CORRECT - relative imports use .ts extension
 import { Account } from "./domain/Account.ts"
 import { MonetaryAmount } from "./domain/MonetaryAmount.ts"
 import { AccountService } from "./services/AccountService.ts"
 
-// WRONG - don't use .js extension
+// WRONG - don't use .js extension for relative imports
 import { Account } from "./domain/Account.js"
-
-// WRONG - don't use extensionless imports
-import { Account } from "./domain/Account"
 ```
+
+**Package imports: Never use extensions:**
+
+```typescript
+// CORRECT - package imports are extensionless
+import * as Effect from "effect/Effect"
+import * as Schema from "effect/Schema"
+import * as Option from "effect/Option"
+import { PgClient } from "@effect/sql-pg"
+
+// WRONG - don't use extensions for package imports
+import * as Effect from "effect/Effect.js"
+import * as Schema from "effect/Schema.ts"
+```
+
+Package resolution relies on properly configured `package.json` exports - no extensions needed.
 
 **No index.ts barrel files** - import from specific modules:
 
