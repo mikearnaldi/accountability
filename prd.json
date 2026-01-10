@@ -372,10 +372,11 @@
         "Validate intercompany accounts have partner company set",
         "Validate cash flow category only set for balance sheet accounts",
         "Return Schema.TaggedError for validation failures",
-        "100% test coverage"
+        "100% test coverage",
+        "Don't use *FromSelf we want everything to be serializeable"
       ],
       "priority": 17,
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "medium"
     },
     {
