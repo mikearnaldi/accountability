@@ -1050,10 +1050,11 @@
       "title": "Create PostgreSQL schema with SQL migrations",
       "description": "Create database schema using plain SQL migrations with @effect/sql Migrator. Write migrations as TypeScript files that execute SQL statements. Reference repos/effect/packages/sql/src/Migrator.ts.",
       "acceptance_criteria": [
-        "Set up migrations folder: packages/persistence/src/migrations",
-        "Create migration files as TypeScript (e.g., 0001_CreateCompanies.ts)",
-        "Each migration exports default Effect that runs SQL via SqlClient",
-        "Create MigrationRunner.ts using @effect/sql Migrator with fromFileSystem loader",
+        "Set up migrations folder: packages/persistence/src/Migrations",
+        "Create migration modules as TypeScript (e.g., Migration0001.ts)",
+        "Each migration exports an Effect that runs SQL via SqlClient",
+        "Create MigrationRunner.ts with inlined migration loader (no fromFileSystem)",
+        "Migrations array defined inline: [[1, 'CreateCompanies', Migration0001], ...]",
         "Initial migrations for all core entities: companies, accounts, journal_entries, etc.",
         "Proper column types (uuid, text, numeric for BigDecimal, timestamptz)",
         "Foreign key relationships with proper cascades",
@@ -1063,10 +1064,11 @@
         "Verify migrations run successfully against testcontainers database"
       ],
       "technical_details": {
-        "migration_format": "0001_CreateCompanies.ts exporting Effect<void, SqlError, SqlClient>",
-        "loader": "Migrator.fromFileSystem from @effect/sql/Migrator/FileSystem",
+        "migration_format": "Migration0001.ts exporting Effect<void, SqlError, SqlClient>",
+        "loader_pattern": "Effect.succeed([[1, 'CreateCompanies', import('./Migrations/Migration0001.ts')], ...])",
         "tracking_table": "effect_sql_migrations",
-        "reference": "repos/effect/packages/sql/src/Migrator.ts"
+        "reference": "repos/effect/packages/sql/src/Migrator.ts",
+        "no_dynamic_loading": "All migrations statically imported, no fromFileSystem"
       },
       "status": "pending",
       "estimated_complexity": "large"
