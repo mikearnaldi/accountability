@@ -254,14 +254,15 @@ run_iteration() {
     local prompt=$(build_prompt $iteration)
 
     # Save prompt for debugging
-    echo "$prompt" > "$OUTPUT_DIR/iteration_${iteration}_prompt.md"
+    local prompt_file="$OUTPUT_DIR/iteration_${iteration}_prompt.md"
+    echo "$prompt" > "$prompt_file"
 
     # Run the agent
     log "INFO" "Running Claude Code agent..."
     echo ""  # Blank line before agent output
 
-    # Use tee to show output on screen while also saving to file
-    if $AGENT_CMD --print "$prompt" 2>&1 | tee "$output_file"; then
+    # Pipe prompt from file to avoid command line length limits
+    if cat "$prompt_file" | $AGENT_CMD --print 2>&1 | tee "$output_file"; then
         echo ""  # Blank line after agent output
         log "SUCCESS" "Agent completed iteration $iteration"
     else
