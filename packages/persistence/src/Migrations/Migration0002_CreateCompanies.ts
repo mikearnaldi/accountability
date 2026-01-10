@@ -55,7 +55,7 @@ export default Effect.gen(function* () {
     )
   `
 
-  -- Create indexes
+  // Create indexes
   yield* sql`
     CREATE INDEX idx_companies_organization_id ON companies (organization_id)
   `
@@ -72,7 +72,7 @@ export default Effect.gen(function* () {
     CREATE INDEX idx_companies_is_active ON companies (is_active) WHERE is_active = true
   `
 
-  -- Create trigger for updated_at
+  // Create trigger for updated_at
   yield* sql`
     CREATE OR REPLACE FUNCTION update_updated_at_column()
     RETURNS TRIGGER AS $$

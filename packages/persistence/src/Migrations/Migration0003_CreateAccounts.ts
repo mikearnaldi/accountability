@@ -112,7 +112,7 @@ export default Effect.gen(function* () {
     )
   `
 
-  -- Create indexes
+  // Create indexes
   yield* sql`
     CREATE INDEX idx_accounts_company_id ON accounts (company_id)
   `
@@ -146,7 +146,7 @@ export default Effect.gen(function* () {
       WHERE intercompany_partner_id IS NOT NULL
   `
 
-  -- Add trigger for updated_at
+  // Add trigger for updated_at
   yield* sql`
     CREATE TRIGGER update_accounts_updated_at
       BEFORE UPDATE ON accounts

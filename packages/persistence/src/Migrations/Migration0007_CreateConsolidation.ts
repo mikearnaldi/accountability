@@ -33,7 +33,7 @@ export default Effect.gen(function* () {
     )
   `
 
-  -- Create indexes for consolidation_groups
+  // Create indexes for consolidation_groups
   yield* sql`
     CREATE INDEX idx_consolidation_groups_organization_id
       ON consolidation_groups (organization_id)
@@ -49,7 +49,7 @@ export default Effect.gen(function* () {
       ON consolidation_groups (is_active) WHERE is_active = true
   `
 
-  -- Create consolidation_members table (join table with additional properties)
+  // Create consolidation_members table (join table with additional properties)
   yield* sql`
     CREATE TABLE consolidation_members (
       id UUID PRIMARY KEY,
@@ -78,7 +78,7 @@ export default Effect.gen(function* () {
     )
   `
 
-  -- Create indexes for consolidation_members
+  // Create indexes for consolidation_members
   yield* sql`
     CREATE INDEX idx_consolidation_members_group_id
       ON consolidation_members (consolidation_group_id)
@@ -94,7 +94,7 @@ export default Effect.gen(function* () {
       ON consolidation_members (consolidation_method)
   `
 
-  -- Create enum for elimination type
+  // Create enum for elimination type
   yield* sql`
     CREATE TYPE elimination_type AS ENUM (
       'IntercompanyReceivablePayable',
@@ -106,7 +106,7 @@ export default Effect.gen(function* () {
     )
   `
 
-  -- Create elimination_rules table
+  // Create elimination_rules table
   yield* sql`
     CREATE TABLE elimination_rules (
       id UUID PRIMARY KEY,
@@ -135,7 +135,7 @@ export default Effect.gen(function* () {
     )
   `
 
-  -- Create indexes for elimination_rules
+  // Create indexes for elimination_rules
   yield* sql`
     CREATE INDEX idx_elimination_rules_consolidation_group_id
       ON elimination_rules (consolidation_group_id)
@@ -161,7 +161,7 @@ export default Effect.gen(function* () {
       ON elimination_rules (is_automatic) WHERE is_automatic = true
   `
 
-  -- Add triggers for updated_at
+  // Add triggers for updated_at
   yield* sql`
     CREATE TRIGGER update_consolidation_groups_updated_at
       BEFORE UPDATE ON consolidation_groups

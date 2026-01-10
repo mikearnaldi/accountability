@@ -4,12 +4,13 @@
  * Uses PgMigrator with fromRecord to define migrations inline.
  * All migrations are statically imported - no dynamic file system loading.
  *
+ * Migrations run automatically when the MigrationLayer is provided,
+ * ensuring the database schema is always up-to-date before the application starts.
+ *
  * @module MigrationRunner
  */
 
 import { PgMigrator } from "@effect/sql-pg"
-import * as Effect from "effect/Effect"
-import * as Layer from "effect/Layer"
 
 // Import all migrations statically
 import Migration0001 from "./Migrations/Migration0001_CreateOrganizations.ts"
@@ -43,6 +44,11 @@ const loader = PgMigrator.fromRecord({
 })
 
 /**
+ * Migrator options with the inline loader.
+ */
+const migratorOptions = { loader }
+
+/**
  * Run all pending migrations.
  *
  * Creates the migrations tracking table (effect_sql_migrations) if it doesn't exist,
@@ -52,30 +58,23 @@ const loader = PgMigrator.fromRecord({
  *
  * @returns Effect containing array of executed migrations
  */
-export const runMigrations = PgMigrator.run({
-  loader
-})
+export const runMigrations = PgMigrator.run(migratorOptions)
 
 /**
  * Layer that runs migrations when the layer is built.
  *
  * Use this to ensure migrations run before your application starts.
+ * Migrations are run automatically - no separate script is needed.
  *
  * @example
  * ```typescript
  * import { MigrationLayer } from "@accountability/persistence/MigrationRunner"
+ * import { PgClient } from "@effect/sql-pg"
  *
+ * // Migrations run automatically when PgClient is provided
  * const AppLayer = MigrationLayer.pipe(
- *   Layer.provideMerge(PgClient.layer({ ... }))
+ *   Layer.provideMerge(PgClient.layer({ url: Redacted.make("postgresql://...") }))
  * )
  * ```
  */
-export const MigrationLayer: Layer.Layer<
-  never,
-  PgMigrator.MigrationError,
-  Parameters<typeof PgMigrator.run>[0] extends infer T
-    ? T extends { loader: infer L }
-      ? Effect.Effect.Context<ReturnType<typeof PgMigrator.run>>
-      : never
-    : never
-> = Layer.effectDiscard(runMigrations)
+export const MigrationLayer = PgMigrator.layer(migratorOptions)

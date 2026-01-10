@@ -39,7 +39,7 @@ export default Effect.gen(function* () {
     )
   `
 
-  -- Create intercompany_transactions table
+  // Create intercompany_transactions table
   yield* sql`
     CREATE TABLE intercompany_transactions (
       id UUID PRIMARY KEY,
@@ -74,7 +74,7 @@ export default Effect.gen(function* () {
     )
   `
 
-  -- Create indexes for intercompany_transactions
+  // Create indexes for intercompany_transactions
   yield* sql`
     CREATE INDEX idx_intercompany_transactions_from_company_id
       ON intercompany_transactions (from_company_id)
@@ -112,7 +112,7 @@ export default Effect.gen(function* () {
       WHERE to_journal_entry_id IS NOT NULL
   `
 
-  -- Compound index for finding transactions between two companies
+  // Compound index for finding transactions between two companies
   yield* sql`
     CREATE INDEX idx_intercompany_transactions_company_pair
       ON intercompany_transactions (
@@ -121,7 +121,7 @@ export default Effect.gen(function* () {
       )
   `
 
-  -- Add trigger for updated_at
+  // Add trigger for updated_at
   yield* sql`
     CREATE TRIGGER update_intercompany_transactions_updated_at
       BEFORE UPDATE ON intercompany_transactions

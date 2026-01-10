@@ -66,7 +66,7 @@ export default Effect.gen(function* () {
     )
   `
 
-  -- Create indexes for fiscal_years
+  // Create indexes for fiscal_years
   yield* sql`
     CREATE INDEX idx_fiscal_years_company_id ON fiscal_years (company_id)
   `
@@ -79,7 +79,7 @@ export default Effect.gen(function* () {
     CREATE INDEX idx_fiscal_years_year ON fiscal_years (year)
   `
 
-  -- Create fiscal_periods table
+  // Create fiscal_periods table
   yield* sql`
     CREATE TABLE fiscal_periods (
       id UUID PRIMARY KEY,
@@ -105,7 +105,7 @@ export default Effect.gen(function* () {
     )
   `
 
-  -- Create indexes for fiscal_periods
+  // Create indexes for fiscal_periods
   yield* sql`
     CREATE INDEX idx_fiscal_periods_fiscal_year_id ON fiscal_periods (fiscal_year_id)
   `
@@ -118,7 +118,7 @@ export default Effect.gen(function* () {
     CREATE INDEX idx_fiscal_periods_dates ON fiscal_periods (start_date, end_date)
   `
 
-  -- Create period_reopen_audit_entries table for audit trail
+  // Create period_reopen_audit_entries table for audit trail
   yield* sql`
     CREATE TABLE period_reopen_audit_entries (
       id UUID PRIMARY KEY,
@@ -135,7 +135,7 @@ export default Effect.gen(function* () {
       ON period_reopen_audit_entries (period_id)
   `
 
-  -- Create closing_journal_entries table for year-end close tracking
+  // Create closing_journal_entries table for year-end close tracking
   yield* sql`
     CREATE TABLE closing_journal_entries (
       id UUID PRIMARY KEY,
@@ -157,7 +157,7 @@ export default Effect.gen(function* () {
       ON closing_journal_entries (fiscal_year_id)
   `
 
-  -- Add triggers for updated_at
+  // Add triggers for updated_at
   yield* sql`
     CREATE TRIGGER update_fiscal_years_updated_at
       BEFORE UPDATE ON fiscal_years

@@ -55,7 +55,7 @@ export default Effect.gen(function* () {
     )
   `
 
-  -- Create indexes
+  // Create indexes
   yield* sql`
     CREATE INDEX idx_exchange_rates_organization_id ON exchange_rates (organization_id)
   `
@@ -77,7 +77,7 @@ export default Effect.gen(function* () {
       ON exchange_rates (organization_id, from_currency, to_currency, effective_date DESC, rate_type)
   `
 
-  -- Add trigger for updated_at
+  // Add trigger for updated_at
   yield* sql`
     CREATE TRIGGER update_exchange_rates_updated_at
       BEFORE UPDATE ON exchange_rates

@@ -5,13 +5,18 @@
   "type": "module",
   "exports": {
     "./MigrationRunner": "./src/MigrationRunner.ts",
-    "./CompanyRepository": "./src/CompanyRepository.ts"
+    "./AccountRepository": "./src/AccountRepository.ts",
+    "./CompanyRepository": "./src/CompanyRepository.ts",
+    "./ConsolidationRepository": "./src/ConsolidationRepository.ts",
+    "./ExchangeRateRepository": "./src/ExchangeRateRepository.ts",
+    "./FiscalPeriodRepository": "./src/FiscalPeriodRepository.ts",
+    "./JournalEntryRepository": "./src/JournalEntryRepository.ts",
+    "./RepositoryError": "./src/RepositoryError.ts"
   },
   "scripts": {
     "build": "echo 'No build step yet'",
     "clean": "rm -rf dist",
-    "test": "cd ../.. && vitest run packages/persistence/test",
-    "migrate:run": "npx tsx src/bin/migrate.ts"
+    "test": "cd ../.. && vitest run packages/persistence/test"
   },
   "dependencies": {
     "@accountability/core": "workspace:*",

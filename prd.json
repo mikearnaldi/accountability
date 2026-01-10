@@ -1067,6 +1067,7 @@
       "title": "Create PostgreSQL schema with SQL migrations",
       "description": "Create database schema using plain SQL migrations with @effect/sql Migrator. Write migrations as TypeScript files that execute SQL statements. Reference repos/effect/packages/sql/src/Migrator.ts.",
       "acceptance_criteria": [
+        "All libraries at latest versions (@effect/sql, @effect/sql-pg, effect, etc.)",
         "Set up migrations folder: packages/persistence/src/Migrations",
         "Create migration modules as TypeScript (e.g., Migration0001.ts)",
         "Each migration exports an Effect that runs SQL via SqlClient",

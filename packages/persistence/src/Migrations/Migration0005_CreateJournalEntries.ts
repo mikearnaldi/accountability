@@ -99,7 +99,7 @@ export default Effect.gen(function* () {
     )
   `
 
-  -- Create indexes for journal_entries
+  // Create indexes for journal_entries
   yield* sql`
     CREATE INDEX idx_journal_entries_company_id ON journal_entries (company_id)
   `
@@ -134,7 +134,7 @@ export default Effect.gen(function* () {
       WHERE reversing_entry_id IS NOT NULL
   `
 
-  -- Create journal_entry_lines table
+  // Create journal_entry_lines table
   yield* sql`
     CREATE TABLE journal_entry_lines (
       id UUID PRIMARY KEY,
@@ -174,7 +174,7 @@ export default Effect.gen(function* () {
     )
   `
 
-  -- Create indexes for journal_entry_lines
+  // Create indexes for journal_entry_lines
   yield* sql`
     CREATE INDEX idx_journal_entry_lines_journal_entry_id ON journal_entry_lines (journal_entry_id)
   `
@@ -195,7 +195,7 @@ export default Effect.gen(function* () {
       WHERE matching_line_id IS NOT NULL
   `
 
-  -- Add trigger for updated_at
+  // Add trigger for updated_at
   yield* sql`
     CREATE TRIGGER update_journal_entries_updated_at
       BEFORE UPDATE ON journal_entries
