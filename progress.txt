@@ -234,3 +234,8 @@
 **Story**: 3.3.1 - Implement income statement report
 **Status**: complete
 ---
+
+## Iteration 6 - 2026-01-10 20:43
+**Story**: 3.4.1 - Implement cash flow statement - indirect method
+**Status**: complete
+---
