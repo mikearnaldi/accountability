@@ -24,7 +24,7 @@ import {
   min,
   max,
   EPOCH
-} from "../src/domain/Timestamp.js"
+} from "../../src/domain/Timestamp.js"
 
 describe("Timestamp", () => {
   describe("validation", () => {

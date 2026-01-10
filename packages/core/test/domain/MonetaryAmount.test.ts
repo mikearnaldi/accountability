@@ -2,7 +2,7 @@ import { describe, it, expect } from "@effect/vitest"
 import { Effect, Exit, Equal } from "effect"
 import * as BigDecimal from "effect/BigDecimal"
 import * as Schema from "effect/Schema"
-import { USD, EUR } from "../src/domain/CurrencyCode.js"
+import { USD, EUR } from "../../src/domain/CurrencyCode.js"
 import {
   MonetaryAmount,
   isMonetaryAmount,
@@ -27,7 +27,7 @@ import {
   DivisionByZeroError,
   isCurrencyMismatchError,
   isDivisionByZeroError
-} from "../src/domain/MonetaryAmount.js"
+} from "../../src/domain/MonetaryAmount.js"
 
 describe("MonetaryAmount", () => {
   describe("creation", () => {

@@ -209,3 +209,8 @@
 **Story**: 2.3.4 - Reorganize core package into domain and services
 **Status**: complete
 ---
+
+## Iteration 1 - 2026-01-10 19:59
+**Story**: 2.3.5 - Reorganize core package tests into domain and services
+**Status**: complete
+---

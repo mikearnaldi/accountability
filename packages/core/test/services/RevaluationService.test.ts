@@ -21,17 +21,17 @@ import {
   type ExchangeRateRepositoryService,
   type AccountBalanceRepositoryService,
   type RevalueInput
-} from "../src/services/CurrencyService.js"
-import { ExchangeRate, ExchangeRateId, Rate, type RateType } from "../src/domain/ExchangeRate.js"
-import { CurrencyCode } from "../src/domain/CurrencyCode.js"
-import { LocalDate } from "../src/domain/LocalDate.js"
-import { Timestamp } from "../src/domain/Timestamp.js"
-import { MonetaryAmount } from "../src/domain/MonetaryAmount.js"
-import { JournalEntryId, UserId } from "../src/domain/JournalEntry.js"
-import { JournalEntryLineId } from "../src/domain/JournalEntryLine.js"
-import { FiscalPeriodRef } from "../src/domain/FiscalPeriodRef.js"
-import type { AccountId } from "../src/domain/Account.js"
-import type { CompanyId } from "../src/domain/Company.js"
+} from "../../src/services/CurrencyService.js"
+import { ExchangeRate, ExchangeRateId, Rate, type RateType } from "../../src/domain/ExchangeRate.js"
+import { CurrencyCode } from "../../src/domain/CurrencyCode.js"
+import { LocalDate } from "../../src/domain/LocalDate.js"
+import { Timestamp } from "../../src/domain/Timestamp.js"
+import { MonetaryAmount } from "../../src/domain/MonetaryAmount.js"
+import { JournalEntryId, UserId } from "../../src/domain/JournalEntry.js"
+import { JournalEntryLineId } from "../../src/domain/JournalEntryLine.js"
+import { FiscalPeriodRef } from "../../src/domain/FiscalPeriodRef.js"
+import type { AccountId } from "../../src/domain/Account.js"
+import type { CompanyId } from "../../src/domain/Company.js"
 
 describe("CurrencyService - Period-End Revaluation", () => {
   // Test data constants

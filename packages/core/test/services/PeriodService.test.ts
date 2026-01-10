@@ -75,14 +75,14 @@ import {
   type CompanyFiscalSettings,
   type ExistingFiscalYearInfo,
   type AccountBalance
-} from "../src/services/PeriodService.js"
-import { CompanyId, FiscalYearEnd } from "../src/domain/Company.js"
-import { LocalDate } from "../src/domain/LocalDate.js"
-import { Timestamp } from "../src/domain/Timestamp.js"
-import { UserId, JournalEntryId } from "../src/domain/JournalEntry.js"
-import { AccountId, AccountType } from "../src/domain/Account.js"
-import { MonetaryAmount } from "../src/domain/MonetaryAmount.js"
-import { CurrencyCode } from "../src/domain/CurrencyCode.js"
+} from "../../src/services/PeriodService.js"
+import { CompanyId, FiscalYearEnd } from "../../src/domain/Company.js"
+import { LocalDate } from "../../src/domain/LocalDate.js"
+import { Timestamp } from "../../src/domain/Timestamp.js"
+import { UserId, JournalEntryId } from "../../src/domain/JournalEntry.js"
+import { AccountId, AccountType } from "../../src/domain/Account.js"
+import { MonetaryAmount } from "../../src/domain/MonetaryAmount.js"
+import { CurrencyCode } from "../../src/domain/CurrencyCode.js"
 
 describe("PeriodService", () => {
   // Test data constants

@@ -26,16 +26,16 @@ import {
   getSiblings,
   findByType,
   getPath
-} from "../src/domain/AccountHierarchy.js"
+} from "../../src/domain/AccountHierarchy.js"
 import {
   Account,
   AccountId,
   AccountType,
   AccountCategory
-} from "../src/domain/Account.js"
-import { AccountNumber } from "../src/domain/AccountNumber.js"
-import { CompanyId } from "../src/domain/Company.js"
-import { Timestamp } from "../src/domain/Timestamp.js"
+} from "../../src/domain/Account.js"
+import { AccountNumber } from "../../src/domain/AccountNumber.js"
+import { CompanyId } from "../../src/domain/Company.js"
+import { Timestamp } from "../../src/domain/Timestamp.js"
 
 // Helper to create test accounts
 const createTestAccount = (
