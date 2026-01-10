@@ -69,7 +69,6 @@
         "packages/core, packages/persistence, packages/api, packages/web directories exist",
         "Each package has its own package.json with correct name (@accountability/core, etc.)"
       ],
-      "priority": 1,
       "status": "complete",
       "estimated_complexity": "small"
     },
@@ -85,7 +84,6 @@
         "TypeScript compiles without errors",
         "Path aliases configured for cross-package imports"
       ],
-      "priority": 2,
       "status": "complete",
       "estimated_complexity": "small"
     },
@@ -101,7 +99,6 @@
         "Schema validation works using import * as Schema from 'effect/Schema'",
         "Context and Layer patterns work for dependency injection"
       ],
-      "priority": 3,
       "status": "complete",
       "estimated_complexity": "small"
     },
@@ -118,7 +115,6 @@
         "Coverage reporting enabled with v8 provider",
         "Example Effect test passes using @effect/vitest patterns"
       ],
-      "priority": 4,
       "status": "complete",
       "estimated_complexity": "small"
     },
@@ -135,7 +131,6 @@
         "Lint script runs without errors on initial codebase",
         "Format script properly formats code"
       ],
-      "priority": 5,
       "status": "complete",
       "estimated_complexity": "small"
     },
@@ -155,7 +150,6 @@
         "Do not accept any less than 100% test coverage, don't back off from tasks!",
         "Investigate deeply the issue of Equal not picking up"
       ],
-      "priority": 6,
       "status": "complete",
       "estimated_complexity": "medium"
     },
@@ -172,7 +166,6 @@
         "Type is branded for compile-time safety",
         "100% test coverage"
       ],
-      "priority": 7,
       "status": "complete",
       "estimated_complexity": "small"
     },
@@ -189,7 +182,6 @@
         "Ranges: 1xxx=Assets, 2xxx=Liabilities, 3xxx=Equity, 4xxx=Revenue, 5xxx-7xxx=Expenses",
         "100% test coverage"
       ],
-      "priority": 8,
       "status": "complete",
       "estimated_complexity": "small"
     },
@@ -208,7 +200,6 @@
         "100% test coverage for all",
         "Use TestClock to test the nowEffect"
       ],
-      "priority": 9,
       "status": "complete",
       "estimated_complexity": "medium"
     },
@@ -229,7 +220,6 @@
         "Don't create dumb renamed function for tests like mkTs use proper constructors directly",
         "Remove the bd() utility use the BigDecimal.unsafeFromString in tests"
       ],
-      "priority": 10,
       "status": "complete",
       "estimated_complexity": "medium"
     },
@@ -246,7 +236,6 @@
         "Validation for required fields",
         "100% test coverage"
       ],
-      "priority": 10,
       "status": "complete",
       "estimated_complexity": "small"
     },
@@ -265,7 +254,6 @@
         "ConsolidationMethod enum: FullConsolidation, EquityMethod, CostMethod, VariableInterestEntity",
         "100% test coverage"
       ],
-      "priority": 11,
       "status": "complete",
       "estimated_complexity": "medium"
     },
@@ -281,7 +269,6 @@
         "Predefined common currencies (USD, EUR, GBP, JPY, etc.)",
         "100% test coverage"
       ],
-      "priority": 12,
       "status": "complete",
       "estimated_complexity": "small"
     },
@@ -299,7 +286,6 @@
         "Rate as positive BigDecimal",
         "100% test coverage"
       ],
-      "priority": 13,
       "status": "complete",
       "estimated_complexity": "small"
     },
@@ -315,7 +301,6 @@
         "Predefined jurisdictions for US and GB",
         "100% test coverage"
       ],
-      "priority": 14,
       "status": "complete",
       "estimated_complexity": "small"
     },
@@ -336,7 +321,6 @@
         "Intercompany properties: isIntercompany flag, intercompanyPartnerId",
         "100% test coverage"
       ],
-      "priority": 15,
       "status": "complete",
       "estimated_complexity": "large"
     },
@@ -356,7 +340,6 @@
         "Use Schema to define custom classes",
         "Use Schema.Chunk not Schema.ChunkFromSelf so that it is serializeable"
       ],
-      "priority": 16,
       "status": "complete",
       "estimated_complexity": "medium"
     },
@@ -375,7 +358,6 @@
         "100% test coverage",
         "Don't use *FromSelf we want everything to be serializeable"
       ],
-      "priority": 17,
       "status": "complete",
       "estimated_complexity": "medium"
     },
@@ -393,7 +375,6 @@
         "Function instantiateTemplate: (template, companyId) -> Account[]",
         "100% test coverage"
       ],
-      "priority": 18,
       "status": "complete",
       "estimated_complexity": "medium"
     },
@@ -414,7 +395,6 @@
         "Audit fields: createdBy, createdAt, postedBy, postedAt",
         "100% test coverage"
       ],
-      "priority": 19,
       "status": "complete",
       "estimated_complexity": "large"
     },
@@ -435,7 +415,6 @@
         "Intercompany: partnerId and matchingLineId as optional",
         "100% test coverage"
       ],
-      "priority": 20,
       "status": "complete",
       "estimated_complexity": "medium"
     },
@@ -454,7 +433,6 @@
         "Property-based test: all valid entries have equal debits and credits",
         "100% test coverage"
       ],
-      "priority": 21,
       "status": "complete",
       "estimated_complexity": "medium"
     },
@@ -471,7 +449,6 @@
         "MissingExchangeRateError for missing rates",
         "100% test coverage"
       ],
-      "priority": 22,
       "status": "complete",
       "estimated_complexity": "medium"
     },
@@ -492,7 +469,6 @@
         "Function canTransition: (from: Status, to: Status) -> boolean",
         "100% test coverage"
       ],
-      "priority": 23,
       "status": "complete",
       "estimated_complexity": "medium"
     },
@@ -513,7 +489,6 @@
         "JournalEntryServiceLive as Layer implementation",
         "100% test coverage with mocked dependencies"
       ],
-      "priority": 24,
       "status": "complete",
       "estimated_complexity": "large"
     },
@@ -532,7 +507,6 @@
         "Returns typed errors: NotApprovedError, PeriodClosedError",
         "100% test coverage"
       ],
-      "priority": 25,
       "status": "complete",
       "estimated_complexity": "medium"
     },
@@ -551,7 +525,6 @@
         "Reversal entry is created as Posted (bypasses approval)",
         "100% test coverage"
       ],
-      "priority": 26,
       "status": "complete",
       "estimated_complexity": "medium"
     },
@@ -569,7 +542,6 @@
         "Depends on ExchangeRateRepository",
         "100% test coverage"
       ],
-      "priority": 27,
       "status": "complete",
       "estimated_complexity": "medium"
     },
@@ -587,7 +559,6 @@
         "Inverse rate calculation when direct rate not available",
         "100% test coverage"
       ],
-      "priority": 28,
       "status": "complete",
       "estimated_complexity": "medium"
     },
@@ -605,7 +576,6 @@
         "RevaluationResult with per-account detail and total gain/loss",
         "100% test coverage"
       ],
-      "priority": 29,
       "status": "complete",
       "estimated_complexity": "large"
     },
@@ -623,7 +593,6 @@
         "Validate year doesn't overlap existing years for company",
         "100% test coverage"
       ],
-      "priority": 30,
       "status": "complete",
       "estimated_complexity": "medium"
     },
@@ -642,7 +611,6 @@
         "PeriodError union: HasDraftEntriesError, AlreadyClosedError, etc.",
         "100% test coverage"
       ],
-      "priority": 31,
       "status": "complete",
       "estimated_complexity": "medium"
     },
@@ -661,7 +629,6 @@
         "Support year reopen: creates reversing entries for closing entries",
         "100% test coverage"
       ],
-      "priority": 32,
       "status": "complete",
       "estimated_complexity": "large"
     },
@@ -679,7 +646,6 @@
         "Update all test imports to use new paths",
         "All tests pass after reorganization"
       ],
-      "priority": 33,
       "status": "complete",
       "estimated_complexity": "medium"
     },
@@ -698,7 +664,6 @@
         "All tests pass after reorganization",
         "Test coverage remains at 100%"
       ],
-      "priority": 34,
       "status": "pending",
       "estimated_complexity": "small"
     },
@@ -717,7 +682,6 @@
         "All functions are pure - no side effects",
         "100% test coverage with property-based tests"
       ],
-      "priority": 33,
       "status": "pending",
       "estimated_complexity": "large"
     },
@@ -736,7 +700,6 @@
         "Support for filtering by date range",
         "100% test coverage"
       ],
-      "priority": 34,
       "status": "pending",
       "estimated_complexity": "medium"
     },
@@ -756,7 +719,6 @@
         "Support for comparative periods (prior year/period)",
         "100% test coverage"
       ],
-      "priority": 35,
       "status": "pending",
       "estimated_complexity": "large"
     },
@@ -775,7 +737,6 @@
         "Support for comparative periods",
         "100% test coverage"
       ],
-      "priority": 36,
       "status": "pending",
       "estimated_complexity": "large"
     },
@@ -795,7 +756,6 @@
         "Supplemental disclosures: Interest paid, Taxes paid",
         "100% test coverage"
       ],
-      "priority": 37,
       "status": "pending",
       "estimated_complexity": "large"
     },
@@ -813,7 +773,6 @@
         "Column totals and row totals",
         "100% test coverage"
       ],
-      "priority": 38,
       "status": "pending",
       "estimated_complexity": "medium"
     },
@@ -831,7 +790,6 @@
         "Reporting currency for consolidated statements",
         "100% test coverage"
       ],
-      "priority": 39,
       "status": "pending",
       "estimated_complexity": "medium"
     },
@@ -850,7 +808,6 @@
         "Pure function with comprehensive test cases",
         "100% test coverage"
       ],
-      "priority": 40,
       "status": "pending",
       "estimated_complexity": "medium"
     },
@@ -868,7 +825,6 @@
         "Variance amount and explanation fields",
         "100% test coverage"
       ],
-      "priority": 41,
       "status": "pending",
       "estimated_complexity": "medium"
     },
@@ -887,7 +843,6 @@
         "Generate matching report with discrepancy details",
         "100% test coverage"
       ],
-      "priority": 42,
       "status": "pending",
       "estimated_complexity": "large"
     },
@@ -906,7 +861,6 @@
         "Priority for ordering",
         "100% test coverage"
       ],
-      "priority": 43,
       "status": "pending",
       "estimated_complexity": "medium"
     },
@@ -925,7 +879,6 @@
         "Each elimination entry links to the rule that generated it",
         "100% test coverage"
       ],
-      "priority": 44,
       "status": "pending",
       "estimated_complexity": "large"
     },
@@ -944,7 +897,6 @@
         "Store resulting consolidated trial balance",
         "100% test coverage"
       ],
-      "priority": 45,
       "status": "pending",
       "estimated_complexity": "large"
     },
@@ -963,7 +915,6 @@
         "Calculate CTA (Cumulative Translation Adjustment) as plug to OCI",
         "100% test coverage"
       ],
-      "priority": 46,
       "status": "pending",
       "estimated_complexity": "large"
     },
@@ -981,7 +932,6 @@
         "Separate NCI line items in consolidated statements",
         "100% test coverage"
       ],
-      "priority": 47,
       "status": "pending",
       "estimated_complexity": "medium"
     },
@@ -1001,7 +951,6 @@
         "ConsolidationRepository: findGroup, findRun, createRun, updateRun",
         "All operations return Effect with typed errors"
       ],
-      "priority": 48,
       "status": "pending",
       "estimated_complexity": "medium"
     },
@@ -1020,7 +969,6 @@
         "Soft delete support: deletedAt column where needed",
         "Migration files generated from schema"
       ],
-      "priority": 49,
       "status": "pending",
       "estimated_complexity": "large"
     },
@@ -1039,7 +987,6 @@
         "Integration tests against test database",
         "Connection pooling configured"
       ],
-      "priority": 50,
       "status": "pending",
       "estimated_complexity": "large"
     },
@@ -1058,7 +1005,6 @@
         "Server functions pattern working (createServerFn)",
         "Dev server runs successfully with pnpm dev"
       ],
-      "priority": 51,
       "status": "pending",
       "estimated_complexity": "medium"
     },
@@ -1076,7 +1022,6 @@
         "Proper error handling returning typed errors",
         "Effect services integrated via Runtime"
       ],
-      "priority": 52,
       "status": "pending",
       "estimated_complexity": "medium"
     },
@@ -1093,7 +1038,6 @@
         "listJournalEntries server function with filters (company, period, status)",
         "getJournalEntry server function with lines"
       ],
-      "priority": 53,
       "status": "pending",
       "estimated_complexity": "medium"
     },
@@ -1111,7 +1055,6 @@
         "Report parameters: companyId, asOfDate/period, comparative options",
         "Returns report data structure (JSON for now)"
       ],
-      "priority": 54,
       "status": "pending",
       "estimated_complexity": "large"
     },
@@ -1129,7 +1072,6 @@
         "Accessible: proper ARIA attributes",
         "Controlled component with value/onChange props"
       ],
-      "priority": 55,
       "status": "pending",
       "estimated_complexity": "medium"
     },
@@ -1147,7 +1089,6 @@
         "Optional currency code selector dropdown",
         "Controlled component returning BigDecimal-compatible string"
       ],
-      "priority": 56,
       "status": "pending",
       "estimated_complexity": "medium"
     },
@@ -1166,7 +1107,6 @@
         "Filter by account type",
         "Uses TanStack Router loader for data fetching"
       ],
-      "priority": 57,
       "status": "pending",
       "estimated_complexity": "large"
     },
@@ -1185,7 +1125,6 @@
         "Validation feedback (unbalanced, missing fields)",
         "Save as draft or submit for approval buttons"
       ],
-      "priority": 58,
       "status": "pending",
       "estimated_complexity": "large"
     },
@@ -1203,7 +1142,6 @@
         "Drill-down to transactions (click account to see entries)",
         "Export to PDF/Excel (can be future enhancement)"
       ],
-      "priority": 59,
       "status": "pending",
       "estimated_complexity": "large"
     }

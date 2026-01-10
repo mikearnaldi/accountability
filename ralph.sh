@@ -89,13 +89,13 @@ check_prerequisites() {
     log "SUCCESS" "Prerequisites check passed"
 }
 
-# Get the current story being worked on (highest priority pending or in_progress)
+# Get the current story being worked on (first in_progress or first pending in array order)
 get_current_story() {
-    # First check for in_progress, then pending
-    local story=$(jq -r '[.stories[] | select(.status == "in_progress")] | sort_by(.priority) | .[0] // empty' "$PRD_FILE")
+    # First check for in_progress, then pending - use array order (no sorting)
+    local story=$(jq -r '[.stories[] | select(.status == "in_progress")] | .[0] // empty' "$PRD_FILE")
 
     if [ -z "$story" ]; then
-        story=$(jq -r '[.stories[] | select(.status == "pending")] | sort_by(.priority) | .[0] // empty' "$PRD_FILE")
+        story=$(jq -r '[.stories[] | select(.status == "pending")] | .[0] // empty' "$PRD_FILE")
     fi
 
     echo "$story"
