@@ -213,6 +213,24 @@
       "estimated_complexity": "medium"
     },
     {
+      "id": "1.2.5",
+      "phase": "Foundation",
+      "epic": "Core Value Objects",
+      "title": "Align all value objects to Schema constructor standards",
+      "description": "Revise all value objects created in 1.2.x to follow Effect Schema best practices: use Schema.Class instead of Schema.Struct where appropriate, remove redundant make/create functions (Schema provides .make() automatically), use flat module structure without barrel files, ensure all branded types use the Schema-provided .make() constructor.",
+      "acceptance_criteria": [
+        "All domain entities use Schema.Class instead of Schema.Struct",
+        "Remove all custom make/create functions - use MyClass.make() or BrandedType.make() from Schema",
+        "Flatten module structure - no index.ts barrel files, each type in its own file at src/ level",
+        "Ensure Equal and Hash are auto-derived (no manual implementations)",
+        "All tests pass after refactoring",
+        "Type guards use Schema.is(MySchema) not custom implementations"
+      ],
+      "priority": 10,
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
       "id": "1.3.1",
       "phase": "Foundation",
       "epic": "Core Entities",
