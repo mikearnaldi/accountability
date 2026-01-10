@@ -155,7 +155,7 @@ export interface AccountRepositoryService {
  *
  * Usage:
  * ```typescript
- * import { AccountRepository } from "@accountability/persistence/src/AccountRepository.ts"
+ * import { AccountRepository } from "@accountability/persistence/AccountRepository"
  *
  * const program = Effect.gen(function* () {
  *   const repo = yield* AccountRepository

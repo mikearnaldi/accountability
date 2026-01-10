@@ -309,3 +309,8 @@
 **Story**: 5.1.2 - Switch to moduleResolution bundler with .ts imports
 **Status**: complete
 ---
+
+## Iteration 1 - 2026-01-11 00:09
+**Story**: 5.2.0 - Remove all index.ts barrel files
+**Status**: complete
+---

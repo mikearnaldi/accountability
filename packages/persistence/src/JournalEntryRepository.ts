@@ -208,7 +208,7 @@ export interface JournalEntryRepositoryService {
  *
  * Usage:
  * ```typescript
- * import { JournalEntryRepository } from "@accountability/persistence/src/JournalEntryRepository.ts"
+ * import { JournalEntryRepository } from "@accountability/persistence/JournalEntryRepository"
  *
  * const program = Effect.gen(function* () {
  *   const repo = yield* JournalEntryRepository
