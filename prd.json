@@ -1089,7 +1089,7 @@
         "no_scripts": "No migrate:run script or binary - migrations run in layer initialization",
         "reference": "repos/effect/packages/sql/src/Migrator.ts"
       },
-      "status": "in_progress",
+      "status": "complete",
       "estimated_complexity": "large"
     },
     {

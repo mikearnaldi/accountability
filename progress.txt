@@ -314,3 +314,8 @@
 **Story**: 5.2.0 - Remove all index.ts barrel files
 **Status**: complete
 ---
+
+## Iteration 1 - 2026-01-11 00:31
+**Story**: 5.2.1 - Create PostgreSQL schema with SQL migrations
+**Status**: complete
+---

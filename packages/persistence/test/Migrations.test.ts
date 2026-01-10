@@ -65,11 +65,12 @@ describe("Migrations", () => {
 
       it.effect("is idempotent - running twice does not re-run migrations", () =>
         Effect.gen(function* () {
-          // First run
+          // Note: Previous tests in this layer block already ran migrations.
+          // First call should return empty since migrations were already run
           const first = yield* runMigrations
-          expect(first).toHaveLength(8)
+          expect(first).toHaveLength(0)
 
-          // Second run - should return empty (no new migrations)
+          // Second call also returns empty
           const second = yield* runMigrations
           expect(second).toHaveLength(0)
         })

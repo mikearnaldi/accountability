@@ -9,6 +9,6 @@
     "test": "cd ../.. && vitest run packages/core/test"
   },
   "dependencies": {
-    "effect": "^3.19.0"
+    "effect": "^3.19.14"
   }
 }
