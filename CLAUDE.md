@@ -568,28 +568,34 @@ export const AccountServiceLive: Layer.Layer<
 > = Layer.effect(AccountService, make)
 ```
 
-**Layer.scoped** - When the service needs resource cleanup (connections, subscriptions, etc.):
+**Layer.scoped** - When the service needs resource cleanup (subscriptions, background fibers, etc.):
 
 ```typescript
-// make function returns Effect<AccountService, Error, Scope | Dependencies>
+// Example: Service with a PubSub for change notifications
 const make = Effect.gen(function* () {
   const sql = yield* SqlClient.SqlClient
 
-  // Acquire resources that need cleanup
-  const connection = yield* Effect.acquireRelease(
-    sql.reserve,
-    (conn) => conn.release
+  // Create a PubSub that will be cleaned up when layer is released
+  const changes = yield* PubSub.unbounded<AccountChange>()
+
+  // Start a background fiber that will be interrupted on cleanup
+  yield* Effect.forkScoped(
+    sql`LISTEN account_changes`.pipe(
+      Stream.runForEach((change) => PubSub.publish(changes, change))
+    )
   )
 
   return {
     findById: (id) => Effect.gen(function* () {
-      // use connection
+      // sql client handles connection pooling internally
+      const rows = yield* sql`SELECT * FROM accounts WHERE id = ${id}`
+      // ...
     }),
-    // ...
+    subscribe: PubSub.subscribe(changes)
   }
 })
 
-// Layer using Layer.scoped - automatically handles Scope
+// Layer using Layer.scoped - cleans up PubSub and background fiber
 export const AccountServiceLive: Layer.Layer<
   AccountService,
   SqlError,
