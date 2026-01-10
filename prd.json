@@ -1044,6 +1044,22 @@
       "estimated_complexity": "medium"
     },
     {
+      "id": "5.2.0",
+      "phase": "Persistence",
+      "epic": "Database Schema",
+      "title": "Remove all index.ts barrel files",
+      "description": "Delete all index.ts barrel files from the codebase and update imports to point to specific modules.",
+      "acceptance_criteria": [
+        "Find and delete all index.ts files in packages/core/src",
+        "Update all imports that used index.ts to import from specific modules",
+        "Verify no circular dependency issues",
+        "Verify pnpm typecheck passes",
+        "Verify pnpm test passes"
+      ],
+      "status": "pending",
+      "estimated_complexity": "small"
+    },
+    {
       "id": "5.2.1",
       "phase": "Persistence",
       "epic": "Database Schema",
