@@ -624,7 +624,7 @@
         "100% test coverage"
       ],
       "priority": 30,
-      "status": "pending",
+      "status": "in_progress",
       "estimated_complexity": "medium"
     },
     {
@@ -664,6 +664,26 @@
       "priority": 32,
       "status": "pending",
       "estimated_complexity": "large"
+    },
+    {
+      "id": "2.3.4",
+      "phase": "Core Services",
+      "epic": "Code Organization",
+      "title": "Reorganize core package into domain and services",
+      "description": "Restructure packages/core/src into src/domain for domain modules (value objects, entities, aggregates) and src/services for Effect services. Update all imports and ensure tests pass.",
+      "acceptance_criteria": [
+        "Create src/domain directory for all domain modules (Account, Company, Currency, etc.)",
+        "Create src/services directory for all Effect services",
+        "Move value objects and entities to src/domain/",
+        "Move services to src/services/",
+        "Update src/index.ts to re-export from new locations",
+        "Update all test imports to use new paths",
+        "All tests pass after reorganization",
+        "No breaking changes to public API"
+      ],
+      "priority": 33,
+      "status": "pending",
+      "estimated_complexity": "medium"
     },
     {
       "id": "3.1.1",
