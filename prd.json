@@ -719,7 +719,7 @@
         "Support for comparative periods (prior year/period)",
         "100% test coverage"
       ],
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "large"
     },
     {

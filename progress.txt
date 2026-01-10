@@ -224,3 +224,8 @@
 **Story**: 3.1.2 - Implement trial balance report
 **Status**: complete
 ---
+
+## Iteration 4 - 2026-01-10 20:24
+**Story**: 3.2.1 - Implement balance sheet report
+**Status**: complete
+---
