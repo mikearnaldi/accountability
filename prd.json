@@ -1,0 +1,1043 @@
+{
+  "project": "Accountability",
+  "description": "Multi-company, multi-currency accounting application built on US GAAP principles",
+  "version": "1.0.0",
+  "created_at": "2026-01-10",
+  "updated_at": "2026-01-10",
+  "specifications_file": "SPECIFICATIONS.md",
+  "stories": [
+    {
+      "id": "1.1.1",
+      "phase": "Foundation",
+      "epic": "Project Setup",
+      "title": "Initialize monorepo structure",
+      "description": "Set up pnpm workspaces with packages for core, persistence, api, and web. Configure root package.json with workspace definitions.",
+      "acceptance_criteria": [
+        "pnpm-workspace.yaml exists with package paths",
+        "Root package.json has workspace configuration",
+        "packages/core, packages/persistence, packages/api, packages/web directories exist",
+        "Each package has its own package.json"
+      ],
+      "priority": 1,
+      "status": "pending",
+      "estimated_complexity": "small"
+    },
+    {
+      "id": "1.1.2",
+      "phase": "Foundation",
+      "epic": "Project Setup",
+      "title": "Configure TypeScript with strict mode",
+      "description": "Set up TypeScript configuration with strict mode enabled. Create base tsconfig.json and package-specific configs that extend it.",
+      "acceptance_criteria": [
+        "Root tsconfig.json with strict: true",
+        "Each package has tsconfig.json extending base",
+        "TypeScript compiles without errors",
+        "Path aliases configured for cross-package imports"
+      ],
+      "priority": 2,
+      "status": "pending",
+      "estimated_complexity": "small"
+    },
+    {
+      "id": "1.1.3",
+      "phase": "Foundation",
+      "epic": "Project Setup",
+      "title": "Set up Effect and Effect Schema",
+      "description": "Install Effect and @effect/schema packages in core. Configure proper imports and verify Effect works correctly.",
+      "acceptance_criteria": [
+        "effect package installed in core",
+        "@effect/schema package installed in core",
+        "Basic Effect program runs successfully",
+        "Schema validation example works"
+      ],
+      "priority": 3,
+      "status": "pending",
+      "estimated_complexity": "small"
+    },
+    {
+      "id": "1.1.4",
+      "phase": "Foundation",
+      "epic": "Project Setup",
+      "title": "Configure Vitest for testing",
+      "description": "Set up Vitest with proper configuration for testing Effect-based code. Include coverage reporting.",
+      "acceptance_criteria": [
+        "vitest installed and configured",
+        "Test command works in each package",
+        "Coverage reporting enabled",
+        "Example test passes"
+      ],
+      "priority": 4,
+      "status": "pending",
+      "estimated_complexity": "small"
+    },
+    {
+      "id": "1.1.5",
+      "phase": "Foundation",
+      "epic": "Project Setup",
+      "title": "Set up ESLint and Prettier",
+      "description": "Configure ESLint with TypeScript support and Prettier for code formatting. Add lint and format scripts.",
+      "acceptance_criteria": [
+        "ESLint configured with TypeScript parser",
+        "Prettier configured with consistent style",
+        "Lint script runs without errors on initial codebase",
+        "Format script properly formats code"
+      ],
+      "priority": 5,
+      "status": "pending",
+      "estimated_complexity": "small"
+    },
+    {
+      "id": "1.2.1",
+      "phase": "Foundation",
+      "epic": "Core Value Objects",
+      "title": "Implement MonetaryAmount value object",
+      "description": "Create MonetaryAmount as a composite value object with decimal amount (high precision) and currency code. Use Effect Schema for validation.",
+      "acceptance_criteria": [
+        "MonetaryAmount schema defined with decimal amount and currency",
+        "Minimum 4 decimal places precision",
+        "Validation rejects invalid currencies",
+        "Arithmetic operations (add, subtract) implemented",
+        "100% test coverage"
+      ],
+      "priority": 6,
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "1.2.2",
+      "phase": "Foundation",
+      "epic": "Core Value Objects",
+      "title": "Implement CurrencyCode value object",
+      "description": "Create branded CurrencyCode type validated against ISO 4217 pattern (3 uppercase letters).",
+      "acceptance_criteria": [
+        "CurrencyCode branded type defined",
+        "Regex validation for 3 uppercase letters",
+        "Common currencies (USD, GBP, EUR) pass validation",
+        "Invalid codes rejected",
+        "100% test coverage"
+      ],
+      "priority": 7,
+      "status": "pending",
+      "estimated_complexity": "small"
+    },
+    {
+      "id": "1.2.3",
+      "phase": "Foundation",
+      "epic": "Core Value Objects",
+      "title": "Implement AccountNumber value object",
+      "description": "Create branded AccountNumber type following the numbering convention (1000-9999 ranges for different account types).",
+      "acceptance_criteria": [
+        "AccountNumber branded type defined",
+        "Validation ensures numeric format",
+        "Helper to determine account type from number range",
+        "100% test coverage"
+      ],
+      "priority": 8,
+      "status": "pending",
+      "estimated_complexity": "small"
+    },
+    {
+      "id": "1.2.4",
+      "phase": "Foundation",
+      "epic": "Core Value Objects",
+      "title": "Implement remaining core value objects",
+      "description": "Implement JurisdictionCode (ISO 3166-1), Percentage (0-100), LocalDate, Timestamp, and FiscalPeriodRef value objects.",
+      "acceptance_criteria": [
+        "JurisdictionCode with ISO 3166-1 alpha-2 validation",
+        "Percentage constrained to 0-100 with decimal support",
+        "LocalDate for dates without timezone",
+        "Timestamp for UTC timestamps",
+        "FiscalPeriodRef combining year and period number",
+        "100% test coverage for all"
+      ],
+      "priority": 9,
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "1.3.1",
+      "phase": "Foundation",
+      "epic": "Core Entities",
+      "title": "Implement Organization entity",
+      "description": "Create Organization entity as the top-level container for companies with reporting currency and settings.",
+      "acceptance_criteria": [
+        "Organization schema with id, name, reportingCurrency, createdAt, settings",
+        "OrganizationId branded type",
+        "Validation for required fields",
+        "100% test coverage"
+      ],
+      "priority": 10,
+      "status": "pending",
+      "estimated_complexity": "small"
+    },
+    {
+      "id": "1.3.2",
+      "phase": "Foundation",
+      "epic": "Core Entities",
+      "title": "Implement Company entity",
+      "description": "Create Company entity with functional currency, jurisdiction, fiscal settings, and consolidation properties.",
+      "acceptance_criteria": [
+        "Company schema with all properties from spec",
+        "CompanyId branded type",
+        "Functional and reporting currency support",
+        "Parent company and ownership percentage for subsidiaries",
+        "Consolidation method enum",
+        "100% test coverage"
+      ],
+      "priority": 11,
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "1.3.3",
+      "phase": "Foundation",
+      "epic": "Core Entities",
+      "title": "Implement Currency entity",
+      "description": "Create Currency entity with ISO code, name, symbol, decimal places, and active status.",
+      "acceptance_criteria": [
+        "Currency schema with code, name, symbol, decimalPlaces, isActive",
+        "Decimal places constrained to 0, 2, 3, or 4",
+        "100% test coverage"
+      ],
+      "priority": 12,
+      "status": "pending",
+      "estimated_complexity": "small"
+    },
+    {
+      "id": "1.3.4",
+      "phase": "Foundation",
+      "epic": "Core Entities",
+      "title": "Implement ExchangeRate entity",
+      "description": "Create ExchangeRate entity with from/to currencies, rate, effective date, rate type, and source.",
+      "acceptance_criteria": [
+        "ExchangeRate schema with all properties",
+        "ExchangeRateId branded type",
+        "RateType enum (Spot, Average, Historical, Closing)",
+        "Source enum (Manual, Import, API)",
+        "100% test coverage"
+      ],
+      "priority": 13,
+      "status": "pending",
+      "estimated_complexity": "small"
+    },
+    {
+      "id": "1.3.5",
+      "phase": "Foundation",
+      "epic": "Core Entities",
+      "title": "Implement Jurisdiction entity",
+      "description": "Create Jurisdiction entity with country code, name, default currency, and tax settings.",
+      "acceptance_criteria": [
+        "Jurisdiction schema with code, name, defaultCurrency, taxSettings",
+        "Code validated as ISO 3166-1 alpha-2",
+        "100% test coverage"
+      ],
+      "priority": 14,
+      "status": "pending",
+      "estimated_complexity": "small"
+    },
+    {
+      "id": "1.4.1",
+      "phase": "Foundation",
+      "epic": "Chart of Accounts",
+      "title": "Implement Account entity",
+      "description": "Create Account entity with full classification including type, category, normal balance, hierarchy, and behavior properties.",
+      "acceptance_criteria": [
+        "Account schema with all properties from spec",
+        "AccountId branded type",
+        "AccountType enum (Asset, Liability, Equity, Revenue, Expense)",
+        "AccountCategory enum with all subcategories",
+        "NormalBalance enum (Debit, Credit)",
+        "CashFlowCategory enum (Operating, Investing, Financing, NonCash)",
+        "Parent account reference for hierarchy",
+        "Intercompany properties",
+        "100% test coverage"
+      ],
+      "priority": 15,
+      "status": "pending",
+      "estimated_complexity": "large"
+    },
+    {
+      "id": "1.4.2",
+      "phase": "Foundation",
+      "epic": "Chart of Accounts",
+      "title": "Implement account hierarchy logic",
+      "description": "Create functions to manage account hierarchy - building trees, calculating rollups, and validating parent-child relationships.",
+      "acceptance_criteria": [
+        "Function to build account tree from flat list",
+        "Function to get all descendants of an account",
+        "Function to get path to root from any account",
+        "Validation that child account type matches parent",
+        "100% test coverage"
+      ],
+      "priority": 16,
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "1.4.3",
+      "phase": "Foundation",
+      "epic": "Chart of Accounts",
+      "title": "Implement account validation rules",
+      "description": "Create validation rules for accounts including number range checks, category consistency, and intercompany configuration.",
+      "acceptance_criteria": [
+        "Validate account number is in correct range for type",
+        "Validate normal balance is correct for account type",
+        "Validate intercompany accounts have partner set",
+        "Validate cash flow category only set for relevant accounts",
+        "100% test coverage"
+      ],
+      "priority": 17,
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "1.4.4",
+      "phase": "Foundation",
+      "epic": "Chart of Accounts",
+      "title": "Create standard account templates",
+      "description": "Create predefined account templates for General Business, Manufacturing, Service Business, and Holding Company.",
+      "acceptance_criteria": [
+        "GeneralBusinessTemplate with standard accounts",
+        "ManufacturingTemplate with inventory and COGS accounts",
+        "ServiceBusinessTemplate with service revenue focus",
+        "HoldingCompanyTemplate with investment accounts",
+        "Function to instantiate template for a company",
+        "100% test coverage"
+      ],
+      "priority": 18,
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "1.5.1",
+      "phase": "Foundation",
+      "epic": "Journal Entries",
+      "title": "Implement JournalEntry entity",
+      "description": "Create JournalEntry entity with header properties including dates, period, type, status, and audit information.",
+      "acceptance_criteria": [
+        "JournalEntry schema with all header properties",
+        "JournalEntryId branded type",
+        "EntryNumber for sequential numbering",
+        "JournalEntryType enum with all types",
+        "JournalEntryStatus enum (Draft, PendingApproval, Approved, Posted, Reversed)",
+        "SourceModule enum",
+        "Reversal tracking fields",
+        "100% test coverage"
+      ],
+      "priority": 19,
+      "status": "pending",
+      "estimated_complexity": "large"
+    },
+    {
+      "id": "1.5.2",
+      "phase": "Foundation",
+      "epic": "Journal Entries",
+      "title": "Implement JournalEntryLine entity",
+      "description": "Create JournalEntryLine entity with account, amounts in transaction and functional currencies, and intercompany properties.",
+      "acceptance_criteria": [
+        "JournalEntryLine schema with all properties",
+        "JournalEntryLineId branded type",
+        "Debit OR credit (not both, not neither)",
+        "Transaction currency amounts",
+        "Functional currency amounts with exchange rate",
+        "Optional memo and dimensions",
+        "Intercompany partner and matching line references",
+        "100% test coverage"
+      ],
+      "priority": 20,
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "1.5.3",
+      "phase": "Foundation",
+      "epic": "Journal Entries",
+      "title": "Implement balance validation",
+      "description": "Create the fundamental validation that total debits equal total credits for a journal entry.",
+      "acceptance_criteria": [
+        "Function to sum all debits in an entry",
+        "Function to sum all credits in an entry",
+        "Validation function that rejects unbalanced entries",
+        "Support for multi-currency entries (compare in functional currency)",
+        "Property-based test: all valid entries are balanced",
+        "100% test coverage"
+      ],
+      "priority": 21,
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "1.5.4",
+      "phase": "Foundation",
+      "epic": "Journal Entries",
+      "title": "Implement multi-currency line handling",
+      "description": "Create logic for handling journal entry lines in different currencies, converting to functional currency.",
+      "acceptance_criteria": [
+        "Function to convert line amount to functional currency",
+        "Validation that exchange rate is provided for foreign currency lines",
+        "Calculation of functional currency amounts",
+        "100% test coverage"
+      ],
+      "priority": 22,
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "1.5.5",
+      "phase": "Foundation",
+      "epic": "Journal Entries",
+      "title": "Implement entry status workflow",
+      "description": "Create state machine for journal entry status transitions with validation of allowed transitions.",
+      "acceptance_criteria": [
+        "Status transition rules defined",
+        "Draft -> PendingApproval allowed",
+        "PendingApproval -> Approved or Draft allowed",
+        "Approved -> Posted allowed",
+        "Posted -> Reversed allowed (via separate reversal entry)",
+        "Invalid transitions rejected",
+        "100% test coverage"
+      ],
+      "priority": 23,
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "2.1.1",
+      "phase": "Core Services",
+      "epic": "Journal Entry Service",
+      "title": "Implement journal entry creation",
+      "description": "Create Effect service for creating new journal entries with full validation.",
+      "acceptance_criteria": [
+        "JournalEntryService with create operation",
+        "Validates balance before creation",
+        "Validates all accounts exist and are postable",
+        "Validates period is open",
+        "Assigns entry number",
+        "Returns typed errors for failures",
+        "100% test coverage"
+      ],
+      "priority": 24,
+      "status": "pending",
+      "estimated_complexity": "large"
+    },
+    {
+      "id": "2.1.2",
+      "phase": "Core Services",
+      "epic": "Journal Entry Service",
+      "title": "Implement journal entry posting",
+      "description": "Create service operation to post an approved journal entry to the general ledger.",
+      "acceptance_criteria": [
+        "Post operation in JournalEntryService",
+        "Validates entry is in Approved status",
+        "Validates period is still open",
+        "Updates status to Posted",
+        "Records posted by user and timestamp",
+        "Returns typed errors for failures",
+        "100% test coverage"
+      ],
+      "priority": 25,
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "2.1.3",
+      "phase": "Core Services",
+      "epic": "Journal Entry Service",
+      "title": "Implement journal entry reversal",
+      "description": "Create service operation to reverse a posted journal entry by creating a reversing entry.",
+      "acceptance_criteria": [
+        "Reverse operation in JournalEntryService",
+        "Creates new entry with opposite debits/credits",
+        "Links reversal to original entry",
+        "Updates original entry status to Reversed",
+        "Reversal entry is automatically posted",
+        "100% test coverage"
+      ],
+      "priority": 26,
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "2.2.1",
+      "phase": "Core Services",
+      "epic": "Currency Service",
+      "title": "Implement exchange rate management",
+      "description": "Create service for managing exchange rates including CRUD operations and rate lookups.",
+      "acceptance_criteria": [
+        "CurrencyService with rate management operations",
+        "Create/update exchange rates",
+        "Get rate for date and type",
+        "Get latest rate for currency pair",
+        "100% test coverage"
+      ],
+      "priority": 27,
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "2.2.2",
+      "phase": "Core Services",
+      "epic": "Currency Service",
+      "title": "Implement currency translation",
+      "description": "Create service operation for translating amounts between currencies using appropriate rates.",
+      "acceptance_criteria": [
+        "Translate amount from one currency to another",
+        "Support different rate types (spot, average, closing)",
+        "Return translated amount with rate used",
+        "Handle currency pairs in either direction",
+        "100% test coverage"
+      ],
+      "priority": 28,
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "2.2.3",
+      "phase": "Core Services",
+      "epic": "Currency Service",
+      "title": "Implement period-end revaluation",
+      "description": "Create service operation for revaluing foreign currency monetary items at period end.",
+      "acceptance_criteria": [
+        "Revaluation operation in CurrencyService",
+        "Identify accounts with foreign currency balances",
+        "Calculate gain/loss at closing rate",
+        "Generate revaluation journal entry",
+        "Return detailed revaluation report",
+        "100% test coverage"
+      ],
+      "priority": 29,
+      "status": "pending",
+      "estimated_complexity": "large"
+    },
+    {
+      "id": "2.3.1",
+      "phase": "Core Services",
+      "epic": "Period Management",
+      "title": "Implement fiscal year and period creation",
+      "description": "Create service for creating fiscal years with periods based on company fiscal settings.",
+      "acceptance_criteria": [
+        "PeriodService with fiscal year creation",
+        "Auto-generate 12 monthly periods",
+        "Support for adjustment period (period 13)",
+        "Validate year doesn't overlap existing years",
+        "100% test coverage"
+      ],
+      "priority": 30,
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "2.3.2",
+      "phase": "Core Services",
+      "epic": "Period Management",
+      "title": "Implement period open/close logic",
+      "description": "Create service operations for opening and closing fiscal periods with proper validations.",
+      "acceptance_criteria": [
+        "Open period operation",
+        "Close period operation with validation",
+        "Soft close for limited posting",
+        "Validate no draft entries before close",
+        "Support period reopening with audit",
+        "100% test coverage"
+      ],
+      "priority": 31,
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "2.3.3",
+      "phase": "Core Services",
+      "epic": "Period Management",
+      "title": "Implement year-end close process",
+      "description": "Create service for year-end closing including closing entries to retained earnings.",
+      "acceptance_criteria": [
+        "Year-end close operation",
+        "Generate closing entries for all income/expense accounts",
+        "Transfer net income to retained earnings",
+        "Generate opening balances for new year",
+        "Support year reopen with reversal",
+        "100% test coverage"
+      ],
+      "priority": 32,
+      "status": "pending",
+      "estimated_complexity": "large"
+    },
+    {
+      "id": "3.1.1",
+      "phase": "Reporting Engine",
+      "epic": "Trial Balance",
+      "title": "Implement account balance calculation",
+      "description": "Create functions to calculate account balances from posted journal entries.",
+      "acceptance_criteria": [
+        "Calculate balance for single account",
+        "Support period-to-date balances",
+        "Support year-to-date balances",
+        "Calculate beginning balance from prior periods",
+        "Handle debit/credit normal balances correctly",
+        "100% test coverage"
+      ],
+      "priority": 33,
+      "status": "pending",
+      "estimated_complexity": "large"
+    },
+    {
+      "id": "3.1.2",
+      "phase": "Reporting Engine",
+      "epic": "Trial Balance",
+      "title": "Implement trial balance report",
+      "description": "Create trial balance report showing all account balances with debit/credit columns.",
+      "acceptance_criteria": [
+        "Trial balance report generation",
+        "Shows all accounts with balances",
+        "Debit and credit columns",
+        "Total debits equals total credits",
+        "Support for date range filtering",
+        "100% test coverage"
+      ],
+      "priority": 34,
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "3.2.1",
+      "phase": "Reporting Engine",
+      "epic": "Balance Sheet",
+      "title": "Implement balance sheet report",
+      "description": "Create balance sheet report with current/non-current classification per ASC 210.",
+      "acceptance_criteria": [
+        "Balance sheet report generation",
+        "Current and non-current asset sections",
+        "Current and non-current liability sections",
+        "Equity section",
+        "Total assets equals total liabilities + equity",
+        "Support for comparative periods",
+        "100% test coverage"
+      ],
+      "priority": 35,
+      "status": "pending",
+      "estimated_complexity": "large"
+    },
+    {
+      "id": "3.3.1",
+      "phase": "Reporting Engine",
+      "epic": "Income Statement",
+      "title": "Implement income statement report",
+      "description": "Create income statement report with multi-step format and expenses by function per ASC 220.",
+      "acceptance_criteria": [
+        "Income statement report generation",
+        "Revenue section",
+        "Cost of sales and gross profit",
+        "Operating expenses by function",
+        "Operating income subtotal",
+        "Other income/expense",
+        "Net income",
+        "Support for comparative periods",
+        "100% test coverage"
+      ],
+      "priority": 36,
+      "status": "pending",
+      "estimated_complexity": "large"
+    },
+    {
+      "id": "3.4.1",
+      "phase": "Reporting Engine",
+      "epic": "Cash Flow Statement",
+      "title": "Implement cash flow statement - indirect method",
+      "description": "Create cash flow statement using indirect method per ASC 230.",
+      "acceptance_criteria": [
+        "Cash flow statement generation",
+        "Operating activities with net income adjustments",
+        "Investing activities section",
+        "Financing activities section",
+        "Net change in cash reconciles to balance sheet",
+        "Required disclosures (interest paid, taxes paid)",
+        "100% test coverage"
+      ],
+      "priority": 37,
+      "status": "pending",
+      "estimated_complexity": "large"
+    },
+    {
+      "id": "3.5.1",
+      "phase": "Reporting Engine",
+      "epic": "Statement of Equity",
+      "title": "Implement statement of changes in equity",
+      "description": "Create statement of changes in equity showing movements in each equity component.",
+      "acceptance_criteria": [
+        "Statement generation with equity component columns",
+        "Opening balances row",
+        "Movement rows by type (net income, dividends, etc.)",
+        "Closing balances row",
+        "Column totals",
+        "100% test coverage"
+      ],
+      "priority": 38,
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "4.1.1",
+      "phase": "Consolidation",
+      "epic": "Consolidation Structure",
+      "title": "Implement consolidation group entity",
+      "description": "Create ConsolidationGroup entity with parent company, members, and elimination rules.",
+      "acceptance_criteria": [
+        "ConsolidationGroup schema with all properties",
+        "ConsolidationGroupId branded type",
+        "Member list with ownership percentages",
+        "Elimination rules list",
+        "Reporting currency for group",
+        "100% test coverage"
+      ],
+      "priority": 39,
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "4.1.2",
+      "phase": "Consolidation",
+      "epic": "Consolidation Structure",
+      "title": "Implement consolidation method determination",
+      "description": "Create logic to determine consolidation method based on ownership and VIE status.",
+      "acceptance_criteria": [
+        "Determine method from ownership percentage",
+        ">50% -> Full Consolidation",
+        "20-50% -> Equity Method",
+        "<20% -> Cost Method",
+        "VIE primary beneficiary check",
+        "100% test coverage"
+      ],
+      "priority": 40,
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "4.2.1",
+      "phase": "Consolidation",
+      "epic": "Intercompany Management",
+      "title": "Implement intercompany transaction tracking",
+      "description": "Create IntercompanyTransaction entity and matching logic for reconciliation.",
+      "acceptance_criteria": [
+        "IntercompanyTransaction schema",
+        "Transaction types enum",
+        "Matching status tracking",
+        "Variance calculation",
+        "100% test coverage"
+      ],
+      "priority": 41,
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "4.2.2",
+      "phase": "Consolidation",
+      "epic": "Intercompany Management",
+      "title": "Implement intercompany matching service",
+      "description": "Create service to match intercompany transactions between companies and identify discrepancies.",
+      "acceptance_criteria": [
+        "Match transactions by type, date, and amount",
+        "Identify unmatched transactions",
+        "Calculate variances for partial matches",
+        "Generate matching report",
+        "100% test coverage"
+      ],
+      "priority": 42,
+      "status": "pending",
+      "estimated_complexity": "large"
+    },
+    {
+      "id": "4.3.1",
+      "phase": "Consolidation",
+      "epic": "Elimination Engine",
+      "title": "Implement elimination rule entity",
+      "description": "Create EliminationRule entity with trigger conditions and account mappings.",
+      "acceptance_criteria": [
+        "EliminationRule schema with all properties",
+        "EliminationType enum",
+        "Account selector support (specific, range, category)",
+        "Automatic vs manual flag",
+        "Priority ordering",
+        "100% test coverage"
+      ],
+      "priority": 43,
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "4.3.2",
+      "phase": "Consolidation",
+      "epic": "Elimination Engine",
+      "title": "Implement automatic elimination generation",
+      "description": "Create service to automatically generate elimination entries based on rules.",
+      "acceptance_criteria": [
+        "Process elimination rules in priority order",
+        "Generate elimination journal entries",
+        "Intercompany AR/AP elimination",
+        "Intercompany revenue/expense elimination",
+        "Investment elimination",
+        "100% test coverage"
+      ],
+      "priority": 44,
+      "status": "pending",
+      "estimated_complexity": "large"
+    },
+    {
+      "id": "4.4.1",
+      "phase": "Consolidation",
+      "epic": "Consolidation Run",
+      "title": "Implement consolidation run orchestration",
+      "description": "Create ConsolidationRun entity and service to orchestrate the full consolidation process.",
+      "acceptance_criteria": [
+        "ConsolidationRun schema with status and steps",
+        "Execute all consolidation steps in order",
+        "Track progress and timing",
+        "Handle failures gracefully",
+        "Store consolidated trial balance",
+        "100% test coverage"
+      ],
+      "priority": 45,
+      "status": "pending",
+      "estimated_complexity": "large"
+    },
+    {
+      "id": "4.4.2",
+      "phase": "Consolidation",
+      "epic": "Consolidation Run",
+      "title": "Implement currency translation for consolidation",
+      "description": "Create translation step that translates all member balances to reporting currency per ASC 830.",
+      "acceptance_criteria": [
+        "Translate member trial balances",
+        "Use closing rate for assets/liabilities",
+        "Use average rate for income/expense",
+        "Use historical rates for equity",
+        "Calculate CTA",
+        "100% test coverage"
+      ],
+      "priority": 46,
+      "status": "pending",
+      "estimated_complexity": "large"
+    },
+    {
+      "id": "4.4.3",
+      "phase": "Consolidation",
+      "epic": "Consolidation Run",
+      "title": "Implement minority interest calculation",
+      "description": "Create calculation for non-controlling interest share of subsidiary equity and income.",
+      "acceptance_criteria": [
+        "Calculate NCI share of subsidiary equity",
+        "Calculate NCI share of subsidiary net income",
+        "Separate NCI line items in consolidated statements",
+        "100% test coverage"
+      ],
+      "priority": 47,
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "5.1.1",
+      "phase": "Persistence",
+      "epic": "Repository Interfaces",
+      "title": "Define repository interfaces",
+      "description": "Create Effect-based repository interfaces for all core entities.",
+      "acceptance_criteria": [
+        "CompanyRepository interface",
+        "AccountRepository interface",
+        "JournalEntryRepository interface",
+        "ExchangeRateRepository interface",
+        "FiscalPeriodRepository interface",
+        "ConsolidationRepository interface",
+        "All use Effect for error handling"
+      ],
+      "priority": 48,
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "5.2.1",
+      "phase": "Persistence",
+      "epic": "Database Schema",
+      "title": "Create PostgreSQL migrations",
+      "description": "Create database migrations for all entities with proper relationships and indexes.",
+      "acceptance_criteria": [
+        "Migration files for all tables",
+        "Foreign key relationships",
+        "Appropriate indexes for queries",
+        "Audit columns (created_at, updated_at)",
+        "Soft delete support where needed"
+      ],
+      "priority": 49,
+      "status": "pending",
+      "estimated_complexity": "large"
+    },
+    {
+      "id": "5.3.1",
+      "phase": "Persistence",
+      "epic": "Repository Implementations",
+      "title": "Implement repositories with Drizzle ORM",
+      "description": "Implement all repository interfaces using Drizzle ORM for PostgreSQL.",
+      "acceptance_criteria": [
+        "Drizzle ORM configured",
+        "All repository interfaces implemented",
+        "Proper error handling with Effect",
+        "Transaction support",
+        "Integration tests pass"
+      ],
+      "priority": 50,
+      "status": "pending",
+      "estimated_complexity": "large"
+    },
+    {
+      "id": "6.1.1",
+      "phase": "API Layer",
+      "epic": "TanStack Start Setup",
+      "title": "Initialize TanStack Start project",
+      "description": "Set up TanStack Start in the web package with proper configuration.",
+      "acceptance_criteria": [
+        "TanStack Start installed and configured",
+        "Basic route structure",
+        "Server functions working",
+        "Dev server runs successfully"
+      ],
+      "priority": 51,
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "6.2.1",
+      "phase": "API Layer",
+      "epic": "Server Functions",
+      "title": "Implement company management endpoints",
+      "description": "Create server functions for company CRUD operations.",
+      "acceptance_criteria": [
+        "Create company endpoint",
+        "Read company endpoint",
+        "Update company endpoint",
+        "List companies endpoint",
+        "Proper error handling"
+      ],
+      "priority": 52,
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "6.2.2",
+      "phase": "API Layer",
+      "epic": "Server Functions",
+      "title": "Implement journal entry endpoints",
+      "description": "Create server functions for journal entry operations.",
+      "acceptance_criteria": [
+        "Create journal entry endpoint",
+        "Post journal entry endpoint",
+        "Reverse journal entry endpoint",
+        "List journal entries endpoint",
+        "Get journal entry detail endpoint"
+      ],
+      "priority": 53,
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "6.2.3",
+      "phase": "API Layer",
+      "epic": "Server Functions",
+      "title": "Implement reporting endpoints",
+      "description": "Create server functions for report generation.",
+      "acceptance_criteria": [
+        "Generate trial balance endpoint",
+        "Generate balance sheet endpoint",
+        "Generate income statement endpoint",
+        "Generate cash flow statement endpoint",
+        "Export to PDF/Excel support"
+      ],
+      "priority": 54,
+      "status": "pending",
+      "estimated_complexity": "large"
+    },
+    {
+      "id": "7.1.1",
+      "phase": "UI Layer",
+      "epic": "Core Components",
+      "title": "Implement account selector component",
+      "description": "Create reusable account selector/picker component with search and hierarchy display.",
+      "acceptance_criteria": [
+        "Searchable dropdown",
+        "Shows account hierarchy",
+        "Filters by account type if needed",
+        "Keyboard navigation",
+        "Accessible"
+      ],
+      "priority": 55,
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "7.1.2",
+      "phase": "UI Layer",
+      "epic": "Core Components",
+      "title": "Implement currency input component",
+      "description": "Create currency input component with proper formatting and decimal handling.",
+      "acceptance_criteria": [
+        "Currency symbol display",
+        "Proper decimal formatting",
+        "Thousand separators",
+        "Negative number support",
+        "Currency code selector"
+      ],
+      "priority": 56,
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "7.2.1",
+      "phase": "UI Layer",
+      "epic": "Pages",
+      "title": "Implement chart of accounts page",
+      "description": "Create page for viewing and managing the chart of accounts.",
+      "acceptance_criteria": [
+        "List all accounts in hierarchy",
+        "Add new account form",
+        "Edit account inline or modal",
+        "Deactivate account",
+        "Filter by account type"
+      ],
+      "priority": 57,
+      "status": "pending",
+      "estimated_complexity": "large"
+    },
+    {
+      "id": "7.2.2",
+      "phase": "UI Layer",
+      "epic": "Pages",
+      "title": "Implement journal entry form",
+      "description": "Create form for creating and editing journal entries with dynamic lines.",
+      "acceptance_criteria": [
+        "Add/remove lines dynamically",
+        "Account selector for each line",
+        "Debit/credit inputs",
+        "Running balance display",
+        "Validation feedback",
+        "Save as draft or submit"
+      ],
+      "priority": 58,
+      "status": "pending",
+      "estimated_complexity": "large"
+    },
+    {
+      "id": "7.2.3",
+      "phase": "UI Layer",
+      "epic": "Pages",
+      "title": "Implement report viewer page",
+      "description": "Create page for viewing and exporting financial reports.",
+      "acceptance_criteria": [
+        "Report type selector",
+        "Date/period parameters",
+        "Report display with proper formatting",
+        "Drill-down to transactions",
+        "Export to PDF/Excel"
+      ],
+      "priority": 59,
+      "status": "pending",
+      "estimated_complexity": "large"
+    }
+  ]
+}

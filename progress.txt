@@ -1,0 +1,12 @@
+# Accountability - Ralph Loop Progress Log
+# =========================================
+# This file is automatically updated by the Ralph script after each successful commit.
+# Each entry corresponds to exactly one git commit.
+#
+# Format:
+# ## Iteration N - YYYY-MM-DD HH:MM
+# **Story**: [Story ID] - [Story Title]
+# **Status**: complete
+# **Commit**: [short hash]
+# ---
+
