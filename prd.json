@@ -844,7 +844,7 @@
         "Variance amount and explanation fields",
         "100% test coverage"
       ],
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "medium"
     },
     {

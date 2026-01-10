@@ -259,3 +259,8 @@
 **Story**: 4.1.2 - Implement consolidation method determination
 **Status**: complete
 ---
+
+## Iteration 4 - 2026-01-10 21:38
+**Story**: 4.2.1 - Implement intercompany transaction tracking
+**Status**: complete
+---
