@@ -898,7 +898,7 @@
         "Each elimination entry links to the rule that generated it",
         "100% test coverage"
       ],
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "large"
     },
     {
