@@ -676,14 +676,31 @@
         "Create src/services directory for all Effect services",
         "Move value objects and entities to src/domain/",
         "Move services to src/services/",
-        "Update src/index.ts to re-export from new locations",
         "Update all test imports to use new paths",
-        "All tests pass after reorganization",
-        "No breaking changes to public API"
+        "All tests pass after reorganization"
       ],
       "priority": 33,
-      "status": "pending",
+      "status": "in_progress",
       "estimated_complexity": "medium"
+    },
+    {
+      "id": "2.3.5",
+      "phase": "Core Services",
+      "epic": "Code Organization",
+      "title": "Reorganize core package tests into domain and services",
+      "description": "Restructure packages/core/test to mirror the src structure with test/domain for domain module tests and test/services for service tests. Update tsconfig.test.json if needed.",
+      "acceptance_criteria": [
+        "Create test/domain directory for all domain module tests",
+        "Create test/services directory for all service tests",
+        "Move domain tests (Account.test.ts, Company.test.ts, etc.) to test/domain/",
+        "Move service tests to test/services/",
+        "Update tsconfig.test.json include paths if needed",
+        "All tests pass after reorganization",
+        "Test coverage remains at 100%"
+      ],
+      "priority": 34,
+      "status": "pending",
+      "estimated_complexity": "small"
     },
     {
       "id": "3.1.1",
