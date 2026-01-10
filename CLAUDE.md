@@ -382,8 +382,8 @@ export class CurrencyCode extends Schema.Class<CurrencyCode>("CurrencyCode")({
 }) {}
 
 export const isoCurrencies = {
-  USD: new CurrencyCode({ code: "USD", name: "US Dollar", symbol: "$", decimalPlaces: 2 }),
-  EUR: new CurrencyCode({ code: "EUR", name: "Euro", symbol: "€", decimalPlaces: 2 }),
+  USD: CurrencyCode.make({ code: "USD", name: "US Dollar", symbol: "$", decimalPlaces: 2 }),
+  EUR: CurrencyCode.make({ code: "EUR", name: "Euro", symbol: "€", decimalPlaces: 2 }),
   // ...
 }
 ```
@@ -535,6 +535,23 @@ export const Money = Schema.Struct({
 const money = Money.make({ amount, currency })
 ```
 
+**Don't create shortcut helpers for `.make()` - use it directly:**
+
+```typescript
+// WRONG - don't create shortcuts for constructors
+const mkLd = (year: number, month: number, day: number) =>
+  LocalDate.make({ year, month, day })
+const mkTs = (epochMillis: number) =>
+  Timestamp.make({ epochMillis })
+
+// CORRECT - use .make() directly, it's already explicit
+const date = LocalDate.make({ year: 2024, month: 1, day: 15 })
+const timestamp = Timestamp.make({ epochMillis: Date.now() })
+
+// OK - aliasing long import paths is fine
+const bd = BigDecimal.unsafeFromString  // Just shortening import
+```
+
 **Constructor defaults:**
 
 ```typescript
@@ -549,7 +566,7 @@ export class JournalEntry extends Schema.Class<JournalEntry>("JournalEntry")({
 }) {}
 
 // status defaults to "draft"
-const entry = new JournalEntry({ id, date: new Date(), description: "..." })
+const entry = JournalEntry.make({ id, date: new Date(), description: "..." })
 ```
 
 ### Value-Based Equality in Effect
