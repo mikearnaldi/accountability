@@ -10,11 +10,8 @@
 
 import * as BigDecimal from "effect/BigDecimal"
 import * as Effect from "effect/Effect"
-import * as Equal from "effect/Equal"
-import * as Hash from "effect/Hash"
 import * as Option from "effect/Option"
 import * as ParseResult from "effect/ParseResult"
-import { pipe } from "effect/Function"
 import * as Schema from "effect/Schema"
 import { CurrencyCode, isCurrencyCode } from "./CurrencyCode.js"
 
@@ -170,27 +167,6 @@ export class MonetaryAmount extends Schema.Class<MonetaryAmount>("MonetaryAmount
    */
   toString(): string {
     return `${BigDecimal.format(this.amount)} ${this.currency}`
-  }
-
-  /**
-   * Custom equality - amounts are equal if they represent the same value
-   * (BigDecimal handles normalization internally)
-   */
-  [Equal.symbol](that: unknown): boolean {
-    if (that instanceof MonetaryAmount) {
-      return this.currency === that.currency && BigDecimal.equals(this.amount, that.amount)
-    }
-    return false
-  }
-
-  /**
-   * Custom hash implementation
-   */
-  [Hash.symbol](): number {
-    return pipe(
-      Hash.string(this.currency),
-      Hash.combine(Hash.hash(this.amount))
-    )
   }
 }
 

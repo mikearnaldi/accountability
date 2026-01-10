@@ -229,7 +229,7 @@
         "Don't create dumb renamed function for tests like mkTs use proper constructors directly"
       ],
       "priority": 10,
-      "status": "in_progress",
+      "status": "complete",
       "estimated_complexity": "medium"
     },
     {

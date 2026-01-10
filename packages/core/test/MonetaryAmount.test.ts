@@ -1,8 +1,8 @@
 import { describe, it, expect } from "@effect/vitest"
-import { Data, Effect, Exit, Equal } from "effect"
+import { Effect, Exit, Equal } from "effect"
 import * as BigDecimal from "effect/BigDecimal"
 import * as Schema from "effect/Schema"
-import { USD, EUR, GBP, make as makeCurrency } from "../src/CurrencyCode.js"
+import { USD, EUR } from "../src/CurrencyCode.js"
 import {
   MonetaryAmount,
   isMonetaryAmount,
@@ -232,30 +232,15 @@ describe("MonetaryAmount", () => {
       expect(Equal.equals(amount, 100)).toBe(false)
     })
 
-    it("MonetaryAmount is not equal to other Data.Class instances", () => {
-      // Create a different Data.Class to test the Equal.symbol return false branch
-      // when comparing with an object that has [Equal.symbol] but isn't a MonetaryAmount
-      class OtherClass extends Data.Class<{ amount: BigDecimal.BigDecimal; currency: string }> {}
+    it("Schema.Class uses value-based equality via Data.Class", () => {
+      // Schema.Class extends Data.Class which provides value-based equality
+      // Two MonetaryAmount instances with same values are equal
+      const amount1 = MonetaryAmount.fromBigDecimal(bd("100"), USD)
+      const amount2 = MonetaryAmount.fromBigDecimal(bd("100"), USD)
 
-      const monetaryAmount = MonetaryAmount.fromBigDecimal(bd("100"), USD)
-      const otherInstance = new OtherClass({ amount: bd("100"), currency: "USD" })
-
-      // Both have [Equal.symbol], but they're different types
-      // This exercises the "return false" branch in MonetaryAmount's [Equal.symbol]
-      expect(Equal.equals(monetaryAmount, otherInstance)).toBe(false)
-    })
-
-    it("directly calls Equal.symbol method with non-MonetaryAmount Equal object", () => {
-      // Directly test the [Equal.symbol] method to ensure coverage of return false branch
-      // when comparing with an object that has [Equal.symbol] but isn't a MonetaryAmount
-      const amount = MonetaryAmount.fromBigDecimal(bd("100"), USD)
-
-      // Create an object that implements Equal but isn't a MonetaryAmount
-      const equalObject = Data.struct({ amount: bd("100"), currency: "USD" })
-
-      // Directly call the Equal.symbol method
-      const equalSymbol = Equal.symbol
-      expect((amount as any)[equalSymbol](equalObject)).toBe(false)
+      // Value-based equality means separate instances with same values are equal
+      expect(Equal.equals(amount1, amount2)).toBe(true)
+      expect(amount1 === amount2).toBe(false) // But they're not the same reference
     })
   })
 
