@@ -109,3 +109,8 @@
 **Story**: 1.4.1 - Implement Account entity
 **Status**: complete
 ---
+
+## Iteration 1 - 2026-01-10 17:26
+**Story**: 1.4.2 - Implement account hierarchy logic
+**Status**: complete
+---
