@@ -352,6 +352,51 @@ jq '.version' repos/effect-atom/packages/atom/package.json
 
 ---
 
+## TypeScript Conventions
+
+### Module Resolution and Imports
+
+This project uses `moduleResolution: "bundler"` with direct `.ts` imports:
+
+```json
+// tsconfig.base.json
+{
+  "compilerOptions": {
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true
+  }
+}
+```
+
+**Always use `.ts` extensions in imports:**
+
+```typescript
+// CORRECT - use .ts extension
+import { Account } from "./domain/Account.ts"
+import { MonetaryAmount } from "./domain/MonetaryAmount.ts"
+import { AccountService } from "./services/AccountService.ts"
+
+// WRONG - don't use .js extension
+import { Account } from "./domain/Account.js"
+
+// WRONG - don't use extensionless imports
+import { Account } from "./domain/Account"
+```
+
+**No index.ts barrel files** - import from specific modules:
+
+```typescript
+// CORRECT - import from specific module
+import { Account, AccountId } from "./domain/Account.ts"
+import { MonetaryAmount } from "./domain/MonetaryAmount.ts"
+
+// WRONG - don't use barrel file re-exports
+import { Account, MonetaryAmount } from "./domain/index.ts"
+```
+
+---
+
 ## Effect Best Practices
 
 ### Module Structure - Flat Modules, No Barrel Files

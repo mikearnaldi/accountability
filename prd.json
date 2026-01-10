@@ -1006,6 +1006,36 @@
       "estimated_complexity": "medium"
     },
     {
+      "id": "5.1.2",
+      "phase": "Persistence",
+      "epic": "Repository Interfaces",
+      "title": "Switch to moduleResolution bundler with .ts imports",
+      "description": "Update TypeScript configuration to use moduleResolution: bundler and change all imports to use .ts extensions directly. Remove all index.ts barrel files - import from specific modules instead.",
+      "acceptance_criteria": [
+        "Update tsconfig.base.json: moduleResolution set to 'bundler'",
+        "Update tsconfig.base.json: allowImportingTsExtensions set to true",
+        "Update tsconfig.base.json: noEmit or emitDeclarationOnly as needed",
+        "Change all .js imports to .ts imports across packages/core/src",
+        "Change all .js imports to .ts imports across packages/core/test",
+        "Remove all index.ts barrel files from packages/core/src",
+        "Update imports that used index.ts to import from specific modules",
+        "Verify pnpm typecheck passes",
+        "Verify pnpm test passes",
+        "Update CLAUDE.md with import conventions"
+      ],
+      "technical_details": {
+        "tsconfig_changes": {
+          "moduleResolution": "bundler",
+          "allowImportingTsExtensions": true,
+          "verbatimModuleSyntax": true
+        },
+        "import_pattern": "import { Foo } from './domain/Foo.ts' instead of './domain/Foo.js'",
+        "no_barrel_files": "Import from specific modules, not from index.ts re-exports"
+      },
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
       "id": "5.2.1",
       "phase": "Persistence",
       "epic": "Database Schema",
