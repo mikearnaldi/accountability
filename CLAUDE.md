@@ -679,6 +679,135 @@ export const FullLayer = Layer.provideMerge(
 
 ---
 
+### Testing with @effect/vitest
+
+Import from `@effect/vitest` for Effect-aware testing:
+
+```typescript
+import { describe, expect, it, layer } from "@effect/vitest"
+import { Effect, TestClock, Fiber, Duration } from "effect"
+```
+
+**Test variants:**
+
+| Method | TestServices | Scope | Use Case |
+|--------|--------------|-------|----------|
+| `it.effect` | ✅ TestClock | ❌ | Most tests - deterministic time |
+| `it.live` | ❌ Real clock | ❌ | Tests needing real time/IO |
+| `it.scoped` | ✅ TestClock | ✅ | Tests with resources (acquireRelease) |
+| `it.scopedLive` | ❌ Real clock | ✅ | Real time + resources |
+
+**it.effect - Use for most tests (with TestClock):**
+
+```typescript
+it.effect("processes after delay", () =>
+  Effect.gen(function* () {
+    // Fork the effect that uses time
+    const fiber = yield* Effect.fork(
+      Effect.sleep(Duration.minutes(5)).pipe(
+        Effect.map(() => "done")
+      )
+    )
+
+    // Advance the TestClock - no real waiting!
+    yield* TestClock.adjust(Duration.minutes(5))
+
+    // Now the fiber completes instantly
+    const result = yield* Fiber.join(fiber)
+    expect(result).toBe("done")
+  })
+)
+```
+
+**it.live - Use when you need real time/external IO:**
+
+```typescript
+it.live("calls external API", () =>
+  Effect.gen(function* () {
+    // This actually waits 100ms
+    yield* Effect.sleep(Duration.millis(100))
+    // Real HTTP calls, file system, etc.
+  })
+)
+```
+
+**TestClock patterns:**
+
+```typescript
+// Always fork effects that sleep, then adjust clock
+it.effect("timeout test", () =>
+  Effect.gen(function* () {
+    const fiber = yield* Effect.fork(
+      Effect.sleep(Duration.seconds(30)).pipe(
+        Effect.timeout(Duration.seconds(10))
+      )
+    )
+    // Advance past timeout
+    yield* TestClock.adjust(Duration.seconds(10))
+    const result = yield* Fiber.join(fiber)
+    expect(result._tag).toBe("None")  // Timed out
+  })
+)
+```
+
+**Sharing layers between tests:**
+
+```typescript
+import { layer } from "@effect/vitest"
+
+layer(AccountServiceLive)("AccountService", (it) => {
+  it.effect("finds account by id", () =>
+    Effect.gen(function* () {
+      const service = yield* AccountService
+      const account = yield* service.findById(testAccountId)
+      expect(account.name).toBe("Test")
+    })
+  )
+
+  // Nested layers
+  it.layer(AuditServiceLive)("with audit", (it) => {
+    it.effect("logs actions", () =>
+      Effect.gen(function* () {
+        const accounts = yield* AccountService
+        const audit = yield* AuditService
+        // Both services available
+      })
+    )
+  })
+})
+
+// Use real clock even with layer
+layer(MyService.Live, { excludeTestServices: true })("live tests", (it) => {
+  it.effect("uses real time", () =>
+    Effect.gen(function* () {
+      yield* Effect.sleep(Duration.millis(10))  // Actually waits
+    })
+  )
+})
+```
+
+**Property-based testing:**
+
+```typescript
+import { FastCheck, Schema } from "effect"
+
+// With Schema
+it.effect.prop("money addition is commutative", [MoneySchema, MoneySchema], ([a, b]) =>
+  Effect.gen(function* () {
+    const sum1 = yield* addMoney(a, b)
+    const sum2 = yield* addMoney(b, a)
+    return Equal.equals(sum1, sum2)
+  })
+)
+
+// With FastCheck arbitraries
+it.prop("numbers commute", [FastCheck.integer(), FastCheck.integer()], ([a, b]) =>
+  a + b === b + a
+)
+```
+
+---
+
 ## Guidelines for Implementation
 
 1. **Flat modules, no barrel files** - `CurrencyCode.ts` not `domain/currency/index.ts`
