@@ -356,18 +356,20 @@ jq '.version' repos/effect-atom/packages/atom/package.json
 
 ### Module Resolution and Imports
 
-This project uses `moduleResolution: "bundler"` with direct `.ts` imports:
+This project uses `moduleResolution: "bundler"` with direct `.ts` imports. TypeScript rewrites `.ts` to `.js` in emitted files:
 
 ```json
 // tsconfig.base.json
 {
   "compilerOptions": {
     "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
+    "rewriteRelativeImportExtensions": true,
     "verbatimModuleSyntax": true
   }
 }
 ```
+
+The `rewriteRelativeImportExtensions` option (TypeScript 5.7+) automatically rewrites `.ts` imports to `.js` in the compiled output, so you write `.ts` in source but get valid `.js` imports in dist.
 
 **Always use `.ts` extensions in imports:**
 

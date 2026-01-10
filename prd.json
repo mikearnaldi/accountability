@@ -1013,8 +1013,7 @@
       "description": "Update TypeScript configuration to use moduleResolution: bundler and change all imports to use .ts extensions directly. Remove all index.ts barrel files - import from specific modules instead.",
       "acceptance_criteria": [
         "Update tsconfig.base.json: moduleResolution set to 'bundler'",
-        "Update tsconfig.base.json: allowImportingTsExtensions set to true",
-        "Update tsconfig.base.json: noEmit or emitDeclarationOnly as needed",
+        "Update tsconfig.base.json: rewriteRelativeImportExtensions set to true",
         "Change all .js imports to .ts imports across packages/core/src",
         "Change all .js imports to .ts imports across packages/core/test",
         "Remove all index.ts barrel files from packages/core/src",
@@ -1026,11 +1025,12 @@
       "technical_details": {
         "tsconfig_changes": {
           "moduleResolution": "bundler",
-          "allowImportingTsExtensions": true,
+          "rewriteRelativeImportExtensions": true,
           "verbatimModuleSyntax": true
         },
-        "import_pattern": "import { Foo } from './domain/Foo.ts' instead of './domain/Foo.js'",
-        "no_barrel_files": "Import from specific modules, not from index.ts re-exports"
+        "import_pattern": "import { Foo } from './domain/Foo.ts' - TS rewrites to .js in output",
+        "no_barrel_files": "Import from specific modules, not from index.ts re-exports",
+        "note": "rewriteRelativeImportExtensions (TS 5.7+) rewrites .ts to .js in emitted files"
       },
       "status": "pending",
       "estimated_complexity": "medium"
