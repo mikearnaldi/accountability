@@ -1,0 +1,14 @@
+{
+  "name": "@accountability/core",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "scripts": {
+    "build": "echo 'No build step yet'",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "effect": "^3.19.0"
+  }
+}

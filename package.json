@@ -1,0 +1,17 @@
+{
+  "name": "accountability",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.17.1",
+  "scripts": {
+    "build": "pnpm --recursive --parallel run build",
+    "test": "vitest",
+    "typecheck": "tsc -b tsconfig.json",
+    "clean": "pnpm --recursive --parallel run clean"
+  },
+  "devDependencies": {
+    "@effect/vitest": "^0.27.0",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.0"
+  }
+}

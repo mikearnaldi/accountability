@@ -1,0 +1,17 @@
+{
+  "name": "@accountability/api",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "scripts": {
+    "build": "echo 'No build step yet'",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@accountability/core": "workspace:*",
+    "@accountability/persistence": "workspace:*",
+    "@tanstack/react-start": "^1.147.0",
+    "effect": "^3.19.0"
+  }
+}

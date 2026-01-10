@@ -1,0 +1,18 @@
+{
+  "name": "@accountability/persistence",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "scripts": {
+    "build": "echo 'No build step yet'",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@accountability/core": "workspace:*",
+    "@effect/sql": "^0.34.0",
+    "@effect/sql-pg": "^0.32.0",
+    "@effect/sql-drizzle": "^0.29.0",
+    "effect": "^3.19.0"
+  }
+}

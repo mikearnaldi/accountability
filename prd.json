@@ -11,22 +11,35 @@
       "notes": "Schema is included in core effect package since 3.10.0. Import as: import * as Schema from 'effect/Schema'"
     },
     "effect_sql": {
-      "packages": ["@effect/sql", "@effect/sql-pg", "@effect/sql-drizzle"],
+      "packages": [
+        "@effect/sql",
+        "@effect/sql-pg",
+        "@effect/sql-drizzle"
+      ],
       "notes": "@effect/sql-pg requires @effect/experimental and @effect/platform as peer deps"
     },
     "effect_vitest": {
       "package": "@effect/vitest",
       "version": "^0.27.0",
-      "peer_deps": ["vitest ^3.2.0"]
+      "peer_deps": [
+        "vitest ^3.2.0"
+      ]
     },
     "effect_platform": {
-      "packages": ["@effect/platform", "@effect/platform-node"],
+      "packages": [
+        "@effect/platform",
+        "@effect/platform-node"
+      ],
       "notes": "Required for SQL and HTTP functionality"
     },
     "tanstack_start": {
       "package": "@tanstack/react-start",
       "version": "^1.147.0",
-      "peer_deps": ["react ^19.0.0", "react-dom ^19.0.0", "vite ^7.0.0"],
+      "peer_deps": [
+        "react ^19.0.0",
+        "react-dom ^19.0.0",
+        "vite ^7.0.0"
+      ],
       "notes": "Use createServerFn for server functions. See repos/tanstack-router/examples/react/start-basic/"
     },
     "effect_atom": {
@@ -57,7 +70,7 @@
         "Each package has its own package.json with correct name (@accountability/core, etc.)"
       ],
       "priority": 1,
-      "status": "pending",
+      "status": "in_progress",
       "estimated_complexity": "small"
     },
     {

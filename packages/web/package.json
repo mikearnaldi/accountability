@@ -1,0 +1,19 @@
+{
+  "name": "@accountability/web",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "scripts": {
+    "build": "echo 'No build step yet'",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@accountability/core": "workspace:*",
+    "@accountability/api": "workspace:*",
+    "@effect-rx/rx": "^0.45.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "effect": "^3.19.0"
+  }
+}
