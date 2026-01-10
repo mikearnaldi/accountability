@@ -399,16 +399,29 @@ import * as Schema from "effect/Schema.ts"
 
 Package resolution relies on properly configured `package.json` exports - no extensions needed.
 
-**No index.ts barrel files** - import from specific modules:
+### NEVER Use index.ts Barrel Files
+
+**This is a strict rule: NEVER create index.ts files.** Barrel files cause:
+- Circular dependency issues
+- Slower build times (importing everything when you need one thing)
+- Harder to trace imports
+- Bundle size bloat
 
 ```typescript
 // CORRECT - import from specific module
 import { Account, AccountId } from "./domain/Account.ts"
 import { MonetaryAmount } from "./domain/MonetaryAmount.ts"
 
-// WRONG - don't use barrel file re-exports
+// WRONG - NEVER do this
 import { Account, MonetaryAmount } from "./domain/index.ts"
+
+// WRONG - NEVER create files like this
+// index.ts
+export * from "./Account.ts"
+export * from "./MonetaryAmount.ts"
 ```
+
+If you see an index.ts file, delete it and update imports to point to specific modules.
 
 ---
 
