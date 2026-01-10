@@ -514,7 +514,7 @@
         "100% test coverage with mocked dependencies"
       ],
       "priority": 24,
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "large"
     },
     {
