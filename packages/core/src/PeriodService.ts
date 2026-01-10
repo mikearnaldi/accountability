@@ -11,6 +11,7 @@
  * @module PeriodService
  */
 
+import * as BigDecimal from "effect/BigDecimal"
 import * as Context from "effect/Context"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
@@ -20,7 +21,10 @@ import * as Schema from "effect/Schema"
 import { CompanyId, FiscalYearEnd } from "./Company.js"
 import { LocalDate, addMonths, daysInMonth } from "./LocalDate.js"
 import { Timestamp, nowEffect as timestampNowEffect } from "./Timestamp.js"
-import { UserId } from "./JournalEntry.js"
+import { UserId, JournalEntryId } from "./JournalEntry.js"
+import { AccountId, AccountType } from "./Account.js"
+import { MonetaryAmount } from "./MonetaryAmount.js"
+import { CurrencyCode } from "./CurrencyCode.js"
 
 // Re-export UserId for convenience
 export { UserId }
@@ -657,6 +661,143 @@ export class ReopenReasonRequiredError extends Schema.TaggedError<ReopenReasonRe
 export const isReopenReasonRequiredError = Schema.is(ReopenReasonRequiredError)
 
 /**
+ * Error when attempting to close a year that is not in Open status
+ */
+export class YearNotOpenError extends Schema.TaggedError<YearNotOpenError>()(
+  "YearNotOpenError",
+  {
+    fiscalYearId: Schema.UUID.pipe(Schema.brand("FiscalYearId")),
+    currentStatus: FiscalYearStatus
+  }
+) {
+  get message(): string {
+    return `Cannot close year ${this.fiscalYearId}: current status is ${this.currentStatus}, must be Open`
+  }
+}
+
+/**
+ * Type guard for YearNotOpenError
+ */
+export const isYearNotOpenError = Schema.is(YearNotOpenError)
+
+/**
+ * Error when a fiscal year is not found by ID
+ */
+export class FiscalYearNotFoundByIdError extends Schema.TaggedError<FiscalYearNotFoundByIdError>()(
+  "FiscalYearNotFoundByIdError",
+  {
+    fiscalYearId: Schema.UUID.pipe(Schema.brand("FiscalYearId"))
+  }
+) {
+  get message(): string {
+    return `Fiscal year not found: ${this.fiscalYearId}`
+  }
+}
+
+/**
+ * Type guard for FiscalYearNotFoundByIdError
+ */
+export const isFiscalYearNotFoundByIdError = Schema.is(FiscalYearNotFoundByIdError)
+
+/**
+ * Error when attempting to reopen a year that is not in Closed status
+ */
+export class YearNotClosedError extends Schema.TaggedError<YearNotClosedError>()(
+  "YearNotClosedError",
+  {
+    fiscalYearId: Schema.UUID.pipe(Schema.brand("FiscalYearId")),
+    currentStatus: FiscalYearStatus
+  }
+) {
+  get message(): string {
+    return `Cannot reopen year ${this.fiscalYearId}: current status is ${this.currentStatus}, must be Closed`
+  }
+}
+
+/**
+ * Type guard for YearNotClosedError
+ */
+export const isYearNotClosedError = Schema.is(YearNotClosedError)
+
+/**
+ * Error when reopen reason is required for year but not provided
+ */
+export class YearReopenReasonRequiredError extends Schema.TaggedError<YearReopenReasonRequiredError>()(
+  "YearReopenReasonRequiredError",
+  {
+    fiscalYearId: Schema.UUID.pipe(Schema.brand("FiscalYearId"))
+  }
+) {
+  get message(): string {
+    return `Reopening fiscal year ${this.fiscalYearId} requires a reason for audit trail`
+  }
+}
+
+/**
+ * Type guard for YearReopenReasonRequiredError
+ */
+export const isYearReopenReasonRequiredError = Schema.is(YearReopenReasonRequiredError)
+
+/**
+ * Error when retained earnings account is not valid
+ */
+export class InvalidRetainedEarningsAccountError extends Schema.TaggedError<InvalidRetainedEarningsAccountError>()(
+  "InvalidRetainedEarningsAccountError",
+  {
+    accountId: Schema.UUID.pipe(Schema.brand("AccountId")),
+    reason: Schema.String
+  }
+) {
+  get message(): string {
+    return `Invalid retained earnings account ${this.accountId}: ${this.reason}`
+  }
+}
+
+/**
+ * Type guard for InvalidRetainedEarningsAccountError
+ */
+export const isInvalidRetainedEarningsAccountError = Schema.is(InvalidRetainedEarningsAccountError)
+
+/**
+ * Error when there are open periods that need to be closed first
+ */
+export class OpenPeriodsExistError extends Schema.TaggedError<OpenPeriodsExistError>()(
+  "OpenPeriodsExistError",
+  {
+    fiscalYearId: Schema.UUID.pipe(Schema.brand("FiscalYearId")),
+    openPeriodCount: Schema.Number.pipe(Schema.int(), Schema.greaterThanOrEqualTo(1))
+  }
+) {
+  get message(): string {
+    return `Cannot close year ${this.fiscalYearId}: ${this.openPeriodCount} periods are still open`
+  }
+}
+
+/**
+ * Type guard for OpenPeriodsExistError
+ */
+export const isOpenPeriodsExistError = Schema.is(OpenPeriodsExistError)
+
+/**
+ * Error when closing entries not found for reversing
+ */
+export class ClosingEntriesNotFoundError extends Schema.TaggedError<ClosingEntriesNotFoundError>()(
+  "ClosingEntriesNotFoundError",
+  {
+    fiscalYearId: Schema.UUID.pipe(Schema.brand("FiscalYearId"))
+  }
+) {
+  get message(): string {
+    return `Closing entries not found for fiscal year ${this.fiscalYearId}`
+  }
+}
+
+/**
+ * Type guard for ClosingEntriesNotFoundError
+ */
+export const isClosingEntriesNotFoundError = Schema.is(ClosingEntriesNotFoundError)
+
+/**
  * Union type for all period service errors
  */
 export type PeriodServiceError =
@@ -673,6 +814,13 @@ export type PeriodServiceError =
   | PeriodNotOpenError
   | SoftCloseNotApprovedError
   | ReopenReasonRequiredError
+  | YearNotOpenError
+  | FiscalYearNotFoundByIdError
+  | YearNotClosedError
+  | YearReopenReasonRequiredError
+  | InvalidRetainedEarningsAccountError
+  | OpenPeriodsExistError
+  | ClosingEntriesNotFoundError
 
 // =============================================================================
 // Audit Entry for Period Reopening
@@ -748,6 +896,263 @@ export class PeriodReopenAuditEntry extends Schema.Class<PeriodReopenAuditEntry>
  * Type guard for PeriodReopenAuditEntry using Schema.is
  */
 export const isPeriodReopenAuditEntry = Schema.is(PeriodReopenAuditEntry)
+
+// =============================================================================
+// Year-End Close Types
+// =============================================================================
+
+/**
+ * YearEndClosingEntryId - Branded UUID string for closing entry identification
+ */
+export const YearEndClosingEntryId = Schema.UUID.pipe(
+  Schema.brand("YearEndClosingEntryId"),
+  Schema.annotations({
+    identifier: "YearEndClosingEntryId",
+    title: "Year End Closing Entry ID",
+    description: "A unique identifier for a year-end closing entry (UUID format)"
+  })
+)
+
+/**
+ * The branded YearEndClosingEntryId type
+ */
+export type YearEndClosingEntryId = typeof YearEndClosingEntryId.Type
+
+/**
+ * Type guard for YearEndClosingEntryId using Schema.is
+ */
+export const isYearEndClosingEntryId = Schema.is(YearEndClosingEntryId)
+
+/**
+ * ClosingEntryType - Type of closing entry
+ *
+ * - RevenueClose: Closes revenue accounts to retained earnings
+ * - ExpenseClose: Closes expense accounts to retained earnings
+ * - OpeningBalance: Opening balance for new year (balance sheet accounts)
+ */
+export const ClosingEntryType = Schema.Literal(
+  "RevenueClose",
+  "ExpenseClose",
+  "OpeningBalance"
+).annotations({
+  identifier: "ClosingEntryType",
+  title: "Closing Entry Type",
+  description: "Type of year-end closing entry"
+})
+
+/**
+ * The ClosingEntryType type
+ */
+export type ClosingEntryType = typeof ClosingEntryType.Type
+
+/**
+ * Type guard for ClosingEntryType using Schema.is
+ */
+export const isClosingEntryType = Schema.is(ClosingEntryType)
+
+/**
+ * ClosingEntry - A single closing journal entry line
+ *
+ * Represents one line in a closing journal entry, containing:
+ * - Account to debit or credit
+ * - Amount and currency
+ * - Description of the closing entry
+ */
+export class ClosingEntry extends Schema.Class<ClosingEntry>("ClosingEntry")({
+  /**
+   * The account ID being closed
+   */
+  accountId: AccountId,
+
+  /**
+   * The account type (for reference)
+   */
+  accountType: AccountType,
+
+  /**
+   * Debit amount (positive value if debiting)
+   */
+  debitAmount: MonetaryAmount,
+
+  /**
+   * Credit amount (positive value if crediting)
+   */
+  creditAmount: MonetaryAmount,
+
+  /**
+   * Description of the closing entry
+   */
+  description: Schema.String
+}) {}
+
+/**
+ * Type guard for ClosingEntry using Schema.is
+ */
+export const isClosingEntry = Schema.is(ClosingEntry)
+
+/**
+ * AccountBalance - Represents the balance of an account
+ */
+export interface AccountBalance {
+  readonly accountId: AccountId
+  readonly accountType: AccountType
+  readonly balance: MonetaryAmount
+}
+
+/**
+ * ClosingJournalEntry - A complete closing journal entry
+ */
+export class ClosingJournalEntry extends Schema.Class<ClosingJournalEntry>("ClosingJournalEntry")({
+  /**
+   * Journal entry ID
+   */
+  journalEntryId: JournalEntryId,
+
+  /**
+   * Type of closing entry
+   */
+  entryType: ClosingEntryType,
+
+  /**
+   * Entry description
+   */
+  description: Schema.String,
+
+  /**
+   * The closing entry lines
+   */
+  lines: Schema.Array(ClosingEntry),
+
+  /**
+   * Total debit amount
+   */
+  totalDebit: MonetaryAmount,
+
+  /**
+   * Total credit amount
+   */
+  totalCredit: MonetaryAmount
+}) {}
+
+/**
+ * Type guard for ClosingJournalEntry using Schema.is
+ */
+export const isClosingJournalEntry = Schema.is(ClosingJournalEntry)
+
+/**
+ * YearEndResult - Result of closing a fiscal year
+ *
+ * Contains all closing entries generated during the year-end close process.
+ */
+export class YearEndResult extends Schema.Class<YearEndResult>("YearEndResult")({
+  /**
+   * The fiscal year that was closed
+   */
+  fiscalYear: FiscalYear,
+
+  /**
+   * Revenue closing entries (credits to retained earnings)
+   */
+  revenueClosingEntries: Schema.Array(ClosingEntry),
+
+  /**
+   * Expense closing entries (debits to retained earnings)
+   */
+  expenseClosingEntries: Schema.Array(ClosingEntry),
+
+  /**
+   * Net income (total revenue credits - total expense debits)
+   */
+  netIncome: MonetaryAmount,
+
+  /**
+   * Opening balance entries for the new year (balance sheet accounts)
+   */
+  openingBalanceEntries: Schema.Array(ClosingEntry),
+
+  /**
+   * The closing journal entries created
+   */
+  closingJournalEntries: Schema.Array(ClosingJournalEntry),
+
+  /**
+   * User who performed the close
+   */
+  closedBy: UserId,
+
+  /**
+   * Timestamp when the year was closed
+   */
+  closedAt: Timestamp
+}) {
+  /**
+   * Total revenue closed
+   */
+  get totalRevenue(): MonetaryAmount {
+    return Array.reduce(
+      this.revenueClosingEntries,
+      MonetaryAmount.make({ amount: BigDecimal.fromNumber(0), currency: this.netIncome.currency }),
+      (acc, entry) => MonetaryAmount.make({
+        amount: BigDecimal.sum(acc.amount, entry.creditAmount.amount),
+        currency: acc.currency
+      })
+    )
+  }
+
+  /**
+   * Total expenses closed
+   */
+  get totalExpenses(): MonetaryAmount {
+    return Array.reduce(
+      this.expenseClosingEntries,
+      MonetaryAmount.make({ amount: BigDecimal.fromNumber(0), currency: this.netIncome.currency }),
+      (acc, entry) => MonetaryAmount.make({
+        amount: BigDecimal.sum(acc.amount, entry.debitAmount.amount),
+        currency: acc.currency
+      })
+    )
+  }
+}
+
+/**
+ * Type guard for YearEndResult using Schema.is
+ */
+export const isYearEndResult = Schema.is(YearEndResult)
+
+/**
+ * YearReopenResult - Result of reopening a closed fiscal year
+ */
+export class YearReopenResult extends Schema.Class<YearReopenResult>("YearReopenResult")({
+  /**
+   * The fiscal year that was reopened
+   */
+  fiscalYear: FiscalYear,
+
+  /**
+   * Reversing journal entries created
+   */
+  reversingJournalEntries: Schema.Array(ClosingJournalEntry),
+
+  /**
+   * User who performed the reopen
+   */
+  reopenedBy: UserId,
+
+  /**
+   * Reason for reopening
+   */
+  reason: Schema.NonEmptyTrimmedString,
+
+  /**
+   * Timestamp when the year was reopened
+   */
+  reopenedAt: Timestamp
+}) {}
+
+/**
+ * Type guard for YearReopenResult using Schema.is
+ */
+export const isYearReopenResult = Schema.is(YearReopenResult)
 
 // =============================================================================
 // Repository Interface
@@ -853,6 +1258,89 @@ export interface FiscalYearRepositoryService {
   readonly saveReopenAuditEntry: (
     auditEntry: PeriodReopenAuditEntry
   ) => Effect.Effect<PeriodReopenAuditEntry>
+
+  /**
+   * Find a fiscal year by ID
+   * @param fiscalYearId - The fiscal year ID
+   * @returns Effect containing the fiscal year or None if not found
+   */
+  readonly findFiscalYearById: (
+    fiscalYearId: FiscalYearId
+  ) => Effect.Effect<Option.Option<FiscalYear>>
+
+  /**
+   * Update a fiscal year
+   * @param fiscalYear - The updated fiscal year
+   * @returns Effect containing the saved fiscal year
+   */
+  readonly updateFiscalYear: (fiscalYear: FiscalYear) => Effect.Effect<FiscalYear>
+
+  /**
+   * Get all periods for a fiscal year
+   * @param fiscalYearId - The fiscal year ID
+   * @returns Effect containing the periods
+   */
+  readonly getPeriodsForFiscalYear: (
+    fiscalYearId: FiscalYearId
+  ) => Effect.Effect<ReadonlyArray<FiscalPeriod>>
+
+  /**
+   * Get account balances for year-end close
+   * @param fiscalYearId - The fiscal year to get balances for
+   * @param accountTypes - Filter by account types (Revenue, Expense, etc.)
+   * @returns Effect containing account balances
+   */
+  readonly getAccountBalances: (
+    fiscalYearId: FiscalYearId,
+    accountTypes: ReadonlyArray<AccountType>
+  ) => Effect.Effect<ReadonlyArray<AccountBalance>>
+
+  /**
+   * Validate retained earnings account
+   * @param accountId - The account ID to validate
+   * @returns Effect containing the account type if valid
+   */
+  readonly validateRetainedEarningsAccount: (
+    accountId: AccountId
+  ) => Effect.Effect<Option.Option<AccountType>>
+
+  /**
+   * Get company currency for the fiscal year
+   * @param fiscalYearId - The fiscal year ID
+   * @returns Effect containing the currency code
+   */
+  readonly getCompanyCurrency: (
+    fiscalYearId: FiscalYearId
+  ) => Effect.Effect<CurrencyCode>
+
+  /**
+   * Save closing journal entries
+   * @param fiscalYearId - The fiscal year ID
+   * @param entries - The closing journal entries
+   * @returns Effect containing the saved entries
+   */
+  readonly saveClosingJournalEntries: (
+    fiscalYearId: FiscalYearId,
+    entries: ReadonlyArray<ClosingJournalEntry>
+  ) => Effect.Effect<ReadonlyArray<ClosingJournalEntry>>
+
+  /**
+   * Get closing journal entries for a fiscal year
+   * @param fiscalYearId - The fiscal year ID
+   * @returns Effect containing the closing entries
+   */
+  readonly getClosingJournalEntries: (
+    fiscalYearId: FiscalYearId
+  ) => Effect.Effect<ReadonlyArray<ClosingJournalEntry>>
+
+  /**
+   * Delete closing journal entries for a fiscal year
+   * @param fiscalYearId - The fiscal year ID
+   * @returns Effect indicating success
+   */
+  readonly deleteClosingJournalEntries: (
+    fiscalYearId: FiscalYearId
+  ) => Effect.Effect<void>
 }
 
 /**
@@ -943,6 +1431,34 @@ export interface ReopenPeriodResult {
   readonly period: FiscalPeriod
   /** The audit trail entry */
   readonly auditEntry: PeriodReopenAuditEntry
+}
+
+/**
+ * CloseYearInput - Input for closing a fiscal year
+ */
+export interface CloseYearInput {
+  /** The ID of the fiscal year to close */
+  readonly fiscalYearId: FiscalYearId
+  /** The retained earnings account ID to close income/expense to */
+  readonly retainedEarningsAccountId: AccountId
+  /** User performing the close */
+  readonly closedBy: typeof UserId.Type
+  /** Journal entry IDs for the closing entries */
+  readonly closingJournalEntryIds: ReadonlyArray<JournalEntryId>
+}
+
+/**
+ * ReopenYearInput - Input for reopening a closed fiscal year
+ */
+export interface ReopenYearInput {
+  /** The ID of the fiscal year to reopen */
+  readonly fiscalYearId: FiscalYearId
+  /** User performing the reopen */
+  readonly reopenedBy: typeof UserId.Type
+  /** Reason for reopening (required for audit trail) */
+  readonly reason: string
+  /** Journal entry IDs for the reversing entries */
+  readonly reversingJournalEntryIds: ReadonlyArray<JournalEntryId>
 }
 
 // =============================================================================
@@ -1056,6 +1572,55 @@ export interface PeriodServiceShape {
   ) => Effect.Effect<
     ReopenPeriodResult,
     PeriodNotFoundError | PeriodNotClosedError | PeriodLockedError | ReopenReasonRequiredError,
+    never
+  >
+
+  /**
+   * Close a fiscal year
+   *
+   * Performs the year-end closing process:
+   * - Validates all periods are closed
+   * - Generates closing entries for revenue accounts (credit to retained earnings)
+   * - Generates closing entries for expense accounts (debit to retained earnings)
+   * - Calculates net income (total revenue credits - total expense debits)
+   * - Generates opening balances for the new year (balance sheet accounts)
+   * - Updates fiscal year status to Closed
+   *
+   * @param input - The close year input
+   * @returns Effect containing the year-end result
+   * @throws FiscalYearNotFoundByIdError if the fiscal year doesn't exist
+   * @throws YearNotOpenError if the fiscal year is not in Open status
+   * @throws OpenPeriodsExistError if there are open periods
+   * @throws InvalidRetainedEarningsAccountError if the RE account is invalid
+   */
+  readonly closeYear: (
+    input: CloseYearInput
+  ) => Effect.Effect<
+    YearEndResult,
+    FiscalYearNotFoundByIdError | YearNotOpenError | OpenPeriodsExistError | InvalidRetainedEarningsAccountError,
+    never
+  >
+
+  /**
+   * Reopen a closed fiscal year
+   *
+   * Reverses the year-end closing process:
+   * - Creates reversing entries for all closing entries
+   * - Updates fiscal year status back to Open
+   * - Requires a reason for audit trail
+   *
+   * @param input - The reopen year input
+   * @returns Effect containing the year reopen result
+   * @throws FiscalYearNotFoundByIdError if the fiscal year doesn't exist
+   * @throws YearNotClosedError if the fiscal year is not in Closed status
+   * @throws YearReopenReasonRequiredError if no reason is provided
+   * @throws ClosingEntriesNotFoundError if no closing entries are found
+   */
+  readonly reopenYear: (
+    input: ReopenYearInput
+  ) => Effect.Effect<
+    YearReopenResult,
+    FiscalYearNotFoundByIdError | YearNotClosedError | YearReopenReasonRequiredError | ClosingEntriesNotFoundError,
     never
   >
 }
@@ -1560,6 +2125,344 @@ const make = Effect.gen(function* () {
           period: savedPeriod,
           auditEntry: savedAuditEntry
         } satisfies ReopenPeriodResult
+      }),
+
+    closeYear: (input: CloseYearInput) =>
+      Effect.gen(function* () {
+        const { fiscalYearId, retainedEarningsAccountId, closedBy, closingJournalEntryIds } = input
+
+        // Find the fiscal year
+        const fiscalYearOption = yield* repository.findFiscalYearById(fiscalYearId)
+
+        if (Option.isNone(fiscalYearOption)) {
+          return yield* Effect.fail(new FiscalYearNotFoundByIdError({ fiscalYearId }))
+        }
+
+        const fiscalYear = fiscalYearOption.value
+
+        // Validate fiscal year is in Open status
+        if (fiscalYear.status !== "Open") {
+          return yield* Effect.fail(
+            new YearNotOpenError({
+              fiscalYearId,
+              currentStatus: fiscalYear.status
+            })
+          )
+        }
+
+        // Validate all periods are closed
+        const periods = yield* repository.getPeriodsForFiscalYear(fiscalYearId)
+        const openPeriods = Array.filter(periods, (p) =>
+          p.status === "Open" || p.status === "SoftClose" || p.status === "Future"
+        )
+
+        if (openPeriods.length > 0) {
+          return yield* Effect.fail(
+            new OpenPeriodsExistError({
+              fiscalYearId,
+              openPeriodCount: openPeriods.length
+            })
+          )
+        }
+
+        // Validate retained earnings account
+        const reAccountType = yield* repository.validateRetainedEarningsAccount(retainedEarningsAccountId)
+
+        if (Option.isNone(reAccountType)) {
+          return yield* Effect.fail(
+            new InvalidRetainedEarningsAccountError({
+              accountId: retainedEarningsAccountId,
+              reason: "Account not found"
+            })
+          )
+        }
+
+        if (reAccountType.value !== "Equity") {
+          return yield* Effect.fail(
+            new InvalidRetainedEarningsAccountError({
+              accountId: retainedEarningsAccountId,
+              reason: `Account must be an Equity account, got ${reAccountType.value}`
+            })
+          )
+        }
+
+        // Get company currency
+        const currency = yield* repository.getCompanyCurrency(fiscalYearId)
+
+        // Create zero amount for initialization
+        const zeroAmount = MonetaryAmount.make({
+          amount: BigDecimal.fromNumber(0),
+          currency
+        })
+
+        // Get revenue account balances
+        const revenueBalances = yield* repository.getAccountBalances(fiscalYearId, ["Revenue"])
+
+        // Get expense account balances
+        const expenseBalances = yield* repository.getAccountBalances(fiscalYearId, ["Expense"])
+
+        // Get balance sheet account balances for opening entries
+        const balanceSheetBalances = yield* repository.getAccountBalances(
+          fiscalYearId,
+          ["Asset", "Liability", "Equity"]
+        )
+
+        // Generate revenue closing entries (debit revenue, credit RE)
+        // Revenue accounts have credit balances, so we debit to close them
+        const revenueClosingEntries = Array.map(revenueBalances, (balance) =>
+          ClosingEntry.make({
+            accountId: balance.accountId,
+            accountType: balance.accountType,
+            debitAmount: balance.balance,
+            creditAmount: zeroAmount,
+            description: `Close revenue account to Retained Earnings`
+          })
+        )
+
+        // Calculate total revenue (sum of all revenue balances)
+        const totalRevenue = Array.reduce(
+          revenueBalances,
+          zeroAmount,
+          (acc, balance) => MonetaryAmount.make({
+            amount: BigDecimal.sum(acc.amount, balance.balance.amount),
+            currency: acc.currency
+          })
+        )
+
+        // Generate expense closing entries (credit expense, debit RE)
+        // Expense accounts have debit balances, so we credit to close them
+        const expenseClosingEntries = Array.map(expenseBalances, (balance) =>
+          ClosingEntry.make({
+            accountId: balance.accountId,
+            accountType: balance.accountType,
+            debitAmount: zeroAmount,
+            creditAmount: balance.balance,
+            description: `Close expense account to Retained Earnings`
+          })
+        )
+
+        // Calculate total expenses (sum of all expense balances)
+        const totalExpenses = Array.reduce(
+          expenseBalances,
+          zeroAmount,
+          (acc, balance) => MonetaryAmount.make({
+            amount: BigDecimal.sum(acc.amount, balance.balance.amount),
+            currency: acc.currency
+          })
+        )
+
+        // Calculate net income = revenue - expenses
+        const netIncome = MonetaryAmount.make({
+          amount: BigDecimal.subtract(totalRevenue.amount, totalExpenses.amount),
+          currency
+        })
+
+        // Generate opening balance entries for balance sheet accounts
+        const openingBalanceEntries = Array.map(balanceSheetBalances, (balance) => {
+          const isDebitBalance = balance.accountType === "Asset"
+          return ClosingEntry.make({
+            accountId: balance.accountId,
+            accountType: balance.accountType,
+            debitAmount: isDebitBalance ? balance.balance : zeroAmount,
+            creditAmount: isDebitBalance ? zeroAmount : balance.balance,
+            description: `Opening balance for new fiscal year`
+          })
+        })
+
+        // Create closing journal entries
+        const closingJournalEntries: ClosingJournalEntry[] = []
+
+        // Revenue closing entry
+        if (revenueClosingEntries.length > 0 && closingJournalEntryIds.length > 0) {
+          // Create the RE credit entry for total revenue
+          const reRevenueEntry = ClosingEntry.make({
+            accountId: retainedEarningsAccountId,
+            accountType: "Equity",
+            debitAmount: zeroAmount,
+            creditAmount: totalRevenue,
+            description: `Credit Retained Earnings for revenue close`
+          })
+
+          closingJournalEntries.push(
+            ClosingJournalEntry.make({
+              journalEntryId: closingJournalEntryIds[0],
+              entryType: "RevenueClose",
+              description: `Close revenue accounts to Retained Earnings for ${fiscalYear.name}`,
+              lines: [...revenueClosingEntries, reRevenueEntry],
+              totalDebit: totalRevenue,
+              totalCredit: totalRevenue
+            })
+          )
+        }
+
+        // Expense closing entry
+        if (expenseClosingEntries.length > 0 && closingJournalEntryIds.length > 1) {
+          // Create the RE debit entry for total expenses
+          const reExpenseEntry = ClosingEntry.make({
+            accountId: retainedEarningsAccountId,
+            accountType: "Equity",
+            debitAmount: totalExpenses,
+            creditAmount: zeroAmount,
+            description: `Debit Retained Earnings for expense close`
+          })
+
+          closingJournalEntries.push(
+            ClosingJournalEntry.make({
+              journalEntryId: closingJournalEntryIds[1],
+              entryType: "ExpenseClose",
+              description: `Close expense accounts to Retained Earnings for ${fiscalYear.name}`,
+              lines: [...expenseClosingEntries, reExpenseEntry],
+              totalDebit: totalExpenses,
+              totalCredit: totalExpenses
+            })
+          )
+        }
+
+        // Opening balance entry
+        if (openingBalanceEntries.length > 0 && closingJournalEntryIds.length > 2) {
+          const totalOpeningDebit = Array.reduce(
+            openingBalanceEntries,
+            zeroAmount,
+            (acc, entry) => MonetaryAmount.make({
+              amount: BigDecimal.sum(acc.amount, entry.debitAmount.amount),
+              currency: acc.currency
+            })
+          )
+
+          const totalOpeningCredit = Array.reduce(
+            openingBalanceEntries,
+            zeroAmount,
+            (acc, entry) => MonetaryAmount.make({
+              amount: BigDecimal.sum(acc.amount, entry.creditAmount.amount),
+              currency: acc.currency
+            })
+          )
+
+          closingJournalEntries.push(
+            ClosingJournalEntry.make({
+              journalEntryId: closingJournalEntryIds[2],
+              entryType: "OpeningBalance",
+              description: `Opening balances for new fiscal year after ${fiscalYear.name}`,
+              lines: openingBalanceEntries,
+              totalDebit: totalOpeningDebit,
+              totalCredit: totalOpeningCredit
+            })
+          )
+        }
+
+        // Save closing journal entries
+        yield* repository.saveClosingJournalEntries(fiscalYearId, closingJournalEntries)
+
+        // Get current timestamp
+        const now = yield* timestampNowEffect
+
+        // Update fiscal year status to Closed
+        const closedFiscalYear = FiscalYear.make({
+          ...fiscalYear,
+          status: "Closed"
+        })
+
+        yield* repository.updateFiscalYear(closedFiscalYear)
+
+        return YearEndResult.make({
+          fiscalYear: closedFiscalYear,
+          revenueClosingEntries,
+          expenseClosingEntries,
+          netIncome,
+          openingBalanceEntries,
+          closingJournalEntries,
+          closedBy,
+          closedAt: now
+        })
+      }),
+
+    reopenYear: (input: ReopenYearInput) =>
+      Effect.gen(function* () {
+        const { fiscalYearId, reopenedBy, reason, reversingJournalEntryIds } = input
+
+        // Validate reason is provided
+        if (!reason || reason.trim().length === 0) {
+          return yield* Effect.fail(new YearReopenReasonRequiredError({ fiscalYearId }))
+        }
+
+        // Find the fiscal year
+        const fiscalYearOption = yield* repository.findFiscalYearById(fiscalYearId)
+
+        if (Option.isNone(fiscalYearOption)) {
+          return yield* Effect.fail(new FiscalYearNotFoundByIdError({ fiscalYearId }))
+        }
+
+        const fiscalYear = fiscalYearOption.value
+
+        // Validate fiscal year is in Closed status
+        if (fiscalYear.status !== "Closed") {
+          return yield* Effect.fail(
+            new YearNotClosedError({
+              fiscalYearId,
+              currentStatus: fiscalYear.status
+            })
+          )
+        }
+
+        // Get closing journal entries
+        const closingEntries = yield* repository.getClosingJournalEntries(fiscalYearId)
+
+        if (closingEntries.length === 0) {
+          return yield* Effect.fail(new ClosingEntriesNotFoundError({ fiscalYearId }))
+        }
+
+        // Get company currency
+        yield* repository.getCompanyCurrency(fiscalYearId)
+
+        // Create reversing journal entries (swap debits and credits)
+        const reversingJournalEntries = closingEntries.map((entry, index) => {
+          // Reverse each line: swap debit and credit
+          const reversedLines = Array.map(entry.lines, (line: ClosingEntry) =>
+            ClosingEntry.make({
+              accountId: line.accountId,
+              accountType: line.accountType,
+              debitAmount: line.creditAmount,
+              creditAmount: line.debitAmount,
+              description: `Reverse: ${line.description}`
+            })
+          )
+
+          // Determine entry type based on original
+          const entryType = entry.entryType
+
+          return ClosingJournalEntry.make({
+            journalEntryId: index < reversingJournalEntryIds.length
+              ? reversingJournalEntryIds[index]
+              : entry.journalEntryId,
+            entryType,
+            description: `Reverse ${entry.description}`,
+            lines: reversedLines,
+            totalDebit: entry.totalCredit,
+            totalCredit: entry.totalDebit
+          })
+        })
+
+        // Delete original closing journal entries
+        yield* repository.deleteClosingJournalEntries(fiscalYearId)
+
+        // Get current timestamp
+        const now = yield* timestampNowEffect
+
+        // Update fiscal year status to Open
+        const reopenedFiscalYear = FiscalYear.make({
+          ...fiscalYear,
+          status: "Open"
+        })
+
+        yield* repository.updateFiscalYear(reopenedFiscalYear)
+
+        return YearReopenResult.make({
+          fiscalYear: reopenedFiscalYear,
+          reversingJournalEntries,
+          reopenedBy,
+          reason: reason.trim() as typeof Schema.NonEmptyTrimmedString.Type,
+          reopenedAt: now
+        })
       })
   } satisfies PeriodServiceShape
 })

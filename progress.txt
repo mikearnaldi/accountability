@@ -199,3 +199,8 @@
 **Story**: 2.3.2 - Implement period open/close logic
 **Status**: complete
 ---
+
+## Iteration 6 - 2026-01-10 19:41
+**Story**: 2.3.3 - Implement year-end close process
+**Status**: complete
+---
