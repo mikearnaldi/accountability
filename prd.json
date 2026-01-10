@@ -70,7 +70,7 @@
         "Each package has its own package.json with correct name (@accountability/core, etc.)"
       ],
       "priority": 1,
-      "status": "in_progress",
+      "status": "complete",
       "estimated_complexity": "small"
     },
     {
@@ -86,7 +86,7 @@
         "Path aliases configured for cross-package imports"
       ],
       "priority": 2,
-      "status": "pending",
+      "status": "in_progress",
       "estimated_complexity": "small"
     },
     {

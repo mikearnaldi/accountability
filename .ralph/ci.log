@@ -17,3 +17,22 @@ exclude:  repos/**, node_modules/**
 Cancelling test run. Press CTRL+c again to exit forcefully.
 
  ELIFECYCLE  Test failed. See above for more details.
+
+> accountability@ typecheck /Users/michaelarnaldi/repositories/accountability
+> tsc -b tsconfig.json
+
+
+> accountability@ test /Users/michaelarnaldi/repositories/accountability
+> vitest -- --run
+
+
+ DEV  v3.2.4 /Users/michaelarnaldi/repositories/accountability
+
+No test files found. You can change the file name pattern by pressing "p"
+
+include: packages/**/test/**/*.test.ts
+exclude:  repos/**, node_modules/**
+
+Cancelling test run. Press CTRL+c again to exit forcefully.
+
+ ELIFECYCLE  Test failed. See above for more details.

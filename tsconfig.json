@@ -1,9 +1,23 @@
 {
-  "files": [],
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@accountability/core": ["./packages/core/src/index.ts"],
+      "@accountability/core/*": ["./packages/core/src/*"],
+      "@accountability/persistence": ["./packages/persistence/src/index.ts"],
+      "@accountability/persistence/*": ["./packages/persistence/src/*"],
+      "@accountability/api": ["./packages/api/src/index.ts"],
+      "@accountability/api/*": ["./packages/api/src/*"],
+      "@accountability/web": ["./packages/web/src/index.ts"],
+      "@accountability/web/*": ["./packages/web/src/*"]
+    }
+  },
+  "include": [],
   "references": [
-    { "path": "packages/core" },
-    { "path": "packages/persistence" },
-    { "path": "packages/api" },
-    { "path": "packages/web" }
+    { "path": "./packages/core" },
+    { "path": "./packages/persistence" },
+    { "path": "./packages/api" },
+    { "path": "./packages/web" }
   ]
 }

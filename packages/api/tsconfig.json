@@ -1,10 +1,21 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "rootDir": "src",
-    "outDir": "dist"
+    "baseUrl": ".",
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "tsBuildInfoFile": "./dist/.tsbuildinfo",
+    "paths": {
+      "@accountability/core": ["../core/src/index.ts"],
+      "@accountability/core/*": ["../core/src/*"],
+      "@accountability/persistence": ["../persistence/src/index.ts"],
+      "@accountability/persistence/*": ["../persistence/src/*"],
+      "@accountability/api": ["./src/index.ts"],
+      "@accountability/api/*": ["./src/*"]
+    }
   },
   "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"],
   "references": [
     { "path": "../core" },
     { "path": "../persistence" }

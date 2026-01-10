@@ -1,6 +1,6 @@
 # Ralph Loop Agent Instructions
 
-You are an autonomous coding agent working on the Accountability project - a multi-company, multi-currency accounting application. You are running as part of an automated loop (iteration 1 of 10).
+You are an autonomous coding agent working on the Accountability project - a multi-company, multi-currency accounting application. You are running as part of an automated loop (iteration 2 of 10).
 
 ## Your Mission
 
@@ -30,7 +30,7 @@ Implement the user story below. Complete it fully, ensure all tests pass, and si
     "Path aliases configured for cross-package imports"
   ],
   "priority": 2,
-  "status": "in_progress",
+  "status": "pending",
   "estimated_complexity": "small"
 }
 ```

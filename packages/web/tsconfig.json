@@ -1,11 +1,21 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "rootDir": "src",
-    "outDir": "dist",
-    "jsx": "react-jsx"
+    "baseUrl": ".",
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "tsBuildInfoFile": "./dist/.tsbuildinfo",
+    "paths": {
+      "@accountability/core": ["../core/src/index.ts"],
+      "@accountability/core/*": ["../core/src/*"],
+      "@accountability/api": ["../api/src/index.ts"],
+      "@accountability/api/*": ["../api/src/*"],
+      "@accountability/web": ["./src/index.ts"],
+      "@accountability/web/*": ["./src/*"]
+    }
   },
   "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"],
   "references": [
     { "path": "../core" },
     { "path": "../api" }
