@@ -29,6 +29,7 @@ pnpm-debug.log*
 
 # TypeScript
 *.tsbuildinfo
+.tsbuildinfo/
 
 # Raplh
 .ralph

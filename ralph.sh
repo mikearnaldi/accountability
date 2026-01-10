@@ -140,7 +140,7 @@ has_changes() {
 run_ci_checks() {
     log "INFO" "Running CI checks..."
 
-    # Type check
+    # Type check (src and test files via project references)
     if ! pnpm typecheck 2>&1 | tee -a "$OUTPUT_DIR/ci.log"; then
         log "ERROR" "Type check failed"
         return 1
