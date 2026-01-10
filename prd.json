@@ -1002,7 +1002,7 @@
         "ConsolidationRepository: findGroup, findRun, createRun, updateRun",
         "All operations return Effect with typed errors"
       ],
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "medium"
     },
     {

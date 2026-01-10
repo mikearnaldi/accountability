@@ -1,0 +1,20 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "include": ["test"],
+  "compilerOptions": {
+    "baseUrl": ".",
+    "rootDir": ".",
+    "tsBuildInfoFile": ".tsbuildinfo/test.tsbuildinfo",
+    "noEmit": true,
+    "paths": {
+      "@accountability/core": ["../core/src/index.ts"],
+      "@accountability/core/*": ["../core/src/*"],
+      "@accountability/persistence": ["./src/index.ts"],
+      "@accountability/persistence/*": ["./src/*"]
+    }
+  },
+  "references": [
+    { "path": "tsconfig.src.json" },
+    { "path": "../core/tsconfig.src.json" }
+  ]
+}
