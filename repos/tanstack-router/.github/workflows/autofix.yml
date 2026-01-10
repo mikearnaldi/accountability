@@ -1,0 +1,32 @@
+name: autofix.ci # needed to securely identify the workflow
+
+on:
+  pull_request:
+  push:
+    branches: [main, alpha, beta]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  autofix:
+    name: autofix
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'push' || !github.event.pull_request.draft }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.1
+      - name: Setup Tools
+        uses: tanstack/config/.github/setup@main
+      - name: Fix formatting
+        run: pnpm format
+      - name: Generate labeler config
+        run: pnpm labeler-generate
+      - name: Apply fixes
+        uses: autofix-ci/action@635ffb0c9798bd160680f18fd73371e355b85f27
+        with:
+          commit-message: 'ci: apply automated fixes'
