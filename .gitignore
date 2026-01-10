@@ -21,11 +21,7 @@ dist/
 # Testing
 coverage/
 
-# Ralph Loop
-.ralph/
-
-# Logs
-*.log
+# Logs (but not .ralph/ logs)
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
