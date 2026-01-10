@@ -624,7 +624,7 @@
         "100% test coverage"
       ],
       "priority": 30,
-      "status": "in_progress",
+      "status": "complete",
       "estimated_complexity": "medium"
     },
     {

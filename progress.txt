@@ -189,3 +189,8 @@
 **Story**: 2.2.3 - Implement period-end revaluation
 **Status**: complete
 ---
+
+## Iteration 4 - 2026-01-10 19:26
+**Story**: 2.3.1 - Implement fiscal year and period creation
+**Status**: complete
+---
