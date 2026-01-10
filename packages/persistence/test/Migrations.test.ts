@@ -10,7 +10,7 @@
 import { PgClient } from "@effect/sql-pg"
 import { describe, expect, it } from "@effect/vitest"
 import { Effect, Layer } from "effect"
-import { PgContainer } from "./utils.ts"
+import { PgContainer } from "./Utils.ts"
 import { MigrationLayer, runMigrations } from "../src/MigrationRunner.ts"
 
 /**

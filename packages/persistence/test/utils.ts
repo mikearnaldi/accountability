@@ -19,7 +19,7 @@ export class ContainerError extends Data.TaggedError("ContainerError")<{
  * Usage:
  * ```typescript
  * import { it } from "@effect/vitest"
- * import { PgContainer } from "./utils.ts"
+ * import { PgContainer } from "./Utils.ts"
  *
  * it.layer(PgContainer.ClientLive, { timeout: "30 seconds" })("MyTests", (it) => {
  *   it.effect("test", () => Effect.gen(function*() {
