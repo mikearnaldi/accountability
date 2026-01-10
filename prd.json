@@ -136,7 +136,7 @@
         "Format script properly formats code"
       ],
       "priority": 5,
-      "status": "in_progress",
+      "status": "complete",
       "estimated_complexity": "small"
     },
     {
