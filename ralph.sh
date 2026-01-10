@@ -258,10 +258,14 @@ run_iteration() {
 
     # Run the agent
     log "INFO" "Running Claude Code agent..."
+    echo ""  # Blank line before agent output
 
-    if $AGENT_CMD --print "$prompt" > "$output_file" 2>&1; then
+    # Use tee to show output on screen while also saving to file
+    if $AGENT_CMD --print "$prompt" 2>&1 | tee "$output_file"; then
+        echo ""  # Blank line after agent output
         log "SUCCESS" "Agent completed iteration $iteration"
     else
+        echo ""
         log "WARN" "Agent exited with non-zero status"
     fi
 
