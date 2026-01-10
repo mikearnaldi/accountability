@@ -916,7 +916,7 @@
         "Store resulting consolidated trial balance",
         "100% test coverage"
       ],
-      "status": "pending",
+      "status": "in_progress",
       "estimated_complexity": "large"
     },
     {
