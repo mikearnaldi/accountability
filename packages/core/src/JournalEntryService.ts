@@ -19,7 +19,9 @@ import * as Option from "effect/Option"
 import * as Array from "effect/Array"
 import * as Schema from "effect/Schema"
 import type { JournalEntry } from "./JournalEntry.js"
-import { EntryNumber } from "./JournalEntry.js"
+import { EntryNumber, UserId } from "./JournalEntry.js"
+import { nowEffect as timestampNowEffect } from "./Timestamp.js"
+import { today as localDateToday } from "./LocalDate.js"
 import type { JournalEntryLine } from "./JournalEntryLine.js"
 import type { Account, AccountId } from "./Account.js"
 import type { CompanyId } from "./Company.js"
@@ -173,6 +175,49 @@ export class DuplicateLineNumberError extends Schema.TaggedError<DuplicateLineNu
 export const isDuplicateLineNumberError = Schema.is(DuplicateLineNumberError)
 
 /**
+ * Error when attempting to post a journal entry that is not in 'Approved' status
+ */
+export class NotApprovedError extends Schema.TaggedError<NotApprovedError>()(
+  "NotApprovedError",
+  {
+    journalEntryId: Schema.UUID.pipe(Schema.brand("JournalEntryId")),
+    currentStatus: Schema.Literal("Draft", "PendingApproval", "Approved", "Posted", "Reversed")
+  }
+) {
+  get message(): string {
+    return `Journal entry ${this.journalEntryId} cannot be posted: current status is '${this.currentStatus}', must be 'Approved'`
+  }
+}
+
+/**
+ * Type guard for NotApprovedError
+ */
+export const isNotApprovedError = Schema.is(NotApprovedError)
+
+/**
+ * Error when attempting to post to a closed fiscal period
+ */
+export class PeriodClosedError extends Schema.TaggedError<PeriodClosedError>()(
+  "PeriodClosedError",
+  {
+    fiscalPeriod: Schema.Struct({
+      year: Schema.Number,
+      period: Schema.Number
+    }),
+    status: Schema.String
+  }
+) {
+  get message(): string {
+    return `Cannot post to fiscal period FY${this.fiscalPeriod.year}-P${String(this.fiscalPeriod.period).padStart(2, "0")}: period is ${this.status}`
+  }
+}
+
+/**
+ * Type guard for PeriodClosedError
+ */
+export const isPeriodClosedError = Schema.is(PeriodClosedError)
+
+/**
  * Union type for all journal entry service errors
  */
 export type JournalEntryError =
@@ -184,6 +229,8 @@ export type JournalEntryError =
   | PeriodNotFoundError
   | EmptyJournalEntryError
   | DuplicateLineNumberError
+  | NotApprovedError
+  | PeriodClosedError
 
 // =============================================================================
 // Repository Interfaces
@@ -306,6 +353,16 @@ export interface CreateJournalEntryInput {
   readonly functionalCurrency: CurrencyCode
 }
 
+/**
+ * PostJournalEntryInput - Input for posting an approved journal entry
+ */
+export interface PostJournalEntryInput {
+  /** The journal entry to post (must be in 'Approved' status) */
+  readonly entry: JournalEntry
+  /** The user posting the entry */
+  readonly postedBy: typeof UserId.Type
+}
+
 // =============================================================================
 // Service Interface
 // =============================================================================
@@ -334,6 +391,30 @@ export interface JournalEntryServiceShape {
   ) => Effect.Effect<
     JournalEntry,
     JournalEntryError,
+    never
+  >
+
+  /**
+   * Post an approved journal entry to the general ledger
+   *
+   * Validates:
+   * - Entry is in 'Approved' status
+   * - Fiscal period is still open
+   *
+   * Updates:
+   * - Status to 'Posted'
+   * - Records postedBy (UserId)
+   * - Records postedAt (Timestamp)
+   * - Sets postingDate to current date
+   *
+   * @param input - The journal entry to post and the user posting it
+   * @returns Effect containing the posted entry
+   */
+  readonly post: (
+    input: PostJournalEntryInput
+  ) => Effect.Effect<
+    JournalEntry,
+    NotApprovedError | PeriodClosedError | PeriodNotFoundError,
     never
   >
 }
@@ -459,6 +540,40 @@ const validatePeriodOpen = (
 }
 
 /**
+ * Validate that the fiscal period is open for posting (used by post operation)
+ * Returns PeriodClosedError instead of PeriodNotOpenError for clearer error semantics
+ */
+const validatePeriodOpenForPosting = (
+  companyId: CompanyId,
+  fiscalPeriod: FiscalPeriodRef,
+  periodRepository: PeriodRepositoryService
+): Effect.Effect<void, PeriodClosedError | PeriodNotFoundError> => {
+  return Effect.gen(function* () {
+    const periodInfo = yield* periodRepository.getPeriodStatus(companyId, fiscalPeriod)
+
+    if (Option.isNone(periodInfo)) {
+      return yield* Effect.fail(
+        new PeriodNotFoundError({
+          fiscalPeriod: { year: fiscalPeriod.year, period: fiscalPeriod.period },
+          companyId
+        })
+      )
+    }
+
+    const status = periodInfo.value.status
+    // Only "Open" status allows posting
+    if (status !== "Open") {
+      return yield* Effect.fail(
+        new PeriodClosedError({
+          fiscalPeriod: { year: fiscalPeriod.year, period: fiscalPeriod.period },
+          status
+        })
+      )
+    }
+  })
+}
+
+/**
  * Create the JournalEntryService implementation
  */
 const make = Effect.gen(function* () {
@@ -497,6 +612,39 @@ const make = Effect.gen(function* () {
         return {
           ...entry,
           entryNumber: Option.some(EntryNumber.make(entryNumber))
+        } as JournalEntry
+      }),
+
+    post: (input: PostJournalEntryInput) =>
+      Effect.gen(function* () {
+        const { entry, postedBy } = input
+
+        // Validate entry is in 'Approved' status
+        if (entry.status !== "Approved") {
+          return yield* Effect.fail(
+            new NotApprovedError({
+              journalEntryId: entry.id,
+              currentStatus: entry.status
+            })
+          )
+        }
+
+        // Validate fiscal period is still open
+        yield* validatePeriodOpenForPosting(entry.companyId, entry.fiscalPeriod, periodRepository)
+
+        // Get the current timestamp for postedAt
+        const postedAt = yield* timestampNowEffect
+
+        // Get the current date for postingDate
+        const postingDate = localDateToday()
+
+        // Return entry with updated status and posting information
+        return {
+          ...entry,
+          status: "Posted" as const,
+          postedBy: Option.some(postedBy),
+          postedAt: Option.some(postedAt),
+          postingDate: Option.some(postingDate)
         } as JournalEntry
       })
   } satisfies JournalEntryServiceShape

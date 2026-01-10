@@ -164,3 +164,8 @@
 **Story**: 2.1.1 - Implement journal entry creation service
 **Status**: complete
 ---
+
+## Iteration 9 - 2026-01-10 18:52
+**Story**: 2.1.2 - Implement journal entry posting
+**Status**: complete
+---

@@ -13,6 +13,8 @@ import {
   PeriodNotFoundError,
   EmptyJournalEntryError,
   DuplicateLineNumberError,
+  NotApprovedError,
+  PeriodClosedError,
   isAccountNotFoundError,
   isAccountNotPostableError,
   isAccountNotActiveError,
@@ -20,13 +22,16 @@ import {
   isPeriodNotFoundError,
   isEmptyJournalEntryError,
   isDuplicateLineNumberError,
+  isNotApprovedError,
+  isPeriodClosedError,
   type FiscalPeriodInfo,
   type CreateJournalEntryInput,
+  type PostJournalEntryInput,
   type AccountRepositoryService,
   type PeriodRepositoryService,
   type EntryNumberGeneratorService
 } from "../src/JournalEntryService.js"
-import { JournalEntry, JournalEntryId, UserId } from "../src/JournalEntry.js"
+import { JournalEntry, JournalEntryId, UserId, EntryNumber } from "../src/JournalEntry.js"
 import { JournalEntryLine, JournalEntryLineId } from "../src/JournalEntryLine.js"
 import { Account, AccountId, type AccountType, type AccountCategory, type NormalBalance } from "../src/Account.js"
 import { CompanyId } from "../src/Company.js"
@@ -975,6 +980,464 @@ describe("JournalEntryService", () => {
       const error = new DuplicateLineNumberError({ lineNumber: 5 })
       expect(error.message).toContain("Duplicate line number")
       expect(error.message).toContain("5")
+    })
+
+    it("NotApprovedError has correct message", () => {
+      const error = new NotApprovedError({
+        journalEntryId: JournalEntryId.make(journalEntryUUID),
+        currentStatus: "Draft"
+      })
+      expect(error.message).toContain(journalEntryUUID)
+      expect(error.message).toContain("Draft")
+      expect(error.message).toContain("must be 'Approved'")
+    })
+
+    it("PeriodClosedError has correct message", () => {
+      const error = new PeriodClosedError({
+        fiscalPeriod: { year: 2025, period: 1 },
+        status: "Closed"
+      })
+      expect(error.message).toContain("FY2025-P01")
+      expect(error.message).toContain("Closed")
+    })
+  })
+
+  describe("post", () => {
+    // Helper to create an approved journal entry
+    const createApprovedJournalEntry = (id: string = journalEntryUUID): JournalEntry => {
+      return JournalEntry.make({
+        id: JournalEntryId.make(id),
+        companyId,
+        entryNumber: Option.some(EntryNumber.make("JE-2025-00001")),
+        referenceNumber: Option.none(),
+        description: "Test journal entry",
+        transactionDate: LocalDate.make({ year: 2025, month: 1, day: 15 }),
+        postingDate: Option.none(),
+        documentDate: Option.none(),
+        fiscalPeriod,
+        entryType: "Standard",
+        sourceModule: "GeneralLedger",
+        sourceDocumentRef: Option.none(),
+        isMultiCurrency: false,
+        status: "Approved",
+        isReversing: false,
+        reversedEntryId: Option.none(),
+        reversingEntryId: Option.none(),
+        createdBy: UserId.make(userUUID),
+        createdAt: Timestamp.make({ epochMillis: Date.now() }),
+        postedBy: Option.none(),
+        postedAt: Option.none()
+      })
+    }
+
+    describe("successful posting", () => {
+      it.effect("posts an approved journal entry successfully", () =>
+        Effect.gen(function* () {
+          const entry = createApprovedJournalEntry()
+          const postingUser = UserId.make("e0a7b810-9dad-11d1-80b4-00c04fd430cc")
+
+          const input: PostJournalEntryInput = {
+            entry,
+            postedBy: postingUser
+          }
+
+          const service = yield* JournalEntryService
+          const result = yield* service.post(input)
+
+          expect(result.status).toBe("Posted")
+          expect(Option.isSome(result.postedBy)).toBe(true)
+          expect(Option.isSome(result.postedAt)).toBe(true)
+          expect(Option.isSome(result.postingDate)).toBe(true)
+
+          if (Option.isSome(result.postedBy)) {
+            expect(result.postedBy.value).toBe(postingUser)
+          }
+        }).pipe(
+          Effect.provide(
+            createTestLayer(
+              [],
+              [{ year: 2025, period: 1, status: "Open" }]
+            )
+          )
+        )
+      )
+
+      it.effect("preserves original entry data when posting", () =>
+        Effect.gen(function* () {
+          const entry = createApprovedJournalEntry()
+          const postingUser = UserId.make("e0a7b810-9dad-11d1-80b4-00c04fd430cc")
+
+          const input: PostJournalEntryInput = {
+            entry,
+            postedBy: postingUser
+          }
+
+          const service = yield* JournalEntryService
+          const result = yield* service.post(input)
+
+          // Verify original data is preserved
+          expect(result.id).toBe(entry.id)
+          expect(result.companyId).toBe(entry.companyId)
+          expect(result.description).toBe(entry.description)
+          expect(result.entryType).toBe(entry.entryType)
+          expect(result.sourceModule).toBe(entry.sourceModule)
+          expect(Option.isSome(result.entryNumber)).toBe(true)
+          if (Option.isSome(result.entryNumber) && Option.isSome(entry.entryNumber)) {
+            expect(result.entryNumber.value).toBe(entry.entryNumber.value)
+          }
+        }).pipe(
+          Effect.provide(
+            createTestLayer(
+              [],
+              [{ year: 2025, period: 1, status: "Open" }]
+            )
+          )
+        )
+      )
+    })
+
+    describe("validation errors", () => {
+      it.effect("fails with NotApprovedError when entry is in Draft status", () =>
+        Effect.gen(function* () {
+          const entry = createJournalEntry() // Draft status
+          const postingUser = UserId.make("e0a7b810-9dad-11d1-80b4-00c04fd430cc")
+
+          const input: PostJournalEntryInput = {
+            entry,
+            postedBy: postingUser
+          }
+
+          const service = yield* JournalEntryService
+          const result = yield* Effect.exit(service.post(input))
+
+          expect(Exit.isFailure(result)).toBe(true)
+          if (Exit.isFailure(result) && result.cause._tag === "Fail") {
+            expect(isNotApprovedError(result.cause.error)).toBe(true)
+            if (isNotApprovedError(result.cause.error)) {
+              expect(result.cause.error.currentStatus).toBe("Draft")
+            }
+          }
+        }).pipe(
+          Effect.provide(
+            createTestLayer(
+              [],
+              [{ year: 2025, period: 1, status: "Open" }]
+            )
+          )
+        )
+      )
+
+      it.effect("fails with NotApprovedError when entry is in PendingApproval status", () =>
+        Effect.gen(function* () {
+          const entry = JournalEntry.make({
+            ...createJournalEntry(),
+            status: "PendingApproval"
+          })
+          const postingUser = UserId.make("e0a7b810-9dad-11d1-80b4-00c04fd430cc")
+
+          const input: PostJournalEntryInput = {
+            entry,
+            postedBy: postingUser
+          }
+
+          const service = yield* JournalEntryService
+          const result = yield* Effect.exit(service.post(input))
+
+          expect(Exit.isFailure(result)).toBe(true)
+          if (Exit.isFailure(result) && result.cause._tag === "Fail") {
+            expect(isNotApprovedError(result.cause.error)).toBe(true)
+            if (isNotApprovedError(result.cause.error)) {
+              expect(result.cause.error.currentStatus).toBe("PendingApproval")
+            }
+          }
+        }).pipe(
+          Effect.provide(
+            createTestLayer(
+              [],
+              [{ year: 2025, period: 1, status: "Open" }]
+            )
+          )
+        )
+      )
+
+      it.effect("fails with NotApprovedError when entry is already Posted", () =>
+        Effect.gen(function* () {
+          const entry = JournalEntry.make({
+            ...createApprovedJournalEntry(),
+            status: "Posted",
+            postedBy: Option.some(UserId.make(userUUID)),
+            postedAt: Option.some(Timestamp.make({ epochMillis: Date.now() })),
+            postingDate: Option.some(LocalDate.make({ year: 2025, month: 1, day: 15 }))
+          })
+          const postingUser = UserId.make("e0a7b810-9dad-11d1-80b4-00c04fd430cc")
+
+          const input: PostJournalEntryInput = {
+            entry,
+            postedBy: postingUser
+          }
+
+          const service = yield* JournalEntryService
+          const result = yield* Effect.exit(service.post(input))
+
+          expect(Exit.isFailure(result)).toBe(true)
+          if (Exit.isFailure(result) && result.cause._tag === "Fail") {
+            expect(isNotApprovedError(result.cause.error)).toBe(true)
+            if (isNotApprovedError(result.cause.error)) {
+              expect(result.cause.error.currentStatus).toBe("Posted")
+            }
+          }
+        }).pipe(
+          Effect.provide(
+            createTestLayer(
+              [],
+              [{ year: 2025, period: 1, status: "Open" }]
+            )
+          )
+        )
+      )
+
+      it.effect("fails with NotApprovedError when entry is Reversed", () =>
+        Effect.gen(function* () {
+          const entry = JournalEntry.make({
+            ...createApprovedJournalEntry(),
+            status: "Reversed"
+          })
+          const postingUser = UserId.make("e0a7b810-9dad-11d1-80b4-00c04fd430cc")
+
+          const input: PostJournalEntryInput = {
+            entry,
+            postedBy: postingUser
+          }
+
+          const service = yield* JournalEntryService
+          const result = yield* Effect.exit(service.post(input))
+
+          expect(Exit.isFailure(result)).toBe(true)
+          if (Exit.isFailure(result) && result.cause._tag === "Fail") {
+            expect(isNotApprovedError(result.cause.error)).toBe(true)
+            if (isNotApprovedError(result.cause.error)) {
+              expect(result.cause.error.currentStatus).toBe("Reversed")
+            }
+          }
+        }).pipe(
+          Effect.provide(
+            createTestLayer(
+              [],
+              [{ year: 2025, period: 1, status: "Open" }]
+            )
+          )
+        )
+      )
+
+      it.effect("fails with PeriodClosedError when fiscal period is Closed", () =>
+        Effect.gen(function* () {
+          const entry = createApprovedJournalEntry()
+          const postingUser = UserId.make("e0a7b810-9dad-11d1-80b4-00c04fd430cc")
+
+          const input: PostJournalEntryInput = {
+            entry,
+            postedBy: postingUser
+          }
+
+          const service = yield* JournalEntryService
+          const result = yield* Effect.exit(service.post(input))
+
+          expect(Exit.isFailure(result)).toBe(true)
+          if (Exit.isFailure(result) && result.cause._tag === "Fail") {
+            expect(isPeriodClosedError(result.cause.error)).toBe(true)
+            if (isPeriodClosedError(result.cause.error)) {
+              expect(result.cause.error.status).toBe("Closed")
+            }
+          }
+        }).pipe(
+          Effect.provide(
+            createTestLayer(
+              [],
+              [{ year: 2025, period: 1, status: "Closed" }]
+            )
+          )
+        )
+      )
+
+      it.effect("fails with PeriodClosedError when fiscal period is Locked", () =>
+        Effect.gen(function* () {
+          const entry = createApprovedJournalEntry()
+          const postingUser = UserId.make("e0a7b810-9dad-11d1-80b4-00c04fd430cc")
+
+          const input: PostJournalEntryInput = {
+            entry,
+            postedBy: postingUser
+          }
+
+          const service = yield* JournalEntryService
+          const result = yield* Effect.exit(service.post(input))
+
+          expect(Exit.isFailure(result)).toBe(true)
+          if (Exit.isFailure(result) && result.cause._tag === "Fail") {
+            expect(isPeriodClosedError(result.cause.error)).toBe(true)
+            if (isPeriodClosedError(result.cause.error)) {
+              expect(result.cause.error.status).toBe("Locked")
+            }
+          }
+        }).pipe(
+          Effect.provide(
+            createTestLayer(
+              [],
+              [{ year: 2025, period: 1, status: "Locked" }]
+            )
+          )
+        )
+      )
+
+      it.effect("fails with PeriodClosedError when fiscal period has SoftClose status", () =>
+        Effect.gen(function* () {
+          const entry = createApprovedJournalEntry()
+          const postingUser = UserId.make("e0a7b810-9dad-11d1-80b4-00c04fd430cc")
+
+          const input: PostJournalEntryInput = {
+            entry,
+            postedBy: postingUser
+          }
+
+          const service = yield* JournalEntryService
+          const result = yield* Effect.exit(service.post(input))
+
+          expect(Exit.isFailure(result)).toBe(true)
+          if (Exit.isFailure(result) && result.cause._tag === "Fail") {
+            expect(isPeriodClosedError(result.cause.error)).toBe(true)
+            if (isPeriodClosedError(result.cause.error)) {
+              expect(result.cause.error.status).toBe("SoftClose")
+            }
+          }
+        }).pipe(
+          Effect.provide(
+            createTestLayer(
+              [],
+              [{ year: 2025, period: 1, status: "SoftClose" }]
+            )
+          )
+        )
+      )
+
+      it.effect("fails with PeriodClosedError when fiscal period is Future", () =>
+        Effect.gen(function* () {
+          const entry = createApprovedJournalEntry()
+          const postingUser = UserId.make("e0a7b810-9dad-11d1-80b4-00c04fd430cc")
+
+          const input: PostJournalEntryInput = {
+            entry,
+            postedBy: postingUser
+          }
+
+          const service = yield* JournalEntryService
+          const result = yield* Effect.exit(service.post(input))
+
+          expect(Exit.isFailure(result)).toBe(true)
+          if (Exit.isFailure(result) && result.cause._tag === "Fail") {
+            expect(isPeriodClosedError(result.cause.error)).toBe(true)
+            if (isPeriodClosedError(result.cause.error)) {
+              expect(result.cause.error.status).toBe("Future")
+            }
+          }
+        }).pipe(
+          Effect.provide(
+            createTestLayer(
+              [],
+              [{ year: 2025, period: 1, status: "Future" }]
+            )
+          )
+        )
+      )
+
+      it.effect("fails with PeriodNotFoundError when fiscal period does not exist", () =>
+        Effect.gen(function* () {
+          const entry = createApprovedJournalEntry()
+          const postingUser = UserId.make("e0a7b810-9dad-11d1-80b4-00c04fd430cc")
+
+          const input: PostJournalEntryInput = {
+            entry,
+            postedBy: postingUser
+          }
+
+          const service = yield* JournalEntryService
+          const result = yield* Effect.exit(service.post(input))
+
+          expect(Exit.isFailure(result)).toBe(true)
+          if (Exit.isFailure(result) && result.cause._tag === "Fail") {
+            expect(isPeriodNotFoundError(result.cause.error)).toBe(true)
+          }
+        }).pipe(
+          Effect.provide(
+            createTestLayer(
+              [],
+              [] // No periods defined
+            )
+          )
+        )
+      )
+    })
+
+    describe("validation order", () => {
+      it.effect("validates status before period", () =>
+        Effect.gen(function* () {
+          // Entry is Draft and period is Closed - should fail with NotApprovedError first
+          const entry = createJournalEntry() // Draft status
+          const postingUser = UserId.make("e0a7b810-9dad-11d1-80b4-00c04fd430cc")
+
+          const input: PostJournalEntryInput = {
+            entry,
+            postedBy: postingUser
+          }
+
+          const service = yield* JournalEntryService
+          const result = yield* Effect.exit(service.post(input))
+
+          expect(Exit.isFailure(result)).toBe(true)
+          if (Exit.isFailure(result) && result.cause._tag === "Fail") {
+            // Should get NotApprovedError, not PeriodClosedError
+            expect(isNotApprovedError(result.cause.error)).toBe(true)
+          }
+        }).pipe(
+          Effect.provide(
+            createTestLayer(
+              [],
+              [{ year: 2025, period: 1, status: "Closed" }]
+            )
+          )
+        )
+      )
+    })
+  })
+
+  describe("additional error type guards", () => {
+    it("isNotApprovedError returns true for NotApprovedError", () => {
+      const error = new NotApprovedError({
+        journalEntryId: JournalEntryId.make(journalEntryUUID),
+        currentStatus: "Draft"
+      })
+      expect(isNotApprovedError(error)).toBe(true)
+      expect(error._tag).toBe("NotApprovedError")
+    })
+
+    it("isPeriodClosedError returns true for PeriodClosedError", () => {
+      const error = new PeriodClosedError({
+        fiscalPeriod: { year: 2025, period: 1 },
+        status: "Closed"
+      })
+      expect(isPeriodClosedError(error)).toBe(true)
+      expect(error._tag).toBe("PeriodClosedError")
+    })
+
+    it("new type guards return false for other values", () => {
+      expect(isNotApprovedError(null)).toBe(false)
+      expect(isNotApprovedError(undefined)).toBe(false)
+      expect(isNotApprovedError(new Error("test"))).toBe(false)
+      expect(isNotApprovedError({ _tag: "NotApprovedError" })).toBe(false)
+
+      expect(isPeriodClosedError(null)).toBe(false)
+      expect(isPeriodClosedError(undefined)).toBe(false)
+      expect(isPeriodClosedError(new Error("test"))).toBe(false)
+      expect(isPeriodClosedError({ _tag: "PeriodClosedError" })).toBe(false)
     })
   })
 })
