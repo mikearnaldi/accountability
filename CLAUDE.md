@@ -414,7 +414,7 @@ export class Account extends Schema.Class<Account>("Account")({
 
 ### Branded Types for IDs
 
-Use `Schema.brand` to create type-safe IDs. Reference: `repos/effect/packages/cluster/src/EntityId.ts`
+Use `Schema.brand` to create type-safe IDs:
 
 ```typescript
 import * as Schema from "effect/Schema"
@@ -427,8 +427,11 @@ export const AccountId = Schema.NonEmptyTrimmedString.pipe(
 // Export the type
 export type AccountId = typeof AccountId.Type
 
-// Constructor for internal use (bypasses validation)
-export const make = (id: string): AccountId => id as AccountId
+// Use .make() to create instances (validates by default)
+const id = AccountId.make("acc_123")
+
+// Bypass validation for trusted input
+const fromDb = AccountId.make(row.id, { disableValidation: true })
 ```
 
 ### Schema.TaggedError for Domain Errors
@@ -504,16 +507,32 @@ export class Account extends Schema.Class<Account>("Account")({
 export const isAccount = Schema.is(Account)
 ```
 
-**DO NOT create separate `make` or `create` functions** - Schema.Class already provides:
+**Always use `.make()` - never `new`:**
 
 ```typescript
-// Both are equivalent and validate input by default
-const account1 = new Account({ id, code: "1000", name: "Cash", ... })
-const account2 = Account.make({ id, code: "1000", name: "Cash", ... })
+// CORRECT - use .make()
+const account = Account.make({ id, code: "1000", name: "Cash", ... })
+
+// WRONG - don't use new
+const account = new Account({ id, code: "1000", name: "Cash", ... })
 
 // Disable validation when you trust the input (e.g., from database)
-const fromDb = new Account(dbRow, { disableValidation: true })
-const fromDb2 = Account.make(dbRow, { disableValidation: true })
+const fromDb = Account.make(dbRow, { disableValidation: true })
+```
+
+**All schemas have `.make()` - not just classes:**
+
+```typescript
+// Branded types
+export const AccountId = Schema.String.pipe(Schema.brand("AccountId"))
+const id = AccountId.make("acc_123")  // Creates branded AccountId
+
+// Structs (if you must use them)
+export const Money = Schema.Struct({
+  amount: Schema.BigDecimal,
+  currency: CurrencyCode
+})
+const money = Money.make({ amount, currency })
 ```
 
 **Constructor defaults:**
@@ -837,7 +856,7 @@ it.prop("numbers commute", [FastCheck.integer(), FastCheck.integer()], ([a, b]) 
 
 1. **Flat modules, no barrel files** - `CurrencyCode.ts` not `domain/currency/index.ts`
 2. **Prefer Schema.Class over Schema.Struct** - classes give you constructor, Equal, Hash
-3. **DON'T create make/create functions** - use `new MyClass()` or `MyClass.make()` from Schema
+3. **Use Schema's `.make()` constructor** - all schemas have it, never use `new` or create custom constructors
 4. **Use Schema.TaggedError** for all domain errors - type guards via `Schema.is()`
 5. **Use branded types** for IDs (AccountId, CompanyId, etc.)
 6. **Use BigDecimal** for all monetary calculations
