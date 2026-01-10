@@ -20,7 +20,7 @@ PROGRESS_FILE="progress.txt"
 PROMPT_FILE="RALPH_PROMPT.md"
 COMPLETE_MARKER="<promise>COMPLETE</promise>"
 OUTPUT_DIR=".ralph"
-AGENT_CMD="claude --dangerously-skip-permissions"
+AGENT_CMD="claude --dangerously-skip-permissions --verbose"
 
 # Colors for output
 RED='\033[0;31m'
