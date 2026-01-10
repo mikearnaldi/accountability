@@ -25,7 +25,7 @@ Accountability is a multi-company, multi-currency accounting application using:
 accountability/
 ├── packages/
 │   ├── core/           # Core accounting logic (100% tested, no deps)
-│   ├── persistence/    # Database layer (Drizzle + PostgreSQL)
+│   ├── persistence/    # Database layer (@effect/sql + PostgreSQL)
 │   ├── api/            # TanStack Start server functions
 │   └── web/            # React UI
 └── repos/              # Reference repositories (git subtrees)
@@ -92,7 +92,7 @@ Database integration for Effect:
 |---------|------|-------------|
 | **sql** | `repos/effect/packages/sql/` | Core SQL abstractions |
 | **sql-pg** | `repos/effect/packages/sql-pg/` | PostgreSQL client |
-| **sql-drizzle** | `repos/effect/packages/sql-drizzle/` | Drizzle ORM integration |
+| **sql-drizzle** | `repos/effect/packages/sql-drizzle/` | Drizzle ORM integration (not used in this project) |
 
 **Search patterns for SQL:**
 ```bash

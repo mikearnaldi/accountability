@@ -1047,35 +1047,67 @@
       "id": "5.2.1",
       "phase": "Persistence",
       "epic": "Database Schema",
-      "title": "Create PostgreSQL schema with Drizzle",
-      "description": "Create database schema using Drizzle ORM for all entities with proper relationships and indexes. Reference repos/effect/packages/sql-drizzle/.",
+      "title": "Create PostgreSQL schema with SQL migrations",
+      "description": "Create database schema using plain SQL migrations with @effect/sql Migrator. Write migrations as TypeScript files that execute SQL statements. Reference repos/effect/packages/sql/src/Migrator.ts.",
       "acceptance_criteria": [
-        "Drizzle schema definitions for all entities",
+        "Set up migrations folder: packages/persistence/src/migrations",
+        "Create migration files as TypeScript (e.g., 0001_CreateCompanies.ts)",
+        "Each migration exports default Effect that runs SQL via SqlClient",
+        "Create MigrationRunner.ts using @effect/sql Migrator with fromFileSystem loader",
+        "Initial migrations for all core entities: companies, accounts, journal_entries, etc.",
         "Proper column types (uuid, text, numeric for BigDecimal, timestamptz)",
         "Foreign key relationships with proper cascades",
         "Indexes on: foreign keys, commonly queried fields (companyId, periodId, status)",
-        "Audit columns: createdAt, updatedAt (with triggers or app-level)",
-        "Soft delete support: deletedAt column where needed",
-        "Migration files generated from schema"
+        "Audit columns: createdAt, updatedAt",
+        "Add package.json script: migrate:run",
+        "Verify migrations run successfully against testcontainers database"
       ],
+      "technical_details": {
+        "migration_format": "0001_CreateCompanies.ts exporting Effect<void, SqlError, SqlClient>",
+        "loader": "Migrator.fromFileSystem from @effect/sql/Migrator/FileSystem",
+        "tracking_table": "effect_sql_migrations",
+        "reference": "repos/effect/packages/sql/src/Migrator.ts"
+      },
       "status": "pending",
       "estimated_complexity": "large"
+    },
+    {
+      "id": "5.2.2",
+      "phase": "Persistence",
+      "epic": "Database Schema",
+      "title": "Module naming conventions for persistence package",
+      "description": "Ensure persistence package follows module naming conventions: no index.ts files, all modules use PascalCase naming.",
+      "acceptance_criteria": [
+        "No index.ts barrel files in packages/persistence",
+        "All module files use PascalCase naming (AccountRepository.ts, MigrationRunner.ts)",
+        "Each module is self-contained, no re-exports from index files"
+      ],
+      "status": "pending",
+      "estimated_complexity": "small"
     },
     {
       "id": "5.3.1",
       "phase": "Persistence",
       "epic": "Repository Implementations",
       "title": "Implement repositories with Effect SQL",
-      "description": "Implement all repository interfaces using @effect/sql and @effect/sql-drizzle for PostgreSQL. Reference repos/effect/packages/sql-drizzle/src/.",
+      "description": "Implement all repository interfaces using @effect/sql and @effect/sql-pg for PostgreSQL. Use tagged template literals for queries. Reference repos/effect/packages/sql/src/ and repos/effect/packages/sql-pg/.",
       "acceptance_criteria": [
-        "@effect/sql and @effect/sql-drizzle configured",
-        "@effect/sql-pg for PostgreSQL connection",
+        "@effect/sql and @effect/sql-pg configured",
+        "PgClient layer for PostgreSQL connection",
         "All repository interfaces implemented as Layers",
-        "Proper error handling: wrap DB errors in domain errors",
-        "Transaction support via SqlClient.transaction",
-        "Integration tests against test database",
-        "Connection pooling configured"
+        "Use sql`` tagged template for queries with automatic parameterization",
+        "Use Schema.decodeUnknown to parse query results into domain types",
+        "Proper error handling: wrap SqlError in domain errors",
+        "Transaction support via SqlClient.withTransaction",
+        "Integration tests against testcontainers database",
+        "Connection pooling configured via PgClient.layer options"
       ],
+      "technical_details": {
+        "query_pattern": "sql`SELECT * FROM accounts WHERE id = ${accountId}`",
+        "result_parsing": "Schema.decodeUnknown(Account)(row)",
+        "transactions": "sql.withTransaction(effect)",
+        "reference": "repos/effect/packages/sql-pg/test/ for patterns"
+      },
       "status": "pending",
       "estimated_complexity": "large"
     },
