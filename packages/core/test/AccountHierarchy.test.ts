@@ -1,5 +1,6 @@
 import { describe, it, expect } from "@effect/vitest"
-import { Effect, Option, Either, Array as Arr, Arbitrary, FastCheck, Equal, Hash } from "effect"
+import { Effect, Option, Either, Array as Arr, Arbitrary, FastCheck, Equal, Hash, Chunk } from "effect"
+import * as Schema from "effect/Schema"
 import * as Schema from "effect/Schema"
 import {
   AccountNode,
@@ -148,7 +149,7 @@ describe("AccountNode", () => {
       const account = createTestAccount(UUID1, "Cash", "1000", "Asset", "CurrentAsset")
       const node = AccountNode.make({
         account,
-        children: []
+        children: Chunk.empty()
       })
 
       expect(node.account.name).toBe("Cash")
@@ -163,12 +164,12 @@ describe("AccountNode", () => {
       const child1 = createTestAccount(UUID2, "Cash", "1100", "Asset", "CurrentAsset")
       const child2 = createTestAccount(UUID3, "AR", "1200", "Asset", "CurrentAsset")
 
-      const childNode1 = AccountNode.make({ account: child1, children: [] })
-      const childNode2 = AccountNode.make({ account: child2, children: [] })
+      const childNode1 = AccountNode.make({ account: child1, children: Chunk.empty() })
+      const childNode2 = AccountNode.make({ account: child2, children: Chunk.empty() })
 
       const parentNode = AccountNode.make({
         account: parent,
-        children: [childNode1, childNode2]
+        children: Chunk.fromIterable([childNode1, childNode2])
       })
 
       expect(parentNode.hasChildren).toBe(true)
@@ -182,10 +183,10 @@ describe("AccountNode", () => {
       const level3a = createTestAccount(UUID3, "Cash", "1110", "Asset", "CurrentAsset")
       const level3b = createTestAccount(UUID4, "AR", "1120", "Asset", "CurrentAsset")
 
-      const node3a = AccountNode.make({ account: level3a, children: [] })
-      const node3b = AccountNode.make({ account: level3b, children: [] })
-      const node2 = AccountNode.make({ account: level2, children: [node3a, node3b] })
-      const rootNode = AccountNode.make({ account: root, children: [node2] })
+      const node3a = AccountNode.make({ account: level3a, children: Chunk.empty() })
+      const node3b = AccountNode.make({ account: level3b, children: Chunk.empty() })
+      const node2 = AccountNode.make({ account: level2, children: Chunk.fromIterable([node3a, node3b]) })
+      const rootNode = AccountNode.make({ account: root, children: Chunk.fromIterable([node2]) })
 
       expect(rootNode.descendantCount).toBe(3)
       expect(node2.descendantCount).toBe(2)
@@ -196,7 +197,7 @@ describe("AccountNode", () => {
   describe("type guard", () => {
     it("isAccountNode returns true for AccountNode instances", () => {
       const account = createTestAccount(UUID1, "Cash", "1000", "Asset", "CurrentAsset")
-      const node = AccountNode.make({ account, children: [] })
+      const node = AccountNode.make({ account, children: Chunk.empty() })
       expect(isAccountNode(node)).toBe(true)
     })
 
@@ -210,8 +211,8 @@ describe("AccountNode", () => {
   describe("equality", () => {
     it("Equal.equals returns true for identical nodes", () => {
       const account = createTestAccount(UUID1, "Cash", "1000", "Asset", "CurrentAsset")
-      const node1 = AccountNode.make({ account, children: [] })
-      const node2 = AccountNode.make({ account, children: [] })
+      const node1 = AccountNode.make({ account, children: Chunk.empty() })
+      const node2 = AccountNode.make({ account, children: Chunk.empty() })
 
       expect(Equal.equals(node1, node2)).toBe(true)
     })
@@ -219,8 +220,8 @@ describe("AccountNode", () => {
     it("Equal.equals returns false for different accounts", () => {
       const account1 = createTestAccount(UUID1, "Cash", "1000", "Asset", "CurrentAsset")
       const account2 = createTestAccount(UUID2, "AR", "1100", "Asset", "CurrentAsset")
-      const node1 = AccountNode.make({ account: account1, children: [] })
-      const node2 = AccountNode.make({ account: account2, children: [] })
+      const node1 = AccountNode.make({ account: account1, children: Chunk.empty() })
+      const node2 = AccountNode.make({ account: account2, children: Chunk.empty() })
 
       expect(Equal.equals(node1, node2)).toBe(false)
     })
@@ -230,11 +231,11 @@ describe("AccountNode", () => {
       const child1 = createTestAccount(UUID2, "Cash", "1100", "Asset", "CurrentAsset")
       const child2 = createTestAccount(UUID3, "AR", "1200", "Asset", "CurrentAsset")
 
-      const childNode1 = AccountNode.make({ account: child1, children: [] })
-      const childNode2 = AccountNode.make({ account: child2, children: [] })
+      const childNode1 = AccountNode.make({ account: child1, children: Chunk.empty() })
+      const childNode2 = AccountNode.make({ account: child2, children: Chunk.empty() })
 
-      const parentNode1 = AccountNode.make({ account: parent, children: [childNode1] })
-      const parentNode2 = AccountNode.make({ account: parent, children: [childNode2] })
+      const parentNode1 = AccountNode.make({ account: parent, children: Chunk.fromIterable([childNode1]) })
+      const parentNode2 = AccountNode.make({ account: parent, children: Chunk.fromIterable([childNode2]) })
 
       expect(Equal.equals(parentNode1, parentNode2)).toBe(false)
     })
@@ -243,17 +244,17 @@ describe("AccountNode", () => {
       const parent = createTestAccount(UUID1, "Assets", "1000", "Asset", "CurrentAsset")
       const child = createTestAccount(UUID2, "Cash", "1100", "Asset", "CurrentAsset")
 
-      const childNode = AccountNode.make({ account: child, children: [] })
+      const childNode = AccountNode.make({ account: child, children: Chunk.empty() })
 
-      const parentNode1 = AccountNode.make({ account: parent, children: [childNode] })
-      const parentNode2 = AccountNode.make({ account: parent, children: [] })
+      const parentNode1 = AccountNode.make({ account: parent, children: Chunk.fromIterable([childNode]) })
+      const parentNode2 = AccountNode.make({ account: parent, children: Chunk.empty() })
 
       expect(Equal.equals(parentNode1, parentNode2)).toBe(false)
     })
 
     it("Equal.equals returns false for non-AccountNode", () => {
       const account = createTestAccount(UUID1, "Cash", "1000", "Asset", "CurrentAsset")
-      const node = AccountNode.make({ account, children: [] })
+      const node = AccountNode.make({ account, children: Chunk.empty() })
 
       expect(Equal.equals(node, null)).toBe(false)
       expect(Equal.equals(node, {})).toBe(false)
@@ -264,8 +265,8 @@ describe("AccountNode", () => {
   describe("hashing", () => {
     it("Hash.hash returns consistent values for equal nodes", () => {
       const account = createTestAccount(UUID1, "Cash", "1000", "Asset", "CurrentAsset")
-      const node1 = AccountNode.make({ account, children: [] })
-      const node2 = AccountNode.make({ account, children: [] })
+      const node1 = AccountNode.make({ account, children: Chunk.empty() })
+      const node2 = AccountNode.make({ account, children: Chunk.empty() })
 
       expect(Hash.hash(node1)).toBe(Hash.hash(node2))
     })
@@ -273,12 +274,85 @@ describe("AccountNode", () => {
     it("Hash.hash returns different values for different nodes (usually)", () => {
       const account1 = createTestAccount(UUID1, "Cash", "1000", "Asset", "CurrentAsset")
       const account2 = createTestAccount(UUID2, "AR", "1100", "Asset", "CurrentAsset")
-      const node1 = AccountNode.make({ account: account1, children: [] })
-      const node2 = AccountNode.make({ account: account2, children: [] })
+      const node1 = AccountNode.make({ account: account1, children: Chunk.empty() })
+      const node2 = AccountNode.make({ account: account2, children: Chunk.empty() })
 
       // Note: Hash collisions are possible but unlikely
       expect(Hash.hash(node1)).not.toBe(Hash.hash(node2))
     })
+  })
+
+  describe("serialization", () => {
+    it.effect("encodes and decodes a leaf node", () =>
+      Effect.gen(function* () {
+        const account = createTestAccount(UUID1, "Cash", "1000", "Asset", "CurrentAsset")
+        const node = AccountNode.make({ account, children: Chunk.empty() })
+
+        const encoded = yield* Schema.encode(AccountNode)(node)
+        const decoded = yield* Schema.decodeUnknown(AccountNode)(encoded)
+
+        expect(Equal.equals(node, decoded)).toBe(true)
+        // Verify encoded children is an array (not Chunk) for JSON compatibility
+        expect(Array.isArray(encoded.children)).toBe(true)
+        expect(encoded.children).toHaveLength(0)
+      })
+    )
+
+    it.effect("encodes and decodes a node with children", () =>
+      Effect.gen(function* () {
+        const parent = createTestAccount(UUID1, "Assets", "1000", "Asset", "CurrentAsset")
+        const child1 = createTestAccount(UUID2, "Cash", "1100", "Asset", "CurrentAsset")
+        const child2 = createTestAccount(UUID3, "AR", "1200", "Asset", "CurrentAsset")
+
+        const childNode1 = AccountNode.make({ account: child1, children: Chunk.empty() })
+        const childNode2 = AccountNode.make({ account: child2, children: Chunk.empty() })
+        const parentNode = AccountNode.make({
+          account: parent,
+          children: Chunk.fromIterable([childNode1, childNode2])
+        })
+
+        const encoded = yield* Schema.encode(AccountNode)(parentNode)
+        const decoded = yield* Schema.decodeUnknown(AccountNode)(encoded)
+
+        expect(Equal.equals(parentNode, decoded)).toBe(true)
+        // Verify encoded children is an array for JSON compatibility
+        expect(Array.isArray(encoded.children)).toBe(true)
+        expect(encoded.children).toHaveLength(2)
+      })
+    )
+
+    it.effect("encodes to JSON-serializable format", () =>
+      Effect.gen(function* () {
+        const account = createTestAccount(UUID1, "Cash", "1000", "Asset", "CurrentAsset")
+        const node = AccountNode.make({ account, children: Chunk.empty() })
+
+        const encoded = yield* Schema.encode(AccountNode)(node)
+
+        // Should be JSON serializable (round-trip through JSON)
+        const jsonString = JSON.stringify(encoded)
+        const parsed = JSON.parse(jsonString)
+        const decoded = yield* Schema.decodeUnknown(AccountNode)(parsed)
+
+        expect(Equal.equals(node, decoded)).toBe(true)
+      })
+    )
+
+    it.effect("encodes deeply nested tree to JSON", () =>
+      Effect.gen(function* () {
+        const accounts = createTestHierarchy()
+        const tree = buildAccountTree(accounts)
+
+        // Encode all root nodes
+        for (const rootNode of tree) {
+          const encoded = yield* Schema.encode(AccountNode)(rootNode)
+          const jsonString = JSON.stringify(encoded)
+          const parsed = JSON.parse(jsonString)
+          const decoded = yield* Schema.decodeUnknown(AccountNode)(parsed)
+
+          expect(Equal.equals(rootNode, decoded)).toBe(true)
+        }
+      })
+    )
   })
 })
 
@@ -617,11 +691,11 @@ describe("buildAccountTree", () => {
 
     const assetsNode = tree.find((n) => n.account.name === "Assets")
     expect(assetsNode).toBeDefined()
-    expect(assetsNode!.children).toHaveLength(2) // Current Assets, Fixed Assets
+    expect(Chunk.size(assetsNode!.children)).toBe(2) // Current Assets, Fixed Assets
 
-    const currentAssetsNode = assetsNode!.children.find((n) => n.account.name === "Current Assets")
-    expect(currentAssetsNode).toBeDefined()
-    expect(currentAssetsNode!.children).toHaveLength(2) // Cash, AR
+    const currentAssetsNode = Chunk.findFirst(assetsNode!.children, (n) => n.account.name === "Current Assets")
+    expect(Option.isSome(currentAssetsNode)).toBe(true)
+    expect(Chunk.size(Option.getOrThrow(currentAssetsNode).children)).toBe(2) // Cash, AR
   })
 
   it("returns empty array for empty input", () => {
@@ -634,7 +708,7 @@ describe("buildAccountTree", () => {
     const tree = buildAccountTree(accounts)
 
     expect(tree).toHaveLength(1)
-    expect(tree[0].children).toHaveLength(0)
+    expect(Chunk.size(tree[0].children)).toBe(0)
   })
 })
 

@@ -10,75 +10,55 @@
 import * as Schema from "effect/Schema"
 import * as Option from "effect/Option"
 import * as Array from "effect/Array"
+import * as Chunk from "effect/Chunk"
 import * as Either from "effect/Either"
-import * as Equal from "effect/Equal"
-import * as Hash from "effect/Hash"
 import { Account, AccountId, AccountType } from "./Account.js"
+
+/**
+ * Encoded type interface for AccountNode (required for recursive Schema)
+ */
+export interface AccountNodeEncoded extends Schema.Schema.Encoded<typeof AccountNode> {}
 
 /**
  * AccountNode - A node in the account hierarchy tree
  *
  * Wraps an Account with its children for tree representation.
- * This is a pure data structure (not a Schema.Class) to allow for
- * recursive children without schema complexity.
+ * Uses Schema.TaggedClass which automatically provides Equal and Hash.
+ * Children use Schema.Chunk for serializability (encodes to/from array).
  */
-export class AccountNode implements Equal.Equal {
-  readonly _tag = "AccountNode"
-
-  constructor(
-    /**
-     * The account at this node
-     */
-    readonly account: Account,
-    /**
-     * Child nodes (sub-accounts)
-     */
-    readonly children: ReadonlyArray<AccountNode>
-  ) {}
-
+export class AccountNode extends Schema.TaggedClass<AccountNode>()("AccountNode", {
+  /**
+   * The account at this node
+   */
+  account: Account,
+  /**
+   * Child nodes (sub-accounts) - recursive reference using Schema.suspend
+   * Uses Schema.Chunk for JSON serializability (encodes to array)
+   */
+  children: Schema.Chunk(Schema.suspend((): Schema.Schema<AccountNode, AccountNodeEncoded> => AccountNode))
+}) {
   /**
    * Check if this node has any children
    */
   get hasChildren(): boolean {
-    return this.children.length > 0
+    return Chunk.size(this.children) > 0
   }
 
   /**
    * Get the number of direct children
    */
   get childCount(): number {
-    return this.children.length
+    return Chunk.size(this.children)
   }
 
   /**
    * Get total descendant count (including all nested children)
    */
   get descendantCount(): number {
-    return this.children.reduce(
-      (count, child) => count + 1 + child.descendantCount,
-      0
-    )
-  }
-
-  /**
-   * Create an AccountNode
-   */
-  static make(params: { account: Account; children: ReadonlyArray<AccountNode> }): AccountNode {
-    return new AccountNode(params.account, params.children)
-  }
-
-  [Equal.symbol](that: unknown): boolean {
-    return (
-      that instanceof AccountNode &&
-      Equal.equals(this.account, that.account) &&
-      this.children.length === that.children.length &&
-      this.children.every((child, i) => Equal.equals(child, that.children[i]))
-    )
-  }
-
-  [Hash.symbol](): number {
-    return Hash.combine(Hash.hash(this.account))(
-      Hash.array(this.children)
+    return Chunk.reduce(
+      this.children,
+      0,
+      (count, child) => count + 1 + child.descendantCount
     )
   }
 }
@@ -373,7 +353,7 @@ const buildNode = (
 
   return AccountNode.make({
     account,
-    children: childNodes
+    children: Chunk.fromIterable(childNodes)
   })
 }
 
@@ -406,7 +386,7 @@ export const flattenTree = (
 ): ReadonlyArray<Account> => {
   return Array.flatMap(nodes, (node) => [
     node.account,
-    ...flattenTree(node.children)
+    ...flattenTree(Chunk.toReadonlyArray(node.children))
   ])
 }
 

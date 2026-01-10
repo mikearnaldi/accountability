@@ -352,7 +352,9 @@
         "Function getAncestors: (accounts: Account[], accountId: AccountId) -> Account[]",
         "Validation that child account type matches parent type",
         "100% test coverage with property-based tests",
-        "Use FastCheck from the effect re-export"
+        "Use FastCheck from the effect re-export",
+        "Use Schema to define custom classes",
+        "Use Schema.Chunk not Schema.ChunkFromSelf so that it is serializeable"
       ],
       "priority": 16,
       "status": "complete",
