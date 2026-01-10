@@ -3,21 +3,28 @@
   "version": "0.0.1",
   "private": true,
   "type": "module",
+  "exports": {
+    "./MigrationRunner": "./src/MigrationRunner.ts",
+    "./CompanyRepository": "./src/CompanyRepository.ts"
+  },
   "scripts": {
     "build": "echo 'No build step yet'",
     "clean": "rm -rf dist",
-    "test": "cd ../.. && vitest run packages/persistence/test"
+    "test": "cd ../.. && vitest run packages/persistence/test",
+    "migrate:run": "npx tsx src/bin/migrate.ts"
   },
   "dependencies": {
     "@accountability/core": "workspace:*",
     "@effect/experimental": "^0.45.0",
     "@effect/platform": "^0.81.0",
+    "@effect/platform-node": "^0.76.0",
     "@effect/sql": "^0.34.0",
     "@effect/sql-pg": "^0.32.0",
     "@effect/sql-drizzle": "^0.29.0",
     "effect": "^3.19.0"
   },
   "devDependencies": {
-    "@testcontainers/postgresql": "^10.25.0"
+    "@testcontainers/postgresql": "^10.25.0",
+    "tsx": "^4.19.0"
   }
 }
