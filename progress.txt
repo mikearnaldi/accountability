@@ -239,3 +239,8 @@
 **Story**: 3.4.1 - Implement cash flow statement - indirect method
 **Status**: complete
 ---
+
+## Iteration 7 - 2026-01-10 20:54
+**Story**: 3.5.1 - Implement statement of changes in equity
+**Status**: complete
+---

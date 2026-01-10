@@ -773,7 +773,7 @@
         "Column totals and row totals",
         "100% test coverage"
       ],
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "medium"
     },
     {
