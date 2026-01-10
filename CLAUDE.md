@@ -454,37 +454,27 @@ Equal.equals(node1, node2)  // Works without manual implementation
 
 ### Defining Recursive Schema Classes
 
-For self-referencing (recursive) types, use `Schema.suspend()` to defer the schema reference:
+For self-referencing (recursive) types, use `Schema.suspend()` to defer the schema reference. Define an interface for the encoded type to properly type the suspend:
 
 ```typescript
 import * as Schema from "effect/Schema"
 
-// Recursive Schema.Class - a tree node that contains children of the same type
-export class TreeNode extends Schema.Class<TreeNode>("TreeNode")({
+// Step 1: Declare the encoded type interface (before the class)
+interface TreeNodeEncoded extends Schema.Schema.Encoded<typeof TreeNode> {}
+
+// Step 2: Define the class with Schema.suspend referencing both type and encoded
+export class TreeNode extends Schema.TaggedClass<TreeNode>()("TreeNode", {
   value: Schema.String,
-  // Use Schema.suspend() for self-reference
-  children: Schema.Array(Schema.suspend((): Schema.Schema<TreeNode> => TreeNode))
+  // Use Schema.suspend() with both type parameters: <Type, Encoded>
+  children: Schema.Array(Schema.suspend((): Schema.Schema<TreeNode, TreeNodeEncoded> => TreeNode))
 }) {}
 
-// Recursive Schema.TaggedClass
-export class Category extends Schema.TaggedClass<Category>()("Category", {
+// Another example with Schema.Class
+interface CategoryEncoded extends Schema.Schema.Encoded<typeof Category> {}
+
+export class Category extends Schema.Class<Category>("Category")({
   name: Schema.String,
-  // Self-referencing array of subcategories
-  subcategories: Schema.Array(Schema.suspend((): Schema.Schema<Category> => Category))
-}) {}
-
-// Mutually recursive types
-export class Expression extends Schema.Class<Expression>("Expression")({
-  type: Schema.Literal("expression"),
-  // Reference to Operation (defined below)
-  value: Schema.Union(Schema.Number, Schema.suspend((): Schema.Schema<Operation> => Operation))
-}) {}
-
-export class Operation extends Schema.Class<Operation>("Operation")({
-  type: Schema.Literal("operation"),
-  operator: Schema.Literal("+", "-"),
-  left: Expression,
-  right: Expression
+  subcategories: Schema.Array(Schema.suspend((): Schema.Schema<Category, CategoryEncoded> => Category))
 }) {}
 
 // Usage
@@ -498,10 +488,10 @@ const tree = TreeNode.make({
 ```
 
 **Key points:**
-- Always use `Schema.suspend(() => MyClass)` for self-referencing fields
-- The thunk `(): Schema.Schema<MyClass> => MyClass` provides the type annotation
+- Declare `interface MyClassEncoded extends Schema.Schema.Encoded<typeof MyClass> {}` before the class
+- Use `Schema.Schema<MyClass, MyClassEncoded>` in the suspend thunk
+- This pattern ensures proper typing for both the decoded and encoded types
 - Works with both `Schema.Class` and `Schema.TaggedClass`
-- Supports mutually recursive types (A references B, B references A)
 
 ### Prefer Schema.Class Over Schema.Struct
 
