@@ -1,6 +1,5 @@
 import { describe, it, expect } from "@effect/vitest"
-import { Effect, Option, Either, Array as Arr, Arbitrary, FastCheck, Equal, Hash, Chunk } from "effect"
-import * as Schema from "effect/Schema"
+import { Effect, Option, Either, FastCheck, Equal, Hash, Chunk } from "effect"
 import * as Schema from "effect/Schema"
 import {
   AccountNode,
@@ -32,8 +31,7 @@ import {
   Account,
   AccountId,
   AccountType,
-  AccountCategory,
-  CashFlowCategory
+  AccountCategory
 } from "../src/Account.js"
 import { AccountNumber } from "../src/AccountNumber.js"
 import { CompanyId } from "../src/Company.js"
@@ -934,14 +932,6 @@ describe("Property-based tests", () => {
 
   // Generate a unique UUID
   const uuidArb = FastCheck.uuid()
-
-  // Generate a valid account number (4-digit string)
-  const accountNumberArb = FastCheck.integer({ min: 1000, max: 9999 }).map(String)
-
-  // Generate a valid account name
-  const accountNameArb = FastCheck.string({ minLength: 1, maxLength: 50 }).filter(
-    (s) => s.trim().length > 0
-  )
 
   describe("getDescendants and getAncestors are inverses", () => {
     it.prop(

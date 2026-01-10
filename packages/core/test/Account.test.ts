@@ -20,7 +20,7 @@ import {
 } from "../src/Account.js"
 import { AccountNumber } from "../src/AccountNumber.js"
 import { CompanyId } from "../src/Company.js"
-import { CurrencyCode, USD, EUR } from "../src/CurrencyCode.js"
+import { USD } from "../src/CurrencyCode.js"
 import { Timestamp } from "../src/Timestamp.js"
 
 describe("AccountId", () => {
@@ -181,14 +181,6 @@ describe("AccountCategory", () => {
     const equityCategories = ["ContributedCapital", "RetainedEarnings", "OtherComprehensiveIncome", "TreasuryStock"]
     const revenueCategories = ["OperatingRevenue", "OtherRevenue"]
     const expenseCategories = ["CostOfGoodsSold", "OperatingExpense", "DepreciationAmortization", "InterestExpense", "TaxExpense", "OtherExpense"]
-
-    const allCategories = [
-      ...assetCategories,
-      ...liabilityCategories,
-      ...equityCategories,
-      ...revenueCategories,
-      ...expenseCategories
-    ]
 
     it.effect("accepts all valid asset categories", () =>
       Effect.gen(function* () {
@@ -646,30 +638,6 @@ describe("Account", () => {
       isPostable: true,
       isCashFlowRelevant: true,
       cashFlowCategory: Option.some("Financing" as CashFlowCategory),
-      isIntercompany: false,
-      intercompanyPartnerId: Option.none(),
-      currencyRestriction: Option.none(),
-      isActive: true,
-      createdAt: Timestamp.make({ epochMillis: 1718409600000 }),
-      deactivatedAt: Option.none()
-    })
-  }
-
-  const createFixedAssetAccount = () => {
-    return Account.make({
-      id: AccountId.make(accountUUID),
-      companyId: CompanyId.make(companyUUID),
-      accountNumber: AccountNumber.make("1500"),
-      name: "Property, Plant & Equipment",
-      description: Option.some("Fixed assets"),
-      accountType: "Asset",
-      accountCategory: "FixedAsset",
-      normalBalance: "Debit",
-      parentAccountId: Option.none(),
-      hierarchyLevel: 1,
-      isPostable: true,
-      isCashFlowRelevant: true,
-      cashFlowCategory: Option.some("Investing" as CashFlowCategory),
       isIntercompany: false,
       intercompanyPartnerId: Option.none(),
       currencyRestriction: Option.none(),

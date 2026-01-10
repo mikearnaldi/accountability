@@ -9,7 +9,7 @@ import {
   Organization,
   isOrganization
 } from "../src/Organization.js"
-import { CurrencyCode, USD, EUR, GBP } from "../src/CurrencyCode.js"
+import { USD, EUR, GBP } from "../src/CurrencyCode.js"
 import { Timestamp } from "../src/Timestamp.js"
 
 describe("OrganizationId", () => {

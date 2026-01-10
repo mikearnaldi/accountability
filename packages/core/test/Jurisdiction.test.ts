@@ -758,7 +758,7 @@ describe("Jurisdiction", () => {
         expect(encoded).toHaveProperty("name", "United States")
         expect(encoded).toHaveProperty("defaultCurrency", "USD")
         expect(encoded).toHaveProperty("taxSettings")
-        expect((encoded as { taxSettings: { taxRules: unknown[] } }).taxSettings.taxRules.length).toBe(1)
+        expect((encoded as unknown as { taxSettings: { taxRules: unknown[] } }).taxSettings.taxRules.length).toBe(1)
       })
     )
   })

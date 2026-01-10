@@ -16,8 +16,8 @@ import {
   isCompany
 } from "../src/Company.js"
 import { OrganizationId } from "../src/Organization.js"
-import { CurrencyCode, USD, EUR, GBP } from "../src/CurrencyCode.js"
-import { JurisdictionCode, US, GB } from "../src/JurisdictionCode.js"
+import { USD, EUR, GBP } from "../src/CurrencyCode.js"
+import { US, GB } from "../src/JurisdictionCode.js"
 import { Percentage } from "../src/Percentage.js"
 import { Timestamp } from "../src/Timestamp.js"
 

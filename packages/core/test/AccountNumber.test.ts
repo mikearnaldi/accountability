@@ -3,8 +3,6 @@ import { Effect, Exit, Option } from "effect"
 import * as Schema from "effect/Schema"
 import {
   AccountNumber,
-  AccountType,
-  AccountCategory,
   isAccountNumber,
   isAccountType,
   isAccountCategory,
