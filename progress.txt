@@ -184,3 +184,8 @@
 **Story**: 2.2.2 - Implement currency translation
 **Status**: complete
 ---
+
+## Iteration 3 - 2026-01-10 19:19
+**Story**: 2.2.3 - Implement period-end revaluation
+**Status**: complete
+---

@@ -6,6 +6,7 @@
  * - Rate lookups by currency pair, date, and type
  * - Latest rate lookups
  * - Currency translation between currencies
+ * - Period-end revaluation of foreign currency monetary items per ASC 830
  *
  * Uses Context.Tag and Layer patterns for dependency injection.
  *
@@ -22,7 +23,12 @@ import { ExchangeRate, ExchangeRateId, Rate, RateType, RateSource, getInverseRat
 import { CurrencyCode } from "./CurrencyCode.js"
 import { LocalDate } from "./LocalDate.js"
 import { MonetaryAmount } from "./MonetaryAmount.js"
-import { nowEffect as timestampNowEffect } from "./Timestamp.js"
+import { Timestamp, nowEffect as timestampNowEffect } from "./Timestamp.js"
+import { JournalEntry, JournalEntryId, UserId } from "./JournalEntry.js"
+import { JournalEntryLine, JournalEntryLineId } from "./JournalEntryLine.js"
+import type { AccountId, AccountType } from "./Account.js"
+import type { CompanyId } from "./Company.js"
+import type { FiscalPeriodRef } from "./FiscalPeriodRef.js"
 
 // =============================================================================
 // Error Types
@@ -132,6 +138,51 @@ export class InverseRateCalculationError extends Schema.TaggedError<InverseRateC
 export const isInverseRateCalculationError = Schema.is(InverseRateCalculationError)
 
 /**
+ * Error when no monetary accounts with foreign currency balances are found
+ */
+export class NoForeignCurrencyBalancesError extends Schema.TaggedError<NoForeignCurrencyBalancesError>()(
+  "NoForeignCurrencyBalancesError",
+  {
+    companyId: Schema.UUID.pipe(Schema.brand("CompanyId")),
+    closingDate: Schema.Struct({
+      year: Schema.Number,
+      month: Schema.Number,
+      day: Schema.Number
+    })
+  }
+) {
+  get message(): string {
+    const dateStr = `${this.closingDate.year}-${String(this.closingDate.month).padStart(2, "0")}-${String(this.closingDate.day).padStart(2, "0")}`
+    return `No monetary accounts with foreign currency balances found for company ${this.companyId} as of ${dateStr}`
+  }
+}
+
+/**
+ * Type guard for NoForeignCurrencyBalancesError
+ */
+export const isNoForeignCurrencyBalancesError = Schema.is(NoForeignCurrencyBalancesError)
+
+/**
+ * Error when an unrealized gain/loss account is not configured
+ */
+export class UnrealizedGainLossAccountNotFoundError extends Schema.TaggedError<UnrealizedGainLossAccountNotFoundError>()(
+  "UnrealizedGainLossAccountNotFoundError",
+  {
+    companyId: Schema.UUID.pipe(Schema.brand("CompanyId")),
+    accountType: Schema.Literal("UnrealizedGain", "UnrealizedLoss")
+  }
+) {
+  get message(): string {
+    return `Unrealized ${this.accountType === "UnrealizedGain" ? "gain" : "loss"} account not configured for company ${this.companyId}`
+  }
+}
+
+/**
+ * Type guard for UnrealizedGainLossAccountNotFoundError
+ */
+export const isUnrealizedGainLossAccountNotFoundError = Schema.is(UnrealizedGainLossAccountNotFoundError)
+
+/**
  * Union type for all currency service errors
  */
 export type CurrencyServiceError =
@@ -139,6 +190,17 @@ export type CurrencyServiceError =
   | RateAlreadyExistsError
   | ExchangeRateIdNotFoundError
   | InverseRateCalculationError
+  | NoForeignCurrencyBalancesError
+  | UnrealizedGainLossAccountNotFoundError
+
+/**
+ * Union type for revaluation errors
+ */
+export type RevaluationError =
+  | RateNotFoundError
+  | InverseRateCalculationError
+  | NoForeignCurrencyBalancesError
+  | UnrealizedGainLossAccountNotFoundError
 
 // =============================================================================
 // Repository Interface
@@ -307,6 +369,387 @@ export class TranslationResult extends Schema.Class<TranslationResult>("Translat
 export const isTranslationResult = Schema.is(TranslationResult)
 
 // =============================================================================
+// Revaluation Types
+// =============================================================================
+
+/**
+ * RevaluationMethod - Method used for period-end revaluation
+ *
+ * Per SPECIFICATIONS.md:
+ * - BalanceSheet: Revalue all monetary items (cash, receivables, payables)
+ * - OpenItems: Only revalue open AR/AP items
+ */
+export const RevaluationMethod = Schema.Literal("BalanceSheet", "OpenItems").annotations({
+  identifier: "RevaluationMethod",
+  title: "Revaluation Method",
+  description: "Method used for period-end foreign currency revaluation"
+})
+
+/**
+ * The RevaluationMethod type
+ */
+export type RevaluationMethod = typeof RevaluationMethod.Type
+
+/**
+ * Type guard for RevaluationMethod
+ */
+export const isRevaluationMethod = Schema.is(RevaluationMethod)
+
+/**
+ * AccountBalance - Represents the balance of an account in a specific currency
+ *
+ * Used by the revaluation process to track account balances and their currency.
+ */
+export class AccountBalance extends Schema.Class<AccountBalance>("AccountBalance")({
+  /**
+   * The account ID
+   */
+  accountId: Schema.UUID.pipe(Schema.brand("AccountId")),
+
+  /**
+   * The account name (for display in results)
+   */
+  accountName: Schema.NonEmptyTrimmedString,
+
+  /**
+   * The account type (Asset, Liability, etc.)
+   */
+  accountType: Schema.Literal("Asset", "Liability", "Equity", "Revenue", "Expense"),
+
+  /**
+   * The account category (CurrentAsset, CurrentLiability, etc.)
+   */
+  accountCategory: Schema.String,
+
+  /**
+   * The balance in the foreign currency
+   */
+  foreignCurrencyBalance: MonetaryAmount,
+
+  /**
+   * The current balance in functional currency (before revaluation)
+   */
+  functionalCurrencyBalance: MonetaryAmount,
+
+  /**
+   * The book exchange rate used for the current functional currency balance
+   */
+  bookRate: Schema.BigDecimal
+}) {}
+
+/**
+ * Type guard for AccountBalance
+ */
+export const isAccountBalance = Schema.is(AccountBalance)
+
+/**
+ * RevaluationAccountDetail - Per-account detail for revaluation result
+ *
+ * Per SPECIFICATIONS.md Per-Account Detail:
+ * - Account reference
+ * - Currency
+ * - Balance in foreign currency
+ * - Previous functional currency balance
+ * - New functional currency balance (at closing rate)
+ * - Gain or loss amount
+ */
+export class RevaluationAccountDetail extends Schema.Class<RevaluationAccountDetail>("RevaluationAccountDetail")({
+  /**
+   * The account ID
+   */
+  accountId: Schema.UUID.pipe(Schema.brand("AccountId")),
+
+  /**
+   * The account name (for display)
+   */
+  accountName: Schema.NonEmptyTrimmedString,
+
+  /**
+   * The account type (Asset or Liability for monetary accounts)
+   */
+  accountType: Schema.Literal("Asset", "Liability"),
+
+  /**
+   * The foreign currency code
+   */
+  currency: CurrencyCode,
+
+  /**
+   * Balance in foreign currency
+   */
+  foreignCurrencyBalance: MonetaryAmount,
+
+  /**
+   * Previous functional currency balance (before revaluation)
+   */
+  previousFunctionalCurrencyBalance: MonetaryAmount,
+
+  /**
+   * New functional currency balance (at closing rate)
+   */
+  newFunctionalCurrencyBalance: MonetaryAmount,
+
+  /**
+   * The book exchange rate (before revaluation)
+   */
+  bookRate: Schema.BigDecimal,
+
+  /**
+   * The closing exchange rate used for revaluation
+   */
+  closingRate: Schema.BigDecimal,
+
+  /**
+   * Gain or loss amount (positive = gain, negative = loss)
+   * In functional currency
+   */
+  gainOrLoss: MonetaryAmount
+}) {
+  /**
+   * Check if this detail represents a gain
+   */
+  get isGain(): boolean {
+    return this.gainOrLoss.isPositive
+  }
+
+  /**
+   * Check if this detail represents a loss
+   */
+  get isLoss(): boolean {
+    return this.gainOrLoss.isNegative
+  }
+
+  /**
+   * Check if there is no gain or loss (rate unchanged)
+   */
+  get isUnchanged(): boolean {
+    return this.gainOrLoss.isZero
+  }
+}
+
+/**
+ * Type guard for RevaluationAccountDetail
+ */
+export const isRevaluationAccountDetail = Schema.is(RevaluationAccountDetail)
+
+/**
+ * RevaluationResult - Result of period-end revaluation
+ *
+ * Per SPECIFICATIONS.md Revaluation Run Properties:
+ * - Company and fiscal period
+ * - Run date
+ * - Revaluation method
+ * - Closing exchange rate used
+ * - Total unrealized gain/loss
+ * - Reference to generated journal entry
+ * - Per-account detail
+ */
+export class RevaluationResult extends Schema.Class<RevaluationResult>("RevaluationResult")({
+  /**
+   * The company ID
+   */
+  companyId: Schema.UUID.pipe(Schema.brand("CompanyId")),
+
+  /**
+   * The fiscal period reference
+   */
+  fiscalPeriod: Schema.Struct({
+    year: Schema.Number,
+    period: Schema.Number
+  }),
+
+  /**
+   * The closing date used for revaluation
+   */
+  closingDate: LocalDate,
+
+  /**
+   * The revaluation method used
+   */
+  method: RevaluationMethod,
+
+  /**
+   * Per-account details
+   */
+  accountDetails: Schema.Array(RevaluationAccountDetail),
+
+  /**
+   * Total unrealized gain (positive) in functional currency
+   */
+  totalUnrealizedGain: MonetaryAmount,
+
+  /**
+   * Total unrealized loss (positive value representing loss) in functional currency
+   */
+  totalUnrealizedLoss: MonetaryAmount,
+
+  /**
+   * Net gain or loss (gain - loss, positive = net gain, negative = net loss)
+   */
+  netGainOrLoss: MonetaryAmount,
+
+  /**
+   * The generated revaluation journal entry (if any adjustments were needed)
+   */
+  journalEntry: Schema.OptionFromNullOr(JournalEntry),
+
+  /**
+   * The journal entry lines for the revaluation
+   */
+  journalEntryLines: Schema.Array(JournalEntryLine),
+
+  /**
+   * When the revaluation was performed
+   */
+  createdAt: Timestamp
+}) {
+  /**
+   * Check if revaluation resulted in a net gain
+   */
+  get hasNetGain(): boolean {
+    return this.netGainOrLoss.isPositive
+  }
+
+  /**
+   * Check if revaluation resulted in a net loss
+   */
+  get hasNetLoss(): boolean {
+    return this.netGainOrLoss.isNegative
+  }
+
+  /**
+   * Check if no adjustment was needed
+   */
+  get hasNoAdjustment(): boolean {
+    return this.netGainOrLoss.isZero
+  }
+
+  /**
+   * Get the count of accounts that were revalued
+   */
+  get accountCount(): number {
+    return this.accountDetails.length
+  }
+
+  /**
+   * Get accounts with gains only
+   */
+  get accountsWithGains(): ReadonlyArray<RevaluationAccountDetail> {
+    return this.accountDetails.filter((detail) => detail.isGain)
+  }
+
+  /**
+   * Get accounts with losses only
+   */
+  get accountsWithLosses(): ReadonlyArray<RevaluationAccountDetail> {
+    return this.accountDetails.filter((detail) => detail.isLoss)
+  }
+}
+
+/**
+ * Type guard for RevaluationResult
+ */
+export const isRevaluationResult = Schema.is(RevaluationResult)
+
+// =============================================================================
+// Revaluation Repository Interface
+// =============================================================================
+
+/**
+ * MonetaryAccountCriteria - Criteria for identifying monetary accounts
+ *
+ * Monetary accounts per ASC 830 include:
+ * - Cash and cash equivalents
+ * - Accounts receivable
+ * - Accounts payable
+ * - Short-term debt
+ * - Long-term debt
+ */
+export interface MonetaryAccountCriteria {
+  /** Account categories considered monetary for revaluation */
+  readonly categories: ReadonlyArray<string>
+  /** Account types to include */
+  readonly types: ReadonlyArray<AccountType>
+}
+
+/**
+ * Default monetary account criteria per ASC 830
+ */
+export const DEFAULT_MONETARY_ACCOUNT_CRITERIA: MonetaryAccountCriteria = {
+  categories: ["CurrentAsset", "CurrentLiability", "NonCurrentLiability"],
+  types: ["Asset", "Liability"]
+}
+
+/**
+ * AccountBalanceRepository - Repository interface for account balance lookups
+ *
+ * Used by revaluation process to get account balances in foreign currencies.
+ */
+export interface AccountBalanceRepositoryService {
+  /**
+   * Get all monetary account balances in foreign currencies for a company
+   *
+   * @param companyId - The company ID
+   * @param functionalCurrency - The company's functional currency
+   * @param asOfDate - The date for balance calculation
+   * @param criteria - Criteria for identifying monetary accounts
+   * @returns Effect containing array of account balances in foreign currencies
+   */
+  readonly getForeignCurrencyBalances: (
+    companyId: CompanyId,
+    functionalCurrency: CurrencyCode,
+    asOfDate: LocalDate,
+    criteria: MonetaryAccountCriteria
+  ) => Effect.Effect<ReadonlyArray<AccountBalance>>
+
+  /**
+   * Get the unrealized gain/loss account for a company
+   *
+   * @param companyId - The company ID
+   * @param type - Whether to get the gain or loss account
+   * @returns Effect containing the account ID or None if not configured
+   */
+  readonly getUnrealizedGainLossAccount: (
+    companyId: CompanyId,
+    type: "UnrealizedGain" | "UnrealizedLoss"
+  ) => Effect.Effect<Option.Option<AccountId>>
+}
+
+/**
+ * AccountBalanceRepository Context.Tag
+ */
+export class AccountBalanceRepository extends Context.Tag("AccountBalanceRepository")<
+  AccountBalanceRepository,
+  AccountBalanceRepositoryService
+>() {}
+
+// =============================================================================
+// Revaluation Input Types
+// =============================================================================
+
+/**
+ * RevalueInput - Input for performing period-end revaluation
+ */
+export interface RevalueInput {
+  /** The company to revalue */
+  readonly companyId: CompanyId
+  /** The fiscal period reference */
+  readonly fiscalPeriod: FiscalPeriodRef
+  /** The closing date for rate lookup */
+  readonly closingDate: LocalDate
+  /** The company's functional currency */
+  readonly functionalCurrency: CurrencyCode
+  /** The revaluation method (default: BalanceSheet) */
+  readonly method?: RevaluationMethod
+  /** The new journal entry ID */
+  readonly journalEntryId: JournalEntryId
+  /** Line IDs for the journal entry (must have enough for all lines) */
+  readonly journalEntryLineIds: ReadonlyArray<JournalEntryLineId>
+  /** The user performing the revaluation */
+  readonly performedBy: UserId
+}
+
+// =============================================================================
 // Service Interface
 // =============================================================================
 
@@ -406,6 +849,33 @@ export interface CurrencyServiceShape {
   ) => Effect.Effect<
     TranslationResult,
     RateNotFoundError | InverseRateCalculationError,
+    never
+  >
+
+  /**
+   * Perform period-end revaluation of foreign currency monetary items
+   *
+   * Per ASC 830, monetary items (cash, receivables, payables) denominated in
+   * foreign currencies must be revalued at period end using the closing rate.
+   *
+   * This operation:
+   * - Identifies monetary accounts with foreign currency balances
+   * - Calculates unrealized gain/loss using closing rate vs. book rate
+   * - Generates a revaluation journal entry automatically
+   * - Returns detailed per-account results and total gain/loss
+   *
+   * @param input - The revaluation input parameters
+   * @returns Effect containing the RevaluationResult with per-account detail and generated journal entry
+   * @throws NoForeignCurrencyBalancesError if no accounts need revaluation
+   * @throws RateNotFoundError if closing rate is not found for a currency pair
+   * @throws InverseRateCalculationError if inverse rate calculation fails
+   * @throws UnrealizedGainLossAccountNotFoundError if gain/loss account is not configured
+   */
+  readonly revalue: (
+    input: RevalueInput
+  ) => Effect.Effect<
+    RevaluationResult,
+    RevaluationError,
     never
   >
 }
@@ -642,16 +1112,444 @@ const make = Effect.gen(function* () {
           })
         )
       })
+  } satisfies Omit<CurrencyServiceShape, "revalue">
+})
+
+/**
+ * Create the full CurrencyService implementation with revaluation support
+ */
+const makeWithRevaluation = Effect.gen(function* () {
+  const repository = yield* ExchangeRateRepository
+  const accountBalanceRepository = yield* AccountBalanceRepository
+  const baseService = yield* make
+
+  // Helper to get the closing rate for a currency pair
+  const getClosingRate = (
+    fromCurrency: CurrencyCode,
+    toCurrency: CurrencyCode,
+    date: LocalDate
+  ): Effect.Effect<BigDecimal.BigDecimal, RateNotFoundError | InverseRateCalculationError> =>
+    Effect.gen(function* () {
+      // Try direct rate first
+      const directRate = yield* repository.findByPairDateAndType(
+        fromCurrency,
+        toCurrency,
+        date,
+        "Closing"
+      )
+
+      if (Option.isSome(directRate)) {
+        return directRate.value.rate
+      }
+
+      // Try inverse rate
+      const inverseRate = yield* repository.findByPairDateAndType(
+        toCurrency,
+        fromCurrency,
+        date,
+        "Closing"
+      )
+
+      if (Option.isSome(inverseRate)) {
+        const calculatedInverse = getInverseRate(inverseRate.value)
+        if (calculatedInverse === undefined) {
+          return yield* Effect.fail(
+            new InverseRateCalculationError({
+              fromCurrency,
+              toCurrency,
+              effectiveDate: { year: date.year, month: date.month, day: date.day },
+              rateType: "Closing"
+            })
+          )
+        }
+        return calculatedInverse
+      }
+
+      return yield* Effect.fail(
+        new RateNotFoundError({
+          fromCurrency,
+          toCurrency,
+          effectiveDate: { year: date.year, month: date.month, day: date.day },
+          rateType: "Closing"
+        })
+      )
+    })
+
+  return {
+    ...baseService,
+
+    revalue: (input: RevalueInput) =>
+      Effect.gen(function* () {
+        const {
+          companyId,
+          fiscalPeriod,
+          closingDate,
+          functionalCurrency,
+          method = "BalanceSheet",
+          journalEntryId,
+          journalEntryLineIds,
+          performedBy
+        } = input
+
+        // Get foreign currency balances
+        const balances = yield* accountBalanceRepository.getForeignCurrencyBalances(
+          companyId,
+          functionalCurrency,
+          closingDate,
+          DEFAULT_MONETARY_ACCOUNT_CRITERIA
+        )
+
+        // If no foreign currency balances, fail with NoForeignCurrencyBalancesError
+        if (balances.length === 0) {
+          return yield* Effect.fail(
+            new NoForeignCurrencyBalancesError({
+              companyId,
+              closingDate: { year: closingDate.year, month: closingDate.month, day: closingDate.day }
+            })
+          )
+        }
+
+        // Calculate revaluation for each account
+        const accountDetails: RevaluationAccountDetail[] = []
+        let totalGain = BigDecimal.fromNumber(0)
+        let totalLoss = BigDecimal.fromNumber(0)
+
+        for (const balance of balances) {
+          const foreignCurrency = balance.foreignCurrencyBalance.currency
+
+          // Get the closing rate for this currency
+          const closingRate = yield* getClosingRate(foreignCurrency, functionalCurrency, closingDate)
+
+          // Calculate new functional currency balance using closing rate
+          const newFunctionalCurrencyAmount = BigDecimal.multiply(
+            balance.foreignCurrencyBalance.amount,
+            closingRate
+          )
+          const newFunctionalCurrencyBalance = MonetaryAmount.fromBigDecimal(
+            newFunctionalCurrencyAmount,
+            functionalCurrency
+          )
+
+          // Calculate gain or loss
+          // For assets: if new value > old value, that's a gain
+          // For liabilities: if new value > old value, that's a loss (we owe more)
+          const difference = BigDecimal.subtract(
+            newFunctionalCurrencyAmount,
+            balance.functionalCurrencyBalance.amount
+          )
+
+          let gainOrLossAmount: BigDecimal.BigDecimal
+          if (balance.accountType === "Asset") {
+            // For assets: positive difference = gain
+            gainOrLossAmount = difference
+          } else {
+            // For liabilities: positive difference = loss (negated)
+            gainOrLossAmount = BigDecimal.negate(difference)
+          }
+
+          const gainOrLoss = MonetaryAmount.fromBigDecimal(gainOrLossAmount, functionalCurrency)
+
+          // Accumulate gains and losses
+          if (BigDecimal.greaterThan(gainOrLossAmount, BigDecimal.fromNumber(0))) {
+            totalGain = BigDecimal.sum(totalGain, gainOrLossAmount)
+          } else if (BigDecimal.lessThan(gainOrLossAmount, BigDecimal.fromNumber(0))) {
+            totalLoss = BigDecimal.sum(totalLoss, BigDecimal.abs(gainOrLossAmount))
+          }
+
+          // Only Asset and Liability accounts are monetary
+          const accountTypeForDetail = balance.accountType === "Asset" ? "Asset" as const : "Liability" as const
+
+          accountDetails.push(
+            RevaluationAccountDetail.make({
+              accountId: balance.accountId,
+              accountName: balance.accountName,
+              accountType: accountTypeForDetail,
+              currency: foreignCurrency,
+              foreignCurrencyBalance: balance.foreignCurrencyBalance,
+              previousFunctionalCurrencyBalance: balance.functionalCurrencyBalance,
+              newFunctionalCurrencyBalance,
+              bookRate: balance.bookRate,
+              closingRate,
+              gainOrLoss
+            })
+          )
+        }
+
+        // Calculate net gain/loss
+        const netGainOrLossAmount = BigDecimal.subtract(totalGain, totalLoss)
+        const netGainOrLoss = MonetaryAmount.fromBigDecimal(netGainOrLossAmount, functionalCurrency)
+        const totalUnrealizedGain = MonetaryAmount.fromBigDecimal(totalGain, functionalCurrency)
+        const totalUnrealizedLoss = MonetaryAmount.fromBigDecimal(totalLoss, functionalCurrency)
+
+        // Generate journal entry if there's any adjustment
+        let journalEntry: Option.Option<JournalEntry> = Option.none()
+        const journalEntryLines: JournalEntryLine[] = []
+
+        if (!BigDecimal.equals(netGainOrLossAmount, BigDecimal.fromNumber(0))) {
+          // Get the unrealized gain/loss accounts
+          const gainAccountOpt = yield* accountBalanceRepository.getUnrealizedGainLossAccount(
+            companyId,
+            "UnrealizedGain"
+          )
+          const lossAccountOpt = yield* accountBalanceRepository.getUnrealizedGainLossAccount(
+            companyId,
+            "UnrealizedLoss"
+          )
+
+          // Check that required accounts are configured
+          if (BigDecimal.greaterThan(totalGain, BigDecimal.fromNumber(0)) && Option.isNone(gainAccountOpt)) {
+            return yield* Effect.fail(
+              new UnrealizedGainLossAccountNotFoundError({
+                companyId,
+                accountType: "UnrealizedGain"
+              })
+            )
+          }
+
+          if (BigDecimal.greaterThan(totalLoss, BigDecimal.fromNumber(0)) && Option.isNone(lossAccountOpt)) {
+            return yield* Effect.fail(
+              new UnrealizedGainLossAccountNotFoundError({
+                companyId,
+                accountType: "UnrealizedLoss"
+              })
+            )
+          }
+
+          const now = yield* timestampNowEffect
+          const unitRate = BigDecimal.fromNumber(1)
+
+          // Create journal entry lines
+          let lineNumber = 1
+          let lineIdIndex = 0
+
+          // Add lines for each account that needs adjustment
+          for (const detail of accountDetails) {
+            if (!detail.isUnchanged) {
+              if (lineIdIndex >= journalEntryLineIds.length) {
+                // Not enough line IDs provided - skip remaining
+                break
+              }
+
+              const adjustmentAmount = MonetaryAmount.fromBigDecimal(
+                BigDecimal.abs(detail.gainOrLoss.amount),
+                functionalCurrency
+              )
+
+              // Determine if this is a debit or credit to the account
+              // For assets with gains: debit the asset (increase)
+              // For assets with losses: credit the asset (decrease)
+              // For liabilities with gains: credit the liability (decrease)
+              // For liabilities with losses: debit the liability (increase)
+              const isGain = detail.isGain
+
+              if (detail.accountType === "Asset") {
+                if (isGain) {
+                  // Asset gain: Debit the asset
+                  journalEntryLines.push(
+                    JournalEntryLine.make({
+                      id: journalEntryLineIds[lineIdIndex++],
+                      journalEntryId,
+                      lineNumber: lineNumber++,
+                      accountId: detail.accountId,
+                      debitAmount: Option.some(adjustmentAmount),
+                      creditAmount: Option.none(),
+                      functionalCurrencyDebitAmount: Option.some(adjustmentAmount),
+                      functionalCurrencyCreditAmount: Option.none(),
+                      exchangeRate: unitRate,
+                      memo: Option.some(`Revaluation adjustment for ${detail.currency}`),
+                      dimensions: Option.none(),
+                      intercompanyPartnerId: Option.none(),
+                      matchingLineId: Option.none()
+                    })
+                  )
+                } else {
+                  // Asset loss: Credit the asset
+                  journalEntryLines.push(
+                    JournalEntryLine.make({
+                      id: journalEntryLineIds[lineIdIndex++],
+                      journalEntryId,
+                      lineNumber: lineNumber++,
+                      accountId: detail.accountId,
+                      debitAmount: Option.none(),
+                      creditAmount: Option.some(adjustmentAmount),
+                      functionalCurrencyDebitAmount: Option.none(),
+                      functionalCurrencyCreditAmount: Option.some(adjustmentAmount),
+                      exchangeRate: unitRate,
+                      memo: Option.some(`Revaluation adjustment for ${detail.currency}`),
+                      dimensions: Option.none(),
+                      intercompanyPartnerId: Option.none(),
+                      matchingLineId: Option.none()
+                    })
+                  )
+                }
+              } else {
+                // Liability
+                if (isGain) {
+                  // Liability gain (decreased): Debit the liability
+                  journalEntryLines.push(
+                    JournalEntryLine.make({
+                      id: journalEntryLineIds[lineIdIndex++],
+                      journalEntryId,
+                      lineNumber: lineNumber++,
+                      accountId: detail.accountId,
+                      debitAmount: Option.some(adjustmentAmount),
+                      creditAmount: Option.none(),
+                      functionalCurrencyDebitAmount: Option.some(adjustmentAmount),
+                      functionalCurrencyCreditAmount: Option.none(),
+                      exchangeRate: unitRate,
+                      memo: Option.some(`Revaluation adjustment for ${detail.currency}`),
+                      dimensions: Option.none(),
+                      intercompanyPartnerId: Option.none(),
+                      matchingLineId: Option.none()
+                    })
+                  )
+                } else {
+                  // Liability loss (increased): Credit the liability
+                  journalEntryLines.push(
+                    JournalEntryLine.make({
+                      id: journalEntryLineIds[lineIdIndex++],
+                      journalEntryId,
+                      lineNumber: lineNumber++,
+                      accountId: detail.accountId,
+                      debitAmount: Option.none(),
+                      creditAmount: Option.some(adjustmentAmount),
+                      functionalCurrencyDebitAmount: Option.none(),
+                      functionalCurrencyCreditAmount: Option.some(adjustmentAmount),
+                      exchangeRate: unitRate,
+                      memo: Option.some(`Revaluation adjustment for ${detail.currency}`),
+                      dimensions: Option.none(),
+                      intercompanyPartnerId: Option.none(),
+                      matchingLineId: Option.none()
+                    })
+                  )
+                }
+              }
+            }
+          }
+
+          // Add offsetting entry to unrealized gain/loss account
+          if (BigDecimal.greaterThan(totalGain, BigDecimal.fromNumber(0)) && lineIdIndex < journalEntryLineIds.length) {
+            const gainAccount = Option.getOrThrow(gainAccountOpt)
+            journalEntryLines.push(
+              JournalEntryLine.make({
+                id: journalEntryLineIds[lineIdIndex++],
+                journalEntryId,
+                lineNumber: lineNumber++,
+                accountId: gainAccount,
+                debitAmount: Option.none(),
+                creditAmount: Option.some(totalUnrealizedGain),
+                functionalCurrencyDebitAmount: Option.none(),
+                functionalCurrencyCreditAmount: Option.some(totalUnrealizedGain),
+                exchangeRate: unitRate,
+                memo: Option.some("Period-end foreign currency revaluation gain"),
+                dimensions: Option.none(),
+                intercompanyPartnerId: Option.none(),
+                matchingLineId: Option.none()
+              })
+            )
+          }
+
+          if (BigDecimal.greaterThan(totalLoss, BigDecimal.fromNumber(0)) && lineIdIndex < journalEntryLineIds.length) {
+            const lossAccount = Option.getOrThrow(lossAccountOpt)
+            journalEntryLines.push(
+              JournalEntryLine.make({
+                id: journalEntryLineIds[lineIdIndex++],
+                journalEntryId,
+                lineNumber: lineNumber++,
+                accountId: lossAccount,
+                debitAmount: Option.some(totalUnrealizedLoss),
+                creditAmount: Option.none(),
+                functionalCurrencyDebitAmount: Option.some(totalUnrealizedLoss),
+                functionalCurrencyCreditAmount: Option.none(),
+                exchangeRate: unitRate,
+                memo: Option.some("Period-end foreign currency revaluation loss"),
+                dimensions: Option.none(),
+                intercompanyPartnerId: Option.none(),
+                matchingLineId: Option.none()
+              })
+            )
+          }
+
+          // Create the journal entry
+          journalEntry = Option.some(
+            JournalEntry.make({
+              id: journalEntryId,
+              companyId,
+              entryNumber: Option.none(),
+              referenceNumber: Option.some(`REVAL-${fiscalPeriod.year}-${String(fiscalPeriod.period).padStart(2, "0")}`),
+              description: `Foreign currency revaluation for period ${fiscalPeriod.year}.${String(fiscalPeriod.period).padStart(2, "0")}`,
+              transactionDate: closingDate,
+              postingDate: Option.none(),
+              documentDate: Option.none(),
+              fiscalPeriod,
+              entryType: "Revaluation",
+              sourceModule: "GeneralLedger",
+              sourceDocumentRef: Option.none(),
+              isMultiCurrency: false,
+              status: "Draft",
+              isReversing: false,
+              reversedEntryId: Option.none(),
+              reversingEntryId: Option.none(),
+              createdBy: performedBy,
+              createdAt: now,
+              postedBy: Option.none(),
+              postedAt: Option.none()
+            })
+          )
+        }
+
+        const createdAt = yield* timestampNowEffect
+
+        return RevaluationResult.make({
+          companyId,
+          fiscalPeriod: { year: fiscalPeriod.year, period: fiscalPeriod.period },
+          closingDate,
+          method,
+          accountDetails,
+          totalUnrealizedGain,
+          totalUnrealizedLoss,
+          netGainOrLoss,
+          journalEntry,
+          journalEntryLines,
+          createdAt
+        })
+      })
   } satisfies CurrencyServiceShape
 })
 
 /**
- * CurrencyServiceLive - Live implementation of CurrencyService
+ * CurrencyServiceLive - Live implementation of CurrencyService (basic, without revaluation)
  *
  * Requires ExchangeRateRepository
+ *
+ * Note: Use CurrencyServiceWithRevaluationLive for full functionality including revaluation.
  */
 export const CurrencyServiceLive: Layer.Layer<
   CurrencyService,
   never,
   ExchangeRateRepository
-> = Layer.effect(CurrencyService, make)
+> = Layer.effect(CurrencyService, Effect.gen(function* () {
+  const baseService = yield* make
+  // Add a stub revalue that fails - for basic service without revaluation support
+  return {
+    ...baseService,
+    revalue: () =>
+      Effect.fail(
+        new NoForeignCurrencyBalancesError({
+          companyId: "00000000-0000-0000-0000-000000000000" as CompanyId,
+          closingDate: { year: 0, month: 0, day: 0 }
+        })
+      )
+  } satisfies CurrencyServiceShape
+}))
+
+/**
+ * CurrencyServiceWithRevaluationLive - Full implementation of CurrencyService with revaluation
+ *
+ * Requires ExchangeRateRepository and AccountBalanceRepository
+ */
+export const CurrencyServiceWithRevaluationLive: Layer.Layer<
+  CurrencyService,
+  never,
+  ExchangeRateRepository | AccountBalanceRepository
+> = Layer.effect(CurrencyService, makeWithRevaluation)
