@@ -1167,6 +1167,92 @@ it.prop("account test", [accountArb], ([account]) =>
 )
 ```
 
+**Testing database-dependent code with testcontainers:**
+
+Use `@testcontainers/postgresql` to run integration tests against a real PostgreSQL database. Wrap the container in an Effect layer for proper lifecycle management.
+
+```typescript
+// test/utils.ts - Container layer setup
+import { PgClient } from "@effect/sql-pg"
+import { PostgreSqlContainer } from "@testcontainers/postgresql"
+import { Data, Effect, Layer, Redacted } from "effect"
+
+// Error type for container failures
+export class ContainerError extends Data.TaggedError("ContainerError")<{
+  cause: unknown
+}> {}
+
+// Container as Effect.Service with scoped lifecycle
+export class PgContainer extends Effect.Service<PgContainer>()("test/PgContainer", {
+  scoped: Effect.acquireRelease(
+    Effect.tryPromise({
+      try: () => new PostgreSqlContainer("postgres:alpine").start(),
+      catch: (cause) => new ContainerError({ cause })
+    }),
+    (container) => Effect.promise(() => container.stop())
+  )
+}) {
+  // Layer that provides PgClient from the container
+  static ClientLive = Layer.unwrapEffect(
+    Effect.gen(function*() {
+      const container = yield* PgContainer
+      return PgClient.layer({
+        url: Redacted.make(container.getConnectionUri())
+      })
+    })
+  ).pipe(Layer.provide(this.Default))
+}
+```
+
+```typescript
+// test/Repository.test.ts - Using the container in tests
+import { it, expect } from "@effect/vitest"
+import { PgClient } from "@effect/sql-pg"
+import { Effect } from "effect"
+import { PgContainer } from "./utils.js"
+
+// Use it.layer with 30s timeout (container startup is slow)
+it.layer(PgContainer.ClientLive, { timeout: "30 seconds" })("AccountRepository", (it) => {
+  it.effect("creates and retrieves account", () =>
+    Effect.gen(function*() {
+      const sql = yield* PgClient.PgClient
+
+      // Create table
+      yield* sql`CREATE TABLE accounts (id TEXT PRIMARY KEY, name TEXT NOT NULL)`
+
+      // Insert
+      yield* sql`INSERT INTO accounts (id, name) VALUES ('acc_1', 'Cash')`
+
+      // Query
+      const rows = yield* sql`SELECT * FROM accounts WHERE id = 'acc_1'`
+      expect(rows[0].name).toBe("Cash")
+    })
+  )
+
+  it.effect("handles transactions", () =>
+    Effect.gen(function*() {
+      const sql = yield* PgClient.PgClient
+
+      // Transaction that rolls back on error
+      const result = yield* sql.withTransaction(
+        Effect.gen(function*() {
+          yield* sql`INSERT INTO accounts (id, name) VALUES ('acc_2', 'Bank')`
+          return yield* sql`SELECT * FROM accounts WHERE id = 'acc_2'`
+        })
+      )
+      expect(result).toHaveLength(1)
+    })
+  )
+})
+```
+
+**Key points:**
+- Container starts once per `it.layer` block, shared across all tests in that block
+- Container stops automatically when tests complete (acquireRelease cleanup)
+- Use `{ timeout: "30 seconds" }` because container startup takes time
+- Each test gets the same database - use transactions or cleanup between tests
+- `Layer.unwrapEffect` defers layer creation until container is running
+
 ---
 
 ## Guidelines for Implementation
