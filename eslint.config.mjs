@@ -121,8 +121,14 @@ export default [
           varsIgnorePattern: "^_"
         }
       ],
-      // TypeScript-specific rules relaxations for Effect patterns
-      "@typescript-eslint/no-explicit-any": "off",
+      // Prohibit any and type assertions
+      "@typescript-eslint/no-explicit-any": "error",
+      "@typescript-eslint/consistent-type-assertions": [
+        "error",
+        {
+          assertionStyle: "never"
+        }
+      ],
       "@typescript-eslint/no-empty-object-type": "off",
       "@typescript-eslint/ban-ts-comment": "off",
       "@typescript-eslint/no-namespace": "off",

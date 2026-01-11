@@ -443,7 +443,7 @@ If you see an index.ts file, delete it and update imports to point to specific m
 
 ### CRITICAL RULES
 
-**1. NEVER use `any` type or cast to `any`:**
+**1. NEVER use `any` type or type casts (`x as Y`):**
 
 ```typescript
 // WRONG - never use any
@@ -452,14 +452,37 @@ const data = value as any
 function process(input: any): any { ... }
 getMemberTrialBalances: (_groupId, _periodRef, _asOfDate): any => { ... }
 
+// WRONG - never use type casts
+const account = data as Account
+const id = value as AccountId
+const amount = num as number
+
 // CORRECT - use proper types, generics, or unknown
 const result: SomeType = someValue
-const data = value as SomeSpecificType
 function process<T>(input: T): Result<T> { ... }
 getMemberTrialBalances: (groupId: GroupId, periodRef: PeriodRef, asOfDate: LocalDate): Effect.Effect<TrialBalances, RepositoryError> => { ... }
+
+// CORRECT - use Schema.make() for branded types
+const id = AccountId.make(rawId)
+const amount = Percentage.make(value)
+
+// CORRECT - use Schema.decodeUnknown for parsing
+const account = yield* Schema.decodeUnknown(Account)(data)
 ```
 
-Using `any` defeats TypeScript's type system. Always use proper types, even if it requires more effort.
+Using `any` defeats TypeScript's type system. Type casts (`x as Y`) bypass type checking and can hide bugs.
+
+**When absolutely necessary**, if there is truly no other way and you must use a cast or `any`, use an eslint-disable comment with a reason:
+
+```typescript
+// eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- Schema.suspend requires cast for recursive type
+const children: Schema.Schema<TreeNode, TreeNodeEncoded> = Schema.suspend(() => TreeNode) as Schema.Schema<TreeNode, TreeNodeEncoded>
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Third-party library returns untyped data
+const externalData: any = thirdPartyLib.getData()
+```
+
+The comment must explain WHY the cast/any is necessary. This should be extremely rare.
 
 **2. NEVER use `catchAll` when error type is `never`:**
 
