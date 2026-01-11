@@ -41,8 +41,7 @@ import {
   CONSOLIDATION_STEP_ORDER,
   createInitialSteps,
   defaultConsolidationRunOptions,
-  type ConsolidationStepType,
-  type ConsolidationRunStatus
+  type ConsolidationStepType
 } from "../domain/ConsolidationRun.ts"
 import type { CurrencyCode } from "../domain/CurrencyCode.ts"
 import type { EliminationRule } from "../domain/EliminationRule.ts"
@@ -51,6 +50,8 @@ import type { LocalDate } from "../domain/LocalDate.ts"
 import { MonetaryAmount } from "../domain/MonetaryAmount.ts"
 import type { Timestamp} from "../domain/Timestamp.ts";
 import { nowEffect as timestampNowEffect } from "../domain/Timestamp.ts"
+import type { UserId } from "../domain/JournalEntry.ts"
+import type { EliminationEntryId } from "./EliminationService.ts"
 import type { TrialBalanceReport } from "./TrialBalanceService.ts"
 
 // =============================================================================
@@ -167,7 +168,6 @@ export type ConsolidationServiceError =
   | FiscalPeriodNotFoundError
   | ConsolidationRunExistsError
   | ConsolidationValidationError
-  | ConsolidationStepFailedError
 
 // =============================================================================
 // Step Result Types
@@ -445,7 +445,7 @@ export interface ConsolidationRepositoryService {
     rules: Chunk.Chunk<EliminationRule>,
     aggregatedBalances: Chunk.Chunk<AggregatedBalance>
   ) => Effect.Effect<{
-    entryIds: Chunk.Chunk<string>
+    entryIds: Chunk.Chunk<EliminationEntryId>
     totalEliminationAmount: MonetaryAmount
   }>
 
@@ -504,7 +504,7 @@ export interface RunConsolidationInput {
   /** Options for the consolidation run */
   readonly options?: ConsolidationRunOptions
   /** User initiating the run */
-  readonly userId: string
+  readonly userId: UserId
 }
 
 // =============================================================================
@@ -533,7 +533,6 @@ export interface ConsolidationServiceShape {
    * @throws FiscalPeriodNotFoundError if period is invalid
    * @throws ConsolidationRunExistsError if run exists and forceRegeneration is false
    * @throws ConsolidationValidationError if validation fails
-   * @throws ConsolidationStepFailedError if any step fails
    */
   readonly run: (
     input: RunConsolidationInput
@@ -655,7 +654,7 @@ const make = Effect.gen(function* () {
           consolidatedTrialBalance: Option.none(),
           eliminationEntryIds: Chunk.empty(),
           options,
-          initiatedBy: userId as any, // Cast to UserId branded type
+          initiatedBy: userId,
           initiatedAt,
           startedAt: Option.none(),
           completedAt: Option.none(),
@@ -670,7 +669,7 @@ const make = Effect.gen(function* () {
         const startedAt = yield* timestampNowEffect
         run = ConsolidationRun.make({
           ...run,
-          status: "InProgress" as ConsolidationRunStatus,
+          status: "InProgress",
           startedAt: Option.some(startedAt)
         })
         run = yield* repository.updateRun(run)
@@ -679,7 +678,7 @@ const make = Effect.gen(function* () {
         let aggregatedBalances: Chunk.Chunk<AggregatedBalance> = Chunk.empty()
         let totalEliminationAmount = MonetaryAmount.zero(group.reportingCurrency)
         let totalNCI = MonetaryAmount.zero(group.reportingCurrency)
-        let eliminationEntryIds: Chunk.Chunk<string> = Chunk.empty()
+        let eliminationEntryIds: Chunk.Chunk<EliminationEntryId> = Chunk.empty()
         let validationResult: Option.Option<ValidationResult> = Option.none()
 
         // ==== Execute Steps ====
@@ -698,57 +697,17 @@ const make = Effect.gen(function* () {
           run = yield* repository.updateRun(run)
 
           // Execute the step
-          const stepResult = yield* executeStep(
+          const result = yield* executeStep(
             stepType,
             run,
             group,
             repository,
             options,
-            aggregatedBalances,
-            validationResult
-          ).pipe(
-            Effect.map((result) => ({ success: true as const, result })),
-            Effect.catchAll((error) =>
-              Effect.succeed({
-                success: false as const,
-                error: error instanceof Error ? error.message : String(error)
-              })
-            )
+            aggregatedBalances
           )
 
           const stepEndTime = yield* timestampNowEffect
           const durationMs = stepEndTime.epochMillis - stepStartTime.epochMillis
-
-          if (!stepResult.success) {
-            // Step failed - mark as failed and stop
-            run = ConsolidationRun.make({
-              ...run,
-              status: "Failed" as ConsolidationRunStatus,
-              steps: updateStep(run.steps, stepType, {
-                status: "Failed",
-                completedAt: Option.some(stepEndTime),
-                durationMs: Option.some(durationMs),
-                errorMessage: Option.some(stepResult.error)
-              }),
-              completedAt: Option.some(stepEndTime),
-              totalDurationMs: Option.some(
-                stepEndTime.epochMillis - startedAt.epochMillis
-              ),
-              errorMessage: Option.some(stepResult.error)
-            })
-            run = yield* repository.updateRun(run)
-
-            return yield* Effect.fail(
-              new ConsolidationStepFailedError({
-                runId,
-                stepType,
-                errorMessage: stepResult.error as any
-              })
-            )
-          }
-
-          // Step succeeded - update state
-          const result = stepResult.result
 
           // Update aggregated balances if returned
           if (result.aggregatedBalances) {
@@ -766,7 +725,7 @@ const make = Effect.gen(function* () {
 
               run = ConsolidationRun.make({
                 ...run,
-                status: "Failed" as ConsolidationRunStatus,
+                status: "Failed",
                 steps: updateStep(run.steps, stepType, {
                   status: "Failed",
                   completedAt: Option.some(stepEndTimeVal),
@@ -817,7 +776,7 @@ const make = Effect.gen(function* () {
               details: result.details ? Option.some(result.details) : Option.none()
             }),
             validationResult,
-            eliminationEntryIds: eliminationEntryIds as any
+            eliminationEntryIds
           })
           run = yield* repository.updateRun(run)
         }
@@ -871,7 +830,7 @@ const make = Effect.gen(function* () {
         const completedAt = yield* timestampNowEffect
         run = ConsolidationRun.make({
           ...run,
-          status: "Completed" as ConsolidationRunStatus,
+          status: "Completed",
           consolidatedTrialBalance: Option.some(consolidatedTrialBalance),
           completedAt: Option.some(completedAt),
           totalDurationMs: Option.some(
@@ -896,7 +855,7 @@ interface StepExecutionResult {
   details?: string
   aggregatedBalances?: Chunk.Chunk<AggregatedBalance>
   validationResult?: ValidationResult
-  eliminationEntryIds?: Chunk.Chunk<string>
+  eliminationEntryIds?: Chunk.Chunk<EliminationEntryId>
   totalEliminationAmount?: MonetaryAmount
   totalNCI?: MonetaryAmount
 }
@@ -915,24 +874,23 @@ const executeStep = (
   },
   repository: ConsolidationRepositoryService,
   options: ConsolidationRunOptions,
-  aggregatedBalances: Chunk.Chunk<AggregatedBalance>,
-  _validationResult: Option.Option<ValidationResult>
-): Effect.Effect<StepExecutionResult, Error> => {
+  aggregatedBalances: Chunk.Chunk<AggregatedBalance>
+): Effect.Effect<StepExecutionResult> => {
   switch (stepType) {
     case "Validate":
       return executeValidateStep(run, group, repository, options)
     case "Translate":
-      return executeTranslateStep(run, group, repository)
+      return executeTranslateStep(run, group, repository, run.periodRef, run.asOfDate)
     case "Aggregate":
-      return executeAggregateStep(run, group, repository)
+      return executeAggregateStep(group, repository, run.periodRef, run.asOfDate)
     case "MatchIC":
-      return executeMatchICStep(run, group, repository)
+      return executeMatchICStep(group, repository, run.periodRef)
     case "Eliminate":
-      return executeEliminateStep(run, group, repository, aggregatedBalances)
+      return executeEliminateStep(group, repository, run.periodRef, aggregatedBalances)
     case "NCI":
-      return executeNCIStep(run, group, repository, aggregatedBalances)
+      return executeNCIStep(group, repository, run.periodRef, aggregatedBalances)
     case "GenerateTB":
-      return executeGenerateTBStep(run, group, aggregatedBalances)
+      return executeGenerateTBStep(aggregatedBalances)
   }
 }
 
@@ -949,7 +907,7 @@ const executeValidateStep = (
   },
   repository: ConsolidationRepositoryService,
   options: ConsolidationRunOptions
-): Effect.Effect<StepExecutionResult, Error> =>
+): Effect.Effect<StepExecutionResult> =>
   Effect.gen(function* () {
     if (options.skipValidation) {
       return {
@@ -1012,28 +970,28 @@ const executeValidateStep = (
       details: `Validated ${memberCount} member(s): ${validationResult.errorCount} error(s), ${validationResult.warningCount} warning(s)`,
       validationResult
     }
-  }).pipe(
-    Effect.catchAll((e) => Effect.fail(new Error(`Validation failed: ${e}`)))
-  )
+  })
 
 /**
  * Execute the Translate step
  */
 const executeTranslateStep = (
-  run: ConsolidationRun,
+  _run: ConsolidationRun,
   group: {
     id: ConsolidationGroupId
     name: string
     reportingCurrency: CurrencyCode
     members: Chunk.Chunk<ConsolidationMember>
   },
-  repository: ConsolidationRepositoryService
-): Effect.Effect<StepExecutionResult, Error> =>
+  repository: ConsolidationRepositoryService,
+  periodRef: FiscalPeriodRef,
+  asOfDate: LocalDate
+): Effect.Effect<StepExecutionResult> =>
   Effect.gen(function* () {
     const trialBalances = yield* repository.getMemberTrialBalances(
       group.id,
-      run.periodRef,
-      run.asOfDate
+      periodRef,
+      asOfDate
     )
 
     let translatedCount = 0
@@ -1043,7 +1001,7 @@ const executeTranslateStep = (
           tb.trialBalance,
           tb.localCurrency,
           group.reportingCurrency,
-          run.asOfDate
+          asOfDate
         )
         translatedCount++
       }
@@ -1052,28 +1010,27 @@ const executeTranslateStep = (
     return {
       details: `Translated ${translatedCount} member(s) to ${group.reportingCurrency}`
     }
-  }).pipe(
-    Effect.catchAll((e) => Effect.fail(new Error(`Translation failed: ${e}`)))
-  )
+  })
 
 /**
  * Execute the Aggregate step
  */
 const executeAggregateStep = (
-  run: ConsolidationRun,
   group: {
     id: ConsolidationGroupId
     name: string
     reportingCurrency: CurrencyCode
     members: Chunk.Chunk<ConsolidationMember>
   },
-  repository: ConsolidationRepositoryService
-): Effect.Effect<StepExecutionResult, Error> =>
+  repository: ConsolidationRepositoryService,
+  periodRef: FiscalPeriodRef,
+  asOfDate: LocalDate
+): Effect.Effect<StepExecutionResult> =>
   Effect.gen(function* () {
     const trialBalances = yield* repository.getMemberTrialBalances(
       group.id,
-      run.periodRef,
-      run.asOfDate
+      periodRef,
+      asOfDate
     )
 
     // Aggregate balances by account
@@ -1109,8 +1066,8 @@ const executeAggregateStep = (
     const aggregatedBalances = Chunk.fromIterable(
       Array.from(balanceMap.values()).map((entry) =>
         AggregatedBalance.make({
-          accountNumber: entry.accountNumber as any,
-          accountName: entry.accountName as any,
+          accountNumber: Schema.NonEmptyTrimmedString.make(entry.accountNumber),
+          accountName: Schema.NonEmptyTrimmedString.make(entry.accountName),
           accountType: entry.accountType,
           balance: MonetaryAmount.fromBigDecimal(entry.balance, group.reportingCurrency),
           memberCount: entry.memberCount
@@ -1122,41 +1079,12 @@ const executeAggregateStep = (
       details: `Aggregated ${balanceMap.size} account(s) from ${Chunk.size(trialBalances)} member(s)`,
       aggregatedBalances
     }
-  }).pipe(
-    Effect.catchAll((e) => Effect.fail(new Error(`Aggregation failed: ${e}`)))
-  )
+  })
 
 /**
  * Execute the Match IC step
  */
 const executeMatchICStep = (
-  run: ConsolidationRun,
-  group: {
-    id: ConsolidationGroupId
-    name: string
-    reportingCurrency: CurrencyCode
-    members: Chunk.Chunk<ConsolidationMember>
-  },
-  repository: ConsolidationRepositoryService
-): Effect.Effect<StepExecutionResult, Error> =>
-  Effect.gen(function* () {
-    const icResult = yield* repository.getIntercompanyTransactions(
-      group.id,
-      run.periodRef
-    )
-
-    return {
-      details: `Matched ${icResult.matchedPairs} IC pair(s), ${icResult.unmatchedCount} unmatched`
-    }
-  }).pipe(
-    Effect.catchAll((e) => Effect.fail(new Error(`IC matching failed: ${e}`)))
-  )
-
-/**
- * Execute the Eliminate step
- */
-const executeEliminateStep = (
-  run: ConsolidationRun,
   group: {
     id: ConsolidationGroupId
     name: string
@@ -1164,8 +1092,33 @@ const executeEliminateStep = (
     members: Chunk.Chunk<ConsolidationMember>
   },
   repository: ConsolidationRepositoryService,
+  periodRef: FiscalPeriodRef
+): Effect.Effect<StepExecutionResult> =>
+  Effect.gen(function* () {
+    const icResult = yield* repository.getIntercompanyTransactions(
+      group.id,
+      periodRef
+    )
+
+    return {
+      details: `Matched ${icResult.matchedPairs} IC pair(s), ${icResult.unmatchedCount} unmatched`
+    }
+  })
+
+/**
+ * Execute the Eliminate step
+ */
+const executeEliminateStep = (
+  group: {
+    id: ConsolidationGroupId
+    name: string
+    reportingCurrency: CurrencyCode
+    members: Chunk.Chunk<ConsolidationMember>
+  },
+  repository: ConsolidationRepositoryService,
+  periodRef: FiscalPeriodRef,
   aggregatedBalances: Chunk.Chunk<AggregatedBalance>
-): Effect.Effect<StepExecutionResult, Error> =>
+): Effect.Effect<StepExecutionResult> =>
   Effect.gen(function* () {
     const rules = yield* repository.getEliminationRules(group.id)
 
@@ -1179,7 +1132,7 @@ const executeEliminateStep = (
 
     const elimResult = yield* repository.generateEliminationEntries(
       group.id,
-      run.periodRef,
+      periodRef,
       rules,
       aggregatedBalances
     )
@@ -1189,15 +1142,12 @@ const executeEliminateStep = (
       eliminationEntryIds: elimResult.entryIds,
       totalEliminationAmount: elimResult.totalEliminationAmount
     }
-  }).pipe(
-    Effect.catchAll((e) => Effect.fail(new Error(`Elimination failed: ${e}`)))
-  )
+  })
 
 /**
  * Execute the NCI step
  */
 const executeNCIStep = (
-  run: ConsolidationRun,
   group: {
     id: ConsolidationGroupId
     name: string
@@ -1205,12 +1155,13 @@ const executeNCIStep = (
     members: Chunk.Chunk<ConsolidationMember>
   },
   repository: ConsolidationRepositoryService,
+  periodRef: FiscalPeriodRef,
   aggregatedBalances: Chunk.Chunk<AggregatedBalance>
-): Effect.Effect<StepExecutionResult, Error> =>
+): Effect.Effect<StepExecutionResult> =>
   Effect.gen(function* () {
     const nciResult = yield* repository.calculateNCI(
       group.id,
-      run.periodRef,
+      periodRef,
       aggregatedBalances
     )
 
@@ -1226,23 +1177,14 @@ const executeNCIStep = (
       details: `Calculated NCI for ${calculationCount} subsidiary(ies)`,
       totalNCI: nciResult.totalNCI
     }
-  }).pipe(
-    Effect.catchAll((e) => Effect.fail(new Error(`NCI calculation failed: ${e}`)))
-  )
+  })
 
 /**
  * Execute the Generate TB step
  */
 const executeGenerateTBStep = (
-  _run: ConsolidationRun,
-  _group: {
-    id: ConsolidationGroupId
-    name: string
-    reportingCurrency: CurrencyCode
-    members: Chunk.Chunk<ConsolidationMember>
-  },
   aggregatedBalances: Chunk.Chunk<AggregatedBalance>
-): Effect.Effect<StepExecutionResult, Error> =>
+): Effect.Effect<StepExecutionResult> =>
   Effect.gen(function* () {
     const lineCount = Chunk.size(aggregatedBalances)
     return {

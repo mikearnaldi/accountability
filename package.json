@@ -4,6 +4,7 @@
   "type": "module",
   "packageManager": "pnpm@10.17.1",
   "scripts": {
+    "prepare": "effect-language-service patch",
     "build": "pnpm --recursive --parallel run build",
     "test": "vitest",
     "test:coverage": "vitest run --coverage",
@@ -15,6 +16,7 @@
     "clean": "pnpm --recursive --parallel run clean"
   },
   "devDependencies": {
+    "@effect/language-service": "^0.64.1",
     "@effect/vitest": "^0.27.0",
     "@eslint/js": "^9.39.2",
     "@typescript-eslint/eslint-plugin": "^8.52.0",

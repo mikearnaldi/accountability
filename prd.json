@@ -1129,7 +1129,7 @@
         "transactions": "sql.withTransaction(effect)",
         "reference": "repos/effect/packages/sql-pg/test/ for patterns"
       },
-      "status": "pending",
+      "status": "in_progress",
       "estimated_complexity": "large"
     },
     {

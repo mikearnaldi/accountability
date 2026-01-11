@@ -441,6 +441,73 @@ If you see an index.ts file, delete it and update imports to point to specific m
 
 ## Effect Best Practices
 
+### CRITICAL RULES
+
+**1. NEVER use `any` type or cast to `any`:**
+
+```typescript
+// WRONG - never use any
+const result: any = someValue
+const data = value as any
+function process(input: any): any { ... }
+getMemberTrialBalances: (_groupId, _periodRef, _asOfDate): any => { ... }
+
+// CORRECT - use proper types, generics, or unknown
+const result: SomeType = someValue
+const data = value as SomeSpecificType
+function process<T>(input: T): Result<T> { ... }
+getMemberTrialBalances: (groupId: GroupId, periodRef: PeriodRef, asOfDate: LocalDate): Effect.Effect<TrialBalances, RepositoryError> => { ... }
+```
+
+Using `any` defeats TypeScript's type system. Always use proper types, even if it requires more effort.
+
+**2. NEVER use `catchAll` when error type is `never`:**
+
+```typescript
+// If the effect never fails, error type is `never`
+const infallibleEffect: Effect.Effect<Result, never> = Effect.succeed(value)
+
+// WRONG - catchAll on never is useless and indicates misunderstanding
+infallibleEffect.pipe(
+  Effect.catchAll((e) => Effect.fail(new SomeError({ message: String(e) })))
+)
+
+// CORRECT - if error is never, just use the effect directly
+infallibleEffect
+```
+
+The `never` error type means the effect cannot fail. Adding `catchAll` to a `never` error is a code smell - it means either:
+- The effect truly can't fail and catchAll is dead code
+- The effect can fail but you're hiding errors with improper typing (often from using `any`)
+
+**3. NEVER use global `Error` in Effect error channel:**
+
+```typescript
+// WRONG - global Error breaks Effect's typed error handling
+const bad: Effect.Effect<Result, Error> = Effect.fail(new Error("failed"))
+Effect.catchAll((e) => Effect.fail(new Error(`Wrapped: ${e}`)))
+
+// CORRECT - use Schema.TaggedError for all domain errors
+export class ValidationError extends Schema.TaggedError<ValidationError>()(
+  "ValidationError",
+  { message: Schema.String }
+) {}
+
+const good: Effect.Effect<Result, ValidationError> = Effect.fail(
+  new ValidationError({ message: "failed" })
+)
+```
+
+Using the global `Error` type:
+- Breaks type-safe error handling (all errors merge into `Error`)
+- Prevents using `Effect.catchTag` for precise error handling
+- Makes error discrimination impossible
+- Prevents the compiler from tracking which errors are handled
+
+Always use `Schema.TaggedError` with a unique `_tag` for every error type.
+
+---
+
 ### Module Structure - Flat Modules, No Barrel Files
 
 **Avoid barrel files** (index.ts re-exports). Create flat, focused modules:
