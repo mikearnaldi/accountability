@@ -1353,6 +1353,24 @@
       "id": "6.1.3",
       "phase": "API Layer",
       "epic": "TanStack Start + Effect HttpApi Setup",
+      "title": "Fix lint errors and HMR dispose bug in API handler",
+      "description": "Fix no-console lint errors and HMR dispose bug in packages/web/src/api/handler.ts. The HMR dispose callback currently disposes the new handler instead of the old one - need to store dispose in a global that persists across module reloads.",
+      "acceptance_criteria": [
+        "No lint errors in handler.ts",
+        "Shutdown logging still works for debugging",
+        "HMR dispose correctly disposes the OLD handler (store dispose in global)",
+        "pnpm lint passes"
+      ],
+      "technical_details": {
+        "hmr_fix": "Store dispose in global: globalThis.__apiDispose = dispose; in hot.dispose callback call the global to dispose the OLD handler before new module loads"
+      },
+      "status": "pending",
+      "estimated_complexity": "small"
+    },
+    {
+      "id": "6.1.4",
+      "phase": "API Layer",
+      "epic": "TanStack Start + Effect HttpApi Setup",
       "title": "Create shared API definition package",
       "description": "Create packages/api with HttpApi definitions shared between server and client for full type safety.",
       "acceptance_criteria": [
@@ -1372,7 +1390,7 @@
       "estimated_complexity": "medium"
     },
     {
-      "id": "6.1.4",
+      "id": "6.1.5",
       "phase": "API Layer",
       "epic": "TanStack Start + Effect HttpApi Setup",
       "title": "Set up Effect Atom for frontend state",
