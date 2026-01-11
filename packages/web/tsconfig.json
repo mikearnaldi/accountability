@@ -1,21 +1,7 @@
 {
   "extends": "../../tsconfig.base.json",
-  "include": ["src/**/*.ts", "src/**/*.tsx"],
-  "compilerOptions": {
-    "baseUrl": ".",
-    "outDir": "./dist",
-    "rootDir": "./src",
-    "tsBuildInfoFile": "./dist/.tsbuildinfo",
-    "types": ["vite/client", "node"],
-    "paths": {
-      "~/*": ["./src/*"],
-      "@accountability/core": ["../core/src/index.ts"],
-      "@accountability/core/*": ["../core/src/*"],
-      "@accountability/api": ["../api/src/index.ts"],
-      "@accountability/api/*": ["../api/src/*"]
-    },
-    "noEmit": true
-  },
-  "exclude": ["node_modules", "dist", ".output"],
-  "references": [{ "path": "../core" }, { "path": "../api" }]
+  "include": [],
+  "references": [
+    { "path": "tsconfig.src.json" }
+  ]
 }

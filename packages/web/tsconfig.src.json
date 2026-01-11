@@ -1,0 +1,20 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "include": ["src"],
+  "compilerOptions": {
+    "baseUrl": ".",
+    "noEmit": true,
+    "rootDir": "src",
+    "tsBuildInfoFile": ".tsbuildinfo/src.tsbuildinfo",
+    "types": ["vite/client", "node"],
+    "paths": {
+      "~/*": ["./src/*"],
+      "@accountability/core/*": ["../core/src/*"],
+      "@accountability/api/*": ["../api/src/*"]
+    }
+  },
+  "references": [
+    { "path": "../core/tsconfig.src.json" },
+    { "path": "../api/tsconfig.src.json" }
+  ]
+}
