@@ -13,7 +13,6 @@ dist/
 
 # IDE
 .idea/
-.vscode/
 *.swp
 *.swo
 .DS_Store
