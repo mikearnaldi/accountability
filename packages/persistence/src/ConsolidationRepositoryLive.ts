@@ -42,7 +42,7 @@ import { Timestamp } from "@accountability/core/domain/Timestamp"
 import { UserId } from "@accountability/core/domain/JournalEntry"
 import { Percentage } from "@accountability/core/domain/Percentage"
 import { ConsolidationRepository, type ConsolidationRepositoryService } from "./ConsolidationRepository.ts"
-import { EntityNotFoundError, PersistenceError } from "./RepositoryError.ts"
+import { EntityNotFoundError, PersistenceError, wrapSqlError } from "./RepositoryError.ts"
 
 /**
  * Schema for database row from consolidation_groups table
@@ -122,17 +122,6 @@ const CountRow = Schema.Struct({
  */
 const dateToLocalDate = (date: Date): LocalDate =>
   LocalDate.make({ year: date.getUTCFullYear(), month: date.getUTCMonth() + 1, day: date.getUTCDate() })
-
-/**
- * Wrap SQL errors in PersistenceError
- * Uses mapError to only transform expected errors, not defects
- */
-const wrapSqlError =
-  (operation: string) =>
-  <A, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<A, PersistenceError, R> =>
-    Effect.mapError(effect, (cause) =>
-      new PersistenceError({ operation, cause })
-    )
 
 /**
  * Schema for parsed step JSON from database

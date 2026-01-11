@@ -24,7 +24,7 @@ import {
 import { LocalDate } from "@accountability/core/domain/LocalDate"
 import { Timestamp } from "@accountability/core/domain/Timestamp"
 import { ExchangeRateRepository, type ExchangeRateRepositoryService } from "./ExchangeRateRepository.ts"
-import { EntityNotFoundError, PersistenceError } from "./RepositoryError.ts"
+import { EntityNotFoundError, wrapSqlError } from "./RepositoryError.ts"
 
 /**
  * Schema for database row from exchange_rates table
@@ -75,17 +75,6 @@ const rowToExchangeRate = (row: ExchangeRateRow): ExchangeRate => {
     createdAt: Timestamp.make({ epochMillis: row.created_at.getTime() })
   })
 }
-
-/**
- * Wrap SQL errors in PersistenceError
- * Uses mapError to only transform expected errors, not defects
- */
-const wrapSqlError =
-  (operation: string) =>
-  <A, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<A, PersistenceError, R> =>
-    Effect.mapError(effect, (cause) =>
-      new PersistenceError({ operation, cause })
-    )
 
 /**
  * Implementation of ExchangeRateRepositoryService using PostgreSQL

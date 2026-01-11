@@ -26,7 +26,7 @@ import {
   FiscalYearStatus
 } from "@accountability/core/services/PeriodService"
 import { FiscalPeriodRepository, type FiscalPeriodRepositoryService } from "./FiscalPeriodRepository.ts"
-import { EntityNotFoundError, PersistenceError } from "./RepositoryError.ts"
+import { EntityNotFoundError, wrapSqlError } from "./RepositoryError.ts"
 
 /**
  * Schema for database row from fiscal_years table
@@ -117,17 +117,6 @@ const rowToFiscalPeriod = (row: FiscalPeriodRow): FiscalPeriod =>
       Option.map((d) => Timestamp.make({ epochMillis: d.getTime() }))
     )
   })
-
-/**
- * Wrap SQL errors in PersistenceError
- * Uses mapError to only transform expected errors, not defects
- */
-const wrapSqlError =
-  (operation: string) =>
-  <A, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<A, PersistenceError, R> =>
-    Effect.mapError(effect, (cause) =>
-      new PersistenceError({ operation, cause })
-    )
 
 /**
  * Implementation of FiscalPeriodRepositoryService using PostgreSQL

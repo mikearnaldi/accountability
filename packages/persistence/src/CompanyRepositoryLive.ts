@@ -19,7 +19,7 @@ import { OrganizationId } from "@accountability/core/domain/Organization"
 import { Percentage } from "@accountability/core/domain/Percentage"
 import { Timestamp } from "@accountability/core/domain/Timestamp"
 import { CompanyRepository, type CompanyRepositoryService } from "./CompanyRepository.ts"
-import { EntityNotFoundError, PersistenceError } from "./RepositoryError.ts"
+import { EntityNotFoundError, wrapSqlError } from "./RepositoryError.ts"
 
 /**
  * Schema for database row from companies table
@@ -79,17 +79,6 @@ const rowToCompany = (row: CompanyRow): Company =>
     isActive: row.is_active,
     createdAt: Timestamp.make({ epochMillis: row.created_at.getTime() })
   })
-
-/**
- * Wrap SQL errors in PersistenceError
- * Uses mapError to only transform expected errors, not defects
- */
-const wrapSqlError =
-  (operation: string) =>
-  <A, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<A, PersistenceError, R> =>
-    Effect.mapError(effect, (cause) =>
-      new PersistenceError({ operation, cause })
-    )
 
 /**
  * Implementation of CompanyRepositoryService using PostgreSQL

@@ -1268,7 +1268,7 @@
         "new_pattern": "export const wrapSqlError = (op) => Effect.mapError(...) - shared module",
         "reason": "catchAllCause catches defects which should propagate; mapError only transforms expected errors"
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "small"
     },
     {

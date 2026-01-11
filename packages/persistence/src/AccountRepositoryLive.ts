@@ -25,7 +25,7 @@ import { CompanyId } from "@accountability/core/domain/Company"
 import { CurrencyCode } from "@accountability/core/domain/CurrencyCode"
 import { Timestamp } from "@accountability/core/domain/Timestamp"
 import { AccountRepository, type AccountRepositoryService } from "./AccountRepository.ts"
-import { EntityNotFoundError, PersistenceError } from "./RepositoryError.ts"
+import { EntityNotFoundError, wrapSqlError } from "./RepositoryError.ts"
 
 /**
  * Schema for database row from accounts table
@@ -96,17 +96,6 @@ const rowToAccount = (row: AccountRow): Account =>
       Option.map((d) => Timestamp.make({ epochMillis: d.getTime() }))
     )
   })
-
-/**
- * Wrap SQL errors in PersistenceError
- * Uses mapError to only transform expected errors, not defects
- */
-const wrapSqlError =
-  (operation: string) =>
-  <A, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<A, PersistenceError, R> =>
-    Effect.mapError(effect, (cause) =>
-      new PersistenceError({ operation, cause })
-    )
 
 /**
  * Implementation of AccountRepositoryService using PostgreSQL
