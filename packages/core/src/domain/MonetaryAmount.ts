@@ -81,10 +81,7 @@ export class MonetaryAmount extends Schema.Class<MonetaryAmount>("MonetaryAmount
    * Create a MonetaryAmount from a BigDecimal and CurrencyCode
    */
   static fromBigDecimal(amount: BigDecimal.BigDecimal, currency: CurrencyCode): MonetaryAmount {
-    return MonetaryAmount.make(
-      { amount: MonetaryAmount.ensureMinPrecision(amount), currency },
-      { disableValidation: true }
-    )
+    return MonetaryAmount.make({ amount: MonetaryAmount.ensureMinPrecision(amount), currency })
   }
 
   /**

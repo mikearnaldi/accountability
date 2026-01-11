@@ -94,10 +94,11 @@ export const fromString = (
  * Uses the UTC date components
  */
 export const fromDate = (date: Date): LocalDate => {
-  return LocalDate.make(
-    { year: date.getUTCFullYear(), month: date.getUTCMonth() + 1, day: date.getUTCDate() },
-    { disableValidation: true }
-  )
+  return LocalDate.make({
+    year: date.getUTCFullYear(),
+    month: date.getUTCMonth() + 1,
+    day: date.getUTCDate()
+  })
 }
 
 /**
@@ -106,7 +107,7 @@ export const fromDate = (date: Date): LocalDate => {
  */
 export const fromDateTime = (dateTime: DateTime.DateTime): LocalDate => {
   const parts = DateTime.toPartsUtc(dateTime)
-  return LocalDate.make({ year: parts.year, month: parts.month, day: parts.day }, { disableValidation: true })
+  return LocalDate.make({ year: parts.year, month: parts.month, day: parts.day })
 }
 
 /**
@@ -198,7 +199,7 @@ export const diffInDays = (a: LocalDate, b: LocalDate): number => {
  * Get the start of the month for a LocalDate
  */
 export const startOfMonth = (date: LocalDate): LocalDate => {
-  return LocalDate.make({ year: date.year, month: date.month, day: 1 }, { disableValidation: true })
+  return LocalDate.make({ year: date.year, month: date.month, day: 1 })
 }
 
 /**
@@ -213,14 +214,14 @@ export const endOfMonth = (date: LocalDate): LocalDate => {
  * Get the start of the year for a LocalDate
  */
 export const startOfYear = (date: LocalDate): LocalDate => {
-  return LocalDate.make({ year: date.year, month: 1, day: 1 }, { disableValidation: true })
+  return LocalDate.make({ year: date.year, month: 1, day: 1 })
 }
 
 /**
  * Get the end of the year for a LocalDate
  */
 export const endOfYear = (date: LocalDate): LocalDate => {
-  return LocalDate.make({ year: date.year, month: 12, day: 31 }, { disableValidation: true })
+  return LocalDate.make({ year: date.year, month: 12, day: 31 })
 }
 
 /**

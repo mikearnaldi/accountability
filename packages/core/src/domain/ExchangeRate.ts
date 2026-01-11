@@ -206,8 +206,7 @@ export const createInverse = (exchangeRate: ExchangeRate): ExchangeRate | undefi
   const inverseRate = getInverseRate(exchangeRate)
   if (inverseRate === undefined) return undefined
 
-  // The inverse of a positive rate is also positive, so disableValidation is safe
-  const rate = Rate.make(inverseRate, { disableValidation: true })
+  const rate = Rate.make(inverseRate)
   return ExchangeRate.make({
     id: exchangeRate.id, // Note: Would typically need a new ID in practice
     fromCurrency: exchangeRate.toCurrency,

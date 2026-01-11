@@ -1659,10 +1659,7 @@ const calculateFiscalYearEndDate = (
   const maxDaysInMonth = daysInMonth(endYear, fiscalYearEnd.month)
   const endDay = Math.min(fiscalYearEnd.day, maxDaysInMonth)
 
-  return LocalDate.make(
-    { year: endYear, month: fiscalYearEnd.month, day: endDay },
-    { disableValidation: true }
-  )
+  return LocalDate.make({ year: endYear, month: fiscalYearEnd.month, day: endDay })
 }
 
 /**
@@ -1709,10 +1706,7 @@ const generatePeriodDates = (
     const periodEndYear = currentStart.year
     const maxDay = daysInMonth(periodEndYear, periodEndMonth)
 
-    let periodEnd = LocalDate.make(
-      { year: periodEndYear, month: periodEndMonth, day: maxDay },
-      { disableValidation: true }
-    )
+    let periodEnd = LocalDate.make({ year: periodEndYear, month: periodEndMonth, day: maxDay })
 
     // For the last period (12), ensure it ends on the fiscal year end date
     if (i === 12) {
@@ -1733,10 +1727,7 @@ const generatePeriodDates = (
     if (i < 12) {
       currentStart = addMonths(currentStart, 1)
       // Ensure we start at day 1 of the month
-      currentStart = LocalDate.make(
-        { year: currentStart.year, month: currentStart.month, day: 1 },
-        { disableValidation: true }
-      )
+      currentStart = LocalDate.make({ year: currentStart.year, month: currentStart.month, day: 1 })
     }
   }
 

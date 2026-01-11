@@ -864,7 +864,7 @@ describe("AccountBalance", () => {
 
     // Generate a LocalDate
     const localDateArb = FastCheck.tuple(yearArb, monthArb, dayArb).map(
-      ([year, month, day]) => LocalDate.make({ year, month, day }, { disableValidation: true })
+      ([year, month, day]) => LocalDate.make({ year, month, day })
     )
 
     it.prop(

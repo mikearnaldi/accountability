@@ -1272,6 +1272,34 @@
       "estimated_complexity": "small"
     },
     {
+      "id": "5.3.5",
+      "phase": "Persistence",
+      "epic": "Repository Implementations",
+      "title": "Resolve all ESLint errors",
+      "description": "Fix all remaining ESLint errors across the codebase to ensure pnpm lint passes with zero errors.",
+      "acceptance_criteria": [
+        "Fix all local/no-disable-validation errors - remove { disableValidation: true }",
+        "Fix all local/no-sql-type-parameter errors - use SqlSchema instead of sql<Type>",
+        "Fix all local/prefer-option-from-nullable errors - use Option.fromNullable",
+        "Fix all @typescript-eslint/consistent-type-imports errors - use type imports",
+        "Fix any other ESLint errors that arise",
+        "pnpm lint passes with zero errors",
+        "pnpm typecheck passes",
+        "pnpm test passes"
+      ],
+      "technical_details": {
+        "lint_rules_to_fix": [
+          "local/no-disable-validation - banned completely",
+          "local/no-sql-type-parameter - use SqlSchema with Schema",
+          "local/prefer-option-from-nullable - use Option.fromNullable(x)",
+          "@typescript-eslint/consistent-type-imports - use import type"
+        ],
+        "command": "pnpm lint"
+      },
+      "status": "complete",
+      "estimated_complexity": "medium"
+    },
+    {
       "id": "6.1.1",
       "phase": "API Layer",
       "epic": "TanStack Start Setup",

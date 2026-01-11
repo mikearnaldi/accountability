@@ -56,10 +56,11 @@ export class Timestamp extends Schema.Class<Timestamp>("Timestamp")({
    */
   toLocalDate(): LocalDate {
     const date = this.toDate()
-    return LocalDate.make(
-      { year: date.getUTCFullYear(), month: date.getUTCMonth() + 1, day: date.getUTCDate() },
-      { disableValidation: true }
-    )
+    return LocalDate.make({
+      year: date.getUTCFullYear(),
+      month: date.getUTCMonth() + 1,
+      day: date.getUTCDate()
+    })
   }
 }
 
@@ -72,14 +73,14 @@ export const isTimestamp = Schema.is(Timestamp)
  * Create a Timestamp from a DateTime.Utc
  */
 export const fromDateTime = (dateTime: DateTime.Utc): Timestamp => {
-  return Timestamp.make({ epochMillis: dateTime.epochMillis }, { disableValidation: true })
+  return Timestamp.make({ epochMillis: dateTime.epochMillis })
 }
 
 /**
  * Create a Timestamp from a JavaScript Date
  */
 export const fromDate = (date: Date): Timestamp => {
-  return Timestamp.make({ epochMillis: date.getTime() }, { disableValidation: true })
+  return Timestamp.make({ epochMillis: date.getTime() })
 }
 
 /**
@@ -101,14 +102,14 @@ export const fromString = (
       })
     )
   }
-  return Effect.succeed(Timestamp.make({ epochMillis: date.getTime() }, { disableValidation: true }))
+  return Effect.succeed(Timestamp.make({ epochMillis: date.getTime() }))
 }
 
 /**
  * Get the current timestamp (now)
  */
 export const now = (): Timestamp => {
-  return Timestamp.make({ epochMillis: Date.now() }, { disableValidation: true })
+  return Timestamp.make({ epochMillis: Date.now() })
 }
 
 /**
@@ -116,7 +117,7 @@ export const now = (): Timestamp => {
  */
 export const nowEffect: Effect.Effect<Timestamp> = Effect.map(
   Effect.clockWith((clock) => clock.currentTimeMillis),
-  (millis) => Timestamp.make({ epochMillis: Number(millis) }, { disableValidation: true })
+  (millis) => Timestamp.make({ epochMillis: Number(millis) })
 )
 
 /**
@@ -153,7 +154,7 @@ export const equals = (a: Timestamp, b: Timestamp): boolean => {
  * Add milliseconds to a timestamp
  */
 export const addMillis = (timestamp: Timestamp, millis: number): Timestamp => {
-  return Timestamp.make({ epochMillis: timestamp.epochMillis + millis }, { disableValidation: true })
+  return Timestamp.make({ epochMillis: timestamp.epochMillis + millis })
 }
 
 /**
@@ -215,4 +216,4 @@ export const max = (a: Timestamp, b: Timestamp): Timestamp => {
 /**
  * Unix epoch timestamp (1970-01-01T00:00:00.000Z)
  */
-export const EPOCH: Timestamp = Timestamp.make({ epochMillis: 0 }, { disableValidation: true })
+export const EPOCH: Timestamp = Timestamp.make({ epochMillis: 0 })

@@ -300,7 +300,7 @@ export default [
       "prefer-const": "error",
       // Consistent type imports
       "@typescript-eslint/consistent-type-imports": [
-        "warn",
+        "error",
         {
           prefer: "type-imports",
           fixStyle: "separate-type-imports"

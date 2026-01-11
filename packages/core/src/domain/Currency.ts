@@ -94,212 +94,167 @@ export const isCurrency = Schema.is(Currency)
 /**
  * US Dollar
  */
-export const USD_CURRENCY: Currency = Currency.make(
-  {
-    code: CurrencyCode.make("USD"),
-    name: "US Dollar",
-    symbol: "$",
-    decimalPlaces: 2,
-    isActive: true
-  },
-  { disableValidation: true }
-)
+export const USD_CURRENCY: Currency = Currency.make({
+  code: CurrencyCode.make("USD"),
+  name: "US Dollar",
+  symbol: "$",
+  decimalPlaces: 2,
+  isActive: true
+})
 
 /**
  * Euro
  */
-export const EUR_CURRENCY: Currency = Currency.make(
-  {
-    code: CurrencyCode.make("EUR"),
-    name: "Euro",
-    symbol: "€",
-    decimalPlaces: 2,
-    isActive: true
-  },
-  { disableValidation: true }
-)
+export const EUR_CURRENCY: Currency = Currency.make({
+  code: CurrencyCode.make("EUR"),
+  name: "Euro",
+  symbol: "€",
+  decimalPlaces: 2,
+  isActive: true
+})
 
 /**
  * British Pound Sterling
  */
-export const GBP_CURRENCY: Currency = Currency.make(
-  {
-    code: CurrencyCode.make("GBP"),
-    name: "British Pound",
-    symbol: "£",
-    decimalPlaces: 2,
-    isActive: true
-  },
-  { disableValidation: true }
-)
+export const GBP_CURRENCY: Currency = Currency.make({
+  code: CurrencyCode.make("GBP"),
+  name: "British Pound",
+  symbol: "£",
+  decimalPlaces: 2,
+  isActive: true
+})
 
 /**
  * Japanese Yen (0 decimal places)
  */
-export const JPY_CURRENCY: Currency = Currency.make(
-  {
-    code: CurrencyCode.make("JPY"),
-    name: "Japanese Yen",
-    symbol: "¥",
-    decimalPlaces: 0,
-    isActive: true
-  },
-  { disableValidation: true }
-)
+export const JPY_CURRENCY: Currency = Currency.make({
+  code: CurrencyCode.make("JPY"),
+  name: "Japanese Yen",
+  symbol: "¥",
+  decimalPlaces: 0,
+  isActive: true
+})
 
 /**
  * Swiss Franc
  */
-export const CHF_CURRENCY: Currency = Currency.make(
-  {
-    code: CurrencyCode.make("CHF"),
-    name: "Swiss Franc",
-    symbol: "CHF",
-    decimalPlaces: 2,
-    isActive: true
-  },
-  { disableValidation: true }
-)
+export const CHF_CURRENCY: Currency = Currency.make({
+  code: CurrencyCode.make("CHF"),
+  name: "Swiss Franc",
+  symbol: "CHF",
+  decimalPlaces: 2,
+  isActive: true
+})
 
 /**
  * Canadian Dollar
  */
-export const CAD_CURRENCY: Currency = Currency.make(
-  {
-    code: CurrencyCode.make("CAD"),
-    name: "Canadian Dollar",
-    symbol: "C$",
-    decimalPlaces: 2,
-    isActive: true
-  },
-  { disableValidation: true }
-)
+export const CAD_CURRENCY: Currency = Currency.make({
+  code: CurrencyCode.make("CAD"),
+  name: "Canadian Dollar",
+  symbol: "C$",
+  decimalPlaces: 2,
+  isActive: true
+})
 
 /**
  * Australian Dollar
  */
-export const AUD_CURRENCY: Currency = Currency.make(
-  {
-    code: CurrencyCode.make("AUD"),
-    name: "Australian Dollar",
-    symbol: "A$",
-    decimalPlaces: 2,
-    isActive: true
-  },
-  { disableValidation: true }
-)
+export const AUD_CURRENCY: Currency = Currency.make({
+  code: CurrencyCode.make("AUD"),
+  name: "Australian Dollar",
+  symbol: "A$",
+  decimalPlaces: 2,
+  isActive: true
+})
 
 /**
  * Chinese Yuan
  */
-export const CNY_CURRENCY: Currency = Currency.make(
-  {
-    code: CurrencyCode.make("CNY"),
-    name: "Chinese Yuan",
-    symbol: "¥",
-    decimalPlaces: 2,
-    isActive: true
-  },
-  { disableValidation: true }
-)
+export const CNY_CURRENCY: Currency = Currency.make({
+  code: CurrencyCode.make("CNY"),
+  name: "Chinese Yuan",
+  symbol: "¥",
+  decimalPlaces: 2,
+  isActive: true
+})
 
 /**
  * Hong Kong Dollar
  */
-export const HKD_CURRENCY: Currency = Currency.make(
-  {
-    code: CurrencyCode.make("HKD"),
-    name: "Hong Kong Dollar",
-    symbol: "HK$",
-    decimalPlaces: 2,
-    isActive: true
-  },
-  { disableValidation: true }
-)
+export const HKD_CURRENCY: Currency = Currency.make({
+  code: CurrencyCode.make("HKD"),
+  name: "Hong Kong Dollar",
+  symbol: "HK$",
+  decimalPlaces: 2,
+  isActive: true
+})
 
 /**
  * Singapore Dollar
  */
-export const SGD_CURRENCY: Currency = Currency.make(
-  {
-    code: CurrencyCode.make("SGD"),
-    name: "Singapore Dollar",
-    symbol: "S$",
-    decimalPlaces: 2,
-    isActive: true
-  },
-  { disableValidation: true }
-)
+export const SGD_CURRENCY: Currency = Currency.make({
+  code: CurrencyCode.make("SGD"),
+  name: "Singapore Dollar",
+  symbol: "S$",
+  decimalPlaces: 2,
+  isActive: true
+})
 
 /**
  * South Korean Won (0 decimal places)
  */
-export const KRW_CURRENCY: Currency = Currency.make(
-  {
-    code: CurrencyCode.make("KRW"),
-    name: "South Korean Won",
-    symbol: "₩",
-    decimalPlaces: 0,
-    isActive: true
-  },
-  { disableValidation: true }
-)
+export const KRW_CURRENCY: Currency = Currency.make({
+  code: CurrencyCode.make("KRW"),
+  name: "South Korean Won",
+  symbol: "₩",
+  decimalPlaces: 0,
+  isActive: true
+})
 
 /**
  * Kuwaiti Dinar (3 decimal places)
  */
-export const KWD_CURRENCY: Currency = Currency.make(
-  {
-    code: CurrencyCode.make("KWD"),
-    name: "Kuwaiti Dinar",
-    symbol: "KD",
-    decimalPlaces: 3,
-    isActive: true
-  },
-  { disableValidation: true }
-)
+export const KWD_CURRENCY: Currency = Currency.make({
+  code: CurrencyCode.make("KWD"),
+  name: "Kuwaiti Dinar",
+  symbol: "KD",
+  decimalPlaces: 3,
+  isActive: true
+})
 
 /**
  * Bahraini Dinar (3 decimal places)
  */
-export const BHD_CURRENCY: Currency = Currency.make(
-  {
-    code: CurrencyCode.make("BHD"),
-    name: "Bahraini Dinar",
-    symbol: "BD",
-    decimalPlaces: 3,
-    isActive: true
-  },
-  { disableValidation: true }
-)
+export const BHD_CURRENCY: Currency = Currency.make({
+  code: CurrencyCode.make("BHD"),
+  name: "Bahraini Dinar",
+  symbol: "BD",
+  decimalPlaces: 3,
+  isActive: true
+})
 
 /**
  * Omani Rial (3 decimal places)
  */
-export const OMR_CURRENCY: Currency = Currency.make(
-  {
-    code: CurrencyCode.make("OMR"),
-    name: "Omani Rial",
-    symbol: "OMR",
-    decimalPlaces: 3,
-    isActive: true
-  },
-  { disableValidation: true }
-)
+export const OMR_CURRENCY: Currency = Currency.make({
+  code: CurrencyCode.make("OMR"),
+  name: "Omani Rial",
+  symbol: "OMR",
+  decimalPlaces: 3,
+  isActive: true
+})
 
 /**
  * Chilean Unit of Account (UF) (4 decimal places)
  */
-export const CLF_CURRENCY: Currency = Currency.make(
-  {
-    code: CurrencyCode.make("CLF"),
-    name: "Chilean Unit of Account (UF)",
-    symbol: "CLF",
-    decimalPlaces: 4,
-    isActive: true
-  },
-  { disableValidation: true }
-)
+export const CLF_CURRENCY: Currency = Currency.make({
+  code: CurrencyCode.make("CLF"),
+  name: "Chilean Unit of Account (UF)",
+  symbol: "CLF",
+  decimalPlaces: 4,
+  isActive: true
+})
 
 /**
  * Collection of all predefined currencies

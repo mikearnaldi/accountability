@@ -109,9 +109,9 @@ export const equals = (a: FiscalPeriodRef, b: FiscalPeriodRef): boolean => {
  */
 export const nextPeriod = (ref: FiscalPeriodRef): FiscalPeriodRef => {
   if (ref.period >= 12) {
-    return FiscalPeriodRef.make({ year: ref.year + 1, period: 1 }, { disableValidation: true })
+    return FiscalPeriodRef.make({ year: ref.year + 1, period: 1 })
   }
-  return FiscalPeriodRef.make({ year: ref.year, period: ref.period + 1 }, { disableValidation: true })
+  return FiscalPeriodRef.make({ year: ref.year, period: ref.period + 1 })
 }
 
 /**
@@ -121,51 +121,47 @@ export const nextPeriod = (ref: FiscalPeriodRef): FiscalPeriodRef => {
  */
 export const previousPeriod = (ref: FiscalPeriodRef): FiscalPeriodRef => {
   if (ref.period === 13) {
-    return FiscalPeriodRef.make({ year: ref.year, period: 12 }, { disableValidation: true })
+    return FiscalPeriodRef.make({ year: ref.year, period: 12 })
   }
   if (ref.period === 1) {
-    return FiscalPeriodRef.make({ year: ref.year - 1, period: 12 }, { disableValidation: true })
+    return FiscalPeriodRef.make({ year: ref.year - 1, period: 12 })
   }
-  return FiscalPeriodRef.make({ year: ref.year, period: ref.period - 1 }, { disableValidation: true })
+  return FiscalPeriodRef.make({ year: ref.year, period: ref.period - 1 })
 }
 
 /**
  * Get the first period of the fiscal year
  */
 export const startOfYear = (year: number): FiscalPeriodRef => {
-  return FiscalPeriodRef.make({ year, period: 1 }, { disableValidation: true })
+  return FiscalPeriodRef.make({ year, period: 1 })
 }
 
 /**
  * Get the last regular period (12) of the fiscal year
  */
 export const endOfYear = (year: number): FiscalPeriodRef => {
-  return FiscalPeriodRef.make({ year, period: 12 }, { disableValidation: true })
+  return FiscalPeriodRef.make({ year, period: 12 })
 }
 
 /**
  * Get the adjustment period (13) of the fiscal year
  */
 export const adjustmentPeriod = (year: number): FiscalPeriodRef => {
-  return FiscalPeriodRef.make({ year, period: 13 }, { disableValidation: true })
+  return FiscalPeriodRef.make({ year, period: 13 })
 }
 
 /**
  * Get all regular periods (1-12) for a fiscal year
  */
 export const allRegularPeriods = (year: number): ReadonlyArray<FiscalPeriodRef> => {
-  return Array.from({ length: 12 }, (_, i) =>
-    FiscalPeriodRef.make({ year, period: i + 1 }, { disableValidation: true })
-  )
+  return Array.from({ length: 12 }, (_, i) => FiscalPeriodRef.make({ year, period: i + 1 }))
 }
 
 /**
  * Get all periods (1-13) for a fiscal year including adjustment period
  */
 export const allPeriods = (year: number): ReadonlyArray<FiscalPeriodRef> => {
-  return Array.from({ length: 13 }, (_, i) =>
-    FiscalPeriodRef.make({ year, period: i + 1 }, { disableValidation: true })
-  )
+  return Array.from({ length: 13 }, (_, i) => FiscalPeriodRef.make({ year, period: i + 1 }))
 }
 
 /**

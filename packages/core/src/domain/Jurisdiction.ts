@@ -239,86 +239,74 @@ export const isJurisdiction = Schema.is(Jurisdiction)
 /**
  * Tax settings for United States
  */
-export const US_TAX_SETTINGS: TaxSettings = TaxSettings.make(
-  {
-    taxRules: Chunk.make(
-      TaxRule.make({
-        name: "Federal Corporate Income Tax",
-        rate: 0.21,
-        isApplicable: true,
-        description: "Standard federal corporate income tax rate"
-      }),
-      TaxRule.make({
-        name: "State Income Tax",
-        rate: 0,
-        isApplicable: false,
-        description: "State-level income tax (varies by state)"
-      }),
-      TaxRule.make({
-        name: "Sales Tax",
-        rate: 0,
-        isApplicable: false,
-        description: "State/local sales tax (varies by jurisdiction)"
-      })
-    ),
-    defaultFiscalYearEndMonth: 12,
-    hasVat: false,
-    hasWithholdingTax: true
-  },
-  { disableValidation: true }
-)
+export const US_TAX_SETTINGS: TaxSettings = TaxSettings.make({
+  taxRules: Chunk.make(
+    TaxRule.make({
+      name: "Federal Corporate Income Tax",
+      rate: 0.21,
+      isApplicable: true,
+      description: "Standard federal corporate income tax rate"
+    }),
+    TaxRule.make({
+      name: "State Income Tax",
+      rate: 0,
+      isApplicable: false,
+      description: "State-level income tax (varies by state)"
+    }),
+    TaxRule.make({
+      name: "Sales Tax",
+      rate: 0,
+      isApplicable: false,
+      description: "State/local sales tax (varies by jurisdiction)"
+    })
+  ),
+  defaultFiscalYearEndMonth: 12,
+  hasVat: false,
+  hasWithholdingTax: true
+})
 
 /**
  * Tax settings for United Kingdom
  */
-export const GB_TAX_SETTINGS: TaxSettings = TaxSettings.make(
-  {
-    taxRules: Chunk.make(
-      TaxRule.make({
-        name: "Corporation Tax",
-        rate: 0.25,
-        isApplicable: true,
-        description: "UK corporation tax for profits over £250,000"
-      }),
-      TaxRule.make({
-        name: "Value Added Tax (VAT)",
-        rate: 0.2,
-        isApplicable: true,
-        description: "Standard VAT rate in the UK"
-      })
-    ),
-    defaultFiscalYearEndMonth: 4,
-    hasVat: true,
-    hasWithholdingTax: true
-  },
-  { disableValidation: true }
-)
+export const GB_TAX_SETTINGS: TaxSettings = TaxSettings.make({
+  taxRules: Chunk.make(
+    TaxRule.make({
+      name: "Corporation Tax",
+      rate: 0.25,
+      isApplicable: true,
+      description: "UK corporation tax for profits over £250,000"
+    }),
+    TaxRule.make({
+      name: "Value Added Tax (VAT)",
+      rate: 0.2,
+      isApplicable: true,
+      description: "Standard VAT rate in the UK"
+    })
+  ),
+  defaultFiscalYearEndMonth: 4,
+  hasVat: true,
+  hasWithholdingTax: true
+})
 
 /**
  * United States jurisdiction
  */
-export const US_JURISDICTION: Jurisdiction = Jurisdiction.make(
-  {
-    code: US,
-    name: "United States",
-    defaultCurrency: USD,
-    taxSettings: US_TAX_SETTINGS
-  },
-  { disableValidation: true }
-)
+export const US_JURISDICTION: Jurisdiction = Jurisdiction.make({
+  code: US,
+  name: "United States",
+  defaultCurrency: USD,
+  taxSettings: US_TAX_SETTINGS
+})
 
 /**
  * United Kingdom jurisdiction
  */
-export const GB_JURISDICTION: Jurisdiction = Jurisdiction.make(
-  {
-    code: GB,
-    name: "United Kingdom",
-    defaultCurrency: GBP,
-    taxSettings: GB_TAX_SETTINGS
-  },
-  { disableValidation: true }
-)
+export const GB_JURISDICTION: Jurisdiction = Jurisdiction.make({
+  code: GB,
+  name: "United Kingdom",
+  defaultCurrency: GBP,
+  taxSettings: GB_TAX_SETTINGS
+})
 
 /**
  * Collection of predefined jurisdictions
