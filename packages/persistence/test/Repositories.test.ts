@@ -47,15 +47,15 @@ const TestLayer = Layer.mergeAll(
   Layer.provideMerge(PgContainer.ClientLive)
 )
 
-// Test UUIDs - using .make with disableValidation
-const testOrgId = OrganizationId.make("11111111-1111-1111-1111-111111111111", { disableValidation: true })
-const testCompanyId = CompanyId.make("22222222-2222-2222-2222-222222222222", { disableValidation: true })
-const testAccountId = AccountId.make("44444444-4444-4444-4444-444444444444", { disableValidation: true })
-const testFiscalYearId = FiscalYearId.make("cccccccc-cccc-cccc-cccc-cccccccccccc", { disableValidation: true })
-const testFiscalPeriodId = FiscalPeriodId.make("dddddddd-dddd-dddd-dddd-dddddddddddd", { disableValidation: true })
-const testRateId = ExchangeRateId.make("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee", { disableValidation: true })
-const testGroupId = ConsolidationGroupId.make("ffffffff-ffff-ffff-ffff-ffffffffffff", { disableValidation: true })
-const testEntryId = JournalEntryId.make("66666666-6666-6666-6666-666666666666", { disableValidation: true })
+// Test UUIDs - these are valid UUID format so validation passes
+const testOrgId = OrganizationId.make("11111111-1111-1111-1111-111111111111")
+const testCompanyId = CompanyId.make("22222222-2222-2222-2222-222222222222")
+const testAccountId = AccountId.make("44444444-4444-4444-4444-444444444444")
+const testFiscalYearId = FiscalYearId.make("cccccccc-cccc-cccc-cccc-cccccccccccc")
+const testFiscalPeriodId = FiscalPeriodId.make("dddddddd-dddd-dddd-dddd-dddddddddddd")
+const testRateId = ExchangeRateId.make("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee")
+const testGroupId = ConsolidationGroupId.make("ffffffff-ffff-ffff-ffff-ffffffffffff")
+const testEntryId = JournalEntryId.make("66666666-6666-6666-6666-666666666666")
 const nonExistentId = "99999999-9999-9999-9999-999999999999"
 
 describe("Repositories", () => {
@@ -95,7 +95,7 @@ describe("Repositories", () => {
     it.effect("findById: returns None for non-existing company", () =>
       Effect.gen(function* () {
         const repo = yield* CompanyRepository
-        const result = yield* repo.findById(CompanyId.make(nonExistentId, { disableValidation: true }))
+        const result = yield* repo.findById(CompanyId.make(nonExistentId))
         expect(Option.isNone(result)).toBe(true)
       })
     )
@@ -103,7 +103,7 @@ describe("Repositories", () => {
     it.effect("getById: throws EntityNotFoundError for non-existing company", () =>
       Effect.gen(function* () {
         const repo = yield* CompanyRepository
-        const result = yield* Effect.either(repo.getById(CompanyId.make(nonExistentId, { disableValidation: true })))
+        const result = yield* Effect.either(repo.getById(CompanyId.make(nonExistentId)))
         expect(result._tag).toBe("Left")
         if (result._tag === "Left") {
           expect(result.left._tag).toBe("EntityNotFoundError")
@@ -122,7 +122,7 @@ describe("Repositories", () => {
     it.effect("exists: returns false for non-existing company", () =>
       Effect.gen(function* () {
         const repo = yield* CompanyRepository
-        const exists = yield* repo.exists(CompanyId.make(nonExistentId, { disableValidation: true }))
+        const exists = yield* repo.exists(CompanyId.make(nonExistentId))
         expect(exists).toBe(false)
       })
     )
@@ -402,7 +402,7 @@ describe("Repositories", () => {
     it.effect("groupExists: returns false for non-existing group", () =>
       Effect.gen(function* () {
         const repo = yield* ConsolidationRepository
-        const exists = yield* repo.groupExists(ConsolidationGroupId.make(nonExistentId, { disableValidation: true }))
+        const exists = yield* repo.groupExists(ConsolidationGroupId.make(nonExistentId))
         expect(exists).toBe(false)
       })
     )

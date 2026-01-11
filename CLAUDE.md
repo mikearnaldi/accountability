@@ -472,7 +472,19 @@ const account = yield* Schema.decodeUnknown(Account)(data)
 
 Using `any` defeats TypeScript's type system. Type casts (`x as Y`) bypass type checking and can hide bugs.
 
-**When absolutely necessary**, if there is truly no other way and you must use a cast or `any`, use an eslint-disable comment with a reason:
+**AVOID `eslint-disable-next-line @typescript-eslint/consistent-type-assertions`** - Using this disable comment should be an absolute last resort. Before adding it, exhaust ALL alternatives:
+
+1. Use `Schema.make()` for branded types
+2. Use `Schema.decodeUnknown()` for parsing unknown data
+3. Use `Option.some<T>()` / `Option.none<T>()` for explicit Option types
+4. Use `identity<T>()` from `effect/Function` for compile-time type verification
+5. Use proper generics and type parameters
+6. Refactor the code to avoid the need for casting
+
+**Only use eslint-disable when:**
+- Interfacing with external libraries that have incorrect/missing types
+- Working around a known TypeScript limitation (document which one)
+- Schema.suspend for recursive types (rare)
 
 ```typescript
 // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- Schema.suspend requires cast for recursive type
@@ -482,7 +494,7 @@ const children: Schema.Schema<TreeNode, TreeNodeEncoded> = Schema.suspend(() => 
 const externalData: any = thirdPartyLib.getData()
 ```
 
-The comment must explain WHY the cast/any is necessary. This should be extremely rare.
+The comment MUST explain WHY the cast is necessary. If you can't articulate a clear reason, you probably don't need the cast.
 
 **Type-safe alternatives to casting:**
 
@@ -500,6 +512,29 @@ const verified = identity<Account>(x)
 // identity is useful when returning values that TypeScript can't infer correctly
 return identity<Effect.Effect<Result, MyError, Deps>>(someEffect)
 ```
+
+**Database row types - usually no cast needed:**
+
+```typescript
+// WRONG - using `as` to cast database row fields
+const accountType = row.account_type as AccountType
+
+// WRONG - using Schema.decode for simple type aliases (overkill)
+const accountType = yield* Schema.decodeUnknown(AccountType)(row.account_type)
+
+// CORRECT - if the type is a simple string literal union, just use identity (if needed at all)
+const accountType = identity<AccountType>(row.account_type)
+
+// BEST - most of the time no cast is needed at all!
+// If your SQL query returns the right type and your row type is properly defined:
+const account = {
+  id: row.id,
+  type: row.account_type,  // TypeScript infers this correctly if row is typed
+  name: row.name
+}
+```
+
+The key insight: if your database row type is properly defined (e.g., `row.account_type: AccountType`), you don't need any cast. Only use `identity<T>()` when TypeScript can't infer the type correctly, and even then question if your types are set up right.
 
 **2. NEVER use `catchAll` when error type is `never`:**
 
@@ -545,6 +580,81 @@ Using the global `Error` type:
 - Prevents the compiler from tracking which errors are handled
 
 Always use `Schema.TaggedError` with a unique `_tag` for every error type.
+
+**4. NEVER use `{ disableValidation: true }` - it is completely banned:**
+
+```typescript
+// WRONG - disableValidation is banned by lint rule local/no-disable-validation
+const account = Account.make(data, { disableValidation: true })  // LINT ERROR
+const id = AccountId.make(rawId, { disableValidation: true })    // LINT ERROR
+
+// CORRECT - let Schema validate the data, always
+const account = Account.make(data)
+const id = AccountId.make(rawId)
+```
+
+Disabling validation defeats the purpose of using Schema. If you're seeing validation errors:
+- Fix the data to match the schema
+- Fix the schema if the validation is too strict
+- NEVER disable validation to work around the issue
+
+**5. Don't wrap safe operations in Effect unnecessarily:**
+
+```typescript
+// WRONG - Effect.try is for wrapping operations that might throw
+const result = Effect.try(() => someValue)  // unnecessary if someValue can't throw
+const mapped = Effect.try(() => array.map(fn))  // array.map doesn't throw
+
+// ALSO WRONG - Effect.succeed is often unnecessary too
+const mapped = Effect.succeed(array.map(fn))  // why wrap in Effect at all?
+
+// CORRECT - for pure transformations, just use a normal function
+const mapAccounts = (rows: Row[]): Account[] => rows.map(toAccount)
+
+// CORRECT - use Effect.try ONLY for operations that might throw
+const parsed = Effect.try(() => JSON.parse(jsonString))  // JSON.parse can throw
+const file = Effect.try(() => fs.readFileSync(path))     // file operations can throw
+
+// CORRECT - use Effect only when you need its capabilities (errors, async, dependencies)
+const fetchAccount = (id: AccountId): Effect.Effect<Account, NotFoundError, AccountRepo> =>
+  Effect.gen(function* () {
+    const repo = yield* AccountRepo
+    return yield* repo.findById(id)
+  })
+```
+
+**Key insight**: If an operation can't fail and doesn't need dependencies or async, it's just a function. Don't wrap everything in Effect - use Effect for what it's good at (typed errors, dependency injection, async composition).
+
+**6. NEVER use `Effect.catchAllCause` to wrap errors - it catches defects:**
+
+```typescript
+// WRONG - catchAllCause catches BOTH errors AND defects (bugs)
+const wrapSqlError = (operation: string) =>
+  <A, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<A, PersistenceError, R> =>
+    Effect.catchAllCause(effect, (cause) =>
+      Effect.fail(new PersistenceError({ operation, cause: Cause.squash(cause) }))
+    )
+
+// CORRECT - use catchAll to only catch expected errors, let defects propagate
+const wrapSqlError = (operation: string) =>
+  <A, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<A, E | PersistenceError, R> =>
+    Effect.catchAll(effect, (error) =>
+      Effect.fail(new PersistenceError({ operation, cause: error }))
+    )
+
+// OR use mapError for simple error transformation
+const wrapSqlError = (operation: string) =>
+  <A, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<A, PersistenceError, R> =>
+    Effect.mapError(effect, (error) =>
+      new PersistenceError({ operation, cause: error })
+    )
+```
+
+**Why this matters:**
+- **Errors** are expected failures (user not found, validation failed) - they should be handled
+- **Defects** are bugs (null pointer, division by zero) - they should crash and be fixed
+- `catchAllCause` catches both, hiding bugs that should be fixed
+- Use `catchAll` or `mapError` to transform only expected errors
 
 ---
 
@@ -730,8 +840,8 @@ export type AccountId = typeof AccountId.Type
 // Use .make() to create instances (validates by default)
 const id = AccountId.make("acc_123")
 
-// Bypass validation for trusted input
-const fromDb = AccountId.make(row.id, { disableValidation: true })
+// For DB rows, if the row type is properly defined, no cast needed
+// The value is already validated when it was written to the DB
 ```
 
 ### Never Use *FromSelf Schemas
@@ -1446,6 +1556,156 @@ it.layer(PgContainer.ClientLive, { timeout: "30 seconds" })("AccountRepository",
 - Use `{ timeout: "30 seconds" }` because container startup takes time
 - Each test gets the same database - use transactions or cleanup between tests
 - `Layer.unwrapEffect` defers layer creation until container is running
+
+---
+
+## Effect SQL Best Practices
+
+### Use Schema to Decode SQL Results (Not Interfaces)
+
+**Never use TypeScript interfaces or type parameters for SQL row types** - use Schema to get both type safety AND runtime validation.
+
+```typescript
+// WRONG - using interface for row type (no runtime validation)
+interface AccountRow {
+  id: string
+  name: string
+  account_type: string
+}
+const rows = yield* sql<AccountRow>`SELECT * FROM accounts`
+
+// WRONG - using type parameter on sql (banned by lint rule: local/no-sql-type-parameter)
+const rows = yield* sql<{ count: string }>`SELECT COUNT(*) as count FROM accounts`  // LINT ERROR
+
+// CORRECT - use Schema to decode results
+const AccountRow = Schema.Struct({
+  id: AccountId,
+  name: Schema.String,
+  account_type: AccountType
+})
+
+// Use SqlSchema for type-safe queries with automatic decoding
+const findById = SqlSchema.findOne({
+  Request: AccountId,
+  Result: AccountRow,
+  execute: (id) => sql`SELECT * FROM accounts WHERE id = ${id}`
+})
+
+const account = yield* findById(accountId)  // Effect<Option<AccountRow>, ParseError, SqlClient>
+```
+
+### SqlSchema Patterns
+
+```typescript
+import { SqlSchema } from "@effect/sql"
+
+// findOne - returns Option (0 or 1 result)
+const findById = SqlSchema.findOne({
+  Request: Schema.String,
+  Result: AccountSchema,
+  execute: (id) => sql`SELECT * FROM accounts WHERE id = ${id}`
+})
+
+// findAll - returns Array (0 or more results)
+const findByCompany = SqlSchema.findAll({
+  Request: CompanyId,
+  Result: AccountSchema,
+  execute: (companyId) => sql`SELECT * FROM accounts WHERE company_id = ${companyId}`
+})
+
+// single - expects exactly 1 result (fails if 0 or >1)
+const getById = SqlSchema.single({
+  Request: AccountId,
+  Result: AccountSchema,
+  execute: (id) => sql`SELECT * FROM accounts WHERE id = ${id}`
+})
+
+// void - for INSERT/UPDATE/DELETE with no return
+const deleteById = SqlSchema.void({
+  Request: AccountId,
+  execute: (id) => sql`DELETE FROM accounts WHERE id = ${id}`
+})
+```
+
+### Model.Class for Repository Entities
+
+For full CRUD operations, use `Model.Class` which provides automatic schema variants:
+
+```typescript
+import { Model } from "@effect/sql"
+
+class Account extends Model.Class<Account>("Account")({
+  id: Model.Generated(AccountId),      // Generated by DB, not required for insert
+  name: Schema.String,
+  accountType: AccountType,
+  createdAt: Model.DateTimeInsert,     // Auto-set on insert
+  updatedAt: Model.DateTimeUpdate      // Auto-set on update
+}) {}
+
+// Model.Class provides these automatically:
+// Account          - select schema (all fields)
+// Account.insert   - insert schema (without generated/auto fields)
+// Account.update   - update schema (for updates)
+// Account.json     - JSON API schema
+```
+
+### SQL Helper Methods
+
+```typescript
+// Insert single or multiple rows
+sql`INSERT INTO accounts ${sql.insert({ name, accountType })}`
+sql`INSERT INTO accounts ${sql.insert([row1, row2, row3])}`
+
+// Update with specific columns
+sql`UPDATE accounts SET ${sql.update({ name, accountType })} WHERE id = ${id}`
+
+// IN clause (handles empty array safely)
+sql`SELECT * FROM accounts WHERE id IN ${sql.in(ids)}`
+
+// Combine conditions
+sql`SELECT * FROM accounts WHERE ${sql.and([
+  sql`company_id = ${companyId}`,
+  sql`active = true`
+])}`
+```
+
+### Transform Row to Domain Object (Pure Function)
+
+When mapping DB rows to domain objects, use a pure function - don't wrap in Effect:
+
+```typescript
+// WRONG - unnecessary Effect wrapping
+const toAccount = (row: AccountRow): Effect.Effect<Account> =>
+  Effect.try(() => Account.make({ ... }))
+
+// CORRECT - pure function for transformation
+const toAccount = (row: AccountRow): Account =>
+  Account.make({
+    id: row.id,
+    name: row.name,
+    accountType: row.account_type
+  })
+
+// Use in query
+const accounts = yield* sql`SELECT * FROM accounts`
+return accounts.map(toAccount)  // Just map, no Effect needed
+```
+
+### Error Handling in Repositories
+
+```typescript
+// WRONG - catchAllCause catches defects (bugs)
+const wrapError = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
+  Effect.catchAllCause(effect, (cause) =>
+    Effect.fail(new PersistenceError({ cause: Cause.squash(cause) }))
+  )
+
+// CORRECT - use mapError to transform only expected errors
+const wrapError = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
+  Effect.mapError(effect, (error) =>
+    new PersistenceError({ cause: error })
+  )
+```
 
 ---
 

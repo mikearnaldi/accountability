@@ -78,9 +78,87 @@ const importExtensionsRule = {
   }
 }
 
+/**
+ * Custom ESLint rule to ban { disableValidation: true } in Schema.make() calls.
+ * Disabling validation defeats the purpose of using Schema and can hide bugs.
+ */
+const noDisableValidationRule = {
+  meta: {
+    type: "problem",
+    docs: {
+      description: "Disallow disableValidation: true in Schema operations"
+    },
+    messages: {
+      noDisableValidation: "Do not use { disableValidation: true }. Schema validation should always be enabled to catch invalid data. If you're seeing validation errors, fix the data or schema instead of disabling validation."
+    },
+    schema: []
+  },
+  create(context) {
+    return {
+      Property(node) {
+        if (
+          node.key &&
+          ((node.key.type === "Identifier" && node.key.name === "disableValidation") ||
+           (node.key.type === "Literal" && node.key.value === "disableValidation")) &&
+          node.value &&
+          node.value.type === "Literal" &&
+          node.value.value === true
+        ) {
+          context.report({
+            node,
+            messageId: "noDisableValidation"
+          })
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Custom ESLint rule to ban sql<Type>`...` pattern.
+ * Using type parameters with sql template literals provides no runtime validation.
+ * Use SqlSchema.findOne/findAll/single/void with Schema for type-safe queries.
+ */
+const noSqlTypeParameterRule = {
+  meta: {
+    type: "problem",
+    docs: {
+      description: "Disallow type parameters on sql template literals"
+    },
+    messages: {
+      noSqlTypeParam: "Do not use sql<Type>`...`. Type parameters provide no runtime validation. Use SqlSchema.findOne/findAll/single/void with a Schema for type-safe queries that validate at runtime."
+    },
+    schema: []
+  },
+  create(context) {
+    return {
+      TaggedTemplateExpression(node) {
+        const tag = node.tag
+        // Check for sql<Type>`...` - typeArguments on TaggedTemplateExpression
+        if (node.typeArguments || node.typeParameters) {
+          // Check if tag is sql or ends with .sql
+          const isSql =
+            (tag.type === "Identifier" && tag.name === "sql") ||
+            (tag.type === "MemberExpression" &&
+              tag.property.type === "Identifier" &&
+              tag.property.name === "sql")
+          if (isSql) {
+            context.report({
+              node,
+              messageId: "noSqlTypeParam"
+            })
+          }
+        }
+      }
+    }
+  }
+}
+
 const localPlugin = {
   rules: {
-    "import-extensions": importExtensionsRule
+    "import-extensions": importExtensionsRule,
+    "no-disable-validation": noDisableValidationRule,
+    "no-sql-type-parameter": noSqlTypeParameterRule
   }
 }
 
@@ -112,6 +190,10 @@ export default [
       ...tsPlugin.configs.recommended.rules,
       // Import extension conventions
       "local/import-extensions": "error",
+      // Ban disableValidation: true
+      "local/no-disable-validation": "error",
+      // Ban sql<Type>`...` - use SqlSchema with Schema instead
+      "local/no-sql-type-parameter": "error",
       // Allow unused variables starting with underscore
       "no-unused-vars": "off",
       "@typescript-eslint/no-unused-vars": [

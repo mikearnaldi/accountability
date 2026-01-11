@@ -7,19 +7,19 @@
  * @module ExchangeRateRepositoryLive
  */
 
-import { SqlClient } from "@effect/sql"
+import { SqlClient, SqlSchema } from "@effect/sql"
 import * as BigDecimal from "effect/BigDecimal"
-import * as Cause from "effect/Cause"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
-import type { CurrencyCode } from "@accountability/core/domain/CurrencyCode"
+import * as Schema from "effect/Schema"
+import { CurrencyCode } from "@accountability/core/domain/CurrencyCode"
 import {
   ExchangeRate,
   ExchangeRateId,
   Rate,
-  type RateSource,
-  type RateType
+  RateSource,
+  RateType
 } from "@accountability/core/domain/ExchangeRate"
 import { LocalDate } from "@accountability/core/domain/LocalDate"
 import { Timestamp } from "@accountability/core/domain/Timestamp"
@@ -27,60 +27,64 @@ import { ExchangeRateRepository, type ExchangeRateRepositoryService } from "./Ex
 import { EntityNotFoundError, PersistenceError } from "./RepositoryError.ts"
 
 /**
- * Database row type for exchange_rates table
+ * Schema for database row from exchange_rates table
+ * Uses proper literal types for enum fields to avoid type assertions
  */
-interface ExchangeRateRow {
-  readonly id: string
-  readonly from_currency: string
-  readonly to_currency: string
-  readonly rate: string
-  readonly effective_date: Date
-  readonly rate_type: string
-  readonly source: string
-  readonly created_at: Date
-}
+const ExchangeRateRow = Schema.Struct({
+  id: Schema.String,
+  from_currency: CurrencyCode,
+  to_currency: CurrencyCode,
+  rate: Schema.String,
+  effective_date: Schema.DateFromSelf,
+  rate_type: RateType,
+  source: RateSource,
+  created_at: Schema.DateFromSelf
+})
+type ExchangeRateRow = typeof ExchangeRateRow.Type
+
+/**
+ * Schema for count query result
+ */
+const CountRow = Schema.Struct({
+  count: Schema.String
+})
 
 /**
  * Convert Date to LocalDate
+ * Pure function - no validation needed, values come from database
  */
 const dateToLocalDate = (date: Date): LocalDate =>
-  LocalDate.make(
-    { year: date.getUTCFullYear(), month: date.getUTCMonth() + 1, day: date.getUTCDate() },
-    { disableValidation: true }
-  )
+  LocalDate.make({ year: date.getUTCFullYear(), month: date.getUTCMonth() + 1, day: date.getUTCDate() })
 
 /**
  * Convert database row to ExchangeRate domain entity
+ * Pure function - no Effect wrapping needed
+ * Note: BigDecimal.unsafeFromString can throw, but database values are trusted to be valid
+ * Since the row schema uses proper literal types, no type assertions needed
  */
-const rowToExchangeRate = (row: ExchangeRateRow): Effect.Effect<ExchangeRate, PersistenceError> =>
-  Effect.try({
-    try: () => {
-      const rateDecimal = BigDecimal.unsafeFromString(row.rate)
-      return ExchangeRate.make(
-        {
-          id: ExchangeRateId.make(row.id, { disableValidation: true }),
-          fromCurrency: row.from_currency as CurrencyCode,
-          toCurrency: row.to_currency as CurrencyCode,
-          rate: Rate.make(rateDecimal, { disableValidation: true }),
-          effectiveDate: dateToLocalDate(row.effective_date),
-          rateType: row.rate_type as RateType,
-          source: row.source as RateSource,
-          createdAt: Timestamp.make({ epochMillis: row.created_at.getTime() }, { disableValidation: true })
-        },
-        { disableValidation: true }
-      )
-    },
-    catch: (cause) => new PersistenceError({ operation: "rowToExchangeRate", cause })
+const rowToExchangeRate = (row: ExchangeRateRow): ExchangeRate => {
+  const rateDecimal = BigDecimal.unsafeFromString(row.rate)
+  return ExchangeRate.make({
+    id: ExchangeRateId.make(row.id),
+    fromCurrency: row.from_currency,
+    toCurrency: row.to_currency,
+    rate: Rate.make(rateDecimal),
+    effectiveDate: dateToLocalDate(row.effective_date),
+    rateType: row.rate_type,
+    source: row.source,
+    createdAt: Timestamp.make({ epochMillis: row.created_at.getTime() })
   })
+}
 
 /**
  * Wrap SQL errors in PersistenceError
+ * Uses mapError to only transform expected errors, not defects
  */
 const wrapSqlError =
   (operation: string) =>
   <A, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<A, PersistenceError, R> =>
-    Effect.catchAllCause(effect, (cause) =>
-      Effect.fail(new PersistenceError({ operation, cause: Cause.squash(cause) }))
+    Effect.mapError(effect, (cause) =>
+      new PersistenceError({ operation, cause })
     )
 
 /**
@@ -89,52 +93,164 @@ const wrapSqlError =
 const make = Effect.gen(function* () {
   const sql = yield* SqlClient.SqlClient
 
+  // SqlSchema query builders for type-safe queries
+  const findRateQuery = SqlSchema.findOne({
+    Request: Schema.Struct({
+      fromCurrency: Schema.String,
+      toCurrency: Schema.String,
+      effectiveDate: Schema.DateFromSelf,
+      rateType: Schema.String
+    }),
+    Result: ExchangeRateRow,
+    execute: ({ fromCurrency, toCurrency, effectiveDate, rateType }) => sql`
+      SELECT * FROM exchange_rates
+      WHERE from_currency = ${fromCurrency}
+        AND to_currency = ${toCurrency}
+        AND effective_date = ${effectiveDate}
+        AND rate_type = ${rateType}
+      LIMIT 1
+    `
+  })
+
+  const findLatestRateQuery = SqlSchema.findOne({
+    Request: Schema.Struct({
+      fromCurrency: Schema.String,
+      toCurrency: Schema.String,
+      rateType: Schema.String
+    }),
+    Result: ExchangeRateRow,
+    execute: ({ fromCurrency, toCurrency, rateType }) => sql`
+      SELECT * FROM exchange_rates
+      WHERE from_currency = ${fromCurrency}
+        AND to_currency = ${toCurrency}
+        AND rate_type = ${rateType}
+      ORDER BY effective_date DESC
+      LIMIT 1
+    `
+  })
+
+  const findExchangeRateById = SqlSchema.findOne({
+    Request: Schema.String,
+    Result: ExchangeRateRow,
+    execute: (id) => sql`SELECT * FROM exchange_rates WHERE id = ${id}`
+  })
+
+  const findRatesByCurrencyPair = SqlSchema.findAll({
+    Request: Schema.Struct({ fromCurrency: Schema.String, toCurrency: Schema.String }),
+    Result: ExchangeRateRow,
+    execute: ({ fromCurrency, toCurrency }) => sql`
+      SELECT * FROM exchange_rates
+      WHERE from_currency = ${fromCurrency}
+        AND to_currency = ${toCurrency}
+      ORDER BY effective_date DESC, rate_type
+    `
+  })
+
+  const findRatesByDateRange = SqlSchema.findAll({
+    Request: Schema.Struct({
+      fromCurrency: Schema.String,
+      toCurrency: Schema.String,
+      startDate: Schema.DateFromSelf,
+      endDate: Schema.DateFromSelf
+    }),
+    Result: ExchangeRateRow,
+    execute: ({ fromCurrency, toCurrency, startDate, endDate }) => sql`
+      SELECT * FROM exchange_rates
+      WHERE from_currency = ${fromCurrency}
+        AND to_currency = ${toCurrency}
+        AND effective_date >= ${startDate}
+        AND effective_date <= ${endDate}
+      ORDER BY effective_date DESC
+    `
+  })
+
+  const findClosestRateQuery = SqlSchema.findOne({
+    Request: Schema.Struct({
+      fromCurrency: Schema.String,
+      toCurrency: Schema.String,
+      date: Schema.DateFromSelf,
+      rateType: Schema.String
+    }),
+    Result: ExchangeRateRow,
+    execute: ({ fromCurrency, toCurrency, date, rateType }) => sql`
+      SELECT * FROM exchange_rates
+      WHERE from_currency = ${fromCurrency}
+        AND to_currency = ${toCurrency}
+        AND rate_type = ${rateType}
+        AND effective_date <= ${date}
+      ORDER BY effective_date DESC
+      LIMIT 1
+    `
+  })
+
+  const findAverageRateQuery = SqlSchema.findOne({
+    Request: Schema.Struct({
+      fromCurrency: Schema.String,
+      toCurrency: Schema.String,
+      startDate: Schema.DateFromSelf,
+      endDate: Schema.DateFromSelf
+    }),
+    Result: ExchangeRateRow,
+    execute: ({ fromCurrency, toCurrency, startDate, endDate }) => sql`
+      SELECT * FROM exchange_rates
+      WHERE from_currency = ${fromCurrency}
+        AND to_currency = ${toCurrency}
+        AND rate_type = 'Average'
+        AND effective_date >= ${startDate}
+        AND effective_date < ${endDate}
+      ORDER BY effective_date DESC
+      LIMIT 1
+    `
+  })
+
+  const findClosingRateQuery = SqlSchema.findOne({
+    Request: Schema.Struct({
+      fromCurrency: Schema.String,
+      toCurrency: Schema.String,
+      endDate: Schema.DateFromSelf
+    }),
+    Result: ExchangeRateRow,
+    execute: ({ fromCurrency, toCurrency, endDate }) => sql`
+      SELECT * FROM exchange_rates
+      WHERE from_currency = ${fromCurrency}
+        AND to_currency = ${toCurrency}
+        AND rate_type = 'Closing'
+        AND effective_date = ${endDate}
+      LIMIT 1
+    `
+  })
+
+  const countById = SqlSchema.single({
+    Request: Schema.String,
+    Result: CountRow,
+    execute: (id) => sql`SELECT COUNT(*) as count FROM exchange_rates WHERE id = ${id}`
+  })
+
   const findRate: ExchangeRateRepositoryService["findRate"] = (
     fromCurrency,
     toCurrency,
     effectiveDate,
     rateType
   ) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<ExchangeRateRow>`
-        SELECT * FROM exchange_rates
-        WHERE from_currency = ${fromCurrency}
-          AND to_currency = ${toCurrency}
-          AND effective_date = ${effectiveDate.toDate()}
-          AND rate_type = ${rateType}
-        LIMIT 1
-      `.pipe(wrapSqlError("findRate"))
-
-      if (rows.length === 0) {
-        return Option.none()
-      }
-
-      const rate = yield* rowToExchangeRate(rows[0])
-      return Option.some(rate)
-    })
+    findRateQuery({
+      fromCurrency,
+      toCurrency,
+      effectiveDate: effectiveDate.toDate(),
+      rateType
+    }).pipe(
+      Effect.map(Option.map(rowToExchangeRate)),
+      wrapSqlError("findRate")
+    )
 
   const findLatestRate: ExchangeRateRepositoryService["findLatestRate"] = (
     fromCurrency,
     toCurrency,
     rateType
   ) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<ExchangeRateRow>`
-        SELECT * FROM exchange_rates
-        WHERE from_currency = ${fromCurrency}
-          AND to_currency = ${toCurrency}
-          AND rate_type = ${rateType}
-        ORDER BY effective_date DESC
-        LIMIT 1
-      `.pipe(wrapSqlError("findLatestRate"))
-
-      if (rows.length === 0) {
-        return Option.none()
-      }
-
-      const rate = yield* rowToExchangeRate(rows[0])
-      return Option.some(rate)
-    })
+    findLatestRateQuery({ fromCurrency, toCurrency, rateType }).pipe(
+      Effect.map(Option.map(rowToExchangeRate)),
+      wrapSqlError("findLatestRate")
+    )
 
   const create: ExchangeRateRepositoryService["create"] = (rate) =>
     Effect.gen(function* () {
@@ -158,18 +274,10 @@ const make = Effect.gen(function* () {
     })
 
   const findById: ExchangeRateRepositoryService["findById"] = (id) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<ExchangeRateRow>`
-        SELECT * FROM exchange_rates WHERE id = ${id}
-      `.pipe(wrapSqlError("findById"))
-
-      if (rows.length === 0) {
-        return Option.none()
-      }
-
-      const rate = yield* rowToExchangeRate(rows[0])
-      return Option.some(rate)
-    })
+    findExchangeRateById(id).pipe(
+      Effect.map(Option.map(rowToExchangeRate)),
+      wrapSqlError("findById")
+    )
 
   const getById: ExchangeRateRepositoryService["getById"] = (id) =>
     Effect.gen(function* () {
@@ -184,16 +292,10 @@ const make = Effect.gen(function* () {
     fromCurrency,
     toCurrency
   ) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<ExchangeRateRow>`
-        SELECT * FROM exchange_rates
-        WHERE from_currency = ${fromCurrency}
-          AND to_currency = ${toCurrency}
-        ORDER BY effective_date DESC, rate_type
-      `.pipe(wrapSqlError("findByCurrencyPair"))
-
-      return yield* Effect.forEach(rows, rowToExchangeRate)
-    })
+    findRatesByCurrencyPair({ fromCurrency, toCurrency }).pipe(
+      Effect.map((rows) => rows.map(rowToExchangeRate)),
+      wrapSqlError("findByCurrencyPair")
+    )
 
   const findByDateRange: ExchangeRateRepositoryService["findByDateRange"] = (
     fromCurrency,
@@ -201,18 +303,15 @@ const make = Effect.gen(function* () {
     startDate,
     endDate
   ) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<ExchangeRateRow>`
-        SELECT * FROM exchange_rates
-        WHERE from_currency = ${fromCurrency}
-          AND to_currency = ${toCurrency}
-          AND effective_date >= ${startDate.toDate()}
-          AND effective_date <= ${endDate.toDate()}
-        ORDER BY effective_date DESC
-      `.pipe(wrapSqlError("findByDateRange"))
-
-      return yield* Effect.forEach(rows, rowToExchangeRate)
-    })
+    findRatesByDateRange({
+      fromCurrency,
+      toCurrency,
+      startDate: startDate.toDate(),
+      endDate: endDate.toDate()
+    }).pipe(
+      Effect.map((rows) => rows.map(rowToExchangeRate)),
+      wrapSqlError("findByDateRange")
+    )
 
   const findClosestRate: ExchangeRateRepositoryService["findClosestRate"] = (
     fromCurrency,
@@ -220,92 +319,62 @@ const make = Effect.gen(function* () {
     date,
     rateType
   ) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<ExchangeRateRow>`
-        SELECT * FROM exchange_rates
-        WHERE from_currency = ${fromCurrency}
-          AND to_currency = ${toCurrency}
-          AND rate_type = ${rateType}
-          AND effective_date <= ${date.toDate()}
-        ORDER BY effective_date DESC
-        LIMIT 1
-      `.pipe(wrapSqlError("findClosestRate"))
-
-      if (rows.length === 0) {
-        return Option.none()
-      }
-
-      const rate = yield* rowToExchangeRate(rows[0])
-      return Option.some(rate)
-    })
+    findClosestRateQuery({
+      fromCurrency,
+      toCurrency,
+      date: date.toDate(),
+      rateType
+    }).pipe(
+      Effect.map(Option.map(rowToExchangeRate)),
+      wrapSqlError("findClosestRate")
+    )
 
   const findAverageRateForPeriod: ExchangeRateRepositoryService["findAverageRateForPeriod"] = (
     fromCurrency,
     toCurrency,
     year,
     period
-  ) =>
-    Effect.gen(function* () {
-      // Calculate the period's date range based on year and period
-      const startMonth = period
-      const startDate = LocalDate.make({ year, month: startMonth, day: 1 }, { disableValidation: true })
-      const nextMonth = startMonth === 12 ? 1 : startMonth + 1
-      const nextYear = startMonth === 12 ? year + 1 : year
-      const endDate = LocalDate.make({ year: nextYear, month: nextMonth, day: 1 }, { disableValidation: true })
+  ) => {
+    // Calculate the period's date range based on year and period
+    const startMonth = period
+    const startDate = new Date(Date.UTC(year, startMonth - 1, 1))
+    const nextMonth = startMonth === 12 ? 1 : startMonth + 1
+    const nextYear = startMonth === 12 ? year + 1 : year
+    const endDate = new Date(Date.UTC(nextYear, nextMonth - 1, 1))
 
-      const rows = yield* sql<ExchangeRateRow>`
-        SELECT * FROM exchange_rates
-        WHERE from_currency = ${fromCurrency}
-          AND to_currency = ${toCurrency}
-          AND rate_type = 'Average'
-          AND effective_date >= ${startDate.toDate()}
-          AND effective_date < ${endDate.toDate()}
-        ORDER BY effective_date DESC
-        LIMIT 1
-      `.pipe(wrapSqlError("findAverageRateForPeriod"))
-
-      if (rows.length === 0) {
-        return Option.none()
-      }
-
-      const rate = yield* rowToExchangeRate(rows[0])
-      return Option.some(rate)
-    })
+    return findAverageRateQuery({
+      fromCurrency,
+      toCurrency,
+      startDate,
+      endDate
+    }).pipe(
+      Effect.map(Option.map(rowToExchangeRate)),
+      wrapSqlError("findAverageRateForPeriod")
+    )
+  }
 
   const findClosingRateForPeriod: ExchangeRateRepositoryService["findClosingRateForPeriod"] = (
     fromCurrency,
     toCurrency,
     year,
     period
-  ) =>
-    Effect.gen(function* () {
-      // Get the last day of the period
-      const nextMonth = period === 12 ? 1 : period + 1
-      const nextYear = period === 12 ? year + 1 : year
-      // Get last day by creating first day of next month and subtracting 1 day
-      const firstOfNext = new Date(Date.UTC(nextYear, nextMonth - 1, 1))
-      const lastDay = new Date(firstOfNext.getTime() - 24 * 60 * 60 * 1000)
-      const endDate = LocalDate.make(
-        { year: lastDay.getUTCFullYear(), month: lastDay.getUTCMonth() + 1, day: lastDay.getUTCDate() },
-        { disableValidation: true }
-      )
+  ) => {
+    // Get the last day of the period
+    const nextMonth = period === 12 ? 1 : period + 1
+    const nextYear = period === 12 ? year + 1 : year
+    // Get last day by creating first day of next month and subtracting 1 day
+    const firstOfNext = new Date(Date.UTC(nextYear, nextMonth - 1, 1))
+    const lastDay = new Date(firstOfNext.getTime() - 24 * 60 * 60 * 1000)
 
-      const rows = yield* sql<ExchangeRateRow>`
-        SELECT * FROM exchange_rates
-        WHERE from_currency = ${fromCurrency}
-          AND to_currency = ${toCurrency}
-          AND rate_type = 'Closing'
-          AND effective_date = ${endDate.toDate()}
-        LIMIT 1
-      `.pipe(wrapSqlError("findClosingRateForPeriod"))
-
-      if (rows.length === 0) {
-        return Option.none()
-      }
-
-      const rate = yield* rowToExchangeRate(rows[0])
-      return Option.some(rate)
-    })
+    return findClosingRateQuery({
+      fromCurrency,
+      toCurrency,
+      endDate: lastDay
+    }).pipe(
+      Effect.map(Option.map(rowToExchangeRate)),
+      wrapSqlError("findClosingRateForPeriod")
+    )
+  }
 
   const createMany: ExchangeRateRepositoryService["createMany"] = (rates) =>
     Effect.gen(function* () {
@@ -316,13 +385,10 @@ const make = Effect.gen(function* () {
     })
 
   const exists: ExchangeRateRepositoryService["exists"] = (id) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<{ count: string }>`
-        SELECT COUNT(*) as count FROM exchange_rates WHERE id = ${id}
-      `.pipe(wrapSqlError("exists"))
-
-      return parseInt(rows[0].count, 10) > 0
-    })
+    countById(id).pipe(
+      Effect.map((row) => parseInt(row.count, 10) > 0),
+      wrapSqlError("exists")
+    )
 
   const deleteRate: ExchangeRateRepositoryService["delete"] = (id) =>
     Effect.gen(function* () {

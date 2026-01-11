@@ -7,11 +7,11 @@
  * @module FiscalPeriodRepositoryLive
  */
 
-import { SqlClient } from "@effect/sql"
-import * as Cause from "effect/Cause"
+import { SqlClient, SqlSchema } from "@effect/sql"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
+import * as Schema from "effect/Schema"
 import { CompanyId } from "@accountability/core/domain/Company"
 import { LocalDate } from "@accountability/core/domain/LocalDate"
 import { Timestamp } from "@accountability/core/domain/Timestamp"
@@ -19,117 +19,114 @@ import { UserId } from "@accountability/core/domain/JournalEntry"
 import {
   FiscalPeriod,
   FiscalPeriodId,
-  type FiscalPeriodStatus,
-  type FiscalPeriodType,
+  FiscalPeriodStatus,
+  FiscalPeriodType,
   FiscalYear,
   FiscalYearId,
-  type FiscalYearStatus
+  FiscalYearStatus
 } from "@accountability/core/services/PeriodService"
 import { FiscalPeriodRepository, type FiscalPeriodRepositoryService } from "./FiscalPeriodRepository.ts"
 import { EntityNotFoundError, PersistenceError } from "./RepositoryError.ts"
 
 /**
- * Database row type for fiscal_years table
+ * Schema for database row from fiscal_years table
+ * Uses proper literal types for enum fields to avoid type assertions
  */
-interface FiscalYearRow {
-  readonly id: string
-  readonly company_id: string
-  readonly name: string
-  readonly year: number
-  readonly start_date: Date
-  readonly end_date: Date
-  readonly status: string
-  readonly includes_adjustment_period: boolean
-  readonly created_at: Date
-}
+const FiscalYearRow = Schema.Struct({
+  id: Schema.String,
+  company_id: Schema.String,
+  name: Schema.String,
+  year: Schema.Number,
+  start_date: Schema.DateFromSelf,
+  end_date: Schema.DateFromSelf,
+  status: FiscalYearStatus,
+  includes_adjustment_period: Schema.Boolean,
+  created_at: Schema.DateFromSelf
+})
+type FiscalYearRow = typeof FiscalYearRow.Type
 
 /**
- * Database row type for fiscal_periods table
+ * Schema for database row from fiscal_periods table
+ * Uses proper literal types for enum fields to avoid type assertions
  */
-interface FiscalPeriodRow {
-  readonly id: string
-  readonly fiscal_year_id: string
-  readonly period_number: number
-  readonly name: string
-  readonly period_type: string
-  readonly start_date: Date
-  readonly end_date: Date
-  readonly status: string
-  readonly closed_by: string | null
-  readonly closed_at: Date | null
-}
+const FiscalPeriodRow = Schema.Struct({
+  id: Schema.String,
+  fiscal_year_id: Schema.String,
+  period_number: Schema.Number,
+  name: Schema.String,
+  period_type: FiscalPeriodType,
+  start_date: Schema.DateFromSelf,
+  end_date: Schema.DateFromSelf,
+  status: FiscalPeriodStatus,
+  closed_by: Schema.NullOr(Schema.String),
+  closed_at: Schema.NullOr(Schema.DateFromSelf)
+})
+type FiscalPeriodRow = typeof FiscalPeriodRow.Type
+
+/**
+ * Schema for count query result
+ */
+const CountRow = Schema.Struct({
+  count: Schema.String
+})
 
 /**
  * Convert Date to LocalDate
+ * Pure function - no validation needed, values come from database
  */
 const dateToLocalDate = (date: Date): LocalDate =>
-  LocalDate.make(
-    { year: date.getUTCFullYear(), month: date.getUTCMonth() + 1, day: date.getUTCDate() },
-    { disableValidation: true }
-  )
+  LocalDate.make({ year: date.getUTCFullYear(), month: date.getUTCMonth() + 1, day: date.getUTCDate() })
 
 /**
  * Convert database row to FiscalYear domain entity
+ * Pure function - no Effect wrapping needed
+ * Since the row schema uses proper literal types, no type assertions needed
  */
-const rowToFiscalYear = (row: FiscalYearRow): Effect.Effect<FiscalYear, PersistenceError> =>
-  Effect.try({
-    try: () =>
-      FiscalYear.make(
-        {
-          id: FiscalYearId.make(row.id, { disableValidation: true }),
-          companyId: CompanyId.make(row.company_id, { disableValidation: true }),
-          name: row.name,
-          year: row.year,
-          startDate: dateToLocalDate(row.start_date),
-          endDate: dateToLocalDate(row.end_date),
-          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- Database string to union type
-          status: row.status as FiscalYearStatus,
-          includesAdjustmentPeriod: row.includes_adjustment_period,
-          createdAt: Timestamp.make({ epochMillis: row.created_at.getTime() }, { disableValidation: true })
-        },
-        { disableValidation: true }
-      ),
-    catch: (cause) => new PersistenceError({ operation: "rowToFiscalYear", cause })
+const rowToFiscalYear = (row: FiscalYearRow): FiscalYear =>
+  FiscalYear.make({
+    id: FiscalYearId.make(row.id),
+    companyId: CompanyId.make(row.company_id),
+    name: row.name,
+    year: row.year,
+    startDate: dateToLocalDate(row.start_date),
+    endDate: dateToLocalDate(row.end_date),
+    status: row.status,
+    includesAdjustmentPeriod: row.includes_adjustment_period,
+    createdAt: Timestamp.make({ epochMillis: row.created_at.getTime() })
   })
 
 /**
  * Convert database row to FiscalPeriod domain entity
+ * Pure function - no Effect wrapping needed
+ * Since the row schema uses proper literal types, no type assertions needed
  */
-const rowToFiscalPeriod = (row: FiscalPeriodRow): Effect.Effect<FiscalPeriod, PersistenceError> =>
-  Effect.try({
-    try: () =>
-      FiscalPeriod.make(
-        {
-          id: FiscalPeriodId.make(row.id, { disableValidation: true }),
-          fiscalYearId: FiscalYearId.make(row.fiscal_year_id, { disableValidation: true }),
-          periodNumber: row.period_number,
-          name: row.name,
-          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- Database string to union type
-          periodType: row.period_type as FiscalPeriodType,
-          startDate: dateToLocalDate(row.start_date),
-          endDate: dateToLocalDate(row.end_date),
-          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- Database string to union type
-          status: row.status as FiscalPeriodStatus,
-          closedBy: row.closed_by !== null
-            ? Option.some(UserId.make(row.closed_by, { disableValidation: true }))
-            : Option.none<typeof UserId.Type>(),
-          closedAt: row.closed_at !== null
-            ? Option.some(Timestamp.make({ epochMillis: row.closed_at.getTime() }, { disableValidation: true }))
-            : Option.none<Timestamp>()
-        },
-        { disableValidation: true }
-      ),
-    catch: (cause) => new PersistenceError({ operation: "rowToFiscalPeriod", cause })
+const rowToFiscalPeriod = (row: FiscalPeriodRow): FiscalPeriod =>
+  FiscalPeriod.make({
+    id: FiscalPeriodId.make(row.id),
+    fiscalYearId: FiscalYearId.make(row.fiscal_year_id),
+    periodNumber: row.period_number,
+    name: row.name,
+    periodType: row.period_type,
+    startDate: dateToLocalDate(row.start_date),
+    endDate: dateToLocalDate(row.end_date),
+    status: row.status,
+    closedBy: row.closed_by !== null
+      ? Option.some(UserId.make(row.closed_by))
+      : Option.none<typeof UserId.Type>(),
+    closedAt: row.closed_at !== null
+      ? Option.some(Timestamp.make({ epochMillis: row.closed_at.getTime() }))
+      : Option.none<Timestamp>()
   })
 
 /**
  * Wrap SQL errors in PersistenceError
+ * Uses mapError to only transform expected errors, not defects
  */
 const wrapSqlError =
   (operation: string) =>
   <A, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<A, PersistenceError, R> =>
-    Effect.catchAllCause(effect, (cause) =>
-      Effect.fail(new PersistenceError({ operation, cause: Cause.squash(cause) }))
+    Effect.mapError(effect, (cause) =>
+      new PersistenceError({ operation, cause })
     )
 
 /**
@@ -138,44 +135,137 @@ const wrapSqlError =
 const make = Effect.gen(function* () {
   const sql = yield* SqlClient.SqlClient
 
+  // SqlSchema query builders for FiscalPeriod
+  const findPeriodById = SqlSchema.findOne({
+    Request: Schema.String,
+    Result: FiscalPeriodRow,
+    execute: (id) => sql`SELECT * FROM fiscal_periods WHERE id = ${id}`
+  })
+
+  const findPeriodsByCompany = SqlSchema.findAll({
+    Request: Schema.String,
+    Result: FiscalPeriodRow,
+    execute: (companyId) => sql`
+      SELECT fp.* FROM fiscal_periods fp
+      JOIN fiscal_years fy ON fp.fiscal_year_id = fy.id
+      WHERE fy.company_id = ${companyId}
+      ORDER BY fy.year DESC, fp.period_number
+    `
+  })
+
+  const findOpenPeriodsByCompany = SqlSchema.findAll({
+    Request: Schema.String,
+    Result: FiscalPeriodRow,
+    execute: (companyId) => sql`
+      SELECT fp.* FROM fiscal_periods fp
+      JOIN fiscal_years fy ON fp.fiscal_year_id = fy.id
+      WHERE fy.company_id = ${companyId} AND fp.status = 'Open'
+      ORDER BY fy.year, fp.period_number
+    `
+  })
+
+  const findPeriodsByFiscalYear = SqlSchema.findAll({
+    Request: Schema.String,
+    Result: FiscalPeriodRow,
+    execute: (fiscalYearId) => sql`
+      SELECT * FROM fiscal_periods
+      WHERE fiscal_year_id = ${fiscalYearId}
+      ORDER BY period_number
+    `
+  })
+
+  const findPeriodsByCompanyAndStatus = SqlSchema.findAll({
+    Request: Schema.Struct({ companyId: Schema.String, status: Schema.String }),
+    Result: FiscalPeriodRow,
+    execute: ({ companyId, status }) => sql`
+      SELECT fp.* FROM fiscal_periods fp
+      JOIN fiscal_years fy ON fp.fiscal_year_id = fy.id
+      WHERE fy.company_id = ${companyId} AND fp.status = ${status}
+      ORDER BY fy.year, fp.period_number
+    `
+  })
+
+  const findCurrentPeriodQuery = SqlSchema.findOne({
+    Request: Schema.String,
+    Result: FiscalPeriodRow,
+    execute: (companyId) => sql`
+      SELECT fp.* FROM fiscal_periods fp
+      JOIN fiscal_years fy ON fp.fiscal_year_id = fy.id
+      WHERE fy.company_id = ${companyId}
+        AND fp.status = 'Open'
+        AND fp.start_date <= CURRENT_DATE
+        AND fp.end_date >= CURRENT_DATE
+      ORDER BY fp.period_number
+      LIMIT 1
+    `
+  })
+
+  const countPeriodById = SqlSchema.single({
+    Request: Schema.String,
+    Result: CountRow,
+    execute: (id) => sql`SELECT COUNT(*) as count FROM fiscal_periods WHERE id = ${id}`
+  })
+
+  // SqlSchema query builders for FiscalYear
+  const findFiscalYearById = SqlSchema.findOne({
+    Request: Schema.String,
+    Result: FiscalYearRow,
+    execute: (id) => sql`SELECT * FROM fiscal_years WHERE id = ${id}`
+  })
+
+  const findFiscalYearsByCompany = SqlSchema.findAll({
+    Request: Schema.String,
+    Result: FiscalYearRow,
+    execute: (companyId) => sql`
+      SELECT * FROM fiscal_years
+      WHERE company_id = ${companyId}
+      ORDER BY year DESC
+    `
+  })
+
+  const findFiscalYearByCompanyAndYear = SqlSchema.findOne({
+    Request: Schema.Struct({ companyId: Schema.String, year: Schema.Number }),
+    Result: FiscalYearRow,
+    execute: ({ companyId, year }) => sql`
+      SELECT * FROM fiscal_years
+      WHERE company_id = ${companyId} AND year = ${year}
+    `
+  })
+
+  const findOpenFiscalYearsQuery = SqlSchema.findAll({
+    Request: Schema.String,
+    Result: FiscalYearRow,
+    execute: (companyId) => sql`
+      SELECT * FROM fiscal_years
+      WHERE company_id = ${companyId} AND status = 'Open'
+      ORDER BY year DESC
+    `
+  })
+
+  const countFiscalYearById = SqlSchema.single({
+    Request: Schema.String,
+    Result: CountRow,
+    execute: (id) => sql`SELECT COUNT(*) as count FROM fiscal_years WHERE id = ${id}`
+  })
+
   // FiscalPeriod operations
   const findById: FiscalPeriodRepositoryService["findById"] = (id) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<FiscalPeriodRow>`
-        SELECT * FROM fiscal_periods WHERE id = ${id}
-      `.pipe(wrapSqlError("findById"))
-
-      if (rows.length === 0) {
-        return Option.none()
-      }
-
-      const period = yield* rowToFiscalPeriod(rows[0])
-      return Option.some(period)
-    })
+    findPeriodById(id).pipe(
+      Effect.map(Option.map(rowToFiscalPeriod)),
+      wrapSqlError("findById")
+    )
 
   const findByCompany: FiscalPeriodRepositoryService["findByCompany"] = (companyId) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<FiscalPeriodRow>`
-        SELECT fp.* FROM fiscal_periods fp
-        JOIN fiscal_years fy ON fp.fiscal_year_id = fy.id
-        WHERE fy.company_id = ${companyId}
-        ORDER BY fy.year DESC, fp.period_number
-      `.pipe(wrapSqlError("findByCompany"))
-
-      return yield* Effect.forEach(rows, rowToFiscalPeriod)
-    })
+    findPeriodsByCompany(companyId).pipe(
+      Effect.map((rows) => rows.map(rowToFiscalPeriod)),
+      wrapSqlError("findByCompany")
+    )
 
   const findOpen: FiscalPeriodRepositoryService["findOpen"] = (companyId) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<FiscalPeriodRow>`
-        SELECT fp.* FROM fiscal_periods fp
-        JOIN fiscal_years fy ON fp.fiscal_year_id = fy.id
-        WHERE fy.company_id = ${companyId} AND fp.status = 'Open'
-        ORDER BY fy.year, fp.period_number
-      `.pipe(wrapSqlError("findOpen"))
-
-      return yield* Effect.forEach(rows, rowToFiscalPeriod)
-    })
+    findOpenPeriodsByCompany(companyId).pipe(
+      Effect.map((rows) => rows.map(rowToFiscalPeriod)),
+      wrapSqlError("findOpen")
+    )
 
   const create: FiscalPeriodRepositoryService["create"] = (period) =>
     Effect.gen(function* () {
@@ -233,48 +323,22 @@ const make = Effect.gen(function* () {
     })
 
   const findByFiscalYear: FiscalPeriodRepositoryService["findByFiscalYear"] = (fiscalYearId) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<FiscalPeriodRow>`
-        SELECT * FROM fiscal_periods
-        WHERE fiscal_year_id = ${fiscalYearId}
-        ORDER BY period_number
-      `.pipe(wrapSqlError("findByFiscalYear"))
-
-      return yield* Effect.forEach(rows, rowToFiscalPeriod)
-    })
+    findPeriodsByFiscalYear(fiscalYearId).pipe(
+      Effect.map((rows) => rows.map(rowToFiscalPeriod)),
+      wrapSqlError("findByFiscalYear")
+    )
 
   const findByStatus: FiscalPeriodRepositoryService["findByStatus"] = (companyId, status) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<FiscalPeriodRow>`
-        SELECT fp.* FROM fiscal_periods fp
-        JOIN fiscal_years fy ON fp.fiscal_year_id = fy.id
-        WHERE fy.company_id = ${companyId} AND fp.status = ${status}
-        ORDER BY fy.year, fp.period_number
-      `.pipe(wrapSqlError("findByStatus"))
-
-      return yield* Effect.forEach(rows, rowToFiscalPeriod)
-    })
+    findPeriodsByCompanyAndStatus({ companyId, status }).pipe(
+      Effect.map((rows) => rows.map(rowToFiscalPeriod)),
+      wrapSqlError("findByStatus")
+    )
 
   const findCurrentPeriod: FiscalPeriodRepositoryService["findCurrentPeriod"] = (companyId) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<FiscalPeriodRow>`
-        SELECT fp.* FROM fiscal_periods fp
-        JOIN fiscal_years fy ON fp.fiscal_year_id = fy.id
-        WHERE fy.company_id = ${companyId}
-          AND fp.status = 'Open'
-          AND fp.start_date <= CURRENT_DATE
-          AND fp.end_date >= CURRENT_DATE
-        ORDER BY fp.period_number
-        LIMIT 1
-      `.pipe(wrapSqlError("findCurrentPeriod"))
-
-      if (rows.length === 0) {
-        return Option.none()
-      }
-
-      const period = yield* rowToFiscalPeriod(rows[0])
-      return Option.some(period)
-    })
+    findCurrentPeriodQuery(companyId).pipe(
+      Effect.map(Option.map(rowToFiscalPeriod)),
+      wrapSqlError("findCurrentPeriod")
+    )
 
   const createMany: FiscalPeriodRepositoryService["createMany"] = (periods) =>
     Effect.gen(function* () {
@@ -285,77 +349,47 @@ const make = Effect.gen(function* () {
     })
 
   const exists: FiscalPeriodRepositoryService["exists"] = (id) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<{ count: string }>`
-        SELECT COUNT(*) as count FROM fiscal_periods WHERE id = ${id}
-      `.pipe(wrapSqlError("exists"))
-
-      return parseInt(rows[0].count, 10) > 0
-    })
+    countPeriodById(id).pipe(
+      Effect.map((row) => parseInt(row.count, 10) > 0),
+      wrapSqlError("exists")
+    )
 
   // FiscalYear operations
-  const findFiscalYearById: FiscalPeriodRepositoryService["findFiscalYearById"] = (id) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<FiscalYearRow>`
-        SELECT * FROM fiscal_years WHERE id = ${id}
-      `.pipe(wrapSqlError("findFiscalYearById"))
-
-      if (rows.length === 0) {
-        return Option.none()
-      }
-
-      const year = yield* rowToFiscalYear(rows[0])
-      return Option.some(year)
-    })
+  const findFiscalYearByIdOp: FiscalPeriodRepositoryService["findFiscalYearById"] = (id) =>
+    findFiscalYearById(id).pipe(
+      Effect.map(Option.map(rowToFiscalYear)),
+      wrapSqlError("findFiscalYearById")
+    )
 
   const getFiscalYearById: FiscalPeriodRepositoryService["getFiscalYearById"] = (id) =>
     Effect.gen(function* () {
-      const maybeYear = yield* findFiscalYearById(id)
+      const maybeYear = yield* findFiscalYearByIdOp(id)
       return yield* Option.match(maybeYear, {
         onNone: () => Effect.fail(new EntityNotFoundError({ entityType: "FiscalYear", entityId: id })),
         onSome: Effect.succeed
       })
     })
 
-  const findFiscalYearsByCompany: FiscalPeriodRepositoryService["findFiscalYearsByCompany"] = (companyId) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<FiscalYearRow>`
-        SELECT * FROM fiscal_years
-        WHERE company_id = ${companyId}
-        ORDER BY year DESC
-      `.pipe(wrapSqlError("findFiscalYearsByCompany"))
+  const findFiscalYearsByCompanyOp: FiscalPeriodRepositoryService["findFiscalYearsByCompany"] = (companyId) =>
+    findFiscalYearsByCompany(companyId).pipe(
+      Effect.map((rows) => rows.map(rowToFiscalYear)),
+      wrapSqlError("findFiscalYearsByCompany")
+    )
 
-      return yield* Effect.forEach(rows, rowToFiscalYear)
-    })
-
-  const findFiscalYearByCompanyAndYear: FiscalPeriodRepositoryService["findFiscalYearByCompanyAndYear"] = (
+  const findFiscalYearByCompanyAndYearOp: FiscalPeriodRepositoryService["findFiscalYearByCompanyAndYear"] = (
     companyId,
     year
   ) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<FiscalYearRow>`
-        SELECT * FROM fiscal_years
-        WHERE company_id = ${companyId} AND year = ${year}
-      `.pipe(wrapSqlError("findFiscalYearByCompanyAndYear"))
-
-      if (rows.length === 0) {
-        return Option.none()
-      }
-
-      const fiscalYear = yield* rowToFiscalYear(rows[0])
-      return Option.some(fiscalYear)
-    })
+    findFiscalYearByCompanyAndYear({ companyId, year }).pipe(
+      Effect.map(Option.map(rowToFiscalYear)),
+      wrapSqlError("findFiscalYearByCompanyAndYear")
+    )
 
   const findOpenFiscalYears: FiscalPeriodRepositoryService["findOpenFiscalYears"] = (companyId) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<FiscalYearRow>`
-        SELECT * FROM fiscal_years
-        WHERE company_id = ${companyId} AND status = 'Open'
-        ORDER BY year DESC
-      `.pipe(wrapSqlError("findOpenFiscalYears"))
-
-      return yield* Effect.forEach(rows, rowToFiscalYear)
-    })
+    findOpenFiscalYearsQuery(companyId).pipe(
+      Effect.map((rows) => rows.map(rowToFiscalYear)),
+      wrapSqlError("findOpenFiscalYears")
+    )
 
   const createFiscalYear: FiscalPeriodRepositoryService["createFiscalYear"] = (fiscalYear) =>
     Effect.gen(function* () {
@@ -401,13 +435,10 @@ const make = Effect.gen(function* () {
     })
 
   const fiscalYearExists: FiscalPeriodRepositoryService["fiscalYearExists"] = (id) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<{ count: string }>`
-        SELECT COUNT(*) as count FROM fiscal_years WHERE id = ${id}
-      `.pipe(wrapSqlError("fiscalYearExists"))
-
-      return parseInt(rows[0].count, 10) > 0
-    })
+    countFiscalYearById(id).pipe(
+      Effect.map((row) => parseInt(row.count, 10) > 0),
+      wrapSqlError("fiscalYearExists")
+    )
 
   return {
     findById,
@@ -421,10 +452,10 @@ const make = Effect.gen(function* () {
     findCurrentPeriod,
     createMany,
     exists,
-    findFiscalYearById,
+    findFiscalYearById: findFiscalYearByIdOp,
     getFiscalYearById,
-    findFiscalYearsByCompany,
-    findFiscalYearByCompanyAndYear,
+    findFiscalYearsByCompany: findFiscalYearsByCompanyOp,
+    findFiscalYearByCompanyAndYear: findFiscalYearByCompanyAndYearOp,
     findOpenFiscalYears,
     createFiscalYear,
     updateFiscalYear,

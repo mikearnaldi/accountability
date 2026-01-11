@@ -10,14 +10,13 @@
  * @module ConsolidationRepositoryLive
  */
 
-import { SqlClient } from "@effect/sql"
-import * as Cause from "effect/Cause"
+import { SqlClient, SqlSchema } from "@effect/sql"
 import * as Chunk from "effect/Chunk"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
-import { CompanyId, type ConsolidationMethod } from "@accountability/core/domain/Company"
+import { CompanyId, ConsolidationMethod } from "@accountability/core/domain/Company"
 import {
   ConsolidationGroup,
   ConsolidationGroupId,
@@ -29,13 +28,13 @@ import {
   ConsolidatedTrialBalance,
   ConsolidationRun,
   ConsolidationRunId,
-  type ConsolidationRunStatus,
+  ConsolidationRunStatus,
   ConsolidationStep,
-  type ConsolidationStepStatus,
-  type ConsolidationStepType,
+  ConsolidationStepStatus,
+  ConsolidationStepType,
   ValidationResult
 } from "@accountability/core/domain/ConsolidationRun"
-import type { CurrencyCode } from "@accountability/core/domain/CurrencyCode"
+import { CurrencyCode } from "@accountability/core/domain/CurrencyCode"
 import { FiscalPeriodRef } from "@accountability/core/domain/FiscalPeriodRef"
 import { LocalDate } from "@accountability/core/domain/LocalDate"
 import { OrganizationId } from "@accountability/core/domain/Organization"
@@ -46,72 +45,193 @@ import { ConsolidationRepository, type ConsolidationRepositoryService } from "./
 import { EntityNotFoundError, PersistenceError } from "./RepositoryError.ts"
 
 /**
- * Database row types
+ * Schema for database row from consolidation_groups table
+ * Uses proper literal types for enum fields to avoid type assertions
  */
-interface ConsolidationGroupRow {
-  readonly id: string
-  readonly organization_id: string
-  readonly name: string
-  readonly reporting_currency: string
-  readonly consolidation_method: string
-  readonly parent_company_id: string
-  readonly is_active: boolean
-}
+const ConsolidationGroupRow = Schema.Struct({
+  id: Schema.String,
+  organization_id: Schema.String,
+  name: Schema.String,
+  reporting_currency: CurrencyCode,
+  consolidation_method: ConsolidationMethod,
+  parent_company_id: Schema.String,
+  is_active: Schema.Boolean
+})
+type ConsolidationGroupRow = typeof ConsolidationGroupRow.Type
 
-interface ConsolidationMemberRow {
-  readonly id: string
-  readonly consolidation_group_id: string
-  readonly company_id: string
-  readonly ownership_percentage: string
-  readonly consolidation_method: string
-  readonly acquisition_date: Date
-  readonly goodwill_amount: string | null // JSONB
-  readonly non_controlling_interest_percentage: string
-  readonly vie_determination: string | null // JSONB
-}
+/**
+ * Schema for database row from consolidation_members table
+ * Uses proper literal types for enum fields to avoid type assertions
+ */
+const ConsolidationMemberRow = Schema.Struct({
+  id: Schema.String,
+  consolidation_group_id: Schema.String,
+  company_id: Schema.String,
+  ownership_percentage: Schema.String,
+  consolidation_method: ConsolidationMethod,
+  acquisition_date: Schema.DateFromSelf,
+  goodwill_amount: Schema.NullOr(Schema.String),
+  non_controlling_interest_percentage: Schema.String,
+  vie_determination: Schema.NullOr(Schema.String)
+})
+type ConsolidationMemberRow = typeof ConsolidationMemberRow.Type
 
-interface EliminationRuleIdRow {
-  readonly id: string
-}
+/**
+ * Schema for elimination rule ID row
+ */
+const EliminationRuleIdRow = Schema.Struct({
+  id: Schema.String
+})
+type EliminationRuleIdRow = typeof EliminationRuleIdRow.Type
 
-interface ConsolidationRunRow {
-  readonly id: string
-  readonly group_id: string
-  readonly period_year: number
-  readonly period_number: number
-  readonly as_of_date: Date
-  readonly status: string
-  readonly steps: string // JSONB
-  readonly validation_result: string | null // JSONB
-  readonly consolidated_trial_balance: string | null // JSONB
-  readonly elimination_entry_ids: string // JSONB array
-  readonly options: string // JSONB
-  readonly initiated_by: string
-  readonly initiated_at: Date
-  readonly started_at: Date | null
-  readonly completed_at: Date | null
-  readonly total_duration_ms: number | null
-  readonly error_message: string | null
-}
+/**
+ * Schema for database row from consolidation_runs table
+ * Uses proper literal types for enum fields to avoid type assertions
+ */
+const ConsolidationRunRow = Schema.Struct({
+  id: Schema.String,
+  group_id: Schema.String,
+  period_year: Schema.Number,
+  period_number: Schema.Number,
+  as_of_date: Schema.DateFromSelf,
+  status: ConsolidationRunStatus,
+  steps: Schema.String,
+  validation_result: Schema.NullOr(Schema.String),
+  consolidated_trial_balance: Schema.NullOr(Schema.String),
+  elimination_entry_ids: Schema.String,
+  options: Schema.String,
+  initiated_by: Schema.String,
+  initiated_at: Schema.DateFromSelf,
+  started_at: Schema.NullOr(Schema.DateFromSelf),
+  completed_at: Schema.NullOr(Schema.DateFromSelf),
+  total_duration_ms: Schema.NullOr(Schema.Number),
+  error_message: Schema.NullOr(Schema.String)
+})
+type ConsolidationRunRow = typeof ConsolidationRunRow.Type
+
+/**
+ * Schema for count query result
+ */
+const CountRow = Schema.Struct({
+  count: Schema.String
+})
 
 /**
  * Convert Date to LocalDate
+ * Pure function - no validation needed, values come from database
  */
 const dateToLocalDate = (date: Date): LocalDate =>
-  LocalDate.make(
-    { year: date.getUTCFullYear(), month: date.getUTCMonth() + 1, day: date.getUTCDate() },
-    { disableValidation: true }
-  )
+  LocalDate.make({ year: date.getUTCFullYear(), month: date.getUTCMonth() + 1, day: date.getUTCDate() })
 
 /**
  * Wrap SQL errors in PersistenceError
+ * Uses mapError to only transform expected errors, not defects
  */
 const wrapSqlError =
   (operation: string) =>
   <A, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<A, PersistenceError, R> =>
-    Effect.catchAllCause(effect, (cause) =>
-      Effect.fail(new PersistenceError({ operation, cause: Cause.squash(cause) }))
+    Effect.mapError(effect, (cause) =>
+      new PersistenceError({ operation, cause })
     )
+
+/**
+ * Schema for parsed step JSON from database
+ * Uses proper literal types for type-safe decoding
+ */
+const StepJsonSchema = Schema.Struct({
+  stepType: ConsolidationStepType,
+  status: ConsolidationStepStatus,
+  startedAt: Schema.NullOr(Schema.Number),
+  completedAt: Schema.NullOr(Schema.Number),
+  durationMs: Schema.NullOr(Schema.Number),
+  errorMessage: Schema.NullOr(Schema.String),
+  details: Schema.NullOr(Schema.String)
+})
+
+/**
+ * Schema for array of step JSON
+ */
+const StepsJsonSchema = Schema.Array(StepJsonSchema)
+
+/**
+ * Schema for elimination entry IDs from JSON
+ */
+const EliminationEntryIdsJsonSchema = Schema.Array(Schema.String)
+
+/**
+ * Convert database row to ConsolidationRun domain entity
+ * Pure function - uses Schema.decodeUnknownSync for JSON parsing (throws on invalid data)
+ * Database values are trusted, so parse errors indicate data corruption
+ */
+const rowToConsolidationRun = (row: ConsolidationRunRow): ConsolidationRun => {
+  const stepsJson = Schema.decodeUnknownSync(StepsJsonSchema)(JSON.parse(row.steps))
+
+  const steps = Chunk.fromIterable(
+    stepsJson.map((s) =>
+      ConsolidationStep.make({
+        stepType: s.stepType,
+        status: s.status,
+        startedAt: s.startedAt !== null
+          ? Option.some(Timestamp.make({ epochMillis: s.startedAt }))
+          : Option.none<Timestamp>(),
+        completedAt: s.completedAt !== null
+          ? Option.some(Timestamp.make({ epochMillis: s.completedAt }))
+          : Option.none<Timestamp>(),
+        durationMs: s.durationMs !== null ? Option.some(s.durationMs) : Option.none<number>(),
+        errorMessage: s.errorMessage !== null
+          ? Option.some(s.errorMessage)
+          : Option.none<string>(),
+        details: s.details !== null
+          ? Option.some(s.details)
+          : Option.none<string>()
+      })
+    )
+  )
+
+  const validationResult = row.validation_result !== null
+    ? Option.some(ValidationResult.make(JSON.parse(row.validation_result)))
+    : Option.none<ValidationResult>()
+
+  const consolidatedTrialBalance = row.consolidated_trial_balance !== null
+    ? Option.some(ConsolidatedTrialBalance.make(JSON.parse(row.consolidated_trial_balance)))
+    : Option.none<ConsolidatedTrialBalance>()
+
+  const eliminationEntryIdStrings = Schema.decodeUnknownSync(EliminationEntryIdsJsonSchema)(
+    JSON.parse(row.elimination_entry_ids)
+  )
+  const eliminationEntryIds = Chunk.fromIterable(
+    eliminationEntryIdStrings.map(
+      (id) => Schema.UUID.pipe(Schema.brand("EliminationEntryId")).make(id)
+    )
+  )
+
+  const options = JSON.parse(row.options)
+
+  return ConsolidationRun.make({
+    id: ConsolidationRunId.make(row.id),
+    groupId: ConsolidationGroupId.make(row.group_id),
+    periodRef: FiscalPeriodRef.make({ year: row.period_year, period: row.period_number }),
+    asOfDate: dateToLocalDate(row.as_of_date),
+    status: row.status,
+    steps,
+    validationResult,
+    consolidatedTrialBalance,
+    eliminationEntryIds,
+    options,
+    initiatedBy: UserId.make(row.initiated_by),
+    initiatedAt: Timestamp.make({ epochMillis: row.initiated_at.getTime() }),
+    startedAt: row.started_at !== null
+      ? Option.some(Timestamp.make({ epochMillis: row.started_at.getTime() }))
+      : Option.none<Timestamp>(),
+    completedAt: row.completed_at !== null
+      ? Option.some(Timestamp.make({ epochMillis: row.completed_at.getTime() }))
+      : Option.none<Timestamp>(),
+    totalDurationMs: row.total_duration_ms !== null ? Option.some(row.total_duration_ms) : Option.none<number>(),
+    errorMessage: row.error_message !== null
+      ? Option.some(row.error_message)
+      : Option.none<string>()
+  })
+}
 
 /**
  * Implementation of ConsolidationRepositoryService using PostgreSQL
@@ -119,62 +239,182 @@ const wrapSqlError =
 const make = Effect.gen(function* () {
   const sql = yield* SqlClient.SqlClient
 
+  // SqlSchema query builders for ConsolidationGroup
+  const findGroupById = SqlSchema.findOne({
+    Request: Schema.String,
+    Result: ConsolidationGroupRow,
+    execute: (id) => sql`SELECT * FROM consolidation_groups WHERE id = ${id}`
+  })
+
+  const findGroupsByOrganization = SqlSchema.findAll({
+    Request: Schema.String,
+    Result: ConsolidationGroupRow,
+    execute: (organizationId) => sql`
+      SELECT * FROM consolidation_groups
+      WHERE organization_id = ${organizationId}
+      ORDER BY name
+    `
+  })
+
+  const findActiveGroupsByOrganization = SqlSchema.findAll({
+    Request: Schema.String,
+    Result: ConsolidationGroupRow,
+    execute: (organizationId) => sql`
+      SELECT * FROM consolidation_groups
+      WHERE organization_id = ${organizationId} AND is_active = true
+      ORDER BY name
+    `
+  })
+
+  const countGroupById = SqlSchema.single({
+    Request: Schema.String,
+    Result: CountRow,
+    execute: (id) => sql`SELECT COUNT(*) as count FROM consolidation_groups WHERE id = ${id}`
+  })
+
+  // SqlSchema query builders for ConsolidationRun
+  const findRunById = SqlSchema.findOne({
+    Request: Schema.String,
+    Result: ConsolidationRunRow,
+    execute: (id) => sql`SELECT * FROM consolidation_runs WHERE id = ${id}`
+  })
+
+  const findRunsByGroup = SqlSchema.findAll({
+    Request: Schema.String,
+    Result: ConsolidationRunRow,
+    execute: (groupId) => sql`
+      SELECT * FROM consolidation_runs
+      WHERE group_id = ${groupId}
+      ORDER BY initiated_at DESC
+    `
+  })
+
+  const findRunByGroupAndPeriod = SqlSchema.findOne({
+    Request: Schema.Struct({ groupId: Schema.String, year: Schema.Number, period: Schema.Number }),
+    Result: ConsolidationRunRow,
+    execute: ({ groupId, year, period }) => sql`
+      SELECT * FROM consolidation_runs
+      WHERE group_id = ${groupId}
+        AND period_year = ${year}
+        AND period_number = ${period}
+      ORDER BY initiated_at DESC
+      LIMIT 1
+    `
+  })
+
+  const findRunsByGroupAndStatus = SqlSchema.findAll({
+    Request: Schema.Struct({ groupId: Schema.String, status: Schema.String }),
+    Result: ConsolidationRunRow,
+    execute: ({ groupId, status }) => sql`
+      SELECT * FROM consolidation_runs
+      WHERE group_id = ${groupId} AND status = ${status}
+      ORDER BY initiated_at DESC
+    `
+  })
+
+  const findLatestCompletedRunQuery = SqlSchema.findOne({
+    Request: Schema.String,
+    Result: ConsolidationRunRow,
+    execute: (groupId) => sql`
+      SELECT * FROM consolidation_runs
+      WHERE group_id = ${groupId} AND status = 'Completed'
+      ORDER BY completed_at DESC
+      LIMIT 1
+    `
+  })
+
+  const findInProgressRunsQuery = SqlSchema.findAll({
+    Request: Schema.String,
+    Result: ConsolidationRunRow,
+    execute: (groupId) => sql`
+      SELECT * FROM consolidation_runs
+      WHERE group_id = ${groupId} AND status = 'InProgress'
+      ORDER BY initiated_at DESC
+    `
+  })
+
+  const findRunsByPeriodRangeQuery = SqlSchema.findAll({
+    Request: Schema.Struct({
+      groupId: Schema.String,
+      startYear: Schema.Number,
+      startPeriod: Schema.Number,
+      endYear: Schema.Number,
+      endPeriod: Schema.Number
+    }),
+    Result: ConsolidationRunRow,
+    execute: ({ groupId, startYear, startPeriod, endYear, endPeriod }) => sql`
+      SELECT * FROM consolidation_runs
+      WHERE group_id = ${groupId}
+        AND (period_year > ${startYear}
+             OR (period_year = ${startYear} AND period_number >= ${startPeriod}))
+        AND (period_year < ${endYear}
+             OR (period_year = ${endYear} AND period_number <= ${endPeriod}))
+      ORDER BY period_year, period_number
+    `
+  })
+
+  const countRunById = SqlSchema.single({
+    Request: Schema.String,
+    Result: CountRow,
+    execute: (id) => sql`SELECT COUNT(*) as count FROM consolidation_runs WHERE id = ${id}`
+  })
+
+  // SqlSchema query builders for members and elimination rules
+  const findMembersByGroup = SqlSchema.findAll({
+    Request: Schema.String,
+    Result: ConsolidationMemberRow,
+    execute: (groupId) => sql`
+      SELECT * FROM consolidation_members
+      WHERE consolidation_group_id = ${groupId}
+      ORDER BY company_id
+    `
+  })
+
+  const findEliminationRuleIdsByGroup = SqlSchema.findAll({
+    Request: Schema.String,
+    Result: EliminationRuleIdRow,
+    execute: (groupId) => sql`
+      SELECT id FROM elimination_rules
+      WHERE consolidation_group_id = ${groupId}
+      ORDER BY priority
+    `
+  })
+
   // Helper to load members for a group
   const loadMembers = (groupId: string): Effect.Effect<Chunk.Chunk<ConsolidationMember>, PersistenceError> =>
-    Effect.gen(function* () {
-      const rows = yield* sql<ConsolidationMemberRow>`
-        SELECT * FROM consolidation_members
-        WHERE consolidation_group_id = ${groupId}
-        ORDER BY company_id
-      `.pipe(wrapSqlError("loadMembers"))
-
-      const members = rows.map((row) => {
+    findMembersByGroup(groupId).pipe(
+      Effect.map((rows) => Chunk.fromIterable(rows.map((row) => {
         const goodwillAmount = row.goodwill_amount !== null
           ? Option.some(JSON.parse(row.goodwill_amount))
           : Option.none<unknown>()
 
         const vieDetermination = row.vie_determination !== null
-          ? Option.some(
-              VIEDetermination.make(JSON.parse(row.vie_determination), { disableValidation: true })
-            )
+          ? Option.some(VIEDetermination.make(JSON.parse(row.vie_determination)))
           : Option.none<VIEDetermination>()
 
-        return ConsolidationMember.make(
-          {
-            companyId: CompanyId.make(row.company_id, { disableValidation: true }),
-            ownershipPercentage: Percentage.make(parseFloat(row.ownership_percentage), { disableValidation: true }),
-            // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- Database string to union type
-            consolidationMethod: row.consolidation_method as ConsolidationMethod,
-            acquisitionDate: dateToLocalDate(row.acquisition_date),
-            goodwillAmount,
-            nonControllingInterestPercentage: Percentage.make(
-              parseFloat(row.non_controlling_interest_percentage),
-              { disableValidation: true }
-            ),
-            vieDetermination
-          },
-          { disableValidation: true }
-        )
-      })
-
-      return Chunk.fromIterable(members)
-    })
+        return ConsolidationMember.make({
+          companyId: CompanyId.make(row.company_id),
+          ownershipPercentage: Percentage.make(parseFloat(row.ownership_percentage)),
+          consolidationMethod: row.consolidation_method,
+          acquisitionDate: dateToLocalDate(row.acquisition_date),
+          goodwillAmount,
+          nonControllingInterestPercentage: Percentage.make(
+            parseFloat(row.non_controlling_interest_percentage)
+          ),
+          vieDetermination
+        })
+      }))),
+      wrapSqlError("loadMembers")
+    )
 
   // Helper to load elimination rule IDs for a group
   const loadEliminationRuleIds = (groupId: string): Effect.Effect<Chunk.Chunk<EliminationRuleId>, PersistenceError> =>
-    Effect.gen(function* () {
-      const rows = yield* sql<EliminationRuleIdRow>`
-        SELECT id FROM elimination_rules
-        WHERE consolidation_group_id = ${groupId}
-        ORDER BY priority
-      `.pipe(wrapSqlError("loadEliminationRuleIds"))
+    findEliminationRuleIdsByGroup(groupId).pipe(
+      Effect.map((rows) => Chunk.fromIterable(rows.map((row) => EliminationRuleId.make(row.id)))),
+      wrapSqlError("loadEliminationRuleIds")
+    )
 
-      return Chunk.fromIterable(
-        rows.map((row) => EliminationRuleId.make(row.id, { disableValidation: true }))
-      )
-    })
-
-  // Helper to convert group row to entity
+  // Helper to convert group row to entity (loads related data)
   const rowToConsolidationGroup = (
     row: ConsolidationGroupRow
   ): Effect.Effect<ConsolidationGroup, PersistenceError> =>
@@ -182,133 +422,28 @@ const make = Effect.gen(function* () {
       const members = yield* loadMembers(row.id)
       const eliminationRuleIds = yield* loadEliminationRuleIds(row.id)
 
-      return ConsolidationGroup.make(
-        {
-          id: ConsolidationGroupId.make(row.id, { disableValidation: true }),
-          organizationId: OrganizationId.make(row.organization_id, { disableValidation: true }),
-          name: row.name,
-          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- Database string to union type
-          reportingCurrency: row.reporting_currency as CurrencyCode,
-          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- Database string to union type
-          consolidationMethod: row.consolidation_method as ConsolidationMethod,
-          parentCompanyId: CompanyId.make(row.parent_company_id, { disableValidation: true }),
-          members,
-          eliminationRuleIds,
-          isActive: row.is_active
-        },
-        { disableValidation: true }
-      )
-    })
-
-  // Helper to convert run row to entity
-  const rowToConsolidationRun = (row: ConsolidationRunRow): Effect.Effect<ConsolidationRun, PersistenceError> =>
-    Effect.try({
-      try: () => {
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- JSON parse result needs type assertion
-        const stepsJson = JSON.parse(row.steps) as Array<{
-          stepType: ConsolidationStepType
-          status: ConsolidationStepStatus
-          startedAt: number | null
-          completedAt: number | null
-          durationMs: number | null
-          errorMessage: string | null
-          details: string | null
-        }>
-
-        const steps = Chunk.fromIterable(
-          stepsJson.map((s) =>
-            ConsolidationStep.make(
-              {
-                stepType: s.stepType,
-                status: s.status,
-                startedAt: s.startedAt !== null
-                  ? Option.some(Timestamp.make({ epochMillis: s.startedAt }, { disableValidation: true }))
-                  : Option.none<Timestamp>(),
-                completedAt: s.completedAt !== null
-                  ? Option.some(Timestamp.make({ epochMillis: s.completedAt }, { disableValidation: true }))
-                  : Option.none<Timestamp>(),
-                durationMs: s.durationMs !== null ? Option.some(s.durationMs) : Option.none<number>(),
-                errorMessage: s.errorMessage !== null
-                  ? Option.some(s.errorMessage)
-                  : Option.none<string>(),
-                details: s.details !== null
-                  ? Option.some(s.details)
-                  : Option.none<string>()
-              },
-              { disableValidation: true }
-            )
-          )
-        )
-
-        const validationResult = row.validation_result !== null
-          ? Option.some(ValidationResult.make(JSON.parse(row.validation_result), { disableValidation: true }))
-          : Option.none<ValidationResult>()
-
-        const consolidatedTrialBalance = row.consolidated_trial_balance !== null
-          ? Option.some(
-              ConsolidatedTrialBalance.make(JSON.parse(row.consolidated_trial_balance), { disableValidation: true })
-            )
-          : Option.none<ConsolidatedTrialBalance>()
-
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- JSON parse result needs type assertion
-        const eliminationEntryIdStrings = JSON.parse(row.elimination_entry_ids) as string[]
-        const eliminationEntryIds = Chunk.fromIterable(
-          eliminationEntryIdStrings.map(
-            (id) => Schema.UUID.pipe(Schema.brand("EliminationEntryId")).make(id, { disableValidation: true })
-          )
-        )
-
-        const options = JSON.parse(row.options)
-
-        return ConsolidationRun.make(
-          {
-            id: ConsolidationRunId.make(row.id, { disableValidation: true }),
-            groupId: ConsolidationGroupId.make(row.group_id, { disableValidation: true }),
-            periodRef: FiscalPeriodRef.make(
-              { year: row.period_year, period: row.period_number },
-              { disableValidation: true }
-            ),
-            asOfDate: dateToLocalDate(row.as_of_date),
-            // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- Database string to union type
-            status: row.status as ConsolidationRunStatus,
-            steps,
-            validationResult,
-            consolidatedTrialBalance,
-            eliminationEntryIds,
-            options,
-            initiatedBy: UserId.make(row.initiated_by, { disableValidation: true }),
-            initiatedAt: Timestamp.make({ epochMillis: row.initiated_at.getTime() }, { disableValidation: true }),
-            startedAt: row.started_at !== null
-              ? Option.some(Timestamp.make({ epochMillis: row.started_at.getTime() }, { disableValidation: true }))
-              : Option.none<Timestamp>(),
-            completedAt: row.completed_at !== null
-              ? Option.some(Timestamp.make({ epochMillis: row.completed_at.getTime() }, { disableValidation: true }))
-              : Option.none<Timestamp>(),
-            totalDurationMs: row.total_duration_ms !== null ? Option.some(row.total_duration_ms) : Option.none<number>(),
-            errorMessage: row.error_message !== null
-              ? Option.some(row.error_message)
-              : Option.none<string>()
-          },
-          { disableValidation: true }
-        )
-      },
-      catch: (cause) => new PersistenceError({ operation: "rowToConsolidationRun", cause })
+      return ConsolidationGroup.make({
+        id: ConsolidationGroupId.make(row.id),
+        organizationId: OrganizationId.make(row.organization_id),
+        name: row.name,
+        reportingCurrency: row.reporting_currency,
+        consolidationMethod: row.consolidation_method,
+        parentCompanyId: CompanyId.make(row.parent_company_id),
+        members,
+        eliminationRuleIds,
+        isActive: row.is_active
+      })
     })
 
   // ConsolidationGroup operations
   const findGroup: ConsolidationRepositoryService["findGroup"] = (id) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<ConsolidationGroupRow>`
-        SELECT * FROM consolidation_groups WHERE id = ${id}
-      `.pipe(wrapSqlError("findGroup"))
-
-      if (rows.length === 0) {
-        return Option.none()
-      }
-
-      const group = yield* rowToConsolidationGroup(rows[0])
-      return Option.some(group)
-    })
+    findGroupById(id).pipe(
+      Effect.flatMap(Option.match({
+        onNone: () => Effect.succeed(Option.none<ConsolidationGroup>()),
+        onSome: (row) => rowToConsolidationGroup(row).pipe(Effect.map(Option.some))
+      })),
+      wrapSqlError("findGroup")
+    )
 
   const getGroup: ConsolidationRepositoryService["getGroup"] = (id) =>
     Effect.gen(function* () {
@@ -319,27 +454,17 @@ const make = Effect.gen(function* () {
       })
     })
 
-  const findGroupsByOrganization: ConsolidationRepositoryService["findGroupsByOrganization"] = (organizationId) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<ConsolidationGroupRow>`
-        SELECT * FROM consolidation_groups
-        WHERE organization_id = ${organizationId}
-        ORDER BY name
-      `.pipe(wrapSqlError("findGroupsByOrganization"))
-
-      return yield* Effect.forEach(rows, rowToConsolidationGroup)
-    })
+  const findGroupsByOrganizationOp: ConsolidationRepositoryService["findGroupsByOrganization"] = (organizationId) =>
+    findGroupsByOrganization(organizationId).pipe(
+      Effect.flatMap((rows) => Effect.forEach(rows, rowToConsolidationGroup)),
+      wrapSqlError("findGroupsByOrganization")
+    )
 
   const findActiveGroups: ConsolidationRepositoryService["findActiveGroups"] = (organizationId) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<ConsolidationGroupRow>`
-        SELECT * FROM consolidation_groups
-        WHERE organization_id = ${organizationId} AND is_active = true
-        ORDER BY name
-      `.pipe(wrapSqlError("findActiveGroups"))
-
-      return yield* Effect.forEach(rows, rowToConsolidationGroup)
-    })
+    findActiveGroupsByOrganization(organizationId).pipe(
+      Effect.flatMap((rows) => Effect.forEach(rows, rowToConsolidationGroup)),
+      wrapSqlError("findActiveGroups")
+    )
 
   const createGroup: ConsolidationRepositoryService["createGroup"] = (group) =>
     Effect.gen(function* () {
@@ -430,28 +555,17 @@ const make = Effect.gen(function* () {
     })
 
   const groupExists: ConsolidationRepositoryService["groupExists"] = (id) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<{ count: string }>`
-        SELECT COUNT(*) as count FROM consolidation_groups WHERE id = ${id}
-      `.pipe(wrapSqlError("groupExists"))
-
-      return parseInt(rows[0].count, 10) > 0
-    })
+    countGroupById(id).pipe(
+      Effect.map((row) => parseInt(row.count, 10) > 0),
+      wrapSqlError("groupExists")
+    )
 
   // ConsolidationRun operations
   const findRun: ConsolidationRepositoryService["findRun"] = (id) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<ConsolidationRunRow>`
-        SELECT * FROM consolidation_runs WHERE id = ${id}
-      `.pipe(wrapSqlError("findRun"))
-
-      if (rows.length === 0) {
-        return Option.none()
-      }
-
-      const run = yield* rowToConsolidationRun(rows[0])
-      return Option.some(run)
-    })
+    findRunById(id).pipe(
+      Effect.map(Option.map(rowToConsolidationRun)),
+      wrapSqlError("findRun")
+    )
 
   const getRun: ConsolidationRepositoryService["getRun"] = (id) =>
     Effect.gen(function* () {
@@ -543,102 +657,57 @@ const make = Effect.gen(function* () {
       return run
     })
 
-  const findRunsByGroup: ConsolidationRepositoryService["findRunsByGroup"] = (groupId) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<ConsolidationRunRow>`
-        SELECT * FROM consolidation_runs
-        WHERE group_id = ${groupId}
-        ORDER BY initiated_at DESC
-      `.pipe(wrapSqlError("findRunsByGroup"))
+  const findRunsByGroupOp: ConsolidationRepositoryService["findRunsByGroup"] = (groupId) =>
+    findRunsByGroup(groupId).pipe(
+      Effect.map((rows) => rows.map(rowToConsolidationRun)),
+      wrapSqlError("findRunsByGroup")
+    )
 
-      return yield* Effect.forEach(rows, rowToConsolidationRun)
-    })
-
-  const findRunByGroupAndPeriod: ConsolidationRepositoryService["findRunByGroupAndPeriod"] = (groupId, period) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<ConsolidationRunRow>`
-        SELECT * FROM consolidation_runs
-        WHERE group_id = ${groupId}
-          AND period_year = ${period.year}
-          AND period_number = ${period.period}
-        ORDER BY initiated_at DESC
-        LIMIT 1
-      `.pipe(wrapSqlError("findRunByGroupAndPeriod"))
-
-      if (rows.length === 0) {
-        return Option.none()
-      }
-
-      const run = yield* rowToConsolidationRun(rows[0])
-      return Option.some(run)
-    })
+  const findRunByGroupAndPeriodOp: ConsolidationRepositoryService["findRunByGroupAndPeriod"] = (groupId, period) =>
+    findRunByGroupAndPeriod({ groupId, year: period.year, period: period.period }).pipe(
+      Effect.map(Option.map(rowToConsolidationRun)),
+      wrapSqlError("findRunByGroupAndPeriod")
+    )
 
   const findRunsByStatus: ConsolidationRepositoryService["findRunsByStatus"] = (groupId, status) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<ConsolidationRunRow>`
-        SELECT * FROM consolidation_runs
-        WHERE group_id = ${groupId} AND status = ${status}
-        ORDER BY initiated_at DESC
-      `.pipe(wrapSqlError("findRunsByStatus"))
-
-      return yield* Effect.forEach(rows, rowToConsolidationRun)
-    })
+    findRunsByGroupAndStatus({ groupId, status }).pipe(
+      Effect.map((rows) => rows.map(rowToConsolidationRun)),
+      wrapSqlError("findRunsByStatus")
+    )
 
   const findLatestCompletedRun: ConsolidationRepositoryService["findLatestCompletedRun"] = (groupId) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<ConsolidationRunRow>`
-        SELECT * FROM consolidation_runs
-        WHERE group_id = ${groupId} AND status = 'Completed'
-        ORDER BY completed_at DESC
-        LIMIT 1
-      `.pipe(wrapSqlError("findLatestCompletedRun"))
-
-      if (rows.length === 0) {
-        return Option.none()
-      }
-
-      const run = yield* rowToConsolidationRun(rows[0])
-      return Option.some(run)
-    })
+    findLatestCompletedRunQuery(groupId).pipe(
+      Effect.map(Option.map(rowToConsolidationRun)),
+      wrapSqlError("findLatestCompletedRun")
+    )
 
   const findInProgressRuns: ConsolidationRepositoryService["findInProgressRuns"] = (groupId) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<ConsolidationRunRow>`
-        SELECT * FROM consolidation_runs
-        WHERE group_id = ${groupId} AND status = 'InProgress'
-        ORDER BY initiated_at DESC
-      `.pipe(wrapSqlError("findInProgressRuns"))
-
-      return yield* Effect.forEach(rows, rowToConsolidationRun)
-    })
+    findInProgressRunsQuery(groupId).pipe(
+      Effect.map((rows) => rows.map(rowToConsolidationRun)),
+      wrapSqlError("findInProgressRuns")
+    )
 
   const findRunsByPeriodRange: ConsolidationRepositoryService["findRunsByPeriodRange"] = (
     groupId,
     startPeriod,
     endPeriod
   ) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<ConsolidationRunRow>`
-        SELECT * FROM consolidation_runs
-        WHERE group_id = ${groupId}
-          AND (period_year > ${startPeriod.year}
-               OR (period_year = ${startPeriod.year} AND period_number >= ${startPeriod.period}))
-          AND (period_year < ${endPeriod.year}
-               OR (period_year = ${endPeriod.year} AND period_number <= ${endPeriod.period}))
-        ORDER BY period_year, period_number
-      `.pipe(wrapSqlError("findRunsByPeriodRange"))
-
-      return yield* Effect.forEach(rows, rowToConsolidationRun)
-    })
+    findRunsByPeriodRangeQuery({
+      groupId,
+      startYear: startPeriod.year,
+      startPeriod: startPeriod.period,
+      endYear: endPeriod.year,
+      endPeriod: endPeriod.period
+    }).pipe(
+      Effect.map((rows) => rows.map(rowToConsolidationRun)),
+      wrapSqlError("findRunsByPeriodRange")
+    )
 
   const runExists: ConsolidationRepositoryService["runExists"] = (id) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<{ count: string }>`
-        SELECT COUNT(*) as count FROM consolidation_runs WHERE id = ${id}
-      `.pipe(wrapSqlError("runExists"))
-
-      return parseInt(rows[0].count, 10) > 0
-    })
+    countRunById(id).pipe(
+      Effect.map((row) => parseInt(row.count, 10) > 0),
+      wrapSqlError("runExists")
+    )
 
   const deleteRun: ConsolidationRepositoryService["deleteRun"] = (id) =>
     Effect.gen(function* () {
@@ -657,7 +726,7 @@ const make = Effect.gen(function* () {
   return {
     findGroup,
     getGroup,
-    findGroupsByOrganization,
+    findGroupsByOrganization: findGroupsByOrganizationOp,
     findActiveGroups,
     createGroup,
     updateGroup,
@@ -666,8 +735,8 @@ const make = Effect.gen(function* () {
     getRun,
     createRun,
     updateRun,
-    findRunsByGroup,
-    findRunByGroupAndPeriod,
+    findRunsByGroup: findRunsByGroupOp,
+    findRunByGroupAndPeriod: findRunByGroupAndPeriodOp,
     findRunsByStatus,
     findLatestCompletedRun,
     findInProgressRuns,

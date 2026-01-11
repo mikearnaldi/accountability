@@ -7,12 +7,12 @@
  * @module CompanyRepositoryLive
  */
 
-import { SqlClient } from "@effect/sql"
-import * as Cause from "effect/Cause"
+import { SqlClient, SqlSchema } from "@effect/sql"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
-import { Company, CompanyId, FiscalYearEnd, type ConsolidationMethod } from "@accountability/core/domain/Company"
+import * as Schema from "effect/Schema"
+import { Company, CompanyId, ConsolidationMethod, FiscalYearEnd } from "@accountability/core/domain/Company"
 import { CurrencyCode } from "@accountability/core/domain/CurrencyCode"
 import { JurisdictionCode } from "@accountability/core/domain/JurisdictionCode"
 import { OrganizationId } from "@accountability/core/domain/Organization"
@@ -22,74 +22,77 @@ import { CompanyRepository, type CompanyRepositoryService } from "./CompanyRepos
 import { EntityNotFoundError, PersistenceError } from "./RepositoryError.ts"
 
 /**
- * Database row type for companies table
+ * Schema for database row from companies table
+ * Uses proper literal types for enum fields to avoid type assertions
  */
-interface CompanyRow {
-  readonly id: string
-  readonly organization_id: string
-  readonly name: string
-  readonly legal_name: string
-  readonly jurisdiction: string
-  readonly tax_id: string | null
-  readonly functional_currency: string
-  readonly reporting_currency: string
-  readonly fiscal_year_end_month: number
-  readonly fiscal_year_end_day: number
-  readonly parent_company_id: string | null
-  readonly ownership_percentage: string | null
-  readonly consolidation_method: string | null
-  readonly is_active: boolean
-  readonly created_at: Date
-}
+const CompanyRow = Schema.Struct({
+  id: Schema.String,
+  organization_id: Schema.String,
+  name: Schema.String,
+  legal_name: Schema.String,
+  jurisdiction: Schema.String,
+  tax_id: Schema.NullOr(Schema.String),
+  functional_currency: Schema.String,
+  reporting_currency: Schema.String,
+  fiscal_year_end_month: Schema.Number,
+  fiscal_year_end_day: Schema.Number,
+  parent_company_id: Schema.NullOr(Schema.String),
+  ownership_percentage: Schema.NullOr(Schema.String),
+  consolidation_method: Schema.NullOr(ConsolidationMethod),
+  is_active: Schema.Boolean,
+  created_at: Schema.DateFromSelf
+})
+type CompanyRow = typeof CompanyRow.Type
+
+/**
+ * Schema for count query result
+ */
+const CountRow = Schema.Struct({
+  count: Schema.String
+})
 
 /**
  * Convert database row to Company domain entity
+ * Pure function - no Effect wrapping needed
  */
-const rowToCompany = (row: CompanyRow): Effect.Effect<Company, PersistenceError> =>
-  Effect.try({
-    try: () =>
-      Company.make(
-        {
-          id: CompanyId.make(row.id, { disableValidation: true }),
-          organizationId: OrganizationId.make(row.organization_id, { disableValidation: true }),
-          name: row.name,
-          legalName: row.legal_name,
-          jurisdiction: JurisdictionCode.make(row.jurisdiction, { disableValidation: true }),
-          taxId: row.tax_id !== null
-            ? Option.some(row.tax_id)
-            : Option.none<string>(),
-          functionalCurrency: CurrencyCode.make(row.functional_currency, { disableValidation: true }),
-          reportingCurrency: CurrencyCode.make(row.reporting_currency, { disableValidation: true }),
-          fiscalYearEnd: FiscalYearEnd.make(
-            { month: row.fiscal_year_end_month, day: row.fiscal_year_end_day },
-            { disableValidation: true }
-          ),
-          parentCompanyId: row.parent_company_id !== null
-            ? Option.some(CompanyId.make(row.parent_company_id, { disableValidation: true }))
-            : Option.none<typeof CompanyId.Type>(),
-          ownershipPercentage: row.ownership_percentage !== null
-            ? Option.some(Percentage.make(parseFloat(row.ownership_percentage), { disableValidation: true }))
-            : Option.none<typeof Percentage.Type>(),
-          consolidationMethod: row.consolidation_method !== null
-            // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- Database string to union type
-            ? Option.some(row.consolidation_method as ConsolidationMethod)
-            : Option.none<ConsolidationMethod>(),
-          isActive: row.is_active,
-          createdAt: Timestamp.make({ epochMillis: row.created_at.getTime() }, { disableValidation: true })
-        },
-        { disableValidation: true }
-      ),
-    catch: (cause) => new PersistenceError({ operation: "rowToCompany", cause })
+const rowToCompany = (row: CompanyRow): Company =>
+  Company.make({
+    id: CompanyId.make(row.id),
+    organizationId: OrganizationId.make(row.organization_id),
+    name: row.name,
+    legalName: row.legal_name,
+    jurisdiction: JurisdictionCode.make(row.jurisdiction),
+    taxId: row.tax_id !== null
+      ? Option.some(row.tax_id)
+      : Option.none<string>(),
+    functionalCurrency: CurrencyCode.make(row.functional_currency),
+    reportingCurrency: CurrencyCode.make(row.reporting_currency),
+    fiscalYearEnd: FiscalYearEnd.make({
+      month: row.fiscal_year_end_month,
+      day: row.fiscal_year_end_day
+    }),
+    parentCompanyId: row.parent_company_id !== null
+      ? Option.some(CompanyId.make(row.parent_company_id))
+      : Option.none<typeof CompanyId.Type>(),
+    ownershipPercentage: row.ownership_percentage !== null
+      ? Option.some(Percentage.make(parseFloat(row.ownership_percentage)))
+      : Option.none<typeof Percentage.Type>(),
+    consolidationMethod: row.consolidation_method !== null
+      ? Option.some(row.consolidation_method)
+      : Option.none<typeof ConsolidationMethod.Type>(),
+    isActive: row.is_active,
+    createdAt: Timestamp.make({ epochMillis: row.created_at.getTime() })
   })
 
 /**
  * Wrap SQL errors in PersistenceError
+ * Uses mapError to only transform expected errors, not defects
  */
 const wrapSqlError =
   (operation: string) =>
   <A, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<A, PersistenceError, R> =>
-    Effect.catchAllCause(effect, (cause) =>
-      Effect.fail(new PersistenceError({ operation, cause: Cause.squash(cause) }))
+    Effect.mapError(effect, (cause) =>
+      new PersistenceError({ operation, cause })
     )
 
 /**
@@ -98,28 +101,58 @@ const wrapSqlError =
 const make = Effect.gen(function* () {
   const sql = yield* SqlClient.SqlClient
 
+  // SqlSchema query builders for type-safe queries
+  const findCompanyById = SqlSchema.findOne({
+    Request: Schema.String,
+    Result: CompanyRow,
+    execute: (id) => sql`SELECT * FROM companies WHERE id = ${id}`
+  })
+
+  const findCompaniesByOrganization = SqlSchema.findAll({
+    Request: Schema.String,
+    Result: CompanyRow,
+    execute: (organizationId) => sql`
+      SELECT * FROM companies WHERE organization_id = ${organizationId} ORDER BY name
+    `
+  })
+
+  const findActiveCompaniesByOrganization = SqlSchema.findAll({
+    Request: Schema.String,
+    Result: CompanyRow,
+    execute: (organizationId) => sql`
+      SELECT * FROM companies
+      WHERE organization_id = ${organizationId} AND is_active = true
+      ORDER BY name
+    `
+  })
+
+  const findSubsidiariesByParent = SqlSchema.findAll({
+    Request: Schema.String,
+    Result: CompanyRow,
+    execute: (parentCompanyId) => sql`
+      SELECT * FROM companies
+      WHERE parent_company_id = ${parentCompanyId}
+      ORDER BY name
+    `
+  })
+
+  const countById = SqlSchema.single({
+    Request: Schema.String,
+    Result: CountRow,
+    execute: (id) => sql`SELECT COUNT(*) as count FROM companies WHERE id = ${id}`
+  })
+
   const findById: CompanyRepositoryService["findById"] = (id) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<CompanyRow>`
-        SELECT * FROM companies WHERE id = ${id}
-      `.pipe(wrapSqlError("findById"))
-
-      if (rows.length === 0) {
-        return Option.none()
-      }
-
-      const company = yield* rowToCompany(rows[0])
-      return Option.some(company)
-    })
+    findCompanyById(id).pipe(
+      Effect.map(Option.map(rowToCompany)),
+      wrapSqlError("findById")
+    )
 
   const findByOrganization: CompanyRepositoryService["findByOrganization"] = (organizationId) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<CompanyRow>`
-        SELECT * FROM companies WHERE organization_id = ${organizationId} ORDER BY name
-      `.pipe(wrapSqlError("findByOrganization"))
-
-      return yield* Effect.forEach(rows, rowToCompany)
-    })
+    findCompaniesByOrganization(organizationId).pipe(
+      Effect.map((rows) => rows.map(rowToCompany)),
+      wrapSqlError("findByOrganization")
+    )
 
   const create: CompanyRepositoryService["create"] = (company) =>
     Effect.gen(function* () {
@@ -188,35 +221,22 @@ const make = Effect.gen(function* () {
     })
 
   const findActiveByOrganization: CompanyRepositoryService["findActiveByOrganization"] = (organizationId) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<CompanyRow>`
-        SELECT * FROM companies
-        WHERE organization_id = ${organizationId} AND is_active = true
-        ORDER BY name
-      `.pipe(wrapSqlError("findActiveByOrganization"))
-
-      return yield* Effect.forEach(rows, rowToCompany)
-    })
+    findActiveCompaniesByOrganization(organizationId).pipe(
+      Effect.map((rows) => rows.map(rowToCompany)),
+      wrapSqlError("findActiveByOrganization")
+    )
 
   const findSubsidiaries: CompanyRepositoryService["findSubsidiaries"] = (parentCompanyId) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<CompanyRow>`
-        SELECT * FROM companies
-        WHERE parent_company_id = ${parentCompanyId}
-        ORDER BY name
-      `.pipe(wrapSqlError("findSubsidiaries"))
-
-      return yield* Effect.forEach(rows, rowToCompany)
-    })
+    findSubsidiariesByParent(parentCompanyId).pipe(
+      Effect.map((rows) => rows.map(rowToCompany)),
+      wrapSqlError("findSubsidiaries")
+    )
 
   const exists: CompanyRepositoryService["exists"] = (id) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<{ count: string }>`
-        SELECT COUNT(*) as count FROM companies WHERE id = ${id}
-      `.pipe(wrapSqlError("exists"))
-
-      return parseInt(rows[0].count, 10) > 0
-    })
+    countById(id).pipe(
+      Effect.map((row) => parseInt(row.count, 10) > 0),
+      wrapSqlError("exists")
+    )
 
   return {
     findById,

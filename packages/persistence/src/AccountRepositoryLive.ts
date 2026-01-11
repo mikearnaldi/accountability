@@ -7,18 +7,18 @@
  * @module AccountRepositoryLive
  */
 
-import { SqlClient } from "@effect/sql"
-import * as Cause from "effect/Cause"
+import { SqlClient, SqlSchema } from "@effect/sql"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
+import * as Schema from "effect/Schema"
 import {
   Account,
   AccountId,
-  type AccountCategory,
-  type AccountType,
-  type CashFlowCategory,
-  type NormalBalance
+  AccountCategory,
+  AccountType,
+  CashFlowCategory,
+  NormalBalance
 } from "@accountability/core/domain/Account"
 import { AccountNumber } from "@accountability/core/domain/AccountNumber"
 import { CompanyId } from "@accountability/core/domain/Company"
@@ -28,87 +28,88 @@ import { AccountRepository, type AccountRepositoryService } from "./AccountRepos
 import { EntityNotFoundError, PersistenceError } from "./RepositoryError.ts"
 
 /**
- * Database row type for accounts table
+ * Schema for database row from accounts table
+ * Uses proper literal types for enum fields to avoid type assertions
  */
-interface AccountRow {
-  readonly id: string
-  readonly company_id: string
-  readonly account_number: string
-  readonly name: string
-  readonly description: string | null
-  readonly account_type: string
-  readonly account_category: string
-  readonly normal_balance: string
-  readonly parent_account_id: string | null
-  readonly hierarchy_level: number
-  readonly is_postable: boolean
-  readonly is_cash_flow_relevant: boolean
-  readonly cash_flow_category: string | null
-  readonly is_intercompany: boolean
-  readonly intercompany_partner_id: string | null
-  readonly currency_restriction: string | null
-  readonly is_active: boolean
-  readonly created_at: Date
-  readonly deactivated_at: Date | null
-}
+const AccountRow = Schema.Struct({
+  id: Schema.String,
+  company_id: Schema.String,
+  account_number: Schema.String,
+  name: Schema.String,
+  description: Schema.NullOr(Schema.String),
+  account_type: AccountType,
+  account_category: AccountCategory,
+  normal_balance: NormalBalance,
+  parent_account_id: Schema.NullOr(Schema.String),
+  hierarchy_level: Schema.Number,
+  is_postable: Schema.Boolean,
+  is_cash_flow_relevant: Schema.Boolean,
+  cash_flow_category: Schema.NullOr(CashFlowCategory),
+  is_intercompany: Schema.Boolean,
+  intercompany_partner_id: Schema.NullOr(Schema.String),
+  currency_restriction: Schema.NullOr(Schema.String),
+  is_active: Schema.Boolean,
+  created_at: Schema.DateFromSelf,
+  deactivated_at: Schema.NullOr(Schema.DateFromSelf)
+})
+type AccountRow = typeof AccountRow.Type
+
+/**
+ * Schema for count query result
+ */
+const CountRow = Schema.Struct({
+  count: Schema.String
+})
 
 /**
  * Convert database row to Account domain entity
+ * Pure function - no Effect wrapping needed
+ * Since the row schema uses proper literal types, no type assertions needed
  */
-const rowToAccount = (row: AccountRow): Effect.Effect<Account, PersistenceError> =>
-  Effect.try({
-    try: () =>
-      Account.make(
-        {
-          id: AccountId.make(row.id, { disableValidation: true }),
-          companyId: CompanyId.make(row.company_id, { disableValidation: true }),
-          accountNumber: AccountNumber.make(row.account_number, { disableValidation: true }),
-          name: row.name,
-          description: row.description !== null
-            ? Option.some(row.description)
-            : Option.none<string>(),
-          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- Database string to union type
-          accountType: row.account_type as AccountType,
-          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- Database string to union type
-          accountCategory: row.account_category as AccountCategory,
-          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- Database string to union type
-          normalBalance: row.normal_balance as NormalBalance,
-          parentAccountId: row.parent_account_id !== null
-            ? Option.some(AccountId.make(row.parent_account_id, { disableValidation: true }))
-            : Option.none<typeof AccountId.Type>(),
-          hierarchyLevel: row.hierarchy_level,
-          isPostable: row.is_postable,
-          isCashFlowRelevant: row.is_cash_flow_relevant,
-          cashFlowCategory: row.cash_flow_category !== null
-            // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- Database string to union type
-            ? Option.some(row.cash_flow_category as CashFlowCategory)
-            : Option.none<CashFlowCategory>(),
-          isIntercompany: row.is_intercompany,
-          intercompanyPartnerId: row.intercompany_partner_id !== null
-            ? Option.some(CompanyId.make(row.intercompany_partner_id, { disableValidation: true }))
-            : Option.none<typeof CompanyId.Type>(),
-          currencyRestriction: row.currency_restriction !== null
-            ? Option.some(CurrencyCode.make(row.currency_restriction, { disableValidation: true }))
-            : Option.none<typeof CurrencyCode.Type>(),
-          isActive: row.is_active,
-          createdAt: Timestamp.make({ epochMillis: row.created_at.getTime() }, { disableValidation: true }),
-          deactivatedAt: row.deactivated_at !== null
-            ? Option.some(Timestamp.make({ epochMillis: row.deactivated_at.getTime() }, { disableValidation: true }))
-            : Option.none<Timestamp>()
-        },
-        { disableValidation: true }
-      ),
-    catch: (cause) => new PersistenceError({ operation: "rowToAccount", cause })
+const rowToAccount = (row: AccountRow): Account =>
+  Account.make({
+    id: AccountId.make(row.id),
+    companyId: CompanyId.make(row.company_id),
+    accountNumber: AccountNumber.make(row.account_number),
+    name: row.name,
+    description: row.description !== null
+      ? Option.some(row.description)
+      : Option.none<string>(),
+    accountType: row.account_type,
+    accountCategory: row.account_category,
+    normalBalance: row.normal_balance,
+    parentAccountId: row.parent_account_id !== null
+      ? Option.some(AccountId.make(row.parent_account_id))
+      : Option.none<typeof AccountId.Type>(),
+    hierarchyLevel: row.hierarchy_level,
+    isPostable: row.is_postable,
+    isCashFlowRelevant: row.is_cash_flow_relevant,
+    cashFlowCategory: row.cash_flow_category !== null
+      ? Option.some(row.cash_flow_category)
+      : Option.none<typeof CashFlowCategory.Type>(),
+    isIntercompany: row.is_intercompany,
+    intercompanyPartnerId: row.intercompany_partner_id !== null
+      ? Option.some(CompanyId.make(row.intercompany_partner_id))
+      : Option.none<typeof CompanyId.Type>(),
+    currencyRestriction: row.currency_restriction !== null
+      ? Option.some(CurrencyCode.make(row.currency_restriction))
+      : Option.none<typeof CurrencyCode.Type>(),
+    isActive: row.is_active,
+    createdAt: Timestamp.make({ epochMillis: row.created_at.getTime() }),
+    deactivatedAt: row.deactivated_at !== null
+      ? Option.some(Timestamp.make({ epochMillis: row.deactivated_at.getTime() }))
+      : Option.none<Timestamp>()
   })
 
 /**
  * Wrap SQL errors in PersistenceError
+ * Uses mapError to only transform expected errors, not defects
  */
 const wrapSqlError =
   (operation: string) =>
   <A, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<A, PersistenceError, R> =>
-    Effect.catchAllCause(effect, (cause) =>
-      Effect.fail(new PersistenceError({ operation, cause: Cause.squash(cause) }))
+    Effect.mapError(effect, (cause) =>
+      new PersistenceError({ operation, cause })
     )
 
 /**
@@ -117,30 +118,98 @@ const wrapSqlError =
 const make = Effect.gen(function* () {
   const sql = yield* SqlClient.SqlClient
 
+  // SqlSchema query builders for type-safe queries
+  const findAccountById = SqlSchema.findOne({
+    Request: Schema.String,
+    Result: AccountRow,
+    execute: (id) => sql`SELECT * FROM accounts WHERE id = ${id}`
+  })
+
+  const findAccountsByCompany = SqlSchema.findAll({
+    Request: Schema.String,
+    Result: AccountRow,
+    execute: (companyId) => sql`
+      SELECT * FROM accounts
+      WHERE company_id = ${companyId}
+      ORDER BY account_number
+    `
+  })
+
+  const findAccountByNumber = SqlSchema.findOne({
+    Request: Schema.Struct({ companyId: Schema.String, accountNumber: Schema.String }),
+    Result: AccountRow,
+    execute: ({ companyId, accountNumber }) => sql`
+      SELECT * FROM accounts
+      WHERE company_id = ${companyId} AND account_number = ${accountNumber}
+    `
+  })
+
+  const findActiveAccountsByCompany = SqlSchema.findAll({
+    Request: Schema.String,
+    Result: AccountRow,
+    execute: (companyId) => sql`
+      SELECT * FROM accounts
+      WHERE company_id = ${companyId} AND is_active = true
+      ORDER BY account_number
+    `
+  })
+
+  const findAccountsByType = SqlSchema.findAll({
+    Request: Schema.Struct({ companyId: Schema.String, accountType: Schema.String }),
+    Result: AccountRow,
+    execute: ({ companyId, accountType }) => sql`
+      SELECT * FROM accounts
+      WHERE company_id = ${companyId} AND account_type = ${accountType}
+      ORDER BY account_number
+    `
+  })
+
+  const findAccountChildren = SqlSchema.findAll({
+    Request: Schema.String,
+    Result: AccountRow,
+    execute: (parentAccountId) => sql`
+      SELECT * FROM accounts
+      WHERE parent_account_id = ${parentAccountId}
+      ORDER BY account_number
+    `
+  })
+
+  const findIntercompany = SqlSchema.findAll({
+    Request: Schema.String,
+    Result: AccountRow,
+    execute: (companyId) => sql`
+      SELECT * FROM accounts
+      WHERE company_id = ${companyId} AND is_intercompany = true
+      ORDER BY account_number
+    `
+  })
+
+  const countById = SqlSchema.single({
+    Request: Schema.String,
+    Result: CountRow,
+    execute: (id) => sql`SELECT COUNT(*) as count FROM accounts WHERE id = ${id}`
+  })
+
+  const countByCompanyAndNumber = SqlSchema.single({
+    Request: Schema.Struct({ companyId: Schema.String, accountNumber: Schema.String }),
+    Result: CountRow,
+    execute: ({ companyId, accountNumber }) => sql`
+      SELECT COUNT(*) as count FROM accounts
+      WHERE company_id = ${companyId} AND account_number = ${accountNumber}
+    `
+  })
+
   const findById: AccountRepositoryService["findById"] = (id) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<AccountRow>`
-        SELECT * FROM accounts WHERE id = ${id}
-      `.pipe(wrapSqlError("findById"))
-
-      if (rows.length === 0) {
-        return Option.none()
-      }
-
-      const account = yield* rowToAccount(rows[0])
-      return Option.some(account)
-    })
+    findAccountById(id).pipe(
+      Effect.map(Option.map(rowToAccount)),
+      wrapSqlError("findById")
+    )
 
   const findByCompany: AccountRepositoryService["findByCompany"] = (companyId) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<AccountRow>`
-        SELECT * FROM accounts
-        WHERE company_id = ${companyId}
-        ORDER BY account_number
-      `.pipe(wrapSqlError("findByCompany"))
-
-      return yield* Effect.forEach(rows, rowToAccount)
-    })
+    findAccountsByCompany(companyId).pipe(
+      Effect.map((rows) => rows.map(rowToAccount)),
+      wrapSqlError("findByCompany")
+    )
 
   const create: AccountRepositoryService["create"] = (account) =>
     Effect.gen(function* () {
@@ -210,19 +279,10 @@ const make = Effect.gen(function* () {
     })
 
   const findByNumber: AccountRepositoryService["findByNumber"] = (companyId, accountNumber) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<AccountRow>`
-        SELECT * FROM accounts
-        WHERE company_id = ${companyId} AND account_number = ${accountNumber}
-      `.pipe(wrapSqlError("findByNumber"))
-
-      if (rows.length === 0) {
-        return Option.none()
-      }
-
-      const account = yield* rowToAccount(rows[0])
-      return Option.some(account)
-    })
+    findAccountByNumber({ companyId, accountNumber }).pipe(
+      Effect.map(Option.map(rowToAccount)),
+      wrapSqlError("findByNumber")
+    )
 
   const getById: AccountRepositoryService["getById"] = (id) =>
     Effect.gen(function* () {
@@ -234,67 +294,40 @@ const make = Effect.gen(function* () {
     })
 
   const findActiveByCompany: AccountRepositoryService["findActiveByCompany"] = (companyId) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<AccountRow>`
-        SELECT * FROM accounts
-        WHERE company_id = ${companyId} AND is_active = true
-        ORDER BY account_number
-      `.pipe(wrapSqlError("findActiveByCompany"))
-
-      return yield* Effect.forEach(rows, rowToAccount)
-    })
+    findActiveAccountsByCompany(companyId).pipe(
+      Effect.map((rows) => rows.map(rowToAccount)),
+      wrapSqlError("findActiveByCompany")
+    )
 
   const findByType: AccountRepositoryService["findByType"] = (companyId, accountType) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<AccountRow>`
-        SELECT * FROM accounts
-        WHERE company_id = ${companyId} AND account_type = ${accountType}
-        ORDER BY account_number
-      `.pipe(wrapSqlError("findByType"))
-
-      return yield* Effect.forEach(rows, rowToAccount)
-    })
+    findAccountsByType({ companyId, accountType }).pipe(
+      Effect.map((rows) => rows.map(rowToAccount)),
+      wrapSqlError("findByType")
+    )
 
   const findChildren: AccountRepositoryService["findChildren"] = (parentAccountId) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<AccountRow>`
-        SELECT * FROM accounts
-        WHERE parent_account_id = ${parentAccountId}
-        ORDER BY account_number
-      `.pipe(wrapSqlError("findChildren"))
-
-      return yield* Effect.forEach(rows, rowToAccount)
-    })
+    findAccountChildren(parentAccountId).pipe(
+      Effect.map((rows) => rows.map(rowToAccount)),
+      wrapSqlError("findChildren")
+    )
 
   const findIntercompanyAccounts: AccountRepositoryService["findIntercompanyAccounts"] = (companyId) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<AccountRow>`
-        SELECT * FROM accounts
-        WHERE company_id = ${companyId} AND is_intercompany = true
-        ORDER BY account_number
-      `.pipe(wrapSqlError("findIntercompanyAccounts"))
-
-      return yield* Effect.forEach(rows, rowToAccount)
-    })
+    findIntercompany(companyId).pipe(
+      Effect.map((rows) => rows.map(rowToAccount)),
+      wrapSqlError("findIntercompanyAccounts")
+    )
 
   const exists: AccountRepositoryService["exists"] = (id) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<{ count: string }>`
-        SELECT COUNT(*) as count FROM accounts WHERE id = ${id}
-      `.pipe(wrapSqlError("exists"))
-
-      return parseInt(rows[0].count, 10) > 0
-    })
+    countById(id).pipe(
+      Effect.map((row) => parseInt(row.count, 10) > 0),
+      wrapSqlError("exists")
+    )
 
   const isAccountNumberTaken: AccountRepositoryService["isAccountNumberTaken"] = (companyId, accountNumber) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<{ count: string }>`
-        SELECT COUNT(*) as count FROM accounts
-        WHERE company_id = ${companyId} AND account_number = ${accountNumber}
-      `.pipe(wrapSqlError("isAccountNumberTaken"))
-
-      return parseInt(rows[0].count, 10) > 0
-    })
+    countByCompanyAndNumber({ companyId, accountNumber }).pipe(
+      Effect.map((row) => parseInt(row.count, 10) > 0),
+      wrapSqlError("isAccountNumberTaken")
+    )
 
   return {
     findById,

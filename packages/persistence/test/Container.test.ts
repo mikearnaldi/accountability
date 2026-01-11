@@ -1,7 +1,27 @@
 import { PgClient } from "@effect/sql-pg"
+import { SqlSchema } from "@effect/sql"
 import { expect, it } from "@effect/vitest"
-import { Effect } from "effect"
+import { Effect, Schema } from "effect"
 import { PgContainer } from "./Utils.ts"
+
+/**
+ * Reusable row schemas for container tests
+ */
+const AccountRow = Schema.Struct({
+  id: Schema.String,
+  name: Schema.String,
+  balance: Schema.String
+})
+
+const ItemRow = Schema.Struct({
+  id: Schema.Number,
+  name: Schema.String
+})
+
+const LedgerRow = Schema.Struct({
+  id: Schema.String,
+  amount: Schema.String
+})
 
 it.layer(PgContainer.ClientLive, { timeout: "30 seconds" })("PgContainer", (it) => {
   it.effect("creates table, inserts row, and queries it back", () =>
@@ -18,12 +38,13 @@ it.layer(PgContainer.ClientLive, { timeout: "30 seconds" })("PgContainer", (it) 
       // Insert row
       yield* sql`INSERT INTO test_accounts (id, name, balance) VALUES ('acc_1', 'Cash', 1000.50)`
 
-      // Query it back
-      const rows = yield* sql<{
-        id: string
-        name: string
-        balance: string
-      }>`SELECT * FROM test_accounts WHERE id = 'acc_1'`
+      // Query it back with SqlSchema
+      const findAccounts = SqlSchema.findAll({
+        Request: Schema.String,
+        Result: AccountRow,
+        execute: (id) => sql`SELECT * FROM test_accounts WHERE id = ${id}`
+      })
+      const rows = yield* findAccounts("acc_1")
 
       expect(rows).toHaveLength(1)
       expect(rows[0].id).toBe("acc_1")
@@ -47,8 +68,13 @@ it.layer(PgContainer.ClientLive, { timeout: "30 seconds" })("PgContainer", (it) 
       yield* sql`INSERT INTO test_items (name) VALUES ('Item 2')`
       yield* sql`INSERT INTO test_items (name) VALUES ('Item 3')`
 
-      // Query all
-      const rows = yield* sql<{ id: number; name: string }>`SELECT * FROM test_items ORDER BY id`
+      // Query all with SqlSchema
+      const findAllItems = SqlSchema.findAll({
+        Request: Schema.Void,
+        Result: ItemRow,
+        execute: () => sql`SELECT * FROM test_items ORDER BY id`
+      })
+      const rows = yield* findAllItems()
 
       expect(rows).toHaveLength(3)
       expect(rows[0].name).toBe("Item 1")
@@ -75,8 +101,14 @@ it.layer(PgContainer.ClientLive, { timeout: "30 seconds" })("PgContainer", (it) 
         })
       )
 
-      // Verify committed
-      const rows = yield* sql<{ id: string; amount: string }>`SELECT * FROM test_ledger ORDER BY id`
+      // Verify committed with SqlSchema
+      const findAllLedger = SqlSchema.findAll({
+        Request: Schema.Void,
+        Result: LedgerRow,
+        execute: () => sql`SELECT * FROM test_ledger ORDER BY id`
+      })
+      const rows = yield* findAllLedger()
+
       expect(rows).toHaveLength(2)
       expect(rows[0].amount).toBe("100.00")
       expect(rows[1].amount).toBe("200.00")

@@ -1186,6 +1186,46 @@
       "estimated_complexity": "large"
     },
     {
+      "id": "5.3.2",
+      "phase": "Persistence",
+      "epic": "Repository Implementations",
+      "title": "Remove unnecessary eslint-disable, disableValidation, and Effect.try in repositories",
+      "description": "Clean up repository implementations: remove eslint-disable comments for type assertions, remove { disableValidation: true }, use plain functions for transformations (not Effect.try/succeed), use SqlSchema for type-safe queries with Schema decoding instead of interfaces.",
+      "acceptance_criteria": [
+        "Remove all eslint-disable-next-line @typescript-eslint/consistent-type-assertions from packages/persistence",
+        "Replace type casts with Schema.make() for branded types",
+        "Replace type casts with identity<T>() for compile-time type verification where needed",
+        "Remove ALL { disableValidation: true } - it is completely banned (lint rule: local/no-disable-validation)",
+        "Remove Effect.try for operations that cannot throw - use plain functions for pure transformations, not Effect.succeed",
+        "Keep Effect.try only for operations that might actually throw (JSON.parse, file I/O, etc.)",
+        "Don't wrap safe operations in Effect unnecessarily - if it can't fail and needs no deps, it's just a function",
+        "Replace Effect.catchAllCause with Effect.catchAll or Effect.mapError - catchAllCause catches defects which should propagate",
+        "Remove all sql<Type>`...` patterns - banned by lint rule local/no-sql-type-parameter",
+        "Use SqlSchema (findOne, findAll, single, void) for type-safe queries with Schema decoding instead of interfaces/type parameters",
+        "Use pure functions for row-to-domain transformations (not Effect.try or Effect.succeed)",
+        "pnpm lint passes",
+        "pnpm typecheck passes",
+        "pnpm test passes"
+      ],
+      "technical_details": {
+        "files_to_check": "packages/persistence/src/*RepositoryLive.ts",
+        "alternatives": [
+          "Schema.make() for branded types like AccountId, CompanyId",
+          "identity<T>() from effect/Function for type verification",
+          "Proper return type annotations on functions"
+        ],
+        "rules": [
+          "NEVER use eslint-disable-next-line @typescript-eslint/consistent-type-assertions unless absolutely necessary",
+          "NEVER use { disableValidation: true } - completely banned, enforced by lint rule local/no-disable-validation",
+          "Don't wrap safe operations in Effect unnecessarily - use plain functions for pure transformations, Effect.try only for throwing operations",
+          "NEVER use Effect.catchAllCause to wrap errors - it catches defects (bugs) which should propagate. Use Effect.catchAll or Effect.mapError instead",
+          "For row.field as Type - usually no cast needed if row type is properly defined. Use identity<T>() only if TypeScript can't infer, but question if types are set up right"
+        ]
+      },
+      "status": "complete",
+      "estimated_complexity": "small"
+    },
+    {
       "id": "6.1.1",
       "phase": "API Layer",
       "epic": "TanStack Start Setup",

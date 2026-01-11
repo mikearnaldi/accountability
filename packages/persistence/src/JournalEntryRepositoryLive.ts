@@ -7,20 +7,20 @@
  * @module JournalEntryRepositoryLive
  */
 
-import { SqlClient } from "@effect/sql"
-import * as Cause from "effect/Cause"
+import { SqlClient, SqlSchema } from "@effect/sql"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
+import * as Schema from "effect/Schema"
 import { CompanyId } from "@accountability/core/domain/Company"
 import { FiscalPeriodRef } from "@accountability/core/domain/FiscalPeriodRef"
 import {
   EntryNumber,
   JournalEntry,
   JournalEntryId,
-  type JournalEntryStatus,
-  type JournalEntryType,
-  type SourceModule,
+  JournalEntryStatus,
+  JournalEntryType,
+  SourceModule,
   UserId
 } from "@accountability/core/domain/JournalEntry"
 import { LocalDate } from "@accountability/core/domain/LocalDate"
@@ -29,109 +29,113 @@ import { JournalEntryRepository, type JournalEntryRepositoryService } from "./Jo
 import { EntityNotFoundError, PersistenceError } from "./RepositoryError.ts"
 
 /**
- * Database row type for journal_entries table
+ * Schema for database row from journal_entries table
+ * Uses proper literal types for enum fields to avoid type assertions
  */
-interface JournalEntryRow {
-  readonly id: string
-  readonly company_id: string
-  readonly entry_number: string | null
-  readonly reference_number: string | null
-  readonly description: string
-  readonly transaction_date: Date
-  readonly posting_date: Date | null
-  readonly document_date: Date | null
-  readonly fiscal_year: number
-  readonly fiscal_period: number
-  readonly entry_type: string
-  readonly source_module: string
-  readonly source_document_ref: string | null
-  readonly is_multi_currency: boolean
-  readonly status: string
-  readonly is_reversing: boolean
-  readonly reversed_entry_id: string | null
-  readonly reversing_entry_id: string | null
-  readonly created_by: string
-  readonly created_at: Date
-  readonly posted_by: string | null
-  readonly posted_at: Date | null
-}
+const JournalEntryRow = Schema.Struct({
+  id: Schema.String,
+  company_id: Schema.String,
+  entry_number: Schema.NullOr(Schema.String),
+  reference_number: Schema.NullOr(Schema.String),
+  description: Schema.String,
+  transaction_date: Schema.DateFromSelf,
+  posting_date: Schema.NullOr(Schema.DateFromSelf),
+  document_date: Schema.NullOr(Schema.DateFromSelf),
+  fiscal_year: Schema.Number,
+  fiscal_period: Schema.Number,
+  entry_type: JournalEntryType,
+  source_module: SourceModule,
+  source_document_ref: Schema.NullOr(Schema.String),
+  is_multi_currency: Schema.Boolean,
+  status: JournalEntryStatus,
+  is_reversing: Schema.Boolean,
+  reversed_entry_id: Schema.NullOr(Schema.String),
+  reversing_entry_id: Schema.NullOr(Schema.String),
+  created_by: Schema.String,
+  created_at: Schema.DateFromSelf,
+  posted_by: Schema.NullOr(Schema.String),
+  posted_at: Schema.NullOr(Schema.DateFromSelf)
+})
+type JournalEntryRow = typeof JournalEntryRow.Type
+
+/**
+ * Schema for count query result
+ */
+const CountRow = Schema.Struct({
+  count: Schema.String
+})
+
+/**
+ * Schema for max entry number query result
+ */
+const MaxNumRow = Schema.Struct({
+  max_num: Schema.NullOr(Schema.String)
+})
 
 /**
  * Convert Date to LocalDate
+ * Pure function - no validation needed, values come from database
  */
 const dateToLocalDate = (date: Date): LocalDate =>
-  LocalDate.make(
-    { year: date.getUTCFullYear(), month: date.getUTCMonth() + 1, day: date.getUTCDate() },
-    { disableValidation: true }
-  )
+  LocalDate.make({ year: date.getUTCFullYear(), month: date.getUTCMonth() + 1, day: date.getUTCDate() })
 
 /**
  * Convert database row to JournalEntry domain entity
+ * Pure function - no Effect wrapping needed
+ * Since the row schema uses proper literal types, no type assertions needed
  */
-const rowToJournalEntry = (row: JournalEntryRow): Effect.Effect<JournalEntry, PersistenceError> =>
-  Effect.try({
-    try: () =>
-      JournalEntry.make(
-        {
-          id: JournalEntryId.make(row.id, { disableValidation: true }),
-          companyId: CompanyId.make(row.company_id, { disableValidation: true }),
-          entryNumber: row.entry_number !== null
-            ? Option.some(EntryNumber.make(row.entry_number, { disableValidation: true }))
-            : Option.none<typeof EntryNumber.Type>(),
-          referenceNumber: row.reference_number !== null
-            ? Option.some(row.reference_number)
-            : Option.none<string>(),
-          description: row.description,
-          transactionDate: dateToLocalDate(row.transaction_date),
-          postingDate: row.posting_date !== null
-            ? Option.some(dateToLocalDate(row.posting_date))
-            : Option.none<LocalDate>(),
-          documentDate: row.document_date !== null
-            ? Option.some(dateToLocalDate(row.document_date))
-            : Option.none<LocalDate>(),
-          fiscalPeriod: FiscalPeriodRef.make(
-            { year: row.fiscal_year, period: row.fiscal_period },
-            { disableValidation: true }
-          ),
-          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- Database string to union type
-          entryType: row.entry_type as JournalEntryType,
-          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- Database string to union type
-          sourceModule: row.source_module as SourceModule,
-          sourceDocumentRef: row.source_document_ref !== null
-            ? Option.some(row.source_document_ref)
-            : Option.none<string>(),
-          isMultiCurrency: row.is_multi_currency,
-          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- Database string to union type
-          status: row.status as JournalEntryStatus,
-          isReversing: row.is_reversing,
-          reversedEntryId: row.reversed_entry_id !== null
-            ? Option.some(JournalEntryId.make(row.reversed_entry_id, { disableValidation: true }))
-            : Option.none<typeof JournalEntryId.Type>(),
-          reversingEntryId: row.reversing_entry_id !== null
-            ? Option.some(JournalEntryId.make(row.reversing_entry_id, { disableValidation: true }))
-            : Option.none<typeof JournalEntryId.Type>(),
-          createdBy: UserId.make(row.created_by, { disableValidation: true }),
-          createdAt: Timestamp.make({ epochMillis: row.created_at.getTime() }, { disableValidation: true }),
-          postedBy: row.posted_by !== null
-            ? Option.some(UserId.make(row.posted_by, { disableValidation: true }))
-            : Option.none<typeof UserId.Type>(),
-          postedAt: row.posted_at !== null
-            ? Option.some(Timestamp.make({ epochMillis: row.posted_at.getTime() }, { disableValidation: true }))
-            : Option.none<Timestamp>()
-        },
-        { disableValidation: true }
-      ),
-    catch: (cause) => new PersistenceError({ operation: "rowToJournalEntry", cause })
+const rowToJournalEntry = (row: JournalEntryRow): JournalEntry =>
+  JournalEntry.make({
+    id: JournalEntryId.make(row.id),
+    companyId: CompanyId.make(row.company_id),
+    entryNumber: row.entry_number !== null
+      ? Option.some(EntryNumber.make(row.entry_number))
+      : Option.none<typeof EntryNumber.Type>(),
+    referenceNumber: row.reference_number !== null
+      ? Option.some(row.reference_number)
+      : Option.none<string>(),
+    description: row.description,
+    transactionDate: dateToLocalDate(row.transaction_date),
+    postingDate: row.posting_date !== null
+      ? Option.some(dateToLocalDate(row.posting_date))
+      : Option.none<LocalDate>(),
+    documentDate: row.document_date !== null
+      ? Option.some(dateToLocalDate(row.document_date))
+      : Option.none<LocalDate>(),
+    fiscalPeriod: FiscalPeriodRef.make({ year: row.fiscal_year, period: row.fiscal_period }),
+    entryType: row.entry_type,
+    sourceModule: row.source_module,
+    sourceDocumentRef: row.source_document_ref !== null
+      ? Option.some(row.source_document_ref)
+      : Option.none<string>(),
+    isMultiCurrency: row.is_multi_currency,
+    status: row.status,
+    isReversing: row.is_reversing,
+    reversedEntryId: row.reversed_entry_id !== null
+      ? Option.some(JournalEntryId.make(row.reversed_entry_id))
+      : Option.none<typeof JournalEntryId.Type>(),
+    reversingEntryId: row.reversing_entry_id !== null
+      ? Option.some(JournalEntryId.make(row.reversing_entry_id))
+      : Option.none<typeof JournalEntryId.Type>(),
+    createdBy: UserId.make(row.created_by),
+    createdAt: Timestamp.make({ epochMillis: row.created_at.getTime() }),
+    postedBy: row.posted_by !== null
+      ? Option.some(UserId.make(row.posted_by))
+      : Option.none<typeof UserId.Type>(),
+    postedAt: row.posted_at !== null
+      ? Option.some(Timestamp.make({ epochMillis: row.posted_at.getTime() }))
+      : Option.none<Timestamp>()
   })
 
 /**
  * Wrap SQL errors in PersistenceError
+ * Uses mapError to only transform expected errors, not defects
  */
 const wrapSqlError =
   (operation: string) =>
   <A, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<A, PersistenceError, R> =>
-    Effect.catchAllCause(effect, (cause) =>
-      Effect.fail(new PersistenceError({ operation, cause: Cause.squash(cause) }))
+    Effect.mapError(effect, (cause) =>
+      new PersistenceError({ operation, cause })
     )
 
 /**
@@ -140,43 +144,173 @@ const wrapSqlError =
 const make = Effect.gen(function* () {
   const sql = yield* SqlClient.SqlClient
 
+  // SqlSchema query builders for type-safe queries
+  const findEntryById = SqlSchema.findOne({
+    Request: Schema.String,
+    Result: JournalEntryRow,
+    execute: (id) => sql`SELECT * FROM journal_entries WHERE id = ${id}`
+  })
+
+  const findEntriesByCompany = SqlSchema.findAll({
+    Request: Schema.String,
+    Result: JournalEntryRow,
+    execute: (companyId) => sql`
+      SELECT * FROM journal_entries
+      WHERE company_id = ${companyId}
+      ORDER BY transaction_date DESC, created_at DESC
+    `
+  })
+
+  const findEntriesByPeriod = SqlSchema.findAll({
+    Request: Schema.Struct({
+      companyId: Schema.String,
+      year: Schema.Number,
+      period: Schema.Number
+    }),
+    Result: JournalEntryRow,
+    execute: ({ companyId, year, period }) => sql`
+      SELECT * FROM journal_entries
+      WHERE company_id = ${companyId}
+        AND fiscal_year = ${year}
+        AND fiscal_period = ${period}
+      ORDER BY transaction_date DESC, created_at DESC
+    `
+  })
+
+  const findEntriesByStatus = SqlSchema.findAll({
+    Request: Schema.Struct({ companyId: Schema.String, status: Schema.String }),
+    Result: JournalEntryRow,
+    execute: ({ companyId, status }) => sql`
+      SELECT * FROM journal_entries
+      WHERE company_id = ${companyId} AND status = ${status}
+      ORDER BY transaction_date DESC, created_at DESC
+    `
+  })
+
+  const findEntriesByType = SqlSchema.findAll({
+    Request: Schema.Struct({ companyId: Schema.String, entryType: Schema.String }),
+    Result: JournalEntryRow,
+    execute: ({ companyId, entryType }) => sql`
+      SELECT * FROM journal_entries
+      WHERE company_id = ${companyId} AND entry_type = ${entryType}
+      ORDER BY transaction_date DESC, created_at DESC
+    `
+  })
+
+  const findEntriesByPeriodRange = SqlSchema.findAll({
+    Request: Schema.Struct({
+      companyId: Schema.String,
+      startYear: Schema.Number,
+      startPeriod: Schema.Number,
+      endYear: Schema.Number,
+      endPeriod: Schema.Number
+    }),
+    Result: JournalEntryRow,
+    execute: ({ companyId, startYear, startPeriod, endYear, endPeriod }) => sql`
+      SELECT * FROM journal_entries
+      WHERE company_id = ${companyId}
+        AND (fiscal_year > ${startYear}
+             OR (fiscal_year = ${startYear} AND fiscal_period >= ${startPeriod}))
+        AND (fiscal_year < ${endYear}
+             OR (fiscal_year = ${endYear} AND fiscal_period <= ${endPeriod}))
+      ORDER BY fiscal_year, fiscal_period, transaction_date
+    `
+  })
+
+  const findDraftEntriesQuery = SqlSchema.findAll({
+    Request: Schema.String,
+    Result: JournalEntryRow,
+    execute: (companyId) => sql`
+      SELECT * FROM journal_entries
+      WHERE company_id = ${companyId} AND status = 'Draft'
+      ORDER BY created_at DESC
+    `
+  })
+
+  const findPostedByPeriodQuery = SqlSchema.findAll({
+    Request: Schema.Struct({
+      companyId: Schema.String,
+      year: Schema.Number,
+      period: Schema.Number
+    }),
+    Result: JournalEntryRow,
+    execute: ({ companyId, year, period }) => sql`
+      SELECT * FROM journal_entries
+      WHERE company_id = ${companyId}
+        AND status = 'Posted'
+        AND fiscal_year = ${year}
+        AND fiscal_period = ${period}
+      ORDER BY posting_date, entry_number
+    `
+  })
+
+  const findReversingEntryQuery = SqlSchema.findOne({
+    Request: Schema.String,
+    Result: JournalEntryRow,
+    execute: (entryId) => sql`
+      SELECT * FROM journal_entries
+      WHERE reversed_entry_id = ${entryId}
+    `
+  })
+
+  const countDraftEntriesQuery = SqlSchema.single({
+    Request: Schema.Struct({
+      companyId: Schema.String,
+      year: Schema.Number,
+      period: Schema.Number
+    }),
+    Result: CountRow,
+    execute: ({ companyId, year, period }) => sql`
+      SELECT COUNT(*) as count FROM journal_entries
+      WHERE company_id = ${companyId}
+        AND status = 'Draft'
+        AND fiscal_year = ${year}
+        AND fiscal_period = ${period}
+    `
+  })
+
+  const findIntercompanyEntriesQuery = SqlSchema.findAll({
+    Request: Schema.String,
+    Result: JournalEntryRow,
+    execute: (companyId) => sql`
+      SELECT * FROM journal_entries
+      WHERE company_id = ${companyId} AND entry_type = 'Intercompany'
+      ORDER BY transaction_date DESC, created_at DESC
+    `
+  })
+
+  const countById = SqlSchema.single({
+    Request: Schema.String,
+    Result: CountRow,
+    execute: (id) => sql`SELECT COUNT(*) as count FROM journal_entries WHERE id = ${id}`
+  })
+
+  const getMaxEntryNumber = SqlSchema.single({
+    Request: Schema.String,
+    Result: MaxNumRow,
+    execute: (companyId) => sql`
+      SELECT MAX(entry_number) as max_num FROM journal_entries
+      WHERE company_id = ${companyId} AND entry_number IS NOT NULL
+    `
+  })
+
   const findById: JournalEntryRepositoryService["findById"] = (id) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<JournalEntryRow>`
-        SELECT * FROM journal_entries WHERE id = ${id}
-      `.pipe(wrapSqlError("findById"))
-
-      if (rows.length === 0) {
-        return Option.none()
-      }
-
-      const entry = yield* rowToJournalEntry(rows[0])
-      return Option.some(entry)
-    })
+    findEntryById(id).pipe(
+      Effect.map(Option.map(rowToJournalEntry)),
+      wrapSqlError("findById")
+    )
 
   const findByCompany: JournalEntryRepositoryService["findByCompany"] = (companyId) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<JournalEntryRow>`
-        SELECT * FROM journal_entries
-        WHERE company_id = ${companyId}
-        ORDER BY transaction_date DESC, created_at DESC
-      `.pipe(wrapSqlError("findByCompany"))
-
-      return yield* Effect.forEach(rows, rowToJournalEntry)
-    })
+    findEntriesByCompany(companyId).pipe(
+      Effect.map((rows) => rows.map(rowToJournalEntry)),
+      wrapSqlError("findByCompany")
+    )
 
   const findByPeriod: JournalEntryRepositoryService["findByPeriod"] = (companyId, period) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<JournalEntryRow>`
-        SELECT * FROM journal_entries
-        WHERE company_id = ${companyId}
-          AND fiscal_year = ${period.year}
-          AND fiscal_period = ${period.period}
-        ORDER BY transaction_date DESC, created_at DESC
-      `.pipe(wrapSqlError("findByPeriod"))
-
-      return yield* Effect.forEach(rows, rowToJournalEntry)
-    })
+    findEntriesByPeriod({ companyId, year: period.year, period: period.period }).pipe(
+      Effect.map((rows) => rows.map(rowToJournalEntry)),
+      wrapSqlError("findByPeriod")
+    )
 
   const create: JournalEntryRepositoryService["create"] = (entry) =>
     Effect.gen(function* () {
@@ -261,145 +395,93 @@ const make = Effect.gen(function* () {
     })
 
   const findByStatus: JournalEntryRepositoryService["findByStatus"] = (companyId, status) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<JournalEntryRow>`
-        SELECT * FROM journal_entries
-        WHERE company_id = ${companyId} AND status = ${status}
-        ORDER BY transaction_date DESC, created_at DESC
-      `.pipe(wrapSqlError("findByStatus"))
-
-      return yield* Effect.forEach(rows, rowToJournalEntry)
-    })
+    findEntriesByStatus({ companyId, status }).pipe(
+      Effect.map((rows) => rows.map(rowToJournalEntry)),
+      wrapSqlError("findByStatus")
+    )
 
   const findByType: JournalEntryRepositoryService["findByType"] = (companyId, entryType) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<JournalEntryRow>`
-        SELECT * FROM journal_entries
-        WHERE company_id = ${companyId} AND entry_type = ${entryType}
-        ORDER BY transaction_date DESC, created_at DESC
-      `.pipe(wrapSqlError("findByType"))
-
-      return yield* Effect.forEach(rows, rowToJournalEntry)
-    })
+    findEntriesByType({ companyId, entryType }).pipe(
+      Effect.map((rows) => rows.map(rowToJournalEntry)),
+      wrapSqlError("findByType")
+    )
 
   const findByPeriodRange: JournalEntryRepositoryService["findByPeriodRange"] = (
     companyId,
     startPeriod,
     endPeriod
   ) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<JournalEntryRow>`
-        SELECT * FROM journal_entries
-        WHERE company_id = ${companyId}
-          AND (fiscal_year > ${startPeriod.year}
-               OR (fiscal_year = ${startPeriod.year} AND fiscal_period >= ${startPeriod.period}))
-          AND (fiscal_year < ${endPeriod.year}
-               OR (fiscal_year = ${endPeriod.year} AND fiscal_period <= ${endPeriod.period}))
-        ORDER BY fiscal_year, fiscal_period, transaction_date
-      `.pipe(wrapSqlError("findByPeriodRange"))
-
-      return yield* Effect.forEach(rows, rowToJournalEntry)
-    })
+    findEntriesByPeriodRange({
+      companyId,
+      startYear: startPeriod.year,
+      startPeriod: startPeriod.period,
+      endYear: endPeriod.year,
+      endPeriod: endPeriod.period
+    }).pipe(
+      Effect.map((rows) => rows.map(rowToJournalEntry)),
+      wrapSqlError("findByPeriodRange")
+    )
 
   const findDraftEntries: JournalEntryRepositoryService["findDraftEntries"] = (companyId) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<JournalEntryRow>`
-        SELECT * FROM journal_entries
-        WHERE company_id = ${companyId} AND status = 'Draft'
-        ORDER BY created_at DESC
-      `.pipe(wrapSqlError("findDraftEntries"))
-
-      return yield* Effect.forEach(rows, rowToJournalEntry)
-    })
+    findDraftEntriesQuery(companyId).pipe(
+      Effect.map((rows) => rows.map(rowToJournalEntry)),
+      wrapSqlError("findDraftEntries")
+    )
 
   const findPostedByPeriod: JournalEntryRepositoryService["findPostedByPeriod"] = (companyId, period) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<JournalEntryRow>`
-        SELECT * FROM journal_entries
-        WHERE company_id = ${companyId}
-          AND status = 'Posted'
-          AND fiscal_year = ${period.year}
-          AND fiscal_period = ${period.period}
-        ORDER BY posting_date, entry_number
-      `.pipe(wrapSqlError("findPostedByPeriod"))
-
-      return yield* Effect.forEach(rows, rowToJournalEntry)
-    })
+    findPostedByPeriodQuery({ companyId, year: period.year, period: period.period }).pipe(
+      Effect.map((rows) => rows.map(rowToJournalEntry)),
+      wrapSqlError("findPostedByPeriod")
+    )
 
   const findReversingEntry: JournalEntryRepositoryService["findReversingEntry"] = (entryId) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<JournalEntryRow>`
-        SELECT * FROM journal_entries
-        WHERE reversed_entry_id = ${entryId}
-      `.pipe(wrapSqlError("findReversingEntry"))
-
-      if (rows.length === 0) {
-        return Option.none()
-      }
-
-      const entry = yield* rowToJournalEntry(rows[0])
-      return Option.some(entry)
-    })
+    findReversingEntryQuery(entryId).pipe(
+      Effect.map(Option.map(rowToJournalEntry)),
+      wrapSqlError("findReversingEntry")
+    )
 
   const countDraftEntriesInPeriod: JournalEntryRepositoryService["countDraftEntriesInPeriod"] = (
     companyId,
     period
   ) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<{ count: string }>`
-        SELECT COUNT(*) as count FROM journal_entries
-        WHERE company_id = ${companyId}
-          AND status = 'Draft'
-          AND fiscal_year = ${period.year}
-          AND fiscal_period = ${period.period}
-      `.pipe(wrapSqlError("countDraftEntriesInPeriod"))
-
-      return parseInt(rows[0].count, 10)
-    })
+    countDraftEntriesQuery({ companyId, year: period.year, period: period.period }).pipe(
+      Effect.map((row) => parseInt(row.count, 10)),
+      wrapSqlError("countDraftEntriesInPeriod")
+    )
 
   const findIntercompanyEntries: JournalEntryRepositoryService["findIntercompanyEntries"] = (companyId) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<JournalEntryRow>`
-        SELECT * FROM journal_entries
-        WHERE company_id = ${companyId} AND entry_type = 'Intercompany'
-        ORDER BY transaction_date DESC, created_at DESC
-      `.pipe(wrapSqlError("findIntercompanyEntries"))
-
-      return yield* Effect.forEach(rows, rowToJournalEntry)
-    })
+    findIntercompanyEntriesQuery(companyId).pipe(
+      Effect.map((rows) => rows.map(rowToJournalEntry)),
+      wrapSqlError("findIntercompanyEntries")
+    )
 
   const exists: JournalEntryRepositoryService["exists"] = (id) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<{ count: string }>`
-        SELECT COUNT(*) as count FROM journal_entries WHERE id = ${id}
-      `.pipe(wrapSqlError("exists"))
-
-      return parseInt(rows[0].count, 10) > 0
-    })
+    countById(id).pipe(
+      Effect.map((row) => parseInt(row.count, 10) > 0),
+      wrapSqlError("exists")
+    )
 
   const getNextEntryNumber: JournalEntryRepositoryService["getNextEntryNumber"] = (companyId) =>
-    Effect.gen(function* () {
-      const rows = yield* sql<{ max_num: string | null }>`
-        SELECT MAX(entry_number) as max_num FROM journal_entries
-        WHERE company_id = ${companyId} AND entry_number IS NOT NULL
-      `.pipe(wrapSqlError("getNextEntryNumber"))
+    getMaxEntryNumber(companyId).pipe(
+      Effect.map((row) => {
+        const maxNum = row.max_num
+        if (maxNum === null) {
+          return "JE-0001"
+        }
 
-      const maxNum = rows[0].max_num
-      if (maxNum === null) {
-        return "JE-0001"
-      }
+        // Parse number from pattern like "JE-0001" or just increment numeric part
+        const match = maxNum.match(/(\d+)$/)
+        if (match) {
+          const num = parseInt(match[1], 10) + 1
+          const prefix = maxNum.slice(0, maxNum.length - match[1].length)
+          return `${prefix}${String(num).padStart(match[1].length, "0")}`
+        }
 
-      // Parse number from pattern like "JE-0001" or just increment numeric part
-      const match = maxNum.match(/(\d+)$/)
-      if (match) {
-        const num = parseInt(match[1], 10) + 1
-        const prefix = maxNum.slice(0, maxNum.length - match[1].length)
-        return `${prefix}${String(num).padStart(match[1].length, "0")}`
-      }
-
-      // Fallback: append "-0001"
-      return `${maxNum}-0001`
-    })
+        // Fallback: append "-0001"
+        return `${maxNum}-0001`
+      }),
+      wrapSqlError("getNextEntryNumber")
+    )
 
   return {
     findById,
