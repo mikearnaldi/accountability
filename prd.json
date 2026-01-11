@@ -1332,6 +1332,27 @@
       "id": "6.1.2",
       "phase": "API Layer",
       "epic": "TanStack Start + Effect HttpApi Setup",
+      "title": "Link API handler dispose to process lifecycle",
+      "description": "Ensure the dispose function from HttpApiBuilder.toWebHandler is called on process shutdown (SIGTERM, SIGINT) and module hot reload to properly clean up resources.",
+      "acceptance_criteria": [
+        "Handler dispose called on SIGTERM signal",
+        "Handler dispose called on SIGINT signal",
+        "Handler dispose called on Vite HMR module reload",
+        "Graceful shutdown logs confirmation message",
+        "No resource leaks on server restart during development"
+      ],
+      "technical_details": {
+        "pattern": "process.on('SIGTERM', dispose); process.on('SIGINT', dispose)",
+        "hmr_pattern": "if (import.meta.hot) { import.meta.hot.dispose(dispose) }",
+        "reference": "HTTP_API_TANSTACK.md section 1.6"
+      },
+      "status": "pending",
+      "estimated_complexity": "small"
+    },
+    {
+      "id": "6.1.3",
+      "phase": "API Layer",
+      "epic": "TanStack Start + Effect HttpApi Setup",
       "title": "Create shared API definition package",
       "description": "Create packages/api with HttpApi definitions shared between server and client for full type safety.",
       "acceptance_criteria": [
@@ -1351,7 +1372,7 @@
       "estimated_complexity": "medium"
     },
     {
-      "id": "6.1.3",
+      "id": "6.1.4",
       "phase": "API Layer",
       "epic": "TanStack Start + Effect HttpApi Setup",
       "title": "Set up Effect Atom for frontend state",
@@ -1475,6 +1496,30 @@
       ],
       "status": "pending",
       "estimated_complexity": "small"
+    },
+    {
+      "id": "6.3.3",
+      "phase": "API Layer",
+      "epic": "API Infrastructure",
+      "title": "Set up API testing infrastructure",
+      "description": "Configure HttpApi testing using @effect/vitest with it.layer pattern and NodeHttpServer.layerTest for in-memory testing without real HTTP server.",
+      "acceptance_criteria": [
+        "Test layer using NodeHttpServer.layerTest (no real server)",
+        "HttpApiClient.make(AppApi) for type-safe test requests",
+        "it.layer(HttpLive) pattern for shared test context",
+        "Tests for success responses with proper Schema decoding",
+        "Tests for error responses (404, 422, etc.)",
+        "Tests for authentication middleware",
+        "Example tests for each API group (accounts, companies, etc.)"
+      ],
+      "technical_details": {
+        "layer_pattern": "HttpApiBuilder.serve().pipe(Layer.provide(ApiLive), Layer.provideMerge(NodeHttpServer.layerTest))",
+        "test_pattern": "it.layer(HttpLive)('API Tests', (it) => { it.effect('test', () => ...) })",
+        "client_pattern": "const client = yield* HttpApiClient.make(AppApi)",
+        "error_testing": "Effect.flip to assert on expected errors"
+      },
+      "status": "pending",
+      "estimated_complexity": "medium"
     },
     {
       "id": "7.1.1",
