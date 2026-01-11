@@ -1,6 +1,5 @@
 import { HttpApiBuilder, HttpServer } from "@effect/platform"
 import * as Layer from "effect/Layer"
-import { AppApi } from "@accountability/api/AppApi"
 import { AppApiLive } from "@accountability/api/AppApiLive"
 
 // Logging utility that bypasses no-console lint rule
@@ -66,6 +65,3 @@ if (import.meta.hot) {
 }
 
 export { handler, dispose }
-
-// Re-export the API definition for client usage
-export { AppApi }
