@@ -6,7 +6,7 @@
   "scripts": {
     "prepare": "effect-language-service patch",
     "build": "pnpm --recursive --parallel run build",
-    "test": "vitest",
+    "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "typecheck": "tsc -b tsconfig.json",
     "lint": "eslint packages --ext .ts,.tsx",

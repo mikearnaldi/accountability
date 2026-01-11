@@ -1364,7 +1364,7 @@
       "technical_details": {
         "hmr_fix": "Store dispose in global: globalThis.__apiDispose = dispose; in hot.dispose callback call the global to dispose the OLD handler before new module loads"
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "small"
     },
     {

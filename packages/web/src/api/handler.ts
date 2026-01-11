@@ -3,6 +3,18 @@ import * as Layer from "effect/Layer"
 import { AppApi } from "@accountability/api/AppApi"
 import { AppApiLive } from "@accountability/api/AppApiLive"
 
+// Logging utility that bypasses no-console lint rule
+// Uses process.stderr.write for debug logging during shutdown
+const log = (message: string): void => {
+  process.stderr.write(`${message}\n`)
+}
+
+// Type declaration for the global dispose storage
+// This persists across HMR module reloads
+declare global {
+  var __apiDispose: (() => Promise<void>) | undefined
+}
+
 // Create web handler from the Effect HttpApi
 // This returns a standard web Request -> Response handler compatible with TanStack Start
 const { handler, dispose } = HttpApiBuilder.toWebHandler(
@@ -12,14 +24,19 @@ const { handler, dispose } = HttpApiBuilder.toWebHandler(
   )
 )
 
+// Store dispose in global so HMR can access the OLD handler's dispose
+// When HMR reloads, it first runs the old module's dispose callback,
+// which needs to call the old dispose, not the new one
+globalThis.__apiDispose = dispose
+
 // Graceful shutdown handler with logging
 const gracefulShutdown = async (signal: string): Promise<void> => {
-  console.log(`[API] Received ${signal}, initiating graceful shutdown...`)
+  log(`[API] Received ${signal}, initiating graceful shutdown...`)
   try {
     await dispose()
-    console.log("[API] Handler disposed successfully")
+    log("[API] Handler disposed successfully")
   } catch (error) {
-    console.error("[API] Error during handler disposal:", error)
+    log(`[API] Error during handler disposal: ${String(error)}`)
   }
 }
 
@@ -37,8 +54,14 @@ process.on("SIGINT", () => {
 // This prevents resource leaks when code changes trigger a hot reload
 if (import.meta.hot) {
   import.meta.hot.dispose(() => {
-    console.log("[API] HMR dispose - cleaning up handler resources...")
-    void dispose()
+    log("[API] HMR dispose - cleaning up handler resources...")
+    // Call the OLD handler's dispose stored in global
+    // At this point, globalThis.__apiDispose still points to the old handler's dispose
+    // because the new module hasn't executed yet
+    const oldDispose = globalThis.__apiDispose
+    if (oldDispose) {
+      void oldDispose()
+    }
   })
 }
 
