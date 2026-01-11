@@ -72,33 +72,29 @@ const rowToAccount = (row: AccountRow): Account =>
     companyId: CompanyId.make(row.company_id),
     accountNumber: AccountNumber.make(row.account_number),
     name: row.name,
-    description: row.description !== null
-      ? Option.some(row.description)
-      : Option.none<string>(),
+    description: Option.fromNullable(row.description),
     accountType: row.account_type,
     accountCategory: row.account_category,
     normalBalance: row.normal_balance,
-    parentAccountId: row.parent_account_id !== null
-      ? Option.some(AccountId.make(row.parent_account_id))
-      : Option.none<typeof AccountId.Type>(),
+    parentAccountId: Option.fromNullable(row.parent_account_id).pipe(
+      Option.map(AccountId.make)
+    ),
     hierarchyLevel: row.hierarchy_level,
     isPostable: row.is_postable,
     isCashFlowRelevant: row.is_cash_flow_relevant,
-    cashFlowCategory: row.cash_flow_category !== null
-      ? Option.some(row.cash_flow_category)
-      : Option.none<typeof CashFlowCategory.Type>(),
+    cashFlowCategory: Option.fromNullable(row.cash_flow_category),
     isIntercompany: row.is_intercompany,
-    intercompanyPartnerId: row.intercompany_partner_id !== null
-      ? Option.some(CompanyId.make(row.intercompany_partner_id))
-      : Option.none<typeof CompanyId.Type>(),
-    currencyRestriction: row.currency_restriction !== null
-      ? Option.some(CurrencyCode.make(row.currency_restriction))
-      : Option.none<typeof CurrencyCode.Type>(),
+    intercompanyPartnerId: Option.fromNullable(row.intercompany_partner_id).pipe(
+      Option.map(CompanyId.make)
+    ),
+    currencyRestriction: Option.fromNullable(row.currency_restriction).pipe(
+      Option.map(CurrencyCode.make)
+    ),
     isActive: row.is_active,
     createdAt: Timestamp.make({ epochMillis: row.created_at.getTime() }),
-    deactivatedAt: row.deactivated_at !== null
-      ? Option.some(Timestamp.make({ epochMillis: row.deactivated_at.getTime() }))
-      : Option.none<Timestamp>()
+    deactivatedAt: Option.fromNullable(row.deactivated_at).pipe(
+      Option.map((d) => Timestamp.make({ epochMillis: d.getTime() }))
+    )
   })
 
 /**

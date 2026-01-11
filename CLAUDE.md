@@ -503,6 +503,13 @@ The comment MUST explain WHY the cast is necessary. If you can't articulate a cl
 const someValue = Option.some<Account>(account)  // Option<Account>
 const noneValue = Option.none<Account>()         // Option<Account>
 
+// Use Option.fromNullable for nullable values (lint rule: local/prefer-option-from-nullable)
+// WRONG - verbose ternary
+const desc = row.description !== null ? Option.some(row.description) : Option.none<string>()
+
+// CORRECT - use Option.fromNullable
+const desc = Option.fromNullable(row.description)
+
 // When you need to assert a value matches a type (without casting), use identity
 import { identity } from "effect/Function"
 

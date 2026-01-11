@@ -171,30 +171,26 @@ const rowToConsolidationRun = (row: ConsolidationRunRow): ConsolidationRun => {
       ConsolidationStep.make({
         stepType: s.stepType,
         status: s.status,
-        startedAt: s.startedAt !== null
-          ? Option.some(Timestamp.make({ epochMillis: s.startedAt }))
-          : Option.none<Timestamp>(),
-        completedAt: s.completedAt !== null
-          ? Option.some(Timestamp.make({ epochMillis: s.completedAt }))
-          : Option.none<Timestamp>(),
-        durationMs: s.durationMs !== null ? Option.some(s.durationMs) : Option.none<number>(),
-        errorMessage: s.errorMessage !== null
-          ? Option.some(s.errorMessage)
-          : Option.none<string>(),
-        details: s.details !== null
-          ? Option.some(s.details)
-          : Option.none<string>()
+        startedAt: Option.fromNullable(s.startedAt).pipe(
+          Option.map((epochMillis) => Timestamp.make({ epochMillis }))
+        ),
+        completedAt: Option.fromNullable(s.completedAt).pipe(
+          Option.map((epochMillis) => Timestamp.make({ epochMillis }))
+        ),
+        durationMs: Option.fromNullable(s.durationMs),
+        errorMessage: Option.fromNullable(s.errorMessage),
+        details: Option.fromNullable(s.details)
       })
     )
   )
 
-  const validationResult = row.validation_result !== null
-    ? Option.some(ValidationResult.make(JSON.parse(row.validation_result)))
-    : Option.none<ValidationResult>()
+  const validationResult = Option.fromNullable(row.validation_result).pipe(
+    Option.map((json) => ValidationResult.make(JSON.parse(json)))
+  )
 
-  const consolidatedTrialBalance = row.consolidated_trial_balance !== null
-    ? Option.some(ConsolidatedTrialBalance.make(JSON.parse(row.consolidated_trial_balance)))
-    : Option.none<ConsolidatedTrialBalance>()
+  const consolidatedTrialBalance = Option.fromNullable(row.consolidated_trial_balance).pipe(
+    Option.map((json) => ConsolidatedTrialBalance.make(JSON.parse(json)))
+  )
 
   const eliminationEntryIdStrings = Schema.decodeUnknownSync(EliminationEntryIdsJsonSchema)(
     JSON.parse(row.elimination_entry_ids)
@@ -220,16 +216,14 @@ const rowToConsolidationRun = (row: ConsolidationRunRow): ConsolidationRun => {
     options,
     initiatedBy: UserId.make(row.initiated_by),
     initiatedAt: Timestamp.make({ epochMillis: row.initiated_at.getTime() }),
-    startedAt: row.started_at !== null
-      ? Option.some(Timestamp.make({ epochMillis: row.started_at.getTime() }))
-      : Option.none<Timestamp>(),
-    completedAt: row.completed_at !== null
-      ? Option.some(Timestamp.make({ epochMillis: row.completed_at.getTime() }))
-      : Option.none<Timestamp>(),
-    totalDurationMs: row.total_duration_ms !== null ? Option.some(row.total_duration_ms) : Option.none<number>(),
-    errorMessage: row.error_message !== null
-      ? Option.some(row.error_message)
-      : Option.none<string>()
+    startedAt: Option.fromNullable(row.started_at).pipe(
+      Option.map((d) => Timestamp.make({ epochMillis: d.getTime() }))
+    ),
+    completedAt: Option.fromNullable(row.completed_at).pipe(
+      Option.map((d) => Timestamp.make({ epochMillis: d.getTime() }))
+    ),
+    totalDurationMs: Option.fromNullable(row.total_duration_ms),
+    errorMessage: Option.fromNullable(row.error_message)
   })
 }
 
@@ -384,13 +378,13 @@ const make = Effect.gen(function* () {
   const loadMembers = (groupId: string): Effect.Effect<Chunk.Chunk<ConsolidationMember>, PersistenceError> =>
     findMembersByGroup(groupId).pipe(
       Effect.map((rows) => Chunk.fromIterable(rows.map((row) => {
-        const goodwillAmount = row.goodwill_amount !== null
-          ? Option.some(JSON.parse(row.goodwill_amount))
-          : Option.none<unknown>()
+        const goodwillAmount = Option.fromNullable(row.goodwill_amount).pipe(
+          Option.map((json) => JSON.parse(json))
+        )
 
-        const vieDetermination = row.vie_determination !== null
-          ? Option.some(VIEDetermination.make(JSON.parse(row.vie_determination)))
-          : Option.none<VIEDetermination>()
+        const vieDetermination = Option.fromNullable(row.vie_determination).pipe(
+          Option.map((json) => VIEDetermination.make(JSON.parse(json)))
+        )
 
         return ConsolidationMember.make({
           companyId: CompanyId.make(row.company_id),

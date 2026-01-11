@@ -62,24 +62,20 @@ const rowToCompany = (row: CompanyRow): Company =>
     name: row.name,
     legalName: row.legal_name,
     jurisdiction: JurisdictionCode.make(row.jurisdiction),
-    taxId: row.tax_id !== null
-      ? Option.some(row.tax_id)
-      : Option.none<string>(),
+    taxId: Option.fromNullable(row.tax_id),
     functionalCurrency: CurrencyCode.make(row.functional_currency),
     reportingCurrency: CurrencyCode.make(row.reporting_currency),
     fiscalYearEnd: FiscalYearEnd.make({
       month: row.fiscal_year_end_month,
       day: row.fiscal_year_end_day
     }),
-    parentCompanyId: row.parent_company_id !== null
-      ? Option.some(CompanyId.make(row.parent_company_id))
-      : Option.none<typeof CompanyId.Type>(),
-    ownershipPercentage: row.ownership_percentage !== null
-      ? Option.some(Percentage.make(parseFloat(row.ownership_percentage)))
-      : Option.none<typeof Percentage.Type>(),
-    consolidationMethod: row.consolidation_method !== null
-      ? Option.some(row.consolidation_method)
-      : Option.none<typeof ConsolidationMethod.Type>(),
+    parentCompanyId: Option.fromNullable(row.parent_company_id).pipe(
+      Option.map(CompanyId.make)
+    ),
+    ownershipPercentage: Option.fromNullable(row.ownership_percentage).pipe(
+      Option.map((s) => Percentage.make(parseFloat(s)))
+    ),
+    consolidationMethod: Option.fromNullable(row.consolidation_method),
     isActive: row.is_active,
     createdAt: Timestamp.make({ epochMillis: row.created_at.getTime() })
   })

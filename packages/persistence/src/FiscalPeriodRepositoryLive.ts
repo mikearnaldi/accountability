@@ -110,12 +110,12 @@ const rowToFiscalPeriod = (row: FiscalPeriodRow): FiscalPeriod =>
     startDate: dateToLocalDate(row.start_date),
     endDate: dateToLocalDate(row.end_date),
     status: row.status,
-    closedBy: row.closed_by !== null
-      ? Option.some(UserId.make(row.closed_by))
-      : Option.none<typeof UserId.Type>(),
-    closedAt: row.closed_at !== null
-      ? Option.some(Timestamp.make({ epochMillis: row.closed_at.getTime() }))
-      : Option.none<Timestamp>()
+    closedBy: Option.fromNullable(row.closed_by).pipe(
+      Option.map(UserId.make)
+    ),
+    closedAt: Option.fromNullable(row.closed_at).pipe(
+      Option.map((d) => Timestamp.make({ epochMillis: d.getTime() }))
+    )
   })
 
 /**

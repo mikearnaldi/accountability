@@ -97,7 +97,7 @@ describe("CashFlowStatementService", () => {
       hierarchyLevel: 1,
       isPostable,
       isCashFlowRelevant,
-      cashFlowCategory: cashFlowCategory !== null ? Option.some(cashFlowCategory) : Option.none(),
+      cashFlowCategory: Option.fromNullable(cashFlowCategory),
       isIntercompany: false,
       intercompanyPartnerId: Option.none(),
       currencyRestriction: Option.none(),

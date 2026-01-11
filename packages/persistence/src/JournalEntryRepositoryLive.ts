@@ -88,43 +88,39 @@ const rowToJournalEntry = (row: JournalEntryRow): JournalEntry =>
   JournalEntry.make({
     id: JournalEntryId.make(row.id),
     companyId: CompanyId.make(row.company_id),
-    entryNumber: row.entry_number !== null
-      ? Option.some(EntryNumber.make(row.entry_number))
-      : Option.none<typeof EntryNumber.Type>(),
-    referenceNumber: row.reference_number !== null
-      ? Option.some(row.reference_number)
-      : Option.none<string>(),
+    entryNumber: Option.fromNullable(row.entry_number).pipe(
+      Option.map(EntryNumber.make)
+    ),
+    referenceNumber: Option.fromNullable(row.reference_number),
     description: row.description,
     transactionDate: dateToLocalDate(row.transaction_date),
-    postingDate: row.posting_date !== null
-      ? Option.some(dateToLocalDate(row.posting_date))
-      : Option.none<LocalDate>(),
-    documentDate: row.document_date !== null
-      ? Option.some(dateToLocalDate(row.document_date))
-      : Option.none<LocalDate>(),
+    postingDate: Option.fromNullable(row.posting_date).pipe(
+      Option.map(dateToLocalDate)
+    ),
+    documentDate: Option.fromNullable(row.document_date).pipe(
+      Option.map(dateToLocalDate)
+    ),
     fiscalPeriod: FiscalPeriodRef.make({ year: row.fiscal_year, period: row.fiscal_period }),
     entryType: row.entry_type,
     sourceModule: row.source_module,
-    sourceDocumentRef: row.source_document_ref !== null
-      ? Option.some(row.source_document_ref)
-      : Option.none<string>(),
+    sourceDocumentRef: Option.fromNullable(row.source_document_ref),
     isMultiCurrency: row.is_multi_currency,
     status: row.status,
     isReversing: row.is_reversing,
-    reversedEntryId: row.reversed_entry_id !== null
-      ? Option.some(JournalEntryId.make(row.reversed_entry_id))
-      : Option.none<typeof JournalEntryId.Type>(),
-    reversingEntryId: row.reversing_entry_id !== null
-      ? Option.some(JournalEntryId.make(row.reversing_entry_id))
-      : Option.none<typeof JournalEntryId.Type>(),
+    reversedEntryId: Option.fromNullable(row.reversed_entry_id).pipe(
+      Option.map(JournalEntryId.make)
+    ),
+    reversingEntryId: Option.fromNullable(row.reversing_entry_id).pipe(
+      Option.map(JournalEntryId.make)
+    ),
     createdBy: UserId.make(row.created_by),
     createdAt: Timestamp.make({ epochMillis: row.created_at.getTime() }),
-    postedBy: row.posted_by !== null
-      ? Option.some(UserId.make(row.posted_by))
-      : Option.none<typeof UserId.Type>(),
-    postedAt: row.posted_at !== null
-      ? Option.some(Timestamp.make({ epochMillis: row.posted_at.getTime() }))
-      : Option.none<Timestamp>()
+    postedBy: Option.fromNullable(row.posted_by).pipe(
+      Option.map(UserId.make)
+    ),
+    postedAt: Option.fromNullable(row.posted_at).pipe(
+      Option.map((d) => Timestamp.make({ epochMillis: d.getTime() }))
+    )
   })
 
 /**

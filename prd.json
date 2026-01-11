@@ -1226,6 +1226,52 @@
       "estimated_complexity": "small"
     },
     {
+      "id": "5.3.3",
+      "phase": "Persistence",
+      "epic": "Repository Implementations",
+      "title": "Fix new lint errors in repositories",
+      "description": "Fix lint errors from newly added rules: local/no-sql-type-parameter and local/prefer-option-from-nullable.",
+      "acceptance_criteria": [
+        "Remove all sql<Type>`...` patterns - use SqlSchema with Schema for type-safe queries",
+        "Replace ternary Option patterns with Option.fromNullable",
+        "pnpm lint passes",
+        "pnpm typecheck passes",
+        "pnpm test passes"
+      ],
+      "technical_details": {
+        "lint_rules": [
+          "local/no-sql-type-parameter - use SqlSchema.findOne/findAll/single/void with Schema instead of sql<Type>",
+          "local/prefer-option-from-nullable - use Option.fromNullable(x) instead of x !== null ? Option.some(x) : Option.none()"
+        ],
+        "files_affected": "packages/persistence/src/*RepositoryLive.ts"
+      },
+      "status": "complete",
+      "estimated_complexity": "small"
+    },
+    {
+      "id": "5.3.4",
+      "phase": "Persistence",
+      "epic": "Repository Implementations",
+      "title": "Extract wrapSqlError to shared RepositoryError module",
+      "description": "Extract the wrapSqlError helper function to a shared module and deduplicate across all repository implementations. Use Effect.mapError instead of Effect.catchAllCause.",
+      "acceptance_criteria": [
+        "Create packages/persistence/src/RepositoryError.ts with PersistenceError and wrapSqlError",
+        "Use Effect.mapError (not catchAllCause) to transform SQL errors",
+        "Remove duplicate wrapSqlError from all *RepositoryLive.ts files",
+        "Import shared wrapSqlError in all repository implementations",
+        "pnpm lint passes",
+        "pnpm typecheck passes",
+        "pnpm test passes"
+      ],
+      "technical_details": {
+        "current_pattern": "const wrapSqlError = (op) => Effect.catchAllCause(...) - duplicated in each repo",
+        "new_pattern": "export const wrapSqlError = (op) => Effect.mapError(...) - shared module",
+        "reason": "catchAllCause catches defects which should propagate; mapError only transforms expected errors"
+      },
+      "status": "pending",
+      "estimated_complexity": "small"
+    },
+    {
       "id": "6.1.1",
       "phase": "API Layer",
       "epic": "TanStack Start Setup",
