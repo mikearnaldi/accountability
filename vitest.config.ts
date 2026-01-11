@@ -1,6 +1,13 @@
 import { defineConfig } from "vitest/config"
+import path from "path"
 
 export default defineConfig({
+  resolve: {
+    alias: {
+      "@accountability/core": path.resolve(__dirname, "packages/core/src"),
+      "@accountability/persistence": path.resolve(__dirname, "packages/persistence/src")
+    }
+  },
   test: {
     include: ["packages/**/test/**/*.test.ts"],
     exclude: [
