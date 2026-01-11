@@ -11,7 +11,7 @@
   "dependencies": {
     "@accountability/core": "workspace:*",
     "@accountability/persistence": "workspace:*",
-    "@tanstack/react-start": "^1.147.0",
+    "@effect/platform": "^0.83.0",
     "effect": "^3.19.0"
   }
 }

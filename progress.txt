@@ -359,3 +359,8 @@
 **Story**: 5.3.5 - Resolve all ESLint errors
 **Status**: complete
 ---
+
+## Iteration 1 - 2026-01-11 23:42
+**Story**: 6.1.1 - Initialize TanStack Start with Effect HttpApi
+**Status**: complete
+---

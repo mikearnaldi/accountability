@@ -1325,7 +1325,7 @@
         "api_handler": "HttpApiBuilder.toWebHandler for TanStack Start integration",
         "route_pattern": "/api/$path catches all API requests"
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "medium"
     },
     {

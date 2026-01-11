@@ -1,0 +1,79 @@
+import {
+  HeadContent,
+  Link,
+  Outlet,
+  Scripts,
+  createRootRoute
+} from "@tanstack/react-router"
+import { TanStackRouterDevtools } from "@tanstack/react-router-devtools"
+import * as React from "react"
+
+export const Route = createRootRoute({
+  head: () => ({
+    meta: [
+      {
+        charSet: "utf-8"
+      },
+      {
+        name: "viewport",
+        content: "width=device-width, initial-scale=1"
+      },
+      {
+        title: "Accountability - Multi-Company Accounting"
+      }
+    ]
+  }),
+  component: RootComponent
+})
+
+function RootComponent() {
+  return (
+    <RootDocument>
+      <Outlet />
+      <TanStackRouterDevtools position="bottom-right" />
+    </RootDocument>
+  )
+}
+
+function RootDocument({ children }: { readonly children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <head>
+        <HeadContent />
+      </head>
+      <body>
+        <nav style={{ padding: "1rem", borderBottom: "1px solid #ccc" }}>
+          <Link
+            to="/"
+            activeProps={{ style: { fontWeight: "bold" } }}
+            activeOptions={{ exact: true }}
+          >
+            Home
+          </Link>{" "}
+          <Link
+            to="/companies"
+            activeProps={{ style: { fontWeight: "bold" } }}
+          >
+            Companies
+          </Link>{" "}
+          <Link
+            to="/journal-entries"
+            activeProps={{ style: { fontWeight: "bold" } }}
+          >
+            Journal Entries
+          </Link>{" "}
+          <Link
+            to="/reports"
+            activeProps={{ style: { fontWeight: "bold" } }}
+          >
+            Reports
+          </Link>
+        </nav>
+        <main style={{ padding: "1rem" }}>
+          {children}
+        </main>
+        <Scripts />
+      </body>
+    </html>
+  )
+}
