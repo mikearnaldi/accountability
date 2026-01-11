@@ -25,13 +25,6 @@
         "vitest ^3.2.0"
       ]
     },
-    "effect_platform": {
-      "packages": [
-        "@effect/platform",
-        "@effect/platform-node"
-      ],
-      "notes": "Required for SQL and HTTP functionality"
-    },
     "tanstack_start": {
       "package": "@tanstack/react-start",
       "version": "^1.147.0",
@@ -40,11 +33,21 @@
         "react-dom ^19.0.0",
         "vite ^7.0.0"
       ],
-      "notes": "Use createServerFn for server functions. See repos/tanstack-router/examples/react/start-basic/"
+      "notes": "Use for file-based routing. API served via Effect HttpApi with HttpApiBuilder.toWebHandler at /api route. See HTTP_API_TANSTACK.md"
+    },
+    "effect_platform": {
+      "packages": [
+        "@effect/platform",
+        "@effect/platform-node"
+      ],
+      "notes": "Required for HttpApi and HttpApiClient. Use HttpApiBuilder for server handlers, HttpApiClient for type-safe client."
     },
     "effect_atom": {
-      "package": "@effect-rx/rx",
-      "notes": "For reactive state management with Effect. See repos/effect-atom/"
+      "packages": [
+        "@effect-atom/atom",
+        "@effect-atom/atom-react"
+      ],
+      "notes": "For reactive state management with Effect. See repos/effect-atom/ for source and HTTP_API_TANSTACK.md Part 3 for patterns."
     }
   },
   "reference_repos": {
@@ -53,6 +56,8 @@
     "effect_sql_pg": "repos/effect/packages/sql-pg/src/",
     "effect_sql_drizzle": "repos/effect/packages/sql-drizzle/src/",
     "effect_vitest": "repos/effect/packages/vitest/src/",
+    "effect_atom": "repos/effect-atom/packages/atom/src/",
+    "effect_atom_react": "repos/effect-atom/packages/atom-react/src/",
     "tanstack_start": "repos/tanstack-router/packages/react-start/src/",
     "tanstack_examples": "repos/tanstack-router/examples/react/start-basic/"
   },
@@ -1302,50 +1307,103 @@
     {
       "id": "6.1.1",
       "phase": "API Layer",
-      "epic": "TanStack Start Setup",
-      "title": "Initialize TanStack Start project",
-      "description": "Set up TanStack Start in the web package with proper configuration. Reference repos/tanstack-router/examples/react/start-basic/ for patterns.",
+      "epic": "TanStack Start + Effect HttpApi Setup",
+      "title": "Initialize TanStack Start with Effect HttpApi",
+      "description": "Set up TanStack Start in the web package with Effect HttpApi for type-safe API endpoints. See HTTP_API_TANSTACK.md for architecture details.",
       "acceptance_criteria": [
-        "@tanstack/react-start ^1.147.0 installed",
+        "@tanstack/react-start installed",
         "@tanstack/react-router for routing",
-        "vite ^7.0.0 configured",
+        "@effect/platform for HttpApi",
+        "vite configured",
         "React 19 configured",
         "Basic route structure: / (home), /companies, /journal-entries, /reports",
-        "Server functions pattern working (createServerFn)",
+        "API catch-all route /api/[...path] using HttpApiBuilder.toWebHandler",
         "Dev server runs successfully with pnpm dev"
       ],
+      "technical_details": {
+        "reference": "HTTP_API_TANSTACK.md",
+        "api_handler": "HttpApiBuilder.toWebHandler for TanStack Start integration",
+        "route_pattern": "/api/$path catches all API requests"
+      },
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "6.1.2",
+      "phase": "API Layer",
+      "epic": "TanStack Start + Effect HttpApi Setup",
+      "title": "Create shared API definition package",
+      "description": "Create packages/api with HttpApi definitions shared between server and client for full type safety.",
+      "acceptance_criteria": [
+        "Create packages/api package",
+        "Define AppApi using HttpApi.make",
+        "Define API groups: AccountsApi, CompaniesApi, JournalEntriesApi, ReportsApi",
+        "Define all endpoints with HttpApiEndpoint (get, post, put, del)",
+        "Use Schema from @accountability/core for request/response types",
+        "Define error types with HttpApiSchema.annotations for status codes",
+        "Export API definition for use by server and client"
+      ],
+      "technical_details": {
+        "pattern": "HttpApiGroup.make('accounts').add(endpoint).prefix('/api/v1')",
+        "errors": "Schema.TaggedError with HttpApiSchema.annotations({ status: 404 })"
+      },
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "6.1.3",
+      "phase": "API Layer",
+      "epic": "TanStack Start + Effect HttpApi Setup",
+      "title": "Set up Effect Atom for frontend state",
+      "description": "Configure Effect Atom for frontend state management, replacing TanStack Query patterns.",
+      "acceptance_criteria": [
+        "@effect-atom/atom-react installed",
+        "AtomProvider configured in app root",
+        "Atom runtime with HttpApiClient layer",
+        "ApiClient atom for type-safe API calls",
+        "Basic atoms demonstrating patterns: simple state, computed, async"
+      ],
+      "technical_details": {
+        "reference": "HTTP_API_TANSTACK.md Part 3",
+        "runtime": "Atom.runtime(Layer.mergeAll(FetchHttpClient.layer, ...))",
+        "client": "HttpApiClient.make(AppApi) for type-safe calls"
+      },
       "status": "pending",
       "estimated_complexity": "medium"
     },
     {
       "id": "6.2.1",
       "phase": "API Layer",
-      "epic": "Server Functions",
-      "title": "Implement company management server functions",
-      "description": "Create server functions for company CRUD operations using createServerFn pattern.",
+      "epic": "HttpApi Endpoints",
+      "title": "Implement accounts API endpoints",
+      "description": "Create HttpApiGroup for accounts with CRUD endpoints and HttpApiBuilder handlers.",
       "acceptance_criteria": [
-        "createCompany server function with Schema validation",
-        "getCompany server function",
-        "updateCompany server function",
-        "listCompanies server function with pagination",
-        "Proper error handling returning typed errors",
-        "Effect services integrated via Runtime"
+        "AccountsApi group with endpoints: findById, list, create, update, delete",
+        "HttpApiBuilder.group handlers calling AccountService",
+        "Proper error responses: NotFoundError (404), ValidationError (422)",
+        "Request validation via Schema",
+        "Response serialization via Schema",
+        "Tests for endpoint handlers"
       ],
+      "technical_details": {
+        "endpoint_pattern": "HttpApiEndpoint.get('findById')`/accounts/${accountIdParam}`",
+        "handler_pattern": "HttpApiBuilder.group(AppApi, 'accounts', handlers => handlers.handle('findById', ...))"
+      },
       "status": "pending",
       "estimated_complexity": "medium"
     },
     {
       "id": "6.2.2",
       "phase": "API Layer",
-      "epic": "Server Functions",
-      "title": "Implement journal entry server functions",
-      "description": "Create server functions for journal entry operations.",
+      "epic": "HttpApi Endpoints",
+      "title": "Implement companies API endpoints",
+      "description": "Create HttpApiGroup for companies with CRUD endpoints.",
       "acceptance_criteria": [
-        "createJournalEntry server function",
-        "postJournalEntry server function",
-        "reverseJournalEntry server function",
-        "listJournalEntries server function with filters (company, period, status)",
-        "getJournalEntry server function with lines"
+        "CompaniesApi group with endpoints: findById, list, create, update",
+        "HttpApiBuilder.group handlers calling CompanyService",
+        "Support for company settings (fiscal year, base currency)",
+        "Proper error handling",
+        "Tests for endpoint handlers"
       ],
       "status": "pending",
       "estimated_complexity": "medium"
@@ -1353,34 +1411,92 @@
     {
       "id": "6.2.3",
       "phase": "API Layer",
-      "epic": "Server Functions",
-      "title": "Implement reporting server functions",
-      "description": "Create server functions for report generation.",
+      "epic": "HttpApi Endpoints",
+      "title": "Implement journal entries API endpoints",
+      "description": "Create HttpApiGroup for journal entries with full workflow endpoints.",
       "acceptance_criteria": [
-        "generateTrialBalance server function",
-        "generateBalanceSheet server function",
-        "generateIncomeStatement server function",
-        "generateCashFlowStatement server function",
-        "Report parameters: companyId, asOfDate/period, comparative options",
-        "Returns report data structure (JSON for now)"
+        "JournalEntriesApi group with endpoints: findById, list, create, update, post, reverse",
+        "HttpApiBuilder.group handlers calling JournalEntryService",
+        "Filter support: companyId, periodRef, status, dateRange",
+        "Pagination support in list endpoint",
+        "Proper error handling for business rules (already posted, unbalanced)",
+        "Tests for endpoint handlers"
       ],
       "status": "pending",
       "estimated_complexity": "large"
+    },
+    {
+      "id": "6.2.4",
+      "phase": "API Layer",
+      "epic": "HttpApi Endpoints",
+      "title": "Implement reports API endpoints",
+      "description": "Create HttpApiGroup for financial report generation.",
+      "acceptance_criteria": [
+        "ReportsApi group with endpoints: trialBalance, balanceSheet, incomeStatement, cashFlow",
+        "Report parameters: companyId, asOfDate, periodRef, comparative options",
+        "HttpApiBuilder.group handlers calling report services",
+        "Returns structured report data (headers, sections, line items, totals)",
+        "Tests for report generation"
+      ],
+      "status": "pending",
+      "estimated_complexity": "large"
+    },
+    {
+      "id": "6.3.1",
+      "phase": "API Layer",
+      "epic": "API Infrastructure",
+      "title": "Add authentication middleware",
+      "description": "Implement HttpApiMiddleware for authentication using bearer tokens.",
+      "acceptance_criteria": [
+        "AuthMiddleware using HttpApiMiddleware.Tag",
+        "Bearer token validation via HttpApiSecurity.bearer",
+        "CurrentUser service provided to handlers",
+        "UnauthorizedError (401) for invalid/missing tokens",
+        "Apply middleware to protected API groups"
+      ],
+      "technical_details": {
+        "pattern": "HttpApiMiddleware.Tag with security: { bearer: HttpApiSecurity.bearer }"
+      },
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "6.3.2",
+      "phase": "API Layer",
+      "epic": "API Infrastructure",
+      "title": "Add OpenAPI documentation",
+      "description": "Enable automatic OpenAPI documentation generation.",
+      "acceptance_criteria": [
+        "HttpApiSwagger.layer at /docs for Swagger UI",
+        "HttpApiBuilder.middlewareOpenApi at /openapi.json",
+        "All endpoints documented with descriptions",
+        "Request/response schemas visible in docs",
+        "Error responses documented"
+      ],
+      "status": "pending",
+      "estimated_complexity": "small"
     },
     {
       "id": "7.1.1",
       "phase": "UI Layer",
       "epic": "Core Components",
       "title": "Implement account selector component",
-      "description": "Create reusable account selector/picker component with search and hierarchy display.",
+      "description": "Create reusable account selector/picker component with search and hierarchy display. Uses Effect Atom for async account loading.",
       "acceptance_criteria": [
-        "Searchable dropdown using React state",
+        "Searchable dropdown with type-ahead filtering",
         "Shows account hierarchy with indentation",
         "Filters by account type if prop provided",
         "Keyboard navigation (arrow keys, enter, escape)",
         "Accessible: proper ARIA attributes",
-        "Controlled component with value/onChange props"
+        "Controlled component with value/onChange props",
+        "Uses useAtomValue for accounts list from accountsAtom",
+        "Search filtering via derived/computed atom"
       ],
+      "technical_details": {
+        "reference": "HTTP_API_TANSTACK.md Part 3",
+        "pattern": "Atom.derivedComputed for filtered/search results",
+        "state": "Local React state for dropdown open/focused, Atom for accounts data"
+      },
       "status": "pending",
       "estimated_complexity": "medium"
     },
@@ -1389,15 +1505,22 @@
       "phase": "UI Layer",
       "epic": "Core Components",
       "title": "Implement currency input component",
-      "description": "Create currency input component with proper formatting and decimal handling.",
+      "description": "Create currency input component with proper formatting and decimal handling. Currency list from Effect Atom.",
       "acceptance_criteria": [
         "Currency symbol display (prefix or suffix based on locale)",
         "Proper decimal formatting (2-4 places based on currency)",
         "Thousand separators",
         "Negative number support with proper display",
         "Optional currency code selector dropdown",
-        "Controlled component returning BigDecimal-compatible string"
+        "Controlled component returning BigDecimal-compatible string",
+        "Currency list loaded via useAtomValue(currenciesAtom)",
+        "Currency metadata (symbol, decimal places) from currencyAtom(code)"
       ],
+      "technical_details": {
+        "reference": "HTTP_API_TANSTACK.md Part 3",
+        "pattern": "Atom.family for per-currency metadata lookup",
+        "state": "Local React state for input value, Atom for currency data"
+      },
       "status": "pending",
       "estimated_complexity": "medium"
     },
@@ -1406,16 +1529,24 @@
       "phase": "UI Layer",
       "epic": "Pages",
       "title": "Implement chart of accounts page",
-      "description": "Create page for viewing and managing the chart of accounts.",
+      "description": "Create page for viewing and managing the chart of accounts using Effect Atom for state management.",
       "acceptance_criteria": [
         "Route: /companies/:companyId/accounts",
         "List all accounts in hierarchy (tree view)",
         "Add new account form (modal or slide-over)",
         "Edit account (inline or modal)",
         "Deactivate account (soft delete)",
-        "Filter by account type",
-        "Uses TanStack Router loader for data fetching"
+        "Filter by account type via derived atom",
+        "Uses accountsByCompanyAtom(companyId) for data",
+        "Mutations via useAtomSet with mutationAtom pattern",
+        "Optimistic updates for better UX"
       ],
+      "technical_details": {
+        "reference": "HTTP_API_TANSTACK.md Part 3",
+        "data_atom": "accountsByCompanyAtom = Atom.family((companyId) => asyncAtom fetching from API)",
+        "mutations": "createAccountAtom, updateAccountAtom for create/edit operations",
+        "ui_state": "Local React state for modal open, selected account, etc."
+      },
       "status": "pending",
       "estimated_complexity": "large"
     },
@@ -1424,16 +1555,25 @@
       "phase": "UI Layer",
       "epic": "Pages",
       "title": "Implement journal entry form",
-      "description": "Create form for creating and editing journal entries with dynamic lines.",
+      "description": "Create form for creating and editing journal entries with dynamic lines. Uses Effect Atom for state and mutations.",
       "acceptance_criteria": [
         "Route: /companies/:companyId/journal-entries/new and /edit/:id",
         "Add/remove lines dynamically",
-        "Account selector for each line",
-        "Debit/credit currency inputs",
-        "Running balance display (debits - credits)",
-        "Validation feedback (unbalanced, missing fields)",
-        "Save as draft or submit for approval buttons"
+        "Account selector component for each line",
+        "Debit/credit currency inputs using CurrencyInput component",
+        "Running balance display computed via derived atom",
+        "Client-side validation via Schema (unbalanced, missing fields)",
+        "Save as draft or submit for approval actions",
+        "Form state managed via formAtom pattern",
+        "Mutations via createJournalEntryAtom, updateJournalEntryAtom"
       ],
+      "technical_details": {
+        "reference": "HTTP_API_TANSTACK.md Part 3",
+        "form_state": "Local atom or React state for form fields and lines",
+        "balance_atom": "Atom.derivedComputed calculating debits - credits in real-time",
+        "validation": "Schema.decodeUnknown for client-side validation before submit",
+        "mutations": "Mutation atoms with loading/error state handling"
+      },
       "status": "pending",
       "estimated_complexity": "large"
     },
@@ -1442,15 +1582,23 @@
       "phase": "UI Layer",
       "epic": "Pages",
       "title": "Implement report viewer page",
-      "description": "Create page for viewing and exporting financial reports.",
+      "description": "Create page for viewing and exporting financial reports using Effect Atom for async report generation.",
       "acceptance_criteria": [
         "Route: /companies/:companyId/reports",
         "Report type selector: Trial Balance, Balance Sheet, Income Statement, Cash Flow",
-        "Date/period parameter inputs",
+        "Date/period parameter inputs stored in local state",
+        "Report data fetched via reportAtom(type, params)",
         "Report display with proper formatting (indentation, subtotals, totals)",
-        "Drill-down to transactions (click account to see entries)",
+        "Drill-down to transactions using transactionsAtom(accountId, dateRange)",
+        "Loading and error states via Atom status",
         "Export to PDF/Excel (can be future enhancement)"
       ],
+      "technical_details": {
+        "reference": "HTTP_API_TANSTACK.md Part 3",
+        "report_atom": "Atom.family((params) => asyncAtom calling reports API)",
+        "params_pattern": "Local React state for report type, dates - atom key changes trigger refetch",
+        "drill_down": "On account click, set selectedAccount state, show transactionsAtom data"
+      },
       "status": "pending",
       "estimated_complexity": "large"
     }
