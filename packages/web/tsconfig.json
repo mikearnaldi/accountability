@@ -6,6 +6,7 @@
     "outDir": "./dist",
     "rootDir": "./src",
     "tsBuildInfoFile": "./dist/.tsbuildinfo",
+    "types": ["vite/client", "node"],
     "paths": {
       "~/*": ["./src/*"],
       "@accountability/core": ["../core/src/index.ts"],

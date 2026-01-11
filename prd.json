@@ -1346,7 +1346,7 @@
         "hmr_pattern": "if (import.meta.hot) { import.meta.hot.dispose(dispose) }",
         "reference": "HTTP_API_TANSTACK.md section 1.6"
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "small"
     },
     {

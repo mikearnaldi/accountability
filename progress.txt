@@ -364,3 +364,8 @@
 **Story**: 6.1.1 - Initialize TanStack Start with Effect HttpApi
 **Status**: complete
 ---
+
+## Iteration 1 - 2026-01-11 23:52
+**Story**: 6.1.2 - Link API handler dispose to process lifecycle
+**Status**: complete
+---
