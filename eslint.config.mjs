@@ -78,9 +78,42 @@ const importExtensionsRule = {
   }
 }
 
-const importExtensionsPlugin = {
+/**
+ * Custom ESLint rule to warn against ReadonlyArray usage.
+ * ReadonlyArray doesn't support structural equality (Equal/Hash).
+ * Use Chunk from effect instead for collections that need value-based equality.
+ */
+const noReadonlyArrayRule = {
+  meta: {
+    type: "suggestion",
+    docs: {
+      description: "Warn against ReadonlyArray usage, prefer Chunk for structural equality support"
+    },
+    messages: {
+      preferChunk: "Avoid ReadonlyArray - it doesn't support structural equality. Use Chunk from 'effect' instead, which implements Equal/Hash for value-based comparison."
+    },
+    schema: []
+  },
+  create(context) {
+    return {
+      // Catch type references like: ReadonlyArray<T>
+      TSTypeReference(node) {
+        const typeName = node.typeName
+        if (typeName.type === "Identifier" && typeName.name === "ReadonlyArray") {
+          context.report({
+            node,
+            messageId: "preferChunk"
+          })
+        }
+      }
+    }
+  }
+}
+
+const localPlugin = {
   rules: {
-    "import-extensions": importExtensionsRule
+    "import-extensions": importExtensionsRule,
+    "no-readonly-array": noReadonlyArrayRule
   }
 }
 
@@ -106,12 +139,14 @@ export default [
     },
     plugins: {
       "@typescript-eslint": tsPlugin,
-      "local": importExtensionsPlugin
+      "local": localPlugin
     },
     rules: {
       ...tsPlugin.configs.recommended.rules,
       // Import extension conventions
       "local/import-extensions": "error",
+      // Prefer Chunk over ReadonlyArray for structural equality (disabled for now)
+      "local/no-readonly-array": "off",
       // Allow unused variables starting with underscore
       "no-unused-vars": "off",
       "@typescript-eslint/no-unused-vars": [
