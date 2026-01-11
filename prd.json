@@ -1393,6 +1393,30 @@
       "id": "6.1.5",
       "phase": "API Layer",
       "epic": "TanStack Start + Effect HttpApi Setup",
+      "title": "Write comprehensive API tests",
+      "description": "Replace placeholder tests with proper API tests using it.layer pattern with NodeHttpServer.layerTest for in-memory testing.",
+      "acceptance_criteria": [
+        "Use it.layer(HttpLive) pattern for shared test context",
+        "Test layer using NodeHttpServer.layerTest (no real HTTP server)",
+        "HttpApiClient.make(AppApi) for type-safe test requests",
+        "Tests for all API groups: accounts, companies, journal entries, reports",
+        "Tests for success responses with proper Schema decoding",
+        "Tests for error responses (404, 422, etc.)",
+        "Tests for validation errors on invalid input",
+        "Effect.flip pattern for asserting expected errors"
+      ],
+      "technical_details": {
+        "layer_pattern": "HttpApiBuilder.serve().pipe(Layer.provide(ApiLive), Layer.provideMerge(NodeHttpServer.layerTest))",
+        "test_pattern": "it.layer(HttpLive)('API Tests', (it) => { it.effect('test', () => ...) })",
+        "client_pattern": "const client = yield* HttpApiClient.make(AppApi)"
+      },
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "6.1.6",
+      "phase": "API Layer",
+      "epic": "TanStack Start + Effect HttpApi Setup",
       "title": "Set up Effect Atom for frontend state",
       "description": "Configure Effect Atom for frontend state management, replacing TanStack Query patterns.",
       "acceptance_criteria": [
