@@ -1386,7 +1386,7 @@
         "pattern": "HttpApiGroup.make('accounts').add(endpoint).prefix('/api/v1')",
         "errors": "Schema.TaggedError with HttpApiSchema.annotations({ status: 404 })"
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "medium"
     },
     {

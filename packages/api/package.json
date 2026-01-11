@@ -3,6 +3,15 @@
   "version": "0.0.1",
   "private": true,
   "type": "module",
+  "exports": {
+    "./AppApi": "./src/AppApi.ts",
+    "./AppApiLive": "./src/AppApiLive.ts",
+    "./ApiErrors": "./src/ApiErrors.ts",
+    "./AccountsApi": "./src/AccountsApi.ts",
+    "./CompaniesApi": "./src/CompaniesApi.ts",
+    "./JournalEntriesApi": "./src/JournalEntriesApi.ts",
+    "./ReportsApi": "./src/ReportsApi.ts"
+  },
   "scripts": {
     "build": "echo 'No build step yet'",
     "clean": "rm -rf dist",

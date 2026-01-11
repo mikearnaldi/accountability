@@ -1,0 +1,168 @@
+/**
+ * AccountsApi - HTTP API group for account management
+ *
+ * Provides endpoints for CRUD operations on accounts in the Chart of Accounts.
+ *
+ * @module AccountsApi
+ */
+
+import { HttpApiEndpoint, HttpApiGroup, HttpApiSchema } from "@effect/platform"
+import * as Schema from "effect/Schema"
+import {
+  Account,
+  AccountCategory,
+  AccountId,
+  AccountType,
+  CashFlowCategory,
+  NormalBalance
+} from "@accountability/core/domain/Account"
+import { AccountNumber } from "@accountability/core/domain/AccountNumber"
+import { CompanyId } from "@accountability/core/domain/Company"
+import { CurrencyCode } from "@accountability/core/domain/CurrencyCode"
+import {
+  BusinessRuleError,
+  ConflictError,
+  NotFoundError,
+  ValidationError
+} from "./ApiErrors.ts"
+
+// =============================================================================
+// Request/Response Schemas
+// =============================================================================
+
+/**
+ * CreateAccountRequest - Request body for creating a new account
+ */
+export class CreateAccountRequest extends Schema.Class<CreateAccountRequest>("CreateAccountRequest")({
+  companyId: CompanyId,
+  accountNumber: AccountNumber,
+  name: Schema.NonEmptyTrimmedString,
+  description: Schema.OptionFromNullOr(Schema.String),
+  accountType: AccountType,
+  accountCategory: AccountCategory,
+  normalBalance: NormalBalance,
+  parentAccountId: Schema.OptionFromNullOr(AccountId),
+  isPostable: Schema.Boolean,
+  isCashFlowRelevant: Schema.Boolean,
+  cashFlowCategory: Schema.OptionFromNullOr(CashFlowCategory),
+  isIntercompany: Schema.Boolean,
+  intercompanyPartnerId: Schema.OptionFromNullOr(CompanyId),
+  currencyRestriction: Schema.OptionFromNullOr(CurrencyCode)
+}) {}
+
+/**
+ * UpdateAccountRequest - Request body for updating an existing account
+ *
+ * All fields are optional - only provided fields will be updated.
+ */
+export class UpdateAccountRequest extends Schema.Class<UpdateAccountRequest>("UpdateAccountRequest")({
+  name: Schema.OptionFromNullOr(Schema.NonEmptyTrimmedString),
+  description: Schema.OptionFromNullOr(Schema.String),
+  parentAccountId: Schema.OptionFromNullOr(AccountId),
+  isPostable: Schema.OptionFromNullOr(Schema.Boolean),
+  isCashFlowRelevant: Schema.OptionFromNullOr(Schema.Boolean),
+  cashFlowCategory: Schema.OptionFromNullOr(CashFlowCategory),
+  isIntercompany: Schema.OptionFromNullOr(Schema.Boolean),
+  intercompanyPartnerId: Schema.OptionFromNullOr(CompanyId),
+  currencyRestriction: Schema.OptionFromNullOr(CurrencyCode),
+  isActive: Schema.OptionFromNullOr(Schema.Boolean)
+}) {}
+
+/**
+ * AccountListResponse - Response containing a list of accounts
+ */
+export class AccountListResponse extends Schema.Class<AccountListResponse>("AccountListResponse")({
+  accounts: Schema.Array(Account),
+  total: Schema.Number.pipe(Schema.int(), Schema.greaterThanOrEqualTo(0)),
+  limit: Schema.Number.pipe(Schema.int(), Schema.greaterThan(0)),
+  offset: Schema.Number.pipe(Schema.int(), Schema.greaterThanOrEqualTo(0))
+}) {}
+
+/**
+ * Query parameters for listing accounts
+ * Uses string types for URL parameters that will be parsed
+ */
+export const AccountListParams = Schema.Struct({
+  companyId: Schema.String,
+  accountType: Schema.optional(Schema.String),
+  accountCategory: Schema.optional(Schema.String),
+  isActive: Schema.optional(Schema.BooleanFromString),
+  isPostable: Schema.optional(Schema.BooleanFromString),
+  parentAccountId: Schema.optional(Schema.String),
+  limit: Schema.optional(Schema.NumberFromString.pipe(Schema.int(), Schema.greaterThan(0))),
+  offset: Schema.optional(Schema.NumberFromString.pipe(Schema.int(), Schema.greaterThanOrEqualTo(0)))
+})
+
+/**
+ * Type for AccountListParams
+ */
+export type AccountListParams = typeof AccountListParams.Type
+
+// =============================================================================
+// API Endpoints
+// =============================================================================
+
+/**
+ * List all accounts for a company
+ */
+const listAccounts = HttpApiEndpoint.get("listAccounts", "/")
+  .setUrlParams(AccountListParams)
+  .addSuccess(AccountListResponse)
+  .addError(NotFoundError)
+  .addError(ValidationError)
+
+/**
+ * Get a single account by ID
+ */
+const getAccount = HttpApiEndpoint.get("getAccount", "/:id")
+  .setPath(Schema.Struct({ id: Schema.String }))
+  .addSuccess(Account)
+  .addError(NotFoundError)
+
+/**
+ * Create a new account
+ */
+const createAccount = HttpApiEndpoint.post("createAccount", "/")
+  .setPayload(CreateAccountRequest)
+  .addSuccess(Account, { status: 201 })
+  .addError(ValidationError)
+  .addError(ConflictError)
+  .addError(BusinessRuleError)
+
+/**
+ * Update an existing account
+ */
+const updateAccount = HttpApiEndpoint.put("updateAccount", "/:id")
+  .setPath(Schema.Struct({ id: Schema.String }))
+  .setPayload(UpdateAccountRequest)
+  .addSuccess(Account)
+  .addError(NotFoundError)
+  .addError(ValidationError)
+  .addError(ConflictError)
+  .addError(BusinessRuleError)
+
+/**
+ * Deactivate an account (soft delete)
+ */
+const deactivateAccount = HttpApiEndpoint.del("deactivateAccount", "/:id")
+  .setPath(Schema.Struct({ id: Schema.String }))
+  .addSuccess(HttpApiSchema.NoContent)
+  .addError(NotFoundError)
+  .addError(BusinessRuleError)
+
+// =============================================================================
+// API Group
+// =============================================================================
+
+/**
+ * AccountsApi - API group for account management
+ *
+ * Base path: /api/v1/accounts
+ */
+export class AccountsApi extends HttpApiGroup.make("accounts")
+  .add(listAccounts)
+  .add(getAccount)
+  .add(createAccount)
+  .add(updateAccount)
+  .add(deactivateAccount)
+  .prefix("/v1/accounts") {}
