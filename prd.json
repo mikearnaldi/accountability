@@ -1160,30 +1160,6 @@
       "estimated_complexity": "medium"
     },
     {
-      "id": "5.2.5",
-      "phase": "Persistence",
-      "epic": "Database Schema",
-      "title": "Enable no-readonly-array lint rule and fix violations",
-      "description": "Enable the local/no-readonly-array ESLint rule (currently disabled) and fix or explicitly ignore all violations. ReadonlyArray doesn't support structural equality (Equal/Hash), so Chunk should be preferred for domain models.",
-      "acceptance_criteria": [
-        "Change local/no-readonly-array from 'off' to 'warn' or 'error' in eslint.config.mjs",
-        "Replace ReadonlyArray<T> with Chunk<T> where structural equality is needed",
-        "For cases where ReadonlyArray is intentional (e.g., external API boundaries), add eslint-disable-next-line with reason",
-        "Update imports to include Chunk from effect where needed",
-        "pnpm lint passes with zero errors",
-        "pnpm typecheck passes",
-        "pnpm test passes"
-      ],
-      "technical_details": {
-        "rule_location": "eslint.config.mjs - local/no-readonly-array",
-        "fix_pattern": "Replace `ReadonlyArray<Account>` with `Chunk<Account>`",
-        "ignore_pattern": "// eslint-disable-next-line local/no-readonly-array -- external API requires array type",
-        "chunk_import": "import { Chunk } from 'effect'"
-      },
-      "status": "pending",
-      "estimated_complexity": "medium"
-    },
-    {
       "id": "5.3.1",
       "phase": "Persistence",
       "epic": "Repository Implementations",
