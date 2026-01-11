@@ -354,6 +354,33 @@ jq '.version' repos/effect-atom/packages/atom/package.json
 
 ## TypeScript Conventions
 
+### TypeScript Project References
+
+This monorepo uses TypeScript project references for incremental builds. Each package follows this pattern:
+
+- **tsconfig.json** - Root config with `references` to src and test configs
+- **tsconfig.src.json** - Source compilation config (must have `composite: true`)
+- **tsconfig.test.json** - Test compilation config
+
+**IMPORTANT: All tsconfig.src.json files must have `composite: true`** for project references to work correctly. This enables incremental builds and proper dependency tracking between packages.
+
+```json
+// tsconfig.src.json - MUST have composite: true
+{
+  "extends": "../../tsconfig.base.json",
+  "include": ["src"],
+  "compilerOptions": {
+    "composite": true,
+    "outDir": "dist",
+    "rootDir": "src",
+    "tsBuildInfoFile": ".tsbuildinfo/src.tsbuildinfo"
+  },
+  "references": [
+    { "path": "../core/tsconfig.src.json" }
+  ]
+}
+```
+
 ### Module Resolution and Imports
 
 This project uses `moduleResolution: "bundler"` with direct `.ts` imports. TypeScript rewrites `.ts` to `.js` in emitted files:

@@ -6,6 +6,7 @@ import {
   createRootRoute
 } from "@tanstack/react-router"
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools"
+import { RegistryProvider } from "@effect-atom/atom-react"
 import * as React from "react"
 
 export const Route = createRootRoute({
@@ -28,10 +29,12 @@ export const Route = createRootRoute({
 
 function RootComponent() {
   return (
-    <RootDocument>
-      <Outlet />
-      <TanStackRouterDevtools position="bottom-right" />
-    </RootDocument>
+    <RegistryProvider>
+      <RootDocument>
+        <Outlet />
+        <TanStackRouterDevtools position="bottom-right" />
+      </RootDocument>
+    </RegistryProvider>
   )
 }
 

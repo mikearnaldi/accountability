@@ -1400,14 +1400,16 @@
         "AtomProvider configured in app root",
         "Atom runtime with HttpApiClient layer",
         "ApiClient atom for type-safe API calls",
-        "Basic atoms demonstrating patterns: simple state, computed, async"
+        "Basic atoms demonstrating patterns: simple state, computed, async",
+        "All tsconfig.src.json files have composite: true for project references"
       ],
       "technical_details": {
         "reference": "HTTP_API_TANSTACK.md Part 3",
         "runtime": "Atom.runtime(Layer.mergeAll(FetchHttpClient.layer, ...))",
-        "client": "HttpApiClient.make(AppApi) for type-safe calls"
+        "client": "HttpApiClient.make(AppApi) for type-safe calls",
+        "tsconfig": "All tsconfig.src.json must have composite: true for incremental builds and proper project references"
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "medium"
     },
     {

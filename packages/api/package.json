@@ -20,7 +20,7 @@
   "dependencies": {
     "@accountability/core": "workspace:*",
     "@accountability/persistence": "workspace:*",
-    "@effect/platform": "^0.83.0",
+    "@effect/platform": "^0.94.0",
     "effect": "^3.19.0"
   }
 }
