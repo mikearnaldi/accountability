@@ -1156,7 +1156,7 @@
         "good_pattern": "return Option.some<AccountType>('Asset')",
         "identity_pattern": "return identity<MyType>(computedValue) // verifies type at compile time"
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "medium"
     },
     {

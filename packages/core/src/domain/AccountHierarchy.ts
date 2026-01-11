@@ -243,16 +243,15 @@ export const getAncestors = (
 ): ReadonlyArray<Account> => {
   const account = findAccountById(accounts, accountId)
 
-  const emptyAccounts: ReadonlyArray<Account> = []
   return Option.match(account, {
-    onNone: () => emptyAccounts,
+    onNone: (): ReadonlyArray<Account> => [],
     onSome: (acc) =>
       Option.match(acc.parentAccountId, {
-        onNone: () => emptyAccounts,
+        onNone: (): ReadonlyArray<Account> => [],
         onSome: (parentId) => {
           const parent = findAccountById(accounts, parentId)
           return Option.match(parent, {
-            onNone: () => emptyAccounts,
+            onNone: (): ReadonlyArray<Account> => [],
             onSome: (p) => [p, ...getAncestors(accounts, p.id)]
           })
         }
@@ -480,9 +479,9 @@ export const getSiblings = (
   accountId: AccountId
 ): ReadonlyArray<Account> => {
   const account = findAccountById(accounts, accountId)
-  const emptyAccounts: ReadonlyArray<Account> = []
+
   return Option.match(account, {
-    onNone: () => emptyAccounts,
+    onNone: (): ReadonlyArray<Account> => [],
     onSome: (acc) =>
       Option.match(acc.parentAccountId, {
         onNone: () =>
@@ -525,9 +524,9 @@ export const getPath = (
   accountId: AccountId
 ): ReadonlyArray<Account> => {
   const account = findAccountById(accounts, accountId)
-  const emptyAccounts: ReadonlyArray<Account> = []
+
   return Option.match(account, {
-    onNone: () => emptyAccounts,
+    onNone: (): ReadonlyArray<Account> => [],
     onSome: (acc) => {
       const ancestors = getAncestors(accounts, accountId)
       return [...Array.reverse(ancestors), acc]

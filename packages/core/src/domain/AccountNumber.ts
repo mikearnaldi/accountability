@@ -113,30 +113,20 @@ export const getAccountType = (accountNumber: AccountNumber): Option.Option<Acco
   const leadingDigit = getLeadingDigit(accountNumber)
 
   switch (leadingDigit) {
-    case 1: {
-      const type: AccountType = "Asset"
-      return Option.some(type)
-    }
-    case 2: {
-      const type: AccountType = "Liability"
-      return Option.some(type)
-    }
-    case 3: {
-      const type: AccountType = "Equity"
-      return Option.some(type)
-    }
-    case 4: {
-      const type: AccountType = "Revenue"
-      return Option.some(type)
-    }
+    case 1:
+      return Option.some<AccountType>("Asset")
+    case 2:
+      return Option.some<AccountType>("Liability")
+    case 3:
+      return Option.some<AccountType>("Equity")
+    case 4:
+      return Option.some<AccountType>("Revenue")
     case 5:
     case 6:
-    case 7: {
-      const type: AccountType = "Expense"
-      return Option.some(type)
-    }
+    case 7:
+      return Option.some<AccountType>("Expense")
     default:
-      return Option.none()
+      return Option.none<AccountType>()
   }
 }
 
