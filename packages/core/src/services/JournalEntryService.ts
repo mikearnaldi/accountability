@@ -708,11 +708,10 @@ const make = Effect.gen(function* () {
         )
 
         // Return entry with assigned entry number
-        // Using structural copying to create a new entry with the entry number
-        return {
+        return JournalEntry.make({
           ...entry,
           entryNumber: Option.some(EntryNumber.make(entryNumber))
-        } as JournalEntry
+        })
       }),
 
     post: (input: PostJournalEntryInput) =>
@@ -739,13 +738,13 @@ const make = Effect.gen(function* () {
         const postingDate = localDateToday()
 
         // Return entry with updated status and posting information
-        return {
+        return JournalEntry.make({
           ...entry,
-          status: "Posted" as const,
+          status: "Posted",
           postedBy: Option.some(postedBy),
           postedAt: Option.some(postedAt),
           postingDate: Option.some(postingDate)
-        } as JournalEntry
+        })
       }),
 
     reverse: (input: ReverseJournalEntryInput) =>

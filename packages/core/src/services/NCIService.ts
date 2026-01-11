@@ -698,23 +698,25 @@ export const createNCILineItems = (
 ): Chunk.Chunk<NCILineItem> => {
   const items: NCILineItem[] = []
 
+  const subName = Schema.NonEmptyTrimmedString.make(subsidiaryName)
+
   // Balance sheet line item - NCI Equity
   items.push(NCILineItem.make({
     lineItemType: "NCIEquity",
-    description: `Non-controlling interest - ${subsidiaryName}` as any,
+    description: Schema.NonEmptyTrimmedString.make(`Non-controlling interest - ${subsidiaryName}`),
     amount: totalNCIEquity,
     subsidiaryId: Option.some(subsidiaryId),
-    subsidiaryName: Option.some(subsidiaryName as any)
+    subsidiaryName: Option.some(subName)
   }))
 
   // Income statement line item - NCI Net Income
   if (!nciNetIncome.isZero) {
     items.push(NCILineItem.make({
       lineItemType: "NCINetIncome",
-      description: `Net income attributable to non-controlling interest - ${subsidiaryName}` as any,
+      description: Schema.NonEmptyTrimmedString.make(`Net income attributable to non-controlling interest - ${subsidiaryName}`),
       amount: nciNetIncome,
       subsidiaryId: Option.some(subsidiaryId),
-      subsidiaryName: Option.some(subsidiaryName as any)
+      subsidiaryName: Option.some(subName)
     }))
   }
 
@@ -722,10 +724,10 @@ export const createNCILineItems = (
   if (!nciOCI.isZero) {
     items.push(NCILineItem.make({
       lineItemType: "NCIOCI",
-      description: `OCI attributable to non-controlling interest - ${subsidiaryName}` as any,
+      description: Schema.NonEmptyTrimmedString.make(`OCI attributable to non-controlling interest - ${subsidiaryName}`),
       amount: nciOCI,
       subsidiaryId: Option.some(subsidiaryId),
-      subsidiaryName: Option.some(subsidiaryName as any)
+      subsidiaryName: Option.some(subName)
     }))
   }
 
@@ -733,10 +735,10 @@ export const createNCILineItems = (
   if (!nciDividends.isZero) {
     items.push(NCILineItem.make({
       lineItemType: "NCIDividends",
-      description: `Dividends to non-controlling interest - ${subsidiaryName}` as any,
+      description: Schema.NonEmptyTrimmedString.make(`Dividends to non-controlling interest - ${subsidiaryName}`),
       amount: nciDividends.negate(),
       subsidiaryId: Option.some(subsidiaryId),
-      subsidiaryName: Option.some(subsidiaryName as any)
+      subsidiaryName: Option.some(subName)
     }))
   }
 
@@ -855,7 +857,7 @@ const calculateNCIForSubsidiary = (
       return yield* Effect.fail(
         new InvalidOwnershipPercentageError({
           ownershipPercentage: subsidiary.parentOwnershipPercentage,
-          reason: "Ownership percentage must be between 0 and 100" as any
+          reason: Schema.NonEmptyTrimmedString.make("Ownership percentage must be between 0 and 100")
         })
       )
     }
@@ -866,15 +868,16 @@ const calculateNCIForSubsidiary = (
     // If 100% owned, return early with zero NCI
     if (nciPercentageResult.isWhollyOwned) {
       const zeroAmount = MonetaryAmount.zero(subsidiary.currency)
+      const zeroPercentage = Percentage.make(0)
 
       return NCIResult.make({
         subsidiaryId: subsidiary.subsidiaryId,
-        subsidiaryName: subsidiary.subsidiaryName as any,
+        subsidiaryName: Schema.NonEmptyTrimmedString.make(subsidiary.subsidiaryName),
         nciPercentage: nciPercentageResult,
         equityAtAcquisition: NCIEquityAtAcquisition.make({
           subsidiaryId: subsidiary.subsidiaryId,
           fairValueNetAssets: subsidiary.fairValueNetAssetsAtAcquisition,
-          nciPercentage: 0 as Percentage,
+          nciPercentage: zeroPercentage,
           nciShareOfFairValue: zeroAmount,
           nciPremiumDiscount: Option.none(),
           totalNCIAtAcquisition: zeroAmount
@@ -890,7 +893,7 @@ const calculateNCIForSubsidiary = (
         currentPeriodNetIncome: NCINetIncome.make({
           subsidiaryId: subsidiary.subsidiaryId,
           subsidiaryNetIncome: subsidiary.subsidiaryNetIncome,
-          nciPercentage: 0 as Percentage,
+          nciPercentage: zeroPercentage,
           nciShareOfNetIncome: zeroAmount,
           periodYear: subsidiary.periodYear,
           periodNumber: subsidiary.periodNumber
@@ -937,7 +940,7 @@ const calculateNCIForSubsidiary = (
     if (!subsidiary.cumulativeNCINetIncome.isZero) {
       changes.push(NCIEquityChange.make({
         changeType: "NetIncome",
-        description: "Cumulative NCI share of net income" as any,
+        description: Schema.NonEmptyTrimmedString.make("Cumulative NCI share of net income"),
         amount: subsidiary.cumulativeNCINetIncome,
         periodYear: subsidiary.periodYear,
         periodNumber: subsidiary.periodNumber
@@ -948,7 +951,7 @@ const calculateNCIForSubsidiary = (
     if (!currentPeriodNetIncome.nciShareOfNetIncome.isZero) {
       changes.push(NCIEquityChange.make({
         changeType: "NetIncome",
-        description: "Current period NCI share of net income" as any,
+        description: Schema.NonEmptyTrimmedString.make("Current period NCI share of net income"),
         amount: currentPeriodNetIncome.nciShareOfNetIncome,
         periodYear: subsidiary.periodYear,
         periodNumber: subsidiary.periodNumber
@@ -959,7 +962,7 @@ const calculateNCIForSubsidiary = (
     if (!subsidiary.cumulativeDividendsToNCI.isZero) {
       changes.push(NCIEquityChange.make({
         changeType: "Dividends",
-        description: "Cumulative dividends to NCI" as any,
+        description: Schema.NonEmptyTrimmedString.make("Cumulative dividends to NCI"),
         amount: subsidiary.cumulativeDividendsToNCI.negate(),
         periodYear: subsidiary.periodYear,
         periodNumber: subsidiary.periodNumber
@@ -970,7 +973,7 @@ const calculateNCIForSubsidiary = (
     if (!currentPeriodNciDividends.isZero) {
       changes.push(NCIEquityChange.make({
         changeType: "Dividends",
-        description: "Current period dividends to NCI" as any,
+        description: Schema.NonEmptyTrimmedString.make("Current period dividends to NCI"),
         amount: currentPeriodNciDividends.negate(),
         periodYear: subsidiary.periodYear,
         periodNumber: subsidiary.periodNumber
@@ -981,7 +984,7 @@ const calculateNCIForSubsidiary = (
     if (!subsidiary.cumulativeNCIOCI.isZero) {
       changes.push(NCIEquityChange.make({
         changeType: "OtherComprehensiveIncome",
-        description: "Cumulative NCI share of OCI" as any,
+        description: Schema.NonEmptyTrimmedString.make("Cumulative NCI share of OCI"),
         amount: subsidiary.cumulativeNCIOCI,
         periodYear: subsidiary.periodYear,
         periodNumber: subsidiary.periodNumber
@@ -992,7 +995,7 @@ const calculateNCIForSubsidiary = (
     if (!currentPeriodNciOCI.isZero) {
       changes.push(NCIEquityChange.make({
         changeType: "OtherComprehensiveIncome",
-        description: "Current period NCI share of OCI" as any,
+        description: Schema.NonEmptyTrimmedString.make("Current period NCI share of OCI"),
         amount: currentPeriodNciOCI,
         periodYear: subsidiary.periodYear,
         periodNumber: subsidiary.periodNumber
@@ -1068,7 +1071,7 @@ const calculateNCIForSubsidiary = (
 
     return NCIResult.make({
       subsidiaryId: subsidiary.subsidiaryId,
-      subsidiaryName: subsidiary.subsidiaryName as any,
+      subsidiaryName: Schema.NonEmptyTrimmedString.make(subsidiary.subsidiaryName),
       nciPercentage: nciPercentageResult,
       equityAtAcquisition,
       subsequentChanges,
@@ -1130,7 +1133,7 @@ const make = Effect.gen(function* () {
         if (!BigDecimal.isZero(totalNCIEquity)) {
           consolidatedLineItems.push(NCILineItem.make({
             lineItemType: "NCIEquity",
-            description: "Total non-controlling interests" as any,
+            description: Schema.NonEmptyTrimmedString.make("Total non-controlling interests"),
             amount: MonetaryAmount.fromBigDecimal(totalNCIEquity, currency),
             subsidiaryId: Option.none(),
             subsidiaryName: Option.none()
@@ -1141,7 +1144,7 @@ const make = Effect.gen(function* () {
         if (!BigDecimal.isZero(totalNCINetIncome)) {
           consolidatedLineItems.push(NCILineItem.make({
             lineItemType: "NCINetIncome",
-            description: "Net income attributable to non-controlling interests" as any,
+            description: Schema.NonEmptyTrimmedString.make("Net income attributable to non-controlling interests"),
             amount: MonetaryAmount.fromBigDecimal(totalNCINetIncome, currency),
             subsidiaryId: Option.none(),
             subsidiaryName: Option.none()
@@ -1152,7 +1155,7 @@ const make = Effect.gen(function* () {
         if (!BigDecimal.isZero(totalNCIOCI)) {
           consolidatedLineItems.push(NCILineItem.make({
             lineItemType: "NCIOCI",
-            description: "OCI attributable to non-controlling interests" as any,
+            description: Schema.NonEmptyTrimmedString.make("OCI attributable to non-controlling interests"),
             amount: MonetaryAmount.fromBigDecimal(totalNCIOCI, currency),
             subsidiaryId: Option.none(),
             subsidiaryName: Option.none()
@@ -1175,7 +1178,7 @@ const make = Effect.gen(function* () {
           return yield* Effect.fail(
             new InvalidOwnershipPercentageError({
               ownershipPercentage: parentOwnershipPct,
-              reason: "Ownership percentage must be between 0 and 100" as any
+              reason: Schema.NonEmptyTrimmedString.make("Ownership percentage must be between 0 and 100")
             })
           )
         }

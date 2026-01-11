@@ -30,7 +30,7 @@ import { JournalEntry } from "../domain/JournalEntry.ts"
 import type { JournalEntryLineId } from "../domain/JournalEntryLine.ts";
 import { JournalEntryLine } from "../domain/JournalEntryLine.ts"
 import type { AccountId, AccountType } from "../domain/Account.ts"
-import type { CompanyId } from "../domain/Company.ts"
+import { CompanyId } from "../domain/Company.ts"
 import type { FiscalPeriodRef } from "../domain/FiscalPeriodRef.ts"
 
 // =============================================================================
@@ -1539,7 +1539,7 @@ export const CurrencyServiceLive: Layer.Layer<
     revalue: () =>
       Effect.fail(
         new NoForeignCurrencyBalancesError({
-          companyId: "00000000-0000-0000-0000-000000000000" as CompanyId,
+          companyId: CompanyId.make("00000000-0000-0000-0000-000000000000"),
           closingDate: { year: 0, month: 0, day: 0 }
         })
       )

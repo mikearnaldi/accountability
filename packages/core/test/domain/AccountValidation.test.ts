@@ -86,7 +86,7 @@ describe("AccountNumberRangeError", () => {
         accountId: AccountId.make(accountUUID),
         accountNumber: AccountNumber.make("2000"),
         declaredType: "Asset",
-        expectedType: Option.some("Liability" as AccountType)
+        expectedType: Option.some("Liability")
       })
 
       expect(error.accountId).toBe(accountUUID)
@@ -112,7 +112,7 @@ describe("AccountNumberRangeError", () => {
         accountId: AccountId.make(accountUUID),
         accountNumber: AccountNumber.make("2000"),
         declaredType: "Asset",
-        expectedType: Option.some("Liability" as AccountType)
+        expectedType: Option.some("Liability")
       })
 
       expect(error.message).toContain("2000")
@@ -139,7 +139,7 @@ describe("AccountNumberRangeError", () => {
         accountId: AccountId.make(accountUUID),
         accountNumber: AccountNumber.make("2000"),
         declaredType: "Asset",
-        expectedType: Option.some("Liability" as AccountType)
+        expectedType: Option.some("Liability")
       })
       expect(isAccountNumberRangeError(error)).toBe(true)
     })
@@ -162,7 +162,7 @@ describe("AccountNumberRangeError", () => {
           accountId: AccountId.make(accountUUID),
           accountNumber: AccountNumber.make("2000"),
           declaredType: "Asset",
-          expectedType: Option.some("Liability" as AccountType)
+          expectedType: Option.some("Liability")
         })
         const encoded = yield* Schema.encode(AccountNumberRangeError)(original)
         const decoded = yield* Schema.decodeUnknown(AccountNumberRangeError)(encoded)
@@ -873,9 +873,8 @@ describe("validateIntercompanyConfiguration", () => {
       })
       const result = validateIntercompanyConfiguration(account)
       expect(Either.isLeft(result)).toBe(true)
-      if (Either.isLeft(result)) {
-        expect(result.left._tag).toBe("UnexpectedIntercompanyPartnerError")
-        expect((result.left as UnexpectedIntercompanyPartnerError).partnerId).toBe(partnerCompanyUUID)
+      if (Either.isLeft(result) && isUnexpectedIntercompanyPartnerError(result.left)) {
+        expect(result.left.partnerId).toBe(partnerCompanyUUID)
       }
     })
   })

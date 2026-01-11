@@ -79,7 +79,7 @@ const createTransaction = (params: {
     amount: params.amount,
     fromJournalEntryId: Option.none(),
     toJournalEntryId: Option.none(),
-    matchingStatus: params.matchingStatus ?? ("Unmatched" as MatchingStatus),
+    matchingStatus: params.matchingStatus ?? "Unmatched",
     varianceAmount: Option.none(),
     varianceExplanation: Option.none(),
     description: Option.none(),

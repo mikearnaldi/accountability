@@ -1,5 +1,5 @@
 import { describe, it, expect } from "@effect/vitest"
-import { Effect, Exit, Equal } from "effect"
+import { Cause, Chunk, Effect, Exit, Equal } from "effect"
 import * as BigDecimal from "effect/BigDecimal"
 import * as Schema from "effect/Schema"
 import { USD, EUR } from "../../src/domain/CurrencyCode.ts"
@@ -262,8 +262,9 @@ describe("MonetaryAmount", () => {
 
         expect(Exit.isFailure(result)).toBe(true)
         if (Exit.isFailure(result)) {
-          const error = result.cause
-          expect(isCurrencyMismatchError((error as any).error)).toBe(true)
+          const failures = Cause.failures(result.cause)
+          const hasError = Chunk.some(failures, isCurrencyMismatchError)
+          expect(hasError).toBe(true)
         }
       })
     )
@@ -381,8 +382,9 @@ describe("MonetaryAmount", () => {
 
         expect(Exit.isFailure(result)).toBe(true)
         if (Exit.isFailure(result)) {
-          const error = result.cause
-          expect(isDivisionByZeroError((error as any).error)).toBe(true)
+          const failures = Cause.failures(result.cause)
+          const hasError = Chunk.some(failures, isDivisionByZeroError)
+          expect(hasError).toBe(true)
         }
       })
     )

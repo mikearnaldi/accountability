@@ -760,7 +760,11 @@ describe("Jurisdiction", () => {
         expect(encoded).toHaveProperty("name", "United States")
         expect(encoded).toHaveProperty("defaultCurrency", "USD")
         expect(encoded).toHaveProperty("taxSettings")
-        expect((encoded as unknown as { taxSettings: { taxRules: unknown[] } }).taxSettings.taxRules.length).toBe(1)
+        // Access nested property using type-safe property check
+        if ("taxSettings" in encoded && encoded.taxSettings !== null && typeof encoded.taxSettings === "object" && "taxRules" in encoded.taxSettings) {
+          const taxRules = encoded.taxSettings.taxRules
+          expect(Array.isArray(taxRules) && taxRules.length).toBe(1)
+        }
       })
     )
   })

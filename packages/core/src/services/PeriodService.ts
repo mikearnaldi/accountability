@@ -2104,7 +2104,7 @@ const make = Effect.gen(function* () {
         const auditEntry = PeriodReopenAuditEntry.make({
           id: auditEntryId,
           periodId,
-          reason: reason.trim() as typeof Schema.NonEmptyTrimmedString.Type,
+          reason: Schema.NonEmptyTrimmedString.make(reason.trim()),
           reopenedBy,
           reopenedAt: now,
           previousStatus: period.status
@@ -2461,7 +2461,7 @@ const make = Effect.gen(function* () {
           fiscalYear: reopenedFiscalYear,
           reversingJournalEntries,
           reopenedBy,
-          reason: reason.trim() as typeof Schema.NonEmptyTrimmedString.Type,
+          reason: Schema.NonEmptyTrimmedString.make(reason.trim()),
           reopenedAt: now
         })
       })

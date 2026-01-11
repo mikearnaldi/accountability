@@ -876,10 +876,12 @@ describe("TrialBalanceService", () => {
 
         expect(result._tag).toBe("Left")
         if (result._tag === "Left") {
-          expect(isTrialBalanceNotBalancedError(result.left)).toBe(true)
-          const error = result.left as TrialBalanceNotBalancedError
-          expect(BigDecimal.equals(error.totalDebits.amount, BigDecimal.unsafeFromString("1000"))).toBe(true)
-          expect(BigDecimal.equals(error.totalCredits.amount, BigDecimal.unsafeFromString("900"))).toBe(true)
+          const error = result.left
+          expect(isTrialBalanceNotBalancedError(error)).toBe(true)
+          if (isTrialBalanceNotBalancedError(error)) {
+            expect(BigDecimal.equals(error.totalDebits.amount, BigDecimal.unsafeFromString("1000"))).toBe(true)
+            expect(BigDecimal.equals(error.totalCredits.amount, BigDecimal.unsafeFromString("900"))).toBe(true)
+          }
         }
       })
     )

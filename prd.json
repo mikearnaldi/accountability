@@ -1132,7 +1132,7 @@
         "escape_hatch": "// eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- reason here",
         "files_affected": "AccountHierarchy.ts, AccountNumber.ts, ExchangeRate.ts, CurrencyService.ts, CurrencyTranslationService.ts, JournalEntryService.ts, NCIService.ts, PeriodService.ts, and various test files"
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "large"
     },
     {

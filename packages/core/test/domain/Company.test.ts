@@ -351,7 +351,7 @@ describe("Company", () => {
       fiscalYearEnd: FISCAL_YEAR_END_MARCH,
       parentCompanyId: Option.some(CompanyId.make(parentCompanyUUID)),
       ownershipPercentage: Option.some(Percentage.make(80)),
-      consolidationMethod: Option.some("FullConsolidation" as ConsolidationMethod),
+      consolidationMethod: Option.some<ConsolidationMethod>("FullConsolidation"),
       isActive: true,
       createdAt: Timestamp.make({ epochMillis: 1718409600000 })
     })
@@ -753,7 +753,7 @@ describe("Company", () => {
         fiscalYearEnd: CALENDAR_YEAR_END,
         parentCompanyId: Option.some(CompanyId.make(parentCompanyUUID)),
         ownershipPercentage: Option.some(Percentage.make(100)),
-        consolidationMethod: Option.some("FullConsolidation" as ConsolidationMethod),
+        consolidationMethod: Option.some<ConsolidationMethod>("FullConsolidation"),
         isActive: true,
         createdAt: Timestamp.make({ epochMillis: 1718409600000 })
       })

@@ -9,7 +9,6 @@ import {
   calculateDebitCreditTotals,
   calculatePeriodDebitCreditTotals
 } from "../../src/domain/AccountBalance.ts"
-import type { NormalBalance } from "../../src/domain/Account.ts";
 import { AccountId } from "../../src/domain/Account.ts"
 import { JournalEntry, JournalEntryId, UserId, EntryNumber } from "../../src/domain/JournalEntry.ts"
 import { JournalEntryLine, JournalEntryLineId } from "../../src/domain/JournalEntryLine.ts"
@@ -1098,7 +1097,7 @@ describe("AccountBalance", () => {
 
     it.prop(
       "empty entries always returns zero balance",
-      [uuidArb, localDateArb, FastCheck.constantFrom("Debit" as NormalBalance, "Credit" as NormalBalance)],
+      [uuidArb, localDateArb, FastCheck.constantFrom("Debit" as const, "Credit" as const)],
       ([accountUuid, date, normalBalance]) => {
         const result = calculateBalance(
           AccountId.make(accountUuid),

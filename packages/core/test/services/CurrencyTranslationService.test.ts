@@ -1,6 +1,7 @@
 import { describe, it, expect } from "@effect/vitest"
 import { Chunk, Effect, HashMap, Option } from "effect"
 import * as BigDecimal from "effect/BigDecimal"
+import * as Schema from "effect/Schema"
 import {
   CurrencyTranslationService,
   CurrencyTranslationServiceLive,
@@ -62,8 +63,8 @@ const createLineItem = (
   historicalRate?: BigDecimal.BigDecimal
 ): MemberTrialBalanceLineItem => {
   return MemberTrialBalanceLineItem.make({
-    accountNumber: accountNumber as any,
-    accountName: accountName as any,
+    accountNumber: Schema.NonEmptyTrimmedString.make(accountNumber),
+    accountName: Schema.NonEmptyTrimmedString.make(accountName),
     accountType,
     accountCategory,
     translationCategory,
@@ -145,8 +146,8 @@ describe("Error Types", () => {
     it("creates error with correct message", () => {
       const error = new HistoricalRateRequiredError({
         companyId,
-        accountNumber: "3100" as any,
-        accountName: "Common Stock" as any,
+        accountNumber: Schema.NonEmptyTrimmedString.make("3100"),
+        accountName: Schema.NonEmptyTrimmedString.make("Common Stock"),
         currency: eurCurrency
       })
 
@@ -159,8 +160,8 @@ describe("Error Types", () => {
     it("type guard returns true for valid error", () => {
       const error = new HistoricalRateRequiredError({
         companyId,
-        accountNumber: "3100" as any,
-        accountName: "Common Stock" as any,
+        accountNumber: Schema.NonEmptyTrimmedString.make("3100"),
+        accountName: Schema.NonEmptyTrimmedString.make("Common Stock"),
         currency: eurCurrency
       })
       expect(isHistoricalRateRequiredError(error)).toBe(true)
@@ -334,8 +335,8 @@ describe("MemberTrialBalanceLineItem", () => {
 describe("TranslatedLineItem", () => {
   it("creates translated line item", () => {
     const item = TranslatedLineItem.make({
-      accountNumber: "1000" as any,
-      accountName: "Cash" as any,
+      accountNumber: Schema.NonEmptyTrimmedString.make("1000"),
+      accountName: Schema.NonEmptyTrimmedString.make("Cash"),
       accountType: "Asset",
       accountCategory: "CurrentAsset",
       translationCategory: "MonetaryAsset",
@@ -352,8 +353,8 @@ describe("TranslatedLineItem", () => {
 
   it("correctly identifies equity accounts", () => {
     const item = TranslatedLineItem.make({
-      accountNumber: "3100" as any,
-      accountName: "Common Stock" as any,
+      accountNumber: Schema.NonEmptyTrimmedString.make("3100"),
+      accountName: Schema.NonEmptyTrimmedString.make("Common Stock"),
       accountType: "Equity",
       accountCategory: "ContributedCapital",
       translationCategory: "CapitalStock",
@@ -368,8 +369,8 @@ describe("TranslatedLineItem", () => {
 
   it("type guard returns true for valid item", () => {
     const item = TranslatedLineItem.make({
-      accountNumber: "1000" as any,
-      accountName: "Cash" as any,
+      accountNumber: Schema.NonEmptyTrimmedString.make("1000"),
+      accountName: Schema.NonEmptyTrimmedString.make("Cash"),
       accountType: "Asset",
       accountCategory: "CurrentAsset",
       translationCategory: "MonetaryAsset",
@@ -611,7 +612,7 @@ describe("TranslatedTrialBalance", () => {
   it("creates translated trial balance", () => {
     const tb = TranslatedTrialBalance.make({
       companyId,
-      companyName: "Test Company" as any,
+      companyName: Schema.NonEmptyTrimmedString.make("Test Company"),
       functionalCurrency: eurCurrency,
       reportingCurrency: usdCurrency,
       asOfDate: testDate,
@@ -645,7 +646,7 @@ describe("TranslatedTrialBalance", () => {
   it("calculates translated net income", () => {
     const tb = TranslatedTrialBalance.make({
       companyId,
-      companyName: "Test Company" as any,
+      companyName: Schema.NonEmptyTrimmedString.make("Test Company"),
       functionalCurrency: eurCurrency,
       reportingCurrency: usdCurrency,
       asOfDate: testDate,
@@ -679,7 +680,7 @@ describe("TranslatedTrialBalance", () => {
     // Balanced: Assets = Liabilities + Equity
     const balanced = TranslatedTrialBalance.make({
       companyId,
-      companyName: "Test Company" as any,
+      companyName: Schema.NonEmptyTrimmedString.make("Test Company"),
       functionalCurrency: eurCurrency,
       reportingCurrency: usdCurrency,
       asOfDate: testDate,
@@ -710,7 +711,7 @@ describe("TranslatedTrialBalance", () => {
     // Unbalanced
     const unbalanced = TranslatedTrialBalance.make({
       companyId,
-      companyName: "Test Company" as any,
+      companyName: Schema.NonEmptyTrimmedString.make("Test Company"),
       functionalCurrency: eurCurrency,
       reportingCurrency: usdCurrency,
       asOfDate: testDate,
@@ -742,7 +743,7 @@ describe("TranslatedTrialBalance", () => {
   it("type guard returns true for valid balance", () => {
     const tb = TranslatedTrialBalance.make({
       companyId,
-      companyName: "Test Company" as any,
+      companyName: Schema.NonEmptyTrimmedString.make("Test Company"),
       functionalCurrency: eurCurrency,
       reportingCurrency: usdCurrency,
       asOfDate: testDate,

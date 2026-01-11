@@ -236,7 +236,7 @@ describe("ConsolidationMember", () => {
     return ConsolidationMember.make({
       companyId: CompanyId.make(companyUUID),
       ownershipPercentage: Percentage.make(80),
-      consolidationMethod: "FullConsolidation" as ConsolidationMethod,
+      consolidationMethod: "FullConsolidation",
       acquisitionDate,
       goodwillAmount: Option.some(MonetaryAmount.unsafeFromString("1000000", "USD")),
       nonControllingInterestPercentage: Percentage.make(20),
@@ -248,7 +248,7 @@ describe("ConsolidationMember", () => {
     return ConsolidationMember.make({
       companyId: CompanyId.make(companyUUID),
       ownershipPercentage: Percentage.make(30),
-      consolidationMethod: "EquityMethod" as ConsolidationMethod,
+      consolidationMethod: "EquityMethod",
       acquisitionDate,
       goodwillAmount: Option.none(),
       nonControllingInterestPercentage: Percentage.make(70),
@@ -260,7 +260,7 @@ describe("ConsolidationMember", () => {
     return ConsolidationMember.make({
       companyId: CompanyId.make(companyUUID),
       ownershipPercentage: Percentage.make(10),
-      consolidationMethod: "CostMethod" as ConsolidationMethod,
+      consolidationMethod: "CostMethod",
       acquisitionDate,
       goodwillAmount: Option.none(),
       nonControllingInterestPercentage: Percentage.make(90),
@@ -272,7 +272,7 @@ describe("ConsolidationMember", () => {
     return ConsolidationMember.make({
       companyId: CompanyId.make(companyUUID),
       ownershipPercentage: Percentage.make(15),
-      consolidationMethod: "VariableInterestEntity" as ConsolidationMethod,
+      consolidationMethod: "VariableInterestEntity",
       acquisitionDate,
       goodwillAmount: Option.none(),
       nonControllingInterestPercentage: Percentage.make(85),
@@ -328,7 +328,7 @@ describe("ConsolidationMember", () => {
         const member = ConsolidationMember.make({
           companyId: CompanyId.make(companyUUID),
           ownershipPercentage: Percentage.make(100),
-          consolidationMethod: "FullConsolidation" as ConsolidationMethod,
+          consolidationMethod: "FullConsolidation",
           acquisitionDate,
           goodwillAmount: Option.none(),
           nonControllingInterestPercentage: Percentage.make(0),
@@ -344,7 +344,7 @@ describe("ConsolidationMember", () => {
         const member = ConsolidationMember.make({
           companyId: CompanyId.make(companyUUID),
           ownershipPercentage: Percentage.make(0),
-          consolidationMethod: "CostMethod" as ConsolidationMethod,
+          consolidationMethod: "CostMethod",
           acquisitionDate,
           goodwillAmount: Option.none(),
           nonControllingInterestPercentage: Percentage.make(100),
@@ -503,7 +503,7 @@ describe("ConsolidationMember", () => {
       const member = ConsolidationMember.make({
         companyId: CompanyId.make(companyUUID),
         ownershipPercentage: Percentage.make(50),
-        consolidationMethod: "EquityMethod" as ConsolidationMethod,
+        consolidationMethod: "EquityMethod",
         acquisitionDate,
         goodwillAmount: Option.none(),
         nonControllingInterestPercentage: Percentage.make(50),
@@ -521,7 +521,7 @@ describe("ConsolidationMember", () => {
       const member = ConsolidationMember.make({
         companyId: CompanyId.make(companyUUID),
         ownershipPercentage: Percentage.make(100),
-        consolidationMethod: "FullConsolidation" as ConsolidationMethod,
+        consolidationMethod: "FullConsolidation",
         acquisitionDate,
         goodwillAmount: Option.none(),
         nonControllingInterestPercentage: Percentage.make(0),
@@ -628,7 +628,7 @@ describe("ConsolidationGroup", () => {
     return ConsolidationMember.make({
       companyId: CompanyId.make(companyId),
       ownershipPercentage: Percentage.make(ownership),
-      consolidationMethod: "FullConsolidation" as ConsolidationMethod,
+      consolidationMethod: "FullConsolidation",
       acquisitionDate,
       goodwillAmount: Option.none(),
       nonControllingInterestPercentage: Percentage.make(100 - ownership),
@@ -640,7 +640,7 @@ describe("ConsolidationGroup", () => {
     return ConsolidationMember.make({
       companyId: CompanyId.make(companyId),
       ownershipPercentage: Percentage.make(ownership),
-      consolidationMethod: "EquityMethod" as ConsolidationMethod,
+      consolidationMethod: "EquityMethod",
       acquisitionDate,
       goodwillAmount: Option.none(),
       nonControllingInterestPercentage: Percentage.make(100 - ownership),
@@ -654,7 +654,7 @@ describe("ConsolidationGroup", () => {
       organizationId: OrganizationId.make(orgUUID),
       name: "Acme Consolidated Group",
       reportingCurrency: USD,
-      consolidationMethod: "FullConsolidation" as ConsolidationMethod,
+      consolidationMethod: "FullConsolidation",
       parentCompanyId: CompanyId.make(parentCompanyUUID),
       members: Chunk.make(
         createFullyConsolidatedMember(subsidiaryUUID1, 80),
@@ -674,7 +674,7 @@ describe("ConsolidationGroup", () => {
       organizationId: OrganizationId.make(orgUUID),
       name: "Empty Group",
       reportingCurrency: USD,
-      consolidationMethod: "FullConsolidation" as ConsolidationMethod,
+      consolidationMethod: "FullConsolidation",
       parentCompanyId: CompanyId.make(parentCompanyUUID),
       members: Chunk.empty(),
       eliminationRuleIds: Chunk.empty(),
@@ -713,7 +713,7 @@ describe("ConsolidationGroup", () => {
           organizationId: OrganizationId.make(orgUUID),
           name: "Euro Group",
           reportingCurrency: EUR,
-          consolidationMethod: "FullConsolidation" as ConsolidationMethod,
+          consolidationMethod: "FullConsolidation",
           parentCompanyId: CompanyId.make(parentCompanyUUID),
           members: Chunk.empty(),
           eliminationRuleIds: Chunk.empty(),
@@ -726,7 +726,7 @@ describe("ConsolidationGroup", () => {
           organizationId: OrganizationId.make(orgUUID),
           name: "GBP Group",
           reportingCurrency: GBP,
-          consolidationMethod: "FullConsolidation" as ConsolidationMethod,
+          consolidationMethod: "FullConsolidation",
           parentCompanyId: CompanyId.make(parentCompanyUUID),
           members: Chunk.empty(),
           eliminationRuleIds: Chunk.empty(),
@@ -769,7 +769,7 @@ describe("ConsolidationGroup", () => {
           organizationId: OrganizationId.make(orgUUID),
           name: "Inactive Group",
           reportingCurrency: USD,
-          consolidationMethod: "FullConsolidation" as ConsolidationMethod,
+          consolidationMethod: "FullConsolidation",
           parentCompanyId: CompanyId.make(parentCompanyUUID),
           members: Chunk.empty(),
           eliminationRuleIds: Chunk.empty(),
@@ -1070,7 +1070,7 @@ describe("ConsolidationGroup", () => {
         organizationId: OrganizationId.make(orgUUID),
         name: "Acme Consolidated Group",
         reportingCurrency: USD,
-        consolidationMethod: "FullConsolidation" as ConsolidationMethod,
+        consolidationMethod: "FullConsolidation",
         parentCompanyId: CompanyId.make(parentCompanyUUID),
         members: Chunk.make(
           createFullyConsolidatedMember(subsidiaryUUID1, 90) // Different ownership
@@ -1092,7 +1092,7 @@ describe("ConsolidationGroup", () => {
         organizationId: OrganizationId.make(orgUUID),
         name: "Acme Consolidated Group",
         reportingCurrency: USD,
-        consolidationMethod: "FullConsolidation" as ConsolidationMethod,
+        consolidationMethod: "FullConsolidation",
         parentCompanyId: CompanyId.make(parentCompanyUUID),
         members: Chunk.make(
           createFullyConsolidatedMember(subsidiaryUUID1, 80),
@@ -1183,14 +1183,14 @@ describe("ConsolidationGroup", () => {
         organizationId: OrganizationId.make(orgUUID),
         name: "Group with VIE",
         reportingCurrency: USD,
-        consolidationMethod: "FullConsolidation" as ConsolidationMethod,
+        consolidationMethod: "FullConsolidation",
         parentCompanyId: CompanyId.make(parentCompanyUUID),
         members: Chunk.make(
           createFullyConsolidatedMember(subsidiaryUUID1, 80),
           ConsolidationMember.make({
             companyId: CompanyId.make(vieSubsidiaryUUID),
             ownershipPercentage: Percentage.make(15),
-            consolidationMethod: "VariableInterestEntity" as ConsolidationMethod,
+            consolidationMethod: "VariableInterestEntity",
             acquisitionDate,
             goodwillAmount: Option.none(),
             nonControllingInterestPercentage: Percentage.make(85),

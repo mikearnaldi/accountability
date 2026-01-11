@@ -908,12 +908,12 @@ describe("getPath", () => {
 // Property-based tests
 describe("Property-based tests", () => {
   // Generate a valid AccountType
-  const accountTypeArb = FastCheck.oneof(
-    FastCheck.constant("Asset" as AccountType),
-    FastCheck.constant("Liability" as AccountType),
-    FastCheck.constant("Equity" as AccountType),
-    FastCheck.constant("Revenue" as AccountType),
-    FastCheck.constant("Expense" as AccountType)
+  const accountTypeArb: FastCheck.Arbitrary<AccountType> = FastCheck.oneof(
+    FastCheck.constant("Asset" as const),
+    FastCheck.constant("Liability" as const),
+    FastCheck.constant("Equity" as const),
+    FastCheck.constant("Revenue" as const),
+    FastCheck.constant("Expense" as const)
   )
 
   // Generate a valid account category for a given type

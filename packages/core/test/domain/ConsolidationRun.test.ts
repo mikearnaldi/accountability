@@ -31,6 +31,8 @@ import {
 import { ConsolidationGroupId } from "../../src/domain/ConsolidationGroup.ts"
 import { CurrencyCode } from "../../src/domain/CurrencyCode.ts"
 import { FiscalPeriodRef } from "../../src/domain/FiscalPeriodRef.ts"
+import { UserId } from "../../src/domain/JournalEntry.ts"
+import { EliminationEntryId } from "../../src/services/EliminationService.ts"
 import { LocalDate } from "../../src/domain/LocalDate.ts"
 import { MonetaryAmount } from "../../src/domain/MonetaryAmount.ts"
 import { Timestamp } from "../../src/domain/Timestamp.ts"
@@ -47,6 +49,7 @@ const userUUID = "770e8400-e29b-41d4-a716-446655440002"
 
 const groupId = ConsolidationGroupId.make(groupUUID)
 const runId = ConsolidationRunId.make(runUUID)
+const userId = UserId.make(userUUID)
 const periodRef = FiscalPeriodRef.make({ year: 2024, period: 12 })
 const testDate = LocalDate.make({ year: 2024, month: 12, day: 31 })
 const testCurrency = CurrencyCode.make("USD")
@@ -714,7 +717,7 @@ describe("ConsolidationRun", () => {
       consolidatedTrialBalance: Option.none(),
       eliminationEntryIds: Chunk.empty(),
       options: opts,
-      initiatedBy: userUUID as any,
+      initiatedBy: userId,
       initiatedAt: now,
       startedAt: Option.none(),
       completedAt: Option.none(),
@@ -738,7 +741,7 @@ describe("ConsolidationRun", () => {
       consolidatedTrialBalance: Option.none(),
       eliminationEntryIds: Chunk.empty(),
       options: opts,
-      initiatedBy: userUUID as any,
+      initiatedBy: userId,
       initiatedAt: now,
       startedAt: Option.some(now),
       completedAt: Option.none(),
@@ -768,11 +771,11 @@ describe("ConsolidationRun", () => {
       ),
       consolidatedTrialBalance: Option.none(),
       eliminationEntryIds: Chunk.make(
-        "00000000-0000-0000-0003-000000000001" as any,
-        "00000000-0000-0000-0003-000000000002" as any
+        EliminationEntryId.make("00000000-0000-0000-0003-000000000001"),
+        EliminationEntryId.make("00000000-0000-0000-0003-000000000002")
       ),
       options: opts,
-      initiatedBy: userUUID as any,
+      initiatedBy: userId,
       initiatedAt: now,
       startedAt: Option.some(now),
       completedAt: Option.some(endTime),
@@ -817,7 +820,7 @@ describe("ConsolidationRun", () => {
       consolidatedTrialBalance: Option.none(),
       eliminationEntryIds: Chunk.empty(),
       options: opts,
-      initiatedBy: userUUID as any,
+      initiatedBy: userId,
       initiatedAt: now,
       startedAt: Option.some(now),
       completedAt: Option.some(endTime),

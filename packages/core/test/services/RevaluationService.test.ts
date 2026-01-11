@@ -1,7 +1,5 @@
 import { describe, it, expect } from "@effect/vitest"
 import { BigDecimal, Effect, Exit, Layer, Option } from "effect"
-import type {
-  RateNotFoundError} from "../../src/services/CurrencyService.ts";
 import {
   CurrencyService,
   CurrencyServiceWithRevaluationLive,
@@ -28,26 +26,26 @@ import { CurrencyCode } from "../../src/domain/CurrencyCode.ts"
 import { LocalDate } from "../../src/domain/LocalDate.ts"
 import { Timestamp } from "../../src/domain/Timestamp.ts"
 import { MonetaryAmount } from "../../src/domain/MonetaryAmount.ts"
-import type { JournalEntryId, UserId } from "../../src/domain/JournalEntry.ts"
-import type { JournalEntryLineId } from "../../src/domain/JournalEntryLine.ts"
+import { JournalEntryId, UserId } from "../../src/domain/JournalEntry.ts"
+import { JournalEntryLineId } from "../../src/domain/JournalEntryLine.ts"
 import { FiscalPeriodRef } from "../../src/domain/FiscalPeriodRef.ts"
-import type { AccountId } from "../../src/domain/Account.ts"
-import type { CompanyId } from "../../src/domain/Company.ts"
+import { AccountId } from "../../src/domain/Account.ts"
+import { CompanyId } from "../../src/domain/Company.ts"
 
 describe("CurrencyService - Period-End Revaluation", () => {
   // Test data constants
   const rateUUID1 = "550e8400-e29b-41d4-a716-446655440000"
   const rateUUID2 = "6ba7b810-9dad-11d1-80b4-00c04fd430c8"
 
-  const companyUUID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa" as CompanyId
-  const entryUUID = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb" as JournalEntryId
-  const userUUID = "cccccccc-cccc-cccc-cccc-cccccccccccc" as UserId
+  const companyUUID = CompanyId.make("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
+  const entryUUID = JournalEntryId.make("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
+  const userUUID = UserId.make("cccccccc-cccc-cccc-cccc-cccccccccccc")
 
-  const cashAccountId = "11111111-1111-1111-1111-111111111111" as AccountId
-  const receivablesAccountId = "22222222-2222-2222-2222-222222222222" as AccountId
-  const payablesAccountId = "33333333-3333-3333-3333-333333333333" as AccountId
-  const gainAccountId = "44444444-4444-4444-4444-444444444444" as AccountId
-  const lossAccountId = "55555555-5555-5555-5555-555555555555" as AccountId
+  const cashAccountId = AccountId.make("11111111-1111-1111-1111-111111111111")
+  const receivablesAccountId = AccountId.make("22222222-2222-2222-2222-222222222222")
+  const payablesAccountId = AccountId.make("33333333-3333-3333-3333-333333333333")
+  const gainAccountId = AccountId.make("44444444-4444-4444-4444-444444444444")
+  const lossAccountId = AccountId.make("55555555-5555-5555-5555-555555555555")
 
   const usd = CurrencyCode.make("USD")
   const eur = CurrencyCode.make("EUR")
@@ -59,7 +57,7 @@ describe("CurrencyService - Period-End Revaluation", () => {
   // Generate line IDs
   const generateLineIds = (count: number): ReadonlyArray<JournalEntryLineId> =>
     Array.from({ length: count }, (_, i) =>
-      `${i}0000000-0000-0000-0000-00000000000${i}` as JournalEntryLineId
+      JournalEntryLineId.make(`${i}0000000-0000-0000-0000-00000000000${i}`)
     )
 
   // Helper to create test exchange rates
@@ -606,12 +604,14 @@ describe("CurrencyService - Period-End Revaluation", () => {
 
         expect(Exit.isFailure(result)).toBe(true)
         if (Exit.isFailure(result) && result.cause._tag === "Fail") {
-          expect(isNoForeignCurrencyBalancesError(result.cause.error)).toBe(true)
-          const error = result.cause.error as NoForeignCurrencyBalancesError
-          expect(error.companyId).toBe(companyUUID)
-          expect(error.closingDate.year).toBe(2025)
-          expect(error.closingDate.month).toBe(1)
-          expect(error.closingDate.day).toBe(31)
+          const error = result.cause.error
+          expect(isNoForeignCurrencyBalancesError(error)).toBe(true)
+          if (isNoForeignCurrencyBalancesError(error)) {
+            expect(error.companyId).toBe(companyUUID)
+            expect(error.closingDate.year).toBe(2025)
+            expect(error.closingDate.month).toBe(1)
+            expect(error.closingDate.day).toBe(31)
+          }
         }
       }).pipe(Effect.provide(createTestLayer(
         [createExchangeRate(rateUUID1, eur, usd, "1.15", closingDate, "Closing")],
@@ -626,9 +626,11 @@ describe("CurrencyService - Period-End Revaluation", () => {
 
         expect(Exit.isFailure(result)).toBe(true)
         if (Exit.isFailure(result) && result.cause._tag === "Fail") {
-          expect(result.cause.error._tag).toBe("RateNotFoundError")
-          const error = result.cause.error as RateNotFoundError
-          expect(error.rateType).toBe("Closing")
+          const error = result.cause.error
+          expect(error._tag).toBe("RateNotFoundError")
+          if (error._tag === "RateNotFoundError") {
+            expect(error.rateType).toBe("Closing")
+          }
         }
       }).pipe(Effect.provide(createTestLayer(
         [], // No rates
@@ -653,9 +655,11 @@ describe("CurrencyService - Period-End Revaluation", () => {
 
         expect(Exit.isFailure(result)).toBe(true)
         if (Exit.isFailure(result) && result.cause._tag === "Fail") {
-          expect(isUnrealizedGainLossAccountNotFoundError(result.cause.error)).toBe(true)
-          const error = result.cause.error as UnrealizedGainLossAccountNotFoundError
-          expect(error.accountType).toBe("UnrealizedGain")
+          const error = result.cause.error
+          expect(isUnrealizedGainLossAccountNotFoundError(error)).toBe(true)
+          if (isUnrealizedGainLossAccountNotFoundError(error)) {
+            expect(error.accountType).toBe("UnrealizedGain")
+          }
         }
       }).pipe(Effect.provide(createTestLayer(
         [createExchangeRate(rateUUID1, eur, usd, "1.15", closingDate, "Closing")],
@@ -682,9 +686,11 @@ describe("CurrencyService - Period-End Revaluation", () => {
 
         expect(Exit.isFailure(result)).toBe(true)
         if (Exit.isFailure(result) && result.cause._tag === "Fail") {
-          expect(isUnrealizedGainLossAccountNotFoundError(result.cause.error)).toBe(true)
-          const error = result.cause.error as UnrealizedGainLossAccountNotFoundError
-          expect(error.accountType).toBe("UnrealizedLoss")
+          const error = result.cause.error
+          expect(isUnrealizedGainLossAccountNotFoundError(error)).toBe(true)
+          if (isUnrealizedGainLossAccountNotFoundError(error)) {
+            expect(error.accountType).toBe("UnrealizedLoss")
+          }
         }
       }).pipe(Effect.provide(createTestLayer(
         [createExchangeRate(rateUUID1, eur, usd, "1.05", closingDate, "Closing")], // Rate causes loss

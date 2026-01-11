@@ -484,6 +484,23 @@ const externalData: any = thirdPartyLib.getData()
 
 The comment must explain WHY the cast/any is necessary. This should be extremely rare.
 
+**Type-safe alternatives to casting:**
+
+```typescript
+// When you need to specify the type for Option.some/none, use type parameters
+const someValue = Option.some<Account>(account)  // Option<Account>
+const noneValue = Option.none<Account>()         // Option<Account>
+
+// When you need to assert a value matches a type (without casting), use identity
+import { identity } from "effect/Function"
+
+// This verifies x is already of type Account at compile time - if it isn't, you get an error
+const verified = identity<Account>(x)
+
+// identity is useful when returning values that TypeScript can't infer correctly
+return identity<Effect.Effect<Result, MyError, Deps>>(someEffect)
+```
+
 **2. NEVER use `catchAll` when error type is `never`:**
 
 ```typescript

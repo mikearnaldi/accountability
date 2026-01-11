@@ -1,5 +1,6 @@
 import { describe, it, expect } from "@effect/vitest"
 import { Chunk, Effect, Equal, Option } from "effect"
+import * as Schema from "effect/Schema"
 import {
   NCIService,
   NCIServiceLive,
@@ -259,7 +260,7 @@ describe("NCIEquityChange", () => {
     it("creates net income change", () => {
       const change = NCIEquityChange.make({
         changeType: "NetIncome",
-        description: "NCI share of net income" as any,
+        description: Schema.NonEmptyTrimmedString.make("NCI share of net income"),
         amount: MonetaryAmount.unsafeFromString("20000", "USD"),
         periodYear: 2024,
         periodNumber: 12
@@ -271,7 +272,7 @@ describe("NCIEquityChange", () => {
     it("creates dividend change", () => {
       const change = NCIEquityChange.make({
         changeType: "Dividends",
-        description: "Dividends to NCI" as any,
+        description: Schema.NonEmptyTrimmedString.make("Dividends to NCI"),
         amount: MonetaryAmount.unsafeFromString("-5000", "USD"),
         periodYear: 2024,
         periodNumber: 12
@@ -283,7 +284,7 @@ describe("NCIEquityChange", () => {
     it("creates OCI change", () => {
       const change = NCIEquityChange.make({
         changeType: "OtherComprehensiveIncome",
-        description: "NCI share of OCI" as any,
+        description: Schema.NonEmptyTrimmedString.make("NCI share of OCI"),
         amount: MonetaryAmount.unsafeFromString("1000", "USD"),
         periodYear: 2024,
         periodNumber: 12
@@ -294,7 +295,7 @@ describe("NCIEquityChange", () => {
     it("creates ownership change", () => {
       const change = NCIEquityChange.make({
         changeType: "OwnershipChange",
-        description: "Parent increased ownership" as any,
+        description: Schema.NonEmptyTrimmedString.make("Parent increased ownership"),
         amount: MonetaryAmount.unsafeFromString("-10000", "USD"),
         periodYear: 2024,
         periodNumber: 6
@@ -307,7 +308,7 @@ describe("NCIEquityChange", () => {
     it("isNCIEquityChange returns true for valid instance", () => {
       const change = NCIEquityChange.make({
         changeType: "NetIncome",
-        description: "Test" as any,
+        description: Schema.NonEmptyTrimmedString.make("Test"),
         amount: MonetaryAmount.unsafeFromString("1000", "USD"),
         periodYear: 2024,
         periodNumber: 1
@@ -333,14 +334,14 @@ describe("NCISubsequentChanges", () => {
         changes: Chunk.make(
           NCIEquityChange.make({
             changeType: "NetIncome",
-            description: "Net income" as any,
+            description: Schema.NonEmptyTrimmedString.make("Net income"),
             amount: MonetaryAmount.unsafeFromString("20000", "USD"),
             periodYear: 2024,
             periodNumber: 12
           }),
           NCIEquityChange.make({
             changeType: "Dividends",
-            description: "Dividends" as any,
+            description: Schema.NonEmptyTrimmedString.make("Dividends"),
             amount: MonetaryAmount.unsafeFromString("-5000", "USD"),
             periodYear: 2024,
             periodNumber: 12
@@ -454,10 +455,10 @@ describe("NCILineItem", () => {
     it("creates balance sheet line item", () => {
       const item = NCILineItem.make({
         lineItemType: "NCIEquity",
-        description: "Non-controlling interest" as any,
+        description: Schema.NonEmptyTrimmedString.make("Non-controlling interest"),
         amount: MonetaryAmount.unsafeFromString("250000", "USD"),
         subsidiaryId: Option.some(CompanyId.make(subsidiaryUUID1)),
-        subsidiaryName: Option.some("Test Subsidiary" as any)
+        subsidiaryName: Option.some(Schema.NonEmptyTrimmedString.make("Test Subsidiary"))
       })
       expect(item.isBalanceSheetItem).toBe(true)
       expect(item.isIncomeStatementItem).toBe(false)
@@ -468,7 +469,7 @@ describe("NCILineItem", () => {
     it("creates income statement line item", () => {
       const item = NCILineItem.make({
         lineItemType: "NCINetIncome",
-        description: "Net income to NCI" as any,
+        description: Schema.NonEmptyTrimmedString.make("Net income to NCI"),
         amount: MonetaryAmount.unsafeFromString("20000", "USD"),
         subsidiaryId: Option.none(),
         subsidiaryName: Option.none()
@@ -480,7 +481,7 @@ describe("NCILineItem", () => {
     it("creates OCI line item", () => {
       const item = NCILineItem.make({
         lineItemType: "NCIOCI",
-        description: "OCI to NCI" as any,
+        description: Schema.NonEmptyTrimmedString.make("OCI to NCI"),
         amount: MonetaryAmount.unsafeFromString("1000", "USD"),
         subsidiaryId: Option.none(),
         subsidiaryName: Option.none()
@@ -491,7 +492,7 @@ describe("NCILineItem", () => {
     it("creates equity statement line items", () => {
       const dividends = NCILineItem.make({
         lineItemType: "NCIDividends",
-        description: "Dividends to NCI" as any,
+        description: Schema.NonEmptyTrimmedString.make("Dividends to NCI"),
         amount: MonetaryAmount.unsafeFromString("-5000", "USD"),
         subsidiaryId: Option.none(),
         subsidiaryName: Option.none()
@@ -500,7 +501,7 @@ describe("NCILineItem", () => {
 
       const acquisition = NCILineItem.make({
         lineItemType: "NCIAcquisition",
-        description: "NCI at acquisition" as any,
+        description: Schema.NonEmptyTrimmedString.make("NCI at acquisition"),
         amount: MonetaryAmount.unsafeFromString("200000", "USD"),
         subsidiaryId: Option.none(),
         subsidiaryName: Option.none()
@@ -509,7 +510,7 @@ describe("NCILineItem", () => {
 
       const other = NCILineItem.make({
         lineItemType: "NCIOther",
-        description: "Other NCI changes" as any,
+        description: Schema.NonEmptyTrimmedString.make("Other NCI changes"),
         amount: MonetaryAmount.unsafeFromString("1000", "USD"),
         subsidiaryId: Option.none(),
         subsidiaryName: Option.none()
@@ -522,7 +523,7 @@ describe("NCILineItem", () => {
     it("isNCILineItem returns true for valid instance", () => {
       const item = NCILineItem.make({
         lineItemType: "NCIEquity",
-        description: "Test" as any,
+        description: Schema.NonEmptyTrimmedString.make("Test"),
         amount: MonetaryAmount.unsafeFromString("1000", "USD"),
         subsidiaryId: Option.none(),
         subsidiaryName: Option.none()
@@ -546,7 +547,7 @@ describe("NCIResult", () => {
     it("filters line items by type", () => {
       const result = NCIResult.make({
         subsidiaryId: CompanyId.make(subsidiaryUUID1),
-        subsidiaryName: "Test" as any,
+        subsidiaryName: Schema.NonEmptyTrimmedString.make("Test"),
         nciPercentage: NCIPercentage.make({
           parentOwnershipPercentage: Percentage.make(80),
           nciPercentage: Percentage.make(20)
@@ -579,28 +580,28 @@ describe("NCIResult", () => {
         lineItems: Chunk.make(
           NCILineItem.make({
             lineItemType: "NCIEquity",
-            description: "Balance sheet" as any,
+            description: Schema.NonEmptyTrimmedString.make("Balance sheet"),
             amount: MonetaryAmount.unsafeFromString("220000", "USD"),
             subsidiaryId: Option.none(),
             subsidiaryName: Option.none()
           }),
           NCILineItem.make({
             lineItemType: "NCINetIncome",
-            description: "Income statement" as any,
+            description: Schema.NonEmptyTrimmedString.make("Income statement"),
             amount: MonetaryAmount.unsafeFromString("20000", "USD"),
             subsidiaryId: Option.none(),
             subsidiaryName: Option.none()
           }),
           NCILineItem.make({
             lineItemType: "NCIOCI",
-            description: "OCI" as any,
+            description: Schema.NonEmptyTrimmedString.make("OCI"),
             amount: MonetaryAmount.unsafeFromString("1000", "USD"),
             subsidiaryId: Option.none(),
             subsidiaryName: Option.none()
           }),
           NCILineItem.make({
             lineItemType: "NCIDividends",
-            description: "Dividends" as any,
+            description: Schema.NonEmptyTrimmedString.make("Dividends"),
             amount: MonetaryAmount.unsafeFromString("-5000", "USD"),
             subsidiaryId: Option.none(),
             subsidiaryName: Option.none()
@@ -618,7 +619,7 @@ describe("NCIResult", () => {
     it("hasNCI returns true when NCI percentage > 0", () => {
       const result = NCIResult.make({
         subsidiaryId: CompanyId.make(subsidiaryUUID1),
-        subsidiaryName: "Test" as any,
+        subsidiaryName: Schema.NonEmptyTrimmedString.make("Test"),
         nciPercentage: NCIPercentage.make({
           parentOwnershipPercentage: Percentage.make(80),
           nciPercentage: Percentage.make(20)
@@ -659,7 +660,7 @@ describe("NCIResult", () => {
     it("isNCIResult returns true for valid instance", () => {
       const result = NCIResult.make({
         subsidiaryId: CompanyId.make(subsidiaryUUID1),
-        subsidiaryName: "Test" as any,
+        subsidiaryName: Schema.NonEmptyTrimmedString.make("Test"),
         nciPercentage: NCIPercentage.make({
           parentOwnershipPercentage: Percentage.make(100),
           nciPercentage: Percentage.make(0)
@@ -774,7 +775,7 @@ describe("Error Types", () => {
     it("creates error with correct message", () => {
       const error = new InvalidOwnershipPercentageError({
         ownershipPercentage: Percentage.make(80),
-        reason: "Test reason" as any
+        reason: Schema.NonEmptyTrimmedString.make("Test reason")
       })
       expect(error._tag).toBe("InvalidOwnershipPercentageError")
       expect(error.message).toContain("80")
@@ -784,7 +785,7 @@ describe("Error Types", () => {
     it("type guard returns true for valid error", () => {
       const error = new InvalidOwnershipPercentageError({
         ownershipPercentage: Percentage.make(80),
-        reason: "Test" as any
+        reason: Schema.NonEmptyTrimmedString.make("Test")
       })
       expect(isInvalidOwnershipPercentageError(error)).toBe(true)
     })
@@ -798,7 +799,7 @@ describe("Error Types", () => {
     it("creates error with correct message", () => {
       const error = new NCICalculationError({
         subsidiaryId: CompanyId.make(subsidiaryUUID1),
-        reason: "Calculation failed" as any
+        reason: Schema.NonEmptyTrimmedString.make("Calculation failed")
       })
       expect(error._tag).toBe("NCICalculationError")
       expect(error.message).toContain(subsidiaryUUID1)
@@ -808,7 +809,7 @@ describe("Error Types", () => {
     it("type guard returns true for valid error", () => {
       const error = new NCICalculationError({
         subsidiaryId: CompanyId.make(subsidiaryUUID1),
-        reason: "Test" as any
+        reason: Schema.NonEmptyTrimmedString.make("Test")
       })
       expect(isNCICalculationError(error)).toBe(true)
     })
@@ -1332,21 +1333,21 @@ describe("Equality", () => {
   it("NCIEquityChange equality works correctly", () => {
     const change1 = NCIEquityChange.make({
       changeType: "NetIncome",
-      description: "Test" as any,
+      description: Schema.NonEmptyTrimmedString.make("Test"),
       amount: MonetaryAmount.unsafeFromString("1000", "USD"),
       periodYear: 2024,
       periodNumber: 12
     })
     const change2 = NCIEquityChange.make({
       changeType: "NetIncome",
-      description: "Test" as any,
+      description: Schema.NonEmptyTrimmedString.make("Test"),
       amount: MonetaryAmount.unsafeFromString("1000", "USD"),
       periodYear: 2024,
       periodNumber: 12
     })
     const change3 = NCIEquityChange.make({
       changeType: "Dividends",
-      description: "Test" as any,
+      description: Schema.NonEmptyTrimmedString.make("Test"),
       amount: MonetaryAmount.unsafeFromString("1000", "USD"),
       periodYear: 2024,
       periodNumber: 12
@@ -1359,21 +1360,21 @@ describe("Equality", () => {
   it("NCILineItem equality works correctly", () => {
     const item1 = NCILineItem.make({
       lineItemType: "NCIEquity",
-      description: "Test" as any,
+      description: Schema.NonEmptyTrimmedString.make("Test"),
       amount: MonetaryAmount.unsafeFromString("100000", "USD"),
       subsidiaryId: Option.none(),
       subsidiaryName: Option.none()
     })
     const item2 = NCILineItem.make({
       lineItemType: "NCIEquity",
-      description: "Test" as any,
+      description: Schema.NonEmptyTrimmedString.make("Test"),
       amount: MonetaryAmount.unsafeFromString("100000", "USD"),
       subsidiaryId: Option.none(),
       subsidiaryName: Option.none()
     })
     const item3 = NCILineItem.make({
       lineItemType: "NCINetIncome",
-      description: "Test" as any,
+      description: Schema.NonEmptyTrimmedString.make("Test"),
       amount: MonetaryAmount.unsafeFromString("100000", "USD"),
       subsidiaryId: Option.none(),
       subsidiaryName: Option.none()

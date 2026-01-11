@@ -1056,7 +1056,7 @@ const make = Effect.gen(function* () {
 
         return TranslatedTrialBalance.make({
           companyId,
-          companyName: companyName as any,
+          companyName: Schema.NonEmptyTrimmedString.make(companyName),
           functionalCurrency,
           reportingCurrency,
           asOfDate,
