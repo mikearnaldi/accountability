@@ -140,18 +140,25 @@ has_changes() {
 run_ci_checks() {
     log "INFO" "Running CI checks..."
 
-    # Type check (src and test files via project references)
-    if ! pnpm typecheck 2>&1 | tee -a "$OUTPUT_DIR/ci.log"; then
-        log "ERROR" "Type check failed"
+    local ci_output
+    ci_output=$(./scripts/ci-check.sh 2>&1)
+    local ci_status=$?
+
+    echo "$ci_output" | tee -a "$OUTPUT_DIR/ci.log"
+
+    if [ $ci_status -ne 0 ]; then
+        log "ERROR" "CI checks failed"
+        # Save errors for feedback to next iteration
+        echo "The previous iteration failed CI checks. Please fix these errors:" > "$OUTPUT_DIR/ci_errors.txt"
+        echo "" >> "$OUTPUT_DIR/ci_errors.txt"
+        echo '```' >> "$OUTPUT_DIR/ci_errors.txt"
+        echo "$ci_output" >> "$OUTPUT_DIR/ci_errors.txt"
+        echo '```' >> "$OUTPUT_DIR/ci_errors.txt"
         return 1
     fi
 
-    # Tests (CI=true makes vitest run once and exit)
-    if ! CI=true pnpm test 2>&1 | tee -a "$OUTPUT_DIR/ci.log"; then
-        log "ERROR" "Tests failed"
-        return 1
-    fi
-
+    # Clear errors on success
+    echo "" > "$OUTPUT_DIR/ci_errors.txt"
     log "SUCCESS" "CI checks passed"
     return 0
 }
@@ -220,6 +227,15 @@ build_prompt() {
     local reference_repos=$(jq '.reference_repos' "$PRD_FILE")
     local progress_content=$(cat "$PROGRESS_FILE")
     local prompt_template=$(cat "$PROMPT_FILE")
+    local ci_errors=""
+    if [ -f "$OUTPUT_DIR/ci_errors.txt" ]; then
+        ci_errors=$(cat "$OUTPUT_DIR/ci_errors.txt")
+    fi
+
+    # Default message if no errors
+    if [ -z "$ci_errors" ]; then
+        ci_errors="No errors from previous iteration."
+    fi
 
     # Replace placeholders in template
     local prompt="$prompt_template"
@@ -229,6 +245,7 @@ build_prompt() {
     prompt="${prompt//\{\{TECHNOLOGY\}\}/$technology}"
     prompt="${prompt//\{\{REFERENCE_REPOS\}\}/$reference_repos}"
     prompt="${prompt//\{\{PROGRESS_CONTENT\}\}/$progress_content}"
+    prompt="${prompt//\{\{CI_ERRORS\}\}/$ci_errors}"
 
     echo "$prompt"
 }

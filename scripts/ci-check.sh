@@ -37,15 +37,15 @@ echo "-------------"
 if pnpm lint 2>&1; then
     echo -e "${GREEN}Lint passed${NC}"
 else
-    echo -e "${YELLOW}Lint issues found (non-blocking)${NC}"
-    # Lint is warning only, don't fail
+    echo -e "${RED}Lint failed${NC}"
+    FAILED=1
 fi
 
 # Testing
 echo ""
 echo "3. Running Tests..."
 echo "-------------------"
-if pnpm test 2>&1; then
+if CI=true pnpm test 2>&1; then
     echo -e "${GREEN}Tests passed${NC}"
 else
     echo -e "${RED}Tests failed${NC}"

@@ -70,6 +70,10 @@ The Ralph script will then:
 {{PROGRESS_CONTENT}}
 ```
 
+## Previous Iteration Errors
+
+{{CI_ERRORS}}
+
 ## Important Reminders
 
 - Read SPECIFICATIONS.md for detailed requirements
