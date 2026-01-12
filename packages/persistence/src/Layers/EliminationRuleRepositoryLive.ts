@@ -268,9 +268,9 @@ const make = Effect.gen(function* () {
 
   const create: EliminationRuleRepositoryService["create"] = (rule) =>
     Effect.gen(function* () {
-      const triggerConditionsJson = Chunk.toArray(rule.triggerConditions).map(triggerConditionToJson)
-      const sourceAccountsJson = Chunk.toArray(rule.sourceAccounts).map(accountSelectorToJson)
-      const targetAccountsJson = Chunk.toArray(rule.targetAccounts).map(accountSelectorToJson)
+      const triggerConditionsJson = JSON.stringify(Chunk.toArray(rule.triggerConditions).map(triggerConditionToJson))
+      const sourceAccountsJson = JSON.stringify(Chunk.toArray(rule.sourceAccounts).map(accountSelectorToJson))
+      const targetAccountsJson = JSON.stringify(Chunk.toArray(rule.targetAccounts).map(accountSelectorToJson))
 
       yield* sql`
         INSERT INTO elimination_rules (
@@ -304,9 +304,9 @@ const make = Effect.gen(function* () {
         return yield* Effect.fail(new EntityNotFoundError({ entityType: "EliminationRule", entityId: rule.id }))
       }
 
-      const triggerConditionsJson = Chunk.toArray(rule.triggerConditions).map(triggerConditionToJson)
-      const sourceAccountsJson = Chunk.toArray(rule.sourceAccounts).map(accountSelectorToJson)
-      const targetAccountsJson = Chunk.toArray(rule.targetAccounts).map(accountSelectorToJson)
+      const triggerConditionsJson = JSON.stringify(Chunk.toArray(rule.triggerConditions).map(triggerConditionToJson))
+      const sourceAccountsJson = JSON.stringify(Chunk.toArray(rule.sourceAccounts).map(accountSelectorToJson))
+      const targetAccountsJson = JSON.stringify(Chunk.toArray(rule.targetAccounts).map(accountSelectorToJson))
 
       yield* sql`
         UPDATE elimination_rules SET

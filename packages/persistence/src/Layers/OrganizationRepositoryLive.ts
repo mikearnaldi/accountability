@@ -143,6 +143,14 @@ const make = Effect.gen(function* () {
 
   const update: OrganizationRepositoryService["update"] = (organization) =>
     Effect.gen(function* () {
+      // Check if organization exists first
+      const existsResult = yield* exists(organization.id)
+      if (!existsResult) {
+        return yield* Effect.fail(
+          new EntityNotFoundError({ entityType: "Organization", entityId: organization.id })
+        )
+      }
+
       const settingsJson = JSON.stringify({
         defaultLocale: organization.settings.defaultLocale,
         defaultTimezone: organization.settings.defaultTimezone,
@@ -150,7 +158,7 @@ const make = Effect.gen(function* () {
         defaultDecimalPlaces: organization.settings.defaultDecimalPlaces
       })
 
-      const result = yield* sql`
+      yield* sql`
         UPDATE organizations SET
           name = ${organization.name},
           reporting_currency = ${organization.reportingCurrency},
@@ -158,26 +166,22 @@ const make = Effect.gen(function* () {
         WHERE id = ${organization.id}
       `.pipe(wrapSqlError("update"))
 
-      if (result.length === 0) {
-        return yield* Effect.fail(
-          new EntityNotFoundError({ entityType: "Organization", entityId: organization.id })
-        )
-      }
-
       return organization
     })
 
   const delete_: OrganizationRepositoryService["delete"] = (id) =>
     Effect.gen(function* () {
-      const result = yield* sql`
-        DELETE FROM organizations WHERE id = ${id}
-      `.pipe(wrapSqlError("delete"))
-
-      if (result.length === 0) {
+      // Check if organization exists first
+      const existsResult = yield* exists(id)
+      if (!existsResult) {
         return yield* Effect.fail(
           new EntityNotFoundError({ entityType: "Organization", entityId: id })
         )
       }
+
+      yield* sql`
+        DELETE FROM organizations WHERE id = ${id}
+      `.pipe(wrapSqlError("delete"))
     })
 
   const getById: OrganizationRepositoryService["getById"] = (id) =>
