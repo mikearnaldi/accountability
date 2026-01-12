@@ -3,6 +3,7 @@ import * as Layer from "effect/Layer"
 import { AppApiLive } from "@accountability/api/Layers/AppApiLive"
 import { RepositoriesLive } from "@accountability/persistence/Layers/RepositoriesLive"
 import { PgClientLive } from "@accountability/persistence/Layers/PgClientLive"
+import { MigrationsLive } from "@accountability/persistence/Layers/MigrationsLive"
 
 // Logging utility that bypasses no-console lint rule
 // Uses process.stderr.write for debug logging during shutdown
@@ -37,6 +38,8 @@ const { handler, dispose } = HttpApiBuilder.toWebHandler(
     Layer.provideMerge(AppApiLive),
     // Use real repositories with PostgreSQL
     Layer.provide(RepositoriesLive),
+    // Run migrations on startup (ensures schema is up to date)
+    Layer.provide(MigrationsLive),
     Layer.provide(PgClientLive),
     Layer.provideMerge(HttpServer.layerContext)
   )
