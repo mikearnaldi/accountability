@@ -92,3 +92,15 @@ export {
   ValidationError
 } from "./ApiErrors.ts"
 export type { ApiError } from "./ApiErrors.ts"
+
+// Re-export authentication middleware
+export {
+  AuthMiddleware,
+  AuthMiddlewareLive,
+  AuthMiddlewareWithSimpleValidation,
+  CurrentUser,
+  SimpleTokenValidatorLive,
+  TokenValidator,
+  User
+} from "./AuthMiddleware.ts"
+export type { TokenValidatorService } from "./AuthMiddleware.ts"

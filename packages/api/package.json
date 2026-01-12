@@ -7,6 +7,7 @@
     "./AppApi": "./src/AppApi.ts",
     "./AppApiLive": "./src/AppApiLive.ts",
     "./ApiErrors": "./src/ApiErrors.ts",
+    "./AuthMiddleware": "./src/AuthMiddleware.ts",
     "./AccountsApi": "./src/AccountsApi.ts",
     "./CompaniesApi": "./src/CompaniesApi.ts",
     "./JournalEntriesApi": "./src/JournalEntriesApi.ts",

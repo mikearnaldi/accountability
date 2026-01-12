@@ -16,6 +16,7 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import { AppApi, HealthCheckResponse, NotFoundError, ValidationError, BusinessRuleError } from "./AppApi.ts"
+import { AuthMiddlewareWithSimpleValidation } from "./AuthMiddleware.ts"
 
 // =============================================================================
 // Health API Implementation
@@ -43,6 +44,8 @@ const HealthLive = HttpApiBuilder.group(AppApi, "health", (handlers) =>
 /**
  * Stub implementation for accounts API
  * Returns appropriate errors/empty responses for now
+ *
+ * Protected by AuthMiddleware - requires valid bearer token.
  */
 const AccountsLive = HttpApiBuilder.group(AppApi, "accounts", (handlers) =>
   handlers
@@ -65,7 +68,7 @@ const AccountsLive = HttpApiBuilder.group(AppApi, "accounts", (handlers) =>
     .handle("deactivateAccount", () =>
       Effect.fail(new NotFoundError({ resource: "Account", id: "stub" }))
     )
-)
+).pipe(Layer.provide(AuthMiddlewareWithSimpleValidation))
 
 // =============================================================================
 // Companies API Implementation (Stub)
@@ -73,6 +76,8 @@ const AccountsLive = HttpApiBuilder.group(AppApi, "accounts", (handlers) =>
 
 /**
  * Stub implementation for companies API
+ *
+ * Protected by AuthMiddleware - requires valid bearer token.
  */
 const CompaniesLive = HttpApiBuilder.group(AppApi, "companies", (handlers) =>
   handlers
@@ -117,7 +122,7 @@ const CompaniesLive = HttpApiBuilder.group(AppApi, "companies", (handlers) =>
     .handle("deactivateCompany", () =>
       Effect.fail(new NotFoundError({ resource: "Company", id: "stub" }))
     )
-)
+).pipe(Layer.provide(AuthMiddlewareWithSimpleValidation))
 
 // =============================================================================
 // Journal Entries API Implementation (Stub)
@@ -125,6 +130,8 @@ const CompaniesLive = HttpApiBuilder.group(AppApi, "companies", (handlers) =>
 
 /**
  * Stub implementation for journal entries API
+ *
+ * Protected by AuthMiddleware - requires valid bearer token.
  */
 const JournalEntriesLive = HttpApiBuilder.group(AppApi, "journal-entries", (handlers) =>
   handlers
@@ -162,7 +169,7 @@ const JournalEntriesLive = HttpApiBuilder.group(AppApi, "journal-entries", (hand
     .handle("reverseJournalEntry", () =>
       Effect.fail(new NotFoundError({ resource: "JournalEntry", id: "stub" }))
     )
-)
+).pipe(Layer.provide(AuthMiddlewareWithSimpleValidation))
 
 // =============================================================================
 // Reports API Implementation (Stub)
@@ -173,6 +180,8 @@ const JournalEntriesLive = HttpApiBuilder.group(AppApi, "journal-entries", (hand
  *
  * This returns NOT_IMPLEMENTED errors. Use ReportsApiLive with proper
  * repository dependencies for actual report generation.
+ *
+ * Protected by AuthMiddleware - requires valid bearer token.
  */
 const ReportsStub = HttpApiBuilder.group(AppApi, "reports", (handlers) =>
   handlers
@@ -211,7 +220,7 @@ const ReportsStub = HttpApiBuilder.group(AppApi, "reports", (handlers) =>
         details: Option.none()
       }))
     )
-)
+).pipe(Layer.provide(AuthMiddlewareWithSimpleValidation))
 
 // =============================================================================
 // Compose All API Layers

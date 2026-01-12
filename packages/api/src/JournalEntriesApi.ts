@@ -29,6 +29,7 @@ import {
   NotFoundError,
   ValidationError
 } from "./ApiErrors.ts"
+import { AuthMiddleware } from "./AuthMiddleware.ts"
 
 // =============================================================================
 // Request/Response Schemas
@@ -248,6 +249,7 @@ const reverseJournalEntry = HttpApiEndpoint.post("reverseJournalEntry", "/:id/re
  * JournalEntriesApi - API group for journal entry management
  *
  * Base path: /api/v1/journal-entries
+ * Protected by: AuthMiddleware (bearer token authentication)
  */
 export class JournalEntriesApi extends HttpApiGroup.make("journal-entries")
   .add(listJournalEntries)
@@ -260,4 +262,5 @@ export class JournalEntriesApi extends HttpApiGroup.make("journal-entries")
   .add(rejectJournalEntry)
   .add(postJournalEntry)
   .add(reverseJournalEntry)
+  .middleware(AuthMiddleware)
   .prefix("/v1/journal-entries") {}

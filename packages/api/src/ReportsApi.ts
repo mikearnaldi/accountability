@@ -24,6 +24,7 @@ import {
   NotFoundError,
   ValidationError
 } from "./ApiErrors.ts"
+import { AuthMiddleware } from "./AuthMiddleware.ts"
 
 // Note: CompanyId, LocalDate, and AccountId are used in report response schemas.
 // URL params use Schema.String for HTTP encoding compatibility.
@@ -439,6 +440,7 @@ const generateEquityStatement = HttpApiEndpoint.get("generateEquityStatement", "
  * ReportsApi - API group for financial report generation
  *
  * Base path: /api/v1/reports
+ * Protected by: AuthMiddleware (bearer token authentication)
  */
 export class ReportsApi extends HttpApiGroup.make("reports")
   .add(generateTrialBalance)
@@ -446,4 +448,5 @@ export class ReportsApi extends HttpApiGroup.make("reports")
   .add(generateIncomeStatement)
   .add(generateCashFlowStatement)
   .add(generateEquityStatement)
+  .middleware(AuthMiddleware)
   .prefix("/v1/reports") {}

@@ -24,6 +24,7 @@ import {
   NotFoundError,
   ValidationError
 } from "./ApiErrors.ts"
+import { AuthMiddleware } from "./AuthMiddleware.ts"
 
 // =============================================================================
 // Organization Request/Response Schemas
@@ -225,6 +226,7 @@ const deactivateCompany = HttpApiEndpoint.del("deactivateCompany", "/companies/:
  * CompaniesApi - API group for company and organization management
  *
  * Base path: /api/v1
+ * Protected by: AuthMiddleware (bearer token authentication)
  */
 export class CompaniesApi extends HttpApiGroup.make("companies")
   .add(listOrganizations)
@@ -237,4 +239,5 @@ export class CompaniesApi extends HttpApiGroup.make("companies")
   .add(createCompany)
   .add(updateCompany)
   .add(deactivateCompany)
+  .middleware(AuthMiddleware)
   .prefix("/v1") {}

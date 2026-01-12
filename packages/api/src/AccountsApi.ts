@@ -25,6 +25,7 @@ import {
   NotFoundError,
   ValidationError
 } from "./ApiErrors.ts"
+import { AuthMiddleware } from "./AuthMiddleware.ts"
 
 // =============================================================================
 // Request/Response Schemas
@@ -158,6 +159,7 @@ const deactivateAccount = HttpApiEndpoint.del("deactivateAccount", "/:id")
  * AccountsApi - API group for account management
  *
  * Base path: /api/v1/accounts
+ * Protected by: AuthMiddleware (bearer token authentication)
  */
 export class AccountsApi extends HttpApiGroup.make("accounts")
   .add(listAccounts)
@@ -165,4 +167,5 @@ export class AccountsApi extends HttpApiGroup.make("accounts")
   .add(createAccount)
   .add(updateAccount)
   .add(deactivateAccount)
+  .middleware(AuthMiddleware)
   .prefix("/v1/accounts") {}
