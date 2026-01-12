@@ -30,7 +30,6 @@
     "./Layers/RepositoriesLive": "./src/Layers/RepositoriesLive.ts"
   },
   "scripts": {
-    "build": "echo 'No build step yet'",
     "clean": "rm -rf dist",
     "test": "cd ../.. && vitest run packages/persistence/test"
   },

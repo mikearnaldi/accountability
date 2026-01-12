@@ -19,7 +19,6 @@
     "./Layers/ReportsApiLive": "./src/Layers/ReportsApiLive.ts"
   },
   "scripts": {
-    "build": "echo 'No build step yet'",
     "clean": "rm -rf dist",
     "test": "cd ../.. && vitest run packages/api/test"
   },
