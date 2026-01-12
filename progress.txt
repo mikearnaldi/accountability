@@ -489,3 +489,8 @@
 **Story**: 6.4.12 - Improve persistence package structure
 **Status**: complete
 ---
+
+## Iteration 6 - 2026-01-12 17:57
+**Story**: 7.1.1 - Implement account selector component
+**Status**: complete
+---

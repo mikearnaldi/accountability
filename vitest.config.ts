@@ -5,11 +5,13 @@ export default defineConfig({
   resolve: {
     alias: {
       "@accountability/core": path.resolve(__dirname, "packages/core/src"),
-      "@accountability/persistence": path.resolve(__dirname, "packages/persistence/src")
+      "@accountability/persistence": path.resolve(__dirname, "packages/persistence/src"),
+      "@accountability/api": path.resolve(__dirname, "packages/api/src"),
+      "@accountability/web": path.resolve(__dirname, "packages/web/src")
     }
   },
   test: {
-    include: ["packages/**/test/**/*.test.ts"],
+    include: ["packages/**/test/**/*.test.ts", "packages/**/test/**/*.test.tsx"],
     exclude: [
       "repos/**",
       "**/node_modules/**"

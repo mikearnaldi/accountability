@@ -1868,7 +1868,7 @@
         "pattern": "Atom.derivedComputed for filtered/search results",
         "state": "Local React state for dropdown open/focused, Atom for accounts data"
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "medium"
     },
     {
