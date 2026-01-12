@@ -1822,7 +1822,7 @@
         "Ensure all repository methods work correctly with the chosen schema",
         "Add/update tests to verify repository operations against actual database schema"
       ],
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "medium"
     },
     {

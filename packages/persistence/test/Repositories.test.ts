@@ -50,11 +50,17 @@ import { PgContainer } from "./Utils.ts"
 import { FiscalYearId, FiscalPeriodId } from "@accountability/core/Services/PeriodService"
 import { ExchangeRateId } from "@accountability/core/Domains/ExchangeRate"
 import { ConsolidationGroupId, EliminationRuleId } from "@accountability/core/Domains/ConsolidationGroup"
-import { JournalEntryId } from "@accountability/core/Domains/JournalEntry"
+import { JournalEntryId, UserId } from "@accountability/core/Domains/JournalEntry"
 import { JournalEntryLineId, JournalEntryLine } from "@accountability/core/Domains/JournalEntryLine"
 import { MonetaryAmount } from "@accountability/core/Domains/MonetaryAmount"
 import { IntercompanyTransactionId } from "@accountability/core/Domains/IntercompanyTransaction"
-import { ConsolidationRunId } from "@accountability/core/Domains/ConsolidationRun"
+import {
+  ConsolidatedTrialBalance,
+  ConsolidatedTrialBalanceLineItem,
+  ConsolidationRun,
+  ConsolidationRunId,
+  ConsolidationRunOptions
+} from "@accountability/core/Domains/ConsolidationRun"
 import { LocalDate } from "@accountability/core/Domains/LocalDate"
 import { FiscalPeriodRef } from "@accountability/core/Domains/FiscalPeriodRef"
 import { EliminationRule } from "@accountability/core/Domains/EliminationRule"
@@ -110,8 +116,11 @@ const testEliminationRuleId = EliminationRuleId.make("88888888-8888-8888-8888-88
 const testEliminationRuleId2 = EliminationRuleId.make("88888888-8888-8888-8888-888888888889")
 const testRunId = ConsolidationRunId.make("99999999-9999-9999-9999-999999999991")
 const testRunId2 = ConsolidationRunId.make("99999999-9999-9999-9999-999999999992")
+const testRunId3 = ConsolidationRunId.make("99999999-9999-9999-9999-999999999993")
+const testRunId4 = ConsolidationRunId.make("99999999-9999-9999-9999-999999999994")
 const nonExistentId = "99999999-9999-9999-9999-999999999999"
 const testEliminationRuleId3 = EliminationRuleId.make("88888888-8888-8888-8888-88888888888a")
+const testUserId = "00000000-0000-0000-0000-000000000002"
 
 describe("Repositories", () => {
   // ============================================================================
@@ -1405,6 +1414,258 @@ describe("Repositories", () => {
         const repo = yield* ConsolidationRepository
         const exists = yield* repo.runExists(testRunId)
         expect(exists).toBe(true)
+      })
+    )
+
+    // Consolidated Trial Balance CRUD tests
+    it.effect("createRun: creates run with consolidated trial balance", () =>
+      Effect.gen(function* () {
+        const repo = yield* ConsolidationRepository
+
+        const lineItem = ConsolidatedTrialBalanceLineItem.make({
+          accountNumber: "1000",
+          accountName: "Cash",
+          accountType: "Asset",
+          aggregatedBalance: MonetaryAmount.make({
+            amount: BigDecimal.unsafeFromString("100000.00"),
+            currency: CurrencyCode.make("USD")
+          }),
+          eliminationAmount: MonetaryAmount.make({
+            amount: BigDecimal.unsafeFromString("0.00"),
+            currency: CurrencyCode.make("USD")
+          }),
+          nciAmount: Option.none(),
+          consolidatedBalance: MonetaryAmount.make({
+            amount: BigDecimal.unsafeFromString("100000.00"),
+            currency: CurrencyCode.make("USD")
+          })
+        })
+
+        const trialBalance = ConsolidatedTrialBalance.make({
+          consolidationRunId: testRunId3,
+          groupId: testGroupId,
+          periodRef: FiscalPeriodRef.make({ year: 2024, period: 3 }),
+          asOfDate: LocalDate.make({ year: 2024, month: 9, day: 30 }),
+          currency: CurrencyCode.make("USD"),
+          lineItems: Chunk.make(lineItem),
+          totalDebits: MonetaryAmount.make({
+            amount: BigDecimal.unsafeFromString("100000.00"),
+            currency: CurrencyCode.make("USD")
+          }),
+          totalCredits: MonetaryAmount.make({
+            amount: BigDecimal.unsafeFromString("100000.00"),
+            currency: CurrencyCode.make("USD")
+          }),
+          totalEliminations: MonetaryAmount.make({
+            amount: BigDecimal.unsafeFromString("0.00"),
+            currency: CurrencyCode.make("USD")
+          }),
+          totalNCI: MonetaryAmount.make({
+            amount: BigDecimal.unsafeFromString("0.00"),
+            currency: CurrencyCode.make("USD")
+          }),
+          generatedAt: Timestamp.make({ epochMillis: Date.now() })
+        })
+
+        const run = ConsolidationRun.make({
+          id: testRunId3,
+          groupId: testGroupId,
+          periodRef: FiscalPeriodRef.make({ year: 2024, period: 3 }),
+          asOfDate: LocalDate.make({ year: 2024, month: 9, day: 30 }),
+          status: "Completed",
+          steps: Chunk.empty(),
+          validationResult: Option.none(),
+          consolidatedTrialBalance: Option.some(trialBalance),
+          eliminationEntryIds: Chunk.empty(),
+          options: ConsolidationRunOptions.make({}),
+          initiatedBy: UserId.make(testUserId),
+          initiatedAt: Timestamp.make({ epochMillis: Date.now() }),
+          startedAt: Option.some(Timestamp.make({ epochMillis: Date.now() })),
+          completedAt: Option.some(Timestamp.make({ epochMillis: Date.now() })),
+          totalDurationMs: Option.some(1000),
+          errorMessage: Option.none()
+        })
+
+        const created = yield* repo.createRun(run)
+        expect(created.id).toBe(testRunId3)
+        expect(Option.isSome(created.consolidatedTrialBalance)).toBe(true)
+      })
+    )
+
+    it.effect("findRun: retrieves run with consolidated trial balance", () =>
+      Effect.gen(function* () {
+        const repo = yield* ConsolidationRepository
+        const result = yield* repo.findRun(testRunId3)
+
+        expect(Option.isSome(result)).toBe(true)
+        if (Option.isSome(result)) {
+          const run = result.value
+          expect(Option.isSome(run.consolidatedTrialBalance)).toBe(true)
+
+          if (Option.isSome(run.consolidatedTrialBalance)) {
+            const tb = run.consolidatedTrialBalance.value
+            expect(tb.currency).toBe("USD")
+            expect(tb.periodRef.year).toBe(2024)
+            expect(tb.periodRef.period).toBe(3)
+            expect(Chunk.size(tb.lineItems)).toBe(1)
+
+            const lineItem = Chunk.get(tb.lineItems, 0)
+            if (Option.isSome(lineItem)) {
+              expect(lineItem.value.accountNumber).toBe("1000")
+              expect(lineItem.value.accountName).toBe("Cash")
+              expect(lineItem.value.accountType).toBe("Asset")
+            }
+          }
+        }
+      })
+    )
+
+    it.effect("updateRun: updates run with new consolidated trial balance", () =>
+      Effect.gen(function* () {
+        const repo = yield* ConsolidationRepository
+
+        // First get the existing run
+        const existingResult = yield* repo.findRun(testRunId3)
+        expect(Option.isSome(existingResult)).toBe(true)
+        const existingRun = Option.getOrThrow(existingResult)
+
+        // Create updated trial balance with an additional line item
+        const newLineItem = ConsolidatedTrialBalanceLineItem.make({
+          accountNumber: "2000",
+          accountName: "Accounts Payable",
+          accountType: "Liability",
+          aggregatedBalance: MonetaryAmount.make({
+            amount: BigDecimal.unsafeFromString("50000.00"),
+            currency: CurrencyCode.make("USD")
+          }),
+          eliminationAmount: MonetaryAmount.make({
+            amount: BigDecimal.unsafeFromString("0.00"),
+            currency: CurrencyCode.make("USD")
+          }),
+          nciAmount: Option.none(),
+          consolidatedBalance: MonetaryAmount.make({
+            amount: BigDecimal.unsafeFromString("50000.00"),
+            currency: CurrencyCode.make("USD")
+          })
+        })
+
+        // Get existing line items
+        const existingTB = Option.getOrThrow(existingRun.consolidatedTrialBalance)
+        const updatedLineItems = Chunk.append(existingTB.lineItems, newLineItem)
+
+        const updatedTrialBalance = ConsolidatedTrialBalance.make({
+          ...existingTB,
+          lineItems: updatedLineItems,
+          totalCredits: MonetaryAmount.make({
+            amount: BigDecimal.unsafeFromString("150000.00"),
+            currency: CurrencyCode.make("USD")
+          })
+        })
+
+        const updatedRun = ConsolidationRun.make({
+          ...existingRun,
+          consolidatedTrialBalance: Option.some(updatedTrialBalance)
+        })
+
+        yield* repo.updateRun(updatedRun)
+
+        // Verify the update
+        const result = yield* repo.findRun(testRunId3)
+        expect(Option.isSome(result)).toBe(true)
+        if (Option.isSome(result)) {
+          const tb = Option.getOrThrow(result.value.consolidatedTrialBalance)
+          expect(Chunk.size(tb.lineItems)).toBe(2)
+        }
+      })
+    )
+
+    it.effect("createRun: creates run without trial balance", () =>
+      Effect.gen(function* () {
+        const repo = yield* ConsolidationRepository
+
+        const run = ConsolidationRun.make({
+          id: testRunId4,
+          groupId: testGroupId,
+          periodRef: FiscalPeriodRef.make({ year: 2024, period: 4 }),
+          asOfDate: LocalDate.make({ year: 2024, month: 12, day: 31 }),
+          status: "InProgress",
+          steps: Chunk.empty(),
+          validationResult: Option.none(),
+          consolidatedTrialBalance: Option.none(),
+          eliminationEntryIds: Chunk.empty(),
+          options: ConsolidationRunOptions.make({}),
+          initiatedBy: UserId.make(testUserId),
+          initiatedAt: Timestamp.make({ epochMillis: Date.now() }),
+          startedAt: Option.none(),
+          completedAt: Option.none(),
+          totalDurationMs: Option.none(),
+          errorMessage: Option.none()
+        })
+
+        const created = yield* repo.createRun(run)
+        expect(created.id).toBe(testRunId4)
+        expect(Option.isNone(created.consolidatedTrialBalance)).toBe(true)
+
+        // Verify it can be retrieved without trial balance
+        const result = yield* repo.findRun(testRunId4)
+        expect(Option.isSome(result)).toBe(true)
+        if (Option.isSome(result)) {
+          expect(Option.isNone(result.value.consolidatedTrialBalance)).toBe(true)
+        }
+      })
+    )
+
+    it.effect("updateRun: can add trial balance to run that didn't have one", () =>
+      Effect.gen(function* () {
+        const repo = yield* ConsolidationRepository
+
+        // Get run without trial balance
+        const existingResult = yield* repo.findRun(testRunId4)
+        const existingRun = Option.getOrThrow(existingResult)
+        expect(Option.isNone(existingRun.consolidatedTrialBalance)).toBe(true)
+
+        // Create a trial balance
+        const trialBalance = ConsolidatedTrialBalance.make({
+          consolidationRunId: testRunId4,
+          groupId: testGroupId,
+          periodRef: FiscalPeriodRef.make({ year: 2024, period: 4 }),
+          asOfDate: LocalDate.make({ year: 2024, month: 12, day: 31 }),
+          currency: CurrencyCode.make("USD"),
+          lineItems: Chunk.empty(),
+          totalDebits: MonetaryAmount.make({
+            amount: BigDecimal.unsafeFromString("0.00"),
+            currency: CurrencyCode.make("USD")
+          }),
+          totalCredits: MonetaryAmount.make({
+            amount: BigDecimal.unsafeFromString("0.00"),
+            currency: CurrencyCode.make("USD")
+          }),
+          totalEliminations: MonetaryAmount.make({
+            amount: BigDecimal.unsafeFromString("0.00"),
+            currency: CurrencyCode.make("USD")
+          }),
+          totalNCI: MonetaryAmount.make({
+            amount: BigDecimal.unsafeFromString("0.00"),
+            currency: CurrencyCode.make("USD")
+          }),
+          generatedAt: Timestamp.make({ epochMillis: Date.now() })
+        })
+
+        const updatedRun = ConsolidationRun.make({
+          ...existingRun,
+          status: "Completed",
+          consolidatedTrialBalance: Option.some(trialBalance),
+          completedAt: Option.some(Timestamp.make({ epochMillis: Date.now() }))
+        })
+
+        yield* repo.updateRun(updatedRun)
+
+        // Verify trial balance was added
+        const result = yield* repo.findRun(testRunId4)
+        expect(Option.isSome(result)).toBe(true)
+        if (Option.isSome(result)) {
+          expect(Option.isSome(result.value.consolidatedTrialBalance)).toBe(true)
+        }
       })
     )
   })

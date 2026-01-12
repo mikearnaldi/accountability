@@ -11,6 +11,7 @@
  */
 
 import { SqlClient, SqlSchema } from "@effect/sql"
+import * as BigDecimal from "effect/BigDecimal"
 import type * as Brand from "effect/Brand"
 import * as Chunk from "effect/Chunk"
 import * as Effect from "effect/Effect"
@@ -26,6 +27,8 @@ import {
   VIEDetermination
 } from "@accountability/core/Domains/ConsolidationGroup"
 import {
+  ConsolidatedTrialBalance,
+  ConsolidatedTrialBalanceLineItem,
   ConsolidationRun,
   ConsolidationRunId,
   ConsolidationRunOptions,
@@ -38,6 +41,7 @@ import {
 import { CurrencyCode } from "@accountability/core/Domains/CurrencyCode"
 import { FiscalPeriodRef } from "@accountability/core/Domains/FiscalPeriodRef"
 import { LocalDate } from "@accountability/core/Domains/LocalDate"
+import { MonetaryAmount } from "@accountability/core/Domains/MonetaryAmount"
 import { OrganizationId } from "@accountability/core/Domains/Organization"
 import { Timestamp } from "@accountability/core/Domains/Timestamp"
 import { UserId } from "@accountability/core/Domains/JournalEntry"
@@ -134,6 +138,26 @@ const EliminationEntryIdRow = Schema.Struct({
   journal_entry_id: Schema.String
 })
 type EliminationEntryIdRow = typeof EliminationEntryIdRow.Type
+
+/**
+ * Schema for consolidated_trial_balances table row
+ */
+const ConsolidatedTrialBalanceRow = Schema.Struct({
+  id: Schema.String,
+  consolidation_run_id: Schema.String,
+  consolidation_group_id: Schema.String,
+  fiscal_year: Schema.Number,
+  fiscal_period: Schema.Number,
+  as_of_date: Schema.DateFromSelf,
+  currency: CurrencyCode,
+  line_items: Schema.Unknown,
+  total_debits: Schema.Unknown,
+  total_credits: Schema.Unknown,
+  total_eliminations: Schema.Unknown,
+  total_nci: Schema.Unknown,
+  generated_at: Schema.DateFromSelf
+})
+type ConsolidatedTrialBalanceRow = typeof ConsolidatedTrialBalanceRow.Type
 
 /**
  * Schema for count query result
@@ -314,6 +338,16 @@ const make = Effect.gen(function* () {
     `
   })
 
+  // SqlSchema query builder for consolidated trial balance
+  const findTrialBalanceByRunId = SqlSchema.findOne({
+    Request: Schema.String,
+    Result: ConsolidatedTrialBalanceRow,
+    execute: (runId) => sql`
+      SELECT * FROM consolidated_trial_balances
+      WHERE consolidation_run_id = ${runId}
+    `
+  })
+
   // Helper to load steps for a run
   const loadSteps = (runId: string): Effect.Effect<Chunk.Chunk<ConsolidationStep>, PersistenceError> =>
     findStepsByRunId(runId).pipe(
@@ -330,11 +364,74 @@ const make = Effect.gen(function* () {
       wrapSqlError("loadEliminationEntryIds")
     )
 
+  // Schema for line items in trial balance JSONB
+  const LineItemSchema = Schema.Struct({
+    accountNumber: Schema.String,
+    accountName: Schema.String,
+    accountType: Schema.Literal("Asset", "Liability", "Equity", "Revenue", "Expense"),
+    aggregatedBalance: MonetaryAmount,
+    eliminationAmount: MonetaryAmount,
+    nciAmount: Schema.NullOr(MonetaryAmount),
+    consolidatedBalance: MonetaryAmount
+  })
+
+  // Helper to load consolidated trial balance for a run
+  const loadConsolidatedTrialBalance = (
+    runId: string
+  ): Effect.Effect<Option.Option<ConsolidatedTrialBalance>, PersistenceError> =>
+    findTrialBalanceByRunId(runId).pipe(
+      Effect.flatMap(Option.match({
+        onNone: () => Effect.succeed(Option.none<ConsolidatedTrialBalance>()),
+        onSome: (row) => Effect.gen(function* () {
+          // Parse line items from JSONB
+          const lineItemsRaw = yield* Schema.decodeUnknown(Schema.Array(LineItemSchema))(row.line_items).pipe(
+            Effect.catchAll(() => Effect.succeed([]))
+          )
+
+          const lineItems = Chunk.fromIterable(
+            lineItemsRaw.map((li) => ConsolidatedTrialBalanceLineItem.make({
+              accountNumber: li.accountNumber,
+              accountName: li.accountName,
+              accountType: li.accountType,
+              aggregatedBalance: li.aggregatedBalance,
+              eliminationAmount: li.eliminationAmount,
+              nciAmount: Option.fromNullable(li.nciAmount),
+              consolidatedBalance: li.consolidatedBalance
+            }))
+          )
+
+          // Parse total amounts from JSONB
+          const totalDebits = yield* Schema.decodeUnknown(MonetaryAmount)(row.total_debits)
+          const totalCredits = yield* Schema.decodeUnknown(MonetaryAmount)(row.total_credits)
+          const totalEliminations = yield* Schema.decodeUnknown(MonetaryAmount)(row.total_eliminations)
+          const totalNCI = yield* Schema.decodeUnknown(MonetaryAmount)(row.total_nci)
+
+          return Option.some(ConsolidatedTrialBalance.make({
+            consolidationRunId: ConsolidationRunId.make(row.consolidation_run_id),
+            groupId: ConsolidationGroupId.make(row.consolidation_group_id),
+            periodRef: FiscalPeriodRef.make({ year: row.fiscal_year, period: row.fiscal_period }),
+            asOfDate: dateToLocalDate(row.as_of_date),
+            currency: row.currency,
+            lineItems,
+            totalDebits,
+            totalCredits,
+            totalEliminations,
+            totalNCI,
+            generatedAt: Timestamp.make({ epochMillis: row.generated_at.getTime() })
+          }))
+        }).pipe(
+          Effect.catchAll(() => Effect.succeed(Option.none<ConsolidatedTrialBalance>()))
+        )
+      })),
+      wrapSqlError("loadConsolidatedTrialBalance")
+    )
+
   // Helper to convert run row to entity (loads related data)
   const rowToConsolidationRun = (row: ConsolidationRunRow): Effect.Effect<ConsolidationRun, PersistenceError> =>
     Effect.gen(function* () {
       const steps = yield* loadSteps(row.id)
       const eliminationEntryIds = yield* loadEliminationEntryIds(row.id)
+      const consolidatedTrialBalance = yield* loadConsolidatedTrialBalance(row.id)
 
       // Parse validation result from JSONB using Schema.decodeUnknown
       const validationResult = yield* Option.fromNullable(row.validation_result).pipe(
@@ -372,7 +469,7 @@ const make = Effect.gen(function* () {
         status: row.status,
         steps,
         validationResult,
-        consolidatedTrialBalance: Option.none(),  // Load from consolidated_trial_balances if needed
+        consolidatedTrialBalance,
         eliminationEntryIds,
         options,
         initiatedBy: UserId.make(row.initiated_by),
@@ -668,6 +765,52 @@ const make = Effect.gen(function* () {
         `.pipe(wrapSqlError("createRun:eliminationEntries"))
       }
 
+      // Insert consolidated trial balance if present
+      if (Option.isSome(run.consolidatedTrialBalance)) {
+        const tb = run.consolidatedTrialBalance.value
+
+        // Encode MonetaryAmount instances to their JSON representation
+        const encodeMonetaryAmount = (ma: MonetaryAmount) => ({
+          amount: BigDecimal.format(ma.amount),
+          currency: ma.currency
+        })
+
+        const lineItemsJson = JSON.stringify(Chunk.toArray(tb.lineItems).map((li) => ({
+          accountNumber: li.accountNumber,
+          accountName: li.accountName,
+          accountType: li.accountType,
+          aggregatedBalance: encodeMonetaryAmount(li.aggregatedBalance),
+          eliminationAmount: encodeMonetaryAmount(li.eliminationAmount),
+          nciAmount: Option.match(li.nciAmount, {
+            onNone: () => null,
+            onSome: encodeMonetaryAmount
+          }),
+          consolidatedBalance: encodeMonetaryAmount(li.consolidatedBalance)
+        })))
+
+        yield* sql`
+          INSERT INTO consolidated_trial_balances (
+            id, consolidation_run_id, consolidation_group_id, fiscal_year, fiscal_period,
+            as_of_date, currency, line_items, total_debits, total_credits,
+            total_eliminations, total_nci, generated_at
+          ) VALUES (
+            ${crypto.randomUUID()},
+            ${run.id},
+            ${run.groupId},
+            ${run.periodRef.year},
+            ${run.periodRef.period},
+            ${run.asOfDate.toDate()},
+            ${tb.currency},
+            ${lineItemsJson}::jsonb,
+            ${JSON.stringify(encodeMonetaryAmount(tb.totalDebits))}::jsonb,
+            ${JSON.stringify(encodeMonetaryAmount(tb.totalCredits))}::jsonb,
+            ${JSON.stringify(encodeMonetaryAmount(tb.totalEliminations))}::jsonb,
+            ${JSON.stringify(encodeMonetaryAmount(tb.totalNCI))}::jsonb,
+            ${tb.generatedAt.toDate()}
+          )
+        `.pipe(wrapSqlError("createRun:trialBalance"))
+      }
+
       return run
     })
 
@@ -733,6 +876,56 @@ const make = Effect.gen(function* () {
             ${run.id}, ${entryId}
           )
         `.pipe(wrapSqlError("updateRun:eliminationEntries"))
+      }
+
+      // Delete and re-insert consolidated trial balance
+      yield* sql`
+        DELETE FROM consolidated_trial_balances WHERE consolidation_run_id = ${run.id}
+      `.pipe(wrapSqlError("updateRun:deleteTrialBalance"))
+
+      if (Option.isSome(run.consolidatedTrialBalance)) {
+        const tb = run.consolidatedTrialBalance.value
+
+        // Encode MonetaryAmount instances to their JSON representation
+        const encodeMonetaryAmount = (ma: MonetaryAmount) => ({
+          amount: BigDecimal.format(ma.amount),
+          currency: ma.currency
+        })
+
+        const lineItemsJson = JSON.stringify(Chunk.toArray(tb.lineItems).map((li) => ({
+          accountNumber: li.accountNumber,
+          accountName: li.accountName,
+          accountType: li.accountType,
+          aggregatedBalance: encodeMonetaryAmount(li.aggregatedBalance),
+          eliminationAmount: encodeMonetaryAmount(li.eliminationAmount),
+          nciAmount: Option.match(li.nciAmount, {
+            onNone: () => null,
+            onSome: encodeMonetaryAmount
+          }),
+          consolidatedBalance: encodeMonetaryAmount(li.consolidatedBalance)
+        })))
+
+        yield* sql`
+          INSERT INTO consolidated_trial_balances (
+            id, consolidation_run_id, consolidation_group_id, fiscal_year, fiscal_period,
+            as_of_date, currency, line_items, total_debits, total_credits,
+            total_eliminations, total_nci, generated_at
+          ) VALUES (
+            ${crypto.randomUUID()},
+            ${run.id},
+            ${run.groupId},
+            ${run.periodRef.year},
+            ${run.periodRef.period},
+            ${run.asOfDate.toDate()},
+            ${tb.currency},
+            ${lineItemsJson}::jsonb,
+            ${JSON.stringify(encodeMonetaryAmount(tb.totalDebits))}::jsonb,
+            ${JSON.stringify(encodeMonetaryAmount(tb.totalCredits))}::jsonb,
+            ${JSON.stringify(encodeMonetaryAmount(tb.totalEliminations))}::jsonb,
+            ${JSON.stringify(encodeMonetaryAmount(tb.totalNCI))}::jsonb,
+            ${tb.generatedAt.toDate()}
+          )
+        `.pipe(wrapSqlError("updateRun:trialBalance"))
       }
 
       return run
