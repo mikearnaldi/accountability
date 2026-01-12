@@ -1630,7 +1630,7 @@
         "All findBy* methods return Option for single results",
         "Batch operations available where appropriate"
       ],
-      "status": "pending",
+      "status": "in_progress",
       "estimated_complexity": "medium"
     },
     {
@@ -1760,6 +1760,30 @@
       ],
       "status": "pending",
       "estimated_complexity": "small"
+    },
+    {
+      "id": "6.4.9",
+      "phase": "API Layer",
+      "epic": "API Completeness",
+      "title": "Ensure API is feature complete with all persistence modules",
+      "description": "Audit persistence repositories and ensure every domain entity has corresponding API endpoints. The API should expose all functionality that persistence supports.",
+      "specs": [
+        "API_BEST_PRACTICES.md",
+        "ACCOUNTING_RESEARCH.md"
+      ],
+      "acceptance_criteria": [
+        "Audit all repositories in persistence package",
+        "Create API groups for any missing domain entities",
+        "IntercompanyTransactionApi with full CRUD endpoints",
+        "FiscalPeriodApi with full CRUD and period management endpoints",
+        "CurrencyApi with exchange rate management endpoints",
+        "All API groups follow consistent patterns (list, get, create, update, deactivate)",
+        "All endpoints have proper OpenAPI documentation",
+        "All endpoints use real repository implementations",
+        "Feature parity: every persistence operation is accessible via API"
+      ],
+      "status": "pending",
+      "estimated_complexity": "large"
     },
     {
       "id": "7.1.1",
