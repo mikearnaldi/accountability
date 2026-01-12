@@ -78,7 +78,7 @@
         "Verify all schemas have valid JSON Schema representations",
         "No missing jsonSchema annotations"
       ],
-      "status": "in_progress",
+      "status": "complete",
       "estimated_complexity": "medium"
     },
     {
@@ -130,7 +130,16 @@
       ],
       "technical_details": {
         "location": "packages/core/src/Auth/",
-        "files": ["AuthUserId.ts", "SessionId.ts", "ProviderId.ts", "AuthProviderType.ts", "AuthUser.ts", "UserIdentity.ts", "Session.ts", "LocalCredentials.ts"],
+        "files": [
+          "AuthUserId.ts",
+          "SessionId.ts",
+          "ProviderId.ts",
+          "AuthProviderType.ts",
+          "AuthUser.ts",
+          "UserIdentity.ts",
+          "Session.ts",
+          "LocalCredentials.ts"
+        ],
         "pattern": "Flat module structure, no index.ts barrel files",
         "multi_provider": "One AuthUser can have multiple UserIdentity records (e.g., local + WorkOS)"
       },
@@ -189,7 +198,10 @@
       ],
       "technical_details": {
         "location": "packages/core/src/Auth/",
-        "files": ["PasswordHasher.ts", "HashedPassword.ts"],
+        "files": [
+          "PasswordHasher.ts",
+          "HashedPassword.ts"
+        ],
         "implementation": "Use 'bcryptjs' or 'argon2' package",
         "pattern": "Layer.effect for service creation, Redacted for sensitive data"
       },
@@ -248,7 +260,12 @@
       ],
       "technical_details": {
         "location": "packages/core/src/Auth/",
-        "files": ["AuthProvider.ts", "AuthService.ts", "AuthRequest.ts", "AuthResult.ts"],
+        "files": [
+          "AuthProvider.ts",
+          "AuthService.ts",
+          "AuthRequest.ts",
+          "AuthResult.ts"
+        ],
         "pattern": "Strategy pattern for providers, registry pattern for AuthService",
         "multi_provider": "AuthService holds Map<AuthProviderType, AuthProvider> for routing"
       },
@@ -274,7 +291,11 @@
       ],
       "technical_details": {
         "location": "packages/persistence/src/Migrations/",
-        "files": ["010_create_auth_users.ts", "011_create_auth_identities.ts", "012_create_auth_sessions.ts"],
+        "files": [
+          "010_create_auth_users.ts",
+          "011_create_auth_identities.ts",
+          "012_create_auth_sessions.ts"
+        ],
         "pattern": "SqlClient.execute template tag for migrations",
         "note": "password_hash is on auth_identities (not auth_users) since only local provider uses it"
       },
@@ -303,7 +324,10 @@
       ],
       "technical_details": {
         "location": "packages/persistence/src/",
-        "files": ["Services/UserRepository.ts", "Layers/UserRepositoryLive.ts"],
+        "files": [
+          "Services/UserRepository.ts",
+          "Layers/UserRepositoryLive.ts"
+        ],
         "pattern": "Follow AccountRepository patterns"
       },
       "status": "pending",
@@ -333,7 +357,10 @@
       ],
       "technical_details": {
         "location": "packages/persistence/src/",
-        "files": ["Services/IdentityRepository.ts", "Layers/IdentityRepositoryLive.ts"],
+        "files": [
+          "Services/IdentityRepository.ts",
+          "Layers/IdentityRepositoryLive.ts"
+        ],
         "pattern": "Follow AccountRepository patterns"
       },
       "status": "pending",
@@ -362,7 +389,10 @@
       ],
       "technical_details": {
         "location": "packages/persistence/src/",
-        "files": ["Services/SessionRepository.ts", "Layers/SessionRepositoryLive.ts"],
+        "files": [
+          "Services/SessionRepository.ts",
+          "Layers/SessionRepositoryLive.ts"
+        ],
         "pattern": "Follow AccountRepository patterns"
       },
       "status": "pending",
@@ -389,7 +419,11 @@
       ],
       "technical_details": {
         "location": "packages/persistence/src/Layers/LocalAuthProviderLive.ts",
-        "dependencies": ["UserRepository", "IdentityRepository", "PasswordHasher"],
+        "dependencies": [
+          "UserRepository",
+          "IdentityRepository",
+          "PasswordHasher"
+        ],
         "pattern": "Layer.effect with dependency injection"
       },
       "status": "pending",
@@ -418,7 +452,13 @@
       ],
       "technical_details": {
         "location": "packages/persistence/src/Layers/AuthServiceLive.ts",
-        "dependencies": ["UserRepository", "IdentityRepository", "SessionRepository", "SessionTokenGenerator", "Array<AuthProvider>"],
+        "dependencies": [
+          "UserRepository",
+          "IdentityRepository",
+          "SessionRepository",
+          "SessionTokenGenerator",
+          "Array<AuthProvider>"
+        ],
         "pattern": "Layer.effect with dependency injection, provider registry internal"
       },
       "status": "pending",
@@ -535,7 +575,11 @@
         "HTTP_API_TANSTACK.md"
       ],
       "technical_details": {
-        "files": ["packages/api/src/Definitions/AppApi.ts", "packages/api/src/Layers/AppApiLive.ts", "packages/web/src/api/handler.ts"]
+        "files": [
+          "packages/api/src/Definitions/AppApi.ts",
+          "packages/api/src/Layers/AppApiLive.ts",
+          "packages/web/src/api/handler.ts"
+        ]
       },
       "status": "pending",
       "estimated_complexity": "small"
@@ -828,7 +872,10 @@
       ],
       "technical_details": {
         "location": "packages/persistence/src/Layers/WorkOSAuthProviderLive.ts",
-        "dependencies": ["HttpClient for WorkOS API calls", "WorkOSConfig"],
+        "dependencies": [
+          "HttpClient for WorkOS API calls",
+          "WorkOSConfig"
+        ],
         "workos_sdk": "Use WorkOS REST API directly with HttpClient (no SDK dependency)",
         "endpoints": "Authorization URL, Token exchange, User info"
       },
