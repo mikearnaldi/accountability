@@ -524,3 +524,8 @@
 **Story**: 8.1.1 - Define authentication domain schemas
 **Status**: complete
 ---
+
+## Iteration 5 - 2026-01-12 21:57
+**Story**: 8.1.2 - Define authentication error types
+**Status**: complete
+---

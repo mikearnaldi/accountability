@@ -175,7 +175,7 @@
         "location": "packages/core/src/Auth/AuthErrors.ts",
         "pattern": "Schema.TaggedError with HttpApiSchema.annotations for status codes"
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "small"
     },
     {
