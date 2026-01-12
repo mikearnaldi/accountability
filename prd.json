@@ -1894,7 +1894,7 @@
         "pattern": "Atom.family for per-currency metadata lookup",
         "state": "Local React state for input value, Atom for currency data"
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "medium"
     },
     {

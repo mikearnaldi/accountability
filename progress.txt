@@ -494,3 +494,8 @@
 **Story**: 7.1.1 - Implement account selector component
 **Status**: complete
 ---
+
+## Iteration 8 - 2026-01-12 18:04
+**Story**: 7.1.2 - Implement currency input component
+**Status**: complete
+---
