@@ -117,16 +117,22 @@ importers:
         version: link:../persistence
       '@effect-atom/atom':
         specifier: ^0.4.11
-        version: 0.4.11(@effect/experimental@0.57.11(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14))(@effect/platform@0.94.1(effect@3.19.14))(@effect/rpc@0.73.0(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14))(effect@3.19.14)
+        version: 0.4.11(@effect/experimental@0.58.0(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14))(@effect/platform@0.94.1(effect@3.19.14))(@effect/rpc@0.73.0(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14))(effect@3.19.14)
       '@effect-atom/atom-react':
         specifier: ^0.4.4
-        version: 0.4.4(@effect/experimental@0.57.11(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14))(@effect/platform@0.94.1(effect@3.19.14))(@effect/rpc@0.73.0(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14))(effect@3.19.14)(react@19.2.3)(scheduler@0.27.0)
+        version: 0.4.4(@effect/experimental@0.58.0(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14))(@effect/platform@0.94.1(effect@3.19.14))(@effect/rpc@0.73.0(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14))(effect@3.19.14)(react@19.2.3)(scheduler@0.27.0)
       '@effect/experimental':
-        specifier: ^0.57.0
-        version: 0.57.11(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14)
+        specifier: ^0.58.0
+        version: 0.58.0(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14)
       '@effect/platform':
-        specifier: ^0.94.0
+        specifier: ^0.94.1
         version: 0.94.1(effect@3.19.14)
+      '@effect/sql':
+        specifier: ^0.49.0
+        version: 0.49.0(@effect/experimental@0.58.0(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14))(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14)
+      '@effect/sql-pg':
+        specifier: ^0.50.1
+        version: 0.50.1(@effect/experimental@0.58.0(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14))(@effect/platform@0.94.1(effect@3.19.14))(@effect/sql@0.49.0(@effect/experimental@0.58.0(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14))(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14))(effect@3.19.14)
       '@tanstack/react-router':
         specifier: ^1.147.0
         version: 1.147.3(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -137,7 +143,7 @@ importers:
         specifier: ^1.147.0
         version: 1.149.0(crossws@0.4.1(srvx@0.10.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(vite@7.3.1(@types/node@22.19.5)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
       effect:
-        specifier: ^3.19.0
+        specifier: ^3.19.14
         version: 3.19.14
       react:
         specifier: ^19.0.0
@@ -149,6 +155,9 @@ importers:
         specifier: ^0.27.0
         version: 0.27.0
     devDependencies:
+      '@testcontainers/postgresql':
+        specifier: ^10.25.0
+        version: 10.28.0
       '@types/node':
         specifier: ^22.5.4
         version: 22.19.5
@@ -305,19 +314,6 @@ packages:
       '@effect/sql': ^0.49.0
       '@effect/workflow': ^0.16.0
       effect: ^3.19.14
-
-  '@effect/experimental@0.57.11':
-    resolution: {integrity: sha512-M5uug3Drs/gyTHLfA+XzcIZQGUEV/Jn5yi1POki4oZswhpzNmsVTHl4THpxAordRKwa5lFvTSlsRP684YH7pSw==}
-    peerDependencies:
-      '@effect/platform': ^0.93.6
-      effect: ^3.19.9
-      ioredis: ^5
-      lmdb: ^3
-    peerDependenciesMeta:
-      ioredis:
-        optional: true
-      lmdb:
-        optional: true
 
   '@effect/experimental@0.58.0':
     resolution: {integrity: sha512-IEP9sapjF6rFy5TkoqDPc86st/fnqUfjT7Xa3pWJrFGr1hzaMXHo+mWsYOZS9LAOVKnpHuVziDK97EP5qsCHVA==}
@@ -3236,9 +3232,9 @@ snapshots:
 
   '@bcoe/v8-coverage@1.0.2': {}
 
-  '@effect-atom/atom-react@0.4.4(@effect/experimental@0.57.11(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14))(@effect/platform@0.94.1(effect@3.19.14))(@effect/rpc@0.73.0(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14))(effect@3.19.14)(react@19.2.3)(scheduler@0.27.0)':
+  '@effect-atom/atom-react@0.4.4(@effect/experimental@0.58.0(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14))(@effect/platform@0.94.1(effect@3.19.14))(@effect/rpc@0.73.0(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14))(effect@3.19.14)(react@19.2.3)(scheduler@0.27.0)':
     dependencies:
-      '@effect-atom/atom': 0.4.11(@effect/experimental@0.57.11(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14))(@effect/platform@0.94.1(effect@3.19.14))(@effect/rpc@0.73.0(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14))(effect@3.19.14)
+      '@effect-atom/atom': 0.4.11(@effect/experimental@0.58.0(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14))(@effect/platform@0.94.1(effect@3.19.14))(@effect/rpc@0.73.0(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14))(effect@3.19.14)
       effect: 3.19.14
       react: 19.2.3
       scheduler: 0.27.0
@@ -3247,9 +3243,9 @@ snapshots:
       - '@effect/platform'
       - '@effect/rpc'
 
-  '@effect-atom/atom@0.4.11(@effect/experimental@0.57.11(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14))(@effect/platform@0.94.1(effect@3.19.14))(@effect/rpc@0.73.0(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14))(effect@3.19.14)':
+  '@effect-atom/atom@0.4.11(@effect/experimental@0.58.0(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14))(@effect/platform@0.94.1(effect@3.19.14))(@effect/rpc@0.73.0(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14))(effect@3.19.14)':
     dependencies:
-      '@effect/experimental': 0.57.11(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14)
+      '@effect/experimental': 0.58.0(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14)
       '@effect/platform': 0.94.1(effect@3.19.14)
       '@effect/rpc': 0.73.0(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14)
       effect: 3.19.14
@@ -3262,12 +3258,6 @@ snapshots:
       '@effect/workflow': 0.16.0(@effect/experimental@0.58.0(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14))(@effect/platform@0.94.1(effect@3.19.14))(@effect/rpc@0.73.0(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14))(effect@3.19.14)
       effect: 3.19.14
       kubernetes-types: 1.30.0
-
-  '@effect/experimental@0.57.11(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14)':
-    dependencies:
-      '@effect/platform': 0.94.1(effect@3.19.14)
-      effect: 3.19.14
-      uuid: 11.1.0
 
   '@effect/experimental@0.58.0(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14)':
     dependencies:

@@ -2,8 +2,8 @@ import { HttpApiBuilder, HttpApiSwagger, HttpServer } from "@effect/platform"
 import * as Layer from "effect/Layer"
 import { AppApiLive } from "@accountability/api/Layers/AppApiLive"
 import { RepositoriesLive } from "@accountability/persistence/Layers/RepositoriesLive"
-import { PgClientLive } from "@accountability/persistence/Layers/PgClientLive"
 import { MigrationsLive } from "@accountability/persistence/Layers/MigrationsLive"
+import { PgClientLayer } from "./PgClientLayer.ts"
 
 // Logging utility that bypasses no-console lint rule
 // Uses process.stderr.write for debug logging during shutdown
@@ -40,7 +40,8 @@ const { handler, dispose } = HttpApiBuilder.toWebHandler(
     Layer.provide(RepositoriesLive),
     // Run migrations on startup (ensures schema is up to date)
     Layer.provide(MigrationsLive),
-    Layer.provide(PgClientLive),
+    // Use dev container (testcontainers) or production PgClient based on NODE_ENV
+    Layer.provide(PgClientLayer),
     Layer.provideMerge(HttpServer.layerContext)
   )
 )
