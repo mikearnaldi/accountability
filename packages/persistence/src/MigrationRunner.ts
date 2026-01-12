@@ -22,6 +22,7 @@ import Migration0005 from "./Migrations/Migration0005_CreateJournalEntries.ts"
 import Migration0006 from "./Migrations/Migration0006_CreateExchangeRates.ts"
 import Migration0007 from "./Migrations/Migration0007_CreateConsolidation.ts"
 import Migration0008 from "./Migrations/Migration0008_CreateIntercompany.ts"
+import Migration0009 from "./Migrations/Migration0009_CreateConsolidationRuns.ts"
 
 /**
  * Migration loader with all migrations defined inline.
@@ -41,7 +42,8 @@ const loader = Migrator.fromRecord({
   "5_CreateJournalEntries": Migration0005,
   "6_CreateExchangeRates": Migration0006,
   "7_CreateConsolidation": Migration0007,
-  "8_CreateIntercompany": Migration0008
+  "8_CreateIntercompany": Migration0008,
+  "9_CreateConsolidationRuns": Migration0009
 })
 
 /**

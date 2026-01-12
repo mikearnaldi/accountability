@@ -70,8 +70,8 @@ describe("Migrations", () => {
         Effect.gen(function* () {
           const completed = yield* runMigrations
 
-          // Should run all 8 migrations
-          expect(completed).toHaveLength(8)
+          // Should run all 9 migrations
+          expect(completed).toHaveLength(9)
 
           // Verify migration order
           expect(completed[0]).toEqual([1, "CreateOrganizations"])
@@ -82,6 +82,7 @@ describe("Migrations", () => {
           expect(completed[5]).toEqual([6, "CreateExchangeRates"])
           expect(completed[6]).toEqual([7, "CreateConsolidation"])
           expect(completed[7]).toEqual([8, "CreateIntercompany"])
+          expect(completed[8]).toEqual([9, "CreateConsolidationRuns"])
         })
       )
 
@@ -100,7 +101,7 @@ describe("Migrations", () => {
           })
           const rows = yield* findMigrations()
 
-          expect(rows).toHaveLength(8)
+          expect(rows).toHaveLength(9)
           expect(rows[0].migration_id).toBe(1)
           expect(rows[0].name).toBe("CreateOrganizations")
         })
@@ -288,6 +289,56 @@ describe("Migrations", () => {
           const tables = yield* findTables()
 
           expect(tables).toHaveLength(1)
+        })
+      )
+
+      it.effect(
+        "creates consolidation run tables (consolidation_runs, consolidation_run_steps, consolidated_trial_balances)",
+        () =>
+          Effect.gen(function* () {
+            const sql = yield* PgClient.PgClient
+
+            const findTables = SqlSchema.findAll({
+              Request: Schema.Void,
+              Result: TableNameRow,
+              execute: () => sql`
+                SELECT table_name FROM information_schema.tables
+                WHERE table_name IN (
+                  'consolidation_runs',
+                  'consolidation_run_steps',
+                  'consolidated_trial_balances',
+                  'consolidation_run_elimination_entries'
+                )
+              `
+            })
+            const tables = yield* findTables()
+
+            expect(tables).toHaveLength(4)
+          })
+      )
+
+      it.effect("creates consolidation run enums", () =>
+        Effect.gen(function* () {
+          const sql = yield* PgClient.PgClient
+
+          const findEnums = SqlSchema.findAll({
+            Request: Schema.Void,
+            Result: TypeNameRow,
+            execute: () => sql`
+              SELECT typname FROM pg_type
+              WHERE typname IN (
+                'consolidation_run_status',
+                'consolidation_step_type',
+                'consolidation_step_status'
+              )
+            `
+          })
+          const enums = yield* findEnums()
+
+          const enumNames = enums.map((e) => e.typname)
+          expect(enumNames).toContain("consolidation_run_status")
+          expect(enumNames).toContain("consolidation_step_type")
+          expect(enumNames).toContain("consolidation_step_status")
         })
       )
 

@@ -1684,7 +1684,7 @@
         "Migration files follow naming convention",
         "Migrations can run cleanly on fresh database"
       ],
-      "status": "in_progress",
+      "status": "complete",
       "estimated_complexity": "medium"
     },
     {
