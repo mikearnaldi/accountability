@@ -461,7 +461,7 @@
         ],
         "pattern": "Layer.effect with dependency injection, provider registry internal"
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "large"
     },
     {
