@@ -184,7 +184,7 @@ export class TriggerCondition extends Schema.Class<TriggerCondition>("TriggerCon
    * Minimum transaction amount threshold (optional)
    * Transactions below this amount won't trigger the rule
    */
-  minimumAmount: Schema.OptionFromNullOr(Schema.BigDecimalFromSelf).annotations({
+  minimumAmount: Schema.OptionFromNullOr(Schema.BigDecimal).annotations({
     title: "Minimum Amount",
     description: "Optional minimum transaction amount to trigger the rule"
   })

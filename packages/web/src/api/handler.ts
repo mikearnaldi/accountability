@@ -30,10 +30,10 @@ declare global {
 // - OpenAPI JSON: /api/openapi.json
 const { handler, dispose } = HttpApiBuilder.toWebHandler(
   Layer.mergeAll(
-    // Swagger UI at /docs (requires Api, provided by AppApiLive)
-    HttpApiSwagger.layer({ path: "/docs" }),
-    // OpenAPI JSON at /openapi.json (requires Api, provided by AppApiLive)
-    HttpApiBuilder.middlewareOpenApi({ path: "/openapi.json" })
+    // Swagger UI at /api/docs
+    HttpApiSwagger.layer({ path: "/api/docs" }),
+    // OpenAPI JSON at /api/openapi.json
+    HttpApiBuilder.middlewareOpenApi({ path: "/api/openapi.json" })
   ).pipe(
     Layer.provideMerge(AppApiLive),
     // Use real repositories with PostgreSQL

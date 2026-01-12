@@ -38,10 +38,8 @@ const isDev = process.env.NODE_ENV !== "production"
 
 /**
  * Path to the local database directory for persistent storage (dev only)
- * Uses import.meta.dirname to get stable path relative to this module,
- * then navigates to the web package root's .db directory
  */
-const DB_DIR = path.resolve(import.meta.dirname, "../..", ".db")
+const DB_DIR = path.resolve(process.cwd(), ".db")
 
 /**
  * Development layer using testcontainers with persistent storage
@@ -73,15 +71,18 @@ const DevLayer = Layer.unwrapScoped(
               source: DB_DIR,
               target: "/var/lib/postgresql/data"
             }])
-            .withReuse()
             .start()
 
           return started
         },
         catch: (cause) => new DevContainerError({ message: "Failed to start PostgreSQL container", cause })
       }),
-      (_container) =>
-        Effect.log("Container will be reused (not stopping)")
+      (container) =>
+        Effect.gen(function* () {
+          yield* Effect.log("Stopping PostgreSQL container...")
+          yield* Effect.promise(() => container.stop().catch(() => {}))
+          yield* Effect.log("PostgreSQL container stopped")
+        })
     )
 
     yield* Effect.log(`Container started: ${container.getHost()}:${container.getMappedPort(5432)}`)

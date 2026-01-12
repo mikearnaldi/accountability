@@ -34,7 +34,7 @@ import { AuthMiddleware } from "./AuthMiddleware.ts"
 export class TriggerConditionInput extends Schema.Class<TriggerConditionInput>("TriggerConditionInput")({
   description: Schema.NonEmptyTrimmedString,
   sourceAccounts: Schema.Array(AccountSelector),
-  minimumAmount: Schema.OptionFromNullOr(Schema.BigDecimalFromSelf)
+  minimumAmount: Schema.OptionFromNullOr(Schema.BigDecimal)
 }) {}
 
 /**
