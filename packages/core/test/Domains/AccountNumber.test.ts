@@ -20,7 +20,7 @@ import {
   hasNormalDebitBalance,
   hasNormalCreditBalance,
   getSubcategory
-} from "../../src/domain/AccountNumber.ts"
+} from "../../src/Domains/AccountNumber.ts"
 
 describe("AccountNumber", () => {
   describe("validation", () => {

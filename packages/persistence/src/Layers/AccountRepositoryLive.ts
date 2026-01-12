@@ -19,11 +19,11 @@ import {
   AccountType,
   CashFlowCategory,
   NormalBalance
-} from "@accountability/core/domain/Account"
-import { AccountNumber } from "@accountability/core/domain/AccountNumber"
-import { CompanyId } from "@accountability/core/domain/Company"
-import { CurrencyCode } from "@accountability/core/domain/CurrencyCode"
-import { Timestamp } from "@accountability/core/domain/Timestamp"
+} from "@accountability/core/Domains/Account"
+import { AccountNumber } from "@accountability/core/Domains/AccountNumber"
+import { CompanyId } from "@accountability/core/Domains/Company"
+import { CurrencyCode } from "@accountability/core/Domains/CurrencyCode"
+import { Timestamp } from "@accountability/core/Domains/Timestamp"
 import { AccountRepository, type AccountRepositoryService } from "../Services/AccountRepository.ts"
 import { EntityNotFoundError, wrapSqlError } from "../RepositoryError.ts"
 

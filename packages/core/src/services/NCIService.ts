@@ -21,10 +21,10 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
-import type { CompanyId } from "../domain/Company.ts"
-import { CurrencyCode } from "../domain/CurrencyCode.ts"
-import { MonetaryAmount } from "../domain/MonetaryAmount.ts"
-import { Percentage, complement as percentageComplement } from "../domain/Percentage.ts"
+import type { CompanyId } from "../Domains/Company.ts"
+import { CurrencyCode } from "../Domains/CurrencyCode.ts"
+import { MonetaryAmount } from "../Domains/MonetaryAmount.ts"
+import { Percentage, complement as percentageComplement } from "../Domains/Percentage.ts"
 
 // =============================================================================
 // Error Types

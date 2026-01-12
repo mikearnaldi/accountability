@@ -19,19 +19,19 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
-import type { ExchangeRateId, Rate, RateType, RateSource} from "../domain/ExchangeRate.ts";
-import { ExchangeRate, getInverseRate } from "../domain/ExchangeRate.ts"
-import { CurrencyCode } from "../domain/CurrencyCode.ts"
-import { LocalDate } from "../domain/LocalDate.ts"
-import { MonetaryAmount } from "../domain/MonetaryAmount.ts"
-import { Timestamp, nowEffect as timestampNowEffect } from "../domain/Timestamp.ts"
-import type { JournalEntryId, UserId } from "../domain/JournalEntry.ts";
-import { JournalEntry } from "../domain/JournalEntry.ts"
-import type { JournalEntryLineId } from "../domain/JournalEntryLine.ts";
-import { JournalEntryLine } from "../domain/JournalEntryLine.ts"
-import type { AccountId, AccountType } from "../domain/Account.ts"
-import { CompanyId } from "../domain/Company.ts"
-import type { FiscalPeriodRef } from "../domain/FiscalPeriodRef.ts"
+import type { ExchangeRateId, Rate, RateType, RateSource} from "../Domains/ExchangeRate.ts";
+import { ExchangeRate, getInverseRate } from "../Domains/ExchangeRate.ts"
+import { CurrencyCode } from "../Domains/CurrencyCode.ts"
+import { LocalDate } from "../Domains/LocalDate.ts"
+import { MonetaryAmount } from "../Domains/MonetaryAmount.ts"
+import { Timestamp, nowEffect as timestampNowEffect } from "../Domains/Timestamp.ts"
+import type { JournalEntryId, UserId } from "../Domains/JournalEntry.ts";
+import { JournalEntry } from "../Domains/JournalEntry.ts"
+import type { JournalEntryLineId } from "../Domains/JournalEntryLine.ts";
+import { JournalEntryLine } from "../Domains/JournalEntryLine.ts"
+import type { AccountId, AccountType } from "../Domains/Account.ts"
+import { CompanyId } from "../Domains/Company.ts"
+import type { FiscalPeriodRef } from "../Domains/FiscalPeriodRef.ts"
 
 // =============================================================================
 // Error Types

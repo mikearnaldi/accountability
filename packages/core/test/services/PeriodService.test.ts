@@ -75,15 +75,15 @@ import {
   type CompanyFiscalSettings,
   type ExistingFiscalYearInfo,
   type AccountBalance
-} from "../../src/services/PeriodService.ts"
-import { CompanyId, FiscalYearEnd } from "../../src/domain/Company.ts"
-import { LocalDate } from "../../src/domain/LocalDate.ts"
-import { Timestamp } from "../../src/domain/Timestamp.ts"
-import { UserId, JournalEntryId } from "../../src/domain/JournalEntry.ts"
-import type { AccountType } from "../../src/domain/Account.ts";
-import { AccountId } from "../../src/domain/Account.ts"
-import { MonetaryAmount } from "../../src/domain/MonetaryAmount.ts"
-import { CurrencyCode } from "../../src/domain/CurrencyCode.ts"
+} from "../../src/Services/PeriodService.ts"
+import { CompanyId, FiscalYearEnd } from "../../src/Domains/Company.ts"
+import { LocalDate } from "../../src/Domains/LocalDate.ts"
+import { Timestamp } from "../../src/Domains/Timestamp.ts"
+import { UserId, JournalEntryId } from "../../src/Domains/JournalEntry.ts"
+import type { AccountType } from "../../src/Domains/Account.ts";
+import { AccountId } from "../../src/Domains/Account.ts"
+import { MonetaryAmount } from "../../src/Domains/MonetaryAmount.ts"
+import { CurrencyCode } from "../../src/Domains/CurrencyCode.ts"
 
 describe("PeriodService", () => {
   // Test data constants

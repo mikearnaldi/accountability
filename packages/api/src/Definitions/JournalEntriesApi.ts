@@ -16,13 +16,13 @@ import {
   JournalEntryType,
   SourceModule,
   UserId
-} from "@accountability/core/domain/JournalEntry"
-import { JournalEntryLine } from "@accountability/core/domain/JournalEntryLine"
-import { AccountId } from "@accountability/core/domain/Account"
-import { CompanyId } from "@accountability/core/domain/Company"
-import { FiscalPeriodRef } from "@accountability/core/domain/FiscalPeriodRef"
-import { LocalDate, LocalDateFromString } from "@accountability/core/domain/LocalDate"
-import { MonetaryAmount } from "@accountability/core/domain/MonetaryAmount"
+} from "@accountability/core/Domains/JournalEntry"
+import { JournalEntryLine } from "@accountability/core/Domains/JournalEntryLine"
+import { AccountId } from "@accountability/core/Domains/Account"
+import { CompanyId } from "@accountability/core/Domains/Company"
+import { FiscalPeriodRef } from "@accountability/core/Domains/FiscalPeriodRef"
+import { LocalDate, LocalDateFromString } from "@accountability/core/Domains/LocalDate"
+import { MonetaryAmount } from "@accountability/core/Domains/MonetaryAmount"
 import {
   BusinessRuleError,
   ConflictError,

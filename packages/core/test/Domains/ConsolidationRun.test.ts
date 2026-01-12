@@ -27,15 +27,15 @@ import {
   isConsolidatedTrialBalance,
   isConsolidationRunOptions,
   isConsolidationRun
-} from "../../src/domain/ConsolidationRun.ts"
-import { ConsolidationGroupId } from "../../src/domain/ConsolidationGroup.ts"
-import { CurrencyCode } from "../../src/domain/CurrencyCode.ts"
-import { FiscalPeriodRef } from "../../src/domain/FiscalPeriodRef.ts"
-import { UserId } from "../../src/domain/JournalEntry.ts"
-import { EliminationEntryId } from "../../src/services/EliminationService.ts"
-import { LocalDate } from "../../src/domain/LocalDate.ts"
-import { MonetaryAmount } from "../../src/domain/MonetaryAmount.ts"
-import { Timestamp } from "../../src/domain/Timestamp.ts"
+} from "../../src/Domains/ConsolidationRun.ts"
+import { ConsolidationGroupId } from "../../src/Domains/ConsolidationGroup.ts"
+import { CurrencyCode } from "../../src/Domains/CurrencyCode.ts"
+import { FiscalPeriodRef } from "../../src/Domains/FiscalPeriodRef.ts"
+import { UserId } from "../../src/Domains/JournalEntry.ts"
+import { EliminationEntryId } from "../../src/Services/EliminationService.ts"
+import { LocalDate } from "../../src/Domains/LocalDate.ts"
+import { MonetaryAmount } from "../../src/Domains/MonetaryAmount.ts"
+import { Timestamp } from "../../src/Domains/Timestamp.ts"
 
 // =============================================================================
 // Test Helpers

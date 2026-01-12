@@ -13,11 +13,11 @@ import {
   CompanyId,
   ConsolidationMethod,
   FiscalYearEnd
-} from "@accountability/core/domain/Company"
-import { Organization, OrganizationId, OrganizationSettings } from "@accountability/core/domain/Organization"
-import { CurrencyCode } from "@accountability/core/domain/CurrencyCode"
-import { JurisdictionCode } from "@accountability/core/domain/JurisdictionCode"
-import { Percentage } from "@accountability/core/domain/Percentage"
+} from "@accountability/core/Domains/Company"
+import { Organization, OrganizationId, OrganizationSettings } from "@accountability/core/Domains/Organization"
+import { CurrencyCode } from "@accountability/core/Domains/CurrencyCode"
+import { JurisdictionCode } from "@accountability/core/Domains/JurisdictionCode"
+import { Percentage } from "@accountability/core/Domains/Percentage"
 import {
   BusinessRuleError,
   ConflictError,

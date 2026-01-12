@@ -13,7 +13,7 @@
 
 import * as Atom from "@effect-atom/atom/Atom"
 import * as Duration from "effect/Duration"
-import type { AccountId } from "@accountability/core/domain/Account"
+import type { AccountId } from "@accountability/core/Domains/Account"
 import { ApiClient } from "./ApiClient.ts"
 
 // =============================================================================

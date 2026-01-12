@@ -474,3 +474,8 @@
 **Story**: 6.4.9 - Ensure API is feature complete with all persistence modules
 **Status**: complete
 ---
+
+## Iteration 2 - 2026-01-12 15:58
+**Story**: 6.4.10 - Rename core/domain and core/services to PascalCase
+**Status**: complete
+---

@@ -17,11 +17,11 @@ import {
   getNormalBalanceForType,
   Account,
   isAccount
-} from "../../src/domain/Account.ts"
-import { AccountNumber } from "../../src/domain/AccountNumber.ts"
-import { CompanyId } from "../../src/domain/Company.ts"
-import { USD } from "../../src/domain/CurrencyCode.ts"
-import { Timestamp } from "../../src/domain/Timestamp.ts"
+} from "../../src/Domains/Account.ts"
+import { AccountNumber } from "../../src/Domains/AccountNumber.ts"
+import { CompanyId } from "../../src/Domains/Company.ts"
+import { USD } from "../../src/Domains/CurrencyCode.ts"
+import { Timestamp } from "../../src/Domains/Timestamp.ts"
 
 describe("AccountId", () => {
   const validUUID = "550e8400-e29b-41d4-a716-446655440000"

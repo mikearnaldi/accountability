@@ -15,10 +15,10 @@ import type {
   IntercompanyTransactionId,
   IntercompanyTransactionType,
   MatchingStatus
-} from "@accountability/core/domain/IntercompanyTransaction"
-import type { CompanyId } from "@accountability/core/domain/Company"
-import type { JournalEntryId } from "@accountability/core/domain/JournalEntry"
-import type { LocalDate } from "@accountability/core/domain/LocalDate"
+} from "@accountability/core/Domains/IntercompanyTransaction"
+import type { CompanyId } from "@accountability/core/Domains/Company"
+import type { JournalEntryId } from "@accountability/core/Domains/JournalEntry"
+import type { LocalDate } from "@accountability/core/Domains/LocalDate"
 import type { EntityNotFoundError, PersistenceError } from "../RepositoryError.ts"
 
 /**

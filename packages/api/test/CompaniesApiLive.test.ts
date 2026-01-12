@@ -14,16 +14,16 @@ import {
   CompanyId,
   FiscalYearEnd,
   type ConsolidationMethod
-} from "@accountability/core/domain/Company"
-import { CurrencyCode } from "@accountability/core/domain/CurrencyCode"
-import { JurisdictionCode } from "@accountability/core/domain/JurisdictionCode"
+} from "@accountability/core/Domains/Company"
+import { CurrencyCode } from "@accountability/core/Domains/CurrencyCode"
+import { JurisdictionCode } from "@accountability/core/Domains/JurisdictionCode"
 import {
   Organization,
   OrganizationId,
   OrganizationSettings
-} from "@accountability/core/domain/Organization"
-import { Percentage } from "@accountability/core/domain/Percentage"
-import { now as timestampNow } from "@accountability/core/domain/Timestamp"
+} from "@accountability/core/Domains/Organization"
+import { Percentage } from "@accountability/core/Domains/Percentage"
+import { now as timestampNow } from "@accountability/core/Domains/Timestamp"
 import { CompanyRepository, type CompanyRepositoryService } from "@accountability/persistence/Services/CompanyRepository"
 import { OrganizationRepository, type OrganizationRepositoryService } from "@accountability/persistence/Services/OrganizationRepository"
 import { EntityNotFoundError } from "@accountability/persistence/RepositoryError"

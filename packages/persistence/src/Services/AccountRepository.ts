@@ -10,9 +10,9 @@
 import * as Context from "effect/Context"
 import type * as Effect from "effect/Effect"
 import type * as Option from "effect/Option"
-import type { Account, AccountId, AccountType } from "@accountability/core/domain/Account"
-import type { AccountNumber } from "@accountability/core/domain/AccountNumber"
-import type { CompanyId } from "@accountability/core/domain/Company"
+import type { Account, AccountId, AccountType } from "@accountability/core/Domains/Account"
+import type { AccountNumber } from "@accountability/core/Domains/AccountNumber"
+import type { CompanyId } from "@accountability/core/Domains/Company"
 import type { EntityNotFoundError, PersistenceError } from "../RepositoryError.ts"
 
 /**

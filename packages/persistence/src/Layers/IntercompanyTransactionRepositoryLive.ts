@@ -13,18 +13,18 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
-import { CompanyId } from "@accountability/core/domain/Company"
+import { CompanyId } from "@accountability/core/Domains/Company"
 import {
   IntercompanyTransaction,
   IntercompanyTransactionId,
   IntercompanyTransactionType,
   MatchingStatus
-} from "@accountability/core/domain/IntercompanyTransaction"
-import { JournalEntryId } from "@accountability/core/domain/JournalEntry"
-import { LocalDate } from "@accountability/core/domain/LocalDate"
-import { MonetaryAmount } from "@accountability/core/domain/MonetaryAmount"
-import { CurrencyCode } from "@accountability/core/domain/CurrencyCode"
-import { Timestamp } from "@accountability/core/domain/Timestamp"
+} from "@accountability/core/Domains/IntercompanyTransaction"
+import { JournalEntryId } from "@accountability/core/Domains/JournalEntry"
+import { LocalDate } from "@accountability/core/Domains/LocalDate"
+import { MonetaryAmount } from "@accountability/core/Domains/MonetaryAmount"
+import { CurrencyCode } from "@accountability/core/Domains/CurrencyCode"
+import { Timestamp } from "@accountability/core/Domains/Timestamp"
 import {
   IntercompanyTransactionRepository,
   type IntercompanyTransactionRepositoryService

@@ -26,8 +26,8 @@ import {
   isTerminalStatus,
   isEditableStatus,
   isDeletableStatus
-} from "../../src/domain/EntryStatusWorkflow.ts"
-import type { JournalEntryStatus } from "../../src/domain/JournalEntry.ts"
+} from "../../src/Domains/EntryStatusWorkflow.ts"
+import type { JournalEntryStatus } from "../../src/Domains/JournalEntry.ts"
 
 describe("StatusTransition", () => {
   describe("creation", () => {

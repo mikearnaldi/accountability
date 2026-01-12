@@ -20,17 +20,17 @@ import {
   type ExchangeRateRepositoryService,
   type AccountBalanceRepositoryService,
   type RevalueInput
-} from "../../src/services/CurrencyService.ts"
-import { ExchangeRate, ExchangeRateId, Rate, type RateType } from "../../src/domain/ExchangeRate.ts"
-import { CurrencyCode } from "../../src/domain/CurrencyCode.ts"
-import { LocalDate } from "../../src/domain/LocalDate.ts"
-import { Timestamp } from "../../src/domain/Timestamp.ts"
-import { MonetaryAmount } from "../../src/domain/MonetaryAmount.ts"
-import { JournalEntryId, UserId } from "../../src/domain/JournalEntry.ts"
-import { JournalEntryLineId } from "../../src/domain/JournalEntryLine.ts"
-import { FiscalPeriodRef } from "../../src/domain/FiscalPeriodRef.ts"
-import { AccountId } from "../../src/domain/Account.ts"
-import { CompanyId } from "../../src/domain/Company.ts"
+} from "../../src/Services/CurrencyService.ts"
+import { ExchangeRate, ExchangeRateId, Rate, type RateType } from "../../src/Domains/ExchangeRate.ts"
+import { CurrencyCode } from "../../src/Domains/CurrencyCode.ts"
+import { LocalDate } from "../../src/Domains/LocalDate.ts"
+import { Timestamp } from "../../src/Domains/Timestamp.ts"
+import { MonetaryAmount } from "../../src/Domains/MonetaryAmount.ts"
+import { JournalEntryId, UserId } from "../../src/Domains/JournalEntry.ts"
+import { JournalEntryLineId } from "../../src/Domains/JournalEntryLine.ts"
+import { FiscalPeriodRef } from "../../src/Domains/FiscalPeriodRef.ts"
+import { AccountId } from "../../src/Domains/Account.ts"
+import { CompanyId } from "../../src/Domains/Company.ts"
 
 describe("CurrencyService - Period-End Revaluation", () => {
   // Test data constants

@@ -17,7 +17,7 @@ import {
   allPeriods,
   isWithinRange,
   periodsBetween
-} from "../../src/domain/FiscalPeriodRef.ts"
+} from "../../src/Domains/FiscalPeriodRef.ts"
 
 describe("FiscalPeriodRef", () => {
   describe("validation", () => {

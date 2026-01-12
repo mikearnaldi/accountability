@@ -24,18 +24,18 @@ import * as Option from "effect/Option"
 import * as Order from "effect/Order"
 import * as ReadonlyArray from "effect/Array"
 import * as Schema from "effect/Schema"
-import type { Account, AccountType } from "../domain/Account.ts";
-import { AccountId } from "../domain/Account.ts"
-import { CompanyId } from "../domain/Company.ts"
-import { CurrencyCode } from "../domain/CurrencyCode.ts"
-import { LocalDate } from "../domain/LocalDate.ts"
-import { MonetaryAmount } from "../domain/MonetaryAmount.ts"
-import { Timestamp, nowEffect as timestampNowEffect } from "../domain/Timestamp.ts"
-import type { JournalEntryWithLines } from "../domain/AccountBalance.ts"
+import type { Account, AccountType } from "../Domains/Account.ts";
+import { AccountId } from "../Domains/Account.ts"
+import { CompanyId } from "../Domains/Company.ts"
+import { CurrencyCode } from "../Domains/CurrencyCode.ts"
+import { LocalDate } from "../Domains/LocalDate.ts"
+import { MonetaryAmount } from "../Domains/MonetaryAmount.ts"
+import { Timestamp, nowEffect as timestampNowEffect } from "../Domains/Timestamp.ts"
+import type { JournalEntryWithLines } from "../Domains/AccountBalance.ts"
 import {
   calculateDebitCreditTotals,
   calculatePeriodDebitCreditTotals
-} from "../domain/AccountBalance.ts"
+} from "../Domains/AccountBalance.ts"
 
 // =============================================================================
 // Error Types

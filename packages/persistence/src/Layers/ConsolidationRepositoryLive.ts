@@ -17,14 +17,14 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
-import { CompanyId, ConsolidationMethod } from "@accountability/core/domain/Company"
+import { CompanyId, ConsolidationMethod } from "@accountability/core/Domains/Company"
 import {
   ConsolidationGroup,
   ConsolidationGroupId,
   ConsolidationMember,
   EliminationRuleId,
   VIEDetermination
-} from "@accountability/core/domain/ConsolidationGroup"
+} from "@accountability/core/Domains/ConsolidationGroup"
 import {
   ConsolidationRun,
   ConsolidationRunId,
@@ -34,14 +34,14 @@ import {
   ConsolidationStepStatus,
   ConsolidationStepType,
   ValidationResult
-} from "@accountability/core/domain/ConsolidationRun"
-import { CurrencyCode } from "@accountability/core/domain/CurrencyCode"
-import { FiscalPeriodRef } from "@accountability/core/domain/FiscalPeriodRef"
-import { LocalDate } from "@accountability/core/domain/LocalDate"
-import { OrganizationId } from "@accountability/core/domain/Organization"
-import { Timestamp } from "@accountability/core/domain/Timestamp"
-import { UserId } from "@accountability/core/domain/JournalEntry"
-import { Percentage } from "@accountability/core/domain/Percentage"
+} from "@accountability/core/Domains/ConsolidationRun"
+import { CurrencyCode } from "@accountability/core/Domains/CurrencyCode"
+import { FiscalPeriodRef } from "@accountability/core/Domains/FiscalPeriodRef"
+import { LocalDate } from "@accountability/core/Domains/LocalDate"
+import { OrganizationId } from "@accountability/core/Domains/Organization"
+import { Timestamp } from "@accountability/core/Domains/Timestamp"
+import { UserId } from "@accountability/core/Domains/JournalEntry"
+import { Percentage } from "@accountability/core/Domains/Percentage"
 import { ConsolidationRepository, type ConsolidationRepositoryService } from "../Services/ConsolidationRepository.ts"
 import { EntityNotFoundError, wrapSqlError } from "../RepositoryError.ts"
 import type { PersistenceError } from "../RepositoryError.ts"

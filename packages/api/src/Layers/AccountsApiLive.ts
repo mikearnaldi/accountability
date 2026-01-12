@@ -18,8 +18,8 @@ import * as Option from "effect/Option"
 import {
   Account,
   AccountId
-} from "@accountability/core/domain/Account"
-import { now as timestampNow } from "@accountability/core/domain/Timestamp"
+} from "@accountability/core/Domains/Account"
+import { now as timestampNow } from "@accountability/core/Domains/Timestamp"
 import { AccountRepository } from "@accountability/persistence/Services/AccountRepository"
 import { CompanyRepository } from "@accountability/persistence/Services/CompanyRepository"
 import {

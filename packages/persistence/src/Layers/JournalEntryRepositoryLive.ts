@@ -12,8 +12,8 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
-import { CompanyId } from "@accountability/core/domain/Company"
-import { FiscalPeriodRef } from "@accountability/core/domain/FiscalPeriodRef"
+import { CompanyId } from "@accountability/core/Domains/Company"
+import { FiscalPeriodRef } from "@accountability/core/Domains/FiscalPeriodRef"
 import {
   EntryNumber,
   JournalEntry,
@@ -22,9 +22,9 @@ import {
   JournalEntryType,
   SourceModule,
   UserId
-} from "@accountability/core/domain/JournalEntry"
-import { LocalDate } from "@accountability/core/domain/LocalDate"
-import { Timestamp } from "@accountability/core/domain/Timestamp"
+} from "@accountability/core/Domains/JournalEntry"
+import { LocalDate } from "@accountability/core/Domains/LocalDate"
+import { Timestamp } from "@accountability/core/Domains/Timestamp"
 import { JournalEntryRepository, type JournalEntryRepositoryService } from "../Services/JournalEntryRepository.ts"
 import { EntityNotFoundError, wrapSqlError } from "../RepositoryError.ts"
 

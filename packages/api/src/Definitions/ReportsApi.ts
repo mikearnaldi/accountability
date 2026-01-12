@@ -13,12 +13,12 @@
 
 import { HttpApiEndpoint, HttpApiGroup, OpenApi } from "@effect/platform"
 import * as Schema from "effect/Schema"
-import { CompanyId } from "@accountability/core/domain/Company"
-import { LocalDate, LocalDateFromString } from "@accountability/core/domain/LocalDate"
-import { CurrencyCode } from "@accountability/core/domain/CurrencyCode"
-import { MonetaryAmount } from "@accountability/core/domain/MonetaryAmount"
-import { Timestamp } from "@accountability/core/domain/Timestamp"
-import { AccountId } from "@accountability/core/domain/Account"
+import { CompanyId } from "@accountability/core/Domains/Company"
+import { LocalDate, LocalDateFromString } from "@accountability/core/Domains/LocalDate"
+import { CurrencyCode } from "@accountability/core/Domains/CurrencyCode"
+import { MonetaryAmount } from "@accountability/core/Domains/MonetaryAmount"
+import { Timestamp } from "@accountability/core/Domains/Timestamp"
+import { AccountId } from "@accountability/core/Domains/Account"
 import {
   BusinessRuleError,
   NotFoundError,

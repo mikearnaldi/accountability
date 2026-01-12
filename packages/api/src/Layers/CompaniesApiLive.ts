@@ -16,13 +16,13 @@ import * as Option from "effect/Option"
 import {
   Company,
   CompanyId
-} from "@accountability/core/domain/Company"
+} from "@accountability/core/Domains/Company"
 import {
   Organization,
   OrganizationId,
   OrganizationSettings
-} from "@accountability/core/domain/Organization"
-import { now as timestampNow } from "@accountability/core/domain/Timestamp"
+} from "@accountability/core/Domains/Organization"
+import { now as timestampNow } from "@accountability/core/Domains/Timestamp"
 import { CompanyRepository } from "@accountability/persistence/Services/CompanyRepository"
 import { OrganizationRepository } from "@accountability/persistence/Services/OrganizationRepository"
 import {

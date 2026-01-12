@@ -14,7 +14,7 @@ import {
   isFull,
   complement,
   format
-} from "../../src/domain/Percentage.ts"
+} from "../../src/Domains/Percentage.ts"
 
 describe("Percentage", () => {
   describe("validation", () => {

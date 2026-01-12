@@ -15,9 +15,9 @@ import {
   PREDEFINED_JURISDICTIONS,
   JURISDICTIONS_BY_CODE,
   getJurisdictionByCode
-} from "../../src/domain/Jurisdiction.ts"
-import { JurisdictionCode, US, GB } from "../../src/domain/JurisdictionCode.ts"
-import { CurrencyCode, USD, GBP } from "../../src/domain/CurrencyCode.ts"
+} from "../../src/Domains/Jurisdiction.ts"
+import { JurisdictionCode, US, GB } from "../../src/Domains/JurisdictionCode.ts"
+import { CurrencyCode, USD, GBP } from "../../src/Domains/CurrencyCode.ts"
 
 describe("TaxRule", () => {
   const createValidTaxRule = () => {

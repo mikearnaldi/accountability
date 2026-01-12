@@ -18,14 +18,14 @@ import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import * as Array from "effect/Array"
 import * as Schema from "effect/Schema"
-import type { FiscalYearEnd } from "../domain/Company.ts";
-import { CompanyId } from "../domain/Company.ts"
-import { LocalDate, addMonths, daysInMonth } from "../domain/LocalDate.ts"
-import { Timestamp, nowEffect as timestampNowEffect } from "../domain/Timestamp.ts"
-import { UserId, JournalEntryId } from "../domain/JournalEntry.ts"
-import { AccountId, AccountType } from "../domain/Account.ts"
-import { MonetaryAmount } from "../domain/MonetaryAmount.ts"
-import type { CurrencyCode } from "../domain/CurrencyCode.ts"
+import type { FiscalYearEnd } from "../Domains/Company.ts";
+import { CompanyId } from "../Domains/Company.ts"
+import { LocalDate, addMonths, daysInMonth } from "../Domains/LocalDate.ts"
+import { Timestamp, nowEffect as timestampNowEffect } from "../Domains/Timestamp.ts"
+import { UserId, JournalEntryId } from "../Domains/JournalEntry.ts"
+import { AccountId, AccountType } from "../Domains/Account.ts"
+import { MonetaryAmount } from "../Domains/MonetaryAmount.ts"
+import type { CurrencyCode } from "../Domains/CurrencyCode.ts"
 
 // Re-export UserId for convenience
 export { UserId }

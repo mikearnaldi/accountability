@@ -24,25 +24,25 @@ import {
   isAccountBalance,
   isGenerationResult,
   type EliminationRepositoryService
-} from "../../src/services/EliminationService.ts"
-import { AccountId } from "../../src/domain/Account.ts"
-import { CompanyId } from "../../src/domain/Company.ts"
+} from "../../src/Services/EliminationService.ts"
+import { AccountId } from "../../src/Domains/Account.ts"
+import { CompanyId } from "../../src/Domains/Company.ts"
 import {
   ConsolidationGroupId,
   EliminationRuleId
-} from "../../src/domain/ConsolidationGroup.ts"
-import { CurrencyCode } from "../../src/domain/CurrencyCode.ts"
+} from "../../src/Domains/ConsolidationGroup.ts"
+import { CurrencyCode } from "../../src/Domains/CurrencyCode.ts"
 import {
   EliminationRule,
   type EliminationType,
   AccountSelectorById,
   TriggerCondition
-} from "../../src/domain/EliminationRule.ts"
-import { FiscalPeriodRef } from "../../src/domain/FiscalPeriodRef.ts"
-import { JournalEntryLineId } from "../../src/domain/JournalEntryLine.ts"
-import { LocalDate } from "../../src/domain/LocalDate.ts"
-import { MonetaryAmount } from "../../src/domain/MonetaryAmount.ts"
-import { Timestamp } from "../../src/domain/Timestamp.ts"
+} from "../../src/Domains/EliminationRule.ts"
+import { FiscalPeriodRef } from "../../src/Domains/FiscalPeriodRef.ts"
+import { JournalEntryLineId } from "../../src/Domains/JournalEntryLine.ts"
+import { LocalDate } from "../../src/Domains/LocalDate.ts"
+import { MonetaryAmount } from "../../src/Domains/MonetaryAmount.ts"
+import { Timestamp } from "../../src/Domains/Timestamp.ts"
 
 // =============================================================================
 // Test Helpers

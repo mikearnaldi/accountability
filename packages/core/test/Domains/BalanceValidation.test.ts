@@ -8,12 +8,12 @@ import {
   calculateDifference,
   UnbalancedEntryError,
   isUnbalancedEntryError
-} from "../../src/domain/BalanceValidation.ts"
-import { JournalEntryLine, JournalEntryLineId } from "../../src/domain/JournalEntryLine.ts"
-import { JournalEntryId } from "../../src/domain/JournalEntry.ts"
-import { AccountId } from "../../src/domain/Account.ts"
-import { CurrencyCode } from "../../src/domain/CurrencyCode.ts"
-import { MonetaryAmount } from "../../src/domain/MonetaryAmount.ts"
+} from "../../src/Domains/BalanceValidation.ts"
+import { JournalEntryLine, JournalEntryLineId } from "../../src/Domains/JournalEntryLine.ts"
+import { JournalEntryId } from "../../src/Domains/JournalEntry.ts"
+import { AccountId } from "../../src/Domains/Account.ts"
+import { CurrencyCode } from "../../src/Domains/CurrencyCode.ts"
+import { MonetaryAmount } from "../../src/Domains/MonetaryAmount.ts"
 
 describe("BalanceValidation", () => {
   const lineUUID1 = "550e8400-e29b-41d4-a716-446655440001"

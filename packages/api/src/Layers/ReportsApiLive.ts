@@ -13,39 +13,39 @@
 import { HttpApiBuilder } from "@effect/platform"
 import * as Effect from "effect/Effect"
 import * as Option from "effect/Option"
-import { CompanyId } from "@accountability/core/domain/Company"
-import type { LocalDate } from "@accountability/core/domain/LocalDate"
-import { MonetaryAmount } from "@accountability/core/domain/MonetaryAmount"
-import type { JournalEntryWithLines } from "@accountability/core/domain/AccountBalance"
+import { CompanyId } from "@accountability/core/Domains/Company"
+import type { LocalDate } from "@accountability/core/Domains/LocalDate"
+import { MonetaryAmount } from "@accountability/core/Domains/MonetaryAmount"
+import type { JournalEntryWithLines } from "@accountability/core/Domains/AccountBalance"
 import {
   generateTrialBalanceFromData,
   type TrialBalanceLineItem as CoreTrialBalanceLineItem,
   type TrialBalanceReport as CoreTrialBalanceReport
-} from "@accountability/core/services/TrialBalanceService"
+} from "@accountability/core/Services/TrialBalanceService"
 import {
   generateBalanceSheetFromData,
   type BalanceSheetReport as CoreBalanceSheetReport,
   type BalanceSheetSection as CoreBalanceSheetSection,
   type BalanceSheetLineItem as CoreBalanceSheetLineItem
-} from "@accountability/core/services/BalanceSheetService"
+} from "@accountability/core/Services/BalanceSheetService"
 import {
   generateIncomeStatementFromData,
   type IncomeStatementReport as CoreIncomeStatementReport,
   type IncomeStatementSection as CoreIncomeStatementSection,
   type IncomeStatementLineItem as CoreIncomeStatementLineItem,
   type InvalidPeriodError as IncomeStatementInvalidPeriodError
-} from "@accountability/core/services/IncomeStatementService"
+} from "@accountability/core/Services/IncomeStatementService"
 import {
   generateCashFlowStatementFromData,
   type CashFlowStatementReport as CoreCashFlowStatementReport,
   type InvalidPeriodError as CashFlowInvalidPeriodError
-} from "@accountability/core/services/CashFlowStatementService"
+} from "@accountability/core/Services/CashFlowStatementService"
 import {
   generateEquityStatementFromData,
   type EquityStatementReport as CoreEquityStatementReport,
   type EquityMovementRow as CoreEquityMovementRow,
   type InvalidPeriodError as EquityInvalidPeriodError
-} from "@accountability/core/services/EquityStatementService"
+} from "@accountability/core/Services/EquityStatementService"
 import { AccountRepository } from "@accountability/persistence/Services/AccountRepository"
 import { CompanyRepository } from "@accountability/persistence/Services/CompanyRepository"
 import { JournalEntryRepository } from "@accountability/persistence/Services/JournalEntryRepository"

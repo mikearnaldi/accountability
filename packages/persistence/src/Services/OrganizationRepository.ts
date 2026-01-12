@@ -10,7 +10,7 @@
 import * as Context from "effect/Context"
 import type * as Effect from "effect/Effect"
 import type * as Option from "effect/Option"
-import type { Organization, OrganizationId } from "@accountability/core/domain/Organization"
+import type { Organization, OrganizationId } from "@accountability/core/Domains/Organization"
 import type { EntityNotFoundError, PersistenceError } from "../RepositoryError.ts"
 
 /**

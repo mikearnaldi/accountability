@@ -13,11 +13,11 @@ import type * as Option from "effect/Option"
 import type {
   EliminationRule,
   EliminationType
-} from "@accountability/core/domain/EliminationRule"
+} from "@accountability/core/Domains/EliminationRule"
 import type {
   ConsolidationGroupId,
   EliminationRuleId
-} from "@accountability/core/domain/ConsolidationGroup"
+} from "@accountability/core/Domains/ConsolidationGroup"
 import type { EntityNotFoundError, PersistenceError } from "../RepositoryError.ts"
 
 /**

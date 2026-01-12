@@ -18,9 +18,9 @@ import {
   FiscalPeriodStatus,
   FiscalPeriodType,
   UserId
-} from "@accountability/core/services/PeriodService"
-import { CompanyId } from "@accountability/core/domain/Company"
-import { LocalDateFromString } from "@accountability/core/domain/LocalDate"
+} from "@accountability/core/Services/PeriodService"
+import { CompanyId } from "@accountability/core/Domains/Company"
+import { LocalDateFromString } from "@accountability/core/Domains/LocalDate"
 import {
   BusinessRuleError,
   ConflictError,

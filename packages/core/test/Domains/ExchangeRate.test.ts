@@ -15,10 +15,10 @@ import {
   convertAmount,
   getInverseRate,
   createInverse
-} from "../../src/domain/ExchangeRate.ts"
-import { CurrencyCode } from "../../src/domain/CurrencyCode.ts"
-import { LocalDate } from "../../src/domain/LocalDate.ts"
-import { Timestamp } from "../../src/domain/Timestamp.ts"
+} from "../../src/Domains/ExchangeRate.ts"
+import { CurrencyCode } from "../../src/Domains/CurrencyCode.ts"
+import { LocalDate } from "../../src/Domains/LocalDate.ts"
+import { Timestamp } from "../../src/Domains/Timestamp.ts"
 
 // Test helpers
 const createTestExchangeRate = () => {

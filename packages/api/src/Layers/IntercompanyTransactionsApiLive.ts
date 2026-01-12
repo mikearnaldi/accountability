@@ -13,8 +13,8 @@ import * as Option from "effect/Option"
 import {
   IntercompanyTransaction,
   IntercompanyTransactionId
-} from "@accountability/core/domain/IntercompanyTransaction"
-import { now as timestampNow } from "@accountability/core/domain/Timestamp"
+} from "@accountability/core/Domains/IntercompanyTransaction"
+import { now as timestampNow } from "@accountability/core/Domains/Timestamp"
 import { IntercompanyTransactionRepository } from "@accountability/persistence/Services/IntercompanyTransactionRepository"
 import { CompanyRepository } from "@accountability/persistence/Services/CompanyRepository"
 import {

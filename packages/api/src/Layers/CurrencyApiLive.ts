@@ -14,8 +14,8 @@ import * as Array from "effect/Array"
 import {
   ExchangeRate,
   ExchangeRateId
-} from "@accountability/core/domain/ExchangeRate"
-import { now as timestampNow } from "@accountability/core/domain/Timestamp"
+} from "@accountability/core/Domains/ExchangeRate"
+import { now as timestampNow } from "@accountability/core/Domains/Timestamp"
 import { ExchangeRateRepository } from "@accountability/persistence/Services/ExchangeRateRepository"
 import {
   isEntityNotFoundError,

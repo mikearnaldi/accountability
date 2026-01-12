@@ -15,9 +15,9 @@ import {
   Rate,
   RateType,
   RateSource
-} from "@accountability/core/domain/ExchangeRate"
-import { CurrencyCode } from "@accountability/core/domain/CurrencyCode"
-import { LocalDateFromString } from "@accountability/core/domain/LocalDate"
+} from "@accountability/core/Domains/ExchangeRate"
+import { CurrencyCode } from "@accountability/core/Domains/CurrencyCode"
+import { LocalDateFromString } from "@accountability/core/Domains/LocalDate"
 import {
   BusinessRuleError,
   ConflictError,

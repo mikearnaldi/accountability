@@ -26,7 +26,7 @@ import { AppApi, HealthCheckResponse } from "@accountability/api/Definitions/App
 import { AppApiLive } from "@accountability/api/Layers/AppApiLive"
 import { RepositoriesLive } from "@accountability/persistence/RepositoriesLive"
 import { MigrationLayer } from "@accountability/persistence/MigrationRunner"
-import { AccountId } from "@accountability/core/domain/Account"
+import { AccountId } from "@accountability/core/Domains/Account"
 import { PgContainer } from "./PgTestUtils.ts"
 
 // =============================================================================

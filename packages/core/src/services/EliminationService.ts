@@ -23,21 +23,21 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
-import { AccountId } from "../domain/Account.ts"
-import { CompanyId } from "../domain/Company.ts"
-import { ConsolidationGroupId, EliminationRuleId } from "../domain/ConsolidationGroup.ts"
-import { CurrencyCode } from "../domain/CurrencyCode.ts"
+import { AccountId } from "../Domains/Account.ts"
+import { CompanyId } from "../Domains/Company.ts"
+import { ConsolidationGroupId, EliminationRuleId } from "../Domains/ConsolidationGroup.ts"
+import { CurrencyCode } from "../Domains/CurrencyCode.ts"
 import type {
-  EliminationRule} from "../domain/EliminationRule.ts";
+  EliminationRule} from "../Domains/EliminationRule.ts";
 import {
   type EliminationType
-} from "../domain/EliminationRule.ts"
-import { FiscalPeriodRef } from "../domain/FiscalPeriodRef.ts"
-import { JournalEntryId } from "../domain/JournalEntry.ts"
-import { JournalEntryLineId } from "../domain/JournalEntryLine.ts"
-import { LocalDate } from "../domain/LocalDate.ts"
-import { MonetaryAmount, add as addMonetary } from "../domain/MonetaryAmount.ts"
-import { Timestamp, nowEffect } from "../domain/Timestamp.ts"
+} from "../Domains/EliminationRule.ts"
+import { FiscalPeriodRef } from "../Domains/FiscalPeriodRef.ts"
+import { JournalEntryId } from "../Domains/JournalEntry.ts"
+import { JournalEntryLineId } from "../Domains/JournalEntryLine.ts"
+import { LocalDate } from "../Domains/LocalDate.ts"
+import { MonetaryAmount, add as addMonetary } from "../Domains/MonetaryAmount.ts"
+import { Timestamp, nowEffect } from "../Domains/Timestamp.ts"
 
 // =============================================================================
 // Error Types

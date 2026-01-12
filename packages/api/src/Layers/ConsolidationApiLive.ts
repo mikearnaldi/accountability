@@ -16,16 +16,16 @@ import {
   ConsolidationGroup,
   ConsolidationGroupId,
   ConsolidationMember
-} from "@accountability/core/domain/ConsolidationGroup"
-import { LocalDate } from "@accountability/core/domain/LocalDate"
-import { Percentage } from "@accountability/core/domain/Percentage"
+} from "@accountability/core/Domains/ConsolidationGroup"
+import { LocalDate } from "@accountability/core/Domains/LocalDate"
+import { Percentage } from "@accountability/core/Domains/Percentage"
 import {
   ConsolidationRun,
   ConsolidationRunId,
   ConsolidationRunOptions,
   createInitialSteps
-} from "@accountability/core/domain/ConsolidationRun"
-import { now as timestampNow } from "@accountability/core/domain/Timestamp"
+} from "@accountability/core/Domains/ConsolidationRun"
+import { now as timestampNow } from "@accountability/core/Domains/Timestamp"
 import { ConsolidationRepository } from "@accountability/persistence/Services/ConsolidationRepository"
 import { CompanyRepository } from "@accountability/persistence/Services/CompanyRepository"
 import {

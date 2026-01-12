@@ -14,9 +14,9 @@ import type {
   ExchangeRate,
   ExchangeRateId,
   RateType
-} from "@accountability/core/domain/ExchangeRate"
-import type { CurrencyCode } from "@accountability/core/domain/CurrencyCode"
-import type { LocalDate } from "@accountability/core/domain/LocalDate"
+} from "@accountability/core/Domains/ExchangeRate"
+import type { CurrencyCode } from "@accountability/core/Domains/CurrencyCode"
+import type { LocalDate } from "@accountability/core/Domains/LocalDate"
 import type { EntityNotFoundError, PersistenceError } from "../RepositoryError.ts"
 
 /**

@@ -16,8 +16,8 @@ import type {
   FiscalPeriod,
   FiscalPeriodId,
   FiscalPeriodStatus
-} from "@accountability/core/services/PeriodService"
-import type { CompanyId } from "@accountability/core/domain/Company"
+} from "@accountability/core/Services/PeriodService"
+import type { CompanyId } from "@accountability/core/Domains/Company"
 import type { EntityNotFoundError, PersistenceError } from "../RepositoryError.ts"
 
 /**

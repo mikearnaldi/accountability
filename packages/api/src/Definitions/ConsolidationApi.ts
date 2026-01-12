@@ -13,19 +13,19 @@ import {
   ConsolidationGroup,
   ConsolidationGroupId,
   ConsolidationMember
-} from "@accountability/core/domain/ConsolidationGroup"
+} from "@accountability/core/Domains/ConsolidationGroup"
 import {
   ConsolidationRun,
   ConsolidationRunId,
   ConsolidationRunStatus,
   ConsolidatedTrialBalance
-} from "@accountability/core/domain/ConsolidationRun"
-import { OrganizationId } from "@accountability/core/domain/Organization"
-import { CompanyId, ConsolidationMethod } from "@accountability/core/domain/Company"
-import { CurrencyCode } from "@accountability/core/domain/CurrencyCode"
-import { FiscalPeriodRef } from "@accountability/core/domain/FiscalPeriodRef"
-import { LocalDateFromString } from "@accountability/core/domain/LocalDate"
-import { Percentage } from "@accountability/core/domain/Percentage"
+} from "@accountability/core/Domains/ConsolidationRun"
+import { OrganizationId } from "@accountability/core/Domains/Organization"
+import { CompanyId, ConsolidationMethod } from "@accountability/core/Domains/Company"
+import { CurrencyCode } from "@accountability/core/Domains/CurrencyCode"
+import { FiscalPeriodRef } from "@accountability/core/Domains/FiscalPeriodRef"
+import { LocalDateFromString } from "@accountability/core/Domains/LocalDate"
+import { Percentage } from "@accountability/core/Domains/Percentage"
 import {
   BusinessRuleError,
   ConflictError,

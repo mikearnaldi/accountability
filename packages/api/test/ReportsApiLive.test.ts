@@ -12,19 +12,19 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import * as Ref from "effect/Ref"
-import { CompanyId, Company, FiscalYearEnd } from "@accountability/core/domain/Company"
-import { OrganizationId } from "@accountability/core/domain/Organization"
-import { CurrencyCode } from "@accountability/core/domain/CurrencyCode"
-import { JurisdictionCode } from "@accountability/core/domain/JurisdictionCode"
-import { now as timestampNow } from "@accountability/core/domain/Timestamp"
+import { CompanyId, Company, FiscalYearEnd } from "@accountability/core/Domains/Company"
+import { OrganizationId } from "@accountability/core/Domains/Organization"
+import { CurrencyCode } from "@accountability/core/Domains/CurrencyCode"
+import { JurisdictionCode } from "@accountability/core/Domains/JurisdictionCode"
+import { now as timestampNow } from "@accountability/core/Domains/Timestamp"
 import {
   JournalEntry,
   JournalEntryId,
   EntryNumber,
   UserId,
   type JournalEntryStatus
-} from "@accountability/core/domain/JournalEntry"
-import { JournalEntryLine, JournalEntryLineId } from "@accountability/core/domain/JournalEntryLine"
+} from "@accountability/core/Domains/JournalEntry"
+import { JournalEntryLine, JournalEntryLineId } from "@accountability/core/Domains/JournalEntryLine"
 import {
   Account,
   AccountId,
@@ -32,11 +32,11 @@ import {
   type AccountCategory,
   type NormalBalance,
   type CashFlowCategory
-} from "@accountability/core/domain/Account"
-import { AccountNumber } from "@accountability/core/domain/AccountNumber"
-import { FiscalPeriodRef } from "@accountability/core/domain/FiscalPeriodRef"
-import { LocalDate } from "@accountability/core/domain/LocalDate"
-import { MonetaryAmount } from "@accountability/core/domain/MonetaryAmount"
+} from "@accountability/core/Domains/Account"
+import { AccountNumber } from "@accountability/core/Domains/AccountNumber"
+import { FiscalPeriodRef } from "@accountability/core/Domains/FiscalPeriodRef"
+import { LocalDate } from "@accountability/core/Domains/LocalDate"
+import { MonetaryAmount } from "@accountability/core/Domains/MonetaryAmount"
 import { JournalEntryRepository, type JournalEntryRepositoryService } from "@accountability/persistence/Services/JournalEntryRepository"
 import { JournalEntryLineRepository, type JournalEntryLineRepositoryService } from "@accountability/persistence/Services/JournalEntryLineRepository"
 import { CompanyRepository, type CompanyRepositoryService } from "@accountability/persistence/Services/CompanyRepository"
@@ -44,17 +44,17 @@ import { AccountRepository, type AccountRepositoryService } from "@accountabilit
 import { EntityNotFoundError } from "@accountability/persistence/RepositoryError"
 import {
   generateTrialBalanceFromData
-} from "@accountability/core/services/TrialBalanceService"
+} from "@accountability/core/Services/TrialBalanceService"
 import {
   generateBalanceSheetFromData
-} from "@accountability/core/services/BalanceSheetService"
+} from "@accountability/core/Services/BalanceSheetService"
 import {
   generateIncomeStatementFromData
-} from "@accountability/core/services/IncomeStatementService"
+} from "@accountability/core/Services/IncomeStatementService"
 import {
   generateCashFlowStatementFromData
-} from "@accountability/core/services/CashFlowStatementService"
-import type { JournalEntryWithLines } from "@accountability/core/domain/AccountBalance"
+} from "@accountability/core/Services/CashFlowStatementService"
+import type { JournalEntryWithLines } from "@accountability/core/Domains/AccountBalance"
 
 // =============================================================================
 // Test Fixtures

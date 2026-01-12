@@ -23,13 +23,13 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
-import type { CompanyId } from "../domain/Company.ts"
+import type { CompanyId } from "../Domains/Company.ts"
 import {
   ConsolidationGroupId,
   type ConsolidationMember
-} from "../domain/ConsolidationGroup.ts"
+} from "../Domains/ConsolidationGroup.ts"
 import type {
-  ConsolidationRunOptions} from "../domain/ConsolidationRun.ts";
+  ConsolidationRunOptions} from "../Domains/ConsolidationRun.ts";
 import {
   ConsolidationRun,
   ConsolidationRunId,
@@ -42,15 +42,15 @@ import {
   createInitialSteps,
   defaultConsolidationRunOptions,
   type ConsolidationStepType
-} from "../domain/ConsolidationRun.ts"
-import type { CurrencyCode } from "../domain/CurrencyCode.ts"
-import type { EliminationRule } from "../domain/EliminationRule.ts"
-import { FiscalPeriodRef } from "../domain/FiscalPeriodRef.ts"
-import type { LocalDate } from "../domain/LocalDate.ts"
-import { MonetaryAmount } from "../domain/MonetaryAmount.ts"
-import type { Timestamp} from "../domain/Timestamp.ts";
-import { nowEffect as timestampNowEffect } from "../domain/Timestamp.ts"
-import type { UserId } from "../domain/JournalEntry.ts"
+} from "../Domains/ConsolidationRun.ts"
+import type { CurrencyCode } from "../Domains/CurrencyCode.ts"
+import type { EliminationRule } from "../Domains/EliminationRule.ts"
+import { FiscalPeriodRef } from "../Domains/FiscalPeriodRef.ts"
+import type { LocalDate } from "../Domains/LocalDate.ts"
+import { MonetaryAmount } from "../Domains/MonetaryAmount.ts"
+import type { Timestamp} from "../Domains/Timestamp.ts";
+import { nowEffect as timestampNowEffect } from "../Domains/Timestamp.ts"
+import type { UserId } from "../Domains/JournalEntry.ts"
 import type { EliminationEntryId } from "./EliminationService.ts"
 import type { TrialBalanceReport } from "./TrialBalanceService.ts"
 

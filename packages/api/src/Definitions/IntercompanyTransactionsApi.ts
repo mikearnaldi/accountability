@@ -14,11 +14,11 @@ import {
   IntercompanyTransactionId,
   IntercompanyTransactionType,
   MatchingStatus
-} from "@accountability/core/domain/IntercompanyTransaction"
-import { CompanyId } from "@accountability/core/domain/Company"
-import { JournalEntryId } from "@accountability/core/domain/JournalEntry"
-import { LocalDateFromString } from "@accountability/core/domain/LocalDate"
-import { MonetaryAmount } from "@accountability/core/domain/MonetaryAmount"
+} from "@accountability/core/Domains/IntercompanyTransaction"
+import { CompanyId } from "@accountability/core/Domains/Company"
+import { JournalEntryId } from "@accountability/core/Domains/JournalEntry"
+import { LocalDateFromString } from "@accountability/core/Domains/LocalDate"
+import { MonetaryAmount } from "@accountability/core/Domains/MonetaryAmount"
 import {
   BusinessRuleError,
   ConflictError,

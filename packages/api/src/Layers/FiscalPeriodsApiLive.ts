@@ -20,9 +20,9 @@ import {
   FiscalYearId,
   FiscalPeriod,
   FiscalPeriodId
-} from "@accountability/core/services/PeriodService"
-import { now as timestampNow } from "@accountability/core/domain/Timestamp"
-import { LocalDate } from "@accountability/core/domain/LocalDate"
+} from "@accountability/core/Services/PeriodService"
+import { now as timestampNow } from "@accountability/core/Domains/Timestamp"
+import { LocalDate } from "@accountability/core/Domains/LocalDate"
 import { FiscalPeriodRepository } from "@accountability/persistence/Services/FiscalPeriodRepository"
 import {
   isEntityNotFoundError,

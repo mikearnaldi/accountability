@@ -12,10 +12,10 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
-import { CompanyId } from "@accountability/core/domain/Company"
-import { LocalDate } from "@accountability/core/domain/LocalDate"
-import { Timestamp } from "@accountability/core/domain/Timestamp"
-import { UserId } from "@accountability/core/domain/JournalEntry"
+import { CompanyId } from "@accountability/core/Domains/Company"
+import { LocalDate } from "@accountability/core/Domains/LocalDate"
+import { Timestamp } from "@accountability/core/Domains/Timestamp"
+import { UserId } from "@accountability/core/Domains/JournalEntry"
 import {
   FiscalPeriod,
   FiscalPeriodId,
@@ -24,7 +24,7 @@ import {
   FiscalYear,
   FiscalYearId,
   FiscalYearStatus
-} from "@accountability/core/services/PeriodService"
+} from "@accountability/core/Services/PeriodService"
 import { FiscalPeriodRepository, type FiscalPeriodRepositoryService } from "../Services/FiscalPeriodRepository.ts"
 import { EntityNotFoundError, wrapSqlError } from "../RepositoryError.ts"
 

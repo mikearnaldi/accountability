@@ -13,9 +13,9 @@ import {
   EliminationRule,
   EliminationType,
   AccountSelector
-} from "@accountability/core/domain/EliminationRule"
-import { ConsolidationGroupId, EliminationRuleId } from "@accountability/core/domain/ConsolidationGroup"
-import { AccountId } from "@accountability/core/domain/Account"
+} from "@accountability/core/Domains/EliminationRule"
+import { ConsolidationGroupId, EliminationRuleId } from "@accountability/core/Domains/ConsolidationGroup"
+import { AccountId } from "@accountability/core/Domains/Account"
 import {
   BusinessRuleError,
   ConflictError,
