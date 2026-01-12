@@ -14,7 +14,7 @@
 import { HttpApiEndpoint, HttpApiGroup, OpenApi } from "@effect/platform"
 import * as Schema from "effect/Schema"
 import { CompanyId } from "@accountability/core/domain/Company"
-import { LocalDate } from "@accountability/core/domain/LocalDate"
+import { LocalDate, LocalDateFromString } from "@accountability/core/domain/LocalDate"
 import { CurrencyCode } from "@accountability/core/domain/CurrencyCode"
 import { MonetaryAmount } from "@accountability/core/domain/MonetaryAmount"
 import { Timestamp } from "@accountability/core/domain/Timestamp"
@@ -26,8 +26,8 @@ import {
 } from "./ApiErrors.ts"
 import { AuthMiddleware } from "./AuthMiddleware.ts"
 
-// Note: CompanyId, LocalDate, and AccountId are used in report response schemas.
-// URL params use Schema.String for HTTP encoding compatibility.
+// Note: URL params use LocalDateFromString schema to automatically parse
+// ISO date strings (YYYY-MM-DD) to LocalDate instances with validation.
 
 // =============================================================================
 // Shared Report Types
@@ -97,12 +97,12 @@ export class TrialBalanceReport extends Schema.Class<TrialBalanceReport>("TrialB
 
 /**
  * Query parameters for trial balance report
- * Uses string types for URL parameters
+ * Uses LocalDateFromString to automatically parse ISO date strings to LocalDate
  */
 export const TrialBalanceParams = Schema.Struct({
   companyId: Schema.String,
-  asOfDate: Schema.String,
-  periodStartDate: Schema.optional(Schema.String),
+  asOfDate: LocalDateFromString,
+  periodStartDate: Schema.optional(LocalDateFromString),
   excludeZeroBalances: Schema.optional(Schema.BooleanFromString),
   format: Schema.optional(ReportFormat)
 })
@@ -161,12 +161,12 @@ export class BalanceSheetReport extends Schema.Class<BalanceSheetReport>("Balanc
 
 /**
  * Query parameters for balance sheet report
- * Uses string types for URL parameters
+ * Uses LocalDateFromString to automatically parse ISO date strings to LocalDate
  */
 export const BalanceSheetParams = Schema.Struct({
   companyId: Schema.String,
-  asOfDate: Schema.String,
-  comparativeDate: Schema.optional(Schema.String),
+  asOfDate: LocalDateFromString,
+  comparativeDate: Schema.optional(LocalDateFromString),
   includeZeroBalances: Schema.optional(Schema.BooleanFromString),
   format: Schema.optional(ReportFormat)
 })
@@ -226,14 +226,14 @@ export class IncomeStatementReport extends Schema.Class<IncomeStatementReport>("
 
 /**
  * Query parameters for income statement report
- * Uses string types for URL parameters
+ * Uses LocalDateFromString to automatically parse ISO date strings to LocalDate
  */
 export const IncomeStatementParams = Schema.Struct({
   companyId: Schema.String,
-  periodStartDate: Schema.String,
-  periodEndDate: Schema.String,
-  comparativeStartDate: Schema.optional(Schema.String),
-  comparativeEndDate: Schema.optional(Schema.String),
+  periodStartDate: LocalDateFromString,
+  periodEndDate: LocalDateFromString,
+  comparativeStartDate: Schema.optional(LocalDateFromString),
+  comparativeEndDate: Schema.optional(LocalDateFromString),
   format: Schema.optional(ReportFormat)
 })
 
@@ -299,12 +299,12 @@ export class CashFlowStatementReport extends Schema.Class<CashFlowStatementRepor
 
 /**
  * Query parameters for cash flow statement
- * Uses string types for URL parameters
+ * Uses LocalDateFromString to automatically parse ISO date strings to LocalDate
  */
 export const CashFlowStatementParams = Schema.Struct({
   companyId: Schema.String,
-  periodStartDate: Schema.String,
-  periodEndDate: Schema.String,
+  periodStartDate: LocalDateFromString,
+  periodEndDate: LocalDateFromString,
   method: Schema.optional(CashFlowMethod),
   format: Schema.optional(ReportFormat)
 })
@@ -367,12 +367,12 @@ export class EquityStatementReport extends Schema.Class<EquityStatementReport>("
 
 /**
  * Query parameters for equity statement
- * Uses string types for URL parameters
+ * Uses LocalDateFromString to automatically parse ISO date strings to LocalDate
  */
 export const EquityStatementParams = Schema.Struct({
   companyId: Schema.String,
-  periodStartDate: Schema.String,
-  periodEndDate: Schema.String,
+  periodStartDate: LocalDateFromString,
+  periodEndDate: LocalDateFromString,
   format: Schema.optional(ReportFormat)
 })
 

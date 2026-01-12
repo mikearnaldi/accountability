@@ -4,8 +4,8 @@
  * Implements the ReportsApi endpoints by calling the core report services.
  * Fetches data from repositories and transforms to API response types.
  *
- * Path and URL params use string types for HTTP encoding compatibility,
- * so handlers parse them to domain types (LocalDate, CompanyId, etc.).
+ * URL params use LocalDateFromString schema to automatically parse
+ * ISO date strings to LocalDate instances with validation.
  *
  * @module ReportsApiLive
  */
@@ -14,7 +14,6 @@ import { HttpApiBuilder } from "@effect/platform"
 import * as Effect from "effect/Effect"
 import * as Option from "effect/Option"
 import { CompanyId } from "@accountability/core/domain/Company"
-import * as LocalDateUtils from "@accountability/core/domain/LocalDate"
 import type { LocalDate } from "@accountability/core/domain/LocalDate"
 import { MonetaryAmount } from "@accountability/core/domain/MonetaryAmount"
 import type { JournalEntryWithLines } from "@accountability/core/domain/AccountBalance"
@@ -59,7 +58,6 @@ import {
 import { AppApi } from "./AppApi.ts"
 import {
   NotFoundError,
-  ValidationError,
   BusinessRuleError
 } from "./ApiErrors.ts"
 import {
@@ -126,27 +124,6 @@ const mapInvalidPeriodToBusinessRule = (
     details: Option.none()
   })
 }
-
-// =============================================================================
-// Date Parsing Helper
-// =============================================================================
-
-/**
- * Parse a date string (YYYY-MM-DD) to LocalDate
- */
-const parseDate = (
-  dateStr: string,
-  fieldName: string
-): Effect.Effect<LocalDate, ValidationError> =>
-  LocalDateUtils.fromString(dateStr).pipe(
-    Effect.mapError(() =>
-      new ValidationError({
-        message: `Invalid date format for ${fieldName}: expected YYYY-MM-DD, got "${dateStr}"`,
-        field: Option.some(fieldName),
-        details: Option.none()
-      })
-    )
-  )
 
 // =============================================================================
 // Data Fetching Helpers
@@ -544,14 +521,12 @@ export const ReportsApiLive = HttpApiBuilder.group(AppApi, "reports", (handlers)
     return handlers
       .handle("generateTrialBalance", (_) =>
         Effect.gen(function* () {
-          const { companyId: companyIdStr, asOfDate: asOfDateStr, periodStartDate: periodStartDateStr, excludeZeroBalances } = _.urlParams
+          const { companyId: companyIdStr, asOfDate, periodStartDate, excludeZeroBalances } = _.urlParams
 
-          // Parse parameters
+          // Parse company ID (still a string in URL params)
           const companyId = CompanyId.make(companyIdStr)
-          const asOfDate = yield* parseDate(asOfDateStr, "asOfDate")
-          const periodStartDate = periodStartDateStr !== undefined
-            ? yield* parseDate(periodStartDateStr, "periodStartDate")
-            : undefined
+          // Note: asOfDate and periodStartDate are already LocalDate instances
+          // thanks to LocalDateFromString schema in URL params
 
           // Fetch data
           const { accounts, entriesWithLines, functionalCurrency } = yield* fetchReportData(companyId)
@@ -582,14 +557,11 @@ export const ReportsApiLive = HttpApiBuilder.group(AppApi, "reports", (handlers)
       )
       .handle("generateBalanceSheet", (_) =>
         Effect.gen(function* () {
-          const { companyId: companyIdStr, asOfDate: asOfDateStr, comparativeDate: comparativeDateStr, includeZeroBalances } = _.urlParams
+          const { companyId: companyIdStr, asOfDate, comparativeDate, includeZeroBalances } = _.urlParams
 
-          // Parse parameters
+          // Parse company ID (still a string in URL params)
           const companyId = CompanyId.make(companyIdStr)
-          const asOfDate = yield* parseDate(asOfDateStr, "asOfDate")
-          const comparativeDate = comparativeDateStr !== undefined
-            ? yield* parseDate(comparativeDateStr, "comparativeDate")
-            : undefined
+          // Note: asOfDate and comparativeDate are already LocalDate instances
 
           // Fetch data
           const { accounts, entriesWithLines, functionalCurrency } = yield* fetchReportData(companyId)
@@ -622,22 +594,15 @@ export const ReportsApiLive = HttpApiBuilder.group(AppApi, "reports", (handlers)
         Effect.gen(function* () {
           const {
             companyId: companyIdStr,
-            periodStartDate: periodStartDateStr,
-            periodEndDate: periodEndDateStr,
-            comparativeStartDate: comparativeStartDateStr,
-            comparativeEndDate: comparativeEndDateStr
+            periodStartDate,
+            periodEndDate,
+            comparativeStartDate,
+            comparativeEndDate
           } = _.urlParams
 
-          // Parse parameters
+          // Parse company ID (still a string in URL params)
           const companyId = CompanyId.make(companyIdStr)
-          const periodStartDate = yield* parseDate(periodStartDateStr, "periodStartDate")
-          const periodEndDate = yield* parseDate(periodEndDateStr, "periodEndDate")
-          const comparativeStartDate = comparativeStartDateStr !== undefined
-            ? yield* parseDate(comparativeStartDateStr, "comparativeStartDate")
-            : undefined
-          const comparativeEndDate = comparativeEndDateStr !== undefined
-            ? yield* parseDate(comparativeEndDateStr, "comparativeEndDate")
-            : undefined
+          // Note: date params are already LocalDate instances
 
           // Fetch data
           const { accounts, entriesWithLines, functionalCurrency } = yield* fetchReportData(companyId)
@@ -674,14 +639,13 @@ export const ReportsApiLive = HttpApiBuilder.group(AppApi, "reports", (handlers)
         Effect.gen(function* () {
           const {
             companyId: companyIdStr,
-            periodStartDate: periodStartDateStr,
-            periodEndDate: periodEndDateStr
+            periodStartDate,
+            periodEndDate
           } = _.urlParams
 
-          // Parse parameters
+          // Parse company ID (still a string in URL params)
           const companyId = CompanyId.make(companyIdStr)
-          const periodStartDate = yield* parseDate(periodStartDateStr, "periodStartDate")
-          const periodEndDate = yield* parseDate(periodEndDateStr, "periodEndDate")
+          // Note: date params are already LocalDate instances
 
           // Fetch data
           const { accounts, entriesWithLines, functionalCurrency } = yield* fetchReportData(companyId)
@@ -705,14 +669,13 @@ export const ReportsApiLive = HttpApiBuilder.group(AppApi, "reports", (handlers)
         Effect.gen(function* () {
           const {
             companyId: companyIdStr,
-            periodStartDate: periodStartDateStr,
-            periodEndDate: periodEndDateStr
+            periodStartDate,
+            periodEndDate
           } = _.urlParams
 
-          // Parse parameters
+          // Parse company ID (still a string in URL params)
           const companyId = CompanyId.make(companyIdStr)
-          const periodStartDate = yield* parseDate(periodStartDateStr, "periodStartDate")
-          const periodEndDate = yield* parseDate(periodEndDateStr, "periodEndDate")
+          // Note: date params are already LocalDate instances
 
           // Fetch data
           const { accounts, entriesWithLines, functionalCurrency } = yield* fetchReportData(companyId)

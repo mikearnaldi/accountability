@@ -237,3 +237,93 @@ export const isLeapYear = (year: number): boolean => {
 export const daysInMonth = (year: number, month: number): number => {
   return new Date(Date.UTC(year, month, 0)).getUTCDate()
 }
+
+/**
+ * Regular expression for ISO 8601 date format (YYYY-MM-DD)
+ */
+const ISO_DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/
+
+/**
+ * LocalDateFromString - Schema that transforms ISO date strings (YYYY-MM-DD) to LocalDate
+ *
+ * This schema can be used directly in API URL params, request bodies, and database columns
+ * to automatically parse date strings into LocalDate instances.
+ *
+ * @example
+ * ```ts
+ * // In API URL params
+ * const params = Schema.Struct({
+ *   asOfDate: LocalDateFromString
+ * })
+ *
+ * // Decoding
+ * const date = yield* Schema.decodeUnknown(LocalDateFromString)("2024-06-15")
+ * // date is now LocalDate { year: 2024, month: 6, day: 15 }
+ *
+ * // Encoding
+ * const str = yield* Schema.encode(LocalDateFromString)(date)
+ * // str is "2024-06-15"
+ * ```
+ */
+export const LocalDateFromString: Schema.Schema<LocalDate, string> = Schema.transformOrFail(
+  Schema.String.annotations({
+    description: "ISO 8601 date string in YYYY-MM-DD format",
+    examples: ["2024-06-15", "2024-01-01", "2024-12-31"]
+  }),
+  LocalDate,
+  {
+    strict: true,
+    decode: (dateString, _, ast) => {
+      const match = dateString.match(ISO_DATE_PATTERN)
+      if (!match) {
+        return Effect.fail(
+          new ParseResult.Type(
+            ast,
+            dateString,
+            `Expected ISO date format YYYY-MM-DD, but received "${dateString}"`
+          )
+        )
+      }
+      const [, yearStr, monthStr, dayStr] = match
+      const year = parseInt(yearStr, 10)
+      const month = parseInt(monthStr, 10)
+      const day = parseInt(dayStr, 10)
+
+      // Validate month range
+      if (month < 1 || month > 12) {
+        return Effect.fail(
+          new ParseResult.Type(
+            ast,
+            dateString,
+            `Invalid month ${month} in date "${dateString}". Month must be between 1 and 12.`
+          )
+        )
+      }
+
+      // Validate day range for the given month
+      const maxDays = daysInMonth(year, month)
+      if (day < 1 || day > maxDays) {
+        return Effect.fail(
+          new ParseResult.Type(
+            ast,
+            dateString,
+            `Invalid day ${day} in date "${dateString}". Day must be between 1 and ${maxDays} for ${year}-${String(month).padStart(2, "0")}.`
+          )
+        )
+      }
+
+      return Effect.succeed(LocalDate.make({ year, month, day }))
+    },
+    encode: (localDate) => {
+      // Format as ISO 8601 date string (YYYY-MM-DD)
+      const y = String(localDate.year).padStart(4, "0")
+      const m = String(localDate.month).padStart(2, "0")
+      const d = String(localDate.day).padStart(2, "0")
+      return Effect.succeed(`${y}-${m}-${d}`)
+    }
+  }
+).annotations({
+  identifier: "LocalDateFromString",
+  title: "Local Date from String",
+  description: "ISO 8601 date (YYYY-MM-DD) that transforms to/from LocalDate"
+})

@@ -21,7 +21,7 @@ import { JournalEntryLine } from "@accountability/core/domain/JournalEntryLine"
 import { AccountId } from "@accountability/core/domain/Account"
 import { CompanyId } from "@accountability/core/domain/Company"
 import { FiscalPeriodRef } from "@accountability/core/domain/FiscalPeriodRef"
-import { LocalDate } from "@accountability/core/domain/LocalDate"
+import { LocalDate, LocalDateFromString } from "@accountability/core/domain/LocalDate"
 import { MonetaryAmount } from "@accountability/core/domain/MonetaryAmount"
 import {
   BusinessRuleError,
@@ -120,7 +120,7 @@ export class JournalEntryListResponse extends Schema.Class<JournalEntryListRespo
 
 /**
  * Query parameters for listing journal entries
- * URL params must be string-encodeable, so we use primitive types with validation
+ * Uses LocalDateFromString to automatically parse ISO date strings to LocalDate
  */
 export const JournalEntryListParams = Schema.Struct({
   companyId: Schema.String.pipe(Schema.brand("CompanyId")),
@@ -129,8 +129,8 @@ export const JournalEntryListParams = Schema.Struct({
   sourceModule: Schema.optional(SourceModule),
   fiscalYear: Schema.optional(Schema.NumberFromString.pipe(Schema.int())),
   fiscalPeriod: Schema.optional(Schema.NumberFromString.pipe(Schema.int())),
-  fromDate: Schema.optional(Schema.String),
-  toDate: Schema.optional(Schema.String),
+  fromDate: Schema.optional(LocalDateFromString),
+  toDate: Schema.optional(LocalDateFromString),
   limit: Schema.optional(Schema.NumberFromString.pipe(Schema.int(), Schema.greaterThan(0))),
   offset: Schema.optional(Schema.NumberFromString.pipe(Schema.int(), Schema.greaterThanOrEqualTo(0)))
 })

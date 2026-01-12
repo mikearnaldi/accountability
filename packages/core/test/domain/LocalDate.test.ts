@@ -3,6 +3,7 @@ import { Effect, Exit, Equal, TestClock, Duration } from "effect"
 import * as Schema from "effect/Schema"
 import {
   LocalDate,
+  LocalDateFromString,
   isLocalDate,
   fromString,
   fromDate,
@@ -473,5 +474,228 @@ describe("LocalDate", () => {
         expect(decoded.day).toBe(original.day)
       })
     )
+  })
+
+  describe("LocalDateFromString", () => {
+    describe("decoding", () => {
+      it.effect("parses valid ISO date strings", () =>
+        Effect.gen(function* () {
+          const date = yield* Schema.decodeUnknown(LocalDateFromString)("2024-06-15")
+          expect(date.year).toBe(2024)
+          expect(date.month).toBe(6)
+          expect(date.day).toBe(15)
+        })
+      )
+
+      it.effect("parses edge case dates", () =>
+        Effect.gen(function* () {
+          // First day of year
+          const jan1 = yield* Schema.decodeUnknown(LocalDateFromString)("2024-01-01")
+          expect(jan1.year).toBe(2024)
+          expect(jan1.month).toBe(1)
+          expect(jan1.day).toBe(1)
+
+          // Last day of year
+          const dec31 = yield* Schema.decodeUnknown(LocalDateFromString)("2024-12-31")
+          expect(dec31.year).toBe(2024)
+          expect(dec31.month).toBe(12)
+          expect(dec31.day).toBe(31)
+        })
+      )
+
+      it.effect("parses leap year February 29", () =>
+        Effect.gen(function* () {
+          const feb29 = yield* Schema.decodeUnknown(LocalDateFromString)("2024-02-29")
+          expect(feb29.year).toBe(2024)
+          expect(feb29.month).toBe(2)
+          expect(feb29.day).toBe(29)
+        })
+      )
+
+      it.effect("rejects invalid format - wrong separator", () =>
+        Effect.gen(function* () {
+          const result = yield* Effect.exit(Schema.decodeUnknown(LocalDateFromString)("2024/06/15"))
+          expect(Exit.isFailure(result)).toBe(true)
+        })
+      )
+
+      it.effect("rejects invalid format - US format", () =>
+        Effect.gen(function* () {
+          const result = yield* Effect.exit(Schema.decodeUnknown(LocalDateFromString)("06-15-2024"))
+          expect(Exit.isFailure(result)).toBe(true)
+        })
+      )
+
+      it.effect("rejects invalid format - no separators", () =>
+        Effect.gen(function* () {
+          const result = yield* Effect.exit(Schema.decodeUnknown(LocalDateFromString)("20240615"))
+          expect(Exit.isFailure(result)).toBe(true)
+        })
+      )
+
+      it.effect("rejects invalid format - random string", () =>
+        Effect.gen(function* () {
+          const result = yield* Effect.exit(Schema.decodeUnknown(LocalDateFromString)("invalid"))
+          expect(Exit.isFailure(result)).toBe(true)
+        })
+      )
+
+      it.effect("rejects invalid format - empty string", () =>
+        Effect.gen(function* () {
+          const result = yield* Effect.exit(Schema.decodeUnknown(LocalDateFromString)(""))
+          expect(Exit.isFailure(result)).toBe(true)
+        })
+      )
+
+      it.effect("rejects invalid month - 0", () =>
+        Effect.gen(function* () {
+          const result = yield* Effect.exit(Schema.decodeUnknown(LocalDateFromString)("2024-00-15"))
+          expect(Exit.isFailure(result)).toBe(true)
+        })
+      )
+
+      it.effect("rejects invalid month - 13", () =>
+        Effect.gen(function* () {
+          const result = yield* Effect.exit(Schema.decodeUnknown(LocalDateFromString)("2024-13-15"))
+          expect(Exit.isFailure(result)).toBe(true)
+        })
+      )
+
+      it.effect("rejects invalid day - 0", () =>
+        Effect.gen(function* () {
+          const result = yield* Effect.exit(Schema.decodeUnknown(LocalDateFromString)("2024-06-00"))
+          expect(Exit.isFailure(result)).toBe(true)
+        })
+      )
+
+      it.effect("rejects invalid day - 32 for month with 31 days", () =>
+        Effect.gen(function* () {
+          const result = yield* Effect.exit(Schema.decodeUnknown(LocalDateFromString)("2024-07-32"))
+          expect(Exit.isFailure(result)).toBe(true)
+        })
+      )
+
+      it.effect("rejects invalid day - 31 for month with 30 days", () =>
+        Effect.gen(function* () {
+          const result = yield* Effect.exit(Schema.decodeUnknown(LocalDateFromString)("2024-06-31"))
+          expect(Exit.isFailure(result)).toBe(true)
+        })
+      )
+
+      it.effect("rejects February 29 in non-leap year", () =>
+        Effect.gen(function* () {
+          const result = yield* Effect.exit(Schema.decodeUnknown(LocalDateFromString)("2023-02-29"))
+          expect(Exit.isFailure(result)).toBe(true)
+        })
+      )
+
+      it.effect("rejects February 30", () =>
+        Effect.gen(function* () {
+          const result = yield* Effect.exit(Schema.decodeUnknown(LocalDateFromString)("2024-02-30"))
+          expect(Exit.isFailure(result)).toBe(true)
+        })
+      )
+    })
+
+    describe("encoding", () => {
+      it.effect("encodes LocalDate to ISO string", () =>
+        Effect.gen(function* () {
+          const date = LocalDate.make({ year: 2024, month: 6, day: 15 })
+          const encoded = yield* Schema.encode(LocalDateFromString)(date)
+          expect(encoded).toBe("2024-06-15")
+        })
+      )
+
+      it.effect("pads year, month, and day correctly", () =>
+        Effect.gen(function* () {
+          const date1 = LocalDate.make({ year: 999, month: 1, day: 1 })
+          const encoded1 = yield* Schema.encode(LocalDateFromString)(date1)
+          expect(encoded1).toBe("0999-01-01")
+
+          const date2 = LocalDate.make({ year: 99, month: 2, day: 5 })
+          const encoded2 = yield* Schema.encode(LocalDateFromString)(date2)
+          expect(encoded2).toBe("0099-02-05")
+        })
+      )
+    })
+
+    describe("round-trip", () => {
+      it.effect("decode then encode returns original string", () =>
+        Effect.gen(function* () {
+          const original = "2024-06-15"
+          const decoded = yield* Schema.decodeUnknown(LocalDateFromString)(original)
+          const encoded = yield* Schema.encode(LocalDateFromString)(decoded)
+          expect(encoded).toBe(original)
+        })
+      )
+
+      it.effect("encode then decode returns equal LocalDate", () =>
+        Effect.gen(function* () {
+          const original = LocalDate.make({ year: 2024, month: 6, day: 15 })
+          const encoded = yield* Schema.encode(LocalDateFromString)(original)
+          const decoded = yield* Schema.decodeUnknown(LocalDateFromString)(encoded)
+          expect(Equal.equals(original, decoded)).toBe(true)
+        })
+      )
+    })
+
+    describe("use in Schema.Struct", () => {
+      const TestParams = Schema.Struct({
+        startDate: LocalDateFromString,
+        endDate: LocalDateFromString
+      })
+
+      it.effect("decodes struct with date string fields", () =>
+        Effect.gen(function* () {
+          const params = yield* Schema.decodeUnknown(TestParams)({
+            startDate: "2024-01-01",
+            endDate: "2024-12-31"
+          })
+          expect(params.startDate.year).toBe(2024)
+          expect(params.startDate.month).toBe(1)
+          expect(params.endDate.month).toBe(12)
+        })
+      )
+
+      it.effect("encodes struct back to string fields", () =>
+        Effect.gen(function* () {
+          const params = {
+            startDate: LocalDate.make({ year: 2024, month: 1, day: 1 }),
+            endDate: LocalDate.make({ year: 2024, month: 12, day: 31 })
+          }
+          const encoded = yield* Schema.encode(TestParams)(params)
+          expect(encoded.startDate).toBe("2024-01-01")
+          expect(encoded.endDate).toBe("2024-12-31")
+        })
+      )
+    })
+
+    describe("use with Schema.optional", () => {
+      const OptionalDateParams = Schema.Struct({
+        requiredDate: LocalDateFromString,
+        optionalDate: Schema.optional(LocalDateFromString)
+      })
+
+      it.effect("decodes with optional date present", () =>
+        Effect.gen(function* () {
+          const params = yield* Schema.decodeUnknown(OptionalDateParams)({
+            requiredDate: "2024-06-15",
+            optionalDate: "2024-12-31"
+          })
+          expect(params.requiredDate.month).toBe(6)
+          expect(params.optionalDate?.month).toBe(12)
+        })
+      )
+
+      it.effect("decodes with optional date absent", () =>
+        Effect.gen(function* () {
+          const params = yield* Schema.decodeUnknown(OptionalDateParams)({
+            requiredDate: "2024-06-15"
+          })
+          expect(params.requiredDate.month).toBe(6)
+          expect(params.optionalDate).toBeUndefined()
+        })
+      )
+    })
   })
 })
