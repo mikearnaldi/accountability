@@ -26,7 +26,7 @@ import { Percentage } from "@accountability/core/Domains/Percentage"
 import { now as timestampNow } from "@accountability/core/Domains/Timestamp"
 import { CompanyRepository, type CompanyRepositoryService } from "@accountability/persistence/Services/CompanyRepository"
 import { OrganizationRepository, type OrganizationRepositoryService } from "@accountability/persistence/Services/OrganizationRepository"
-import { EntityNotFoundError } from "@accountability/persistence/RepositoryError"
+import { EntityNotFoundError } from "@accountability/persistence/Errors/RepositoryError"
 
 // =============================================================================
 // Test Fixtures

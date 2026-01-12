@@ -52,7 +52,7 @@ export const PgClientConfig = Config.all({
  *
  * Usage:
  * ```typescript
- * import { PgClientLive } from "@accountability/persistence/PgClientLive"
+ * import { PgClientLive } from "@accountability/persistence/Layers/PgClientLive"
  *
  * const program = Effect.gen(function*() {
  *   const sql = yield* PgClient.PgClient

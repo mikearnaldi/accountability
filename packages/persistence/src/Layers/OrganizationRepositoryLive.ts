@@ -20,7 +20,7 @@ import {
 import { CurrencyCode } from "@accountability/core/Domains/CurrencyCode"
 import { Timestamp } from "@accountability/core/Domains/Timestamp"
 import { OrganizationRepository, type OrganizationRepositoryService } from "../Services/OrganizationRepository.ts"
-import { EntityNotFoundError, wrapSqlError } from "../RepositoryError.ts"
+import { EntityNotFoundError, wrapSqlError } from "../Errors/RepositoryError.ts"
 
 /**
  * Schema for database row from organizations table

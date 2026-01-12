@@ -11,16 +11,16 @@
  */
 
 import * as Layer from "effect/Layer"
-import { AccountRepositoryLive } from "./Layers/AccountRepositoryLive.ts"
-import { CompanyRepositoryLive } from "./Layers/CompanyRepositoryLive.ts"
-import { OrganizationRepositoryLive } from "./Layers/OrganizationRepositoryLive.ts"
-import { JournalEntryRepositoryLive } from "./Layers/JournalEntryRepositoryLive.ts"
-import { JournalEntryLineRepositoryLive } from "./Layers/JournalEntryLineRepositoryLive.ts"
-import { FiscalPeriodRepositoryLive } from "./Layers/FiscalPeriodRepositoryLive.ts"
-import { ExchangeRateRepositoryLive } from "./Layers/ExchangeRateRepositoryLive.ts"
-import { ConsolidationRepositoryLive } from "./Layers/ConsolidationRepositoryLive.ts"
-import { IntercompanyTransactionRepositoryLive } from "./Layers/IntercompanyTransactionRepositoryLive.ts"
-import { EliminationRuleRepositoryLive } from "./Layers/EliminationRuleRepositoryLive.ts"
+import { AccountRepositoryLive } from "./AccountRepositoryLive.ts"
+import { CompanyRepositoryLive } from "./CompanyRepositoryLive.ts"
+import { OrganizationRepositoryLive } from "./OrganizationRepositoryLive.ts"
+import { JournalEntryRepositoryLive } from "./JournalEntryRepositoryLive.ts"
+import { JournalEntryLineRepositoryLive } from "./JournalEntryLineRepositoryLive.ts"
+import { FiscalPeriodRepositoryLive } from "./FiscalPeriodRepositoryLive.ts"
+import { ExchangeRateRepositoryLive } from "./ExchangeRateRepositoryLive.ts"
+import { ConsolidationRepositoryLive } from "./ConsolidationRepositoryLive.ts"
+import { IntercompanyTransactionRepositoryLive } from "./IntercompanyTransactionRepositoryLive.ts"
+import { EliminationRuleRepositoryLive } from "./EliminationRuleRepositoryLive.ts"
 
 /**
  * RepositoriesLive - Combined layer providing all repository implementations
@@ -41,8 +41,8 @@ import { EliminationRuleRepositoryLive } from "./Layers/EliminationRuleRepositor
  *
  * Usage:
  * ```typescript
- * import { RepositoriesLive } from "@accountability/persistence/RepositoriesLive"
- * import { PgClientLive } from "@accountability/persistence/PgClientLive"
+ * import { RepositoriesLive } from "@accountability/persistence/Layers/RepositoriesLive"
+ * import { PgClientLive } from "@accountability/persistence/Layers/PgClientLive"
  *
  * const FullLayer = RepositoriesLive.pipe(
  *   Layer.provide(PgClientLive)
@@ -51,7 +51,7 @@ import { EliminationRuleRepositoryLive } from "./Layers/EliminationRuleRepositor
  *
  * For testing with testcontainers:
  * ```typescript
- * import { RepositoriesLive } from "@accountability/persistence/RepositoriesLive"
+ * import { RepositoriesLive } from "@accountability/persistence/Layers/RepositoriesLive"
  * import { PgContainer } from "./test/utils.ts"
  *
  * const TestLayer = RepositoriesLive.pipe(

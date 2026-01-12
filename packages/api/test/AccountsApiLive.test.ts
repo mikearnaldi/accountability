@@ -25,7 +25,7 @@ import { OrganizationId } from "@accountability/core/Domains/Organization"
 import { now as timestampNow } from "@accountability/core/Domains/Timestamp"
 import { AccountRepository, type AccountRepositoryService } from "@accountability/persistence/Services/AccountRepository"
 import { CompanyRepository, type CompanyRepositoryService } from "@accountability/persistence/Services/CompanyRepository"
-import { EntityNotFoundError } from "@accountability/persistence/RepositoryError"
+import { EntityNotFoundError } from "@accountability/persistence/Errors/RepositoryError"
 
 // =============================================================================
 // Test Fixtures

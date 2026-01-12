@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./MigrationRunner": "./src/MigrationRunner.ts",
+    "./Errors/RepositoryError": "./src/Errors/RepositoryError.ts",
     "./Services/AccountRepository": "./src/Services/AccountRepository.ts",
     "./Services/CompanyRepository": "./src/Services/CompanyRepository.ts",
     "./Services/OrganizationRepository": "./src/Services/OrganizationRepository.ts",
@@ -25,9 +25,9 @@
     "./Layers/ConsolidationRepositoryLive": "./src/Layers/ConsolidationRepositoryLive.ts",
     "./Layers/IntercompanyTransactionRepositoryLive": "./src/Layers/IntercompanyTransactionRepositoryLive.ts",
     "./Layers/EliminationRuleRepositoryLive": "./src/Layers/EliminationRuleRepositoryLive.ts",
-    "./RepositoryError": "./src/RepositoryError.ts",
-    "./RepositoriesLive": "./src/RepositoriesLive.ts",
-    "./PgClientLive": "./src/PgClientLive.ts"
+    "./Layers/MigrationsLive": "./src/Layers/MigrationsLive.ts",
+    "./Layers/PgClientLive": "./src/Layers/PgClientLive.ts",
+    "./Layers/RepositoriesLive": "./src/Layers/RepositoriesLive.ts"
   },
   "scripts": {
     "build": "echo 'No build step yet'",

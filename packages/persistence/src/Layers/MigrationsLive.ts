@@ -1,5 +1,5 @@
 /**
- * MigrationRunner - Migration runner with inline loader
+ * MigrationsLive - Migration runner with inline loader
  *
  * Uses Migrator.make with fromRecord to define migrations inline.
  * All migrations are statically imported - no dynamic file system loading.
@@ -7,22 +7,22 @@
  * Migrations run automatically when the MigrationLayer is provided,
  * ensuring the database schema is always up-to-date before the application starts.
  *
- * @module MigrationRunner
+ * @module MigrationsLive
  */
 
 import * as Migrator from "@effect/sql/Migrator"
 import * as Layer from "effect/Layer"
 
 // Import all migrations statically
-import Migration0001 from "./Migrations/Migration0001_CreateOrganizations.ts"
-import Migration0002 from "./Migrations/Migration0002_CreateCompanies.ts"
-import Migration0003 from "./Migrations/Migration0003_CreateAccounts.ts"
-import Migration0004 from "./Migrations/Migration0004_CreateFiscalPeriods.ts"
-import Migration0005 from "./Migrations/Migration0005_CreateJournalEntries.ts"
-import Migration0006 from "./Migrations/Migration0006_CreateExchangeRates.ts"
-import Migration0007 from "./Migrations/Migration0007_CreateConsolidation.ts"
-import Migration0008 from "./Migrations/Migration0008_CreateIntercompany.ts"
-import Migration0009 from "./Migrations/Migration0009_CreateConsolidationRuns.ts"
+import Migration0001 from "../Migrations/Migration0001_CreateOrganizations.ts"
+import Migration0002 from "../Migrations/Migration0002_CreateCompanies.ts"
+import Migration0003 from "../Migrations/Migration0003_CreateAccounts.ts"
+import Migration0004 from "../Migrations/Migration0004_CreateFiscalPeriods.ts"
+import Migration0005 from "../Migrations/Migration0005_CreateJournalEntries.ts"
+import Migration0006 from "../Migrations/Migration0006_CreateExchangeRates.ts"
+import Migration0007 from "../Migrations/Migration0007_CreateConsolidation.ts"
+import Migration0008 from "../Migrations/Migration0008_CreateIntercompany.ts"
+import Migration0009 from "../Migrations/Migration0009_CreateConsolidationRuns.ts"
 
 /**
  * Migration loader with all migrations defined inline.
@@ -77,13 +77,16 @@ export const runMigrations = run(migratorOptions)
  *
  * @example
  * ```typescript
- * import { MigrationLayer } from "@accountability/persistence/MigrationRunner"
+ * import { MigrationsLive } from "@accountability/persistence/Layers/MigrationsLive"
  * import { PgClient } from "@effect/sql-pg"
  *
  * // Migrations run automatically when PgClient is provided
- * const AppLayer = MigrationLayer.pipe(
+ * const AppLayer = MigrationsLive.pipe(
  *   Layer.provideMerge(PgClient.layer({ url: Redacted.make("postgresql://...") }))
  * )
  * ```
  */
-export const MigrationLayer = Layer.effectDiscard(runMigrations)
+export const MigrationsLive = Layer.effectDiscard(runMigrations)
+
+// Legacy export for backwards compatibility during transition
+export { MigrationsLive as MigrationLayer }

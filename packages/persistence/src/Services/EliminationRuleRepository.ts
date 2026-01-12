@@ -18,7 +18,7 @@ import type {
   ConsolidationGroupId,
   EliminationRuleId
 } from "@accountability/core/Domains/ConsolidationGroup"
-import type { EntityNotFoundError, PersistenceError } from "../RepositoryError.ts"
+import type { EntityNotFoundError, PersistenceError } from "../Errors/RepositoryError.ts"
 
 /**
  * EliminationRuleRepositoryService - Service interface for EliminationRule persistence

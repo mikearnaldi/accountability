@@ -40,7 +40,7 @@ import { JournalEntryRepository, type JournalEntryRepositoryService } from "@acc
 import { JournalEntryLineRepository, type JournalEntryLineRepositoryService } from "@accountability/persistence/Services/JournalEntryLineRepository"
 import { CompanyRepository, type CompanyRepositoryService } from "@accountability/persistence/Services/CompanyRepository"
 import { FiscalPeriodRepository, type FiscalPeriodRepositoryService } from "@accountability/persistence/Services/FiscalPeriodRepository"
-import { EntityNotFoundError } from "@accountability/persistence/RepositoryError"
+import { EntityNotFoundError } from "@accountability/persistence/Errors/RepositoryError"
 
 // =============================================================================
 // Test Fixtures

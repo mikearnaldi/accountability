@@ -18,7 +18,7 @@ import type {
 } from "@accountability/core/Domains/JournalEntry"
 import type { CompanyId } from "@accountability/core/Domains/Company"
 import type { FiscalPeriodRef } from "@accountability/core/Domains/FiscalPeriodRef"
-import type { EntityNotFoundError, PersistenceError } from "../RepositoryError.ts"
+import type { EntityNotFoundError, PersistenceError } from "../Errors/RepositoryError.ts"
 
 /**
  * JournalEntryRepository - Service interface for JournalEntry persistence

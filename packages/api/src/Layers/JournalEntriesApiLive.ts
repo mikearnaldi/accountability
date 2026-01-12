@@ -34,7 +34,7 @@ import {
   isEntityNotFoundError,
   type EntityNotFoundError,
   type PersistenceError
-} from "@accountability/persistence/RepositoryError"
+} from "@accountability/persistence/Errors/RepositoryError"
 import { AppApi } from "../Definitions/AppApi.ts"
 import type { CreateJournalEntryLineRequest } from "../Definitions/JournalEntriesApi.ts"
 import {

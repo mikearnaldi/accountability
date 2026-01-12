@@ -18,7 +18,7 @@ import type {
   FiscalPeriodStatus
 } from "@accountability/core/Services/PeriodService"
 import type { CompanyId } from "@accountability/core/Domains/Company"
-import type { EntityNotFoundError, PersistenceError } from "../RepositoryError.ts"
+import type { EntityNotFoundError, PersistenceError } from "../Errors/RepositoryError.ts"
 
 /**
  * FiscalPeriodRepository - Service interface for FiscalYear and FiscalPeriod persistence

@@ -29,7 +29,7 @@ import {
   IntercompanyTransactionRepository,
   type IntercompanyTransactionRepositoryService
 } from "../Services/IntercompanyTransactionRepository.ts"
-import { EntityNotFoundError, wrapSqlError } from "../RepositoryError.ts"
+import { EntityNotFoundError, wrapSqlError } from "../Errors/RepositoryError.ts"
 
 /**
  * Schema for amount JSON stored in database

@@ -27,7 +27,7 @@ import {
   JournalEntryLineRepository,
   type JournalEntryLineRepositoryService
 } from "../Services/JournalEntryLineRepository.ts"
-import { EntityNotFoundError, wrapSqlError } from "../RepositoryError.ts"
+import { EntityNotFoundError, wrapSqlError } from "../Errors/RepositoryError.ts"
 
 /**
  * Schema for database row from journal_entry_lines table

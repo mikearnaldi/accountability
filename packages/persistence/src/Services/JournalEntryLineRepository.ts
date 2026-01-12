@@ -15,7 +15,7 @@ import type {
 } from "@accountability/core/Domains/JournalEntryLine"
 import type { JournalEntryId } from "@accountability/core/Domains/JournalEntry"
 import type { AccountId } from "@accountability/core/Domains/Account"
-import type { EntityNotFoundError, PersistenceError } from "../RepositoryError.ts"
+import type { EntityNotFoundError, PersistenceError } from "../Errors/RepositoryError.ts"
 
 /**
  * JournalEntryLineRepository - Service interface for JournalEntryLine persistence

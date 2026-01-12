@@ -25,7 +25,7 @@ import { CompanyId } from "@accountability/core/Domains/Company"
 import { CurrencyCode } from "@accountability/core/Domains/CurrencyCode"
 import { Timestamp } from "@accountability/core/Domains/Timestamp"
 import { AccountRepository, type AccountRepositoryService } from "../Services/AccountRepository.ts"
-import { EntityNotFoundError, wrapSqlError } from "../RepositoryError.ts"
+import { EntityNotFoundError, wrapSqlError } from "../Errors/RepositoryError.ts"
 
 /**
  * Schema for database row from accounts table

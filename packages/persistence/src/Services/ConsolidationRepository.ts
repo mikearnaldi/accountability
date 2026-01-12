@@ -21,7 +21,7 @@ import type {
 } from "@accountability/core/Domains/ConsolidationRun"
 import type { OrganizationId } from "@accountability/core/Domains/Organization"
 import type { FiscalPeriodRef } from "@accountability/core/Domains/FiscalPeriodRef"
-import type { EntityNotFoundError, PersistenceError } from "../RepositoryError.ts"
+import type { EntityNotFoundError, PersistenceError } from "../Errors/RepositoryError.ts"
 
 /**
  * ConsolidationRepository - Service interface for ConsolidationGroup and ConsolidationRun persistence

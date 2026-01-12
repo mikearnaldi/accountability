@@ -1,8 +1,8 @@
 import { HttpApiBuilder, HttpApiSwagger, HttpServer } from "@effect/platform"
 import * as Layer from "effect/Layer"
 import { AppApiLive } from "@accountability/api/Layers/AppApiLive"
-import { RepositoriesLive } from "@accountability/persistence/RepositoriesLive"
-import { PgClientLive } from "@accountability/persistence/PgClientLive"
+import { RepositoriesLive } from "@accountability/persistence/Layers/RepositoriesLive"
+import { PgClientLive } from "@accountability/persistence/Layers/PgClientLive"
 
 // Logging utility that bypasses no-console lint rule
 // Uses process.stderr.write for debug logging during shutdown

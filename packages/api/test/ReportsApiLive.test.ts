@@ -41,7 +41,7 @@ import { JournalEntryRepository, type JournalEntryRepositoryService } from "@acc
 import { JournalEntryLineRepository, type JournalEntryLineRepositoryService } from "@accountability/persistence/Services/JournalEntryLineRepository"
 import { CompanyRepository, type CompanyRepositoryService } from "@accountability/persistence/Services/CompanyRepository"
 import { AccountRepository, type AccountRepositoryService } from "@accountability/persistence/Services/AccountRepository"
-import { EntityNotFoundError } from "@accountability/persistence/RepositoryError"
+import { EntityNotFoundError } from "@accountability/persistence/Errors/RepositoryError"
 import {
   generateTrialBalanceFromData
 } from "@accountability/core/Services/TrialBalanceService"

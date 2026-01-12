@@ -45,7 +45,7 @@ import { IntercompanyTransactionRepository } from "../src/Services/IntercompanyT
 import { IntercompanyTransactionRepositoryLive } from "../src/Layers/IntercompanyTransactionRepositoryLive.ts"
 import { EliminationRuleRepository } from "../src/Services/EliminationRuleRepository.ts"
 import { EliminationRuleRepositoryLive } from "../src/Layers/EliminationRuleRepositoryLive.ts"
-import { MigrationLayer } from "../src/MigrationRunner.ts"
+import { MigrationLayer } from "../src/Layers/MigrationsLive.ts"
 import { PgContainer } from "./Utils.ts"
 import { FiscalYearId, FiscalPeriodId } from "@accountability/core/Services/PeriodService"
 import { ExchangeRateId } from "@accountability/core/Domains/ExchangeRate"

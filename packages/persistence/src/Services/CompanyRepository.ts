@@ -12,7 +12,7 @@ import type * as Effect from "effect/Effect"
 import type * as Option from "effect/Option"
 import type { Company, CompanyId } from "@accountability/core/Domains/Company"
 import type { OrganizationId } from "@accountability/core/Domains/Organization"
-import type { EntityNotFoundError, PersistenceError } from "../RepositoryError.ts"
+import type { EntityNotFoundError, PersistenceError } from "../Errors/RepositoryError.ts"
 
 /**
  * CompanyRepository - Service interface for Company persistence

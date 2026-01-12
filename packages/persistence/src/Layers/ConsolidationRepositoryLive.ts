@@ -47,8 +47,8 @@ import { Timestamp } from "@accountability/core/Domains/Timestamp"
 import { UserId } from "@accountability/core/Domains/JournalEntry"
 import { Percentage } from "@accountability/core/Domains/Percentage"
 import { ConsolidationRepository, type ConsolidationRepositoryService } from "../Services/ConsolidationRepository.ts"
-import { EntityNotFoundError, wrapSqlError } from "../RepositoryError.ts"
-import type { PersistenceError } from "../RepositoryError.ts"
+import { EntityNotFoundError, wrapSqlError } from "../Errors/RepositoryError.ts"
+import type { PersistenceError } from "../Errors/RepositoryError.ts"
 
 /**
  * Schema for database row from consolidation_groups table

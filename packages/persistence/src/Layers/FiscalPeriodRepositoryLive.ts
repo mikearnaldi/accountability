@@ -26,7 +26,7 @@ import {
   FiscalYearStatus
 } from "@accountability/core/Services/PeriodService"
 import { FiscalPeriodRepository, type FiscalPeriodRepositoryService } from "../Services/FiscalPeriodRepository.ts"
-import { EntityNotFoundError, wrapSqlError } from "../RepositoryError.ts"
+import { EntityNotFoundError, wrapSqlError } from "../Errors/RepositoryError.ts"
 
 /**
  * Schema for database row from fiscal_years table

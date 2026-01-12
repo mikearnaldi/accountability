@@ -19,7 +19,7 @@ import { OrganizationId } from "@accountability/core/Domains/Organization"
 import { Percentage } from "@accountability/core/Domains/Percentage"
 import { Timestamp } from "@accountability/core/Domains/Timestamp"
 import { CompanyRepository, type CompanyRepositoryService } from "../Services/CompanyRepository.ts"
-import { EntityNotFoundError, wrapSqlError } from "../RepositoryError.ts"
+import { EntityNotFoundError, wrapSqlError } from "../Errors/RepositoryError.ts"
 
 /**
  * Schema for database row from companies table

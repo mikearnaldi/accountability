@@ -12,7 +12,7 @@ import { SqlSchema } from "@effect/sql"
 import { describe, expect, it } from "@effect/vitest"
 import { Effect, Layer, Schema } from "effect"
 import { PgContainer } from "./Utils.ts"
-import { MigrationLayer, runMigrations } from "../src/MigrationRunner.ts"
+import { MigrationLayer, runMigrations } from "../src/Layers/MigrationsLive.ts"
 
 /**
  * Layer that provides PgClient with migrations run.
