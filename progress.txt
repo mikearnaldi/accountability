@@ -539,3 +539,8 @@
 **Story**: 8.1.4 - Implement session token service
 **Status**: complete
 ---
+
+## Iteration 9 - 2026-01-12 22:18
+**Story**: 8.1.5 - Define AuthProvider interface and AuthService
+**Status**: complete
+---
