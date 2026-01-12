@@ -1702,7 +1702,7 @@
         "Tests use proper test fixtures and cleanup",
         "Test coverage above 80% for persistence package"
       ],
-      "status": "pending",
+      "status": "in_progress",
       "estimated_complexity": "medium"
     },
     {
@@ -1802,6 +1802,28 @@
       ],
       "status": "pending",
       "estimated_complexity": "small"
+    },
+    {
+      "id": "6.4.11",
+      "phase": "Persistence Layer",
+      "epic": "Schema Alignment",
+      "title": "Fix ConsolidationRepository and Migration0009 schema mismatch",
+      "description": "The ConsolidationRepositoryLive expects a different schema than what Migration0009_CreateConsolidationRuns actually creates. The repository uses JSONB columns while the migration creates normalized separate tables.",
+      "specs": [
+        "ACCOUNTING_RESEARCH.md"
+      ],
+      "acceptance_criteria": [
+        "Decide on schema approach: normalized tables (Migration0009) vs denormalized JSONB (repository)",
+        "If normalized: update ConsolidationRepositoryLive to query consolidation_run_steps table",
+        "If normalized: update repository to query consolidated_trial_balances table",
+        "If normalized: update repository to use consolidation_run_elimination_entries junction table",
+        "Fix column name mismatches: group_id→consolidation_group_id, period_year→fiscal_year, period_number→fiscal_period",
+        "If denormalized: update Migration0009 to use JSONB columns instead of separate tables",
+        "Ensure all repository methods work correctly with the chosen schema",
+        "Add/update tests to verify repository operations against actual database schema"
+      ],
+      "status": "pending",
+      "estimated_complexity": "medium"
     },
     {
       "id": "7.1.1",
