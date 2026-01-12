@@ -529,3 +529,8 @@
 **Story**: 8.1.2 - Define authentication error types
 **Status**: complete
 ---
+
+## Iteration 6 - 2026-01-12 22:05
+**Story**: 8.1.3 - Implement password hashing service
+**Status**: complete
+---

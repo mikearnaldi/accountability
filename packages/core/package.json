@@ -14,6 +14,8 @@
     "./Auth/Session": "./src/Auth/Session.ts",
     "./Auth/SessionId": "./src/Auth/SessionId.ts",
     "./Auth/UserIdentity": "./src/Auth/UserIdentity.ts",
+    "./Auth/HashedPassword": "./src/Auth/HashedPassword.ts",
+    "./Auth/PasswordHasher": "./src/Auth/PasswordHasher.ts",
     "./Domains/Account": "./src/Domains/Account.ts",
     "./Domains/AccountBalance": "./src/Domains/AccountBalance.ts",
     "./Domains/AccountHierarchy": "./src/Domains/AccountHierarchy.ts",
