@@ -27,8 +27,8 @@ import type {
   JournalEntryType,
   SourceModule
 } from "@accountability/core/Domains/JournalEntry"
-import { AccountSelector } from "../../components/AccountSelector.ts"
-import { CurrencyInput } from "../../components/CurrencyInput.ts"
+import { AccountSelector } from "../../components/AccountSelector.tsx"
+import { CurrencyInput } from "../../components/CurrencyInput.tsx"
 import { ApiClient } from "../../atoms/ApiClient.ts"
 import {
   createInitialFormState,

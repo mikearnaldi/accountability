@@ -37,8 +37,8 @@ import {
   UpdateJournalEntryRequest,
   CreateJournalEntryLineRequest
 } from "@accountability/api/Definitions/JournalEntriesApi"
-import { AccountSelector } from "../../components/AccountSelector.ts"
-import { CurrencyInput } from "../../components/CurrencyInput.ts"
+import { AccountSelector } from "../../components/AccountSelector.tsx"
+import { CurrencyInput } from "../../components/CurrencyInput.tsx"
 import { ApiClient } from "../../atoms/ApiClient.ts"
 import {
   createEmptyLine,

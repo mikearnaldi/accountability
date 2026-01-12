@@ -5,18 +5,18 @@ import prettierConfig from "eslint-config-prettier"
 
 /**
  * Custom ESLint rule to enforce import extension conventions:
- * - Relative imports (./foo or ../foo) must use .ts extension
+ * - Relative imports (./foo or ../foo) must use .ts or .tsx extension
  * - Package imports (effect/Schema, @effect/sql) must be extensionless
  */
 const importExtensionsRule = {
   meta: {
     type: "problem",
     docs: {
-      description: "Enforce .ts extension for relative imports and no extension for package imports"
+      description: "Enforce .ts/.tsx extension for relative imports and no extension for package imports"
     },
     messages: {
-      relativeRequiresTs: "Relative imports must use .ts extension. Change '{{source}}' to '{{source}}.ts'",
-      relativeNoJs: "Relative imports must use .ts extension, not .js. Change '{{source}}' to '{{fixed}}'",
+      relativeRequiresTs: "Relative imports must use .ts or .tsx extension. Change '{{source}}' to '{{source}}.ts'",
+      relativeNoJs: "Relative imports must use .ts or .tsx extension, not .js/.jsx. Change '{{source}}' to '{{fixed}}'",
       packageNoExtension: "Package imports must not have an extension. Change '{{source}}' to '{{fixed}}'"
     },
     schema: []
@@ -28,15 +28,15 @@ const importExtensionsRule = {
       const isRelative = source.startsWith("./") || source.startsWith("../")
 
       if (isRelative) {
-        // Relative imports must use .ts
-        if (source.endsWith(".js")) {
-          const fixed = source.replace(/\.js$/, ".ts")
+        // Relative imports must use .ts or .tsx
+        if (source.endsWith(".js") || source.endsWith(".jsx")) {
+          const fixed = source.replace(/\.jsx?$/, ".ts")
           context.report({
             node,
             messageId: "relativeNoJs",
             data: { source, fixed }
           })
-        } else if (!source.endsWith(".ts") && !source.endsWith(".json")) {
+        } else if (!source.endsWith(".ts") && !source.endsWith(".tsx") && !source.endsWith(".json")) {
           // Missing extension on relative import
           context.report({
             node,
@@ -46,8 +46,8 @@ const importExtensionsRule = {
         }
       } else {
         // Package imports must be extensionless
-        if (source.endsWith(".ts") || source.endsWith(".js")) {
-          const fixed = source.replace(/\.(ts|js)$/, "")
+        if (source.endsWith(".ts") || source.endsWith(".tsx") || source.endsWith(".js") || source.endsWith(".jsx")) {
+          const fixed = source.replace(/\.(tsx?|jsx?)$/, "")
           context.report({
             node,
             messageId: "packageNoExtension",
@@ -243,6 +243,7 @@ export default [
     ignores: [
       "**/dist/**",
       "**/build/**",
+      "**/.output/**",
       "**/node_modules/**",
       "repos/**",
       "**/*.md"
