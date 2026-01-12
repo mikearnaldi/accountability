@@ -340,10 +340,9 @@ run_iteration() {
                 return 1
             fi
         else
-            log "ERROR" "CI checks failed for story $story_id"
-            rollback_changes
-            update_story_status "$story_id" "pending"
-            return 1
+            log "WARN" "CI checks failed for story $story_id - keeping changes for next iteration to fix"
+            # Don't rollback - keep changes so next iteration can fix CI errors
+            # Story stays in_progress, CI errors are already saved for next iteration
         fi
     else
         log "WARN" "Agent did not complete the story"
