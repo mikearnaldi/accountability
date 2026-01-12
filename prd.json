@@ -299,7 +299,7 @@
         "pattern": "SqlClient.execute template tag for migrations",
         "note": "password_hash is on auth_identities (not auth_users) since only local provider uses it"
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "small"
     },
     {
