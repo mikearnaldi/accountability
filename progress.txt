@@ -519,3 +519,8 @@
 **Story**: 7.2.4 - Implement report viewer page
 **Status**: complete
 ---
+
+## Iteration 4 - 2026-01-12 21:51
+**Story**: 8.1.1 - Define authentication domain schemas
+**Status**: complete
+---

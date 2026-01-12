@@ -143,7 +143,7 @@
         "pattern": "Flat module structure, no index.ts barrel files",
         "multi_provider": "One AuthUser can have multiple UserIdentity records (e.g., local + WorkOS)"
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "small"
     },
     {
