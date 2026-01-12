@@ -1591,6 +1591,27 @@
       "estimated_complexity": "medium"
     },
     {
+      "id": "6.3.4",
+      "phase": "API Layer",
+      "epic": "API Infrastructure",
+      "title": "Replace dummy API implementations with live services",
+      "description": "Review all API handler implementations and replace any dummy/placeholder code with actual live service calls. Ensure AppApiLive properly composes all live layers.",
+      "specs": [
+        "API_BEST_PRACTICES.md"
+      ],
+      "acceptance_criteria": [
+        "AppApiLive uses real repository and service layers, not stubs",
+        "All API handlers call actual business logic services",
+        "Remove any hardcoded/mock data from handlers",
+        "Verify layer composition in AppApiLive provides all dependencies",
+        "All endpoints return real data from persistence layer",
+        "Error handling uses proper domain error types",
+        "API handlers follow best practices (no manual Schema.decode for path/URL params)"
+      ],
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
       "id": "6.4.1",
       "phase": "Persistence Layer",
       "epic": "Persistence Refinements",
