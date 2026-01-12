@@ -38,6 +38,8 @@ describe("OpenAPI Specification", () => {
 
       // All API groups should be represented as tags
       expect(tagNames).toContain("Health")
+      expect(tagNames).toContain("Authentication")
+      expect(tagNames).toContain("Authentication (Session)")
       expect(tagNames).toContain("Accounts")
       expect(tagNames).toContain("Companies")
       expect(tagNames).toContain("Journal Entries")
@@ -69,6 +71,7 @@ describe("OpenAPI Specification", () => {
 
       // Check for expected path prefixes
       const hasHealthPath = paths.some((p) => p.includes("/health"))
+      const hasAuthPath = paths.some((p) => p.includes("/auth"))
       const hasAccountsPath = paths.some((p) => p.includes("/accounts"))
       const hasCompaniesPath = paths.some((p) => p.includes("/companies") || p.includes("/organizations"))
       const hasJournalEntriesPath = paths.some((p) => p.includes("/journal-entries"))
@@ -80,6 +83,7 @@ describe("OpenAPI Specification", () => {
       const hasEliminationRulesPath = paths.some((p) => p.includes("/elimination-rules"))
 
       expect(hasHealthPath, "Should have health endpoints").toBe(true)
+      expect(hasAuthPath, "Should have auth endpoints").toBe(true)
       expect(hasAccountsPath, "Should have accounts endpoints").toBe(true)
       expect(hasCompaniesPath, "Should have companies/organizations endpoints").toBe(true)
       expect(hasJournalEntriesPath, "Should have journal entries endpoints").toBe(true)
@@ -131,6 +135,20 @@ describe("OpenAPI Specification", () => {
     it("protected endpoints have security requirements", () => {
       const spec = OpenApi.fromApi(AppApi)
 
+      // Public endpoints that should NOT require authentication
+      const publicPaths = [
+        "/health",
+        "/auth/providers",
+        "/auth/register",
+        "/auth/login",
+        "/auth/authorize",
+        "/auth/callback"
+      ]
+
+      const isPublicPath = (path: string): boolean => {
+        return publicPaths.some((p) => path.includes(p))
+      }
+
       // The health endpoint should not have security
       const healthPath = Object.keys(spec.paths).find((p) => p.includes("/health"))
       if (healthPath) {
@@ -143,10 +161,22 @@ describe("OpenAPI Specification", () => {
         }
       }
 
+      // Public auth endpoints should not have security
+      for (const [path, pathItem] of Object.entries(spec.paths)) {
+        if (isPublicPath(path)) {
+          for (const [method, operation] of Object.entries(pathItem)) {
+            expect(
+              operation.security.length,
+              `Public operation at ${method.toUpperCase()} ${path} should not require authentication`
+            ).toBe(0)
+          }
+        }
+      }
+
       // Protected endpoints should have security requirements
       for (const [path, pathItem] of Object.entries(spec.paths)) {
-        // Skip health endpoint
-        if (path.includes("/health")) continue
+        // Skip public endpoints
+        if (isPublicPath(path)) continue
 
         for (const [method, operation] of Object.entries(pathItem)) {
           expect(

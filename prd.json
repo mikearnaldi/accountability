@@ -495,7 +495,7 @@
         "response_schemas": "LoginResponse (token + user + provider), AuthUserResponse, ProvidersResponse",
         "pattern": "HttpApiGroup.make with mixed public/protected endpoints"
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "medium"
     },
     {

@@ -574,3 +574,8 @@
 **Story**: 8.2.6 - Implement AuthServiceLive
 **Status**: complete
 ---
+
+## Iteration 8 - 2026-01-12 23:28
+**Story**: 8.3.1 - Define AuthApi endpoints
+**Status**: complete
+---

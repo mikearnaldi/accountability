@@ -14,6 +14,7 @@ import * as Option from "effect/Option"
 import { AppApi, HealthCheckResponse } from "../Definitions/AppApi.ts"
 import { AuthMiddlewareWithSimpleValidation } from "./AuthMiddlewareLive.ts"
 import { AccountsApiLive } from "./AccountsApiLive.ts"
+import { AuthApiLive, AuthSessionApiLive } from "./AuthApiLive.ts"
 import { CompaniesApiLive } from "./CompaniesApiLive.ts"
 import { ConsolidationApiLive } from "./ConsolidationApiLive.ts"
 import { CurrencyApiLive } from "./CurrencyApiLive.ts"
@@ -80,6 +81,8 @@ const HealthApiLive = HttpApiBuilder.group(AppApi, "health", (handlers) =>
  */
 export const AppApiLive = HttpApiBuilder.api(AppApi).pipe(
   Layer.provide(HealthApiLive),
+  Layer.provide(AuthApiLive),
+  Layer.provide(AuthSessionApiLive),
   Layer.provide(AccountsApiLive),
   Layer.provide(CompaniesApiLive),
   Layer.provide(JournalEntriesApiLive),
