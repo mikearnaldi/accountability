@@ -1,0 +1,872 @@
+/**
+ * HTTP API Integration Tests
+ *
+ * These tests verify the full HTTP API stack using:
+ * - NodeHttpServer.layerTest for in-memory testing without a real HTTP server
+ * - HttpApiClient.make(AppApi) for type-safe test requests
+ * - it.layer(HttpLive) pattern for shared test context
+ *
+ * Tests cover:
+ * - Success responses with proper Schema decoding
+ * - Error responses (401, 404, 422, etc.)
+ * - Authentication middleware
+ * - All API groups (health, accounts, companies, journal-entries, reports)
+ *
+ * @module HttpApiIntegration.test
+ */
+
+import { describe, expect, layer } from "@effect/vitest"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import * as Option from "effect/Option"
+import { HttpApiBuilder, HttpApiClient, HttpClient, HttpClientRequest } from "@effect/platform"
+import { NodeHttpServer } from "@effect/platform-node"
+import { AppApi, HealthCheckResponse } from "@accountability/api/AppApi"
+import { AppApiLive } from "@accountability/api/AppApiLive"
+import { AccountId } from "@accountability/core/domain/Account"
+
+// =============================================================================
+// Test Layer Setup
+// =============================================================================
+
+/**
+ * HttpLive - Complete test layer for API integration tests
+ *
+ * Uses NodeHttpServer.layerTest which provides an in-memory HTTP server
+ * for testing without binding to a real port.
+ *
+ * Pattern: HttpApiBuilder.serve().pipe(
+ *   Layer.provide(ApiLive),
+ *   Layer.provideMerge(NodeHttpServer.layerTest)
+ * )
+ */
+const HttpLive = HttpApiBuilder.serve().pipe(
+  Layer.provide(AppApiLive),
+  Layer.provideMerge(NodeHttpServer.layerTest)
+)
+
+// =============================================================================
+// Health API Tests
+// =============================================================================
+
+describe("Health API", () => {
+  layer(HttpLive)("Health endpoint", (it) => {
+    it.effect("GET /api/health returns health check response", () =>
+      Effect.gen(function* () {
+        const client = yield* HttpApiClient.make(AppApi)
+        const response = yield* client.health.healthCheck()
+
+        expect(response.status).toBe("ok")
+        expect(response.timestamp).toBeDefined()
+        expect(typeof response.timestamp).toBe("string")
+        // Validate timestamp is a valid ISO string
+        expect(() => new Date(response.timestamp)).not.toThrow()
+      })
+    )
+
+    it.effect("health check returns version when available", () =>
+      Effect.gen(function* () {
+        const client = yield* HttpApiClient.make(AppApi)
+        const response = yield* client.health.healthCheck()
+
+        // Version is optional, but should be present in our implementation
+        expect(Option.isSome(response.version)).toBe(true)
+        if (Option.isSome(response.version)) {
+          expect(response.version.value).toBe("0.0.1")
+        }
+      })
+    )
+
+    it.effect("health check has correct response structure", () =>
+      Effect.gen(function* () {
+        const client = yield* HttpApiClient.make(AppApi)
+        const response = yield* client.health.healthCheck()
+
+        // Verify the response is properly decoded as HealthCheckResponse
+        expect(response).toBeInstanceOf(HealthCheckResponse)
+      })
+    )
+  })
+})
+
+// =============================================================================
+// Authentication Tests
+// =============================================================================
+
+describe("Authentication", () => {
+  layer(HttpLive)("Unauthorized access", (it) => {
+    it.effect("GET /api/v1/accounts without token returns 401", () =>
+      Effect.gen(function* () {
+        // Use raw HTTP client to skip auth header
+        const httpClient = yield* HttpClient.HttpClient
+        const response = yield* HttpClientRequest.get("/api/v1/accounts").pipe(
+          HttpClientRequest.setUrlParams({ companyId: "test-company-id" }),
+          httpClient.execute,
+          Effect.scoped
+        )
+
+        expect(response.status).toBe(401)
+      })
+    )
+
+    it.effect("POST /api/v1/accounts without token returns 401", () =>
+      Effect.gen(function* () {
+        const httpClient = yield* HttpClient.HttpClient
+        const response = yield* HttpClientRequest.post("/api/v1/accounts").pipe(
+          HttpClientRequest.bodyUnsafeJson({
+            companyId: "test-company-id",
+            accountNumber: "1000",
+            name: "Test Account",
+            accountType: "Asset",
+            accountCategory: "CurrentAsset",
+            normalBalance: "Debit"
+          }),
+          httpClient.execute,
+          Effect.scoped
+        )
+
+        expect(response.status).toBe(401)
+      })
+    )
+
+    it.effect("invalid token format returns 401 with error message", () =>
+      Effect.gen(function* () {
+        const httpClient = yield* HttpClient.HttpClient
+        const response = yield* HttpClientRequest.get("/api/v1/accounts").pipe(
+          HttpClientRequest.setUrlParams({ companyId: "test-company-id" }),
+          HttpClientRequest.bearerToken("invalid-token"),
+          httpClient.execute,
+          Effect.scoped
+        )
+
+        expect(response.status).toBe(401)
+        const body = yield* response.json
+        expect(body).toHaveProperty("_tag", "UnauthorizedError")
+      })
+    )
+  })
+
+  layer(HttpLive)("Authorized access", (it) => {
+    it.effect("valid token allows access to protected endpoints", () =>
+      Effect.gen(function* () {
+        const httpClient = yield* HttpClient.HttpClient
+        // Token format: user_<id>_<role>
+        const response = yield* HttpClientRequest.get("/api/v1/accounts").pipe(
+          HttpClientRequest.setUrlParams({ companyId: "550e8400-e29b-41d4-a716-446655440001" }),
+          HttpClientRequest.bearerToken("user_123_admin"),
+          httpClient.execute,
+          Effect.scoped
+        )
+
+        // Even with auth, the stub returns NotFoundError for "Company"
+        // This proves authentication passed (otherwise would be 401)
+        expect(response.status).toBe(404)
+      })
+    )
+
+    it.effect("admin role token is accepted", () =>
+      Effect.gen(function* () {
+        const httpClient = yield* HttpClient.HttpClient
+        const response = yield* HttpClientRequest.get("/api/v1/organizations").pipe(
+          HttpClientRequest.bearerToken("user_456_admin"),
+          httpClient.execute,
+          Effect.scoped
+        )
+
+        // Auth passed, returns empty list
+        expect(response.status).toBe(200)
+      })
+    )
+
+    it.effect("user role token is accepted", () =>
+      Effect.gen(function* () {
+        const httpClient = yield* HttpClient.HttpClient
+        const response = yield* HttpClientRequest.get("/api/v1/organizations").pipe(
+          HttpClientRequest.bearerToken("user_789_user"),
+          httpClient.execute,
+          Effect.scoped
+        )
+
+        expect(response.status).toBe(200)
+      })
+    )
+
+    it.effect("readonly role token is accepted", () =>
+      Effect.gen(function* () {
+        const httpClient = yield* HttpClient.HttpClient
+        const response = yield* HttpClientRequest.get("/api/v1/organizations").pipe(
+          HttpClientRequest.bearerToken("user_101_readonly"),
+          httpClient.execute,
+          Effect.scoped
+        )
+
+        expect(response.status).toBe(200)
+      })
+    )
+  })
+})
+
+// =============================================================================
+// Accounts API Tests
+// =============================================================================
+
+describe("Accounts API", () => {
+  layer(HttpLive)("Account endpoints", (it) => {
+    it.effect("GET /api/v1/accounts returns 404 for stub company", () =>
+      Effect.gen(function* () {
+        const httpClient = yield* HttpClient.HttpClient
+        const response = yield* HttpClientRequest.get("/api/v1/accounts").pipe(
+          HttpClientRequest.setUrlParams({ companyId: "550e8400-e29b-41d4-a716-446655440001" }),
+          HttpClientRequest.bearerToken("user_123_admin"),
+          httpClient.execute,
+          Effect.scoped
+        )
+
+        expect(response.status).toBe(404)
+        const body = yield* response.json
+        expect(body).toHaveProperty("_tag", "NotFoundError")
+        expect(body).toHaveProperty("resource", "Company")
+      })
+    )
+
+    it.effect("GET /api/v1/accounts/:id returns 404 for stub account", () =>
+      Effect.gen(function* () {
+        const httpClient = yield* HttpClient.HttpClient
+        const response = yield* HttpClientRequest.get("/api/v1/accounts/550e8400-e29b-41d4-a716-446655440002").pipe(
+          HttpClientRequest.bearerToken("user_123_admin"),
+          httpClient.execute,
+          Effect.scoped
+        )
+
+        expect(response.status).toBe(404)
+        const body = yield* response.json
+        expect(body).toHaveProperty("_tag", "NotFoundError")
+        expect(body).toHaveProperty("resource", "Account")
+      })
+    )
+
+    it.effect("POST /api/v1/accounts returns 400 for stub implementation", () =>
+      Effect.gen(function* () {
+        const httpClient = yield* HttpClient.HttpClient
+        const response = yield* HttpClientRequest.post("/api/v1/accounts").pipe(
+          HttpClientRequest.bearerToken("user_123_admin"),
+          HttpClientRequest.bodyUnsafeJson({
+            companyId: "550e8400-e29b-41d4-a716-446655440001",
+            accountNumber: "1000",
+            name: "Cash",
+            description: null,
+            accountType: "Asset",
+            accountCategory: "CurrentAsset",
+            normalBalance: "Debit",
+            parentAccountId: null,
+            isPostable: true,
+            isCashFlowRelevant: true,
+            cashFlowCategory: "Operating",
+            isIntercompany: false,
+            intercompanyPartnerId: null,
+            currencyRestriction: null
+          }),
+          httpClient.execute,
+          Effect.scoped
+        )
+
+        expect(response.status).toBe(400)
+        const body = yield* response.json
+        expect(body).toHaveProperty("_tag", "ValidationError")
+      })
+    )
+
+    it.effect("PUT /api/v1/accounts/:id returns 404 for stub", () =>
+      Effect.gen(function* () {
+        const httpClient = yield* HttpClient.HttpClient
+        const response = yield* HttpClientRequest.put("/api/v1/accounts/550e8400-e29b-41d4-a716-446655440002").pipe(
+          HttpClientRequest.bearerToken("user_123_admin"),
+          HttpClientRequest.bodyUnsafeJson({
+            name: null,
+            description: null,
+            parentAccountId: null,
+            isPostable: null,
+            isCashFlowRelevant: null,
+            cashFlowCategory: null,
+            isIntercompany: null,
+            intercompanyPartnerId: null,
+            currencyRestriction: null,
+            isActive: null
+          }),
+          httpClient.execute,
+          Effect.scoped
+        )
+
+        expect(response.status).toBe(404)
+      })
+    )
+
+    it.effect("DELETE /api/v1/accounts/:id returns 404 for stub", () =>
+      Effect.gen(function* () {
+        const httpClient = yield* HttpClient.HttpClient
+        const response = yield* HttpClientRequest.del("/api/v1/accounts/550e8400-e29b-41d4-a716-446655440002").pipe(
+          HttpClientRequest.bearerToken("user_123_admin"),
+          httpClient.execute,
+          Effect.scoped
+        )
+
+        expect(response.status).toBe(404)
+      })
+    )
+  })
+})
+
+// =============================================================================
+// Companies API Tests
+// =============================================================================
+
+describe("Companies API", () => {
+  layer(HttpLive)("Organizations endpoints", (it) => {
+    it.effect("GET /api/v1/organizations returns empty list", () =>
+      Effect.gen(function* () {
+        const httpClient = yield* HttpClient.HttpClient
+        const response = yield* HttpClientRequest.get("/api/v1/organizations").pipe(
+          HttpClientRequest.bearerToken("user_123_admin"),
+          httpClient.execute,
+          Effect.scoped
+        )
+
+        expect(response.status).toBe(200)
+        const body = yield* response.json
+        expect(body).toEqual({ organizations: [], total: 0 })
+      })
+    )
+
+    it.effect("GET /api/v1/organizations/:id returns 404", () =>
+      Effect.gen(function* () {
+        const httpClient = yield* HttpClient.HttpClient
+        const response = yield* HttpClientRequest.get("/api/v1/organizations/550e8400-e29b-41d4-a716-446655440000").pipe(
+          HttpClientRequest.bearerToken("user_123_admin"),
+          httpClient.execute,
+          Effect.scoped
+        )
+
+        expect(response.status).toBe(404)
+        const body = yield* response.json
+        expect(body).toHaveProperty("_tag", "NotFoundError")
+        expect(body).toHaveProperty("resource", "Organization")
+      })
+    )
+
+    it.effect("POST /api/v1/organizations returns 400 for stub", () =>
+      Effect.gen(function* () {
+        const httpClient = yield* HttpClient.HttpClient
+        const response = yield* HttpClientRequest.post("/api/v1/organizations").pipe(
+          HttpClientRequest.bearerToken("user_123_admin"),
+          HttpClientRequest.bodyUnsafeJson({
+            name: "Test Org",
+            reportingCurrency: "USD",
+            settings: null
+          }),
+          httpClient.execute,
+          Effect.scoped
+        )
+
+        expect(response.status).toBe(400)
+        const body = yield* response.json
+        expect(body).toHaveProperty("_tag", "ValidationError")
+      })
+    )
+  })
+
+  layer(HttpLive)("Companies endpoints", (it) => {
+    it.effect("GET /api/v1/companies returns 404 for stub organization", () =>
+      Effect.gen(function* () {
+        const httpClient = yield* HttpClient.HttpClient
+        const response = yield* HttpClientRequest.get("/api/v1/companies").pipe(
+          HttpClientRequest.setUrlParams({ organizationId: "550e8400-e29b-41d4-a716-446655440000" }),
+          HttpClientRequest.bearerToken("user_123_admin"),
+          httpClient.execute,
+          Effect.scoped
+        )
+
+        expect(response.status).toBe(404)
+        const body = yield* response.json
+        expect(body).toHaveProperty("_tag", "NotFoundError")
+        expect(body).toHaveProperty("resource", "Organization")
+      })
+    )
+
+    it.effect("GET /api/v1/companies/:id returns 404", () =>
+      Effect.gen(function* () {
+        const httpClient = yield* HttpClient.HttpClient
+        const response = yield* HttpClientRequest.get("/api/v1/companies/550e8400-e29b-41d4-a716-446655440001").pipe(
+          HttpClientRequest.bearerToken("user_123_admin"),
+          httpClient.execute,
+          Effect.scoped
+        )
+
+        expect(response.status).toBe(404)
+        const body = yield* response.json
+        expect(body).toHaveProperty("_tag", "NotFoundError")
+        expect(body).toHaveProperty("resource", "Company")
+      })
+    )
+
+    it.effect("POST /api/v1/companies returns 400 for stub", () =>
+      Effect.gen(function* () {
+        const httpClient = yield* HttpClient.HttpClient
+        const response = yield* HttpClientRequest.post("/api/v1/companies").pipe(
+          HttpClientRequest.bearerToken("user_123_admin"),
+          HttpClientRequest.bodyUnsafeJson({
+            organizationId: "550e8400-e29b-41d4-a716-446655440000",
+            name: "Test Company",
+            legalName: "Test Company Inc.",
+            jurisdiction: "US",
+            taxId: null,
+            functionalCurrency: "USD",
+            reportingCurrency: "USD",
+            fiscalYearEnd: { month: 12, day: 31 },
+            parentCompanyId: null,
+            ownershipPercentage: null,
+            consolidationMethod: null
+          }),
+          httpClient.execute,
+          Effect.scoped
+        )
+
+        expect(response.status).toBe(400)
+        const body = yield* response.json
+        expect(body).toHaveProperty("_tag", "ValidationError")
+      })
+    )
+  })
+})
+
+// =============================================================================
+// Journal Entries API Tests
+// =============================================================================
+
+describe("Journal Entries API", () => {
+  layer(HttpLive)("Journal entry endpoints", (it) => {
+    it.effect("GET /api/v1/journal-entries returns 404 for stub company", () =>
+      Effect.gen(function* () {
+        const httpClient = yield* HttpClient.HttpClient
+        const response = yield* HttpClientRequest.get("/api/v1/journal-entries").pipe(
+          HttpClientRequest.setUrlParams({ companyId: "550e8400-e29b-41d4-a716-446655440001" }),
+          HttpClientRequest.bearerToken("user_123_admin"),
+          httpClient.execute,
+          Effect.scoped
+        )
+
+        expect(response.status).toBe(404)
+        const body = yield* response.json
+        expect(body).toHaveProperty("_tag", "NotFoundError")
+        expect(body).toHaveProperty("resource", "Company")
+      })
+    )
+
+    it.effect("GET /api/v1/journal-entries/:id returns 404", () =>
+      Effect.gen(function* () {
+        const httpClient = yield* HttpClient.HttpClient
+        const response = yield* HttpClientRequest.get("/api/v1/journal-entries/550e8400-e29b-41d4-a716-446655440010").pipe(
+          HttpClientRequest.bearerToken("user_123_admin"),
+          httpClient.execute,
+          Effect.scoped
+        )
+
+        expect(response.status).toBe(404)
+        const body = yield* response.json
+        expect(body).toHaveProperty("_tag", "NotFoundError")
+        expect(body).toHaveProperty("resource", "JournalEntry")
+      })
+    )
+
+    it.effect("POST /api/v1/journal-entries with invalid body returns 400", () =>
+      Effect.gen(function* () {
+        const httpClient = yield* HttpClient.HttpClient
+        // Send with invalid/empty lines which violates minimum items constraint
+        const response = yield* HttpClientRequest.post("/api/v1/journal-entries").pipe(
+          HttpClientRequest.bearerToken("user_123_admin"),
+          HttpClientRequest.bodyUnsafeJson({
+            companyId: "550e8400-e29b-41d4-a716-446655440001",
+            description: "Test entry",
+            transactionDate: { year: 2024, month: 1, day: 15 },
+            documentDate: null,
+            fiscalPeriod: { year: 2024, period: 1 },
+            entryType: "Manual",
+            sourceModule: "GeneralLedger",
+            referenceNumber: null,
+            sourceDocumentRef: null,
+            lines: []  // Invalid - needs at least 2 lines
+          }),
+          httpClient.execute,
+          Effect.scoped
+        )
+
+        // Returns 400 because lines must have at least 2 items
+        expect(response.status).toBe(400)
+      })
+    )
+
+    it.effect("POST /api/v1/journal-entries/:id/submit returns 404", () =>
+      Effect.gen(function* () {
+        const httpClient = yield* HttpClient.HttpClient
+        const response = yield* HttpClientRequest.post("/api/v1/journal-entries/550e8400-e29b-41d4-a716-446655440010/submit").pipe(
+          HttpClientRequest.bearerToken("user_123_admin"),
+          httpClient.execute,
+          Effect.scoped
+        )
+
+        expect(response.status).toBe(404)
+      })
+    )
+
+    it.effect("POST /api/v1/journal-entries/:id/approve returns 404", () =>
+      Effect.gen(function* () {
+        const httpClient = yield* HttpClient.HttpClient
+        const response = yield* HttpClientRequest.post("/api/v1/journal-entries/550e8400-e29b-41d4-a716-446655440010/approve").pipe(
+          HttpClientRequest.bearerToken("user_123_admin"),
+          httpClient.execute,
+          Effect.scoped
+        )
+
+        expect(response.status).toBe(404)
+      })
+    )
+
+    it.effect("POST /api/v1/journal-entries/:id/reject returns 404", () =>
+      Effect.gen(function* () {
+        const httpClient = yield* HttpClient.HttpClient
+        const response = yield* HttpClientRequest.post("/api/v1/journal-entries/550e8400-e29b-41d4-a716-446655440010/reject").pipe(
+          HttpClientRequest.bearerToken("user_123_admin"),
+          HttpClientRequest.bodyUnsafeJson({ reason: "Test rejection" }),
+          httpClient.execute,
+          Effect.scoped
+        )
+
+        expect(response.status).toBe(404)
+      })
+    )
+
+    it.effect("POST /api/v1/journal-entries/:id/post returns 404", () =>
+      Effect.gen(function* () {
+        const httpClient = yield* HttpClient.HttpClient
+        const response = yield* HttpClientRequest.post("/api/v1/journal-entries/550e8400-e29b-41d4-a716-446655440010/post").pipe(
+          HttpClientRequest.bearerToken("user_123_admin"),
+          // PostJournalEntryRequest requires postedBy (UUID) and optional postingDate
+          HttpClientRequest.bodyUnsafeJson({
+            postedBy: "550e8400-e29b-41d4-a716-446655440100",
+            postingDate: null
+          }),
+          httpClient.execute,
+          Effect.scoped
+        )
+
+        expect(response.status).toBe(404)
+      })
+    )
+
+    it.effect("POST /api/v1/journal-entries/:id/reverse returns 404", () =>
+      Effect.gen(function* () {
+        const httpClient = yield* HttpClient.HttpClient
+        const response = yield* HttpClientRequest.post("/api/v1/journal-entries/550e8400-e29b-41d4-a716-446655440010/reverse").pipe(
+          HttpClientRequest.bearerToken("user_123_admin"),
+          // ReverseJournalEntryRequest schema - reversedBy is a UUID
+          HttpClientRequest.bodyUnsafeJson({
+            reversalDate: { year: 2024, month: 2, day: 1 },
+            reversalDescription: null,
+            reversedBy: "550e8400-e29b-41d4-a716-446655440100"
+          }),
+          httpClient.execute,
+          Effect.scoped
+        )
+
+        expect(response.status).toBe(404)
+      })
+    )
+  })
+})
+
+// =============================================================================
+// Reports API Tests
+// =============================================================================
+
+describe("Reports API", () => {
+  layer(HttpLive)("Report endpoints", (it) => {
+    // Reports API uses GET with URL params, and returns 422 BusinessRuleError for stub
+    it.effect("GET /api/v1/reports/trial-balance returns 422 for stub", () =>
+      Effect.gen(function* () {
+        const httpClient = yield* HttpClient.HttpClient
+        const response = yield* HttpClientRequest.get("/api/v1/reports/trial-balance").pipe(
+          HttpClientRequest.setUrlParams({
+            companyId: "550e8400-e29b-41d4-a716-446655440001",
+            asOfDate: "2024-01-31"
+          }),
+          HttpClientRequest.bearerToken("user_123_admin"),
+          httpClient.execute,
+          Effect.scoped
+        )
+
+        expect(response.status).toBe(422)
+        const body = yield* response.json
+        expect(body).toHaveProperty("_tag", "BusinessRuleError")
+        expect(body).toHaveProperty("code", "NOT_IMPLEMENTED")
+      })
+    )
+
+    it.effect("GET /api/v1/reports/balance-sheet returns 422 for stub", () =>
+      Effect.gen(function* () {
+        const httpClient = yield* HttpClient.HttpClient
+        const response = yield* HttpClientRequest.get("/api/v1/reports/balance-sheet").pipe(
+          HttpClientRequest.setUrlParams({
+            companyId: "550e8400-e29b-41d4-a716-446655440001",
+            asOfDate: "2024-01-31"
+          }),
+          HttpClientRequest.bearerToken("user_123_admin"),
+          httpClient.execute,
+          Effect.scoped
+        )
+
+        expect(response.status).toBe(422)
+        const body = yield* response.json
+        expect(body).toHaveProperty("_tag", "BusinessRuleError")
+        expect(body).toHaveProperty("code", "NOT_IMPLEMENTED")
+      })
+    )
+
+    it.effect("GET /api/v1/reports/income-statement returns 422 for stub", () =>
+      Effect.gen(function* () {
+        const httpClient = yield* HttpClient.HttpClient
+        const response = yield* HttpClientRequest.get("/api/v1/reports/income-statement").pipe(
+          HttpClientRequest.setUrlParams({
+            companyId: "550e8400-e29b-41d4-a716-446655440001",
+            periodStartDate: "2024-01-01",
+            periodEndDate: "2024-01-31"
+          }),
+          HttpClientRequest.bearerToken("user_123_admin"),
+          httpClient.execute,
+          Effect.scoped
+        )
+
+        expect(response.status).toBe(422)
+        const body = yield* response.json
+        expect(body).toHaveProperty("_tag", "BusinessRuleError")
+        expect(body).toHaveProperty("code", "NOT_IMPLEMENTED")
+      })
+    )
+
+    it.effect("GET /api/v1/reports/cash-flow returns 422 for stub", () =>
+      Effect.gen(function* () {
+        const httpClient = yield* HttpClient.HttpClient
+        const response = yield* HttpClientRequest.get("/api/v1/reports/cash-flow").pipe(
+          HttpClientRequest.setUrlParams({
+            companyId: "550e8400-e29b-41d4-a716-446655440001",
+            periodStartDate: "2024-01-01",
+            periodEndDate: "2024-01-31"
+          }),
+          HttpClientRequest.bearerToken("user_123_admin"),
+          httpClient.execute,
+          Effect.scoped
+        )
+
+        expect(response.status).toBe(422)
+        const body = yield* response.json
+        expect(body).toHaveProperty("_tag", "BusinessRuleError")
+        expect(body).toHaveProperty("code", "NOT_IMPLEMENTED")
+      })
+    )
+
+    it.effect("GET /api/v1/reports/equity-statement returns 422 for stub", () =>
+      Effect.gen(function* () {
+        const httpClient = yield* HttpClient.HttpClient
+        const response = yield* HttpClientRequest.get("/api/v1/reports/equity-statement").pipe(
+          HttpClientRequest.setUrlParams({
+            companyId: "550e8400-e29b-41d4-a716-446655440001",
+            periodStartDate: "2024-01-01",
+            periodEndDate: "2024-01-31"
+          }),
+          HttpClientRequest.bearerToken("user_123_admin"),
+          httpClient.execute,
+          Effect.scoped
+        )
+
+        expect(response.status).toBe(422)
+        const body = yield* response.json
+        expect(body).toHaveProperty("_tag", "BusinessRuleError")
+        expect(body).toHaveProperty("code", "NOT_IMPLEMENTED")
+      })
+    )
+  })
+})
+
+// =============================================================================
+// Error Response Tests
+// =============================================================================
+
+describe("Error Responses", () => {
+  layer(HttpLive)("Error serialization", (it) => {
+    it.effect("NotFoundError has correct structure", () =>
+      Effect.gen(function* () {
+        const httpClient = yield* HttpClient.HttpClient
+        const response = yield* HttpClientRequest.get("/api/v1/accounts/550e8400-e29b-41d4-a716-446655440099").pipe(
+          HttpClientRequest.bearerToken("user_123_admin"),
+          httpClient.execute,
+          Effect.scoped
+        )
+
+        expect(response.status).toBe(404)
+        const body = yield* response.json
+        expect(body).toHaveProperty("_tag", "NotFoundError")
+        expect(body).toHaveProperty("resource")
+        expect(body).toHaveProperty("id")
+        // Note: message is a getter, not a schema field, so it's not serialized
+      })
+    )
+
+    it.effect("ValidationError has correct structure", () =>
+      Effect.gen(function* () {
+        const httpClient = yield* HttpClient.HttpClient
+        const response = yield* HttpClientRequest.post("/api/v1/accounts").pipe(
+          HttpClientRequest.bearerToken("user_123_admin"),
+          HttpClientRequest.bodyUnsafeJson({
+            companyId: "550e8400-e29b-41d4-a716-446655440001",
+            accountNumber: "1000",
+            name: "Cash",
+            description: null,
+            accountType: "Asset",
+            accountCategory: "CurrentAsset",
+            normalBalance: "Debit",
+            parentAccountId: null,
+            isPostable: true,
+            isCashFlowRelevant: true,
+            cashFlowCategory: "Operating",
+            isIntercompany: false,
+            intercompanyPartnerId: null,
+            currencyRestriction: null
+          }),
+          httpClient.execute,
+          Effect.scoped
+        )
+
+        expect(response.status).toBe(400)
+        const body = yield* response.json
+        expect(body).toHaveProperty("_tag", "ValidationError")
+        expect(body).toHaveProperty("message")
+      })
+    )
+
+    it.effect("UnauthorizedError has correct structure", () =>
+      Effect.gen(function* () {
+        const httpClient = yield* HttpClient.HttpClient
+        const response = yield* HttpClientRequest.get("/api/v1/accounts").pipe(
+          HttpClientRequest.setUrlParams({ companyId: "test" }),
+          httpClient.execute,
+          Effect.scoped
+        )
+
+        expect(response.status).toBe(401)
+        const body = yield* response.json
+        expect(body).toHaveProperty("_tag", "UnauthorizedError")
+        expect(body).toHaveProperty("message")
+      })
+    )
+
+    it.effect("BusinessRuleError has correct structure", () =>
+      Effect.gen(function* () {
+        const httpClient = yield* HttpClient.HttpClient
+        // Reports API uses GET with URL params
+        const response = yield* HttpClientRequest.get("/api/v1/reports/trial-balance").pipe(
+          HttpClientRequest.setUrlParams({
+            companyId: "550e8400-e29b-41d4-a716-446655440001",
+            asOfDate: "2024-01-31"
+          }),
+          HttpClientRequest.bearerToken("user_123_admin"),
+          httpClient.execute,
+          Effect.scoped
+        )
+
+        expect(response.status).toBe(422)
+        const body = yield* response.json
+        expect(body).toHaveProperty("_tag", "BusinessRuleError")
+        expect(body).toHaveProperty("code")
+        expect(body).toHaveProperty("message")
+      })
+    )
+  })
+})
+
+// =============================================================================
+// Type-Safe Client Tests (HttpApiClient.make pattern)
+// =============================================================================
+
+describe("Type-Safe HttpApiClient", () => {
+  layer(HttpLive)("Client type safety", (it) => {
+    it.effect("client groups are properly typed", () =>
+      Effect.gen(function* () {
+        const client = yield* HttpApiClient.make(AppApi)
+
+        // Verify all groups exist
+        expect(client.health).toBeDefined()
+        expect(client.accounts).toBeDefined()
+        expect(client.companies).toBeDefined()
+        expect(client["journal-entries"]).toBeDefined()
+        expect(client.reports).toBeDefined()
+      })
+    )
+
+    it.effect("client endpoints are properly typed", () =>
+      Effect.gen(function* () {
+        const client = yield* HttpApiClient.make(AppApi)
+
+        // Health endpoints
+        expect(typeof client.health.healthCheck).toBe("function")
+
+        // Account endpoints
+        expect(typeof client.accounts.listAccounts).toBe("function")
+        expect(typeof client.accounts.getAccount).toBe("function")
+        expect(typeof client.accounts.createAccount).toBe("function")
+        expect(typeof client.accounts.updateAccount).toBe("function")
+        expect(typeof client.accounts.deactivateAccount).toBe("function")
+      })
+    )
+
+    it.effect("health check via typed client works", () =>
+      Effect.gen(function* () {
+        const client = yield* HttpApiClient.make(AppApi)
+        const response = yield* client.health.healthCheck()
+
+        expect(response.status).toBe("ok")
+        expect(response).toBeInstanceOf(HealthCheckResponse)
+      })
+    )
+
+    it.effect("error responses are properly typed via Effect.flip", () =>
+      Effect.gen(function* () {
+        // Use HttpApiClient.makeWith with custom httpClient that adds bearer token
+        const client = yield* HttpApiClient.makeWith(AppApi, {
+          httpClient: (yield* HttpClient.HttpClient).pipe(
+            HttpClient.mapRequest(HttpClientRequest.bearerToken("user_123_admin"))
+          )
+        })
+
+        // Use Effect.flip to get the error from the API
+        const error = yield* client.accounts.getAccount({
+          path: { id: AccountId.make("550e8400-e29b-41d4-a716-446655440099") }
+        }).pipe(Effect.flip)
+
+        // The stub implementation returns "stub" as the id
+        expect(error._tag).toBe("NotFoundError")
+        if (error._tag === "NotFoundError") {
+          expect(error.resource).toBe("Account")
+          expect(error.id).toBe("stub")  // Stub implementation uses "stub" as id
+        }
+      })
+    )
+
+    it.effect("withResponse returns both response and data", () =>
+      Effect.gen(function* () {
+        const client = yield* HttpApiClient.make(AppApi)
+        const [data, response] = yield* client.health.healthCheck({ withResponse: true })
+
+        expect(data.status).toBe("ok")
+        expect(response.status).toBe(200)
+      })
+    )
+  })
+})

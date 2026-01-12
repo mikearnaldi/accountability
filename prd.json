@@ -1587,7 +1587,7 @@
         "client_pattern": "const client = yield* HttpApiClient.make(AppApi)",
         "error_testing": "Effect.flip to assert on expected errors"
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "medium"
     },
     {
