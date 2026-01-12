@@ -11,6 +11,11 @@ import { HttpApi, HttpApiEndpoint, HttpApiGroup, OpenApi } from "@effect/platfor
 import * as Schema from "effect/Schema"
 import { AccountsApi } from "./AccountsApi.ts"
 import { CompaniesApi } from "./CompaniesApi.ts"
+import { ConsolidationApi } from "./ConsolidationApi.ts"
+import { CurrencyApi } from "./CurrencyApi.ts"
+import { EliminationRulesApi } from "./EliminationRulesApi.ts"
+import { FiscalPeriodsApi } from "./FiscalPeriodsApi.ts"
+import { IntercompanyTransactionsApi } from "./IntercompanyTransactionsApi.ts"
 import { JournalEntriesApi } from "./JournalEntriesApi.ts"
 import { ReportsApi } from "./ReportsApi.ts"
 
@@ -69,6 +74,11 @@ export class HealthApi extends HttpApiGroup.make("health")
  * - /api/v1/companies - Company management (protected)
  * - /api/v1/journal-entries - Journal entry management (protected)
  * - /api/v1/reports - Financial report generation (protected)
+ * - /api/v1/exchange-rates - Currency and exchange rate management (protected)
+ * - /api/v1/fiscal - Fiscal year and period management (protected)
+ * - /api/v1/intercompany-transactions - Intercompany transaction management (protected)
+ * - /api/v1/consolidation - Consolidation group and run management (protected)
+ * - /api/v1/elimination-rules - Elimination rule management (protected)
  */
 export class AppApi extends HttpApi.make("AppApi")
   .add(HealthApi)
@@ -76,6 +86,11 @@ export class AppApi extends HttpApi.make("AppApi")
   .add(CompaniesApi)
   .add(JournalEntriesApi)
   .add(ReportsApi)
+  .add(CurrencyApi)
+  .add(FiscalPeriodsApi)
+  .add(IntercompanyTransactionsApi)
+  .add(ConsolidationApi)
+  .add(EliminationRulesApi)
   .prefix("/api")
   .annotateContext(OpenApi.annotations({
     title: "Accountability API",

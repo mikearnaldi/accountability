@@ -15,6 +15,11 @@ import { AppApi, HealthCheckResponse } from "../Definitions/AppApi.ts"
 import { AuthMiddlewareWithSimpleValidation } from "./AuthMiddlewareLive.ts"
 import { AccountsApiLive } from "./AccountsApiLive.ts"
 import { CompaniesApiLive } from "./CompaniesApiLive.ts"
+import { ConsolidationApiLive } from "./ConsolidationApiLive.ts"
+import { CurrencyApiLive } from "./CurrencyApiLive.ts"
+import { EliminationRulesApiLive } from "./EliminationRulesApiLive.ts"
+import { FiscalPeriodsApiLive } from "./FiscalPeriodsApiLive.ts"
+import { IntercompanyTransactionsApiLive } from "./IntercompanyTransactionsApiLive.ts"
 import { JournalEntriesApiLive } from "./JournalEntriesApiLive.ts"
 import { ReportsApiLive } from "./ReportsApiLive.ts"
 
@@ -55,6 +60,11 @@ const HealthApiLive = HttpApiBuilder.group(AppApi, "health", (handlers) =>
  * - Companies API (protected)
  * - Journal entries API (protected)
  * - Reports API (protected)
+ * - Currency/Exchange rates API (protected)
+ * - Fiscal periods API (protected)
+ * - Intercompany transactions API (protected)
+ * - Consolidation API (protected)
+ * - Elimination rules API (protected)
  *
  * Dependencies (required from consumer):
  * - AccountRepository
@@ -63,6 +73,10 @@ const HealthApiLive = HttpApiBuilder.group(AppApi, "health", (handlers) =>
  * - JournalEntryRepository
  * - JournalEntryLineRepository
  * - FiscalPeriodRepository
+ * - ExchangeRateRepository
+ * - IntercompanyTransactionRepository
+ * - ConsolidationRepository
+ * - EliminationRuleRepository
  */
 export const AppApiLive = HttpApiBuilder.api(AppApi).pipe(
   Layer.provide(HealthApiLive),
@@ -70,5 +84,10 @@ export const AppApiLive = HttpApiBuilder.api(AppApi).pipe(
   Layer.provide(CompaniesApiLive),
   Layer.provide(JournalEntriesApiLive),
   Layer.provide(ReportsApiLive),
+  Layer.provide(CurrencyApiLive),
+  Layer.provide(FiscalPeriodsApiLive),
+  Layer.provide(IntercompanyTransactionsApiLive),
+  Layer.provide(ConsolidationApiLive),
+  Layer.provide(EliminationRulesApiLive),
   Layer.provide(AuthMiddlewareWithSimpleValidation)
 )
