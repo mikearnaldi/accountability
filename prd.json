@@ -1610,7 +1610,7 @@
         "Error handling uses proper domain error types",
         "API handlers follow best practices (no manual Schema.decode for path/URL params)"
       ],
-      "status": "in_progress",
+      "status": "complete",
       "estimated_complexity": "medium"
     },
     {

@@ -10,11 +10,13 @@
     "paths": {
       "~/*": ["./src/*"],
       "@accountability/core/*": ["../core/src/*"],
-      "@accountability/api/*": ["../api/src/*"]
+      "@accountability/api/*": ["../api/src/*"],
+      "@accountability/persistence/*": ["../persistence/src/*"]
     }
   },
   "references": [
     { "path": "../core/tsconfig.src.json" },
-    { "path": "../api/tsconfig.src.json" }
+    { "path": "../api/tsconfig.src.json" },
+    { "path": "../persistence/tsconfig.src.json" }
   ]
 }

@@ -25,6 +25,8 @@
     "effect": "^3.19.0"
   },
   "devDependencies": {
-    "@effect/platform-node": "^0.104.0"
+    "@effect/platform-node": "^0.104.0",
+    "@effect/sql-pg": "^0.50.1",
+    "@testcontainers/postgresql": "^10.25.0"
   }
 }

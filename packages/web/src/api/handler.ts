@@ -1,6 +1,7 @@
 import { HttpApiBuilder, HttpApiSwagger, HttpServer } from "@effect/platform"
 import * as Layer from "effect/Layer"
 import { AppApiLive } from "@accountability/api/AppApiLive"
+import { RepositoriesLive, PgClientLive } from "@accountability/persistence/RepositoriesLive"
 
 // Logging utility that bypasses no-console lint rule
 // Uses process.stderr.write for debug logging during shutdown
@@ -16,9 +17,11 @@ declare global {
 
 // Create web handler from the Effect HttpApi
 // This returns a standard web Request -> Response handler compatible with TanStack Start
-// Note: AppApiLive uses stub implementations for all API groups.
-// For real database-backed implementations, use the *ApiLive modules
-// (e.g., AccountsApiLive, ReportsApiLive) with proper repository layers.
+//
+// Uses real repository implementations with PostgreSQL database connection.
+// Database connection is configured via environment variables:
+//   - DATABASE_URL: Full PostgreSQL connection URL (preferred)
+//   - Or individual vars: PGHOST, PGPORT, PGUSER, PGPASSWORD, PGDATABASE
 //
 // OpenAPI documentation:
 // - Swagger UI: /api/docs
@@ -31,6 +34,9 @@ const { handler, dispose } = HttpApiBuilder.toWebHandler(
     HttpApiBuilder.middlewareOpenApi({ path: "/openapi.json" })
   ).pipe(
     Layer.provideMerge(AppApiLive),
+    // Use real repositories with PostgreSQL
+    Layer.provide(RepositoriesLive),
+    Layer.provide(PgClientLive),
     Layer.provideMerge(HttpServer.layerContext)
   )
 )

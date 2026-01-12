@@ -5,6 +5,7 @@
  * - NodeHttpServer.layerTest for in-memory testing without a real HTTP server
  * - HttpApiClient.make(AppApi) for type-safe test requests
  * - it.layer(HttpLive) pattern for shared test context
+ * - Testcontainers for real PostgreSQL database
  *
  * Tests cover:
  * - Success responses with proper Schema decoding
@@ -23,11 +24,25 @@ import { HttpApiBuilder, HttpApiClient, HttpClient, HttpClientRequest } from "@e
 import { NodeHttpServer } from "@effect/platform-node"
 import { AppApi, HealthCheckResponse } from "@accountability/api/AppApi"
 import { AppApiLive } from "@accountability/api/AppApiLive"
+import { RepositoriesLive } from "@accountability/persistence/RepositoriesLive"
+import { MigrationLayer } from "@accountability/persistence/MigrationRunner"
 import { AccountId } from "@accountability/core/domain/Account"
+import { PgContainer } from "./PgTestUtils.ts"
 
 // =============================================================================
 // Test Layer Setup
 // =============================================================================
+
+/**
+ * DatabaseLayer - Provides PostgreSQL with migrations
+ *
+ * Uses testcontainers to spin up a real PostgreSQL instance,
+ * then runs all migrations to create the schema.
+ */
+const DatabaseLayer = MigrationLayer.pipe(
+  Layer.provideMerge(RepositoriesLive),
+  Layer.provide(PgContainer.ClientLive)
+)
 
 /**
  * HttpLive - Complete test layer for API integration tests
@@ -35,13 +50,19 @@ import { AccountId } from "@accountability/core/domain/Account"
  * Uses NodeHttpServer.layerTest which provides an in-memory HTTP server
  * for testing without binding to a real port.
  *
+ * Uses real repositories with PostgreSQL database via testcontainers.
+ *
  * Pattern: HttpApiBuilder.serve().pipe(
  *   Layer.provide(ApiLive),
+ *   Layer.provide(RepositoriesLive),
+ *   Layer.provide(MigrationLayer),
+ *   Layer.provide(PgContainer.ClientLive),
  *   Layer.provideMerge(NodeHttpServer.layerTest)
  * )
  */
 const HttpLive = HttpApiBuilder.serve().pipe(
   Layer.provide(AppApiLive),
+  Layer.provide(DatabaseLayer),
   Layer.provideMerge(NodeHttpServer.layerTest)
 )
 
@@ -50,7 +71,7 @@ const HttpLive = HttpApiBuilder.serve().pipe(
 // =============================================================================
 
 describe("Health API", () => {
-  layer(HttpLive)("Health endpoint", (it) => {
+  layer(HttpLive, { timeout: "60 seconds" })("Health endpoint", (it) => {
     it.effect("GET /api/health returns health check response", () =>
       Effect.gen(function* () {
         const client = yield* HttpApiClient.make(AppApi)
@@ -94,7 +115,7 @@ describe("Health API", () => {
 // =============================================================================
 
 describe("Authentication", () => {
-  layer(HttpLive)("Unauthorized access", (it) => {
+  layer(HttpLive, { timeout: "60 seconds" })("Unauthorized access", (it) => {
     it.effect("GET /api/v1/accounts without token returns 401", () =>
       Effect.gen(function* () {
         // Use raw HTTP client to skip auth header
@@ -146,7 +167,7 @@ describe("Authentication", () => {
     )
   })
 
-  layer(HttpLive)("Authorized access", (it) => {
+  layer(HttpLive, { timeout: "60 seconds" })("Authorized access", (it) => {
     it.effect("valid token allows access to protected endpoints", () =>
       Effect.gen(function* () {
         const httpClient = yield* HttpClient.HttpClient
@@ -158,8 +179,7 @@ describe("Authentication", () => {
           Effect.scoped
         )
 
-        // Even with auth, the stub returns NotFoundError for "Company"
-        // This proves authentication passed (otherwise would be 401)
+        // With real database, company doesn't exist so we get 404
         expect(response.status).toBe(404)
       })
     )
@@ -173,7 +193,7 @@ describe("Authentication", () => {
           Effect.scoped
         )
 
-        // Auth passed, returns empty list
+        // Auth passed, returns empty list from real database
         expect(response.status).toBe(200)
       })
     )
@@ -211,8 +231,8 @@ describe("Authentication", () => {
 // =============================================================================
 
 describe("Accounts API", () => {
-  layer(HttpLive)("Account endpoints", (it) => {
-    it.effect("GET /api/v1/accounts returns 404 for stub company", () =>
+  layer(HttpLive, { timeout: "60 seconds" })("Account endpoints", (it) => {
+    it.effect("GET /api/v1/accounts returns 404 for non-existent company", () =>
       Effect.gen(function* () {
         const httpClient = yield* HttpClient.HttpClient
         const response = yield* HttpClientRequest.get("/api/v1/accounts").pipe(
@@ -229,7 +249,7 @@ describe("Accounts API", () => {
       })
     )
 
-    it.effect("GET /api/v1/accounts/:id returns 404 for stub account", () =>
+    it.effect("GET /api/v1/accounts/:id returns 404 for non-existent account", () =>
       Effect.gen(function* () {
         const httpClient = yield* HttpClient.HttpClient
         const response = yield* HttpClientRequest.get("/api/v1/accounts/550e8400-e29b-41d4-a716-446655440002").pipe(
@@ -245,7 +265,7 @@ describe("Accounts API", () => {
       })
     )
 
-    it.effect("POST /api/v1/accounts returns 400 for stub implementation", () =>
+    it.effect("POST /api/v1/accounts returns 422 for non-existent company", () =>
       Effect.gen(function* () {
         const httpClient = yield* HttpClient.HttpClient
         const response = yield* HttpClientRequest.post("/api/v1/accounts").pipe(
@@ -270,13 +290,15 @@ describe("Accounts API", () => {
           Effect.scoped
         )
 
-        expect(response.status).toBe(400)
+        // Company not found is a business rule error (422)
+        expect(response.status).toBe(422)
         const body = yield* response.json
-        expect(body).toHaveProperty("_tag", "ValidationError")
+        expect(body).toHaveProperty("_tag", "BusinessRuleError")
+        expect(body).toHaveProperty("code", "COMPANY_NOT_FOUND")
       })
     )
 
-    it.effect("PUT /api/v1/accounts/:id returns 404 for stub", () =>
+    it.effect("PUT /api/v1/accounts/:id returns 404 for non-existent account", () =>
       Effect.gen(function* () {
         const httpClient = yield* HttpClient.HttpClient
         const response = yield* HttpClientRequest.put("/api/v1/accounts/550e8400-e29b-41d4-a716-446655440002").pipe(
@@ -301,7 +323,7 @@ describe("Accounts API", () => {
       })
     )
 
-    it.effect("DELETE /api/v1/accounts/:id returns 404 for stub", () =>
+    it.effect("DELETE /api/v1/accounts/:id returns 404 for non-existent account", () =>
       Effect.gen(function* () {
         const httpClient = yield* HttpClient.HttpClient
         const response = yield* HttpClientRequest.del("/api/v1/accounts/550e8400-e29b-41d4-a716-446655440002").pipe(
@@ -321,8 +343,8 @@ describe("Accounts API", () => {
 // =============================================================================
 
 describe("Companies API", () => {
-  layer(HttpLive)("Organizations endpoints", (it) => {
-    it.effect("GET /api/v1/organizations returns empty list", () =>
+  layer(HttpLive, { timeout: "60 seconds" })("Organizations endpoints", (it) => {
+    it.effect("GET /api/v1/organizations returns empty list from empty database", () =>
       Effect.gen(function* () {
         const httpClient = yield* HttpClient.HttpClient
         const response = yield* HttpClientRequest.get("/api/v1/organizations").pipe(
@@ -337,7 +359,7 @@ describe("Companies API", () => {
       })
     )
 
-    it.effect("GET /api/v1/organizations/:id returns 404", () =>
+    it.effect("GET /api/v1/organizations/:id returns 404 for non-existent org", () =>
       Effect.gen(function* () {
         const httpClient = yield* HttpClient.HttpClient
         const response = yield* HttpClientRequest.get("/api/v1/organizations/550e8400-e29b-41d4-a716-446655440000").pipe(
@@ -353,7 +375,7 @@ describe("Companies API", () => {
       })
     )
 
-    it.effect("POST /api/v1/organizations returns 400 for stub", () =>
+    it.effect("POST /api/v1/organizations creates organization in database", () =>
       Effect.gen(function* () {
         const httpClient = yield* HttpClient.HttpClient
         const response = yield* HttpClientRequest.post("/api/v1/organizations").pipe(
@@ -367,15 +389,18 @@ describe("Companies API", () => {
           Effect.scoped
         )
 
-        expect(response.status).toBe(400)
+        // With real database, creates successfully (201 Created)
+        expect(response.status).toBe(201)
         const body = yield* response.json
-        expect(body).toHaveProperty("_tag", "ValidationError")
+        expect(body).toHaveProperty("name", "Test Org")
+        expect(body).toHaveProperty("reportingCurrency", "USD")
+        expect(body).toHaveProperty("id")
       })
     )
   })
 
-  layer(HttpLive)("Companies endpoints", (it) => {
-    it.effect("GET /api/v1/companies returns 404 for stub organization", () =>
+  layer(HttpLive, { timeout: "60 seconds" })("Companies endpoints", (it) => {
+    it.effect("GET /api/v1/companies returns 404 for non-existent organization", () =>
       Effect.gen(function* () {
         const httpClient = yield* HttpClient.HttpClient
         const response = yield* HttpClientRequest.get("/api/v1/companies").pipe(
@@ -392,7 +417,7 @@ describe("Companies API", () => {
       })
     )
 
-    it.effect("GET /api/v1/companies/:id returns 404", () =>
+    it.effect("GET /api/v1/companies/:id returns 404 for non-existent company", () =>
       Effect.gen(function* () {
         const httpClient = yield* HttpClient.HttpClient
         const response = yield* HttpClientRequest.get("/api/v1/companies/550e8400-e29b-41d4-a716-446655440001").pipe(
@@ -408,7 +433,7 @@ describe("Companies API", () => {
       })
     )
 
-    it.effect("POST /api/v1/companies returns 400 for stub", () =>
+    it.effect("POST /api/v1/companies returns 422 for non-existent organization", () =>
       Effect.gen(function* () {
         const httpClient = yield* HttpClient.HttpClient
         const response = yield* HttpClientRequest.post("/api/v1/companies").pipe(
@@ -430,9 +455,11 @@ describe("Companies API", () => {
           Effect.scoped
         )
 
-        expect(response.status).toBe(400)
+        // Organization not found is a business rule error (422)
+        expect(response.status).toBe(422)
         const body = yield* response.json
-        expect(body).toHaveProperty("_tag", "ValidationError")
+        expect(body).toHaveProperty("_tag", "BusinessRuleError")
+        expect(body).toHaveProperty("code", "ORGANIZATION_NOT_FOUND")
       })
     )
   })
@@ -443,8 +470,8 @@ describe("Companies API", () => {
 // =============================================================================
 
 describe("Journal Entries API", () => {
-  layer(HttpLive)("Journal entry endpoints", (it) => {
-    it.effect("GET /api/v1/journal-entries returns 404 for stub company", () =>
+  layer(HttpLive, { timeout: "60 seconds" })("Journal entry endpoints", (it) => {
+    it.effect("GET /api/v1/journal-entries returns 404 for non-existent company", () =>
       Effect.gen(function* () {
         const httpClient = yield* HttpClient.HttpClient
         const response = yield* HttpClientRequest.get("/api/v1/journal-entries").pipe(
@@ -461,7 +488,7 @@ describe("Journal Entries API", () => {
       })
     )
 
-    it.effect("GET /api/v1/journal-entries/:id returns 404", () =>
+    it.effect("GET /api/v1/journal-entries/:id returns 404 for non-existent entry", () =>
       Effect.gen(function* () {
         const httpClient = yield* HttpClient.HttpClient
         const response = yield* HttpClientRequest.get("/api/v1/journal-entries/550e8400-e29b-41d4-a716-446655440010").pipe(
@@ -504,7 +531,7 @@ describe("Journal Entries API", () => {
       })
     )
 
-    it.effect("POST /api/v1/journal-entries/:id/submit returns 404", () =>
+    it.effect("POST /api/v1/journal-entries/:id/submit returns 404 for non-existent entry", () =>
       Effect.gen(function* () {
         const httpClient = yield* HttpClient.HttpClient
         const response = yield* HttpClientRequest.post("/api/v1/journal-entries/550e8400-e29b-41d4-a716-446655440010/submit").pipe(
@@ -517,7 +544,7 @@ describe("Journal Entries API", () => {
       })
     )
 
-    it.effect("POST /api/v1/journal-entries/:id/approve returns 404", () =>
+    it.effect("POST /api/v1/journal-entries/:id/approve returns 404 for non-existent entry", () =>
       Effect.gen(function* () {
         const httpClient = yield* HttpClient.HttpClient
         const response = yield* HttpClientRequest.post("/api/v1/journal-entries/550e8400-e29b-41d4-a716-446655440010/approve").pipe(
@@ -530,7 +557,7 @@ describe("Journal Entries API", () => {
       })
     )
 
-    it.effect("POST /api/v1/journal-entries/:id/reject returns 404", () =>
+    it.effect("POST /api/v1/journal-entries/:id/reject returns 404 for non-existent entry", () =>
       Effect.gen(function* () {
         const httpClient = yield* HttpClient.HttpClient
         const response = yield* HttpClientRequest.post("/api/v1/journal-entries/550e8400-e29b-41d4-a716-446655440010/reject").pipe(
@@ -544,7 +571,7 @@ describe("Journal Entries API", () => {
       })
     )
 
-    it.effect("POST /api/v1/journal-entries/:id/post returns 404", () =>
+    it.effect("POST /api/v1/journal-entries/:id/post returns 404 for non-existent entry", () =>
       Effect.gen(function* () {
         const httpClient = yield* HttpClient.HttpClient
         const response = yield* HttpClientRequest.post("/api/v1/journal-entries/550e8400-e29b-41d4-a716-446655440010/post").pipe(
@@ -562,7 +589,7 @@ describe("Journal Entries API", () => {
       })
     )
 
-    it.effect("POST /api/v1/journal-entries/:id/reverse returns 404", () =>
+    it.effect("POST /api/v1/journal-entries/:id/reverse returns 404 for non-existent entry", () =>
       Effect.gen(function* () {
         const httpClient = yield* HttpClient.HttpClient
         const response = yield* HttpClientRequest.post("/api/v1/journal-entries/550e8400-e29b-41d4-a716-446655440010/reverse").pipe(
@@ -588,9 +615,9 @@ describe("Journal Entries API", () => {
 // =============================================================================
 
 describe("Reports API", () => {
-  layer(HttpLive)("Report endpoints", (it) => {
-    // Reports API uses GET with URL params, and returns 422 BusinessRuleError for stub
-    it.effect("GET /api/v1/reports/trial-balance returns 422 for stub", () =>
+  layer(HttpLive, { timeout: "60 seconds" })("Report endpoints", (it) => {
+    // Reports API uses GET with URL params, returns 404 for non-existent company
+    it.effect("GET /api/v1/reports/trial-balance returns 404 for non-existent company", () =>
       Effect.gen(function* () {
         const httpClient = yield* HttpClient.HttpClient
         const response = yield* HttpClientRequest.get("/api/v1/reports/trial-balance").pipe(
@@ -603,14 +630,14 @@ describe("Reports API", () => {
           Effect.scoped
         )
 
-        expect(response.status).toBe(422)
+        expect(response.status).toBe(404)
         const body = yield* response.json
-        expect(body).toHaveProperty("_tag", "BusinessRuleError")
-        expect(body).toHaveProperty("code", "NOT_IMPLEMENTED")
+        expect(body).toHaveProperty("_tag", "NotFoundError")
+        expect(body).toHaveProperty("resource", "Company")
       })
     )
 
-    it.effect("GET /api/v1/reports/balance-sheet returns 422 for stub", () =>
+    it.effect("GET /api/v1/reports/balance-sheet returns 404 for non-existent company", () =>
       Effect.gen(function* () {
         const httpClient = yield* HttpClient.HttpClient
         const response = yield* HttpClientRequest.get("/api/v1/reports/balance-sheet").pipe(
@@ -623,14 +650,14 @@ describe("Reports API", () => {
           Effect.scoped
         )
 
-        expect(response.status).toBe(422)
+        expect(response.status).toBe(404)
         const body = yield* response.json
-        expect(body).toHaveProperty("_tag", "BusinessRuleError")
-        expect(body).toHaveProperty("code", "NOT_IMPLEMENTED")
+        expect(body).toHaveProperty("_tag", "NotFoundError")
+        expect(body).toHaveProperty("resource", "Company")
       })
     )
 
-    it.effect("GET /api/v1/reports/income-statement returns 422 for stub", () =>
+    it.effect("GET /api/v1/reports/income-statement returns 404 for non-existent company", () =>
       Effect.gen(function* () {
         const httpClient = yield* HttpClient.HttpClient
         const response = yield* HttpClientRequest.get("/api/v1/reports/income-statement").pipe(
@@ -644,14 +671,14 @@ describe("Reports API", () => {
           Effect.scoped
         )
 
-        expect(response.status).toBe(422)
+        expect(response.status).toBe(404)
         const body = yield* response.json
-        expect(body).toHaveProperty("_tag", "BusinessRuleError")
-        expect(body).toHaveProperty("code", "NOT_IMPLEMENTED")
+        expect(body).toHaveProperty("_tag", "NotFoundError")
+        expect(body).toHaveProperty("resource", "Company")
       })
     )
 
-    it.effect("GET /api/v1/reports/cash-flow returns 422 for stub", () =>
+    it.effect("GET /api/v1/reports/cash-flow returns 404 for non-existent company", () =>
       Effect.gen(function* () {
         const httpClient = yield* HttpClient.HttpClient
         const response = yield* HttpClientRequest.get("/api/v1/reports/cash-flow").pipe(
@@ -665,14 +692,14 @@ describe("Reports API", () => {
           Effect.scoped
         )
 
-        expect(response.status).toBe(422)
+        expect(response.status).toBe(404)
         const body = yield* response.json
-        expect(body).toHaveProperty("_tag", "BusinessRuleError")
-        expect(body).toHaveProperty("code", "NOT_IMPLEMENTED")
+        expect(body).toHaveProperty("_tag", "NotFoundError")
+        expect(body).toHaveProperty("resource", "Company")
       })
     )
 
-    it.effect("GET /api/v1/reports/equity-statement returns 422 for stub", () =>
+    it.effect("GET /api/v1/reports/equity-statement returns 404 for non-existent company", () =>
       Effect.gen(function* () {
         const httpClient = yield* HttpClient.HttpClient
         const response = yield* HttpClientRequest.get("/api/v1/reports/equity-statement").pipe(
@@ -686,10 +713,10 @@ describe("Reports API", () => {
           Effect.scoped
         )
 
-        expect(response.status).toBe(422)
+        expect(response.status).toBe(404)
         const body = yield* response.json
-        expect(body).toHaveProperty("_tag", "BusinessRuleError")
-        expect(body).toHaveProperty("code", "NOT_IMPLEMENTED")
+        expect(body).toHaveProperty("_tag", "NotFoundError")
+        expect(body).toHaveProperty("resource", "Company")
       })
     )
   })
@@ -700,7 +727,7 @@ describe("Reports API", () => {
 // =============================================================================
 
 describe("Error Responses", () => {
-  layer(HttpLive)("Error serialization", (it) => {
+  layer(HttpLive, { timeout: "60 seconds" })("Error serialization", (it) => {
     it.effect("NotFoundError has correct structure", () =>
       Effect.gen(function* () {
         const httpClient = yield* HttpClient.HttpClient
@@ -716,38 +743,6 @@ describe("Error Responses", () => {
         expect(body).toHaveProperty("resource")
         expect(body).toHaveProperty("id")
         // Note: message is a getter, not a schema field, so it's not serialized
-      })
-    )
-
-    it.effect("ValidationError has correct structure", () =>
-      Effect.gen(function* () {
-        const httpClient = yield* HttpClient.HttpClient
-        const response = yield* HttpClientRequest.post("/api/v1/accounts").pipe(
-          HttpClientRequest.bearerToken("user_123_admin"),
-          HttpClientRequest.bodyUnsafeJson({
-            companyId: "550e8400-e29b-41d4-a716-446655440001",
-            accountNumber: "1000",
-            name: "Cash",
-            description: null,
-            accountType: "Asset",
-            accountCategory: "CurrentAsset",
-            normalBalance: "Debit",
-            parentAccountId: null,
-            isPostable: true,
-            isCashFlowRelevant: true,
-            cashFlowCategory: "Operating",
-            isIntercompany: false,
-            intercompanyPartnerId: null,
-            currencyRestriction: null
-          }),
-          httpClient.execute,
-          Effect.scoped
-        )
-
-        expect(response.status).toBe(400)
-        const body = yield* response.json
-        expect(body).toHaveProperty("_tag", "ValidationError")
-        expect(body).toHaveProperty("message")
       })
     )
 
@@ -770,13 +765,25 @@ describe("Error Responses", () => {
     it.effect("BusinessRuleError has correct structure", () =>
       Effect.gen(function* () {
         const httpClient = yield* HttpClient.HttpClient
-        // Reports API uses GET with URL params
-        const response = yield* HttpClientRequest.get("/api/v1/reports/trial-balance").pipe(
-          HttpClientRequest.setUrlParams({
-            companyId: "550e8400-e29b-41d4-a716-446655440001",
-            asOfDate: "2024-01-31"
-          }),
+        // Create account for non-existent company triggers BusinessRuleError
+        const response = yield* HttpClientRequest.post("/api/v1/accounts").pipe(
           HttpClientRequest.bearerToken("user_123_admin"),
+          HttpClientRequest.bodyUnsafeJson({
+            companyId: "550e8400-e29b-41d4-a716-446655440001",
+            accountNumber: "1000",
+            name: "Cash",
+            description: null,
+            accountType: "Asset",
+            accountCategory: "CurrentAsset",
+            normalBalance: "Debit",
+            parentAccountId: null,
+            isPostable: true,
+            isCashFlowRelevant: true,
+            cashFlowCategory: "Operating",
+            isIntercompany: false,
+            intercompanyPartnerId: null,
+            currencyRestriction: null
+          }),
           httpClient.execute,
           Effect.scoped
         )
@@ -796,7 +803,7 @@ describe("Error Responses", () => {
 // =============================================================================
 
 describe("Type-Safe HttpApiClient", () => {
-  layer(HttpLive)("Client type safety", (it) => {
+  layer(HttpLive, { timeout: "60 seconds" })("Client type safety", (it) => {
     it.effect("client groups are properly typed", () =>
       Effect.gen(function* () {
         const client = yield* HttpApiClient.make(AppApi)
@@ -846,15 +853,16 @@ describe("Type-Safe HttpApiClient", () => {
         })
 
         // Use Effect.flip to get the error from the API
+        const testAccountId = AccountId.make("550e8400-e29b-41d4-a716-446655440099")
         const error = yield* client.accounts.getAccount({
-          path: { id: AccountId.make("550e8400-e29b-41d4-a716-446655440099") }
+          path: { id: testAccountId }
         }).pipe(Effect.flip)
 
-        // The stub implementation returns "stub" as the id
+        // The live implementation returns the actual account id in the error
         expect(error._tag).toBe("NotFoundError")
         if (error._tag === "NotFoundError") {
           expect(error.resource).toBe("Account")
-          expect(error.id).toBe("stub")  // Stub implementation uses "stub" as id
+          expect(error.id).toBe(testAccountId)
         }
       })
     )
