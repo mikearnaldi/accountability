@@ -80,15 +80,15 @@ export class AccountListResponse extends Schema.Class<AccountListResponse>("Acco
 
 /**
  * Query parameters for listing accounts
- * Uses string types for URL parameters that will be parsed
+ * Uses domain types directly - HttpApi handles automatic decoding
  */
 export const AccountListParams = Schema.Struct({
-  companyId: Schema.String,
-  accountType: Schema.optional(Schema.String),
-  accountCategory: Schema.optional(Schema.String),
+  companyId: CompanyId,
+  accountType: Schema.optional(AccountType),
+  accountCategory: Schema.optional(AccountCategory),
   isActive: Schema.optional(Schema.BooleanFromString),
   isPostable: Schema.optional(Schema.BooleanFromString),
-  parentAccountId: Schema.optional(Schema.String),
+  parentAccountId: Schema.optional(AccountId),
   limit: Schema.optional(Schema.NumberFromString.pipe(Schema.int(), Schema.greaterThan(0))),
   offset: Schema.optional(Schema.NumberFromString.pipe(Schema.int(), Schema.greaterThanOrEqualTo(0)))
 })
@@ -115,7 +115,7 @@ const listAccounts = HttpApiEndpoint.get("listAccounts", "/")
  * Get a single account by ID
  */
 const getAccount = HttpApiEndpoint.get("getAccount", "/:id")
-  .setPath(Schema.Struct({ id: Schema.String }))
+  .setPath(Schema.Struct({ id: AccountId }))
   .addSuccess(Account)
   .addError(NotFoundError)
 
@@ -133,7 +133,7 @@ const createAccount = HttpApiEndpoint.post("createAccount", "/")
  * Update an existing account
  */
 const updateAccount = HttpApiEndpoint.put("updateAccount", "/:id")
-  .setPath(Schema.Struct({ id: Schema.String }))
+  .setPath(Schema.Struct({ id: AccountId }))
   .setPayload(UpdateAccountRequest)
   .addSuccess(Account)
   .addError(NotFoundError)
@@ -145,7 +145,7 @@ const updateAccount = HttpApiEndpoint.put("updateAccount", "/:id")
  * Deactivate an account (soft delete)
  */
 const deactivateAccount = HttpApiEndpoint.del("deactivateAccount", "/:id")
-  .setPath(Schema.Struct({ id: Schema.String }))
+  .setPath(Schema.Struct({ id: AccountId }))
   .addSuccess(HttpApiSchema.NoContent)
   .addError(NotFoundError)
   .addError(BusinessRuleError)

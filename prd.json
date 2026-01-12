@@ -255,7 +255,9 @@
       "epic": "Core Entities",
       "title": "Implement Company entity",
       "description": "Create Company entity with functional currency, jurisdiction, fiscal settings, and consolidation properties.",
-      "specs": ["ACCOUNTING_RESEARCH.md"],
+      "specs": [
+        "ACCOUNTING_RESEARCH.md"
+      ],
       "acceptance_criteria": [
         "Company schema with all properties from spec",
         "CompanyId branded type (UUID)",
@@ -321,7 +323,9 @@
       "epic": "Chart of Accounts",
       "title": "Implement Account entity",
       "description": "Create Account entity with full classification including type, category, normal balance, hierarchy, and behavior properties.",
-      "specs": ["ACCOUNTING_RESEARCH.md"],
+      "specs": [
+        "ACCOUNTING_RESEARCH.md"
+      ],
       "acceptance_criteria": [
         "Account schema with all properties from spec",
         "AccountId branded type",
@@ -396,7 +400,9 @@
       "epic": "Journal Entries",
       "title": "Implement JournalEntry entity",
       "description": "Create JournalEntry entity with header properties including dates, period, type, status, and audit information.",
-      "specs": ["ACCOUNTING_RESEARCH.md"],
+      "specs": [
+        "ACCOUNTING_RESEARCH.md"
+      ],
       "acceptance_criteria": [
         "JournalEntry schema with all header properties",
         "JournalEntryId branded type (UUID)",
@@ -1318,7 +1324,9 @@
       "epic": "TanStack Start + Effect HttpApi Setup",
       "title": "Initialize TanStack Start with Effect HttpApi",
       "description": "Set up TanStack Start in the web package with Effect HttpApi for type-safe API endpoints.",
-      "specs": ["HTTP_API_TANSTACK.md"],
+      "specs": [
+        "HTTP_API_TANSTACK.md"
+      ],
       "acceptance_criteria": [
         "@tanstack/react-start installed",
         "@tanstack/react-router for routing",
@@ -1342,7 +1350,9 @@
       "epic": "TanStack Start + Effect HttpApi Setup",
       "title": "Link API handler dispose to process lifecycle",
       "description": "Ensure the dispose function from HttpApiBuilder.toWebHandler is called on process shutdown (SIGTERM, SIGINT) and module hot reload to properly clean up resources.",
-      "specs": ["HTTP_API_TANSTACK.md"],
+      "specs": [
+        "HTTP_API_TANSTACK.md"
+      ],
       "acceptance_criteria": [
         "Handler dispose called on SIGTERM signal",
         "Handler dispose called on SIGINT signal",
@@ -1403,7 +1413,9 @@
       "epic": "TanStack Start + Effect HttpApi Setup",
       "title": "Set up Effect Atom for frontend state",
       "description": "Configure Effect Atom for frontend state management, replacing TanStack Query patterns.",
-      "specs": ["HTTP_API_TANSTACK.md"],
+      "specs": [
+        "HTTP_API_TANSTACK.md"
+      ],
       "acceptance_criteria": [
         "@effect-atom/atom-react installed",
         "AtomProvider configured in app root",
@@ -1426,7 +1438,9 @@
       "epic": "HttpApi Endpoints",
       "title": "Implement accounts API endpoints",
       "description": "Create HttpApiGroup for accounts with CRUD endpoints and HttpApiBuilder handlers.",
-      "specs": ["API_BEST_PRACTICES.md"],
+      "specs": [
+        "API_BEST_PRACTICES.md"
+      ],
       "acceptance_criteria": [
         "AccountsApi group with endpoints: findById, list, create, update, delete",
         "HttpApiBuilder.group handlers calling AccountService",
@@ -1448,7 +1462,9 @@
       "epic": "HttpApi Endpoints",
       "title": "Refactor API schemas to use domain types directly",
       "description": "Update AccountsApi and AccountsApiLive to use domain schemas (AccountId, CompanyId, etc.) in path/URL params instead of Schema.String, eliminating manual decoding in handlers.",
-      "specs": ["API_BEST_PRACTICES.md"],
+      "specs": [
+        "API_BEST_PRACTICES.md"
+      ],
       "acceptance_criteria": [
         "Path params use domain schemas (AccountId instead of Schema.String)",
         "URL params use domain schemas (CompanyId, AccountType, etc.)",
@@ -1463,7 +1479,7 @@
         "after": ".setPath(Schema.Struct({ id: AccountId })) // auto-decoded by HttpApi",
         "url_params": "Use CompanyId, AccountType, Schema.BooleanFromString, Schema.NumberFromString"
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "medium"
     },
     {
@@ -1580,7 +1596,9 @@
       "epic": "Core Components",
       "title": "Implement account selector component",
       "description": "Create reusable account selector/picker component with search and hierarchy display. Uses Effect Atom for async account loading.",
-      "specs": ["HTTP_API_TANSTACK.md"],
+      "specs": [
+        "HTTP_API_TANSTACK.md"
+      ],
       "acceptance_criteria": [
         "Searchable dropdown with type-ahead filtering",
         "Shows account hierarchy with indentation",
@@ -1604,7 +1622,9 @@
       "epic": "Core Components",
       "title": "Implement currency input component",
       "description": "Create currency input component with proper formatting and decimal handling. Currency list from Effect Atom.",
-      "specs": ["HTTP_API_TANSTACK.md"],
+      "specs": [
+        "HTTP_API_TANSTACK.md"
+      ],
       "acceptance_criteria": [
         "Currency symbol display (prefix or suffix based on locale)",
         "Proper decimal formatting (2-4 places based on currency)",
@@ -1628,7 +1648,9 @@
       "epic": "Pages",
       "title": "Implement chart of accounts page",
       "description": "Create page for viewing and managing the chart of accounts using Effect Atom for state management.",
-      "specs": ["HTTP_API_TANSTACK.md"],
+      "specs": [
+        "HTTP_API_TANSTACK.md"
+      ],
       "acceptance_criteria": [
         "Route: /companies/:companyId/accounts",
         "List all accounts in hierarchy (tree view)",
@@ -1654,7 +1676,9 @@
       "epic": "Pages",
       "title": "Implement journal entry form",
       "description": "Create form for creating and editing journal entries with dynamic lines. Uses Effect Atom for state and mutations.",
-      "specs": ["HTTP_API_TANSTACK.md"],
+      "specs": [
+        "HTTP_API_TANSTACK.md"
+      ],
       "acceptance_criteria": [
         "Route: /companies/:companyId/journal-entries/new and /edit/:id",
         "Add/remove lines dynamically",
@@ -1681,7 +1705,9 @@
       "epic": "Pages",
       "title": "Implement report viewer page",
       "description": "Create page for viewing and exporting financial reports using Effect Atom for async report generation.",
-      "specs": ["HTTP_API_TANSTACK.md"],
+      "specs": [
+        "HTTP_API_TANSTACK.md"
+      ],
       "acceptance_criteria": [
         "Route: /companies/:companyId/reports",
         "Report type selector: Trial Balance, Balance Sheet, Income Statement, Cash Flow",

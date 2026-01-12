@@ -13,6 +13,7 @@
 
 import * as Atom from "@effect-atom/atom/Atom"
 import * as Duration from "effect/Duration"
+import type { AccountId } from "@accountability/core/domain/Account"
 import { ApiClient } from "./ApiClient.ts"
 
 // =============================================================================
@@ -137,11 +138,11 @@ export const healthCheckAtom = ApiClient.query("health", "healthCheck", {
  *
  * Usage:
  * ```typescript
- * const accountAtom = accountByIdFamily("acc_123")
+ * const accountAtom = accountByIdFamily(AccountId.make("acc_123"))
  * const result = useAtomValue(accountAtom)
  * ```
  */
-export const accountByIdFamily = Atom.family((id: string) =>
+export const accountByIdFamily = Atom.family((id: typeof AccountId.Type) =>
   ApiClient.query("accounts", "getAccount", {
     path: { id },
     timeToLive: Duration.minutes(5)

@@ -4,6 +4,10 @@
  * Implements the AccountsApi endpoints with real CRUD operations
  * by calling the AccountRepository and CompanyRepository.
  *
+ * Path and URL params use domain types directly in the API schema,
+ * so handlers receive already-decoded values (AccountId, CompanyId, etc.).
+ * No manual Schema.decodeUnknownEither calls are needed.
+ *
  * @module AccountsApiLive
  */
 
@@ -11,14 +15,10 @@ import { HttpApiBuilder } from "@effect/platform"
 import * as Effect from "effect/Effect"
 import * as Equal from "effect/Equal"
 import * as Option from "effect/Option"
-import * as Schema from "effect/Schema"
 import {
   Account,
-  AccountId,
-  AccountCategory,
-  AccountType
+  AccountId
 } from "@accountability/core/domain/Account"
-import { CompanyId } from "@accountability/core/domain/Company"
 import { now as timestampNow } from "@accountability/core/domain/Timestamp"
 import { AccountRepository } from "@accountability/persistence/AccountRepository"
 import { CompanyRepository } from "@accountability/persistence/CompanyRepository"
@@ -73,34 +73,11 @@ const mapPersistenceToBusinessRule = (
 const mapPersistenceToValidation = (
   error: EntityNotFoundError | PersistenceError
 ): ValidationError => {
-  if (isEntityNotFoundError(error)) {
-    return new ValidationError({
-      message: error.message,
-      field: Option.none(),
-      details: Option.none()
-    })
-  }
   return new ValidationError({
     message: error.message,
     field: Option.none(),
     details: Option.none()
   })
-}
-
-/**
- * Parse AccountType from string, returning Option using Schema
- */
-const parseAccountType = (s: string): Option.Option<typeof AccountType.Type> => {
-  const result = Schema.decodeUnknownEither(AccountType)(s)
-  return result._tag === "Right" ? Option.some(result.right) : Option.none()
-}
-
-/**
- * Parse AccountCategory from string, returning Option using Schema
- */
-const parseAccountCategory = (s: string): Option.Option<typeof AccountCategory.Type> => {
-  const result = Schema.decodeUnknownEither(AccountCategory)(s)
-  return result._tag === "Right" ? Option.some(result.right) : Option.none()
 }
 
 /**
@@ -118,18 +95,8 @@ export const AccountsApiLive = HttpApiBuilder.group(AppApi, "accounts", (handler
     return handlers
       .handle("listAccounts", (_) =>
         Effect.gen(function* () {
-          const params = _.urlParams
-
-          // Validate companyId
-          const companyIdResult = Schema.decodeUnknownEither(CompanyId)(params.companyId)
-          if (companyIdResult._tag === "Left") {
-            return yield* Effect.fail(new ValidationError({
-              message: "Invalid companyId format",
-              field: Option.some("companyId"),
-              details: Option.none()
-            }))
-          }
-          const companyId = companyIdResult.right
+          // URL params are already decoded to domain types by HttpApi
+          const { companyId, accountType, accountCategory, isActive, isPostable, parentAccountId } = _.urlParams
 
           // Check company exists
           const companyExists = yield* companyRepo.exists(companyId).pipe(
@@ -139,23 +106,17 @@ export const AccountsApiLive = HttpApiBuilder.group(AppApi, "accounts", (handler
             return yield* Effect.fail(new NotFoundError({ resource: "Company", id: companyId }))
           }
 
-          // Get accounts based on filters
+          // Get accounts based on filters - all params are already decoded
           let accounts: ReadonlyArray<Account>
 
-          if (params.accountType !== undefined) {
-            const maybeType = parseAccountType(params.accountType)
-            if (Option.isNone(maybeType)) {
-              return yield* Effect.fail(new ValidationError({
-                message: `Invalid accountType: ${params.accountType}`,
-                field: Option.some("accountType"),
-                details: Option.none()
-              }))
-            }
-            accounts = yield* accountRepo.findByType(companyId, maybeType.value).pipe(
+          if (accountType !== undefined) {
+            // accountType is already AccountType - no parsing needed
+            accounts = yield* accountRepo.findByType(companyId, accountType).pipe(
               Effect.mapError((e) => mapPersistenceToValidation(e))
             )
-          } else if (params.isActive !== undefined) {
-            if (params.isActive) {
+          } else if (isActive !== undefined) {
+            // isActive is already boolean - no parsing needed
+            if (isActive) {
               accounts = yield* accountRepo.findActiveByCompany(companyId).pipe(
                 Effect.mapError((e) => mapPersistenceToValidation(e))
               )
@@ -165,16 +126,9 @@ export const AccountsApiLive = HttpApiBuilder.group(AppApi, "accounts", (handler
               )
               accounts = all.filter((a) => !a.isActive)
             }
-          } else if (params.parentAccountId !== undefined) {
-            const parentIdResult = Schema.decodeUnknownEither(AccountId)(params.parentAccountId)
-            if (parentIdResult._tag === "Left") {
-              return yield* Effect.fail(new ValidationError({
-                message: "Invalid parentAccountId format",
-                field: Option.some("parentAccountId"),
-                details: Option.none()
-              }))
-            }
-            accounts = yield* accountRepo.findChildren(parentIdResult.right).pipe(
+          } else if (parentAccountId !== undefined) {
+            // parentAccountId is already AccountId - no parsing needed
+            accounts = yield* accountRepo.findChildren(parentAccountId).pipe(
               Effect.mapError((e) => mapPersistenceToValidation(e))
             )
           } else {
@@ -183,28 +137,20 @@ export const AccountsApiLive = HttpApiBuilder.group(AppApi, "accounts", (handler
             )
           }
 
-          // Apply category filter if provided
-          if (params.accountCategory !== undefined) {
-            const maybeCat = parseAccountCategory(params.accountCategory)
-            if (Option.isNone(maybeCat)) {
-              return yield* Effect.fail(new ValidationError({
-                message: `Invalid accountCategory: ${params.accountCategory}`,
-                field: Option.some("accountCategory"),
-                details: Option.none()
-              }))
-            }
-            accounts = accounts.filter((a) => a.accountCategory === maybeCat.value)
+          // Apply category filter if provided - already decoded
+          if (accountCategory !== undefined) {
+            accounts = accounts.filter((a) => a.accountCategory === accountCategory)
           }
 
-          // Apply postable filter if provided
-          if (params.isPostable !== undefined) {
-            accounts = accounts.filter((a) => a.isPostable === params.isPostable)
+          // Apply postable filter if provided - already decoded
+          if (isPostable !== undefined) {
+            accounts = accounts.filter((a) => a.isPostable === isPostable)
           }
 
           // Apply pagination
           const total = accounts.length
-          const limit = params.limit ?? 100
-          const offset = params.offset ?? 0
+          const limit = _.urlParams.limit ?? 100
+          const offset = _.urlParams.offset ?? 0
           const paginatedAccounts = accounts.slice(offset, offset + limit)
 
           return {
@@ -217,17 +163,15 @@ export const AccountsApiLive = HttpApiBuilder.group(AppApi, "accounts", (handler
       )
       .handle("getAccount", (_) =>
         Effect.gen(function* () {
-          const accountIdResult = Schema.decodeUnknownEither(AccountId)(_.path.id)
-          if (accountIdResult._tag === "Left") {
-            return yield* Effect.fail(new NotFoundError({ resource: "Account", id: _.path.id }))
-          }
+          // _.path.id is already AccountId - no decoding needed
+          const accountId = _.path.id
 
-          const maybeAccount = yield* accountRepo.findById(accountIdResult.right).pipe(
-            Effect.mapError((e) => mapPersistenceToNotFound("Account", _.path.id, e))
+          const maybeAccount = yield* accountRepo.findById(accountId).pipe(
+            Effect.mapError((e) => mapPersistenceToNotFound("Account", accountId, e))
           )
 
           return yield* Option.match(maybeAccount, {
-            onNone: () => Effect.fail(new NotFoundError({ resource: "Account", id: _.path.id })),
+            onNone: () => Effect.fail(new NotFoundError({ resource: "Account", id: accountId })),
             onSome: Effect.succeed
           })
         })
@@ -315,18 +259,15 @@ export const AccountsApiLive = HttpApiBuilder.group(AppApi, "accounts", (handler
         Effect.gen(function* () {
           const req = _.payload
 
-          const accountIdResult = Schema.decodeUnknownEither(AccountId)(_.path.id)
-          if (accountIdResult._tag === "Left") {
-            return yield* Effect.fail(new NotFoundError({ resource: "Account", id: _.path.id }))
-          }
-          const accountId = accountIdResult.right
+          // _.path.id is already AccountId - no decoding needed
+          const accountId = _.path.id
 
           // Get existing account
           const maybeExisting = yield* accountRepo.findById(accountId).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
           if (Option.isNone(maybeExisting)) {
-            return yield* Effect.fail(new NotFoundError({ resource: "Account", id: _.path.id }))
+            return yield* Effect.fail(new NotFoundError({ resource: "Account", id: accountId }))
           }
           const existing = maybeExisting.value
 
@@ -406,18 +347,15 @@ export const AccountsApiLive = HttpApiBuilder.group(AppApi, "accounts", (handler
       )
       .handle("deactivateAccount", (_) =>
         Effect.gen(function* () {
-          const accountIdResult = Schema.decodeUnknownEither(AccountId)(_.path.id)
-          if (accountIdResult._tag === "Left") {
-            return yield* Effect.fail(new NotFoundError({ resource: "Account", id: _.path.id }))
-          }
-          const accountId = accountIdResult.right
+          // _.path.id is already AccountId - no decoding needed
+          const accountId = _.path.id
 
           // Get existing account
           const maybeExisting = yield* accountRepo.findById(accountId).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
           if (Option.isNone(maybeExisting)) {
-            return yield* Effect.fail(new NotFoundError({ resource: "Account", id: _.path.id }))
+            return yield* Effect.fail(new NotFoundError({ resource: "Account", id: accountId }))
           }
           const existing = maybeExisting.value
 
