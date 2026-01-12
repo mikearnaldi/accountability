@@ -12,7 +12,7 @@ import type * as Effect from "effect/Effect"
 import type * as Option from "effect/Option"
 import type { Company, CompanyId } from "@accountability/core/domain/Company"
 import type { OrganizationId } from "@accountability/core/domain/Organization"
-import type { EntityNotFoundError, PersistenceError } from "./RepositoryError.ts"
+import type { EntityNotFoundError, PersistenceError } from "../RepositoryError.ts"
 
 /**
  * CompanyRepository - Service interface for Company persistence
@@ -108,7 +108,7 @@ export interface CompanyRepositoryService {
  *
  * Usage:
  * ```typescript
- * import { CompanyRepository } from "@accountability/persistence/CompanyRepository"
+ * import { CompanyRepository } from "@accountability/persistence/Services/CompanyRepository"
  *
  * const program = Effect.gen(function* () {
  *   const repo = yield* CompanyRepository

@@ -41,7 +41,7 @@ import { OrganizationId } from "@accountability/core/domain/Organization"
 import { Timestamp } from "@accountability/core/domain/Timestamp"
 import { UserId } from "@accountability/core/domain/JournalEntry"
 import { Percentage } from "@accountability/core/domain/Percentage"
-import { ConsolidationRepository, type ConsolidationRepositoryService } from "./ConsolidationRepository.ts"
+import { ConsolidationRepository, type ConsolidationRepositoryService } from "./Services/ConsolidationRepository.ts"
 import { EntityNotFoundError, wrapSqlError } from "./RepositoryError.ts"
 import type { PersistenceError } from "./RepositoryError.ts"
 

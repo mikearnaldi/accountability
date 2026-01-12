@@ -24,8 +24,8 @@ import {
 } from "@accountability/core/domain/Organization"
 import { Percentage } from "@accountability/core/domain/Percentage"
 import { now as timestampNow } from "@accountability/core/domain/Timestamp"
-import { CompanyRepository, type CompanyRepositoryService } from "@accountability/persistence/CompanyRepository"
-import { OrganizationRepository, type OrganizationRepositoryService } from "@accountability/persistence/OrganizationRepository"
+import { CompanyRepository, type CompanyRepositoryService } from "@accountability/persistence/Services/CompanyRepository"
+import { OrganizationRepository, type OrganizationRepositoryService } from "@accountability/persistence/Services/OrganizationRepository"
 import { EntityNotFoundError } from "@accountability/persistence/RepositoryError"
 
 // =============================================================================

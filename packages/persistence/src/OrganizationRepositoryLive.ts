@@ -19,7 +19,7 @@ import {
 } from "@accountability/core/domain/Organization"
 import { CurrencyCode } from "@accountability/core/domain/CurrencyCode"
 import { Timestamp } from "@accountability/core/domain/Timestamp"
-import { OrganizationRepository, type OrganizationRepositoryService } from "./OrganizationRepository.ts"
+import { OrganizationRepository, type OrganizationRepositoryService } from "./Services/OrganizationRepository.ts"
 import { EntityNotFoundError, wrapSqlError } from "./RepositoryError.ts"
 
 /**

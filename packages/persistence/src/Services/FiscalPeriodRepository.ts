@@ -18,7 +18,7 @@ import type {
   FiscalPeriodStatus
 } from "@accountability/core/services/PeriodService"
 import type { CompanyId } from "@accountability/core/domain/Company"
-import type { EntityNotFoundError, PersistenceError } from "./RepositoryError.ts"
+import type { EntityNotFoundError, PersistenceError } from "../RepositoryError.ts"
 
 /**
  * FiscalPeriodRepository - Service interface for FiscalYear and FiscalPeriod persistence
@@ -248,7 +248,7 @@ export interface FiscalPeriodRepositoryService {
  *
  * Usage:
  * ```typescript
- * import { FiscalPeriodRepository } from "@accountability/persistence"
+ * import { FiscalPeriodRepository } from "@accountability/persistence/Services/FiscalPeriodRepository"
  *
  * const program = Effect.gen(function* () {
  *   const repo = yield* FiscalPeriodRepository

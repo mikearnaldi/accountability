@@ -28,7 +28,7 @@ import { Timestamp } from "@accountability/core/domain/Timestamp"
 import {
   IntercompanyTransactionRepository,
   type IntercompanyTransactionRepositoryService
-} from "./IntercompanyTransactionRepository.ts"
+} from "./Services/IntercompanyTransactionRepository.ts"
 import { EntityNotFoundError, wrapSqlError } from "./RepositoryError.ts"
 
 /**

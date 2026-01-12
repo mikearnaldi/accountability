@@ -26,7 +26,7 @@ import { MonetaryAmount } from "@accountability/core/domain/MonetaryAmount"
 import {
   JournalEntryLineRepository,
   type JournalEntryLineRepositoryService
-} from "./JournalEntryLineRepository.ts"
+} from "./Services/JournalEntryLineRepository.ts"
 import { EntityNotFoundError, wrapSqlError } from "./RepositoryError.ts"
 
 /**

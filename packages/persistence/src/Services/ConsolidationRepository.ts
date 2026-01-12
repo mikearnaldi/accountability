@@ -21,7 +21,7 @@ import type {
 } from "@accountability/core/domain/ConsolidationRun"
 import type { OrganizationId } from "@accountability/core/domain/Organization"
 import type { FiscalPeriodRef } from "@accountability/core/domain/FiscalPeriodRef"
-import type { EntityNotFoundError, PersistenceError } from "./RepositoryError.ts"
+import type { EntityNotFoundError, PersistenceError } from "../RepositoryError.ts"
 
 /**
  * ConsolidationRepository - Service interface for ConsolidationGroup and ConsolidationRun persistence
@@ -246,7 +246,7 @@ export interface ConsolidationRepositoryService {
  *
  * Usage:
  * ```typescript
- * import { ConsolidationRepository } from "@accountability/persistence"
+ * import { ConsolidationRepository } from "@accountability/persistence/Services/ConsolidationRepository"
  *
  * const program = Effect.gen(function* () {
  *   const repo = yield* ConsolidationRepository

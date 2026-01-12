@@ -19,7 +19,7 @@ import type {
 import type { CompanyId } from "@accountability/core/domain/Company"
 import type { JournalEntryId } from "@accountability/core/domain/JournalEntry"
 import type { LocalDate } from "@accountability/core/domain/LocalDate"
-import type { EntityNotFoundError, PersistenceError } from "./RepositoryError.ts"
+import type { EntityNotFoundError, PersistenceError } from "../RepositoryError.ts"
 
 /**
  * IntercompanyTransactionRepositoryService - Service interface for IntercompanyTransaction persistence
@@ -234,7 +234,7 @@ export interface IntercompanyTransactionRepositoryService {
  *
  * Usage:
  * ```typescript
- * import { IntercompanyTransactionRepository } from "@accountability/persistence/IntercompanyTransactionRepository"
+ * import { IntercompanyTransactionRepository } from "@accountability/persistence/Services/IntercompanyTransactionRepository"
  *
  * const program = Effect.gen(function* () {
  *   const repo = yield* IntercompanyTransactionRepository

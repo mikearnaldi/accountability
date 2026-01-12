@@ -18,7 +18,7 @@ import { JurisdictionCode } from "@accountability/core/domain/JurisdictionCode"
 import { OrganizationId } from "@accountability/core/domain/Organization"
 import { Percentage } from "@accountability/core/domain/Percentage"
 import { Timestamp } from "@accountability/core/domain/Timestamp"
-import { CompanyRepository, type CompanyRepositoryService } from "./CompanyRepository.ts"
+import { CompanyRepository, type CompanyRepositoryService } from "./Services/CompanyRepository.ts"
 import { EntityNotFoundError, wrapSqlError } from "./RepositoryError.ts"
 
 /**

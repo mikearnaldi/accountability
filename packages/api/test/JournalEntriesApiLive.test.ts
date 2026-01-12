@@ -36,10 +36,10 @@ import {
   FiscalYearId,
   type FiscalPeriodStatus
 } from "@accountability/core/services/PeriodService"
-import { JournalEntryRepository, type JournalEntryRepositoryService } from "@accountability/persistence/JournalEntryRepository"
-import { JournalEntryLineRepository, type JournalEntryLineRepositoryService } from "@accountability/persistence/JournalEntryLineRepository"
-import { CompanyRepository, type CompanyRepositoryService } from "@accountability/persistence/CompanyRepository"
-import { FiscalPeriodRepository, type FiscalPeriodRepositoryService } from "@accountability/persistence/FiscalPeriodRepository"
+import { JournalEntryRepository, type JournalEntryRepositoryService } from "@accountability/persistence/Services/JournalEntryRepository"
+import { JournalEntryLineRepository, type JournalEntryLineRepositoryService } from "@accountability/persistence/Services/JournalEntryLineRepository"
+import { CompanyRepository, type CompanyRepositoryService } from "@accountability/persistence/Services/CompanyRepository"
+import { FiscalPeriodRepository, type FiscalPeriodRepositoryService } from "@accountability/persistence/Services/FiscalPeriodRepository"
 import { EntityNotFoundError } from "@accountability/persistence/RepositoryError"
 
 // =============================================================================

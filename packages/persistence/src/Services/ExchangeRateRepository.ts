@@ -17,7 +17,7 @@ import type {
 } from "@accountability/core/domain/ExchangeRate"
 import type { CurrencyCode } from "@accountability/core/domain/CurrencyCode"
 import type { LocalDate } from "@accountability/core/domain/LocalDate"
-import type { EntityNotFoundError, PersistenceError } from "./RepositoryError.ts"
+import type { EntityNotFoundError, PersistenceError } from "../RepositoryError.ts"
 
 /**
  * ExchangeRateRepository - Service interface for ExchangeRate persistence
@@ -203,7 +203,7 @@ export interface ExchangeRateRepositoryService {
  *
  * Usage:
  * ```typescript
- * import { ExchangeRateRepository } from "@accountability/persistence"
+ * import { ExchangeRateRepository } from "@accountability/persistence/Services/ExchangeRateRepository"
  *
  * const program = Effect.gen(function* () {
  *   const repo = yield* ExchangeRateRepository

@@ -11,7 +11,7 @@ import * as Context from "effect/Context"
 import type * as Effect from "effect/Effect"
 import type * as Option from "effect/Option"
 import type { Organization, OrganizationId } from "@accountability/core/domain/Organization"
-import type { EntityNotFoundError, PersistenceError } from "./RepositoryError.ts"
+import type { EntityNotFoundError, PersistenceError } from "../RepositoryError.ts"
 
 /**
  * OrganizationRepositoryService - Service interface for Organization persistence
@@ -95,7 +95,7 @@ export interface OrganizationRepositoryService {
  *
  * Usage:
  * ```typescript
- * import { OrganizationRepository } from "@accountability/persistence/OrganizationRepository"
+ * import { OrganizationRepository } from "@accountability/persistence/Services/OrganizationRepository"
  *
  * const program = Effect.gen(function* () {
  *   const repo = yield* OrganizationRepository

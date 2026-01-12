@@ -26,10 +26,10 @@ import { CurrencyCode } from "@accountability/core/domain/CurrencyCode"
 import { MonetaryAmount } from "@accountability/core/domain/MonetaryAmount"
 import { now as timestampNow } from "@accountability/core/domain/Timestamp"
 import { FiscalPeriodRef } from "@accountability/core/domain/FiscalPeriodRef"
-import { JournalEntryRepository } from "@accountability/persistence/JournalEntryRepository"
-import { JournalEntryLineRepository } from "@accountability/persistence/JournalEntryLineRepository"
-import { CompanyRepository } from "@accountability/persistence/CompanyRepository"
-import { FiscalPeriodRepository } from "@accountability/persistence/FiscalPeriodRepository"
+import { JournalEntryRepository } from "@accountability/persistence/Services/JournalEntryRepository"
+import { JournalEntryLineRepository } from "@accountability/persistence/Services/JournalEntryLineRepository"
+import { CompanyRepository } from "@accountability/persistence/Services/CompanyRepository"
+import { FiscalPeriodRepository } from "@accountability/persistence/Services/FiscalPeriodRepository"
 import {
   isEntityNotFoundError,
   type EntityNotFoundError,

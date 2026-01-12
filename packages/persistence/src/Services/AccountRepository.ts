@@ -13,7 +13,7 @@ import type * as Option from "effect/Option"
 import type { Account, AccountId, AccountType } from "@accountability/core/domain/Account"
 import type { AccountNumber } from "@accountability/core/domain/AccountNumber"
 import type { CompanyId } from "@accountability/core/domain/Company"
-import type { EntityNotFoundError, PersistenceError } from "./RepositoryError.ts"
+import type { EntityNotFoundError, PersistenceError } from "../RepositoryError.ts"
 
 /**
  * AccountRepository - Service interface for Account persistence
@@ -155,7 +155,7 @@ export interface AccountRepositoryService {
  *
  * Usage:
  * ```typescript
- * import { AccountRepository } from "@accountability/persistence/AccountRepository"
+ * import { AccountRepository } from "@accountability/persistence/Services/AccountRepository"
  *
  * const program = Effect.gen(function* () {
  *   const repo = yield* AccountRepository

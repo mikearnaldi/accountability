@@ -23,8 +23,8 @@ import { CurrencyCode } from "@accountability/core/domain/CurrencyCode"
 import { JurisdictionCode } from "@accountability/core/domain/JurisdictionCode"
 import { OrganizationId } from "@accountability/core/domain/Organization"
 import { now as timestampNow } from "@accountability/core/domain/Timestamp"
-import { AccountRepository, type AccountRepositoryService } from "@accountability/persistence/AccountRepository"
-import { CompanyRepository, type CompanyRepositoryService } from "@accountability/persistence/CompanyRepository"
+import { AccountRepository, type AccountRepositoryService } from "@accountability/persistence/Services/AccountRepository"
+import { CompanyRepository, type CompanyRepositoryService } from "@accountability/persistence/Services/CompanyRepository"
 import { EntityNotFoundError } from "@accountability/persistence/RepositoryError"
 
 // =============================================================================

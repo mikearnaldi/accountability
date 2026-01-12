@@ -32,7 +32,7 @@ import {
 import {
   EliminationRuleRepository,
   type EliminationRuleRepositoryService
-} from "./EliminationRuleRepository.ts"
+} from "./Services/EliminationRuleRepository.ts"
 import { EntityNotFoundError, wrapSqlError } from "./RepositoryError.ts"
 
 /**

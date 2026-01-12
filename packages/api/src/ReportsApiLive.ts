@@ -47,10 +47,10 @@ import {
   type EquityMovementRow as CoreEquityMovementRow,
   type InvalidPeriodError as EquityInvalidPeriodError
 } from "@accountability/core/services/EquityStatementService"
-import { AccountRepository } from "@accountability/persistence/AccountRepository"
-import { CompanyRepository } from "@accountability/persistence/CompanyRepository"
-import { JournalEntryRepository } from "@accountability/persistence/JournalEntryRepository"
-import { JournalEntryLineRepository } from "@accountability/persistence/JournalEntryLineRepository"
+import { AccountRepository } from "@accountability/persistence/Services/AccountRepository"
+import { CompanyRepository } from "@accountability/persistence/Services/CompanyRepository"
+import { JournalEntryRepository } from "@accountability/persistence/Services/JournalEntryRepository"
+import { JournalEntryLineRepository } from "@accountability/persistence/Services/JournalEntryLineRepository"
 import {
   isEntityNotFoundError,
   type EntityNotFoundError,

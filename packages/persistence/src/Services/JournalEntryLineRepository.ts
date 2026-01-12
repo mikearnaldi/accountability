@@ -15,7 +15,7 @@ import type {
 } from "@accountability/core/domain/JournalEntryLine"
 import type { JournalEntryId } from "@accountability/core/domain/JournalEntry"
 import type { AccountId } from "@accountability/core/domain/Account"
-import type { EntityNotFoundError, PersistenceError } from "./RepositoryError.ts"
+import type { EntityNotFoundError, PersistenceError } from "../RepositoryError.ts"
 
 /**
  * JournalEntryLineRepository - Service interface for JournalEntryLine persistence
@@ -99,7 +99,7 @@ export interface JournalEntryLineRepositoryService {
  *
  * Usage:
  * ```typescript
- * import { JournalEntryLineRepository } from "@accountability/persistence/JournalEntryLineRepository"
+ * import { JournalEntryLineRepository } from "@accountability/persistence/Services/JournalEntryLineRepository"
  *
  * const program = Effect.gen(function* () {
  *   const repo = yield* JournalEntryLineRepository

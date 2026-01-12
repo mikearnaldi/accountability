@@ -23,8 +23,8 @@ import {
   OrganizationSettings
 } from "@accountability/core/domain/Organization"
 import { now as timestampNow } from "@accountability/core/domain/Timestamp"
-import { CompanyRepository } from "@accountability/persistence/CompanyRepository"
-import { OrganizationRepository } from "@accountability/persistence/OrganizationRepository"
+import { CompanyRepository } from "@accountability/persistence/Services/CompanyRepository"
+import { OrganizationRepository } from "@accountability/persistence/Services/OrganizationRepository"
 import {
   isEntityNotFoundError,
   type EntityNotFoundError,

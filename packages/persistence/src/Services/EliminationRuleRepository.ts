@@ -18,7 +18,7 @@ import type {
   ConsolidationGroupId,
   EliminationRuleId
 } from "@accountability/core/domain/ConsolidationGroup"
-import type { EntityNotFoundError, PersistenceError } from "./RepositoryError.ts"
+import type { EntityNotFoundError, PersistenceError } from "../RepositoryError.ts"
 
 /**
  * EliminationRuleRepositoryService - Service interface for EliminationRule persistence
@@ -192,7 +192,7 @@ export interface EliminationRuleRepositoryService {
  *
  * Usage:
  * ```typescript
- * import { EliminationRuleRepository } from "@accountability/persistence/EliminationRuleRepository"
+ * import { EliminationRuleRepository } from "@accountability/persistence/Services/EliminationRuleRepository"
  *
  * const program = Effect.gen(function* () {
  *   const repo = yield* EliminationRuleRepository

@@ -20,8 +20,8 @@ import {
   AccountId
 } from "@accountability/core/domain/Account"
 import { now as timestampNow } from "@accountability/core/domain/Timestamp"
-import { AccountRepository } from "@accountability/persistence/AccountRepository"
-import { CompanyRepository } from "@accountability/persistence/CompanyRepository"
+import { AccountRepository } from "@accountability/persistence/Services/AccountRepository"
+import { CompanyRepository } from "@accountability/persistence/Services/CompanyRepository"
 import {
   isEntityNotFoundError,
   type EntityNotFoundError,

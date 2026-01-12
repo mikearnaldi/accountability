@@ -25,7 +25,7 @@ import {
 } from "@accountability/core/domain/JournalEntry"
 import { LocalDate } from "@accountability/core/domain/LocalDate"
 import { Timestamp } from "@accountability/core/domain/Timestamp"
-import { JournalEntryRepository, type JournalEntryRepositoryService } from "./JournalEntryRepository.ts"
+import { JournalEntryRepository, type JournalEntryRepositoryService } from "./Services/JournalEntryRepository.ts"
 import { EntityNotFoundError, wrapSqlError } from "./RepositoryError.ts"
 
 /**

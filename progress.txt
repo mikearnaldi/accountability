@@ -434,3 +434,8 @@
 **Story**: 6.4.1 - Complete missing persistence repositories
 **Status**: complete
 ---
+
+## Iteration 3 - 2026-01-12 12:59
+**Story**: 6.4.2 - Move service definitions to Services/ directory
+**Status**: complete
+---
