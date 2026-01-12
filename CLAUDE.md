@@ -13,7 +13,7 @@ Accountability is a multi-company, multi-currency accounting application using:
 
 | File | Purpose |
 |------|---------|
-| `SPECIFICATIONS.md` | Detailed domain specifications (entities, services, reports) |
+| `specs/ACCOUNTING_RESEARCH.md` | Detailed domain specifications (entities, services, reports) |
 | `prd.json` | User stories with status tracking |
 | `ralph.sh` | Autonomous agent loop orchestrator |
 | `RALPH_PROMPT.md` | Agent prompt template |
@@ -1763,7 +1763,7 @@ const wrapError = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
 
 When working on stories:
 
-1. **Read SPECIFICATIONS.md** for domain requirements
+1. **Read specs/ACCOUNTING_RESEARCH.md** for domain requirements
 2. **Search repos/** for implementation patterns
 3. **Follow the technology stack** defined in this file
 4. **Use Schema.TaggedError** for errors - see Best Practices section above

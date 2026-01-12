@@ -1,7 +1,7 @@
 /**
  * CurrencyService - Effect service for managing exchange rates
  *
- * Implements exchange rate management per SPECIFICATIONS.md including:
+ * Implements exchange rate management per specs/ACCOUNTING_RESEARCH.md including:
  * - Create and update exchange rates
  * - Rate lookups by currency pair, date, and type
  * - Latest rate lookups
@@ -378,7 +378,7 @@ export const isTranslationResult = Schema.is(TranslationResult)
 /**
  * RevaluationMethod - Method used for period-end revaluation
  *
- * Per SPECIFICATIONS.md:
+ * Per specs/ACCOUNTING_RESEARCH.md:
  * - BalanceSheet: Revalue all monetary items (cash, receivables, payables)
  * - OpenItems: Only revalue open AR/AP items
  */
@@ -448,7 +448,7 @@ export const isAccountBalance = Schema.is(AccountBalance)
 /**
  * RevaluationAccountDetail - Per-account detail for revaluation result
  *
- * Per SPECIFICATIONS.md Per-Account Detail:
+ * Per specs/ACCOUNTING_RESEARCH.md Per-Account Detail:
  * - Account reference
  * - Currency
  * - Balance in foreign currency
@@ -538,7 +538,7 @@ export const isRevaluationAccountDetail = Schema.is(RevaluationAccountDetail)
 /**
  * RevaluationResult - Result of period-end revaluation
  *
- * Per SPECIFICATIONS.md Revaluation Run Properties:
+ * Per specs/ACCOUNTING_RESEARCH.md Revaluation Run Properties:
  * - Company and fiscal period
  * - Run date
  * - Revaluation method

@@ -2,7 +2,7 @@
  * EntryStatusWorkflow - State machine for journal entry status transitions
  *
  * Implements status transition rules for journal entries with validation
- * of allowed transitions per SPECIFICATIONS.md workflow.
+ * of allowed transitions per specs/ACCOUNTING_RESEARCH.md workflow.
  *
  * Status Workflow:
  * - Draft -> PendingApproval: Submit for approval

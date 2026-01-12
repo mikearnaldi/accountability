@@ -1,7 +1,7 @@
 /**
  * BalanceSheetService - Balance Sheet Report generation service
  *
- * Implements balance sheet report generation per ASC 210 and SPECIFICATIONS.md Phase 3.2:
+ * Implements balance sheet report generation per ASC 210 and specs/ACCOUNTING_RESEARCH.md Phase 3.2:
  * - BalanceSheetReport schema with sections and line items
  * - generateBalanceSheet: (companyId, asOfDate, options) -> Effect<BalanceSheetReport>
  * - Sections: Current Assets, Non-Current Assets, Current Liabilities, Non-Current Liabilities, Equity

@@ -1,7 +1,7 @@
 /**
  * IncomeStatementService - Income Statement (P&L) Report generation service
  *
- * Implements income statement report generation per ASC 220 and SPECIFICATIONS.md Phase 3.3:
+ * Implements income statement report generation per ASC 220 and specs/ACCOUNTING_RESEARCH.md Phase 3.3:
  * - IncomeStatementReport schema with sections
  * - generateIncomeStatement: (companyId, periodStart, periodEnd, options) -> Effect<IncomeStatementReport>
  * - Multi-step format: Revenue -> COGS -> Gross Profit -> OpEx -> Operating Income -> Other -> Net Income

@@ -1,7 +1,7 @@
 /**
  * TrialBalanceService - Trial Balance Report generation service
  *
- * Implements trial balance report generation per SPECIFICATIONS.md Phase 3.1:
+ * Implements trial balance report generation per specs/ACCOUNTING_RESEARCH.md Phase 3.1:
  * - TrialBalanceReport schema with metadata and line items
  * - generateTrialBalance: (companyId, asOfDate) -> Effect<TrialBalanceReport>
  * - Shows all accounts with non-zero balances

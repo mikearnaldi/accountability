@@ -1,7 +1,7 @@
 /**
  * EquityStatementService - Statement of Changes in Equity Report generation service
  *
- * Implements statement of changes in equity per SPECIFICATIONS.md Phase 3.5:
+ * Implements statement of changes in equity per specs/ACCOUNTING_RESEARCH.md Phase 3.5:
  * - EquityStatementReport schema with component columns and movement rows
  * - generateEquityStatement: (companyId, periodStart, periodEnd) -> Effect<EquityStatementReport>
  * - Columns: Common Stock, APIC, Retained Earnings, Treasury Stock, AOCI, NCI (if consolidated)

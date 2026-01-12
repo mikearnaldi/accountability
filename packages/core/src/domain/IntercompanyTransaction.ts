@@ -58,7 +58,7 @@ export const isIntercompanyTransactionId = Schema.is(IntercompanyTransactionId)
 /**
  * IntercompanyTransactionType - Classification of intercompany transaction types
  *
- * Per SPECIFICATIONS.md Intercompany Transaction Types:
+ * Per specs/ACCOUNTING_RESEARCH.md Intercompany Transaction Types:
  * - SalePurchase: Sale/Purchase of goods or services between related companies
  * - Loan: Intercompany loans (principal and interest)
  * - ManagementFee: Management or administrative fee charges
@@ -94,7 +94,7 @@ export const isIntercompanyTransactionType = Schema.is(IntercompanyTransactionTy
 /**
  * MatchingStatus - Status of intercompany transaction matching/reconciliation
  *
- * Per SPECIFICATIONS.md Matching Statuses:
+ * Per specs/ACCOUNTING_RESEARCH.md Matching Statuses:
  * - Matched: Both sides agree - entries on both companies match exactly
  * - Unmatched: Missing entry on one side - only one company has recorded the transaction
  * - PartiallyMatched: Amounts differ - both sides have entries but amounts don't match

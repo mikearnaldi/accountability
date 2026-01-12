@@ -4,7 +4,7 @@
  * Provides functions to calculate account balances from posted journal entries.
  * Uses BigDecimal for all calculations to ensure precision.
  *
- * Per SPECIFICATIONS.md Phase 3.1:
+ * Per specs/ACCOUNTING_RESEARCH.md Phase 3.1:
  * - Account balance calculation
  * - Period-to-date balances
  * - Year-to-date balances

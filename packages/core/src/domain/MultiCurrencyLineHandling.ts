@@ -4,7 +4,7 @@
  * Provides logic for handling journal entry lines in different currencies,
  * converting transaction amounts to functional currency per ASC 830.
  *
- * Per SPECIFICATIONS.md (Multi-Currency Support):
+ * Per specs/ACCOUNTING_RESEARCH.md (Multi-Currency Support):
  * - Transaction Recording: Record in transaction currency, convert using spot rate
  * - Store both original and converted amounts
  * - Exchange rate must be provided when transaction currency differs from functional

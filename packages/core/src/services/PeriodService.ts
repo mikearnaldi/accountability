@@ -1,7 +1,7 @@
 /**
  * PeriodService - Effect service for fiscal year and period management
  *
- * Implements fiscal year creation with auto-generated periods per SPECIFICATIONS.md:
+ * Implements fiscal year creation with auto-generated periods per specs/ACCOUNTING_RESEARCH.md:
  * - Creates fiscal years with 12 monthly periods based on company fiscal settings
  * - Optional period 13 (adjustment period) support
  * - Validates that fiscal years don't overlap for the same company
@@ -85,7 +85,7 @@ export const isFiscalPeriodId = Schema.is(FiscalPeriodId)
 /**
  * FiscalYearStatus - Status of a fiscal year
  *
- * Per SPECIFICATIONS.md:
+ * Per specs/ACCOUNTING_RESEARCH.md:
  * - Open: Normal operations
  * - Closing: Year-end close in progress
  * - Closed: Year is closed
@@ -113,7 +113,7 @@ export const isFiscalYearStatus = Schema.is(FiscalYearStatus)
 /**
  * FiscalPeriodStatus - Status of a fiscal period
  *
- * Per SPECIFICATIONS.md:
+ * Per specs/ACCOUNTING_RESEARCH.md:
  * - Future: Period not yet open, posting not allowed
  * - Open: Normal operations, unrestricted posting
  * - SoftClose: Limited posting, only with approval
@@ -149,7 +149,7 @@ export const isFiscalPeriodStatus = Schema.is(FiscalPeriodStatus)
 /**
  * FiscalPeriodType - Type of fiscal period
  *
- * Per SPECIFICATIONS.md:
+ * Per specs/ACCOUNTING_RESEARCH.md:
  * - Regular: Standard monthly period (1-12)
  * - Adjustment: Period 13 for year-end adjustments
  * - Closing: Period for closing entries
@@ -181,7 +181,7 @@ export const isFiscalPeriodType = Schema.is(FiscalPeriodType)
 /**
  * FiscalPeriod - A period within a fiscal year
  *
- * Per SPECIFICATIONS.md Fiscal Period structure:
+ * Per specs/ACCOUNTING_RESEARCH.md Fiscal Period structure:
  * - Unique identifier
  * - Fiscal year reference
  * - Period number (1-12 for months, 13+ for adjustments)
@@ -297,7 +297,7 @@ export const isFiscalPeriod = Schema.is(FiscalPeriod)
 /**
  * FiscalYear - A fiscal year for a company
  *
- * Per SPECIFICATIONS.md Fiscal Year structure:
+ * Per specs/ACCOUNTING_RESEARCH.md Fiscal Year structure:
  * - Unique identifier
  * - Company reference
  * - Year name (e.g., "FY2025")
@@ -852,7 +852,7 @@ export const isPeriodReopenAuditEntryId = Schema.is(PeriodReopenAuditEntryId)
 /**
  * PeriodReopenAuditEntry - Audit trail entry for period reopening
  *
- * Per SPECIFICATIONS.md: reopenPeriod with audit trail (requires reason)
+ * Per specs/ACCOUNTING_RESEARCH.md: reopenPeriod with audit trail (requires reason)
  */
 export class PeriodReopenAuditEntry extends Schema.Class<PeriodReopenAuditEntry>("PeriodReopenAuditEntry")({
   /**

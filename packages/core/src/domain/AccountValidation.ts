@@ -30,7 +30,7 @@ import { CompanyId } from "./Company.ts"
 /**
  * Error for account number not matching expected range for account type
  *
- * Per SPECIFICATIONS.md:
+ * Per specs/ACCOUNTING_RESEARCH.md:
  * - 1xxx: Assets
  * - 2xxx: Liabilities
  * - 3xxx: Equity
@@ -95,7 +95,7 @@ export const isNormalBalanceError = Schema.is(NormalBalanceError)
 /**
  * Error for intercompany account missing partner company
  *
- * Per SPECIFICATIONS.md, intercompany accounts must have a partner company set
+ * Per specs/ACCOUNTING_RESEARCH.md, intercompany accounts must have a partner company set
  * to enable proper tracking and elimination during consolidation.
  */
 export class IntercompanyPartnerMissingError extends Schema.TaggedError<IntercompanyPartnerMissingError>()(
@@ -140,7 +140,7 @@ export const isUnexpectedIntercompanyPartnerError = Schema.is(UnexpectedIntercom
 /**
  * Error for cash flow category set on income statement account
  *
- * Per SPECIFICATIONS.md, cash flow category should only be set for balance sheet
+ * Per specs/ACCOUNTING_RESEARCH.md, cash flow category should only be set for balance sheet
  * accounts (Asset, Liability, Equity). Revenue and Expense accounts are income
  * statement accounts and should not have cash flow category.
  */
@@ -288,7 +288,7 @@ export const validateIntercompanyConfiguration = (
 /**
  * Validate cash flow category is only set for balance sheet accounts
  *
- * Per SPECIFICATIONS.md, cash flow category (Operating, Investing, Financing, NonCash)
+ * Per specs/ACCOUNTING_RESEARCH.md, cash flow category (Operating, Investing, Financing, NonCash)
  * should only be set for balance sheet accounts (Asset, Liability, Equity).
  *
  * Revenue and Expense accounts are income statement accounts and their cash flow

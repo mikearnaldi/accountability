@@ -256,7 +256,7 @@ export const hasNormalCreditBalance = (accountNumber: AccountNumber): boolean =>
 }
 
 /**
- * Get the subcategory based on detailed account ranges per SPECIFICATIONS.md
+ * Get the subcategory based on detailed account ranges per specs/ACCOUNTING_RESEARCH.md
  *
  * - 1000-1499: Current Assets
  * - 1500-1999: Non-Current Assets

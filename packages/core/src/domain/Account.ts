@@ -4,7 +4,7 @@
  * Represents an account in the Chart of Accounts with full classification
  * including type, category, normal balance, hierarchy, and behavior properties.
  *
- * Account Numbering Convention per SPECIFICATIONS.md:
+ * Account Numbering Convention per specs/ACCOUNTING_RESEARCH.md:
  * - 1000-1499: Current Assets
  * - 1500-1999: Non-Current Assets
  * - 2000-2499: Current Liabilities
@@ -84,7 +84,7 @@ export const isAccountType = Schema.is(AccountType)
 /**
  * AccountCategory - Detailed subcategory within each AccountType
  *
- * Per SPECIFICATIONS.md, Account Categories by Type:
+ * Per specs/ACCOUNTING_RESEARCH.md, Account Categories by Type:
  *
  * Assets: CurrentAsset, NonCurrentAsset, FixedAsset, IntangibleAsset
  * Liabilities: CurrentLiability, NonCurrentLiability

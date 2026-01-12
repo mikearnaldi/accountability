@@ -8,7 +8,7 @@
  * - Where elimination entries post (debit and credit accounts)
  * - Whether to auto-process or require manual review
  *
- * Elimination Types per SPECIFICATIONS.md:
+ * Elimination Types per specs/ACCOUNTING_RESEARCH.md:
  * - IntercompanyReceivablePayable: Eliminate AR/AP between group companies
  * - IntercompanyRevenueExpense: Eliminate sales and corresponding COGS/expenses
  * - IntercompanyDividend: Eliminate dividends paid within group
@@ -33,7 +33,7 @@ import { ConsolidationGroupId, EliminationRuleId } from "./ConsolidationGroup.ts
 /**
  * EliminationType - Classification of elimination rule types
  *
- * Per SPECIFICATIONS.md Elimination Types:
+ * Per specs/ACCOUNTING_RESEARCH.md Elimination Types:
  * - IntercompanyReceivablePayable: Eliminate AR/AP between group companies
  * - IntercompanyRevenueExpense: Eliminate sales and corresponding COGS/expenses
  * - IntercompanyDividend: Eliminate dividends paid within group
@@ -132,7 +132,7 @@ export const isAccountSelectorByCategory = Schema.is(AccountSelectorByCategory)
 /**
  * AccountSelector - Union type for different ways to select accounts
  *
- * Per SPECIFICATIONS.md, elimination rules can target accounts by:
+ * Per specs/ACCOUNTING_RESEARCH.md, elimination rules can target accounts by:
  * - Specific account ID (ById)
  * - Account number range (ByRange)
  * - Account category (ByCategory)

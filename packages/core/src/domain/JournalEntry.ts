@@ -1,7 +1,7 @@
 /**
  * JournalEntry - Journal Entry entity for double-entry bookkeeping
  *
- * Represents a journal entry header with all properties per SPECIFICATIONS.md
+ * Represents a journal entry header with all properties per specs/ACCOUNTING_RESEARCH.md
  * including dates, period, type, status, and audit information.
  *
  * Journal Entry Types per spec:
@@ -84,7 +84,7 @@ export const isEntryNumber = Schema.is(EntryNumber)
 /**
  * JournalEntryType - Classification of journal entry type
  *
- * Per SPECIFICATIONS.md Journal Entry Types:
+ * Per specs/ACCOUNTING_RESEARCH.md Journal Entry Types:
  * - Standard: Manual journal entries for day-to-day transactions
  * - Adjusting: Period-end adjustments (accruals, deferrals, corrections)
  * - Closing: Year-end closing entries
@@ -126,7 +126,7 @@ export const isJournalEntryType = Schema.is(JournalEntryType)
 /**
  * JournalEntryStatus - Status workflow for journal entries
  *
- * Per SPECIFICATIONS.md Status Workflow:
+ * Per specs/ACCOUNTING_RESEARCH.md Status Workflow:
  * - Draft: Initial creation, editable
  * - PendingApproval: Awaiting authorization
  * - Approved: Authorized but not yet posted
@@ -158,7 +158,7 @@ export const isJournalEntryStatus = Schema.is(JournalEntryStatus)
 /**
  * SourceModule - Originating module for journal entries
  *
- * Per SPECIFICATIONS.md:
+ * Per specs/ACCOUNTING_RESEARCH.md:
  * - GeneralLedger: Direct GL entry
  * - AccountsPayable: AP module
  * - AccountsReceivable: AR module
@@ -218,7 +218,7 @@ export const isUserId = Schema.is(UserId)
 /**
  * JournalEntry - Journal Entry header entity
  *
- * Represents a journal entry with all header properties per SPECIFICATIONS.md.
+ * Represents a journal entry with all header properties per specs/ACCOUNTING_RESEARCH.md.
  * Does not include journal entry lines (those are handled separately).
  *
  * Key features:

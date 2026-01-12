@@ -1,7 +1,7 @@
 /**
  * ConsolidationRun - Entity for consolidation run orchestration
  *
- * Per ASC 810 and SPECIFICATIONS.md, a consolidation run orchestrates the
+ * Per ASC 810 and specs/ACCOUNTING_RESEARCH.md, a consolidation run orchestrates the
  * full consolidation process for a consolidation group. It tracks the status
  * and progress of each processing step.
  *
@@ -60,7 +60,7 @@ export const isConsolidationRunId = Schema.is(ConsolidationRunId)
 /**
  * ConsolidationRunStatus - Status of the consolidation run
  *
- * Per SPECIFICATIONS.md:
+ * Per specs/ACCOUNTING_RESEARCH.md:
  * - Pending: Run has been created but not started
  * - InProgress: Run is currently executing
  * - Completed: Run finished successfully
@@ -96,7 +96,7 @@ export const isConsolidationRunStatus = Schema.is(ConsolidationRunStatus)
 /**
  * ConsolidationStepType - Types of processing steps in consolidation
  *
- * Per SPECIFICATIONS.md Processing Steps:
+ * Per specs/ACCOUNTING_RESEARCH.md Processing Steps:
  * 1. Validate: Ensure all members have closed periods, balanced trial balances
  * 2. Translate: Translate each member to reporting currency per ASC 830
  * 3. Aggregate: Sum all member account balances

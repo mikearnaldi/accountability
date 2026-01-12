@@ -225,6 +225,7 @@ build_prompt() {
     # Extract only what's needed from PRD
     local technology=$(jq '.technology' "$PRD_FILE")
     local reference_repos=$(jq '.reference_repos' "$PRD_FILE")
+    local specs_dir=$(jq -r '.specs_dir // "specs/"' "$PRD_FILE")
     local progress_content=$(cat "$PROGRESS_FILE")
     local prompt_template=$(cat "$PROMPT_FILE")
     local ci_errors=""
@@ -237,6 +238,26 @@ build_prompt() {
         ci_errors="No errors from previous iteration."
     fi
 
+    # Build specs section - show story-specific specs and all available specs
+    local story_specs=$(echo "$story" | jq -r '.specs // empty')
+    local specs_list=""
+
+    # Story-specific specs (if any)
+    if [ -n "$story_specs" ] && [ "$story_specs" != "null" ]; then
+        specs_list="**Required for this story:**
+$(echo "$story" | jq -r '.specs[]' 2>/dev/null | while read spec; do
+            echo "- \`${specs_dir}${spec}\`"
+        done)
+
+"
+    fi
+
+    # Always list all available specs
+    specs_list="${specs_list}**All available specs in \`${specs_dir}\`:**
+$(jq -r '.available_specs[]' "$PRD_FILE" 2>/dev/null | while read spec; do
+        echo "- \`${specs_dir}${spec}\`"
+    done)"
+
     # Replace placeholders in template
     local prompt="$prompt_template"
     prompt="${prompt//\{\{ITERATION\}\}/$iteration}"
@@ -244,6 +265,7 @@ build_prompt() {
     prompt="${prompt//\{\{CURRENT_STORY\}\}/$story}"
     prompt="${prompt//\{\{TECHNOLOGY\}\}/$technology}"
     prompt="${prompt//\{\{REFERENCE_REPOS\}\}/$reference_repos}"
+    prompt="${prompt//\{\{SPECS\}\}/$specs_list}"
     prompt="${prompt//\{\{PROGRESS_CONTENT\}\}/$progress_content}"
     prompt="${prompt//\{\{CI_ERRORS\}\}/$ci_errors}"
 

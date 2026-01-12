@@ -23,7 +23,7 @@ nohup ./ralph.sh 100 > ralph-output.log 2>&1 &
 | `prd.json` | JSON-based PRD with user stories and status |
 | `progress.txt` | Progress log appended by each agent run |
 | `RALPH_PROMPT.md` | Prompt template sent to the agent |
-| `SPECIFICATIONS.md` | Detailed project specifications |
+| `specs/ACCOUNTING_RESEARCH.md` | Detailed project specifications |
 
 ## Helper Scripts
 

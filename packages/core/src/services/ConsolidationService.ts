@@ -1,7 +1,7 @@
 /**
  * ConsolidationService - Orchestrates the full consolidation process
  *
- * Per ASC 810 and SPECIFICATIONS.md, this service orchestrates consolidation by:
+ * Per ASC 810 and specs/ACCOUNTING_RESEARCH.md, this service orchestrates consolidation by:
  * 1. Validate - Ensure all members have closed periods, balanced trial balances
  * 2. Translate - Translate each member to reporting currency per ASC 830
  * 3. Aggregate - Sum all member account balances

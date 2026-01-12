@@ -34,9 +34,13 @@ Use these local paths to find patterns and best practices:
 {{REFERENCE_REPOS}}
 ```
 
+## Specifications
+
+{{SPECS}}
+
 ## Workflow
 
-1. **Read** `SPECIFICATIONS.md` for detailed requirements related to the story
+1. **Read** the required specs (if any) and browse others as needed
 2. **Research** reference repos for patterns (Effect services, schemas, TanStack Start)
 3. **Implement** the story following the acceptance criteria
 4. **Write tests** to achieve 100% coverage for core package
@@ -62,7 +66,7 @@ The Ralph script will then:
 - **Tech Stack**: Effect (TypeScript), TanStack Start, React, Vitest
 - **Monorepo Structure**: packages/core, packages/persistence, packages/api, packages/web
 - **Testing**: 100% coverage required for core package
-- **Specs**: See SPECIFICATIONS.md for detailed domain requirements
+- **Specs**: See `specs/` directory for specifications (listed above per story)
 
 ## Progress Log
 
@@ -76,7 +80,7 @@ The Ralph script will then:
 
 ## Important Reminders
 
-- Read SPECIFICATIONS.md for detailed requirements
+- Read the relevant specs listed above for this story
 - Read CLAUDE.md for package locations and search patterns
 - Follow Effect patterns for services and error handling (Context.Tag, Layer)
 - Use Effect Schema for all entity definitions (import * as Schema from 'effect/Schema')

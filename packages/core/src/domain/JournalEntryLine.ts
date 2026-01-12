@@ -5,7 +5,7 @@
  * debit/credit amounts in both transaction and functional currencies,
  * memo, dimensions for reporting, and intercompany properties.
  *
- * Per SPECIFICATIONS.md Journal Entry Line contains:
+ * Per specs/ACCOUNTING_RESEARCH.md Journal Entry Line contains:
  * - Account reference
  * - Amounts in Transaction Currency (debit or credit, not both)
  * - Amounts in Functional Currency with exchange rate

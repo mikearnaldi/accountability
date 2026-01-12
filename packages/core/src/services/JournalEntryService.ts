@@ -1,7 +1,7 @@
 /**
  * JournalEntryService - Effect service for creating journal entries
  *
- * Implements journal entry creation with full validation per SPECIFICATIONS.md:
+ * Implements journal entry creation with full validation per specs/ACCOUNTING_RESEARCH.md:
  * - Balance validation (debits = credits)
  * - Account existence and postability validation via AccountRepository
  * - Period validation via PeriodRepository

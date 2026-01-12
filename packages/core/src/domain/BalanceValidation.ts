@@ -5,7 +5,7 @@
  * must equal total credits for every journal entry. Uses BigDecimal for
  * precise monetary calculations.
  *
- * Per SPECIFICATIONS.md:
+ * Per specs/ACCOUNTING_RESEARCH.md:
  * - Balance Check: Sum of all debit amounts must exactly equal sum of all credit amounts
  * - Multi-currency support: Compare in functional currency
  *
@@ -107,7 +107,7 @@ export const sumCredits = (
 /**
  * Validate that a journal entry's lines are balanced (debits = credits).
  *
- * Per SPECIFICATIONS.md, this implements the fundamental rule of double-entry
+ * Per specs/ACCOUNTING_RESEARCH.md, this implements the fundamental rule of double-entry
  * bookkeeping: "Total Debits must equal Total Credits for every journal entry"
  *
  * For multi-currency entries, comparison is done in functional currency.

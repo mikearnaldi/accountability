@@ -1,7 +1,7 @@
 /**
  * CashFlowStatementService - Cash Flow Statement Report generation service
  *
- * Implements cash flow statement report generation per ASC 230 and SPECIFICATIONS.md Phase 3.4:
+ * Implements cash flow statement report generation per ASC 230 and specs/ACCOUNTING_RESEARCH.md Phase 3.4:
  * - CashFlowStatementReport schema
  * - generateCashFlowStatement: (companyId, periodStart, periodEnd) -> Effect<CashFlowStatementReport>
  * - Operating activities using indirect method (start with Net Income, adjust for non-cash items)
