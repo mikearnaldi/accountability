@@ -1726,6 +1726,42 @@
       "estimated_complexity": "small"
     },
     {
+      "id": "6.4.7",
+      "phase": "API Layer",
+      "epic": "API Refinements",
+      "title": "Refactor API package to Definitions/ and Layers/ structure",
+      "description": "Reorganize the API package to separate API definitions (schemas, endpoints, groups) from their implementations (handlers, layers).",
+      "acceptance_criteria": [
+        "Create packages/api/src/Definitions/ directory",
+        "Move all HttpApiGroup definitions to Definitions/ (AccountsApi.ts, CompaniesApi.ts, etc.)",
+        "Move AppApi.ts to Definitions/",
+        "Create packages/api/src/Layers/ directory",
+        "Move all HttpApiBuilder implementations to Layers/ (AccountsApiLive.ts, etc.)",
+        "Move AppApiLive.ts to Layers/",
+        "Update all imports across the codebase",
+        "Clear separation: Definitions/ has API schemas, Layers/ has implementations"
+      ],
+      "status": "pending",
+      "estimated_complexity": "small"
+    },
+    {
+      "id": "6.4.8",
+      "phase": "Codebase Cleanup",
+      "epic": "Code Quality",
+      "title": "Remove unnecessary re-exports across packages",
+      "description": "Audit and remove unnecessary re-exports from package index files. Direct imports are preferred over barrel re-exports for better tree-shaking and clearer dependencies.",
+      "acceptance_criteria": [
+        "Audit all index.ts files in packages",
+        "Remove re-exports that just forward from submodules",
+        "Update imports to use direct paths instead of barrel imports",
+        "Keep only essential public API exports in index files",
+        "Verify no circular dependency issues after changes",
+        "Ensure TypeScript project references still work correctly"
+      ],
+      "status": "pending",
+      "estimated_complexity": "small"
+    },
+    {
       "id": "7.1.1",
       "phase": "UI Layer",
       "epic": "Core Components",
