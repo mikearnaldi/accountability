@@ -6,7 +6,7 @@
  * @module AccountsApi
  */
 
-import { HttpApiEndpoint, HttpApiGroup, HttpApiSchema } from "@effect/platform"
+import { HttpApiEndpoint, HttpApiGroup, HttpApiSchema, OpenApi } from "@effect/platform"
 import * as Schema from "effect/Schema"
 import {
   Account,
@@ -111,6 +111,10 @@ const listAccounts = HttpApiEndpoint.get("listAccounts", "/")
   .addSuccess(AccountListResponse)
   .addError(NotFoundError)
   .addError(ValidationError)
+  .annotateContext(OpenApi.annotations({
+    summary: "List accounts",
+    description: "Retrieve a paginated list of accounts for a company. Supports filtering by account type, category, status, and parent account."
+  }))
 
 /**
  * Get a single account by ID
@@ -119,6 +123,10 @@ const getAccount = HttpApiEndpoint.get("getAccount", "/:id")
   .setPath(Schema.Struct({ id: AccountId }))
   .addSuccess(Account)
   .addError(NotFoundError)
+  .annotateContext(OpenApi.annotations({
+    summary: "Get account",
+    description: "Retrieve a single account by its unique identifier."
+  }))
 
 /**
  * Create a new account
@@ -129,6 +137,10 @@ const createAccount = HttpApiEndpoint.post("createAccount", "/")
   .addError(ValidationError)
   .addError(ConflictError)
   .addError(BusinessRuleError)
+  .annotateContext(OpenApi.annotations({
+    summary: "Create account",
+    description: "Create a new account in the Chart of Accounts. The account number must be unique within the company."
+  }))
 
 /**
  * Update an existing account
@@ -141,6 +153,10 @@ const updateAccount = HttpApiEndpoint.put("updateAccount", "/:id")
   .addError(ValidationError)
   .addError(ConflictError)
   .addError(BusinessRuleError)
+  .annotateContext(OpenApi.annotations({
+    summary: "Update account",
+    description: "Update an existing account. Only provided fields will be updated. Account type and category cannot be changed after creation."
+  }))
 
 /**
  * Deactivate an account (soft delete)
@@ -150,6 +166,10 @@ const deactivateAccount = HttpApiEndpoint.del("deactivateAccount", "/:id")
   .addSuccess(HttpApiSchema.NoContent)
   .addError(NotFoundError)
   .addError(BusinessRuleError)
+  .annotateContext(OpenApi.annotations({
+    summary: "Deactivate account",
+    description: "Deactivate an account (soft delete). Accounts with posted transactions cannot be deactivated."
+  }))
 
 // =============================================================================
 // API Group
@@ -168,4 +188,8 @@ export class AccountsApi extends HttpApiGroup.make("accounts")
   .add(updateAccount)
   .add(deactivateAccount)
   .middleware(AuthMiddleware)
-  .prefix("/v1/accounts") {}
+  .prefix("/v1/accounts")
+  .annotateContext(OpenApi.annotations({
+    title: "Accounts",
+    description: "Manage the Chart of Accounts. Accounts are hierarchical and support multiple account types (Asset, Liability, Equity, Revenue, Expense)."
+  })) {}

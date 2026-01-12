@@ -11,7 +11,7 @@
  * @module ReportsApi
  */
 
-import { HttpApiEndpoint, HttpApiGroup } from "@effect/platform"
+import { HttpApiEndpoint, HttpApiGroup, OpenApi } from "@effect/platform"
 import * as Schema from "effect/Schema"
 import { CompanyId } from "@accountability/core/domain/Company"
 import { LocalDate } from "@accountability/core/domain/LocalDate"
@@ -391,6 +391,10 @@ const generateTrialBalance = HttpApiEndpoint.get("generateTrialBalance", "/trial
   .addError(NotFoundError)
   .addError(ValidationError)
   .addError(BusinessRuleError)
+  .annotateContext(OpenApi.annotations({
+    summary: "Generate trial balance",
+    description: "Generate a trial balance report showing all account balances with total debits and credits. The report validates that the books are balanced."
+  }))
 
 /**
  * Generate balance sheet report
@@ -401,6 +405,10 @@ const generateBalanceSheet = HttpApiEndpoint.get("generateBalanceSheet", "/balan
   .addError(NotFoundError)
   .addError(ValidationError)
   .addError(BusinessRuleError)
+  .annotateContext(OpenApi.annotations({
+    summary: "Generate balance sheet",
+    description: "Generate a balance sheet report per ASC 210 showing Assets, Liabilities, and Equity at a point in time. Supports comparative periods."
+  }))
 
 /**
  * Generate income statement report
@@ -411,6 +419,10 @@ const generateIncomeStatement = HttpApiEndpoint.get("generateIncomeStatement", "
   .addError(NotFoundError)
   .addError(ValidationError)
   .addError(BusinessRuleError)
+  .annotateContext(OpenApi.annotations({
+    summary: "Generate income statement",
+    description: "Generate an income statement per ASC 220 showing Revenue, Expenses, and Net Income for a period. Supports comparative periods."
+  }))
 
 /**
  * Generate cash flow statement report
@@ -421,6 +433,10 @@ const generateCashFlowStatement = HttpApiEndpoint.get("generateCashFlowStatement
   .addError(NotFoundError)
   .addError(ValidationError)
   .addError(BusinessRuleError)
+  .annotateContext(OpenApi.annotations({
+    summary: "Generate cash flow statement",
+    description: "Generate a cash flow statement per ASC 230 showing Operating, Investing, and Financing activities. Supports direct or indirect method."
+  }))
 
 /**
  * Generate statement of changes in equity
@@ -431,6 +447,10 @@ const generateEquityStatement = HttpApiEndpoint.get("generateEquityStatement", "
   .addError(NotFoundError)
   .addError(ValidationError)
   .addError(BusinessRuleError)
+  .annotateContext(OpenApi.annotations({
+    summary: "Generate equity statement",
+    description: "Generate a statement of changes in equity showing movements in common stock, retained earnings, treasury stock, and other comprehensive income."
+  }))
 
 // =============================================================================
 // API Group
@@ -449,4 +469,8 @@ export class ReportsApi extends HttpApiGroup.make("reports")
   .add(generateCashFlowStatement)
   .add(generateEquityStatement)
   .middleware(AuthMiddleware)
-  .prefix("/v1/reports") {}
+  .prefix("/v1/reports")
+  .annotateContext(OpenApi.annotations({
+    title: "Reports",
+    description: "Generate financial reports including Trial Balance, Balance Sheet (ASC 210), Income Statement (ASC 220), Cash Flow Statement (ASC 230), and Statement of Changes in Equity."
+  })) {}

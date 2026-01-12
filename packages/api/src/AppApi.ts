@@ -10,7 +10,7 @@
  * @module AppApi
  */
 
-import { HttpApi, HttpApiEndpoint, HttpApiGroup } from "@effect/platform"
+import { HttpApi, HttpApiEndpoint, HttpApiGroup, OpenApi } from "@effect/platform"
 import * as Schema from "effect/Schema"
 import { AccountsApi } from "./AccountsApi.ts"
 import { CompaniesApi } from "./CompaniesApi.ts"
@@ -26,9 +26,15 @@ import { InternalServerError, UnauthorizedError } from "./ApiErrors.ts"
  * HealthCheckResponse - Response for the health check endpoint
  */
 export class HealthCheckResponse extends Schema.Class<HealthCheckResponse>("HealthCheckResponse")({
-  status: Schema.Literal("ok"),
-  timestamp: Schema.String,
-  version: Schema.OptionFromNullOr(Schema.String)
+  status: Schema.Literal("ok").annotations({
+    description: "Health status indicator"
+  }),
+  timestamp: Schema.String.annotations({
+    description: "ISO 8601 timestamp of the health check"
+  }),
+  version: Schema.OptionFromNullOr(Schema.String).annotations({
+    description: "Application version number"
+  })
 }) {}
 
 /**
@@ -36,12 +42,20 @@ export class HealthCheckResponse extends Schema.Class<HealthCheckResponse>("Heal
  */
 const healthCheck = HttpApiEndpoint.get("healthCheck", "/health")
   .addSuccess(HealthCheckResponse)
+  .annotateContext(OpenApi.annotations({
+    description: "Check if the API is running and healthy",
+    summary: "Health check"
+  }))
 
 /**
  * HealthApi - API group for health check endpoints
  */
 class HealthApi extends HttpApiGroup.make("health")
-  .add(healthCheck) {}
+  .add(healthCheck)
+  .annotateContext(OpenApi.annotations({
+    title: "Health",
+    description: "Health check endpoints for monitoring the API status"
+  })) {}
 
 // =============================================================================
 // Main App API
@@ -69,7 +83,16 @@ export class AppApi extends HttpApi.make("accountability")
   .add(ReportsApi)
   .addError(UnauthorizedError)
   .addError(InternalServerError)
-  .prefix("/api") {}
+  .prefix("/api")
+  .annotateContext(OpenApi.annotations({
+    title: "Accountability API",
+    version: "1.0.0",
+    description: "Multi-company, multi-currency accounting API. Provides endpoints for managing organizations, companies, accounts, journal entries, and generating financial reports.",
+    license: {
+      name: "MIT",
+      url: "https://opensource.org/licenses/MIT"
+    }
+  })) {}
 
 // =============================================================================
 // Re-exports for convenience

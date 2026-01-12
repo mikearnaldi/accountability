@@ -1563,7 +1563,7 @@
         "Request/response schemas visible in docs",
         "Error responses documented"
       ],
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "small"
     },
     {

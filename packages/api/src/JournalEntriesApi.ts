@@ -7,7 +7,7 @@
  * @module JournalEntriesApi
  */
 
-import { HttpApiEndpoint, HttpApiGroup, HttpApiSchema } from "@effect/platform"
+import { HttpApiEndpoint, HttpApiGroup, HttpApiSchema, OpenApi } from "@effect/platform"
 import * as Schema from "effect/Schema"
 import {
   JournalEntry,
@@ -152,6 +152,10 @@ const listJournalEntries = HttpApiEndpoint.get("listJournalEntries", "/")
   .addSuccess(JournalEntryListResponse)
   .addError(NotFoundError)
   .addError(ValidationError)
+  .annotateContext(OpenApi.annotations({
+    summary: "List journal entries",
+    description: "Retrieve a paginated list of journal entries for a company. Supports filtering by status, type, source module, fiscal period, and date range."
+  }))
 
 /**
  * Get a single journal entry by ID
@@ -160,6 +164,10 @@ const getJournalEntry = HttpApiEndpoint.get("getJournalEntry", "/:id")
   .setPath(Schema.Struct({ id: JournalEntryId }))
   .addSuccess(JournalEntryWithLinesResponse)
   .addError(NotFoundError)
+  .annotateContext(OpenApi.annotations({
+    summary: "Get journal entry",
+    description: "Retrieve a single journal entry with all its line items by unique identifier."
+  }))
 
 /**
  * Create a new journal entry
@@ -169,6 +177,10 @@ const createJournalEntry = HttpApiEndpoint.post("createJournalEntry", "/")
   .addSuccess(JournalEntryWithLinesResponse, { status: 201 })
   .addError(ValidationError)
   .addError(BusinessRuleError)
+  .annotateContext(OpenApi.annotations({
+    summary: "Create journal entry",
+    description: "Create a new journal entry in draft status. Entries must have at least two lines and debits must equal credits."
+  }))
 
 /**
  * Update a draft journal entry
@@ -181,6 +193,10 @@ const updateJournalEntry = HttpApiEndpoint.put("updateJournalEntry", "/:id")
   .addError(ValidationError)
   .addError(BusinessRuleError)
   .addError(ConflictError)
+  .annotateContext(OpenApi.annotations({
+    summary: "Update journal entry",
+    description: "Update a draft journal entry. Only entries in draft status can be updated."
+  }))
 
 /**
  * Delete a draft journal entry
@@ -190,6 +206,10 @@ const deleteJournalEntry = HttpApiEndpoint.del("deleteJournalEntry", "/:id")
   .addSuccess(HttpApiSchema.NoContent)
   .addError(NotFoundError)
   .addError(BusinessRuleError)
+  .annotateContext(OpenApi.annotations({
+    summary: "Delete journal entry",
+    description: "Delete a draft journal entry. Only entries in draft status can be deleted."
+  }))
 
 /**
  * Submit a journal entry for approval
@@ -199,6 +219,10 @@ const submitForApproval = HttpApiEndpoint.post("submitForApproval", "/:id/submit
   .addSuccess(JournalEntry)
   .addError(NotFoundError)
   .addError(BusinessRuleError)
+  .annotateContext(OpenApi.annotations({
+    summary: "Submit for approval",
+    description: "Submit a draft journal entry for approval. Changes the status from draft to pending_approval."
+  }))
 
 /**
  * Approve a journal entry
@@ -208,6 +232,10 @@ const approveJournalEntry = HttpApiEndpoint.post("approveJournalEntry", "/:id/ap
   .addSuccess(JournalEntry)
   .addError(NotFoundError)
   .addError(BusinessRuleError)
+  .annotateContext(OpenApi.annotations({
+    summary: "Approve journal entry",
+    description: "Approve a pending journal entry. Changes the status from pending_approval to approved."
+  }))
 
 /**
  * Reject a journal entry (return to draft)
@@ -220,6 +248,10 @@ const rejectJournalEntry = HttpApiEndpoint.post("rejectJournalEntry", "/:id/reje
   .addSuccess(JournalEntry)
   .addError(NotFoundError)
   .addError(BusinessRuleError)
+  .annotateContext(OpenApi.annotations({
+    summary: "Reject journal entry",
+    description: "Reject a pending journal entry and return it to draft status for corrections."
+  }))
 
 /**
  * Post a journal entry to the general ledger
@@ -230,6 +262,10 @@ const postJournalEntry = HttpApiEndpoint.post("postJournalEntry", "/:id/post")
   .addSuccess(JournalEntry)
   .addError(NotFoundError)
   .addError(BusinessRuleError)
+  .annotateContext(OpenApi.annotations({
+    summary: "Post journal entry",
+    description: "Post an approved journal entry to the general ledger. This updates account balances and changes the status to posted."
+  }))
 
 /**
  * Reverse a posted journal entry
@@ -240,6 +276,10 @@ const reverseJournalEntry = HttpApiEndpoint.post("reverseJournalEntry", "/:id/re
   .addSuccess(JournalEntryWithLinesResponse)
   .addError(NotFoundError)
   .addError(BusinessRuleError)
+  .annotateContext(OpenApi.annotations({
+    summary: "Reverse journal entry",
+    description: "Reverse a posted journal entry by creating a new entry with opposite debits and credits."
+  }))
 
 // =============================================================================
 // API Group
@@ -263,4 +303,8 @@ export class JournalEntriesApi extends HttpApiGroup.make("journal-entries")
   .add(postJournalEntry)
   .add(reverseJournalEntry)
   .middleware(AuthMiddleware)
-  .prefix("/v1/journal-entries") {}
+  .prefix("/v1/journal-entries")
+  .annotateContext(OpenApi.annotations({
+    title: "Journal Entries",
+    description: "Manage journal entries for double-entry bookkeeping. Entries go through a workflow: draft → pending_approval → approved → posted. Posted entries can be reversed."
+  })) {}

@@ -1,4 +1,4 @@
-import { HttpApiBuilder, HttpServer } from "@effect/platform"
+import { HttpApiBuilder, HttpApiSwagger, HttpServer } from "@effect/platform"
 import * as Layer from "effect/Layer"
 import { AppApiLive } from "@accountability/api/AppApiLive"
 
@@ -19,10 +19,19 @@ declare global {
 // Note: AppApiLive uses stub implementations for all API groups.
 // For real database-backed implementations, use the *ApiLive modules
 // (e.g., AccountsApiLive, ReportsApiLive) with proper repository layers.
+//
+// OpenAPI documentation:
+// - Swagger UI: /api/docs
+// - OpenAPI JSON: /api/openapi.json
 const { handler, dispose } = HttpApiBuilder.toWebHandler(
   Layer.mergeAll(
-    AppApiLive,
-    HttpServer.layerContext
+    // Swagger UI at /docs (requires Api, provided by AppApiLive)
+    HttpApiSwagger.layer({ path: "/docs" }),
+    // OpenAPI JSON at /openapi.json (requires Api, provided by AppApiLive)
+    HttpApiBuilder.middlewareOpenApi({ path: "/openapi.json" })
+  ).pipe(
+    Layer.provideMerge(AppApiLive),
+    Layer.provideMerge(HttpServer.layerContext)
   )
 )
 

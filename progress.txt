@@ -414,3 +414,8 @@
 **Story**: 6.3.1 - Add authentication middleware
 **Status**: complete
 ---
+
+## Iteration 6 - 2026-01-12 12:01
+**Story**: 6.3.2 - Add OpenAPI documentation
+**Status**: complete
+---

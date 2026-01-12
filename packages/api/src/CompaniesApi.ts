@@ -6,7 +6,7 @@
  * @module CompaniesApi
  */
 
-import { HttpApiEndpoint, HttpApiGroup, HttpApiSchema } from "@effect/platform"
+import { HttpApiEndpoint, HttpApiGroup, HttpApiSchema, OpenApi } from "@effect/platform"
 import * as Schema from "effect/Schema"
 import {
   Company,
@@ -129,6 +129,10 @@ export type CompanyListParams = typeof CompanyListParams.Type
  */
 const listOrganizations = HttpApiEndpoint.get("listOrganizations", "/organizations")
   .addSuccess(OrganizationListResponse)
+  .annotateContext(OpenApi.annotations({
+    summary: "List organizations",
+    description: "Retrieve all organizations accessible by the current user."
+  }))
 
 /**
  * Get a single organization by ID
@@ -137,6 +141,10 @@ const getOrganization = HttpApiEndpoint.get("getOrganization", "/organizations/:
   .setPath(Schema.Struct({ id: Schema.String }))
   .addSuccess(Organization)
   .addError(NotFoundError)
+  .annotateContext(OpenApi.annotations({
+    summary: "Get organization",
+    description: "Retrieve a single organization by its unique identifier."
+  }))
 
 /**
  * Create a new organization
@@ -146,6 +154,10 @@ const createOrganization = HttpApiEndpoint.post("createOrganization", "/organiza
   .addSuccess(Organization, { status: 201 })
   .addError(ValidationError)
   .addError(ConflictError)
+  .annotateContext(OpenApi.annotations({
+    summary: "Create organization",
+    description: "Create a new organization. Organizations are the top-level container for companies and shared settings."
+  }))
 
 /**
  * Update an existing organization
@@ -156,6 +168,10 @@ const updateOrganization = HttpApiEndpoint.put("updateOrganization", "/organizat
   .addSuccess(Organization)
   .addError(NotFoundError)
   .addError(ValidationError)
+  .annotateContext(OpenApi.annotations({
+    summary: "Update organization",
+    description: "Update an existing organization. Only provided fields will be updated."
+  }))
 
 /**
  * Delete an organization (only if no companies exist)
@@ -165,6 +181,10 @@ const deleteOrganization = HttpApiEndpoint.del("deleteOrganization", "/organizat
   .addSuccess(HttpApiSchema.NoContent)
   .addError(NotFoundError)
   .addError(BusinessRuleError)
+  .annotateContext(OpenApi.annotations({
+    summary: "Delete organization",
+    description: "Delete an organization. Organizations can only be deleted if they contain no companies."
+  }))
 
 // =============================================================================
 // Company API Endpoints
@@ -178,6 +198,10 @@ const listCompanies = HttpApiEndpoint.get("listCompanies", "/companies")
   .addSuccess(CompanyListResponse)
   .addError(NotFoundError)
   .addError(ValidationError)
+  .annotateContext(OpenApi.annotations({
+    summary: "List companies",
+    description: "Retrieve a paginated list of companies for an organization. Supports filtering by status, parent company, and jurisdiction."
+  }))
 
 /**
  * Get a single company by ID
@@ -186,6 +210,10 @@ const getCompany = HttpApiEndpoint.get("getCompany", "/companies/:id")
   .setPath(Schema.Struct({ id: Schema.String }))
   .addSuccess(Company)
   .addError(NotFoundError)
+  .annotateContext(OpenApi.annotations({
+    summary: "Get company",
+    description: "Retrieve a single company by its unique identifier."
+  }))
 
 /**
  * Create a new company
@@ -196,6 +224,10 @@ const createCompany = HttpApiEndpoint.post("createCompany", "/companies")
   .addError(ValidationError)
   .addError(ConflictError)
   .addError(BusinessRuleError)
+  .annotateContext(OpenApi.annotations({
+    summary: "Create company",
+    description: "Create a new company within an organization. Companies can have parent-child relationships for consolidation purposes."
+  }))
 
 /**
  * Update an existing company
@@ -208,6 +240,10 @@ const updateCompany = HttpApiEndpoint.put("updateCompany", "/companies/:id")
   .addError(ValidationError)
   .addError(ConflictError)
   .addError(BusinessRuleError)
+  .annotateContext(OpenApi.annotations({
+    summary: "Update company",
+    description: "Update an existing company. Only provided fields will be updated."
+  }))
 
 /**
  * Deactivate a company (soft delete)
@@ -217,6 +253,10 @@ const deactivateCompany = HttpApiEndpoint.del("deactivateCompany", "/companies/:
   .addSuccess(HttpApiSchema.NoContent)
   .addError(NotFoundError)
   .addError(BusinessRuleError)
+  .annotateContext(OpenApi.annotations({
+    summary: "Deactivate company",
+    description: "Deactivate a company (soft delete). Companies with active subsidiaries or unposted entries cannot be deactivated."
+  }))
 
 // =============================================================================
 // API Group
@@ -240,4 +280,8 @@ export class CompaniesApi extends HttpApiGroup.make("companies")
   .add(updateCompany)
   .add(deactivateCompany)
   .middleware(AuthMiddleware)
-  .prefix("/v1") {}
+  .prefix("/v1")
+  .annotateContext(OpenApi.annotations({
+    title: "Companies",
+    description: "Manage organizations and companies. Organizations group companies together, while companies are the legal entities with their own Chart of Accounts."
+  })) {}
