@@ -41,7 +41,8 @@ import { EliminationRuleRepositoryLive } from "./Layers/EliminationRuleRepositor
  *
  * Usage:
  * ```typescript
- * import { RepositoriesLive, PgClientLive } from "@accountability/persistence/RepositoriesLive"
+ * import { RepositoriesLive } from "@accountability/persistence/RepositoriesLive"
+ * import { PgClientLive } from "@accountability/persistence/PgClientLive"
  *
  * const FullLayer = RepositoriesLive.pipe(
  *   Layer.provide(PgClientLive)
@@ -70,8 +71,3 @@ export const RepositoriesLive = Layer.mergeAll(
   IntercompanyTransactionRepositoryLive,
   EliminationRuleRepositoryLive
 )
-
-/**
- * Re-export PgClientLive for convenience
- */
-export { PgClientLive, PgClientConfig } from "./PgClientLive.ts"
