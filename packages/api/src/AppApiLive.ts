@@ -4,8 +4,9 @@
  * This module provides the Effect layer that implements all API endpoints.
  * It connects the API definition to actual service implementations.
  *
- * Note: This is a stub implementation for story 6.1.4. Full implementations
- * will be added in subsequent stories (6.2.x).
+ * Note: ReportsApiLive requires repository dependencies, so we provide a stub
+ * implementation here for when the web layer doesn't have database access.
+ * Use ReportsApiLive directly in tests with mock repositories.
  *
  * @module AppApiLive
  */
@@ -169,41 +170,44 @@ const JournalEntriesLive = HttpApiBuilder.group(AppApi, "journal-entries", (hand
 
 /**
  * Stub implementation for reports API
+ *
+ * This returns NOT_IMPLEMENTED errors. Use ReportsApiLive with proper
+ * repository dependencies for actual report generation.
  */
-const ReportsLive = HttpApiBuilder.group(AppApi, "reports", (handlers) =>
+const ReportsStub = HttpApiBuilder.group(AppApi, "reports", (handlers) =>
   handlers
     .handle("generateTrialBalance", () =>
       Effect.fail(new BusinessRuleError({
         code: "NOT_IMPLEMENTED",
-        message: "Trial balance generation not yet implemented",
+        message: "Trial balance generation requires database connection. Use test layer with mock repositories.",
         details: Option.none()
       }))
     )
     .handle("generateBalanceSheet", () =>
       Effect.fail(new BusinessRuleError({
         code: "NOT_IMPLEMENTED",
-        message: "Balance sheet generation not yet implemented",
+        message: "Balance sheet generation requires database connection. Use test layer with mock repositories.",
         details: Option.none()
       }))
     )
     .handle("generateIncomeStatement", () =>
       Effect.fail(new BusinessRuleError({
         code: "NOT_IMPLEMENTED",
-        message: "Income statement generation not yet implemented",
+        message: "Income statement generation requires database connection. Use test layer with mock repositories.",
         details: Option.none()
       }))
     )
     .handle("generateCashFlowStatement", () =>
       Effect.fail(new BusinessRuleError({
         code: "NOT_IMPLEMENTED",
-        message: "Cash flow statement generation not yet implemented",
+        message: "Cash flow statement generation requires database connection. Use test layer with mock repositories.",
         details: Option.none()
       }))
     )
     .handle("generateEquityStatement", () =>
       Effect.fail(new BusinessRuleError({
         code: "NOT_IMPLEMENTED",
-        message: "Equity statement generation not yet implemented",
+        message: "Equity statement generation requires database connection. Use test layer with mock repositories.",
         details: Option.none()
       }))
     )
@@ -217,11 +221,13 @@ const ReportsLive = HttpApiBuilder.group(AppApi, "reports", (handlers) =>
  * AppApiLive - Complete API layer with all group implementations
  *
  * Composes all group implementations into the full API layer.
+ * Uses stub reports layer - for real report generation, use ReportsApiLive
+ * with proper repository dependencies.
  */
 export const AppApiLive = HttpApiBuilder.api(AppApi).pipe(
   Layer.provide(HealthLive),
   Layer.provide(AccountsLive),
   Layer.provide(CompaniesLive),
   Layer.provide(JournalEntriesLive),
-  Layer.provide(ReportsLive)
+  Layer.provide(ReportsStub)
 )

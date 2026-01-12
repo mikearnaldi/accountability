@@ -16,6 +16,9 @@ declare global {
 
 // Create web handler from the Effect HttpApi
 // This returns a standard web Request -> Response handler compatible with TanStack Start
+// Note: AppApiLive uses stub implementations for all API groups.
+// For real database-backed implementations, use the *ApiLive modules
+// (e.g., AccountsApiLive, ReportsApiLive) with proper repository layers.
 const { handler, dispose } = HttpApiBuilder.toWebHandler(
   Layer.mergeAll(
     AppApiLive,
