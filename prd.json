@@ -1600,15 +1600,17 @@
         "API_BEST_PRACTICES.md"
       ],
       "acceptance_criteria": [
-        "AppApiLive uses real repository and service layers, not stubs",
+        "CRITICAL: NO MockRepositories - API MUST use real repository implementations only",
+        "AppApiLive uses real repository and service layers, not stubs or mocks",
         "All API handlers call actual business logic services",
         "Remove any hardcoded/mock data from handlers",
-        "Verify layer composition in AppApiLive provides all dependencies",
-        "All endpoints return real data from persistence layer",
+        "Delete any Mock* repository files - they serve no purpose in the API",
+        "Verify layer composition in AppApiLive provides all real dependencies",
+        "All endpoints return real data from persistence layer (PostgreSQL)",
         "Error handling uses proper domain error types",
         "API handlers follow best practices (no manual Schema.decode for path/URL params)"
       ],
-      "status": "pending",
+      "status": "in_progress",
       "estimated_complexity": "medium"
     },
     {
