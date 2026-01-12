@@ -1684,7 +1684,7 @@
         "Migration files follow naming convention",
         "Migrations can run cleanly on fresh database"
       ],
-      "status": "pending",
+      "status": "in_progress",
       "estimated_complexity": "medium"
     },
     {
@@ -1784,6 +1784,24 @@
       ],
       "status": "pending",
       "estimated_complexity": "large"
+    },
+    {
+      "id": "6.4.10",
+      "phase": "Core Domain",
+      "epic": "Code Organization",
+      "title": "Rename core/domain and core/services to PascalCase",
+      "description": "Rename directories in the core package to follow consistent PascalCase naming convention used across the codebase.",
+      "acceptance_criteria": [
+        "Rename packages/core/src/domain/ to packages/core/src/Domains/",
+        "Rename packages/core/src/services/ to packages/core/src/Services/",
+        "Update all imports across the entire codebase",
+        "Update tsconfig paths if applicable",
+        "Update package.json exports if applicable",
+        "Verify TypeScript compilation passes",
+        "Verify all tests pass after rename"
+      ],
+      "status": "pending",
+      "estimated_complexity": "small"
     },
     {
       "id": "7.1.1",
