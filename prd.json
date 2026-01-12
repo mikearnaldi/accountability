@@ -105,7 +105,7 @@
         "params_pattern": "Local React state for report type, dates - atom key changes trigger refetch",
         "drill_down": "On account click, set selectedAccount state, show transactionsAtom data"
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "large"
     },
     {
