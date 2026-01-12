@@ -228,7 +228,7 @@
         "location": "packages/core/src/Auth/SessionTokenGenerator.ts",
         "pattern": "Service tag with Layer.succeed for stateless service"
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "small"
     },
     {
