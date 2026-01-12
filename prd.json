@@ -1922,7 +1922,7 @@
         "mutations": "createAccountAtom, updateAccountAtom for create/edit operations",
         "ui_state": "Local React state for modal open, selected account, etc."
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "large"
     },
     {

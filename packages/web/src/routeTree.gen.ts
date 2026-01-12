@@ -14,6 +14,7 @@ import { Route as JournalEntriesRouteImport } from './routes/journal-entries'
 import { Route as CompaniesRouteImport } from './routes/companies'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiSplatRouteImport } from './routes/api/$'
+import { Route as CompaniesCompanyIdAccountsRouteImport } from './routes/companies/$companyId.accounts'
 
 const ReportsRoute = ReportsRouteImport.update({
   id: '/reports',
@@ -40,34 +41,55 @@ const ApiSplatRoute = ApiSplatRouteImport.update({
   path: '/api/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CompaniesCompanyIdAccountsRoute =
+  CompaniesCompanyIdAccountsRouteImport.update({
+    id: '/$companyId/accounts',
+    path: '/$companyId/accounts',
+    getParentRoute: () => CompaniesRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/companies': typeof CompaniesRoute
+  '/companies': typeof CompaniesRouteWithChildren
   '/journal-entries': typeof JournalEntriesRoute
   '/reports': typeof ReportsRoute
   '/api/$': typeof ApiSplatRoute
+  '/companies/$companyId/accounts': typeof CompaniesCompanyIdAccountsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/companies': typeof CompaniesRoute
+  '/companies': typeof CompaniesRouteWithChildren
   '/journal-entries': typeof JournalEntriesRoute
   '/reports': typeof ReportsRoute
   '/api/$': typeof ApiSplatRoute
+  '/companies/$companyId/accounts': typeof CompaniesCompanyIdAccountsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/companies': typeof CompaniesRoute
+  '/companies': typeof CompaniesRouteWithChildren
   '/journal-entries': typeof JournalEntriesRoute
   '/reports': typeof ReportsRoute
   '/api/$': typeof ApiSplatRoute
+  '/companies/$companyId/accounts': typeof CompaniesCompanyIdAccountsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/companies' | '/journal-entries' | '/reports' | '/api/$'
+  fullPaths:
+    | '/'
+    | '/companies'
+    | '/journal-entries'
+    | '/reports'
+    | '/api/$'
+    | '/companies/$companyId/accounts'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/companies' | '/journal-entries' | '/reports' | '/api/$'
+  to:
+    | '/'
+    | '/companies'
+    | '/journal-entries'
+    | '/reports'
+    | '/api/$'
+    | '/companies/$companyId/accounts'
   id:
     | '__root__'
     | '/'
@@ -75,11 +97,12 @@ export interface FileRouteTypes {
     | '/journal-entries'
     | '/reports'
     | '/api/$'
+    | '/companies/$companyId/accounts'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  CompaniesRoute: typeof CompaniesRoute
+  CompaniesRoute: typeof CompaniesRouteWithChildren
   JournalEntriesRoute: typeof JournalEntriesRoute
   ReportsRoute: typeof ReportsRoute
   ApiSplatRoute: typeof ApiSplatRoute
@@ -122,12 +145,31 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/companies/$companyId/accounts': {
+      id: '/companies/$companyId/accounts'
+      path: '/$companyId/accounts'
+      fullPath: '/companies/$companyId/accounts'
+      preLoaderRoute: typeof CompaniesCompanyIdAccountsRouteImport
+      parentRoute: typeof CompaniesRoute
+    }
   }
 }
 
+interface CompaniesRouteChildren {
+  CompaniesCompanyIdAccountsRoute: typeof CompaniesCompanyIdAccountsRoute
+}
+
+const CompaniesRouteChildren: CompaniesRouteChildren = {
+  CompaniesCompanyIdAccountsRoute: CompaniesCompanyIdAccountsRoute,
+}
+
+const CompaniesRouteWithChildren = CompaniesRoute._addFileChildren(
+  CompaniesRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  CompaniesRoute: CompaniesRoute,
+  CompaniesRoute: CompaniesRouteWithChildren,
   JournalEntriesRoute: JournalEntriesRoute,
   ReportsRoute: ReportsRoute,
   ApiSplatRoute: ApiSplatRoute,
