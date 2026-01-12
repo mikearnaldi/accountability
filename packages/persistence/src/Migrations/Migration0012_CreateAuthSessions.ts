@@ -47,9 +47,10 @@ export default Effect.gen(function* () {
   `
 
   // Create composite index for finding active sessions by user
+  // Note: Cannot use partial index with NOW() as it's not immutable
+  // The query planner will use this composite index for filtering by user_id and expires_at
   yield* sql`
     CREATE INDEX idx_auth_sessions_user_active
       ON auth_sessions (user_id, expires_at)
-      WHERE expires_at > NOW()
   `
 })

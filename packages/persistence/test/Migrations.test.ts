@@ -70,8 +70,8 @@ describe("Migrations", () => {
         Effect.gen(function* () {
           const completed = yield* runMigrations
 
-          // Should run all 9 migrations
-          expect(completed).toHaveLength(9)
+          // Should run all 12 migrations
+          expect(completed).toHaveLength(12)
 
           // Verify migration order
           expect(completed[0]).toEqual([1, "CreateOrganizations"])
@@ -83,6 +83,9 @@ describe("Migrations", () => {
           expect(completed[6]).toEqual([7, "CreateConsolidation"])
           expect(completed[7]).toEqual([8, "CreateIntercompany"])
           expect(completed[8]).toEqual([9, "CreateConsolidationRuns"])
+          expect(completed[9]).toEqual([10, "CreateAuthUsers"])
+          expect(completed[10]).toEqual([11, "CreateAuthIdentities"])
+          expect(completed[11]).toEqual([12, "CreateAuthSessions"])
         })
       )
 
@@ -101,7 +104,7 @@ describe("Migrations", () => {
           })
           const rows = yield* findMigrations()
 
-          expect(rows).toHaveLength(9)
+          expect(rows).toHaveLength(12)
           expect(rows[0].migration_id).toBe(1)
           expect(rows[0].name).toBe("CreateOrganizations")
         })
