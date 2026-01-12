@@ -1591,6 +1591,118 @@
       "estimated_complexity": "medium"
     },
     {
+      "id": "6.4.1",
+      "phase": "Persistence Layer",
+      "epic": "Persistence Refinements",
+      "title": "Complete missing persistence repositories",
+      "description": "Review and complete any missing repository implementations in the persistence package. Ensure all domain entities have corresponding repositories with full CRUD operations.",
+      "specs": [
+        "ACCOUNTING_RESEARCH.md"
+      ],
+      "acceptance_criteria": [
+        "All domain entities have repository interfaces defined",
+        "All repository implementations are complete",
+        "Repository methods follow consistent patterns",
+        "Proper error types (EntityNotFoundError, PersistenceError) used",
+        "All findBy* methods return Option for single results",
+        "Batch operations available where appropriate"
+      ],
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "6.4.2",
+      "phase": "Persistence Layer",
+      "epic": "Persistence Refinements",
+      "title": "Move service definitions to Services/ directory",
+      "description": "Reorganize persistence package by moving service interface definitions (Context.Tag definitions) to a dedicated Services/ subdirectory for better code organization.",
+      "acceptance_criteria": [
+        "Create packages/persistence/src/Services/ directory",
+        "Move all Context.Tag service definitions to Services/",
+        "Each service in its own file (e.g., Services/AccountRepository.ts)",
+        "Update all imports across the codebase",
+        "Re-export services from persistence package index",
+        "Ensure no circular dependencies"
+      ],
+      "status": "pending",
+      "estimated_complexity": "small"
+    },
+    {
+      "id": "6.4.3",
+      "phase": "Persistence Layer",
+      "epic": "Persistence Refinements",
+      "title": "Move service implementations to Layers/ directory",
+      "description": "Reorganize persistence package by moving service implementations (Layer definitions) to a dedicated Layers/ subdirectory, separating interface from implementation.",
+      "acceptance_criteria": [
+        "Create packages/persistence/src/Layers/ directory",
+        "Move all Layer implementations to Layers/",
+        "Each implementation in its own file (e.g., Layers/AccountRepositoryLive.ts)",
+        "Update all imports across the codebase",
+        "Re-export layers from persistence package index",
+        "Clear separation: Services/ has interfaces, Layers/ has implementations"
+      ],
+      "status": "pending",
+      "estimated_complexity": "small"
+    },
+    {
+      "id": "6.4.4",
+      "phase": "Persistence Layer",
+      "epic": "Persistence Refinements",
+      "title": "Verify and complete database migrations",
+      "description": "Review all database migrations to ensure they are complete and match the domain model requirements. Add any missing migrations for new features.",
+      "specs": [
+        "ACCOUNTING_RESEARCH.md"
+      ],
+      "acceptance_criteria": [
+        "All domain entities have corresponding database tables",
+        "All required columns are present with correct types",
+        "Foreign key relationships properly defined",
+        "Indexes added for common query patterns",
+        "Migration files follow naming convention",
+        "Migrations can run cleanly on fresh database"
+      ],
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "6.4.5",
+      "phase": "Persistence Layer",
+      "epic": "Persistence Refinements",
+      "title": "Add comprehensive repository tests",
+      "description": "Ensure all repositories have comprehensive test coverage using the existing test infrastructure with real database connections.",
+      "acceptance_criteria": [
+        "All repository methods have unit tests",
+        "Tests cover success and error paths",
+        "Tests for CRUD operations on each entity",
+        "Tests for findBy* queries with various filters",
+        "Tests for edge cases (not found, duplicates, etc.)",
+        "Tests use proper test fixtures and cleanup",
+        "Test coverage above 80% for persistence package"
+      ],
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "6.4.6",
+      "phase": "Core Domain",
+      "epic": "Schema Improvements",
+      "title": "Add LocalDateFromString schema to LocalDate module",
+      "description": "Create a proper Schema for parsing ISO date strings directly to LocalDate, eliminating manual parseDate functions throughout the codebase.",
+      "acceptance_criteria": [
+        "LocalDateFromString schema in core/domain/LocalDate.ts",
+        "Parses ISO date strings (YYYY-MM-DD) to LocalDate",
+        "Proper error messages for invalid formats",
+        "Replace parseDate utility functions with schema usage",
+        "Update API handlers to use LocalDateFromString in URL params",
+        "Update persistence layer to use schema for date columns"
+      ],
+      "technical_details": {
+        "pattern": "Schema.transformOrFail from Schema.String to LocalDate with parsing logic"
+      },
+      "status": "pending",
+      "estimated_complexity": "small"
+    },
+    {
       "id": "7.1.1",
       "phase": "UI Layer",
       "epic": "Core Components",
