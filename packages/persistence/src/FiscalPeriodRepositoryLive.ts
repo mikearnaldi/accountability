@@ -189,6 +189,22 @@ const make = Effect.gen(function* () {
     `
   })
 
+  const findByCompanyAndPeriodQuery = SqlSchema.findOne({
+    Request: Schema.Struct({
+      companyId: Schema.String,
+      year: Schema.Number,
+      periodNumber: Schema.Number
+    }),
+    Result: FiscalPeriodRow,
+    execute: ({ companyId, year, periodNumber }) => sql`
+      SELECT fp.* FROM fiscal_periods fp
+      JOIN fiscal_years fy ON fp.fiscal_year_id = fy.id
+      WHERE fy.company_id = ${companyId}
+        AND fy.year = ${year}
+        AND fp.period_number = ${periodNumber}
+    `
+  })
+
   const countPeriodById = SqlSchema.single({
     Request: Schema.String,
     Result: CountRow,
@@ -329,6 +345,16 @@ const make = Effect.gen(function* () {
       wrapSqlError("findCurrentPeriod")
     )
 
+  const findByCompanyAndPeriod: FiscalPeriodRepositoryService["findByCompanyAndPeriod"] = (
+    companyId,
+    year,
+    periodNumber
+  ) =>
+    findByCompanyAndPeriodQuery({ companyId, year, periodNumber }).pipe(
+      Effect.map(Option.map(rowToFiscalPeriod)),
+      wrapSqlError("findByCompanyAndPeriod")
+    )
+
   const createMany: FiscalPeriodRepositoryService["createMany"] = (periods) =>
     Effect.gen(function* () {
       for (const period of periods) {
@@ -439,6 +465,7 @@ const make = Effect.gen(function* () {
     findByFiscalYear,
     findByStatus,
     findCurrentPeriod,
+    findByCompanyAndPeriod,
     createMany,
     exists,
     findFiscalYearById: findFiscalYearByIdOp,

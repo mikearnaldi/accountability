@@ -121,6 +121,20 @@ export interface FiscalPeriodRepositoryService {
   ) => Effect.Effect<Option.Option<FiscalPeriod>, PersistenceError>
 
   /**
+   * Find a fiscal period by company, year, and period number
+   *
+   * @param companyId - The company ID to filter by
+   * @param year - The fiscal year number (e.g., 2025)
+   * @param periodNumber - The period number (e.g., 1 for January)
+   * @returns Effect containing Option of FiscalPeriod
+   */
+  readonly findByCompanyAndPeriod: (
+    companyId: CompanyId,
+    year: number,
+    periodNumber: number
+  ) => Effect.Effect<Option.Option<FiscalPeriod>, PersistenceError>
+
+  /**
    * Bulk create fiscal periods
    *
    * @param periods - Array of fiscal periods to create

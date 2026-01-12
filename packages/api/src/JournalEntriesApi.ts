@@ -11,6 +11,8 @@ import { HttpApiEndpoint, HttpApiGroup, HttpApiSchema } from "@effect/platform"
 import * as Schema from "effect/Schema"
 import {
   JournalEntry,
+  JournalEntryId,
+  JournalEntryStatus,
   JournalEntryType,
   SourceModule,
   UserId
@@ -117,13 +119,13 @@ export class JournalEntryListResponse extends Schema.Class<JournalEntryListRespo
 
 /**
  * Query parameters for listing journal entries
- * Uses string types for URL parameters
+ * URL params must be string-encodeable, so we use primitive types with validation
  */
 export const JournalEntryListParams = Schema.Struct({
-  companyId: Schema.String,
-  status: Schema.optional(Schema.String),
-  entryType: Schema.optional(Schema.String),
-  sourceModule: Schema.optional(Schema.String),
+  companyId: Schema.String.pipe(Schema.brand("CompanyId")),
+  status: Schema.optional(JournalEntryStatus),
+  entryType: Schema.optional(JournalEntryType),
+  sourceModule: Schema.optional(SourceModule),
   fiscalYear: Schema.optional(Schema.NumberFromString.pipe(Schema.int())),
   fiscalPeriod: Schema.optional(Schema.NumberFromString.pipe(Schema.int())),
   fromDate: Schema.optional(Schema.String),
@@ -154,7 +156,7 @@ const listJournalEntries = HttpApiEndpoint.get("listJournalEntries", "/")
  * Get a single journal entry by ID
  */
 const getJournalEntry = HttpApiEndpoint.get("getJournalEntry", "/:id")
-  .setPath(Schema.Struct({ id: Schema.String }))
+  .setPath(Schema.Struct({ id: JournalEntryId }))
   .addSuccess(JournalEntryWithLinesResponse)
   .addError(NotFoundError)
 
@@ -171,7 +173,7 @@ const createJournalEntry = HttpApiEndpoint.post("createJournalEntry", "/")
  * Update a draft journal entry
  */
 const updateJournalEntry = HttpApiEndpoint.put("updateJournalEntry", "/:id")
-  .setPath(Schema.Struct({ id: Schema.String }))
+  .setPath(Schema.Struct({ id: JournalEntryId }))
   .setPayload(UpdateJournalEntryRequest)
   .addSuccess(JournalEntryWithLinesResponse)
   .addError(NotFoundError)
@@ -183,7 +185,7 @@ const updateJournalEntry = HttpApiEndpoint.put("updateJournalEntry", "/:id")
  * Delete a draft journal entry
  */
 const deleteJournalEntry = HttpApiEndpoint.del("deleteJournalEntry", "/:id")
-  .setPath(Schema.Struct({ id: Schema.String }))
+  .setPath(Schema.Struct({ id: JournalEntryId }))
   .addSuccess(HttpApiSchema.NoContent)
   .addError(NotFoundError)
   .addError(BusinessRuleError)
@@ -192,7 +194,7 @@ const deleteJournalEntry = HttpApiEndpoint.del("deleteJournalEntry", "/:id")
  * Submit a journal entry for approval
  */
 const submitForApproval = HttpApiEndpoint.post("submitForApproval", "/:id/submit")
-  .setPath(Schema.Struct({ id: Schema.String }))
+  .setPath(Schema.Struct({ id: JournalEntryId }))
   .addSuccess(JournalEntry)
   .addError(NotFoundError)
   .addError(BusinessRuleError)
@@ -201,7 +203,7 @@ const submitForApproval = HttpApiEndpoint.post("submitForApproval", "/:id/submit
  * Approve a journal entry
  */
 const approveJournalEntry = HttpApiEndpoint.post("approveJournalEntry", "/:id/approve")
-  .setPath(Schema.Struct({ id: Schema.String }))
+  .setPath(Schema.Struct({ id: JournalEntryId }))
   .addSuccess(JournalEntry)
   .addError(NotFoundError)
   .addError(BusinessRuleError)
@@ -210,7 +212,7 @@ const approveJournalEntry = HttpApiEndpoint.post("approveJournalEntry", "/:id/ap
  * Reject a journal entry (return to draft)
  */
 const rejectJournalEntry = HttpApiEndpoint.post("rejectJournalEntry", "/:id/reject")
-  .setPath(Schema.Struct({ id: Schema.String }))
+  .setPath(Schema.Struct({ id: JournalEntryId }))
   .setPayload(Schema.Struct({
     reason: Schema.OptionFromNullOr(Schema.String)
   }))
@@ -222,7 +224,7 @@ const rejectJournalEntry = HttpApiEndpoint.post("rejectJournalEntry", "/:id/reje
  * Post a journal entry to the general ledger
  */
 const postJournalEntry = HttpApiEndpoint.post("postJournalEntry", "/:id/post")
-  .setPath(Schema.Struct({ id: Schema.String }))
+  .setPath(Schema.Struct({ id: JournalEntryId }))
   .setPayload(PostJournalEntryRequest)
   .addSuccess(JournalEntry)
   .addError(NotFoundError)
@@ -232,7 +234,7 @@ const postJournalEntry = HttpApiEndpoint.post("postJournalEntry", "/:id/post")
  * Reverse a posted journal entry
  */
 const reverseJournalEntry = HttpApiEndpoint.post("reverseJournalEntry", "/:id/reverse")
-  .setPath(Schema.Struct({ id: Schema.String }))
+  .setPath(Schema.Struct({ id: JournalEntryId }))
   .setPayload(ReverseJournalEntryRequest)
   .addSuccess(JournalEntryWithLinesResponse)
   .addError(NotFoundError)

@@ -1512,7 +1512,7 @@
         "Proper error handling for business rules (already posted, unbalanced)",
         "Tests for endpoint handlers"
       ],
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "large"
     },
     {
