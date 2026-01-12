@@ -1430,7 +1430,7 @@
         "endpoint_pattern": "HttpApiEndpoint.get('findById')`/accounts/${accountIdParam}`",
         "handler_pattern": "HttpApiBuilder.group(AppApi, 'accounts', handlers => handlers.handle('findById', ...))"
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "medium"
     },
     {
