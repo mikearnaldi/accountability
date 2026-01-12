@@ -23,8 +23,8 @@ import {
 } from "@accountability/core/domain/ExchangeRate"
 import { LocalDate } from "@accountability/core/domain/LocalDate"
 import { Timestamp } from "@accountability/core/domain/Timestamp"
-import { ExchangeRateRepository, type ExchangeRateRepositoryService } from "./Services/ExchangeRateRepository.ts"
-import { EntityNotFoundError, wrapSqlError } from "./RepositoryError.ts"
+import { ExchangeRateRepository, type ExchangeRateRepositoryService } from "../Services/ExchangeRateRepository.ts"
+import { EntityNotFoundError, wrapSqlError } from "../RepositoryError.ts"
 
 /**
  * Schema for database row from exchange_rates table

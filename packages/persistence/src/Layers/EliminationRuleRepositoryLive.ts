@@ -32,8 +32,8 @@ import {
 import {
   EliminationRuleRepository,
   type EliminationRuleRepositoryService
-} from "./Services/EliminationRuleRepository.ts"
-import { EntityNotFoundError, wrapSqlError } from "./RepositoryError.ts"
+} from "../Services/EliminationRuleRepository.ts"
+import { EntityNotFoundError, wrapSqlError } from "../RepositoryError.ts"
 
 /**
  * Schema for AccountSelector JSON stored in database

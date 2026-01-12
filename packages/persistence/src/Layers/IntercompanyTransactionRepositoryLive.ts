@@ -28,8 +28,8 @@ import { Timestamp } from "@accountability/core/domain/Timestamp"
 import {
   IntercompanyTransactionRepository,
   type IntercompanyTransactionRepositoryService
-} from "./Services/IntercompanyTransactionRepository.ts"
-import { EntityNotFoundError, wrapSqlError } from "./RepositoryError.ts"
+} from "../Services/IntercompanyTransactionRepository.ts"
+import { EntityNotFoundError, wrapSqlError } from "../RepositoryError.ts"
 
 /**
  * Schema for amount JSON stored in database

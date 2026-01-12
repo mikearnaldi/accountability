@@ -96,16 +96,11 @@ const ReportsLive = ReportsApiLive.pipe(
  * Usage:
  * ```typescript
  * import { AppApiLive } from "@accountability/api/AppApiLive"
- * import { AccountRepositoryLive } from "@accountability/persistence/AccountRepositoryLive"
- * // ... other repository imports
+ * import { RepositoriesLive } from "@accountability/persistence/RepositoriesLive"
+ * import { PgClientLive } from "@accountability/persistence/PgClientLive"
  *
  * const FullAppLayer = AppApiLive.pipe(
- *   Layer.provide(AccountRepositoryLive),
- *   Layer.provide(CompanyRepositoryLive),
- *   Layer.provide(OrganizationRepositoryLive),
- *   Layer.provide(JournalEntryRepositoryLive),
- *   Layer.provide(JournalEntryLineRepositoryLive),
- *   Layer.provide(FiscalPeriodRepositoryLive),
+ *   Layer.provide(RepositoriesLive),
  *   Layer.provide(PgClientLive)
  * )
  * ```

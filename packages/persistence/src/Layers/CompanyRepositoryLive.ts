@@ -18,8 +18,8 @@ import { JurisdictionCode } from "@accountability/core/domain/JurisdictionCode"
 import { OrganizationId } from "@accountability/core/domain/Organization"
 import { Percentage } from "@accountability/core/domain/Percentage"
 import { Timestamp } from "@accountability/core/domain/Timestamp"
-import { CompanyRepository, type CompanyRepositoryService } from "./Services/CompanyRepository.ts"
-import { EntityNotFoundError, wrapSqlError } from "./RepositoryError.ts"
+import { CompanyRepository, type CompanyRepositoryService } from "../Services/CompanyRepository.ts"
+import { EntityNotFoundError, wrapSqlError } from "../RepositoryError.ts"
 
 /**
  * Schema for database row from companies table
@@ -239,15 +239,5 @@ const make = Effect.gen(function* () {
  * CompanyRepositoryLive - Layer providing CompanyRepository implementation
  *
  * Requires PgClient.PgClient (or SqlClient.SqlClient) in context.
- *
- * Usage:
- * ```typescript
- * import { CompanyRepositoryLive } from "@accountability/persistence/CompanyRepositoryLive"
- * import { PgContainer } from "./test/Utils.ts"
- *
- * const TestLayer = CompanyRepositoryLive.pipe(
- *   Layer.provide(PgContainer.ClientLive)
- * )
- * ```
  */
 export const CompanyRepositoryLive = Layer.effect(CompanyRepository, make)

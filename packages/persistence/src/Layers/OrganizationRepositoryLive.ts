@@ -19,8 +19,8 @@ import {
 } from "@accountability/core/domain/Organization"
 import { CurrencyCode } from "@accountability/core/domain/CurrencyCode"
 import { Timestamp } from "@accountability/core/domain/Timestamp"
-import { OrganizationRepository, type OrganizationRepositoryService } from "./Services/OrganizationRepository.ts"
-import { EntityNotFoundError, wrapSqlError } from "./RepositoryError.ts"
+import { OrganizationRepository, type OrganizationRepositoryService } from "../Services/OrganizationRepository.ts"
+import { EntityNotFoundError, wrapSqlError } from "../RepositoryError.ts"
 
 /**
  * Schema for database row from organizations table
@@ -210,15 +210,5 @@ const make = Effect.gen(function* () {
  * OrganizationRepositoryLive - Layer providing OrganizationRepository implementation
  *
  * Requires PgClient.PgClient (or SqlClient.SqlClient) in context.
- *
- * Usage:
- * ```typescript
- * import { OrganizationRepositoryLive } from "@accountability/persistence/OrganizationRepositoryLive"
- * import { PgContainer } from "./test/Utils.ts"
- *
- * const TestLayer = OrganizationRepositoryLive.pipe(
- *   Layer.provide(PgContainer.ClientLive)
- * )
- * ```
  */
 export const OrganizationRepositoryLive = Layer.effect(OrganizationRepository, make)

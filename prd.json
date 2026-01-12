@@ -1664,7 +1664,7 @@
         "Re-export layers from persistence package index",
         "Clear separation: Services/ has interfaces, Layers/ has implementations"
       ],
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "small"
     },
     {
