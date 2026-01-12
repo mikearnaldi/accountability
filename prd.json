@@ -1826,6 +1826,26 @@
       "estimated_complexity": "medium"
     },
     {
+      "id": "6.4.12",
+      "phase": "Persistence Layer",
+      "epic": "Code Organization",
+      "title": "Improve persistence package structure",
+      "description": "Reorganize persistence package files for better consistency with naming conventions and directory structure.",
+      "acceptance_criteria": [
+        "Rename MigrationRunner.ts to MigrationsLive.ts",
+        "Move MigrationsLive.ts to Layers/ directory",
+        "Move PgClientLive.ts to Layers/ directory",
+        "Move RepositoriesLive.ts to Layers/ directory",
+        "Create Errors/ directory in persistence package",
+        "Move RepositoryError.ts to Errors/ directory",
+        "Update all imports across the codebase",
+        "Verify TypeScript compilation passes",
+        "Verify all tests pass after reorganization"
+      ],
+      "status": "pending",
+      "estimated_complexity": "small"
+    },
+    {
       "id": "7.1.1",
       "phase": "UI Layer",
       "epic": "Core Components",
