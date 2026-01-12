@@ -1446,6 +1446,30 @@
       "id": "6.2.2",
       "phase": "API Layer",
       "epic": "HttpApi Endpoints",
+      "title": "Refactor API schemas to use domain types directly",
+      "description": "Update AccountsApi and AccountsApiLive to use domain schemas (AccountId, CompanyId, etc.) in path/URL params instead of Schema.String, eliminating manual decoding in handlers.",
+      "specs": ["API_BEST_PRACTICES.md"],
+      "acceptance_criteria": [
+        "Path params use domain schemas (AccountId instead of Schema.String)",
+        "URL params use domain schemas (CompanyId, AccountType, etc.)",
+        "No manual Schema.decodeUnknownEither calls in handlers",
+        "HttpApi automatic validation handles all parsing",
+        "Parse errors return 400 Bad Request automatically",
+        "Handler code is simplified - receives already-decoded types",
+        "All existing tests pass"
+      ],
+      "technical_details": {
+        "before": ".setPath(Schema.Struct({ id: Schema.String })) // requires manual decode",
+        "after": ".setPath(Schema.Struct({ id: AccountId })) // auto-decoded by HttpApi",
+        "url_params": "Use CompanyId, AccountType, Schema.BooleanFromString, Schema.NumberFromString"
+      },
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "6.2.3",
+      "phase": "API Layer",
+      "epic": "HttpApi Endpoints",
       "title": "Implement companies API endpoints",
       "description": "Create HttpApiGroup for companies with CRUD endpoints.",
       "acceptance_criteria": [
@@ -1459,7 +1483,7 @@
       "estimated_complexity": "medium"
     },
     {
-      "id": "6.2.3",
+      "id": "6.2.4",
       "phase": "API Layer",
       "epic": "HttpApi Endpoints",
       "title": "Implement journal entries API endpoints",
@@ -1476,7 +1500,7 @@
       "estimated_complexity": "large"
     },
     {
-      "id": "6.2.4",
+      "id": "6.2.5",
       "phase": "API Layer",
       "epic": "HttpApi Endpoints",
       "title": "Implement reports API endpoints",
