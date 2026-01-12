@@ -15,6 +15,7 @@ import type { UserIdentity, UserIdentityId, ProviderData } from "@accountability
 import type { AuthUserId } from "@accountability/core/Auth/AuthUserId"
 import type { AuthProviderType } from "@accountability/core/Auth/AuthProviderType"
 import type { ProviderId } from "@accountability/core/Auth/ProviderId"
+import type { HashedPassword } from "@accountability/core/Auth/HashedPassword"
 import type { EntityNotFoundError, PersistenceError } from "../Errors/RepositoryError.ts"
 
 /**
@@ -29,6 +30,10 @@ export interface UserIdentityInsert {
   readonly provider: AuthProviderType
   readonly providerId: ProviderId
   readonly providerData: Option.Option<ProviderData>
+  /**
+   * Password hash for 'local' provider identities (optional for other providers)
+   */
+  readonly passwordHash?: HashedPassword
 }
 
 /**
@@ -132,6 +137,21 @@ export interface IdentityRepositoryService {
   readonly deleteByUserId: (
     userId: AuthUserId
   ) => Effect.Effect<number, PersistenceError>
+
+  /**
+   * Get the password hash for a local provider identity
+   *
+   * Used by LocalAuthProvider to verify user passwords during authentication.
+   * Only applicable for identities with provider='local'.
+   *
+   * @param provider - The authentication provider type
+   * @param providerId - The ID within the provider (email for local auth)
+   * @returns Effect containing Option of HashedPassword (None if not found or no hash)
+   */
+  readonly getPasswordHash: (
+    provider: AuthProviderType,
+    providerId: ProviderId
+  ) => Effect.Effect<Option.Option<HashedPassword>, PersistenceError>
 }
 
 /**

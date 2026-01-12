@@ -426,7 +426,7 @@
         ],
         "pattern": "Layer.effect with dependency injection"
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "medium"
     },
     {

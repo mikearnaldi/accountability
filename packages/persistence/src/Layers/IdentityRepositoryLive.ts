@@ -17,6 +17,7 @@ import { UserIdentity, UserIdentityId, ProviderData } from "@accountability/core
 import { AuthUserId } from "@accountability/core/Auth/AuthUserId"
 import { AuthProviderType } from "@accountability/core/Auth/AuthProviderType"
 import { ProviderId } from "@accountability/core/Auth/ProviderId"
+import { HashedPassword } from "@accountability/core/Auth/HashedPassword"
 import { Timestamp } from "@accountability/core/Domains/Timestamp"
 import { IdentityRepository, type IdentityRepositoryService } from "../Services/IdentityRepository.ts"
 import { EntityNotFoundError, wrapSqlError } from "../Errors/RepositoryError.ts"
@@ -46,6 +47,13 @@ const CountRow = Schema.Struct({
  */
 const AffectedRow = Schema.Struct({
   affected: Schema.Number
+})
+
+/**
+ * Schema for password hash query result
+ */
+const PasswordHashRow = Schema.Struct({
+  password_hash: Schema.NullOr(Schema.String)
 })
 
 /**
@@ -139,15 +147,18 @@ const make = Effect.gen(function* () {
         onNone: () => null,
         onSome: (data) => JSON.stringify(data)
       })
+      // passwordHash is optional (only for local provider)
+      const passwordHash = identity.passwordHash ?? null
 
       yield* sql`
         INSERT INTO auth_identities (
-          id, user_id, provider, provider_id, provider_data, created_at
+          id, user_id, provider, provider_id, password_hash, provider_data, created_at
         ) VALUES (
           ${identity.id},
           ${identity.userId},
           ${identity.provider},
           ${identity.providerId},
+          ${passwordHash},
           ${providerDataJson},
           ${now}
         )
@@ -218,6 +229,28 @@ const make = Effect.gen(function* () {
       return decoded.length > 0 ? decoded[0].affected : 0
     })
 
+  // Query builder for password hash lookup
+  const findPasswordHashByProvider = SqlSchema.findOne({
+    Request: Schema.Struct({ provider: Schema.String, providerId: Schema.String }),
+    Result: PasswordHashRow,
+    execute: (req) => sql`
+      SELECT password_hash FROM auth_identities
+      WHERE provider = ${req.provider} AND provider_id = ${req.providerId}
+    `
+  })
+
+  const getPasswordHash: IdentityRepositoryService["getPasswordHash"] = (provider, providerId) =>
+    findPasswordHashByProvider({ provider, providerId }).pipe(
+      Effect.map((maybeRow) =>
+        Option.flatMap(maybeRow, (row) =>
+          Option.fromNullable(row.password_hash).pipe(
+            Option.map((hash) => HashedPassword.make(hash))
+          )
+        )
+      ),
+      wrapSqlError("getPasswordHash")
+    )
+
   return {
     findById,
     findByUserId,
@@ -226,7 +259,8 @@ const make = Effect.gen(function* () {
     create,
     update,
     delete: deleteIdentity,
-    deleteByUserId
+    deleteByUserId,
+    getPasswordHash
   } satisfies IdentityRepositoryService
 })
 
