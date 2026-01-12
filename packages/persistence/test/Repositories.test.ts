@@ -25,12 +25,17 @@ import { JournalEntryRepository } from "../src/JournalEntryRepository.ts"
 import { JournalEntryRepositoryLive } from "../src/JournalEntryRepositoryLive.ts"
 import { ConsolidationRepository } from "../src/ConsolidationRepository.ts"
 import { ConsolidationRepositoryLive } from "../src/ConsolidationRepositoryLive.ts"
+import { IntercompanyTransactionRepository } from "../src/IntercompanyTransactionRepository.ts"
+import { IntercompanyTransactionRepositoryLive } from "../src/IntercompanyTransactionRepositoryLive.ts"
+import { EliminationRuleRepository } from "../src/EliminationRuleRepository.ts"
+import { EliminationRuleRepositoryLive } from "../src/EliminationRuleRepositoryLive.ts"
 import { MigrationLayer } from "../src/MigrationRunner.ts"
 import { PgContainer } from "./Utils.ts"
 import { FiscalYearId, FiscalPeriodId } from "@accountability/core/services/PeriodService"
 import { ExchangeRateId } from "@accountability/core/domain/ExchangeRate"
-import { ConsolidationGroupId } from "@accountability/core/domain/ConsolidationGroup"
+import { ConsolidationGroupId, EliminationRuleId } from "@accountability/core/domain/ConsolidationGroup"
 import { JournalEntryId } from "@accountability/core/domain/JournalEntry"
+import { IntercompanyTransactionId } from "@accountability/core/domain/IntercompanyTransaction"
 
 /**
  * Layer with migrations and all repositories
@@ -41,7 +46,9 @@ const TestLayer = Layer.mergeAll(
   JournalEntryRepositoryLive,
   FiscalPeriodRepositoryLive,
   ExchangeRateRepositoryLive,
-  ConsolidationRepositoryLive
+  ConsolidationRepositoryLive,
+  IntercompanyTransactionRepositoryLive,
+  EliminationRuleRepositoryLive
 ).pipe(
   Layer.provideMerge(MigrationLayer),
   Layer.provideMerge(PgContainer.ClientLive)
@@ -50,12 +57,16 @@ const TestLayer = Layer.mergeAll(
 // Test UUIDs - these are valid UUID format so validation passes
 const testOrgId = OrganizationId.make("11111111-1111-1111-1111-111111111111")
 const testCompanyId = CompanyId.make("22222222-2222-2222-2222-222222222222")
+const testCompanyId2 = CompanyId.make("33333333-3333-3333-3333-333333333333")
 const testAccountId = AccountId.make("44444444-4444-4444-4444-444444444444")
+const testAccountId2 = AccountId.make("55555555-5555-5555-5555-555555555555")
 const testFiscalYearId = FiscalYearId.make("cccccccc-cccc-cccc-cccc-cccccccccccc")
 const testFiscalPeriodId = FiscalPeriodId.make("dddddddd-dddd-dddd-dddd-dddddddddddd")
 const testRateId = ExchangeRateId.make("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee")
 const testGroupId = ConsolidationGroupId.make("ffffffff-ffff-ffff-ffff-ffffffffffff")
 const testEntryId = JournalEntryId.make("66666666-6666-6666-6666-666666666666")
+const testIntercompanyTxnId = IntercompanyTransactionId.make("77777777-7777-7777-7777-777777777777")
+const testEliminationRuleId = EliminationRuleId.make("88888888-8888-8888-8888-888888888888")
 const nonExistentId = "99999999-9999-9999-9999-999999999999"
 
 describe("Repositories", () => {
@@ -487,6 +498,308 @@ describe("Repositories", () => {
         const repo = yield* JournalEntryRepository
         const exists = yield* repo.exists(testEntryId)
         expect(exists).toBe(true)
+      })
+    )
+  })
+
+  it.layer(TestLayer, { timeout: "60 seconds" })("IntercompanyTransactionRepository", (it) => {
+    it.effect("setup: create test data for intercompany transactions", () =>
+      Effect.gen(function* () {
+        const sql = yield* PgClient.PgClient
+
+        // Insert organization
+        yield* sql`
+          INSERT INTO organizations (id, name, reporting_currency, created_at)
+          VALUES (${testOrgId}, 'Test Organization', 'USD', NOW())
+          ON CONFLICT (id) DO NOTHING
+        `
+
+        // Insert first company (seller)
+        yield* sql`
+          INSERT INTO companies (
+            id, organization_id, name, legal_name, jurisdiction,
+            functional_currency, reporting_currency, fiscal_year_end_month, fiscal_year_end_day,
+            is_active, created_at
+          ) VALUES (
+            ${testCompanyId}, ${testOrgId}, 'Seller Company', 'Seller Company LLC', 'US',
+            'USD', 'USD', 12, 31, true, NOW()
+          ) ON CONFLICT (id) DO NOTHING
+        `
+
+        // Insert second company (buyer)
+        yield* sql`
+          INSERT INTO companies (
+            id, organization_id, name, legal_name, jurisdiction,
+            functional_currency, reporting_currency, fiscal_year_end_month, fiscal_year_end_day,
+            is_active, created_at
+          ) VALUES (
+            ${testCompanyId2}, ${testOrgId}, 'Buyer Company', 'Buyer Company LLC', 'US',
+            'USD', 'USD', 12, 31, true, NOW()
+          ) ON CONFLICT (id) DO NOTHING
+        `
+
+        // Insert intercompany transaction
+        yield* sql`
+          INSERT INTO intercompany_transactions (
+            id, from_company_id, to_company_id, transaction_type, transaction_date,
+            amount, matching_status, created_at, updated_at
+          ) VALUES (
+            ${testIntercompanyTxnId}, ${testCompanyId}, ${testCompanyId2}, 'SalePurchase', '2024-01-15',
+            '{"amount": "10000.00", "currency": "USD"}', 'Unmatched', NOW(), NOW()
+          ) ON CONFLICT (id) DO NOTHING
+        `
+      })
+    )
+
+    it.effect("findById: returns Some for existing transaction", () =>
+      Effect.gen(function* () {
+        const repo = yield* IntercompanyTransactionRepository
+        const result = yield* repo.findById(testIntercompanyTxnId)
+        expect(Option.isSome(result)).toBe(true)
+        if (Option.isSome(result)) {
+          expect(result.value.transactionType).toBe("SalePurchase")
+          expect(result.value.matchingStatus).toBe("Unmatched")
+        }
+      })
+    )
+
+    it.effect("findById: returns None for non-existing transaction", () =>
+      Effect.gen(function* () {
+        const repo = yield* IntercompanyTransactionRepository
+        const result = yield* repo.findById(IntercompanyTransactionId.make(nonExistentId))
+        expect(Option.isNone(result)).toBe(true)
+      })
+    )
+
+    it.effect("getById: throws EntityNotFoundError for non-existing transaction", () =>
+      Effect.gen(function* () {
+        const repo = yield* IntercompanyTransactionRepository
+        const result = yield* Effect.either(repo.getById(IntercompanyTransactionId.make(nonExistentId)))
+        expect(result._tag).toBe("Left")
+        if (result._tag === "Left") {
+          expect(result.left._tag).toBe("EntityNotFoundError")
+        }
+      })
+    )
+
+    it.effect("findByFromCompany: returns transactions for seller company", () =>
+      Effect.gen(function* () {
+        const repo = yield* IntercompanyTransactionRepository
+        const transactions = yield* repo.findByFromCompany(testCompanyId)
+        expect(transactions.length).toBeGreaterThanOrEqual(1)
+        expect(transactions.every((t) => t.fromCompanyId === testCompanyId)).toBe(true)
+      })
+    )
+
+    it.effect("findByToCompany: returns transactions for buyer company", () =>
+      Effect.gen(function* () {
+        const repo = yield* IntercompanyTransactionRepository
+        const transactions = yield* repo.findByToCompany(testCompanyId2)
+        expect(transactions.length).toBeGreaterThanOrEqual(1)
+        expect(transactions.every((t) => t.toCompanyId === testCompanyId2)).toBe(true)
+      })
+    )
+
+    it.effect("findByMatchingStatus: returns transactions by status", () =>
+      Effect.gen(function* () {
+        const repo = yield* IntercompanyTransactionRepository
+        const unmatched = yield* repo.findByMatchingStatus("Unmatched")
+        expect(unmatched.every((t) => t.matchingStatus === "Unmatched")).toBe(true)
+      })
+    )
+
+    it.effect("findByTransactionType: returns transactions by type", () =>
+      Effect.gen(function* () {
+        const repo = yield* IntercompanyTransactionRepository
+        const sales = yield* repo.findByTransactionType("SalePurchase")
+        expect(sales.every((t) => t.transactionType === "SalePurchase")).toBe(true)
+      })
+    )
+
+    it.effect("findUnmatched: returns unmatched transactions", () =>
+      Effect.gen(function* () {
+        const repo = yield* IntercompanyTransactionRepository
+        const unmatched = yield* repo.findUnmatched()
+        expect(unmatched.every((t) => t.matchingStatus === "Unmatched")).toBe(true)
+      })
+    )
+
+    it.effect("exists: returns true for existing transaction", () =>
+      Effect.gen(function* () {
+        const repo = yield* IntercompanyTransactionRepository
+        const exists = yield* repo.exists(testIntercompanyTxnId)
+        expect(exists).toBe(true)
+      })
+    )
+
+    it.effect("exists: returns false for non-existing transaction", () =>
+      Effect.gen(function* () {
+        const repo = yield* IntercompanyTransactionRepository
+        const exists = yield* repo.exists(IntercompanyTransactionId.make(nonExistentId))
+        expect(exists).toBe(false)
+      })
+    )
+  })
+
+  it.layer(TestLayer, { timeout: "60 seconds" })("EliminationRuleRepository", (it) => {
+    it.effect("setup: create test data for elimination rules", () =>
+      Effect.gen(function* () {
+        const sql = yield* PgClient.PgClient
+
+        // Insert organization
+        yield* sql`
+          INSERT INTO organizations (id, name, reporting_currency, created_at)
+          VALUES (${testOrgId}, 'Test Organization', 'USD', NOW())
+          ON CONFLICT (id) DO NOTHING
+        `
+
+        // Insert company
+        yield* sql`
+          INSERT INTO companies (
+            id, organization_id, name, legal_name, jurisdiction,
+            functional_currency, reporting_currency, fiscal_year_end_month, fiscal_year_end_day,
+            is_active, created_at
+          ) VALUES (
+            ${testCompanyId}, ${testOrgId}, 'Parent Company', 'Parent Company LLC', 'US',
+            'USD', 'USD', 12, 31, true, NOW()
+          ) ON CONFLICT (id) DO NOTHING
+        `
+
+        // Insert test accounts for debit/credit
+        yield* sql`
+          INSERT INTO accounts (
+            id, company_id, account_number, name, account_type, account_category,
+            normal_balance, hierarchy_level, is_postable, is_cash_flow_relevant,
+            is_intercompany, is_active, created_at
+          ) VALUES (
+            ${testAccountId}, ${testCompanyId}, '9010', 'IC Receivable', 'Asset', 'CurrentAsset',
+            'Debit', 1, true, false, true, true, NOW()
+          ) ON CONFLICT (id) DO NOTHING
+        `
+
+        yield* sql`
+          INSERT INTO accounts (
+            id, company_id, account_number, name, account_type, account_category,
+            normal_balance, hierarchy_level, is_postable, is_cash_flow_relevant,
+            is_intercompany, is_active, created_at
+          ) VALUES (
+            ${testAccountId2}, ${testCompanyId}, '9020', 'IC Payable', 'Liability', 'CurrentLiability',
+            'Credit', 1, true, false, true, true, NOW()
+          ) ON CONFLICT (id) DO NOTHING
+        `
+
+        // Insert consolidation group
+        yield* sql`
+          INSERT INTO consolidation_groups (
+            id, organization_id, name, parent_company_id, reporting_currency,
+            consolidation_method, is_active, created_at
+          ) VALUES (
+            ${testGroupId}, ${testOrgId}, 'Test Consolidation Group', ${testCompanyId},
+            'USD', 'FullConsolidation', true, NOW()
+          ) ON CONFLICT (id) DO NOTHING
+        `
+
+        // Insert elimination rule
+        yield* sql`
+          INSERT INTO elimination_rules (
+            id, consolidation_group_id, name, description, elimination_type,
+            trigger_conditions, source_accounts, target_accounts,
+            debit_account_id, credit_account_id, is_automatic, priority, is_active
+          ) VALUES (
+            ${testEliminationRuleId}, ${testGroupId}, 'IC Receivable/Payable Elimination',
+            'Eliminates intercompany receivables and payables', 'IntercompanyReceivablePayable',
+            '[]'::jsonb, '[]'::jsonb, '[]'::jsonb,
+            ${testAccountId}, ${testAccountId2}, true, 10, true
+          ) ON CONFLICT (id) DO NOTHING
+        `
+      })
+    )
+
+    it.effect("findById: returns Some for existing rule", () =>
+      Effect.gen(function* () {
+        const repo = yield* EliminationRuleRepository
+        const result = yield* repo.findById(testEliminationRuleId)
+        expect(Option.isSome(result)).toBe(true)
+        if (Option.isSome(result)) {
+          expect(result.value.name).toBe("IC Receivable/Payable Elimination")
+          expect(result.value.eliminationType).toBe("IntercompanyReceivablePayable")
+        }
+      })
+    )
+
+    it.effect("findById: returns None for non-existing rule", () =>
+      Effect.gen(function* () {
+        const repo = yield* EliminationRuleRepository
+        const result = yield* repo.findById(EliminationRuleId.make(nonExistentId))
+        expect(Option.isNone(result)).toBe(true)
+      })
+    )
+
+    it.effect("getById: throws EntityNotFoundError for non-existing rule", () =>
+      Effect.gen(function* () {
+        const repo = yield* EliminationRuleRepository
+        const result = yield* Effect.either(repo.getById(EliminationRuleId.make(nonExistentId)))
+        expect(result._tag).toBe("Left")
+        if (result._tag === "Left") {
+          expect(result.left._tag).toBe("EntityNotFoundError")
+        }
+      })
+    )
+
+    it.effect("findByConsolidationGroup: returns rules for group", () =>
+      Effect.gen(function* () {
+        const repo = yield* EliminationRuleRepository
+        const rules = yield* repo.findByConsolidationGroup(testGroupId)
+        expect(rules.length).toBeGreaterThanOrEqual(1)
+        expect(rules.every((r) => r.consolidationGroupId === testGroupId)).toBe(true)
+      })
+    )
+
+    it.effect("findActiveByConsolidationGroup: returns only active rules", () =>
+      Effect.gen(function* () {
+        const repo = yield* EliminationRuleRepository
+        const rules = yield* repo.findActiveByConsolidationGroup(testGroupId)
+        expect(rules.every((r) => r.isActive)).toBe(true)
+      })
+    )
+
+    it.effect("findAutomaticByConsolidationGroup: returns only automatic rules", () =>
+      Effect.gen(function* () {
+        const repo = yield* EliminationRuleRepository
+        const rules = yield* repo.findAutomaticByConsolidationGroup(testGroupId)
+        expect(rules.every((r) => r.isAutomatic)).toBe(true)
+      })
+    )
+
+    it.effect("findByType: returns rules by elimination type", () =>
+      Effect.gen(function* () {
+        const repo = yield* EliminationRuleRepository
+        const rules = yield* repo.findByType(testGroupId, "IntercompanyReceivablePayable")
+        expect(rules.every((r) => r.eliminationType === "IntercompanyReceivablePayable")).toBe(true)
+      })
+    )
+
+    it.effect("findHighPriority: returns high priority rules", () =>
+      Effect.gen(function* () {
+        const repo = yield* EliminationRuleRepository
+        const rules = yield* repo.findHighPriority(testGroupId)
+        expect(rules.every((r) => r.priority <= 10)).toBe(true)
+      })
+    )
+
+    it.effect("exists: returns true for existing rule", () =>
+      Effect.gen(function* () {
+        const repo = yield* EliminationRuleRepository
+        const exists = yield* repo.exists(testEliminationRuleId)
+        expect(exists).toBe(true)
+      })
+    )
+
+    it.effect("exists: returns false for non-existing rule", () =>
+      Effect.gen(function* () {
+        const repo = yield* EliminationRuleRepository
+        const exists = yield* repo.exists(EliminationRuleId.make(nonExistentId))
+        expect(exists).toBe(false)
       })
     )
   })

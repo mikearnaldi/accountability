@@ -1630,7 +1630,7 @@
         "All findBy* methods return Option for single results",
         "Batch operations available where appropriate"
       ],
-      "status": "in_progress",
+      "status": "complete",
       "estimated_complexity": "medium"
     },
     {
