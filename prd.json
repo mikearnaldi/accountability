@@ -1741,7 +1741,7 @@
         "Update all imports across the codebase",
         "Clear separation: Definitions/ has API schemas, Layers/ has implementations"
       ],
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "small"
     },
     {

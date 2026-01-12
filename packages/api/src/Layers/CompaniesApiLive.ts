@@ -30,13 +30,13 @@ import {
   type EntityNotFoundError,
   type PersistenceError
 } from "@accountability/persistence/RepositoryError"
-import { AppApi } from "./AppApi.ts"
+import { AppApi } from "../Definitions/AppApi.ts"
 import {
   NotFoundError,
   ValidationError,
   ConflictError,
   BusinessRuleError
-} from "./ApiErrors.ts"
+} from "../Definitions/ApiErrors.ts"
 
 /**
  * Convert persistence errors to BusinessRuleError

@@ -55,11 +55,11 @@ import {
   type EntityNotFoundError,
   type PersistenceError
 } from "@accountability/persistence/RepositoryError"
-import { AppApi } from "./AppApi.ts"
+import { AppApi } from "../Definitions/AppApi.ts"
 import {
   NotFoundError,
   BusinessRuleError
-} from "./ApiErrors.ts"
+} from "../Definitions/ApiErrors.ts"
 import {
   TrialBalanceReport,
   TrialBalanceLineItem,
@@ -75,7 +75,7 @@ import {
   EquityStatementReport,
   EquityMovement,
   type EquityMovementType
-} from "./ReportsApi.ts"
+} from "../Definitions/ReportsApi.ts"
 
 // =============================================================================
 // Error Mapping Helpers

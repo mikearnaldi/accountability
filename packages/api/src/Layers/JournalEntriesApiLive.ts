@@ -35,14 +35,14 @@ import {
   type EntityNotFoundError,
   type PersistenceError
 } from "@accountability/persistence/RepositoryError"
-import { AppApi } from "./AppApi.ts"
+import { AppApi } from "../Definitions/AppApi.ts"
+import type { CreateJournalEntryLineRequest } from "../Definitions/JournalEntriesApi.ts"
 import {
   NotFoundError,
   ValidationError,
   BusinessRuleError,
   ConflictError
-} from "./ApiErrors.ts"
-import type { CreateJournalEntryLineRequest } from "./JournalEntriesApi.ts"
+} from "../Definitions/ApiErrors.ts"
 
 /**
  * Convert persistence errors to NotFoundError

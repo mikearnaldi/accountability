@@ -15,16 +15,18 @@ import * as Layer from "effect/Layer"
 import * as Redacted from "effect/Redacted"
 import {
   AuthMiddleware,
-  AuthMiddlewareLive,
-  AuthMiddlewareWithSimpleValidation,
   CurrentUser,
-  SimpleTokenValidatorLive,
   TokenValidator,
   User
-} from "@accountability/api/AuthMiddleware"
-import type { TokenValidatorService } from "@accountability/api/AuthMiddleware"
-import { UnauthorizedError } from "@accountability/api/ApiErrors"
-import { AppApi } from "@accountability/api/AppApi"
+} from "@accountability/api/Definitions/AuthMiddleware"
+import type { TokenValidatorService } from "@accountability/api/Definitions/AuthMiddleware"
+import {
+  AuthMiddlewareLive,
+  AuthMiddlewareWithSimpleValidation,
+  SimpleTokenValidatorLive
+} from "@accountability/api/Layers/AuthMiddlewareLive"
+import { UnauthorizedError } from "@accountability/api/Definitions/ApiErrors"
+import { AppApi } from "@accountability/api/Definitions/AppApi"
 
 describe("AuthMiddleware", () => {
   describe("User", () => {

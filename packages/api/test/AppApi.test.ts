@@ -10,7 +10,7 @@
 
 import { describe, expect, it } from "@effect/vitest"
 import * as Option from "effect/Option"
-import { AppApi, HealthCheckResponse } from "@accountability/api/AppApi"
+import { AppApi, HealthCheckResponse } from "@accountability/api/Definitions/AppApi"
 import {
   NotFoundError,
   ValidationError,
@@ -19,7 +19,7 @@ import {
   ConflictError,
   InternalServerError,
   BusinessRuleError
-} from "@accountability/api/ApiErrors"
+} from "@accountability/api/Definitions/ApiErrors"
 
 describe("AppApi", () => {
   describe("API structure", () => {

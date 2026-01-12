@@ -4,14 +4,19 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./AppApi": "./src/AppApi.ts",
-    "./AppApiLive": "./src/AppApiLive.ts",
-    "./ApiErrors": "./src/ApiErrors.ts",
-    "./AuthMiddleware": "./src/AuthMiddleware.ts",
-    "./AccountsApi": "./src/AccountsApi.ts",
-    "./CompaniesApi": "./src/CompaniesApi.ts",
-    "./JournalEntriesApi": "./src/JournalEntriesApi.ts",
-    "./ReportsApi": "./src/ReportsApi.ts"
+    "./Definitions/AppApi": "./src/Definitions/AppApi.ts",
+    "./Definitions/ApiErrors": "./src/Definitions/ApiErrors.ts",
+    "./Definitions/AuthMiddleware": "./src/Definitions/AuthMiddleware.ts",
+    "./Definitions/AccountsApi": "./src/Definitions/AccountsApi.ts",
+    "./Definitions/CompaniesApi": "./src/Definitions/CompaniesApi.ts",
+    "./Definitions/JournalEntriesApi": "./src/Definitions/JournalEntriesApi.ts",
+    "./Definitions/ReportsApi": "./src/Definitions/ReportsApi.ts",
+    "./Layers/AppApiLive": "./src/Layers/AppApiLive.ts",
+    "./Layers/AuthMiddlewareLive": "./src/Layers/AuthMiddlewareLive.ts",
+    "./Layers/AccountsApiLive": "./src/Layers/AccountsApiLive.ts",
+    "./Layers/CompaniesApiLive": "./src/Layers/CompaniesApiLive.ts",
+    "./Layers/JournalEntriesApiLive": "./src/Layers/JournalEntriesApiLive.ts",
+    "./Layers/ReportsApiLive": "./src/Layers/ReportsApiLive.ts"
   },
   "scripts": {
     "build": "echo 'No build step yet'",

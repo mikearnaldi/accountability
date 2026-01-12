@@ -11,7 +11,7 @@
 import * as AtomHttpApi from "@effect-atom/atom/AtomHttpApi"
 import { TypeId } from "@effect-atom/atom/Atom"
 import { FetchHttpClient } from "@effect/platform"
-import { AppApi } from "@accountability/api/AppApi"
+import { AppApi } from "@accountability/api/Definitions/AppApi"
 
 /**
  * ApiClient - Type-safe HTTP API client service
