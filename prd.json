@@ -3,7 +3,7 @@
   "description": "Multi-company, multi-currency accounting application built on US GAAP principles",
   "version": "1.0.0",
   "created_at": "2026-01-10",
-  "updated_at": "2026-01-10",
+  "updated_at": "2026-01-12",
   "specs_dir": "specs/",
   "available_specs": [
     "ACCOUNTING_RESEARCH.md",
@@ -107,6 +107,812 @@
       },
       "status": "pending",
       "estimated_complexity": "large"
+    },
+    {
+      "id": "8.1.1",
+      "phase": "Core",
+      "epic": "Authentication",
+      "title": "Define authentication domain schemas",
+      "description": "Create core authentication schemas and types supporting multiple concurrent auth providers (Local + WorkOS + OAuth).",
+      "acceptance_criteria": [
+        "AuthUserId branded type (string, UUIDv4 pattern)",
+        "SessionId branded type (string, secure random token)",
+        "ProviderId branded type for external provider user IDs",
+        "AuthProviderType literal schema: 'local' | 'workos' | 'google' | 'github' | 'saml' (extensible)",
+        "AuthUser schema class with: id (AuthUserId), email (Email branded), displayName, role (literal union), primaryProvider (AuthProviderType), createdAt, updatedAt",
+        "UserIdentity schema class with: id, userId (AuthUserId), provider (AuthProviderType), providerId (ProviderId), providerData (optional JSON), createdAt - links user to provider",
+        "Session schema class with: id (SessionId), userId (AuthUserId), provider (AuthProviderType), expiresAt (DateTimeUtc), createdAt, userAgent (optional)",
+        "LocalCredentials schema: email + password (Redacted) - for local provider only",
+        "All schemas follow Effect best practices (Schema.Class, branded types, no *FromSelf)"
+      ],
+      "specs": [
+        "EFFECT_BEST_PRACTICES.md"
+      ],
+      "technical_details": {
+        "location": "packages/core/src/Auth/",
+        "files": ["AuthUserId.ts", "SessionId.ts", "ProviderId.ts", "AuthProviderType.ts", "AuthUser.ts", "UserIdentity.ts", "Session.ts", "LocalCredentials.ts"],
+        "pattern": "Flat module structure, no index.ts barrel files",
+        "multi_provider": "One AuthUser can have multiple UserIdentity records (e.g., local + WorkOS)"
+      },
+      "status": "pending",
+      "estimated_complexity": "small"
+    },
+    {
+      "id": "8.1.2",
+      "phase": "Core",
+      "epic": "Authentication",
+      "title": "Define authentication error types",
+      "description": "Create tagged error types for all authentication failure scenarios across multiple providers.",
+      "acceptance_criteria": [
+        "InvalidCredentialsError - wrong username/password (local provider)",
+        "UserNotFoundError - user does not exist",
+        "UserAlreadyExistsError - duplicate registration (email already taken)",
+        "IdentityAlreadyLinkedError - provider identity already linked to another user",
+        "ProviderNotEnabledError - auth provider not configured/enabled",
+        "ProviderAuthFailedError - external provider auth failed (WorkOS, OAuth)",
+        "SessionExpiredError - session has expired",
+        "SessionNotFoundError - invalid session token",
+        "PasswordTooWeakError - password validation failed (local provider)",
+        "OAuthStateError - OAuth state mismatch (CSRF protection)",
+        "All errors extend Schema.TaggedError",
+        "Errors include provider field where applicable",
+        "Appropriate HTTP status annotations (400, 401, 404, 409)"
+      ],
+      "specs": [
+        "EFFECT_BEST_PRACTICES.md",
+        "API_BEST_PRACTICES.md"
+      ],
+      "technical_details": {
+        "location": "packages/core/src/Auth/AuthErrors.ts",
+        "pattern": "Schema.TaggedError with HttpApiSchema.annotations for status codes"
+      },
+      "status": "pending",
+      "estimated_complexity": "small"
+    },
+    {
+      "id": "8.1.3",
+      "phase": "Core",
+      "epic": "Authentication",
+      "title": "Implement password hashing service",
+      "description": "Create a password hashing service abstraction with secure implementation using bcrypt/argon2.",
+      "acceptance_criteria": [
+        "PasswordHasher service interface with hash and verify methods",
+        "PasswordHasher Context.Tag for dependency injection",
+        "BcryptPasswordHasher implementation (or Argon2 based on available packages)",
+        "hash(plaintext: Redacted<string>) => Effect<HashedPassword, never>",
+        "verify(plaintext: Redacted<string>, hash: HashedPassword) => Effect<boolean, never>",
+        "HashedPassword branded type for type safety",
+        "Configurable work factor / cost"
+      ],
+      "specs": [
+        "EFFECT_BEST_PRACTICES.md"
+      ],
+      "technical_details": {
+        "location": "packages/core/src/Auth/",
+        "files": ["PasswordHasher.ts", "HashedPassword.ts"],
+        "implementation": "Use 'bcryptjs' or 'argon2' package",
+        "pattern": "Layer.effect for service creation, Redacted for sensitive data"
+      },
+      "status": "pending",
+      "estimated_complexity": "small"
+    },
+    {
+      "id": "8.1.4",
+      "phase": "Core",
+      "epic": "Authentication",
+      "title": "Implement session token service",
+      "description": "Create a service for generating and validating secure session tokens.",
+      "acceptance_criteria": [
+        "SessionTokenGenerator service interface",
+        "generate() => Effect<SessionId, never> - creates cryptographically secure token",
+        "Token format: URL-safe base64, 32+ bytes of entropy",
+        "Configurable token length",
+        "Uses Effect-idiomatic random generation (Effect.random or crypto.getRandomValues)"
+      ],
+      "specs": [
+        "EFFECT_BEST_PRACTICES.md"
+      ],
+      "technical_details": {
+        "location": "packages/core/src/Auth/SessionTokenGenerator.ts",
+        "pattern": "Service tag with Layer.succeed for stateless service"
+      },
+      "status": "pending",
+      "estimated_complexity": "small"
+    },
+    {
+      "id": "8.1.5",
+      "phase": "Core",
+      "epic": "Authentication",
+      "title": "Define AuthProvider interface and AuthService",
+      "description": "Create the auth provider interface (strategy pattern) and main AuthService that routes to multiple concurrent providers.",
+      "acceptance_criteria": [
+        "AuthProvider interface - individual provider implementation contract",
+        "AuthProvider.authenticate(request: AuthRequest) => Effect<AuthResult, AuthError>",
+        "AuthProvider.getAuthorizationUrl(state: string) => Option<string> - for OAuth/SAML providers",
+        "AuthProvider.handleCallback(code: string, state: string) => Effect<AuthResult, AuthError> - for OAuth/SAML",
+        "AuthProvider.supportsRegistration: boolean - local supports, WorkOS SSO may not",
+        "AuthProvider.type: AuthProviderType - identifies the provider",
+        "AuthService service interface with Context.Tag - orchestrates multiple providers",
+        "AuthService.login(provider: AuthProviderType, request: AuthRequest) => Effect<{user, session}, AuthError>",
+        "AuthService.register(email, password, displayName) => Effect<AuthUser, AuthError> - local only",
+        "AuthService.getAuthorizationUrl(provider: AuthProviderType) => Effect<string, ProviderNotEnabledError>",
+        "AuthService.handleOAuthCallback(provider, code, state) => Effect<{user, session}, AuthError>",
+        "AuthService.logout(sessionId: SessionId) => Effect<void, SessionNotFoundError>",
+        "AuthService.validateSession(sessionId: SessionId) => Effect<{user, session}, SessionError>",
+        "AuthService.linkIdentity(userId, provider, providerResult) => Effect<UserIdentity, AuthError>",
+        "AuthService.getEnabledProviders() => Effect<Array<AuthProviderType>>",
+        "getCurrentUser helper that uses CurrentUser context"
+      ],
+      "specs": [
+        "EFFECT_BEST_PRACTICES.md"
+      ],
+      "technical_details": {
+        "location": "packages/core/src/Auth/",
+        "files": ["AuthProvider.ts", "AuthService.ts", "AuthRequest.ts", "AuthResult.ts"],
+        "pattern": "Strategy pattern for providers, registry pattern for AuthService",
+        "multi_provider": "AuthService holds Map<AuthProviderType, AuthProvider> for routing"
+      },
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "8.2.1",
+      "phase": "Persistence",
+      "epic": "Authentication",
+      "title": "Create auth database migrations",
+      "description": "Create PostgreSQL migrations for users, identities, and sessions tables supporting multiple auth providers.",
+      "acceptance_criteria": [
+        "Migration: CREATE TABLE auth_users (id UUID PK, email VARCHAR UNIQUE, display_name VARCHAR, role VARCHAR, primary_provider VARCHAR NOT NULL, created_at TIMESTAMPTZ, updated_at TIMESTAMPTZ)",
+        "Migration: CREATE TABLE auth_identities (id UUID PK, user_id UUID FK NOT NULL, provider VARCHAR NOT NULL, provider_id VARCHAR NOT NULL, password_hash VARCHAR NULL, provider_data JSONB NULL, created_at TIMESTAMPTZ, UNIQUE(provider, provider_id))",
+        "Migration: CREATE TABLE auth_sessions (id VARCHAR PK, user_id UUID FK NOT NULL, provider VARCHAR NOT NULL, expires_at TIMESTAMPTZ NOT NULL, created_at TIMESTAMPTZ, user_agent VARCHAR NULL, ip_address VARCHAR NULL)",
+        "Indexes on auth_users.email, auth_identities.user_id, auth_identities(provider, provider_id), auth_sessions.user_id, auth_sessions.expires_at",
+        "Foreign keys: auth_identities.user_id -> auth_users.id ON DELETE CASCADE, auth_sessions.user_id -> auth_users.id ON DELETE CASCADE",
+        "Follows existing migration patterns in packages/persistence/src/Migrations/"
+      ],
+      "specs": [
+        "EFFECT_SQL.md"
+      ],
+      "technical_details": {
+        "location": "packages/persistence/src/Migrations/",
+        "files": ["010_create_auth_users.ts", "011_create_auth_identities.ts", "012_create_auth_sessions.ts"],
+        "pattern": "SqlClient.execute template tag for migrations",
+        "note": "password_hash is on auth_identities (not auth_users) since only local provider uses it"
+      },
+      "status": "pending",
+      "estimated_complexity": "small"
+    },
+    {
+      "id": "8.2.2",
+      "phase": "Persistence",
+      "epic": "Authentication",
+      "title": "Implement UserRepository",
+      "description": "Create repository for user CRUD operations following existing repository patterns.",
+      "acceptance_criteria": [
+        "UserRepository service interface with Context.Tag",
+        "findById(id: AuthUserId) => Effect<Option<AuthUser>, PersistenceError>",
+        "findByEmail(email: Email) => Effect<Option<AuthUser>, PersistenceError>",
+        "create(user: AuthUserInsert) => Effect<AuthUser, PersistenceError>",
+        "update(id: AuthUserId, data: AuthUserUpdate) => Effect<AuthUser, EntityNotFoundError | PersistenceError>",
+        "delete(id: AuthUserId) => Effect<void, EntityNotFoundError | PersistenceError>",
+        "SqlSchema for row mapping (AuthUserRow <-> AuthUser)",
+        "UserRepositoryLive Layer implementation"
+      ],
+      "specs": [
+        "EFFECT_SQL.md",
+        "EFFECT_BEST_PRACTICES.md"
+      ],
+      "technical_details": {
+        "location": "packages/persistence/src/",
+        "files": ["Services/UserRepository.ts", "Layers/UserRepositoryLive.ts"],
+        "pattern": "Follow AccountRepository patterns"
+      },
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "8.2.3",
+      "phase": "Persistence",
+      "epic": "Authentication",
+      "title": "Implement IdentityRepository",
+      "description": "Create repository for user identity (provider link) CRUD operations.",
+      "acceptance_criteria": [
+        "IdentityRepository service interface with Context.Tag",
+        "findById(id: IdentityId) => Effect<Option<UserIdentity>, PersistenceError>",
+        "findByUserId(userId: AuthUserId) => Effect<Chunk<UserIdentity>, PersistenceError>",
+        "findByProvider(provider: AuthProviderType, providerId: ProviderId) => Effect<Option<UserIdentity>, PersistenceError>",
+        "findByUserAndProvider(userId: AuthUserId, provider: AuthProviderType) => Effect<Option<UserIdentity>, PersistenceError>",
+        "create(identity: UserIdentityInsert) => Effect<UserIdentity, PersistenceError>",
+        "update(id: IdentityId, data: UserIdentityUpdate) => Effect<UserIdentity, EntityNotFoundError | PersistenceError>",
+        "delete(id: IdentityId) => Effect<void, PersistenceError>",
+        "deleteByUserId(userId: AuthUserId) => Effect<number, PersistenceError>",
+        "IdentityRepositoryLive Layer implementation"
+      ],
+      "specs": [
+        "EFFECT_SQL.md",
+        "EFFECT_BEST_PRACTICES.md"
+      ],
+      "technical_details": {
+        "location": "packages/persistence/src/",
+        "files": ["Services/IdentityRepository.ts", "Layers/IdentityRepositoryLive.ts"],
+        "pattern": "Follow AccountRepository patterns"
+      },
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "8.2.4",
+      "phase": "Persistence",
+      "epic": "Authentication",
+      "title": "Implement SessionRepository",
+      "description": "Create repository for session CRUD operations.",
+      "acceptance_criteria": [
+        "SessionRepository service interface with Context.Tag",
+        "findById(id: SessionId) => Effect<Option<Session>, PersistenceError>",
+        "findByUserId(userId: AuthUserId) => Effect<Chunk<Session>, PersistenceError>",
+        "create(session: SessionInsert) => Effect<Session, PersistenceError>",
+        "delete(id: SessionId) => Effect<void, PersistenceError>",
+        "deleteExpired() => Effect<number, PersistenceError> - cleanup expired sessions",
+        "deleteByUserId(userId: AuthUserId) => Effect<number, PersistenceError> - logout all",
+        "updateExpiry(id: SessionId, expiresAt: DateTimeUtc) => Effect<Session, EntityNotFoundError | PersistenceError>",
+        "SessionRepositoryLive Layer implementation"
+      ],
+      "specs": [
+        "EFFECT_SQL.md",
+        "EFFECT_BEST_PRACTICES.md"
+      ],
+      "technical_details": {
+        "location": "packages/persistence/src/",
+        "files": ["Services/SessionRepository.ts", "Layers/SessionRepositoryLive.ts"],
+        "pattern": "Follow AccountRepository patterns"
+      },
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "8.2.5",
+      "phase": "Persistence",
+      "epic": "Authentication",
+      "title": "Implement LocalAuthProvider",
+      "description": "Create the local (username/password) implementation of AuthProvider interface.",
+      "acceptance_criteria": [
+        "LocalAuthProvider implements AuthProvider interface",
+        "type = 'local'",
+        "supportsRegistration = true",
+        "authenticate(LocalCredentials) validates email/password against IdentityRepository",
+        "getAuthorizationUrl returns Option.none() (not OAuth-based)",
+        "handleCallback returns error (not OAuth-based)",
+        "Uses PasswordHasher for password verification",
+        "LocalAuthProviderLive Layer with dependencies"
+      ],
+      "specs": [
+        "EFFECT_BEST_PRACTICES.md"
+      ],
+      "technical_details": {
+        "location": "packages/persistence/src/Layers/LocalAuthProviderLive.ts",
+        "dependencies": ["UserRepository", "IdentityRepository", "PasswordHasher"],
+        "pattern": "Layer.effect with dependency injection"
+      },
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "8.2.6",
+      "phase": "Persistence",
+      "epic": "Authentication",
+      "title": "Implement AuthServiceLive",
+      "description": "Create the main AuthService implementation that orchestrates multiple providers.",
+      "acceptance_criteria": [
+        "AuthServiceLive implements AuthService interface",
+        "Accepts Array<AuthProvider> via Layer config",
+        "Routes login requests to appropriate provider by type",
+        "Creates/updates user and identity records on successful auth",
+        "Handles user creation for new external provider users (auto-provisioning)",
+        "Links identity to existing user if email matches (configurable)",
+        "Creates sessions via SessionRepository",
+        "Uses SessionTokenGenerator for session token creation",
+        "Configurable session duration per provider",
+        "AuthServiceLive Layer with all dependencies"
+      ],
+      "specs": [
+        "EFFECT_BEST_PRACTICES.md"
+      ],
+      "technical_details": {
+        "location": "packages/persistence/src/Layers/AuthServiceLive.ts",
+        "dependencies": ["UserRepository", "IdentityRepository", "SessionRepository", "SessionTokenGenerator", "Array<AuthProvider>"],
+        "pattern": "Layer.effect with dependency injection, provider registry internal"
+      },
+      "status": "pending",
+      "estimated_complexity": "large"
+    },
+    {
+      "id": "8.3.1",
+      "phase": "API Layer",
+      "epic": "Authentication",
+      "title": "Define AuthApi endpoints",
+      "description": "Create authentication API endpoints supporting multiple providers, OAuth callbacks, and session management.",
+      "acceptance_criteria": [
+        "GET /api/auth/providers - returns list of enabled providers with metadata (public)",
+        "POST /api/auth/register - RegisterRequest => AuthUserResponse (local provider only, public)",
+        "POST /api/auth/login - LoginRequest(provider, credentials) => LoginResponse (public)",
+        "GET /api/auth/authorize/:provider - redirects to OAuth/SAML provider (public)",
+        "GET /api/auth/callback/:provider - handles OAuth/SAML callback, returns LoginResponse or redirects (public)",
+        "POST /api/auth/logout - (protected) => void",
+        "GET /api/auth/me - (protected) => AuthUserResponse with linked identities",
+        "POST /api/auth/refresh - (protected) => RefreshResponse (new session)",
+        "POST /api/auth/link/:provider - (protected) initiates linking additional provider to account",
+        "GET /api/auth/link/callback/:provider - (protected) completes provider linking",
+        "DELETE /api/auth/identities/:identityId - (protected) unlinks provider from account",
+        "Proper error responses with status codes and provider info",
+        "AuthApi group with /api/auth prefix"
+      ],
+      "specs": [
+        "HTTP_API_TANSTACK.md",
+        "API_BEST_PRACTICES.md"
+      ],
+      "technical_details": {
+        "location": "packages/api/src/Definitions/AuthApi.ts",
+        "request_schemas": "LoginRequest(provider + credentials), RegisterRequest, OAuthCallbackParams",
+        "response_schemas": "LoginResponse (token + user + provider), AuthUserResponse, ProvidersResponse",
+        "pattern": "HttpApiGroup.make with mixed public/protected endpoints"
+      },
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "8.3.2",
+      "phase": "API Layer",
+      "epic": "Authentication",
+      "title": "Implement AuthApiLive handlers",
+      "description": "Implement handlers for all authentication endpoints with multi-provider support.",
+      "acceptance_criteria": [
+        "providers handler: returns AuthService.getEnabledProviders() with UI metadata",
+        "register handler: validate input, call AuthService.register, return user",
+        "login handler: route to AuthService.login(provider, request), return token + user",
+        "authorize handler: call AuthService.getAuthorizationUrl(provider), redirect response",
+        "callback handler: call AuthService.handleOAuthCallback, create session, return/redirect",
+        "logout handler: extract session from CurrentUser context, call AuthService.logout",
+        "me handler: return current user with all linked identities",
+        "refresh handler: validate current session, call AuthService.refreshSession",
+        "link handler: initiate provider linking for authenticated user",
+        "link callback handler: complete provider linking",
+        "unlink handler: remove identity (prevent unlinking last identity)",
+        "Proper error mapping to API error types",
+        "OAuth state management (CSRF protection) via secure cookies or session",
+        "AuthApiLive Layer"
+      ],
+      "specs": [
+        "HTTP_API_TANSTACK.md",
+        "API_BEST_PRACTICES.md"
+      ],
+      "technical_details": {
+        "location": "packages/api/src/Layers/AuthApiLive.ts",
+        "pattern": "HttpApiBuilder.group pattern",
+        "oauth_state": "Use signed/encrypted state param for CSRF protection"
+      },
+      "status": "pending",
+      "estimated_complexity": "large"
+    },
+    {
+      "id": "8.3.3",
+      "phase": "API Layer",
+      "epic": "Authentication",
+      "title": "Update TokenValidator to use sessions",
+      "description": "Replace SimpleTokenValidatorLive with SessionTokenValidator that validates against the database.",
+      "acceptance_criteria": [
+        "SessionTokenValidator implements TokenValidatorService",
+        "Validates token exists in auth_sessions table",
+        "Checks session is not expired",
+        "Loads full user from auth_users table",
+        "Maps database user to CurrentUser service",
+        "Returns UnauthorizedError for invalid/expired sessions",
+        "SessionTokenValidatorLive Layer"
+      ],
+      "specs": [
+        "EFFECT_BEST_PRACTICES.md"
+      ],
+      "technical_details": {
+        "location": "packages/api/src/Layers/AuthMiddlewareLive.ts",
+        "pattern": "Update existing AuthMiddlewareLive to use SessionTokenValidator",
+        "keep_simple": "Keep SimpleTokenValidatorLive for testing"
+      },
+      "status": "pending",
+      "estimated_complexity": "small"
+    },
+    {
+      "id": "8.3.4",
+      "phase": "API Layer",
+      "epic": "Authentication",
+      "title": "Integrate AuthApi into AppApi",
+      "description": "Add AuthApi group to the main API and update layer composition.",
+      "acceptance_criteria": [
+        "AuthApi added to AppApi definition",
+        "AuthApiLive added to AppApiLive layer composition",
+        "All auth-related layers properly provided",
+        "API route handler updated with new dependencies",
+        "OpenAPI spec includes auth endpoints"
+      ],
+      "specs": [
+        "HTTP_API_TANSTACK.md"
+      ],
+      "technical_details": {
+        "files": ["packages/api/src/Definitions/AppApi.ts", "packages/api/src/Layers/AppApiLive.ts", "packages/web/src/api/handler.ts"]
+      },
+      "status": "pending",
+      "estimated_complexity": "small"
+    },
+    {
+      "id": "8.4.1",
+      "phase": "UI Layer",
+      "epic": "Authentication",
+      "title": "Create auth state management atoms",
+      "description": "Create Effect Atom based state management for authentication state with multi-provider support.",
+      "acceptance_criteria": [
+        "authTokenAtom - stores current session token (persisted to localStorage)",
+        "currentUserAtom - async atom that fetches /api/auth/me when token exists",
+        "userIdentitiesAtom - derived from currentUserAtom, lists linked providers",
+        "enabledProvidersAtom - async atom that fetches /api/auth/providers",
+        "isAuthenticatedAtom - derived boolean from currentUserAtom",
+        "loginMutation(provider, credentials) - calls login API, stores token on success",
+        "oauthLoginMutation(provider) - initiates OAuth flow (redirects to authorize URL)",
+        "logoutMutation - calls logout API, clears token",
+        "registerMutation - calls register API (local provider)",
+        "linkProviderMutation(provider) - initiates provider linking for logged-in user",
+        "unlinkProviderMutation(identityId) - removes linked provider",
+        "Auto-clear token on 401 response",
+        "Token included in all API requests via HttpClient layer"
+      ],
+      "specs": [
+        "HTTP_API_TANSTACK.md"
+      ],
+      "technical_details": {
+        "location": "packages/web/src/atoms/auth.ts",
+        "pattern": "Atom.make for token, async atom for user, Atom.fn for mutations",
+        "storage": "localStorage for token persistence across sessions",
+        "oauth_flow": "OAuth mutations redirect to authorize URL, callback page handles token storage"
+      },
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "8.4.2",
+      "phase": "UI Layer",
+      "epic": "Authentication",
+      "title": "Create login page with multi-provider support",
+      "description": "Create the login page UI supporting multiple authentication methods.",
+      "acceptance_criteria": [
+        "Route: /login",
+        "Fetches and displays enabled providers from /api/auth/providers",
+        "Local auth section: email + password form with validation",
+        "OAuth/SSO section: buttons for each enabled external provider (WorkOS, Google, etc.)",
+        "Provider buttons styled with appropriate branding/icons",
+        "Loading states for form submission and OAuth redirects",
+        "Error display for invalid credentials and provider errors",
+        "Link to registration page (if local provider enabled)",
+        "Redirect to / (or intended route from ?redirect param) on successful login",
+        "Redirect away if already authenticated",
+        "Accessible form with proper labels and ARIA",
+        "Handles OAuth callback via /auth/callback/:provider route"
+      ],
+      "specs": [
+        "HTTP_API_TANSTACK.md"
+      ],
+      "technical_details": {
+        "location": "packages/web/src/routes/login.tsx",
+        "pattern": "useAtom for auth state, conditional rendering based on enabled providers",
+        "redirect": "Use router.navigate or redirect from loader",
+        "oauth_buttons": "Each OAuth provider gets a button that calls oauthLoginMutation"
+      },
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "8.4.3",
+      "phase": "UI Layer",
+      "epic": "Authentication",
+      "title": "Create registration page",
+      "description": "Create the registration page UI (local provider only).",
+      "acceptance_criteria": [
+        "Route: /register",
+        "Only shown if local provider is enabled",
+        "Email input field with validation",
+        "Display name input field",
+        "Password input field with strength indicator",
+        "Confirm password field with match validation",
+        "Submit button with loading state",
+        "Error display for validation failures and duplicate email",
+        "Link to login page",
+        "Auto-login after successful registration (or redirect to login)",
+        "Redirect away if already authenticated",
+        "Note: SSO/OAuth users don't register - they auto-provision on first login"
+      ],
+      "specs": [
+        "HTTP_API_TANSTACK.md"
+      ],
+      "technical_details": {
+        "location": "packages/web/src/routes/register.tsx",
+        "validation": "Client-side validation before submit, server validation for uniqueness",
+        "conditional": "Hide/redirect if local provider not enabled"
+      },
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "8.4.3.1",
+      "phase": "UI Layer",
+      "epic": "Authentication",
+      "title": "Create OAuth callback page",
+      "description": "Create the OAuth/SAML callback handler page that processes provider redirects.",
+      "acceptance_criteria": [
+        "Route: /auth/callback/:provider",
+        "Extracts code and state from URL query params",
+        "Calls /api/auth/callback/:provider with code and state",
+        "On success: stores token, redirects to intended destination",
+        "On error: displays error message with retry/back to login options",
+        "Loading state while processing callback",
+        "Handles link callback flow differently (for adding providers to existing account)"
+      ],
+      "specs": [
+        "HTTP_API_TANSTACK.md"
+      ],
+      "technical_details": {
+        "location": "packages/web/src/routes/auth/callback.$provider.tsx",
+        "pattern": "useEffect to process callback on mount, show loading, then redirect",
+        "state_validation": "State param validated server-side for CSRF protection"
+      },
+      "status": "pending",
+      "estimated_complexity": "small"
+    },
+    {
+      "id": "8.4.4",
+      "phase": "UI Layer",
+      "epic": "Authentication",
+      "title": "Implement protected route handling",
+      "description": "Create route protection mechanism for authenticated-only routes.",
+      "acceptance_criteria": [
+        "AuthGuard component or route middleware",
+        "Redirect to /login if not authenticated",
+        "Preserve intended destination for post-login redirect",
+        "Loading state while checking authentication",
+        "Apply to all protected routes (companies, journal entries, reports, etc.)",
+        "Public routes: /login, /register, / (landing)"
+      ],
+      "specs": [
+        "HTTP_API_TANSTACK.md"
+      ],
+      "technical_details": {
+        "location": "packages/web/src/components/AuthGuard.tsx or route middleware",
+        "pattern": "TanStack Router beforeLoad or component wrapper",
+        "redirect_param": "?redirect=/intended/path stored for post-login"
+      },
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "8.4.5",
+      "phase": "UI Layer",
+      "epic": "Authentication",
+      "title": "Add user menu and logout functionality",
+      "description": "Add user information display and logout button to the app header/navigation.",
+      "acceptance_criteria": [
+        "User avatar/name display in header when authenticated",
+        "Dropdown menu with user info and email",
+        "Shows which provider user authenticated with (icon/badge)",
+        "Link to account settings page",
+        "Logout button in dropdown",
+        "Logout clears session and redirects to /login",
+        "Shows login button when not authenticated"
+      ],
+      "technical_details": {
+        "location": "packages/web/src/components/UserMenu.tsx",
+        "integration": "Add to main layout/header component"
+      },
+      "status": "pending",
+      "estimated_complexity": "small"
+    },
+    {
+      "id": "8.4.6",
+      "phase": "UI Layer",
+      "epic": "Authentication",
+      "title": "Create account settings page",
+      "description": "Create account settings page for managing linked auth providers.",
+      "acceptance_criteria": [
+        "Route: /settings/account",
+        "Display current user info (email, display name)",
+        "List all linked identities with provider icons and connection date",
+        "Button to link additional providers (shows unlinked enabled providers)",
+        "Button to unlink providers (disabled if only one identity remains)",
+        "Change password section (only if local provider linked)",
+        "Delete account option with confirmation",
+        "Success/error notifications for all actions"
+      ],
+      "specs": [
+        "HTTP_API_TANSTACK.md"
+      ],
+      "technical_details": {
+        "location": "packages/web/src/routes/settings/account.tsx",
+        "pattern": "useAtom for user/identities state, mutations for link/unlink"
+      },
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "8.5.1",
+      "phase": "Testing",
+      "epic": "Authentication",
+      "title": "Write auth service unit tests",
+      "description": "Create comprehensive unit tests for authentication services.",
+      "acceptance_criteria": [
+        "PasswordHasher tests: hash produces different output, verify works correctly",
+        "SessionTokenGenerator tests: generates unique tokens, correct length",
+        "LocalAuthService tests: register, login, logout, validateSession flows",
+        "Error cases: wrong password, duplicate email, expired session",
+        "Use @effect/vitest patterns",
+        "Mock repositories for unit tests"
+      ],
+      "specs": [
+        "EFFECT_TESTING.md"
+      ],
+      "technical_details": {
+        "location": "packages/core/test/Auth/",
+        "pattern": "@effect/vitest with Layer.succeed for mocks"
+      },
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "8.5.2",
+      "phase": "Testing",
+      "epic": "Authentication",
+      "title": "Write auth repository integration tests",
+      "description": "Create integration tests for auth repositories using testcontainers.",
+      "acceptance_criteria": [
+        "UserRepository tests with real PostgreSQL",
+        "SessionRepository tests with real PostgreSQL",
+        "Test CRUD operations, unique constraints, foreign keys",
+        "Test session expiry queries",
+        "Use testcontainers PostgreSQL setup"
+      ],
+      "specs": [
+        "EFFECT_TESTING.md"
+      ],
+      "technical_details": {
+        "location": "packages/persistence/test/",
+        "pattern": "testcontainers-node for PostgreSQL"
+      },
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "8.5.3",
+      "phase": "Testing",
+      "epic": "Authentication",
+      "title": "Write auth API endpoint tests",
+      "description": "Create API integration tests for authentication endpoints.",
+      "acceptance_criteria": [
+        "Test register endpoint: success, duplicate email, weak password",
+        "Test login endpoint: success, wrong password, unknown user",
+        "Test logout endpoint: success, unauthorized",
+        "Test me endpoint: success, unauthorized",
+        "Test protected endpoints return 401 without token",
+        "Test expired session returns 401"
+      ],
+      "specs": [
+        "EFFECT_TESTING.md"
+      ],
+      "technical_details": {
+        "location": "packages/api/test/",
+        "pattern": "HttpApiClient for testing API endpoints"
+      },
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "8.6.1",
+      "phase": "Persistence",
+      "epic": "Authentication",
+      "title": "Implement WorkOS AuthProvider",
+      "description": "Create WorkOS SSO provider implementation for enterprise authentication.",
+      "acceptance_criteria": [
+        "WorkOSAuthProvider implements AuthProvider interface",
+        "type = 'workos'",
+        "supportsRegistration = false (users auto-provision)",
+        "getAuthorizationUrl generates WorkOS authorization URL with correct scopes",
+        "handleCallback exchanges code for user profile via WorkOS API",
+        "Maps WorkOS user profile to AuthResult (id, email, name)",
+        "Handles WorkOS organization/connection context",
+        "WorkOSConfig schema for environment configuration (API key, client ID, redirect URI)",
+        "WorkOSAuthProviderLive Layer with HttpClient dependency"
+      ],
+      "specs": [
+        "EFFECT_BEST_PRACTICES.md"
+      ],
+      "technical_details": {
+        "location": "packages/persistence/src/Layers/WorkOSAuthProviderLive.ts",
+        "dependencies": ["HttpClient for WorkOS API calls", "WorkOSConfig"],
+        "workos_sdk": "Use WorkOS REST API directly with HttpClient (no SDK dependency)",
+        "endpoints": "Authorization URL, Token exchange, User info"
+      },
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "8.6.2",
+      "phase": "Persistence",
+      "epic": "Authentication",
+      "title": "Implement Google OAuth AuthProvider",
+      "description": "Create Google OAuth provider implementation as example OAuth2 provider.",
+      "acceptance_criteria": [
+        "GoogleAuthProvider implements AuthProvider interface",
+        "type = 'google'",
+        "supportsRegistration = false (users auto-provision)",
+        "getAuthorizationUrl generates Google OAuth URL with email/profile scopes",
+        "handleCallback exchanges code for tokens via Google OAuth API",
+        "Fetches user profile from Google userinfo endpoint",
+        "Maps Google profile to AuthResult (sub as id, email, name, picture)",
+        "GoogleConfig schema for environment configuration (client ID, client secret, redirect URI)",
+        "GoogleAuthProviderLive Layer"
+      ],
+      "specs": [
+        "EFFECT_BEST_PRACTICES.md"
+      ],
+      "technical_details": {
+        "location": "packages/persistence/src/Layers/GoogleAuthProviderLive.ts",
+        "pattern": "Standard OAuth2 authorization code flow",
+        "endpoints": "accounts.google.com/o/oauth2, oauth2.googleapis.com/token, googleapis.com/userinfo"
+      },
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "8.6.3",
+      "phase": "Core",
+      "epic": "Authentication",
+      "title": "Create auth provider configuration system",
+      "description": "Create configuration system for enabling/disabling auth providers at runtime.",
+      "acceptance_criteria": [
+        "AuthConfig schema for global auth settings",
+        "enabledProviders: Array<AuthProviderType> - which providers are active",
+        "providerConfigs: Record<AuthProviderType, ProviderConfig> - per-provider settings",
+        "defaultRole: UserRole - role assigned to new users",
+        "sessionDuration: Duration - default session length",
+        "autoLinkByEmail: boolean - whether to auto-link identities by email match",
+        "requireEmailVerification: boolean - for local provider",
+        "AuthConfig loaded from environment variables",
+        "AuthConfigLive Layer"
+      ],
+      "specs": [
+        "EFFECT_BEST_PRACTICES.md"
+      ],
+      "technical_details": {
+        "location": "packages/core/src/Auth/AuthConfig.ts",
+        "pattern": "Schema.Config for typed environment configuration",
+        "env_vars": "AUTH_ENABLED_PROVIDERS, AUTH_LOCAL_*, AUTH_WORKOS_*, AUTH_GOOGLE_*, etc."
+      },
+      "status": "pending",
+      "estimated_complexity": "small"
+    },
+    {
+      "id": "8.6.4",
+      "phase": "Documentation",
+      "epic": "Authentication",
+      "title": "Document authentication system and provider guide",
+      "description": "Create documentation for the authentication system and guide for adding new providers.",
+      "acceptance_criteria": [
+        "Overview of multi-provider architecture in specs/",
+        "Configuration guide: environment variables, enabling providers",
+        "Local provider setup guide",
+        "WorkOS integration guide with screenshots",
+        "Google OAuth setup guide",
+        "Guide for implementing new AuthProvider (step by step)",
+        "Security considerations (CSRF, session management, token storage)",
+        "Troubleshooting common issues"
+      ],
+      "technical_details": {
+        "location": "specs/AUTHENTICATION.md",
+        "format": "Markdown with code examples"
+      },
+      "status": "pending",
+      "estimated_complexity": "small"
     }
   ]
 }
