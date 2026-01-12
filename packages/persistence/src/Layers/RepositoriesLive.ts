@@ -21,6 +21,8 @@ import { ExchangeRateRepositoryLive } from "./ExchangeRateRepositoryLive.ts"
 import { ConsolidationRepositoryLive } from "./ConsolidationRepositoryLive.ts"
 import { IntercompanyTransactionRepositoryLive } from "./IntercompanyTransactionRepositoryLive.ts"
 import { EliminationRuleRepositoryLive } from "./EliminationRuleRepositoryLive.ts"
+import { UserRepositoryLive } from "./UserRepositoryLive.ts"
+import { IdentityRepositoryLive } from "./IdentityRepositoryLive.ts"
 
 /**
  * RepositoriesLive - Combined layer providing all repository implementations
@@ -36,6 +38,8 @@ import { EliminationRuleRepositoryLive } from "./EliminationRuleRepositoryLive.t
  * - ConsolidationRepository
  * - IntercompanyTransactionRepository
  * - EliminationRuleRepository
+ * - UserRepository
+ * - IdentityRepository
  *
  * All implementations use PostgreSQL via @effect/sql-pg.
  *
@@ -69,5 +73,7 @@ export const RepositoriesLive = Layer.mergeAll(
   ExchangeRateRepositoryLive,
   ConsolidationRepositoryLive,
   IntercompanyTransactionRepositoryLive,
-  EliminationRuleRepositoryLive
+  EliminationRuleRepositoryLive,
+  UserRepositoryLive,
+  IdentityRepositoryLive
 )

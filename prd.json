@@ -363,7 +363,7 @@
         ],
         "pattern": "Follow AccountRepository patterns"
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "medium"
     },
     {
