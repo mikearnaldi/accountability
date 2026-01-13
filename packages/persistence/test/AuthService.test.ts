@@ -47,7 +47,7 @@ import { AuthServiceLive } from "../src/Layers/AuthServiceLive.ts"
 import { LocalAuthProvider } from "../src/Services/LocalAuthProvider.ts"
 import { LocalAuthProviderLive } from "../src/Layers/LocalAuthProviderLive.ts"
 import { MigrationLayer } from "../src/Layers/MigrationsLive.ts"
-import { PgContainer } from "./Utils.ts"
+import { SharedPgClientLive } from "./Utils.ts"
 
 /**
  * Mock bcrypt adapter for testing
@@ -99,7 +99,7 @@ const RepositoriesLayer = Layer.mergeAll(
   SessionRepositoryLive
 ).pipe(
   Layer.provideMerge(MigrationLayer),
-  Layer.provideMerge(PgContainer.ClientLive)
+  Layer.provideMerge(SharedPgClientLive)
 )
 
 /**
@@ -185,14 +185,17 @@ const createTestLayer = (options: {
     })
   ).pipe(Layer.provide(LocalAuthLayer))
 
-  // Full AuthService layer with fresh composition
-  return Layer.fresh(
-    AuthServiceLive.pipe(
-      Layer.provideMerge(AuthConfigLayer),
-      Layer.provideMerge(SessionTokenGeneratorTestLive),
-      Layer.provideMerge(PasswordHasherTestLive),
-      Layer.provideMerge(LocalAuthLayer)
-    )
+  // Full AuthService layer
+  // NOTE: Layer.fresh() IS needed here because AuthServiceLive is a module-level constant.
+  // Layers are memoized by REFERENCE identity, not by their dependencies. Without fresh(),
+  // the first test to build AuthServiceLive memoizes it with its config, and subsequent
+  // tests reuse that memoized layer even when providing different configs.
+  // See specs/EFFECT_LAYERS.md for details on layer memoization semantics.
+  return Layer.fresh(AuthServiceLive).pipe(
+    Layer.provideMerge(AuthConfigLayer),
+    Layer.provideMerge(SessionTokenGeneratorTestLive),
+    Layer.provideMerge(PasswordHasherTestLive),
+    Layer.provideMerge(LocalAuthLayer)
   )
 }
 
@@ -423,15 +426,18 @@ describe("AuthServiceLive", () => {
         Effect.gen(function* () {
           const auth = yield* AuthService
 
+          // Use unique email to avoid conflicts with other test runs
+          const uniqueEmail = Email.make(`session.test.${Date.now()}@example.com`)
+
           // Register and login
           yield* auth.register(
-            Email.make("session.test@example.com"),
+            uniqueEmail,
             "ValidPass123",
             "Session Test User"
           )
 
           const request = LocalAuthRequest.make({
-            email: Email.make("session.test@example.com"),
+            email: uniqueEmail,
             password: Redacted.make("ValidPass123")
           })
 
@@ -440,7 +446,7 @@ describe("AuthServiceLive", () => {
           // Validate the session
           const validated = yield* auth.validateSession(session.id)
 
-          expect(validated.user.email).toBe("session.test@example.com")
+          expect(validated.user.email).toBe(uniqueEmail)
           expect(validated.session.id).toBe(session.id)
         })
       )
@@ -466,15 +472,18 @@ describe("AuthServiceLive", () => {
         Effect.gen(function* () {
           const auth = yield* AuthService
 
+          // Use unique email to avoid conflicts with other test runs
+          const uniqueEmail = Email.make(`logout.test.${Date.now()}@example.com`)
+
           // Register and login
           yield* auth.register(
-            Email.make("logout.test@example.com"),
+            uniqueEmail,
             "ValidPass123",
             "Logout Test User"
           )
 
           const request = LocalAuthRequest.make({
-            email: Email.make("logout.test@example.com"),
+            email: uniqueEmail,
             password: Redacted.make("ValidPass123")
           })
 
@@ -591,8 +600,12 @@ describe("AuthServiceLive", () => {
   })
 
   describe("Auto-Provisioning", () => {
-    // Test with auto-provisioning disabled
-    const TestLayerNoAutoProvision = createTestLayer({ autoProvisionUsers: false })
+    // Test with auto-provisioning disabled AND email linking disabled
+    // Both must be disabled to ensure login fails for non-existent users
+    const TestLayerNoAutoProvision = createTestLayer({
+      autoProvisionUsers: false,
+      linkIdentitiesByEmail: false
+    })
 
     it.layer(TestLayerNoAutoProvision, { timeout: "60 seconds" })("no-auto-provision", (it) => {
       it.effect("login: fails when user doesn't exist and auto-provision disabled", () =>
@@ -600,8 +613,10 @@ describe("AuthServiceLive", () => {
           const auth = yield* AuthService
 
           // Use a unique email that won't exist from other tests
+          // Combine timestamp with crypto-quality random for true uniqueness
+          const uniqueCode = `no-auto-provision-${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`
           const request = OAuthAuthRequest.make({
-            code: "no-auto-provision-unique-user-" + Date.now(),
+            code: uniqueCode,
             state: "some-state"
           })
 
@@ -652,8 +667,12 @@ describe("AuthServiceLive", () => {
       )
     })
 
-    // Test with email linking disabled
-    const TestLayerNoEmailLinking = createTestLayer({ linkIdentitiesByEmail: false })
+    // Test with email linking disabled but auto-provisioning enabled
+    // This tests that a new user can still be created via OAuth when no matching email exists
+    const TestLayerNoEmailLinking = createTestLayer({
+      linkIdentitiesByEmail: false,
+      autoProvisionUsers: true
+    })
 
     it.layer(TestLayerNoEmailLinking, { timeout: "60 seconds" })("no-email-linking", (it) => {
       it.effect("login: fails when email exists but linking disabled", () =>
@@ -661,20 +680,20 @@ describe("AuthServiceLive", () => {
           const auth = yield* AuthService
 
           // Use a unique suffix to avoid conflicts with other tests
-          const uniqueSuffix = Date.now().toString()
+          const uniqueSuffix = `nolink-${Date.now()}-${Math.random().toString(36).slice(2)}`
 
           // Create a user via local registration
           yield* auth.register(
-            Email.make(`nolink-${uniqueSuffix}@google.com`),
+            Email.make(`${uniqueSuffix}@google.com`),
             "ValidPass123",
             "No Link Test User"
           )
 
           // Login via Google with same email
           // When linkIdentitiesByEmail is false, the system will try to create a new user
-          // But since the email is unique, this should fail
+          // But since the email already exists, this should fail with a constraint violation
           const request = OAuthAuthRequest.make({
-            code: `nolink-${uniqueSuffix}`,
+            code: uniqueSuffix,
             state: "some-state"
           })
 
@@ -694,7 +713,7 @@ describe("AuthServiceLive", () => {
           const auth = yield* AuthService
 
           // Use a unique email that doesn't exist
-          const uniqueSuffix = `new-${Date.now()}`
+          const uniqueSuffix = `new-${Date.now()}-${Math.random().toString(36).slice(2)}`
           const request = OAuthAuthRequest.make({
             code: uniqueSuffix,
             state: "some-state"

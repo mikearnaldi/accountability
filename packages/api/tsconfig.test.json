@@ -1,6 +1,6 @@
 {
   "extends": "../../tsconfig.base.json",
-  "include": ["test"],
+  "include": ["test", "../../vitest.d.ts"],
   "references": [
     { "path": "tsconfig.src.json" }
   ],

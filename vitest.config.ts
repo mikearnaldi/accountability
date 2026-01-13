@@ -11,6 +11,7 @@ export default defineConfig({
     }
   },
   test: {
+    globalSetup: ["./vitest.global-setup.ts"],
     include: ["packages/**/test/**/*.test.ts", "packages/**/test/**/*.test.tsx"],
     exclude: [
       "repos/**",

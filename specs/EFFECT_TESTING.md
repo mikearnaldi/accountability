@@ -341,31 +341,71 @@ const TestLayer = RepositoriesLayer.pipe(
 - **Same isolation** - each test group still gets its own layer instances
 - **Migrations run per-block** - schema is set up fresh for each `it.layer` block
 
-## Layer.fresh: When NOT to Use
+## Layer.fresh: When to Use and When Not to Use
 
-**Common Misconception**: Using `Layer.fresh` in factory functions "to prevent memoization".
+### When Layer.fresh IS Needed
+
+**Scenario 1: Module-level constant layers with different configurations per test**
+
+When a layer like `AuthServiceLive` is defined as a module-level constant, it gets memoized by identity. If different tests provide different configs, the first test's config gets cached and reused:
 
 ```typescript
-// WRONG: Layer.fresh is unnecessary here!
-const createTestLayer = (options: Config) => {
-  return Layer.fresh(  // <- REMOVE THIS
-    ComposedLayer.pipe(...)
+// packages/persistence/src/Layers/AuthServiceLive.ts
+export const AuthServiceLive = Layer.effect(AuthService, make)  // Module-level constant!
+
+// packages/persistence/test/AuthService.test.ts
+const createTestLayer = (options: { autoProvisionUsers?: boolean }) => {
+  const AuthConfigLayer = Layer.effect(AuthServiceConfig, Effect.succeed({
+    autoProvisionUsers: options.autoProvisionUsers ?? true,
+    // ...
+  }))
+
+  // WRONG: AuthServiceLive is memoized - first test's config wins!
+  return AuthServiceLive.pipe(
+    Layer.provideMerge(AuthConfigLayer),
+    // ...
+  )
+}
+
+// CORRECT: Layer.fresh escapes memoization per test layer build
+const createTestLayer = (options: { autoProvisionUsers?: boolean }) => {
+  // ...
+  return Layer.fresh(AuthServiceLive).pipe(  // <- REQUIRED!
+    Layer.provideMerge(AuthConfigLayer),
+    // ...
   )
 }
 ```
 
-**Why it's wrong**: Factory functions already return NEW layer objects on each call. Memoization is identity-based (object reference). Different calls to `createTestLayer()` return different objects, so no memoization occurs between them anyway.
+**Scenario 2: Same layer reference twice in a composition**
 
-**When Layer.fresh IS needed**: Only when the **same layer reference** appears twice in a single composition and you want separate instances:
+When the same layer reference appears multiple times and you need separate instances:
 
 ```typescript
-// CORRECT use of Layer.fresh
 const sharedLayer = makeLayer()
 const needsBothInstances = Layer.merge(
   sharedLayer,                  // First instance
   Layer.fresh(sharedLayer)      // Force second instance
 )
 ```
+
+### When Layer.fresh is NOT Needed
+
+**Factory functions returning new compositions** - factory functions already return new objects:
+
+```typescript
+// WRONG: Layer.fresh is unnecessary here!
+const createTestLayer = () => {
+  // This creates a NEW Layer.mergeAll object each call - no memoization across calls
+  return Layer.fresh(  // <- REMOVE THIS, unnecessary
+    Layer.mergeAll(RepoA, RepoB).pipe(
+      Layer.provideMerge(SharedPgClientLive)
+    )
+  )
+}
+```
+
+**Why it's unnecessary**: Factory functions return NEW layer objects on each call. Memoization is identity-based, so different calls never share.
 
 See [EFFECT_LAYERS.md](./EFFECT_LAYERS.md) for complete details.
 
@@ -374,11 +414,13 @@ See [EFFECT_LAYERS.md](./EFFECT_LAYERS.md) for complete details.
 To switch from per-block containers to a shared container:
 
 1. **Create `vitest.global-setup.ts`** at project root (see template above)
-2. **Update `vitest.config.ts`** to add `globalSetup: ["./vitest.global-setup.ts"]`
-3. **Create `SharedPgClientLive`** layer in test utils that uses `inject("dbUrl")`
-4. **Update all test layers** to use `SharedPgClientLive` instead of `PgContainer.ClientLive`
-5. **Remove `Layer.fresh`** from `createTestLayer()` functions - it's unnecessary
-6. **Keep `MigrationLayer`** in test layer compositions - migrations will run once per `it.layer` block (idempotent)
+2. **Create `vitest.d.ts`** for TypeScript types - declare module "vitest" { export interface ProvidedContext { dbUrl: string } }
+3. **Update `vitest.config.ts`** to add `globalSetup: ["./vitest.global-setup.ts"]`
+4. **Create `SharedPgClientLive`** layer in test utils that uses `inject("dbUrl")`
+5. **Update all test layers** to use `SharedPgClientLive` instead of `PgContainer.ClientLive`
+6. **Use `Layer.fresh`** for module-level constant layers (like `AuthServiceLive`) when tests need different configs
+7. **Keep `MigrationLayer`** in test layer compositions - migrations will run once per `it.layer` block (idempotent)
+8. **Make test data unique** - use `Date.now()` and `Math.random()` for IDs/emails since all tests share one database
 
 ### Before and After
 
@@ -395,7 +437,7 @@ const RepositoriesLayer = Layer.mergeAll(
 
 const createTestLayer = (options = {}) => {
   // ...
-  return Layer.fresh(AuthServiceLive.pipe(...))  // <- Unnecessary!
+  return Layer.fresh(SomeComposedLayer.pipe(...))  // <- Unnecessary for composed layers!
 }
 
 // AFTER
@@ -410,6 +452,10 @@ const RepositoriesLayer = Layer.mergeAll(
 
 const createTestLayer = (options = {}) => {
   // ...
-  return AuthServiceLive.pipe(...)  // <- No Layer.fresh needed!
+  // Layer.fresh IS needed for module-level constant layers with different configs!
+  return Layer.fresh(AuthServiceLive).pipe(
+    Layer.provideMerge(AuthConfigLayer),  // Different configs per test
+    // ...
+  )
 }
 ```

@@ -847,7 +847,7 @@
         ],
         "why_layer_fresh_is_wrong": "The createTestLayer() function builds a NEW layer object on each call. Since memoization is identity-based, different calls never share. Layer.fresh() only escapes memoization within a single composition where the same reference appears multiple times - not across different factory calls."
       },
-      "status": "in_progress",
+      "status": "complete",
       "estimated_complexity": "medium"
     },
     {

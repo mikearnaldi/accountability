@@ -46,7 +46,7 @@ import { IntercompanyTransactionRepositoryLive } from "../src/Layers/Intercompan
 import { EliminationRuleRepository } from "../src/Services/EliminationRuleRepository.ts"
 import { EliminationRuleRepositoryLive } from "../src/Layers/EliminationRuleRepositoryLive.ts"
 import { MigrationLayer } from "../src/Layers/MigrationsLive.ts"
-import { PgContainer } from "./Utils.ts"
+import { SharedPgClientLive } from "./Utils.ts"
 import { FiscalYearId, FiscalPeriodId } from "@accountability/core/Services/PeriodService"
 import { ExchangeRateId } from "@accountability/core/Domains/ExchangeRate"
 import { ConsolidationGroupId, EliminationRuleId } from "@accountability/core/Domains/ConsolidationGroup"
@@ -82,7 +82,7 @@ const TestLayer = Layer.mergeAll(
   EliminationRuleRepositoryLive
 ).pipe(
   Layer.provideMerge(MigrationLayer),
-  Layer.provideMerge(PgContainer.ClientLive)
+  Layer.provideMerge(SharedPgClientLive)
 )
 
 // Test UUIDs - these are valid UUID format so validation passes
@@ -797,10 +797,12 @@ describe("Repositories", () => {
             'USD', 'USD', 12, 31, true, NOW()
           ) ON CONFLICT (id) DO NOTHING
         `
+        // Use the same fiscal year as FiscalPeriodRepository tests to avoid duplicate key constraint
+        // The testFiscalYearId2 is already created with company_id and year 2024 in FiscalPeriodRepository setup
         yield* sql`
           INSERT INTO fiscal_years (id, company_id, name, year, start_date, end_date, status, includes_adjustment_period, created_at)
-          VALUES ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', ${testCompanyId}, 'FY 2024', 2024, '2024-01-01', '2024-12-31', 'Open', false, NOW())
-          ON CONFLICT (id) DO NOTHING
+          VALUES (${testFiscalYearId2}, ${testCompanyId}, 'FY 2024', 2024, '2024-01-01', '2024-12-31', 'Open', false, NOW())
+          ON CONFLICT (id) DO UPDATE SET status = 'Open'
         `
         yield* sql`
           INSERT INTO journal_entries (

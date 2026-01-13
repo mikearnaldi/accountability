@@ -27,7 +27,7 @@ import { AppApiLive } from "@accountability/api/Layers/AppApiLive"
 import { RepositoriesWithAuthLive } from "@accountability/persistence/Layers/RepositoriesLive"
 import { MigrationLayer } from "@accountability/persistence/Layers/MigrationsLive"
 import { AccountId } from "@accountability/core/Domains/Account"
-import { PgContainer } from "./PgTestUtils.ts"
+import { SharedPgClientLive } from "./PgTestUtils.ts"
 
 // =============================================================================
 // Test Layer Setup
@@ -36,12 +36,12 @@ import { PgContainer } from "./PgTestUtils.ts"
 /**
  * DatabaseLayer - Provides PostgreSQL with migrations
  *
- * Uses testcontainers to spin up a real PostgreSQL instance,
+ * Uses the shared PostgreSQL container from globalSetup,
  * then runs all migrations to create the schema.
  */
 const DatabaseLayer = MigrationLayer.pipe(
   Layer.provideMerge(RepositoriesWithAuthLive),
-  Layer.provide(PgContainer.ClientLive)
+  Layer.provide(SharedPgClientLive)
 )
 
 /**
@@ -50,13 +50,13 @@ const DatabaseLayer = MigrationLayer.pipe(
  * Uses NodeHttpServer.layerTest which provides an in-memory HTTP server
  * for testing without binding to a real port.
  *
- * Uses real repositories with PostgreSQL database via testcontainers.
+ * Uses real repositories with the shared PostgreSQL container from globalSetup.
  *
  * Pattern: HttpApiBuilder.serve().pipe(
  *   Layer.provide(ApiLive),
  *   Layer.provide(RepositoriesLive),
  *   Layer.provide(MigrationLayer),
- *   Layer.provide(PgContainer.ClientLive),
+ *   Layer.provide(SharedPgClientLive),
  *   Layer.provideMerge(NodeHttpServer.layerTest)
  * )
  */

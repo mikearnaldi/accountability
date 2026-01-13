@@ -22,7 +22,7 @@ import { UserRepositoryLive } from "../src/Layers/UserRepositoryLive.ts"
 import { SessionRepository, type SessionInsert } from "../src/Services/SessionRepository.ts"
 import { SessionRepositoryLive } from "../src/Layers/SessionRepositoryLive.ts"
 import { MigrationLayer } from "../src/Layers/MigrationsLive.ts"
-import { PgContainer } from "./Utils.ts"
+import { SharedPgClientLive } from "./Utils.ts"
 
 /**
  * Layer with migrations and auth repositories
@@ -32,7 +32,7 @@ const TestLayer = Layer.mergeAll(
   SessionRepositoryLive
 ).pipe(
   Layer.provideMerge(MigrationLayer),
-  Layer.provideMerge(PgContainer.ClientLive)
+  Layer.provideMerge(SharedPgClientLive)
 )
 
 // Test IDs for auth entities
