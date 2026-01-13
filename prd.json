@@ -926,7 +926,7 @@
         "workos_sdk": "Use WorkOS REST API directly with HttpClient (no SDK dependency)",
         "endpoints": "Authorization URL, Token exchange, User info"
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "medium"
     },
     {

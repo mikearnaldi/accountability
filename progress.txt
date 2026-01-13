@@ -649,3 +649,8 @@
 **Story**: 8.5.3 - Write auth API endpoint tests
 **Status**: complete
 ---
+
+## Iteration 5 - 2026-01-13 14:34
+**Story**: 8.6.1 - Implement WorkOS AuthProvider
+**Status**: complete
+---
