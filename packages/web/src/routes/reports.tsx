@@ -1,10 +1,46 @@
-import { createFileRoute } from "@tanstack/react-router"
+/**
+ * Reports Page Route
+ *
+ * Route: /reports
+ *
+ * Protected route that displays available financial reports.
+ *
+ * @module routes/reports
+ */
+
+import { createFileRoute, redirect } from "@tanstack/react-router"
+import * as React from "react"
+import { AuthGuard } from "../components/AuthGuard.tsx"
 
 export const Route = createFileRoute("/reports")({
-  component: Reports
+  component: ReportsWithAuth,
+  beforeLoad: async () => {
+    // Quick client-side check for auth token
+    if (typeof window !== "undefined") {
+      const token = window.localStorage.getItem("accountability_auth_token")
+      if (!token) {
+        throw redirect({
+          to: "/login",
+          search: { redirect: "/reports" },
+          replace: true
+        })
+      }
+    }
+  }
 })
 
-function Reports() {
+/**
+ * Wrapper component that adds AuthGuard protection
+ */
+function ReportsWithAuth(): React.ReactElement {
+  return (
+    <AuthGuard redirectTo="/reports">
+      <Reports />
+    </AuthGuard>
+  )
+}
+
+function Reports(): React.ReactElement {
   return (
     <div>
       <h1>Reports</h1>

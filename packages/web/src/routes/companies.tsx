@@ -11,7 +11,7 @@
  * @module routes/companies
  */
 
-import { createFileRoute, Link } from "@tanstack/react-router"
+import { createFileRoute, Link, redirect } from "@tanstack/react-router"
 import * as React from "react"
 import { useAtomValue, useAtom } from "@effect-atom/atom-react"
 import * as Atom from "@effect-atom/atom/Atom"
@@ -22,10 +22,35 @@ import type { OrganizationId } from "@accountability/core/Domains/Organization"
 import { OrganizationId as OrganizationIdSchema } from "@accountability/core/Domains/Organization"
 import { ApiClient } from "../atoms/ApiClient.ts"
 import { organizationsAtom } from "../atoms/companies.ts"
+import { AuthGuard } from "../components/AuthGuard.tsx"
 
 export const Route = createFileRoute("/companies")({
-  component: Companies
+  component: CompaniesWithAuth,
+  beforeLoad: async () => {
+    // Quick client-side check for auth token
+    if (typeof window !== "undefined") {
+      const token = window.localStorage.getItem("accountability_auth_token")
+      if (!token) {
+        throw redirect({
+          to: "/login",
+          search: { redirect: "/companies" },
+          replace: true
+        })
+      }
+    }
+  }
 })
+
+/**
+ * Wrapper component that adds AuthGuard protection
+ */
+function CompaniesWithAuth(): React.ReactElement {
+  return (
+    <AuthGuard redirectTo="/companies">
+      <Companies />
+    </AuthGuard>
+  )
+}
 
 // =============================================================================
 // Atoms

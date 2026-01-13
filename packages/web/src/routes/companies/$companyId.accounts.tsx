@@ -12,7 +12,7 @@
  * @module routes/companies/$companyId.accounts
  */
 
-import { createFileRoute } from "@tanstack/react-router"
+import { createFileRoute, redirect } from "@tanstack/react-router"
 import * as React from "react"
 import { useAtomValue, useAtomSet, useAtom } from "@effect-atom/atom-react"
 import * as Atom from "@effect-atom/atom/Atom"
@@ -40,14 +40,40 @@ import {
   filterBySearch,
   type AccountWithDepth
 } from "../../components/AccountSelectorUtils.ts"
+import { AuthGuard } from "../../components/AuthGuard.tsx"
 
 // =============================================================================
 // Route Definition
 // =============================================================================
 
 export const Route = createFileRoute("/companies/$companyId/accounts")({
-  component: ChartOfAccountsPage
+  component: ChartOfAccountsPageWithAuth,
+  beforeLoad: async ({ params }) => {
+    // Quick client-side check for auth token
+    if (typeof window !== "undefined") {
+      const token = window.localStorage.getItem("accountability_auth_token")
+      if (!token) {
+        throw redirect({
+          to: "/login",
+          search: { redirect: `/companies/${params.companyId}/accounts` },
+          replace: true
+        })
+      }
+    }
+  }
 })
+
+/**
+ * Wrapper component that adds AuthGuard protection
+ */
+function ChartOfAccountsPageWithAuth(): React.ReactElement {
+  const { companyId } = Route.useParams()
+  return (
+    <AuthGuard redirectTo={`/companies/${companyId}/accounts`}>
+      <ChartOfAccountsPage />
+    </AuthGuard>
+  )
+}
 
 // =============================================================================
 // Atoms for this page

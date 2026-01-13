@@ -13,7 +13,7 @@
  * @module routes/companies/$companyId.journal-entries.new
  */
 
-import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { createFileRoute, useNavigate, redirect } from "@tanstack/react-router"
 import * as React from "react"
 import { useAtomValue, useAtomSet } from "@effect-atom/atom-react"
 import * as Result from "@effect-atom/atom/Result"
@@ -42,14 +42,40 @@ import {
   type JournalEntryFormLine,
   type JournalEntryFormErrors
 } from "../../atoms/journalEntries.ts"
+import { AuthGuard } from "../../components/AuthGuard.tsx"
 
 // =============================================================================
 // Route Definition
 // =============================================================================
 
 export const Route = createFileRoute("/companies/$companyId/journal-entries/new")({
-  component: NewJournalEntryPage
+  component: NewJournalEntryPageWithAuth,
+  beforeLoad: async ({ params }) => {
+    // Quick client-side check for auth token
+    if (typeof window !== "undefined") {
+      const token = window.localStorage.getItem("accountability_auth_token")
+      if (!token) {
+        throw redirect({
+          to: "/login",
+          search: { redirect: `/companies/${params.companyId}/journal-entries/new` },
+          replace: true
+        })
+      }
+    }
+  }
 })
+
+/**
+ * Wrapper component that adds AuthGuard protection
+ */
+function NewJournalEntryPageWithAuth(): React.ReactElement {
+  const { companyId } = Route.useParams()
+  return (
+    <AuthGuard redirectTo={`/companies/${companyId}/journal-entries/new`}>
+      <NewJournalEntryPage />
+    </AuthGuard>
+  )
+}
 
 // =============================================================================
 // Types

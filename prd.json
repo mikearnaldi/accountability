@@ -728,7 +728,7 @@
         "pattern": "TanStack Router beforeLoad or component wrapper",
         "redirect_param": "?redirect=/intended/path stored for post-login"
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "medium"
     },
     {

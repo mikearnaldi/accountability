@@ -13,7 +13,7 @@
  * @module routes/companies/$companyId.reports
  */
 
-import { createFileRoute, Link } from "@tanstack/react-router"
+import { createFileRoute, Link, redirect } from "@tanstack/react-router"
 import * as React from "react"
 import { useAtomValue, useAtom } from "@effect-atom/atom-react"
 import * as Atom from "@effect-atom/atom/Atom"
@@ -40,14 +40,40 @@ import type {
   LineItemStyle
 } from "@accountability/api/Definitions/ReportsApi"
 import { ApiClient } from "../../atoms/ApiClient.ts"
+import { AuthGuard } from "../../components/AuthGuard.tsx"
 
 // =============================================================================
 // Route Definition
 // =============================================================================
 
 export const Route = createFileRoute("/companies/$companyId/reports")({
-  component: ReportViewerPage
+  component: ReportViewerPageWithAuth,
+  beforeLoad: async ({ params }) => {
+    // Quick client-side check for auth token
+    if (typeof window !== "undefined") {
+      const token = window.localStorage.getItem("accountability_auth_token")
+      if (!token) {
+        throw redirect({
+          to: "/login",
+          search: { redirect: `/companies/${params.companyId}/reports` },
+          replace: true
+        })
+      }
+    }
+  }
 })
+
+/**
+ * Wrapper component that adds AuthGuard protection
+ */
+function ReportViewerPageWithAuth(): React.ReactElement {
+  const { companyId } = Route.useParams()
+  return (
+    <AuthGuard redirectTo={`/companies/${companyId}/reports`}>
+      <ReportViewerPage />
+    </AuthGuard>
+  )
+}
 
 // =============================================================================
 // Types
