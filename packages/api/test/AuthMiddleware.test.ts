@@ -6,13 +6,22 @@
  * - User schema works correctly
  * - TokenValidator validates tokens correctly
  * - SimpleTokenValidatorLive handles various token formats
+ * - SessionTokenValidatorLive validates sessions against the database
  * - UnauthorizedError is returned for invalid/missing tokens
  */
 
 import { describe, expect, it, layer } from "@effect/vitest"
+import * as Chunk from "effect/Chunk"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
+import * as Option from "effect/Option"
 import * as Redacted from "effect/Redacted"
+import { AuthUser } from "@accountability/core/Auth/AuthUser"
+import { AuthUserId } from "@accountability/core/Auth/AuthUserId"
+import { Email } from "@accountability/core/Auth/Email"
+import { Session } from "@accountability/core/Auth/Session"
+import { SessionId } from "@accountability/core/Auth/SessionId"
+import { Timestamp } from "@accountability/core/Domains/Timestamp"
 import {
   AuthMiddleware,
   CurrentUser,
@@ -23,10 +32,21 @@ import type { TokenValidatorService } from "@accountability/api/Definitions/Auth
 import {
   AuthMiddlewareLive,
   AuthMiddlewareWithSimpleValidation,
+  AuthMiddlewareWithSessionValidation,
+  SessionTokenValidatorLive,
   SimpleTokenValidatorLive
 } from "@accountability/api/Layers/AuthMiddlewareLive"
 import { UnauthorizedError } from "@accountability/api/Definitions/ApiErrors"
 import { AppApi } from "@accountability/api/Definitions/AppApi"
+import {
+  SessionRepository,
+  type SessionRepositoryService
+} from "@accountability/persistence/Services/SessionRepository"
+import {
+  UserRepository,
+  type UserRepositoryService
+} from "@accountability/persistence/Services/UserRepository"
+import { PersistenceError } from "@accountability/persistence/Errors/RepositoryError"
 
 describe("AuthMiddleware", () => {
   describe("User", () => {
@@ -311,6 +331,472 @@ describe("API Groups with AuthMiddleware", () => {
     it("should not apply middleware to HealthApi", () => {
       // Health endpoint should remain public for load balancers etc.
       expect(AppApi).toBeDefined()
+    })
+  })
+})
+
+// =============================================================================
+// SessionTokenValidator Tests
+// =============================================================================
+
+describe("SessionTokenValidatorLive", () => {
+  // Test data factory helpers
+  const now = Timestamp.make({ epochMillis: Date.now() })
+  const futureTime = Timestamp.make({ epochMillis: Date.now() + 3600000 }) // 1 hour from now
+  const pastTime = Timestamp.make({ epochMillis: Date.now() - 3600000 }) // 1 hour ago
+
+  // Use valid UUIDs for IDs
+  const testUserId = AuthUserId.make("550e8400-e29b-41d4-a716-446655440000")
+  // SessionId requires at least 32 characters
+  const testSessionId = SessionId.make("test-session-token-abc123def456-extended")
+
+  const testAuthUser = AuthUser.make({
+    id: testUserId,
+    email: Email.make("test@example.com"),
+    displayName: "Test User",
+    role: "member",
+    primaryProvider: "local",
+    createdAt: now,
+    updatedAt: now
+  })
+
+  const testSession = Session.make({
+    id: testSessionId,
+    userId: testUserId,
+    provider: "local",
+    expiresAt: futureTime,
+    createdAt: now,
+    userAgent: Option.none()
+  })
+
+  // SessionId must be at least 32 characters
+  const expiredSessionId = "expired-session-token-32chars-min"
+  const expiredSession = Session.make({
+    id: SessionId.make(expiredSessionId),
+    userId: testUserId,
+    provider: "local",
+    expiresAt: pastTime,
+    createdAt: Timestamp.make({ epochMillis: Date.now() - 7200000 }),
+    userAgent: Option.none()
+  })
+
+  // Mock SessionRepository
+  const makeSessionRepoMock = (
+    sessions: Map<string, Session>
+  ): SessionRepositoryService => ({
+    findById: (id) =>
+      Effect.succeed(Option.fromNullable(sessions.get(id))),
+    findByUserId: (userId) =>
+      Effect.succeed(
+        Chunk.fromIterable(
+          Array.from(sessions.values()).filter((s) => s.userId === userId)
+        )
+      ),
+    create: (session) =>
+      Effect.succeed(
+        Session.make({
+          id: session.id,
+          userId: session.userId,
+          provider: session.provider,
+          expiresAt: session.expiresAt,
+          createdAt: now,
+          userAgent: session.userAgent
+        })
+      ),
+    delete: () => Effect.void,
+    deleteExpired: () => Effect.succeed(0),
+    deleteByUserId: () => Effect.succeed(0),
+    updateExpiry: (_id, expiresAt) =>
+      Effect.succeed(
+        Session.make({
+          id: testSessionId,
+          userId: testUserId,
+          provider: "local",
+          expiresAt,
+          createdAt: now,
+          userAgent: Option.none()
+        })
+      )
+  })
+
+  // Mock UserRepository
+  const makeUserRepoMock = (
+    users: Map<string, AuthUser>
+  ): UserRepositoryService => ({
+    findById: (id) =>
+      Effect.succeed(Option.fromNullable(users.get(id))),
+    findByEmail: (email) =>
+      Effect.succeed(
+        Option.fromNullable(
+          Array.from(users.values()).find((u) => u.email === email)
+        )
+      ),
+    create: (user) =>
+      Effect.succeed(
+        AuthUser.make({
+          id: user.id,
+          email: user.email,
+          displayName: user.displayName,
+          role: user.role,
+          primaryProvider: user.primaryProvider,
+          createdAt: now,
+          updatedAt: now
+        })
+      ),
+    update: (_id, _data) => Effect.succeed(testAuthUser),
+    delete: () => Effect.void
+  })
+
+  // Create test layer with valid session and user
+  const validSessionTestLayer = SessionTokenValidatorLive.pipe(
+    Layer.provide(
+      Layer.mergeAll(
+        Layer.succeed(
+          SessionRepository,
+          makeSessionRepoMock(new Map([[testSessionId, testSession]]))
+        ),
+        Layer.succeed(
+          UserRepository,
+          makeUserRepoMock(new Map([[testUserId, testAuthUser]]))
+        )
+      )
+    )
+  )
+
+  // Create test layer with expired session
+  const expiredSessionTestLayer = SessionTokenValidatorLive.pipe(
+    Layer.provide(
+      Layer.mergeAll(
+        Layer.succeed(
+          SessionRepository,
+          makeSessionRepoMock(new Map([[expiredSessionId, expiredSession]]))
+        ),
+        Layer.succeed(
+          UserRepository,
+          makeUserRepoMock(new Map([[testUserId, testAuthUser]]))
+        )
+      )
+    )
+  )
+
+  // Create test layer with no sessions (empty)
+  const noSessionTestLayer = SessionTokenValidatorLive.pipe(
+    Layer.provide(
+      Layer.mergeAll(
+        Layer.succeed(SessionRepository, makeSessionRepoMock(new Map())),
+        Layer.succeed(
+          UserRepository,
+          makeUserRepoMock(new Map([[testUserId, testAuthUser]]))
+        )
+      )
+    )
+  )
+
+  // Create test layer with session but no user
+  const sessionNoUserTestLayer = SessionTokenValidatorLive.pipe(
+    Layer.provide(
+      Layer.mergeAll(
+        Layer.succeed(
+          SessionRepository,
+          makeSessionRepoMock(new Map([[testSessionId, testSession]]))
+        ),
+        Layer.succeed(UserRepository, makeUserRepoMock(new Map()))
+      )
+    )
+  )
+
+  describe("Valid session validation", () => {
+    layer(validSessionTestLayer)("Session validation", (it) => {
+      it.effect("should validate a valid session token", () =>
+        Effect.gen(function* () {
+          const validator = yield* TokenValidator
+          const token = Redacted.make(testSessionId)
+          const user = yield* validator.validate(token)
+
+          expect(user.userId).toBe(testUserId)
+          expect(user.role).toBe("user") // "member" maps to "user"
+          expect(user.sessionId).toBe(testSessionId)
+        })
+      )
+    })
+  })
+
+  describe("Invalid/expired session handling", () => {
+    layer(expiredSessionTestLayer)("Expired session", (it) => {
+      it.effect("should reject expired session", () =>
+        Effect.gen(function* () {
+          const validator = yield* TokenValidator
+          const token = Redacted.make(expiredSessionId)
+          const result = yield* Effect.either(validator.validate(token))
+
+          expect(result._tag).toBe("Left")
+          if (result._tag === "Left") {
+            expect(result.left.message).toBe("Session has expired")
+          }
+        })
+      )
+    })
+
+    layer(noSessionTestLayer)("Non-existent session", (it) => {
+      it.effect("should reject non-existent session", () =>
+        Effect.gen(function* () {
+          const validator = yield* TokenValidator
+          // Use a valid 32+ character token that doesn't exist in the session map
+          const token = Redacted.make("non-existent-session-token-32chars")
+          const result = yield* Effect.either(validator.validate(token))
+
+          expect(result._tag).toBe("Left")
+          if (result._tag === "Left") {
+            expect(result.left.message).toBe("Invalid or expired session")
+          }
+        })
+      )
+    })
+
+    layer(sessionNoUserTestLayer)("Session with missing user", (it) => {
+      it.effect("should reject session when user not found", () =>
+        Effect.gen(function* () {
+          const validator = yield* TokenValidator
+          const token = Redacted.make(testSessionId)
+          const result = yield* Effect.either(validator.validate(token))
+
+          expect(result._tag).toBe("Left")
+          if (result._tag === "Left") {
+            expect(result.left.message).toBe("User not found")
+          }
+        })
+      )
+    })
+  })
+
+  describe("Empty/invalid token handling", () => {
+    layer(validSessionTestLayer)("Empty token", (it) => {
+      it.effect("should reject empty token", () =>
+        Effect.gen(function* () {
+          const validator = yield* TokenValidator
+          const token = Redacted.make("")
+          const result = yield* Effect.either(validator.validate(token))
+
+          expect(result._tag).toBe("Left")
+          if (result._tag === "Left") {
+            expect(result.left.message).toBe("Bearer token is required")
+          }
+        })
+      )
+
+      it.effect("should reject whitespace-only token", () =>
+        Effect.gen(function* () {
+          const validator = yield* TokenValidator
+          const token = Redacted.make("   ")
+          const result = yield* Effect.either(validator.validate(token))
+
+          expect(result._tag).toBe("Left")
+          if (result._tag === "Left") {
+            expect(result.left.message).toBe("Bearer token is required")
+          }
+        })
+      )
+    })
+  })
+
+  describe("User role mapping", () => {
+    // UUID prefixes for each role (using different last digit to make unique)
+    const roleUuids: Record<"admin" | "owner" | "member" | "viewer", string> = {
+      admin: "550e8400-e29b-41d4-a716-446655440001",
+      owner: "550e8400-e29b-41d4-a716-446655440002",
+      member: "550e8400-e29b-41d4-a716-446655440003",
+      viewer: "550e8400-e29b-41d4-a716-446655440004"
+    }
+
+    // Session IDs (must be at least 32 chars)
+    const roleSessionIds: Record<"admin" | "owner" | "member" | "viewer", string> = {
+      admin: "session-admin-token-32chars-minlen",
+      owner: "session-owner-token-32chars-minlen",
+      member: "session-member-token-32chars-minlen",
+      viewer: "session-viewer-token-32chars-minlen"
+    }
+
+    // Test each role mapping
+    const makeRoleTestLayer = (role: "admin" | "owner" | "member" | "viewer") => {
+      const userWithRole = AuthUser.make({
+        ...testAuthUser,
+        id: AuthUserId.make(roleUuids[role]),
+        role
+      })
+      const sessionForUser = Session.make({
+        id: SessionId.make(roleSessionIds[role]),
+        userId: userWithRole.id,
+        provider: "local",
+        expiresAt: futureTime,
+        createdAt: now,
+        userAgent: Option.none()
+      })
+      return SessionTokenValidatorLive.pipe(
+        Layer.provide(
+          Layer.mergeAll(
+            Layer.succeed(
+              SessionRepository,
+              makeSessionRepoMock(new Map([[roleSessionIds[role], sessionForUser]]))
+            ),
+            Layer.succeed(
+              UserRepository,
+              makeUserRepoMock(new Map([[roleUuids[role], userWithRole]]))
+            )
+          )
+        )
+      )
+    }
+
+    layer(makeRoleTestLayer("admin"))("Admin role", (it) => {
+      it.effect("should map admin to admin", () =>
+        Effect.gen(function* () {
+          const validator = yield* TokenValidator
+          const token = Redacted.make(roleSessionIds.admin)
+          const user = yield* validator.validate(token)
+          expect(user.role).toBe("admin")
+        })
+      )
+    })
+
+    layer(makeRoleTestLayer("owner"))("Owner role", (it) => {
+      it.effect("should map owner to admin", () =>
+        Effect.gen(function* () {
+          const validator = yield* TokenValidator
+          const token = Redacted.make(roleSessionIds.owner)
+          const user = yield* validator.validate(token)
+          expect(user.role).toBe("admin")
+        })
+      )
+    })
+
+    layer(makeRoleTestLayer("member"))("Member role", (it) => {
+      it.effect("should map member to user", () =>
+        Effect.gen(function* () {
+          const validator = yield* TokenValidator
+          const token = Redacted.make(roleSessionIds.member)
+          const user = yield* validator.validate(token)
+          expect(user.role).toBe("user")
+        })
+      )
+    })
+
+    layer(makeRoleTestLayer("viewer"))("Viewer role", (it) => {
+      it.effect("should map viewer to readonly", () =>
+        Effect.gen(function* () {
+          const validator = yield* TokenValidator
+          const token = Redacted.make(roleSessionIds.viewer)
+          const user = yield* validator.validate(token)
+          expect(user.role).toBe("readonly")
+        })
+      )
+    })
+  })
+
+  describe("Layer composition", () => {
+    it("should compose with AuthMiddlewareLive", () => {
+      // Type-level test - if this compiles, the layers are composable
+      expect(SessionTokenValidatorLive).toBeDefined()
+      expect(AuthMiddlewareWithSessionValidation).toBeDefined()
+    })
+
+    it("should require SessionRepository and UserRepository", () => {
+      // This is verified by the Layer type signature:
+      // Layer<TokenValidator, never, SessionRepository | UserRepository>
+      const _layer: Layer.Layer<
+        TokenValidator,
+        never,
+        SessionRepository | UserRepository
+      > = SessionTokenValidatorLive
+      expect(_layer).toBeDefined()
+    })
+  })
+
+  describe("Database error handling", () => {
+    // Test layer that simulates database errors
+    const dbErrorSessionRepo: SessionRepositoryService = {
+      findById: () =>
+        Effect.fail(new PersistenceError({ operation: "findById", cause: new Error("DB error") })),
+      findByUserId: () =>
+        Effect.fail(new PersistenceError({ operation: "findByUserId", cause: new Error("DB error") })),
+      create: () =>
+        Effect.fail(new PersistenceError({ operation: "create", cause: new Error("DB error") })),
+      delete: () =>
+        Effect.fail(new PersistenceError({ operation: "delete", cause: new Error("DB error") })),
+      deleteExpired: () =>
+        Effect.fail(new PersistenceError({ operation: "deleteExpired", cause: new Error("DB error") })),
+      deleteByUserId: () =>
+        Effect.fail(new PersistenceError({ operation: "deleteByUserId", cause: new Error("DB error") })),
+      updateExpiry: () =>
+        Effect.fail(new PersistenceError({ operation: "updateExpiry", cause: new Error("DB error") }))
+    }
+
+    const dbErrorTestLayer = SessionTokenValidatorLive.pipe(
+      Layer.provide(
+        Layer.mergeAll(
+          Layer.succeed(SessionRepository, dbErrorSessionRepo),
+          Layer.succeed(
+            UserRepository,
+            makeUserRepoMock(new Map([[testUserId, testAuthUser]]))
+          )
+        )
+      )
+    )
+
+    layer(dbErrorTestLayer)("Database errors", (it) => {
+      it.effect("should return UnauthorizedError for session lookup failures", () =>
+        Effect.gen(function* () {
+          const validator = yield* TokenValidator
+          // Use a valid 32+ character token to test db error handling
+          const token = Redacted.make("any-token-that-is-32-chars-long-x")
+          const result = yield* Effect.either(validator.validate(token))
+
+          expect(result._tag).toBe("Left")
+          if (result._tag === "Left") {
+            expect(result.left.message).toBe("Session validation failed")
+          }
+        })
+      )
+    })
+
+    // Test user lookup failure
+    const dbErrorUserRepo: UserRepositoryService = {
+      findById: () =>
+        Effect.fail(new PersistenceError({ operation: "findById", cause: new Error("DB error") })),
+      findByEmail: () =>
+        Effect.fail(new PersistenceError({ operation: "findByEmail", cause: new Error("DB error") })),
+      create: () =>
+        Effect.fail(new PersistenceError({ operation: "create", cause: new Error("DB error") })),
+      update: () =>
+        Effect.fail(new PersistenceError({ operation: "update", cause: new Error("DB error") })),
+      delete: () =>
+        Effect.fail(new PersistenceError({ operation: "delete", cause: new Error("DB error") }))
+    }
+
+    const userDbErrorTestLayer = SessionTokenValidatorLive.pipe(
+      Layer.provide(
+        Layer.mergeAll(
+          Layer.succeed(
+            SessionRepository,
+            makeSessionRepoMock(new Map([[testSessionId, testSession]]))
+          ),
+          Layer.succeed(UserRepository, dbErrorUserRepo)
+        )
+      )
+    )
+
+    layer(userDbErrorTestLayer)("User database errors", (it) => {
+      it.effect("should return UnauthorizedError for user lookup failures", () =>
+        Effect.gen(function* () {
+          const validator = yield* TokenValidator
+          const token = Redacted.make(testSessionId)
+          const result = yield* Effect.either(validator.validate(token))
+
+          expect(result._tag).toBe("Left")
+          if (result._tag === "Left") {
+            expect(result.left.message).toBe("User validation failed")
+          }
+        })
+      )
     })
   })
 })

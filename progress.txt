@@ -584,3 +584,8 @@
 **Story**: 8.3.2 - Implement AuthApiLive handlers
 **Status**: complete
 ---
+
+## Iteration 2 - 2026-01-13 10:26
+**Story**: 8.3.3 - Update TokenValidator to use sessions
+**Status**: complete
+---

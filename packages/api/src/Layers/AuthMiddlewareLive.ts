@@ -9,7 +9,14 @@
 
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
+import * as Option from "effect/Option"
 import * as Redacted from "effect/Redacted"
+import * as Schema from "effect/Schema"
+import type { UserRole } from "@accountability/core/Auth/AuthUser"
+import { SessionId } from "@accountability/core/Auth/SessionId"
+import * as Timestamp from "@accountability/core/Domains/Timestamp"
+import { SessionRepository } from "@accountability/persistence/Services/SessionRepository"
+import { UserRepository } from "@accountability/persistence/Services/UserRepository"
 import { UnauthorizedError } from "../Definitions/ApiErrors.ts"
 import {
   AuthMiddleware,
@@ -113,3 +120,150 @@ export const SimpleTokenValidatorLive: Layer.Layer<TokenValidator> = Layer.succe
  */
 export const AuthMiddlewareWithSimpleValidation: Layer.Layer<AuthMiddleware> =
   AuthMiddlewareLive.pipe(Layer.provide(SimpleTokenValidatorLive))
+
+// =============================================================================
+// Session Token Validator (Database-backed)
+// =============================================================================
+
+/**
+ * Map database UserRole to middleware User role
+ *
+ * The auth database uses a more granular role system (admin, owner, member, viewer)
+ * while the middleware uses a simpler role system (admin, user, readonly).
+ *
+ * @param role - The database UserRole
+ * @returns The middleware role
+ */
+const mapUserRole = (role: UserRole): "admin" | "user" | "readonly" => {
+  switch (role) {
+    case "admin":
+    case "owner":
+      return "admin"
+    case "member":
+      return "user"
+    case "viewer":
+      return "readonly"
+  }
+}
+
+/**
+ * SessionTokenValidator - Session-based token validation against the database
+ *
+ * This implementation:
+ * 1. Validates the token exists as a session ID in the auth_sessions table
+ * 2. Checks the session has not expired
+ * 3. Loads the full user from the auth_users table
+ * 4. Maps the database user to the CurrentUser service
+ *
+ * Use this in production for secure session-based authentication.
+ *
+ * Requires: SessionRepository, UserRepository
+ */
+const makeSessionTokenValidator = Effect.gen(function* () {
+  const sessionRepo = yield* SessionRepository
+  const userRepo = yield* UserRepository
+
+  const validate: TokenValidatorService["validate"] = (token) =>
+    Effect.gen(function* () {
+      const tokenValue = Redacted.value(token)
+
+      // Check for valid token
+      if (!tokenValue || tokenValue.trim() === "") {
+        return yield* Effect.fail(
+          new UnauthorizedError({ message: "Bearer token is required" })
+        )
+      }
+
+      // Validate and create a SessionId from the token
+      // Using decodeUnknown to gracefully handle invalid token formats
+      const sessionId = yield* Schema.decodeUnknown(SessionId)(tokenValue).pipe(
+        Effect.mapError(() =>
+          new UnauthorizedError({ message: "Invalid session token format" })
+        )
+      )
+
+      // Look up the session in the database
+      const maybeSession = yield* sessionRepo.findById(sessionId).pipe(
+        Effect.mapError(() =>
+          new UnauthorizedError({ message: "Session validation failed" })
+        )
+      )
+
+      // Check if session exists
+      if (Option.isNone(maybeSession)) {
+        return yield* Effect.fail(
+          new UnauthorizedError({ message: "Invalid or expired session" })
+        )
+      }
+
+      const session = maybeSession.value
+
+      // Check if session has expired
+      const now = Timestamp.now()
+      if (session.isExpired(now)) {
+        return yield* Effect.fail(
+          new UnauthorizedError({ message: "Session has expired" })
+        )
+      }
+
+      // Load the full user from the database
+      const maybeUser = yield* userRepo.findById(session.userId).pipe(
+        Effect.mapError(() =>
+          new UnauthorizedError({ message: "User validation failed" })
+        )
+      )
+
+      // Check if user exists
+      if (Option.isNone(maybeUser)) {
+        return yield* Effect.fail(
+          new UnauthorizedError({ message: "User not found" })
+        )
+      }
+
+      const authUser = maybeUser.value
+
+      // Map database user to CurrentUser
+      return User.make({
+        userId: authUser.id,
+        role: mapUserRole(authUser.role),
+        sessionId: session.id
+      })
+    })
+
+  return { validate } satisfies TokenValidatorService
+})
+
+/**
+ * SessionTokenValidatorLive - Layer providing SessionTokenValidator
+ *
+ * Requires: SessionRepository, UserRepository
+ *
+ * Usage:
+ * ```typescript
+ * const AuthMiddlewareWithSessionValidation = AuthMiddlewareLive.pipe(
+ *   Layer.provide(SessionTokenValidatorLive),
+ *   Layer.provide(SessionRepositoryLive),
+ *   Layer.provide(UserRepositoryLive),
+ *   Layer.provide(PgClient.layer(...))
+ * )
+ * ```
+ */
+export const SessionTokenValidatorLive: Layer.Layer<
+  TokenValidator,
+  never,
+  SessionRepository | UserRepository
+> = Layer.effect(TokenValidator, makeSessionTokenValidator)
+
+/**
+ * AuthMiddlewareWithSessionValidation - Convenience layer that combines
+ * AuthMiddlewareLive with SessionTokenValidatorLive
+ *
+ * Requires: SessionRepository, UserRepository
+ *
+ * Use this in production for session-based authentication.
+ */
+export const AuthMiddlewareWithSessionValidation: Layer.Layer<
+  AuthMiddleware,
+  never,
+  SessionRepository | UserRepository
+> = AuthMiddlewareLive.pipe(Layer.provide(SessionTokenValidatorLive))
