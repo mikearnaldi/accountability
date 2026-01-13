@@ -3,7 +3,10 @@
 # Ralph Loop - Long-running AI coding agent orchestrator
 # Based on the Ralph Wiggum approach for autonomous coding agents
 #
-# Usage: ./ralph.sh [max_iterations]
+# Usage: ./ralph.sh [options] [max_iterations]
+#
+# Options:
+#   --e2e    Run E2E tests as part of CI checks (slower but more thorough)
 #
 # This script runs Claude Code in a loop, having it work through
 # a PRD of user stories until all are complete or max iterations reached.
@@ -13,8 +16,24 @@
 
 set -e
 
+# Parse arguments
+RUN_E2E=false
+MAX_ITERATIONS=10
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --e2e)
+            RUN_E2E=true
+            shift
+            ;;
+        *)
+            MAX_ITERATIONS=$1
+            shift
+            ;;
+    esac
+done
+
 # Configuration
-MAX_ITERATIONS=${1:-10}
 PRD_FILE="prd.json"
 PROGRESS_FILE="progress.txt"
 PROMPT_FILE="RALPH_PROMPT.md"
@@ -238,6 +257,19 @@ run_ci_checks() {
         else
             echo -e "${RED}Tests failed${NC}"
             ci_failed=1
+        fi
+
+        # E2E Testing (optional)
+        if [ "$RUN_E2E" = true ]; then
+            echo ""
+            echo "5. Running E2E Tests..."
+            echo "-----------------------"
+            if pnpm test:e2e 2>&1; then
+                echo -e "${GREEN}E2E tests passed${NC}"
+            else
+                echo -e "${RED}E2E tests failed${NC}"
+                ci_failed=1
+            fi
         fi
 
         # Summary
