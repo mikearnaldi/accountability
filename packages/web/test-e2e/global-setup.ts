@@ -27,6 +27,7 @@ interface ContainerInfo {
 }
 
 export default async function globalSetup() {
+  console.log(">>> GLOBAL SETUP STARTING <<<")
   console.log("Starting PostgreSQL container for E2E tests...")
 
   // Start PostgreSQL container

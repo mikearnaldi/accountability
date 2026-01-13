@@ -1214,7 +1214,7 @@
         "location": "packages/web/tests/auth/login.spec.ts",
         "pattern": "Use auth fixtures, test UI + redirects"
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "small"
     },
     {

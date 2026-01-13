@@ -26,8 +26,7 @@ export default defineConfig({
   // Reporter configuration
   reporter: [["html", { open: "never" }], ["list"]],
 
-  // Global setup/teardown for testcontainers
-  globalSetup: "./test-e2e/global-setup.ts",
+  // Global teardown for cleanup (setup is done by webServer command)
   globalTeardown: "./test-e2e/global-teardown.ts",
 
   // Timeout for each test
@@ -53,12 +52,12 @@ export default defineConfig({
   },
 
   // Web server configuration - builds and runs preview server
-  // The start-server.sh script reads DATABASE_URL from .env.test
+  // The start-server script handles both setup (container/migrations) and server start
   webServer: {
-    command: `bash test-e2e/start-server.sh`,
+    command: `npx tsx test-e2e/start-server-with-db.ts`,
     url: baseURL,
-    reuseExistingServer: !process.env.CI,
-    timeout: 180000, // 3 minutes for build
+    reuseExistingServer: false,
+    timeout: 300000, // 5 minutes for container + build + server start
     env: {
       TEST_PORT: String(TEST_PORT),
       NODE_ENV: "production"

@@ -361,7 +361,7 @@ export function UserMenu({ className }: UserMenuProps): React.ReactElement {
   const provider = getPrimaryProvider(identities, user.primaryProvider)
 
   return (
-    <div style={containerStyles} className={className} ref={dropdownRef}>
+    <div style={containerStyles} className={className} ref={dropdownRef} data-testid="user-menu">
       {/* Avatar Button */}
       <button
         type="button"
