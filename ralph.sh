@@ -136,12 +136,122 @@ has_changes() {
     ! git diff --quiet || ! git diff --cached --quiet || [ -n "$(git ls-files --others --exclude-standard)" ]
 }
 
-# Run CI checks
+# Filter stream-json output to show only relevant content (inlined from scripts/stream-filter.sh)
+stream_filter() {
+    while IFS= read -r line; do
+        # Extract assistant text messages
+        if echo "$line" | jq -e '.type == "assistant"' > /dev/null 2>&1; then
+            text=$(echo "$line" | jq -r '.message.content[]? | select(.type == "text") | .text // empty' 2>/dev/null)
+            if [ -n "$text" ]; then
+                echo "$text"
+            fi
+
+            # Show tool calls with details
+            tool_info=$(echo "$line" | jq -r '
+                .message.content[]? | select(.type == "tool_use") |
+                .name as $name |
+                if $name == "Read" then
+                    "> Read: \(.input.file_path // "?")"
+                elif $name == "Write" then
+                    "> Write: \(.input.file_path // "?")"
+                elif $name == "Edit" then
+                    "> Edit: \(.input.file_path // "?")"
+                elif $name == "Glob" then
+                    "> Glob: \(.input.pattern // "?")"
+                elif $name == "Grep" then
+                    "> Grep: \(.input.pattern // "?") in \(.input.path // ".")"
+                elif $name == "Bash" then
+                    "> Bash: \(.input.command // "?" | .[0:80])"
+                elif $name == "Task" then
+                    "> Task: \(.input.description // "?")"
+                else
+                    "> \($name): \(.input | tostring | .[0:60])"
+                end
+            ' 2>/dev/null)
+            if [ -n "$tool_info" ]; then
+                echo -e "${BLUE}$tool_info${NC}"
+            fi
+        fi
+
+        # Show final result
+        if echo "$line" | jq -e '.type == "result"' > /dev/null 2>&1; then
+            result=$(echo "$line" | jq -r '.result // empty' 2>/dev/null)
+            if [ -n "$result" ]; then
+                echo ""
+                echo "$result"
+            fi
+        fi
+    done
+}
+
+# Run CI checks (inlined from scripts/ci-check.sh)
 run_ci_checks() {
     log "INFO" "Running CI checks..."
 
     local ci_output
-    ci_output=$(./scripts/ci-check.sh 2>&1)
+    local ci_failed=0
+
+    ci_output=$(
+        echo "=========================================="
+        echo "Running CI Checks"
+        echo "=========================================="
+
+        # Type checking
+        echo ""
+        echo "1. Type Checking..."
+        echo "-------------------"
+        if pnpm typecheck 2>&1; then
+            echo -e "${GREEN}Type check passed${NC}"
+        else
+            echo -e "${RED}Type check failed${NC}"
+            ci_failed=1
+        fi
+
+        # Linting
+        echo ""
+        echo "2. Linting..."
+        echo "-------------"
+        if pnpm lint 2>&1; then
+            echo -e "${GREEN}Lint passed${NC}"
+        else
+            echo -e "${RED}Lint failed${NC}"
+            ci_failed=1
+        fi
+
+        # Building
+        echo ""
+        echo "3. Building..."
+        echo "--------------"
+        if pnpm build 2>&1; then
+            echo -e "${GREEN}Build passed${NC}"
+        else
+            echo -e "${RED}Build failed${NC}"
+            ci_failed=1
+        fi
+
+        # Testing
+        echo ""
+        echo "4. Running Tests..."
+        echo "-------------------"
+        if CI=true pnpm test 2>&1; then
+            echo -e "${GREEN}Tests passed${NC}"
+        else
+            echo -e "${RED}Tests failed${NC}"
+            ci_failed=1
+        fi
+
+        # Summary
+        echo ""
+        echo "=========================================="
+        if [ $ci_failed -eq 0 ]; then
+            echo -e "${GREEN}All CI checks passed!${NC}"
+        else
+            echo -e "${RED}CI checks failed!${NC}"
+        fi
+
+        # Return status via exit code
+        exit $ci_failed
+    )
     local ci_status=$?
 
     echo "$ci_output" | tee -a "$OUTPUT_DIR/ci.log"
@@ -307,7 +417,7 @@ run_iteration() {
     echo ""  # Blank line before agent output
 
     # Use stream-json for real-time output, filter for readability
-    if cat "$prompt_file" | $AGENT_CMD --print --output-format stream-json 2>&1 | tee "$output_file" | ./scripts/stream-filter.sh; then
+    if cat "$prompt_file" | $AGENT_CMD --print --output-format stream-json 2>&1 | tee "$output_file" | stream_filter; then
         echo ""  # Blank line after agent output
         log "SUCCESS" "Agent completed iteration $iteration"
     else
