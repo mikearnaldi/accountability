@@ -201,9 +201,17 @@ export const currentUserAtom: Atom.Atom<Result.Result<AuthUserResponse, unknown>
   // If we got a 401, clear the token
   if (Result.isFailure(userResult)) {
     const errorOption = Cause.failureOption(userResult.cause)
-    if (Option.isSome(errorOption) && (errorOption.value as { _tag?: string })._tag === "Unauthorized") {
-      clearStoredToken()
-      get.set(authTokenAtom, Option.none())
+    if (Option.isSome(errorOption)) {
+      const errorValue = errorOption.value
+      if (
+        typeof errorValue === "object" &&
+        errorValue !== null &&
+        "_tag" in errorValue &&
+        errorValue._tag === "Unauthorized"
+      ) {
+        clearStoredToken()
+        get.set(authTokenAtom, Option.none())
+      }
     }
   }
 

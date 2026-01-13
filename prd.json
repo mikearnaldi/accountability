@@ -1144,7 +1144,7 @@
         ],
         "pattern": "Use testcontainers for PostgreSQL, build app, run preview server"
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "medium"
     },
     {

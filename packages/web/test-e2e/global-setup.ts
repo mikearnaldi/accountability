@@ -1,57 +1,78 @@
-import { execSync } from "node:child_process"
-import * as path from "node:path"
-
 /**
  * Global setup for Playwright E2E tests
  *
- * Builds and starts the Docker Compose stack, waits for services to be healthy.
+ * Starts PostgreSQL container using testcontainers and runs migrations.
+ * The container connection info is stored in files for:
+ * 1. The preview server to use (via DATABASE_URL)
+ * 2. The teardown script to clean up
+ *
+ * @module test-e2e/global-setup
  */
-export default async function globalSetup() {
-  // Navigate from packages/web to project root
-  const projectRoot = path.resolve(process.cwd(), "../..")
 
-  console.log("Building and starting Docker Compose stack...")
+import { PostgreSqlContainer } from "@testcontainers/postgresql"
+import { PgClient } from "@effect/sql-pg"
+import { Effect, Layer, Redacted } from "effect"
+import * as fs from "node:fs"
+import * as path from "node:path"
 
-  try {
-    // Build and start containers in detached mode
-    execSync("docker compose up -d --build --wait", {
-      cwd: projectRoot,
-      stdio: "inherit",
-      timeout: 300000 // 5 minute timeout for build
-    })
+// File to persist container ID for teardown
+const CONTAINER_INFO_FILE = path.join(process.cwd(), "test-e2e", ".container-info.json")
 
-    // Wait for the app to be ready by polling the health endpoint
-    console.log("Waiting for app to be ready...")
-    await waitForApp("http://localhost:3000", 60000)
-
-    console.log("Docker Compose stack is ready!")
-  } catch (error) {
-    console.error("Failed to start Docker Compose stack:", error)
-    // Try to get logs for debugging
-    try {
-      execSync("docker compose logs", { cwd: projectRoot, stdio: "inherit" })
-    } catch {
-      // Ignore errors getting logs
-    }
-    throw error
-  }
+/**
+ * Container info persisted between setup and teardown
+ */
+interface ContainerInfo {
+  containerId: string
+  dbUrl: string
 }
 
-async function waitForApp(url: string, timeoutMs: number): Promise<void> {
-  const startTime = Date.now()
-  const pollInterval = 1000
+export default async function globalSetup() {
+  console.log("Starting PostgreSQL container for E2E tests...")
 
-  while (Date.now() - startTime < timeoutMs) {
-    try {
-      const response = await fetch(url)
-      if (response.ok) {
-        return
-      }
-    } catch {
-      // App not ready yet, continue polling
-    }
-    await new Promise((resolve) => setTimeout(resolve, pollInterval))
+  // Start PostgreSQL container
+  const container = await new PostgreSqlContainer("postgres:alpine")
+    .withDatabase("accountability_e2e")
+    .start()
+
+  const dbUrl = container.getConnectionUri()
+
+  console.log(`PostgreSQL ready at ${dbUrl}`)
+
+  // Persist container info for teardown
+  const containerInfo: ContainerInfo = {
+    containerId: container.getId(),
+    dbUrl
   }
+  fs.writeFileSync(CONTAINER_INFO_FILE, JSON.stringify(containerInfo))
 
-  throw new Error(`App at ${url} did not become ready within ${timeoutMs}ms`)
+  // Run migrations using Effect
+  console.log("Running database migrations...")
+
+  // Dynamic import the persistence package
+  const { MigrationsLive, runMigrations } = await import(
+    "@accountability/persistence/Layers/MigrationsLive"
+  )
+
+  await Effect.runPromise(
+    runMigrations.pipe(
+      Effect.provide(
+        Layer.provideMerge(
+          MigrationsLive,
+          PgClient.layer({ url: Redacted.make(dbUrl) })
+        )
+      )
+    )
+  )
+
+  console.log("Migrations complete!")
+
+  // Store DATABASE_URL for the web server to use
+  // The playwright config will pass this to the webServer command
+  process.env.TEST_DATABASE_URL = dbUrl
+
+  // Write env file that can be sourced by the preview server
+  const envFilePath = path.join(process.cwd(), "test-e2e", ".env.test")
+  fs.writeFileSync(envFilePath, `DATABASE_URL="${dbUrl}"\n`)
+
+  console.log("E2E test setup complete!")
 }

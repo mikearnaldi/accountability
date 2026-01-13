@@ -3,6 +3,7 @@ node_modules/
 
 # Build outputs
 dist/
+.output/
 .next/
 .turbo/
 
@@ -21,6 +22,9 @@ dist/
 coverage/
 playwright-report/
 test-results/
+# E2E test temp files
+packages/web/test-e2e/.container-info.json
+packages/web/test-e2e/.env.test
 
 # Logs (but not .ralph/ logs)
 npm-debug.log*
