@@ -95,6 +95,12 @@ function Navigation(): React.ReactElement {
         {isAuthenticated && (
           <>
             <Link
+              to="/organizations"
+              activeProps={{ style: { fontWeight: "bold" } }}
+            >
+              Organizations
+            </Link>
+            <Link
               to="/companies"
               activeProps={{ style: { fontWeight: "bold" } }}
             >

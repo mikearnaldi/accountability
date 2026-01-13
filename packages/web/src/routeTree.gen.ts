@@ -11,12 +11,15 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as RegisterRouteImport } from './routes/register'
+import { Route as OrganizationsRouteImport } from './routes/organizations'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as JournalEntriesRouteImport } from './routes/journal-entries'
 import { Route as CompaniesRouteImport } from './routes/companies'
 import { Route as AccountRouteImport } from './routes/account'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as OrganizationsIndexRouteImport } from './routes/organizations/index'
 import { Route as SettingsAccountRouteImport } from './routes/settings/account'
+import { Route as OrganizationsOrganizationIdRouteImport } from './routes/organizations/$organizationId'
 import { Route as ApiSplatRouteImport } from './routes/api/$'
 import { Route as CompaniesCompanyIdReportsRouteImport } from './routes/companies/$companyId.reports'
 import { Route as CompaniesCompanyIdAccountsRouteImport } from './routes/companies/$companyId.accounts'
@@ -32,6 +35,11 @@ const ReportsRoute = ReportsRouteImport.update({
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
   path: '/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OrganizationsRoute = OrganizationsRouteImport.update({
+  id: '/organizations',
+  path: '/organizations',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -59,11 +67,22 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OrganizationsIndexRoute = OrganizationsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => OrganizationsRoute,
+} as any)
 const SettingsAccountRoute = SettingsAccountRouteImport.update({
   id: '/settings/account',
   path: '/settings/account',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OrganizationsOrganizationIdRoute =
+  OrganizationsOrganizationIdRouteImport.update({
+    id: '/$organizationId',
+    path: '/$organizationId',
+    getParentRoute: () => OrganizationsRoute,
+  } as any)
 const ApiSplatRoute = ApiSplatRouteImport.update({
   id: '/api/$',
   path: '/api/$',
@@ -105,10 +124,13 @@ export interface FileRoutesByFullPath {
   '/companies': typeof CompaniesRouteWithChildren
   '/journal-entries': typeof JournalEntriesRoute
   '/login': typeof LoginRoute
+  '/organizations': typeof OrganizationsRouteWithChildren
   '/register': typeof RegisterRoute
   '/reports': typeof ReportsRoute
   '/api/$': typeof ApiSplatRoute
+  '/organizations/$organizationId': typeof OrganizationsOrganizationIdRoute
   '/settings/account': typeof SettingsAccountRoute
+  '/organizations/': typeof OrganizationsIndexRoute
   '/auth/callback/$provider': typeof AuthCallbackProviderRoute
   '/companies/$companyId/accounts': typeof CompaniesCompanyIdAccountsRoute
   '/companies/$companyId/reports': typeof CompaniesCompanyIdReportsRoute
@@ -124,7 +146,9 @@ export interface FileRoutesByTo {
   '/register': typeof RegisterRoute
   '/reports': typeof ReportsRoute
   '/api/$': typeof ApiSplatRoute
+  '/organizations/$organizationId': typeof OrganizationsOrganizationIdRoute
   '/settings/account': typeof SettingsAccountRoute
+  '/organizations': typeof OrganizationsIndexRoute
   '/auth/callback/$provider': typeof AuthCallbackProviderRoute
   '/companies/$companyId/accounts': typeof CompaniesCompanyIdAccountsRoute
   '/companies/$companyId/reports': typeof CompaniesCompanyIdReportsRoute
@@ -138,10 +162,13 @@ export interface FileRoutesById {
   '/companies': typeof CompaniesRouteWithChildren
   '/journal-entries': typeof JournalEntriesRoute
   '/login': typeof LoginRoute
+  '/organizations': typeof OrganizationsRouteWithChildren
   '/register': typeof RegisterRoute
   '/reports': typeof ReportsRoute
   '/api/$': typeof ApiSplatRoute
+  '/organizations/$organizationId': typeof OrganizationsOrganizationIdRoute
   '/settings/account': typeof SettingsAccountRoute
+  '/organizations/': typeof OrganizationsIndexRoute
   '/auth/callback/$provider': typeof AuthCallbackProviderRoute
   '/companies/$companyId/accounts': typeof CompaniesCompanyIdAccountsRoute
   '/companies/$companyId/reports': typeof CompaniesCompanyIdReportsRoute
@@ -156,10 +183,13 @@ export interface FileRouteTypes {
     | '/companies'
     | '/journal-entries'
     | '/login'
+    | '/organizations'
     | '/register'
     | '/reports'
     | '/api/$'
+    | '/organizations/$organizationId'
     | '/settings/account'
+    | '/organizations/'
     | '/auth/callback/$provider'
     | '/companies/$companyId/accounts'
     | '/companies/$companyId/reports'
@@ -175,7 +205,9 @@ export interface FileRouteTypes {
     | '/register'
     | '/reports'
     | '/api/$'
+    | '/organizations/$organizationId'
     | '/settings/account'
+    | '/organizations'
     | '/auth/callback/$provider'
     | '/companies/$companyId/accounts'
     | '/companies/$companyId/reports'
@@ -188,10 +220,13 @@ export interface FileRouteTypes {
     | '/companies'
     | '/journal-entries'
     | '/login'
+    | '/organizations'
     | '/register'
     | '/reports'
     | '/api/$'
+    | '/organizations/$organizationId'
     | '/settings/account'
+    | '/organizations/'
     | '/auth/callback/$provider'
     | '/companies/$companyId/accounts'
     | '/companies/$companyId/reports'
@@ -205,6 +240,7 @@ export interface RootRouteChildren {
   CompaniesRoute: typeof CompaniesRouteWithChildren
   JournalEntriesRoute: typeof JournalEntriesRoute
   LoginRoute: typeof LoginRoute
+  OrganizationsRoute: typeof OrganizationsRouteWithChildren
   RegisterRoute: typeof RegisterRoute
   ReportsRoute: typeof ReportsRoute
   ApiSplatRoute: typeof ApiSplatRoute
@@ -226,6 +262,13 @@ declare module '@tanstack/react-router' {
       path: '/register'
       fullPath: '/register'
       preLoaderRoute: typeof RegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/organizations': {
+      id: '/organizations'
+      path: '/organizations'
+      fullPath: '/organizations'
+      preLoaderRoute: typeof OrganizationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -263,12 +306,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/organizations/': {
+      id: '/organizations/'
+      path: '/'
+      fullPath: '/organizations/'
+      preLoaderRoute: typeof OrganizationsIndexRouteImport
+      parentRoute: typeof OrganizationsRoute
+    }
     '/settings/account': {
       id: '/settings/account'
       path: '/settings/account'
       fullPath: '/settings/account'
       preLoaderRoute: typeof SettingsAccountRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/organizations/$organizationId': {
+      id: '/organizations/$organizationId'
+      path: '/$organizationId'
+      fullPath: '/organizations/$organizationId'
+      preLoaderRoute: typeof OrganizationsOrganizationIdRouteImport
+      parentRoute: typeof OrganizationsRoute
     }
     '/api/$': {
       id: '/api/$'
@@ -335,12 +392,27 @@ const CompaniesRouteWithChildren = CompaniesRoute._addFileChildren(
   CompaniesRouteChildren,
 )
 
+interface OrganizationsRouteChildren {
+  OrganizationsOrganizationIdRoute: typeof OrganizationsOrganizationIdRoute
+  OrganizationsIndexRoute: typeof OrganizationsIndexRoute
+}
+
+const OrganizationsRouteChildren: OrganizationsRouteChildren = {
+  OrganizationsOrganizationIdRoute: OrganizationsOrganizationIdRoute,
+  OrganizationsIndexRoute: OrganizationsIndexRoute,
+}
+
+const OrganizationsRouteWithChildren = OrganizationsRoute._addFileChildren(
+  OrganizationsRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccountRoute: AccountRoute,
   CompaniesRoute: CompaniesRouteWithChildren,
   JournalEntriesRoute: JournalEntriesRoute,
   LoginRoute: LoginRoute,
+  OrganizationsRoute: OrganizationsRouteWithChildren,
   RegisterRoute: RegisterRoute,
   ReportsRoute: ReportsRoute,
   ApiSplatRoute: ApiSplatRoute,

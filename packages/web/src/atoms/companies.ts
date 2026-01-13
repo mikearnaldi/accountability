@@ -112,6 +112,23 @@ export const companyByIdFamily = Atom.family((id: CompanyId) =>
 )
 
 // =============================================================================
+// Organization Family (Single Organization Queries)
+// =============================================================================
+
+/**
+ * Single organization by ID atom family
+ *
+ * Creates a memoized atom for each organization ID. Multiple calls with the
+ * same ID return the same atom instance.
+ */
+export const organizationByIdFamily = Atom.family((id: OrganizationId) =>
+  ApiClient.query("companies", "getOrganization", {
+    path: { id },
+    timeToLive: Duration.minutes(5)
+  })
+)
+
+// =============================================================================
 // Selected Company Atom
 // =============================================================================
 
