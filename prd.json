@@ -1237,7 +1237,7 @@
         "location": "packages/web/tests/auth/register.spec.ts",
         "pattern": "Create unique emails per test to avoid conflicts"
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "small"
     },
     {
