@@ -800,7 +800,7 @@
         "location": "packages/core/test/Auth/",
         "pattern": "@effect/vitest with Layer.succeed for mocks"
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "medium"
     },
     {

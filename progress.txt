@@ -629,3 +629,8 @@
 **Story**: 8.4.6 - Create account settings page
 **Status**: complete
 ---
+
+## Iteration 4 - 2026-01-13 13:20
+**Story**: 8.5.1 - Write auth service unit tests
+**Status**: complete
+---
