@@ -72,13 +72,13 @@ import { AuthServiceConfig, SessionDurationConfig } from "../Services/AuthServic
  * )
  * ```
  *
- * For testing with testcontainers:
+ * For testing with shared testcontainers:
  * ```typescript
  * import { RepositoriesLive } from "@accountability/persistence/Layers/RepositoriesLive"
- * import { PgContainer } from "./test/utils.ts"
+ * import { SharedPgClientLive } from "./test/Utils.ts"
  *
  * const TestLayer = RepositoriesLive.pipe(
- *   Layer.provide(PgContainer.ClientLive)
+ *   Layer.provide(SharedPgClientLive)
  * )
  * ```
  */

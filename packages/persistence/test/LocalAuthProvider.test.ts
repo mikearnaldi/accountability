@@ -31,7 +31,7 @@ import { IdentityRepositoryLive } from "../src/Layers/IdentityRepositoryLive.ts"
 import { LocalAuthProvider } from "../src/Services/LocalAuthProvider.ts"
 import { LocalAuthProviderLive } from "../src/Layers/LocalAuthProviderLive.ts"
 import { MigrationLayer } from "../src/Layers/MigrationsLive.ts"
-import { PgContainer } from "./Utils.ts"
+import { SharedPgClientLive } from "./Utils.ts"
 
 /**
  * Mock bcrypt adapter for testing
@@ -60,7 +60,7 @@ const RepositoriesLayer = Layer.mergeAll(
   IdentityRepositoryLive
 ).pipe(
   Layer.provideMerge(MigrationLayer),
-  Layer.provideMerge(PgContainer.ClientLive)
+  Layer.provideMerge(SharedPgClientLive)
 )
 
 /**
@@ -71,10 +71,14 @@ const TestLayer = LocalAuthProviderLive.pipe(
   Layer.provideMerge(RepositoriesLayer)
 )
 
-// Test IDs
-const testUserId = AuthUserId.make("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
-const testIdentityId = UserIdentityId.make("cccccccc-cccc-cccc-cccc-cccccccccccc")
-const testEmail = Email.make("localauth@example.com")
+// Helper to generate unique IDs for tests (shared container means shared data)
+const uniqueId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`
+
+// Test IDs - generated once per test file load to ensure uniqueness
+const testSuffix = uniqueId()
+const testUserId = AuthUserId.make(`bbbbbbbb-bbbb-bbbb-bbbb-${testSuffix.slice(0, 12).padEnd(12, "0")}`)
+const testIdentityId = UserIdentityId.make(`cccccccc-cccc-cccc-cccc-${testSuffix.slice(0, 12).padEnd(12, "0")}`)
+const testEmail = Email.make(`localauth-${testSuffix}@example.com`)
 const testPassword = "testpassword123"
 const testProviderId = ProviderId.make(testEmail)
 
@@ -265,10 +269,12 @@ describe("LocalAuthProvider", () => {
         const identityRepo = yield* IdentityRepository
 
         // Create user and identity without password hash (like Google OAuth)
-        const oauthUserId = AuthUserId.make("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee")
-        const oauthIdentityId = UserIdentityId.make("ffffffff-ffff-ffff-ffff-ffffffffffff")
-        const oauthEmail = Email.make("oauth.user@example.com")
-        const oauthProviderId = ProviderId.make("google-user-id-123")
+        // Use unique IDs based on test suffix
+        const oauthUserSuffix = `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`
+        const oauthUserId = AuthUserId.make(`eeeeeeee-eeee-eeee-eeee-${oauthUserSuffix.slice(0, 12).padEnd(12, "0")}`)
+        const oauthIdentityId = UserIdentityId.make(`ffffffff-ffff-ffff-ffff-${oauthUserSuffix.slice(0, 12).padEnd(12, "0")}`)
+        const oauthEmail = Email.make(`oauth.user-${oauthUserSuffix}@example.com`)
+        const oauthProviderId = ProviderId.make(`google-user-id-${oauthUserSuffix}`)
 
         yield* userRepo.create({
           id: oauthUserId,

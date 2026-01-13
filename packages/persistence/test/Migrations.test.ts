@@ -11,7 +11,7 @@ import { PgClient } from "@effect/sql-pg"
 import { SqlSchema } from "@effect/sql"
 import { describe, expect, it } from "@effect/vitest"
 import { Effect, Layer, Schema } from "effect"
-import { PgContainer } from "./Utils.ts"
+import { SharedPgClientLive } from "./Utils.ts"
 import { MigrationLayer, runMigrations } from "../src/Layers/MigrationsLive.ts"
 
 /**
@@ -19,7 +19,7 @@ import { MigrationLayer, runMigrations } from "../src/Layers/MigrationsLive.ts"
  * This is the pattern applications should use.
  */
 const PgClientWithMigrations = MigrationLayer.pipe(
-  Layer.provideMerge(PgContainer.ClientLive)
+  Layer.provideMerge(SharedPgClientLive)
 )
 
 /**
@@ -63,35 +63,39 @@ const CompanyRow = Schema.Struct({
 })
 
 describe("Migrations", () => {
-  it.layer(PgContainer.ClientLive, { timeout: "30 seconds" })(
+  it.layer(SharedPgClientLive, { timeout: "30 seconds" })(
     "runMigrations",
     (it) => {
-      it.effect("runs all migrations successfully", () =>
+      it.effect("runs migrations or verifies already run", () =>
         Effect.gen(function* () {
           const completed = yield* runMigrations
 
-          // Should run all 12 migrations
-          expect(completed).toHaveLength(12)
-
-          // Verify migration order
-          expect(completed[0]).toEqual([1, "CreateOrganizations"])
-          expect(completed[1]).toEqual([2, "CreateCompanies"])
-          expect(completed[2]).toEqual([3, "CreateAccounts"])
-          expect(completed[3]).toEqual([4, "CreateFiscalPeriods"])
-          expect(completed[4]).toEqual([5, "CreateJournalEntries"])
-          expect(completed[5]).toEqual([6, "CreateExchangeRates"])
-          expect(completed[6]).toEqual([7, "CreateConsolidation"])
-          expect(completed[7]).toEqual([8, "CreateIntercompany"])
-          expect(completed[8]).toEqual([9, "CreateConsolidationRuns"])
-          expect(completed[9]).toEqual([10, "CreateAuthUsers"])
-          expect(completed[10]).toEqual([11, "CreateAuthIdentities"])
-          expect(completed[11]).toEqual([12, "CreateAuthSessions"])
+          // With shared container, migrations may already be run by other tests.
+          // Either we run all 12 migrations fresh, or they were already run (0 returned).
+          if (completed.length === 12) {
+            // Fresh run - verify migration order
+            expect(completed[0]).toEqual([1, "CreateOrganizations"])
+            expect(completed[1]).toEqual([2, "CreateCompanies"])
+            expect(completed[2]).toEqual([3, "CreateAccounts"])
+            expect(completed[3]).toEqual([4, "CreateFiscalPeriods"])
+            expect(completed[4]).toEqual([5, "CreateJournalEntries"])
+            expect(completed[5]).toEqual([6, "CreateExchangeRates"])
+            expect(completed[6]).toEqual([7, "CreateConsolidation"])
+            expect(completed[7]).toEqual([8, "CreateIntercompany"])
+            expect(completed[8]).toEqual([9, "CreateConsolidationRuns"])
+            expect(completed[9]).toEqual([10, "CreateAuthUsers"])
+            expect(completed[10]).toEqual([11, "CreateAuthIdentities"])
+            expect(completed[11]).toEqual([12, "CreateAuthSessions"])
+          } else {
+            // Already run by another test - verify idempotency
+            expect(completed).toHaveLength(0)
+          }
         })
       )
 
       it.effect("creates migrations tracking table", () =>
         Effect.gen(function* () {
-          // Run migrations first
+          // Run migrations first (may be no-op if already run)
           yield* runMigrations
 
           const sql = yield* PgClient.PgClient
@@ -112,14 +116,16 @@ describe("Migrations", () => {
 
       it.effect("is idempotent - running twice does not re-run migrations", () =>
         Effect.gen(function* () {
-          // Note: Previous tests in this layer block already ran migrations.
-          // First call should return empty since migrations were already run
-          const first = yield* runMigrations
-          expect(first).toHaveLength(0)
+          // Run once to ensure migrations exist (may already be run by other tests)
+          yield* runMigrations
 
-          // Second call also returns empty
+          // Subsequent calls should always return empty
           const second = yield* runMigrations
           expect(second).toHaveLength(0)
+
+          // Third call also returns empty
+          const third = yield* runMigrations
+          expect(third).toHaveLength(0)
         })
       )
     }
@@ -393,10 +399,16 @@ describe("Migrations", () => {
         Effect.gen(function* () {
           const sql = yield* PgClient.PgClient
 
+          // Use unique IDs to avoid conflicts with shared container
+          const uniqueSuffix = `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`
+          const orgId = `aaaaaaaa-aaaa-aaaa-aaaa-${uniqueSuffix.slice(0, 12).padEnd(12, "0")}`
+          const companyId = `bbbbbbbb-bbbb-bbbb-bbbb-${uniqueSuffix.slice(0, 12).padEnd(12, "0")}`
+          const companyName = `Migration Test Company ${uniqueSuffix}`
+
           // Insert an organization
           yield* sql`
             INSERT INTO organizations (id, name, reporting_currency)
-            VALUES ('11111111-1111-1111-1111-111111111111', 'Test Org', 'USD')
+            VALUES (${orgId}, ${"Migration Test Org " + uniqueSuffix}, 'USD')
           `
 
           // Insert a company
@@ -406,23 +418,23 @@ describe("Migrations", () => {
               functional_currency, reporting_currency,
               fiscal_year_end_month, fiscal_year_end_day
             ) VALUES (
-              '22222222-2222-2222-2222-222222222222',
-              '11111111-1111-1111-1111-111111111111',
-              'Test Company', 'Test Company LLC', 'US',
+              ${companyId},
+              ${orgId},
+              ${companyName}, ${companyName + " LLC"}, 'US',
               'USD', 'USD', 12, 31
             )
           `
 
-          // Query it back
+          // Query it back by specific name to avoid interference from other tests
           const findCompanies = SqlSchema.findAll({
-            Request: Schema.Void,
+            Request: Schema.String,
             Result: CompanyRow,
-            execute: () => sql`SELECT name, legal_name FROM companies`
+            execute: (name: string) => sql`SELECT name, legal_name FROM companies WHERE name = ${name}`
           })
-          const companies = yield* findCompanies()
+          const companies = yield* findCompanies(companyName)
 
           expect(companies).toHaveLength(1)
-          expect(companies[0].name).toBe("Test Company")
+          expect(companies[0].name).toBe(companyName)
         })
       )
     }

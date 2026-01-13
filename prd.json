@@ -892,7 +892,7 @@
         ],
         "pattern": "Replace PgContainer.ClientLive with SharedPgClientLive in all Layer compositions"
       },
-      "status": "in_progress",
+      "status": "complete",
       "estimated_complexity": "small"
     },
     {

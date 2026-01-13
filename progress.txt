@@ -659,3 +659,8 @@
 **Story**: 8.6.2 - Implement Google OAuth AuthProvider
 **Status**: complete
 ---
+
+## Iteration 1 - 2026-01-13 14:57
+**Story**: 8.5.1.2 - Migrate tests to use SharedPgClientLive
+**Status**: complete
+---
