@@ -9,17 +9,23 @@
  * - Redirects to intended destination or home
  * - Shows error message on failure
  *
+ * Link callback flow (for adding providers to existing account):
+ * - Detects link flow via session storage flag
+ * - Calls link/callback endpoint instead of login
+ * - Does NOT replace the current token
+ * - Redirects to account settings page
+ *
  * @module routes/auth/callback/$provider
  */
 
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router"
 import * as React from "react"
-import { useAtomSet } from "@effect-atom/atom-react"
+import { useAtomSet, useAtomRefresh } from "@effect-atom/atom-react"
 import * as Schema from "effect/Schema"
 import * as Option from "effect/Option"
-import { LoginResponse } from "@accountability/api/Definitions/AuthApi"
+import { LoginResponse, AuthUserResponse } from "@accountability/api/Definitions/AuthApi"
 import { isAuthProviderType, type AuthProviderType } from "@accountability/core/Auth/AuthProviderType"
-import { authTokenAtom } from "../../../atoms/auth.ts"
+import { authTokenAtom, currentUserAtom } from "../../../atoms/auth.ts"
 
 // =============================================================================
 // Route Configuration
@@ -105,6 +111,23 @@ type CallbackState =
   | { readonly type: "error"; readonly message: string }
 
 // =============================================================================
+// Constants
+// =============================================================================
+
+const AUTH_TOKEN_KEY = "accountability_auth_token"
+const AUTH_REDIRECT_KEY = "auth_redirect"
+const AUTH_LINK_FLOW_KEY = "auth_link_flow"
+
+// =============================================================================
+// Types
+// =============================================================================
+
+/**
+ * The type of callback flow being processed
+ */
+type CallbackFlowType = "login" | "link"
+
+// =============================================================================
 // Helpers
 // =============================================================================
 
@@ -119,9 +142,28 @@ const getBaseUrl = (): string =>
  */
 const getStoredRedirect = (): string => {
   if (typeof window === "undefined") return "/"
-  const stored = window.sessionStorage.getItem("auth_redirect")
-  window.sessionStorage.removeItem("auth_redirect")
+  const stored = window.sessionStorage.getItem(AUTH_REDIRECT_KEY)
+  window.sessionStorage.removeItem(AUTH_REDIRECT_KEY)
   return stored ?? "/"
+}
+
+/**
+ * Check if this is a link flow (adding provider to existing account)
+ * Clears the flag after reading
+ */
+const getAndClearLinkFlow = (): boolean => {
+  if (typeof window === "undefined") return false
+  const isLinkFlow = window.sessionStorage.getItem(AUTH_LINK_FLOW_KEY) === "true"
+  window.sessionStorage.removeItem(AUTH_LINK_FLOW_KEY)
+  return isLinkFlow
+}
+
+/**
+ * Get the stored auth token from localStorage
+ */
+const getStoredToken = (): string | null => {
+  if (typeof window === "undefined") return null
+  return window.localStorage.getItem(AUTH_TOKEN_KEY)
 }
 
 /**
@@ -129,7 +171,7 @@ const getStoredRedirect = (): string => {
  */
 const storeToken = (token: string): void => {
   if (typeof window !== "undefined") {
-    window.localStorage.setItem("accountability_auth_token", token)
+    window.localStorage.setItem(AUTH_TOKEN_KEY, token)
   }
 }
 
@@ -177,6 +219,57 @@ function Spinner(): React.ReactElement {
 }
 
 // =============================================================================
+// Error Message Helpers
+// =============================================================================
+
+/**
+ * Schema for validating API error responses
+ */
+const ApiErrorResponse = Schema.Struct({
+  _tag: Schema.String,
+  message: Schema.optional(Schema.String),
+  reason: Schema.optional(Schema.String)
+})
+
+/**
+ * Type guard for API error objects
+ */
+const isApiError = (value: unknown): value is typeof ApiErrorResponse.Type =>
+  Option.isSome(Schema.decodeUnknownOption(ApiErrorResponse)(value))
+
+/**
+ * Parse API error response into user-friendly message
+ */
+const parseErrorMessage = (
+  errorData: unknown,
+  provider: string,
+  flowType: CallbackFlowType
+): string => {
+  const defaultMessage = flowType === "link"
+    ? "Failed to link provider. Please try again."
+    : "Authentication failed. Please try again."
+
+  if (isApiError(errorData)) {
+    switch (errorData._tag) {
+      case "OAuthStateInvalidError":
+        return flowType === "link"
+          ? "Security validation failed. Please restart the linking process."
+          : "Security validation failed. Please restart the login process."
+      case "ProviderAuthError":
+        return errorData.reason ?? "Provider authentication failed"
+      case "ProviderNotFoundError":
+        return `Provider "${provider}" is not enabled`
+      case "IdentityLinkedError":
+        return errorData.message ?? "This identity is already linked to another account"
+      default:
+        return errorData.message ?? defaultMessage
+    }
+  }
+
+  return defaultMessage
+}
+
+// =============================================================================
 // Main Callback Page Component
 // =============================================================================
 
@@ -185,8 +278,10 @@ function OAuthCallbackPage(): React.ReactElement {
   const search = Route.useSearch()
   const navigate = useNavigate()
   const setAuthToken = useAtomSet(authTokenAtom)
+  const refreshCurrentUser = useAtomRefresh(currentUserAtom)
   const [callbackState, setCallbackState] = React.useState<CallbackState>({ type: "processing" })
   const [redirectTo, setRedirectTo] = React.useState<string>("/")
+  const [flowType, setFlowType] = React.useState<CallbackFlowType>("login")
   const hasProcessed = React.useRef(false)
 
   // Process callback on mount
@@ -196,8 +291,14 @@ function OAuthCallbackPage(): React.ReactElement {
     hasProcessed.current = true
 
     const processCallback = async (): Promise<void> => {
-      // Get redirect URL first (before it's cleared)
+      // Determine if this is a link flow (before clearing)
+      const isLinkFlow = getAndClearLinkFlow()
+      const currentFlowType: CallbackFlowType = isLinkFlow ? "link" : "login"
+      setFlowType(currentFlowType)
+
+      // Get redirect URL (cleared after reading)
       const storedRedirect = getStoredRedirect()
+      // Both flows default to "/" if no redirect stored
       setRedirectTo(storedRedirect)
 
       // Check for OAuth error in URL
@@ -230,55 +331,80 @@ function OAuthCallbackPage(): React.ReactElement {
         return
       }
 
-      // Exchange the code for a token
+      // For link flow, we need an existing auth token
+      const existingToken = isLinkFlow ? getStoredToken() : null
+      if (isLinkFlow && !existingToken) {
+        setCallbackState({
+          type: "error",
+          message: "Session expired. Please log in again before linking a provider."
+        })
+        return
+      }
+
       try {
-        const response = await fetch(`${getBaseUrl()}/api/auth/login`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            provider: validatedProvider,
-            credentials: {
-              code: search.code,
-              state: search.state
+        if (isLinkFlow) {
+          // Link callback flow - call GET /api/auth/link/callback/:provider
+          const linkUrl = new URL(`${getBaseUrl()}/api/auth/link/callback/${validatedProvider}`)
+          linkUrl.searchParams.set("code", search.code)
+          linkUrl.searchParams.set("state", search.state)
+
+          const response = await fetch(linkUrl.toString(), {
+            method: "GET",
+            headers: {
+              "Authorization": `Bearer ${existingToken}`
             }
           })
-        })
 
-        if (!response.ok) {
-          const errorData = await response.json()
-          let errorMessage = "Authentication failed. Please try again."
-
-          if (errorData && typeof errorData === "object" && "_tag" in errorData) {
-            switch (errorData._tag) {
-              case "OAuthStateInvalidError":
-                errorMessage = "Security validation failed. Please restart the login process."
-                break
-              case "ProviderAuthError":
-                errorMessage = errorData.reason ?? "Provider authentication failed"
-                break
-              case "ProviderNotFoundError":
-                errorMessage = `Provider "${provider}" is not enabled`
-                break
-              default:
-                errorMessage = errorData.message ?? errorMessage
-            }
+          if (!response.ok) {
+            const errorData = await response.json()
+            const errorMessage = parseErrorMessage(errorData, provider, currentFlowType)
+            setCallbackState({ type: "error", message: errorMessage })
+            return
           }
 
-          setCallbackState({ type: "error", message: errorMessage })
-          return
+          // For link flow, we don't get a new token - just refresh user data
+          const data = await response.json()
+          // Validate response but don't need to use it (just refresh)
+          Schema.decodeUnknownSync(AuthUserResponse)(data)
+
+          // Refresh the current user atom to show the newly linked provider
+          refreshCurrentUser()
+
+          // Success!
+          setCallbackState({ type: "success" })
+        } else {
+          // Login callback flow - call POST /api/auth/login
+          const response = await fetch(`${getBaseUrl()}/api/auth/login`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              provider: validatedProvider,
+              credentials: {
+                code: search.code,
+                state: search.state
+              }
+            })
+          })
+
+          if (!response.ok) {
+            const errorData = await response.json()
+            const errorMessage = parseErrorMessage(errorData, provider, currentFlowType)
+            setCallbackState({ type: "error", message: errorMessage })
+            return
+          }
+
+          const data = await response.json()
+          const loginResponse = Schema.decodeUnknownSync(LoginResponse)(data)
+
+          // Store the token
+          storeToken(loginResponse.token)
+          setAuthToken(Option.some(loginResponse.token))
+
+          // Success!
+          setCallbackState({ type: "success" })
         }
-
-        const data = await response.json()
-        const loginResponse = Schema.decodeUnknownSync(LoginResponse)(data)
-
-        // Store the token
-        storeToken(loginResponse.token)
-        setAuthToken(Option.some(loginResponse.token))
-
-        // Success!
-        setCallbackState({ type: "success" })
       } catch (err) {
         const errorMessage = err instanceof Error
           ? err.message
@@ -288,7 +414,7 @@ function OAuthCallbackPage(): React.ReactElement {
     }
 
     processCallback()
-  }, [search, provider, setAuthToken])
+  }, [search, provider, setAuthToken, refreshCurrentUser])
 
   // Redirect on success
   React.useEffect(() => {
@@ -303,16 +429,22 @@ function OAuthCallbackPage(): React.ReactElement {
 
   // Render based on state
   if (callbackState.type === "error") {
+    // For link flow, return to home (settings page doesn't exist yet)
+    // For login flow, return to /login
+    const returnLink = flowType === "link" ? "/" : "/login"
+    const returnText = flowType === "link" ? "Return to home" : "Return to login"
+    const errorTitle = flowType === "link" ? "Provider Linking Failed" : "Authentication Failed"
+
     return (
       <div style={pageStyles}>
         <div style={cardStyles}>
-          <h1 style={titleStyles}>Authentication Failed</h1>
+          <h1 style={titleStyles}>{errorTitle}</h1>
           <div style={errorAlertStyles} role="alert">
             {callbackState.message}
           </div>
           <p style={subtitleStyles}>
-            <Link to="/login" style={linkStyles}>
-              Return to login
+            <Link to={returnLink} style={linkStyles}>
+              {returnText}
             </Link>
           </p>
         </div>
@@ -321,17 +453,27 @@ function OAuthCallbackPage(): React.ReactElement {
   }
 
   // Processing or success (redirecting)
+  const processingTitle = flowType === "link"
+    ? "Linking provider..."
+    : "Completing sign in..."
+  const processingSubtitle = flowType === "link"
+    ? "Please wait while we link your account."
+    : "Please wait while we complete your authentication."
+  const successTitle = flowType === "link"
+    ? "Provider Linked!"
+    : "Success!"
+
   return (
     <div style={pageStyles}>
       <div style={cardStyles}>
         <Spinner />
         <h1 style={titleStyles}>
-          {callbackState.type === "success" ? "Success!" : "Completing sign in..."}
+          {callbackState.type === "success" ? successTitle : processingTitle}
         </h1>
         <p style={subtitleStyles}>
           {callbackState.type === "success"
             ? "Redirecting you now..."
-            : "Please wait while we complete your authentication."}
+            : processingSubtitle}
         </p>
       </div>
     </div>

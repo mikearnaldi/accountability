@@ -39,6 +39,7 @@ import { atomRuntime } from "./runtime.ts"
 // =============================================================================
 
 const AUTH_TOKEN_KEY = "accountability_auth_token"
+const AUTH_LINK_FLOW_KEY = "auth_link_flow"
 
 // =============================================================================
 // Storage Helpers (localStorage persistence)
@@ -75,6 +76,16 @@ const storeToken = (token: SessionId): void => {
 const clearStoredToken = (): void => {
   if (typeof window !== "undefined") {
     window.localStorage.removeItem(AUTH_TOKEN_KEY)
+  }
+}
+
+/**
+ * Sets the link flow flag in session storage
+ * This flag is checked by the callback page to determine flow type
+ */
+export const setLinkFlowFlag = (): void => {
+  if (typeof window !== "undefined") {
+    window.sessionStorage.setItem(AUTH_LINK_FLOW_KEY, "true")
   }
 }
 
@@ -455,13 +466,20 @@ export const registerMutation = atomRuntime.fn<RegisterInput>()(
  * Returns the OAuth authorization URL for linking an additional provider
  * to the current user's account.
  *
+ * IMPORTANT: Before redirecting, you must call `setLinkFlowFlag()` to mark
+ * this as a link flow. The callback page uses this to determine whether to
+ * create a new session or just link the provider to the existing account.
+ *
  * Usage:
  * ```typescript
+ * import { linkProviderMutation, setLinkFlowFlag } from "../atoms/auth"
+ *
  * const linkResult = useAtomValue(linkProviderMutation)
  * const linkProvider = useSetAtom(linkProviderMutation)
  *
  * // Start linking Google account
  * const response = await linkProvider("google")
+ * setLinkFlowFlag() // Mark as link flow for the callback page
  * window.location.href = response.redirectUrl
  * ```
  */
