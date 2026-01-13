@@ -16,6 +16,7 @@ import { Route as JournalEntriesRouteImport } from './routes/journal-entries'
 import { Route as CompaniesRouteImport } from './routes/companies'
 import { Route as AccountRouteImport } from './routes/account'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SettingsAccountRouteImport } from './routes/settings/account'
 import { Route as ApiSplatRouteImport } from './routes/api/$'
 import { Route as CompaniesCompanyIdReportsRouteImport } from './routes/companies/$companyId.reports'
 import { Route as CompaniesCompanyIdAccountsRouteImport } from './routes/companies/$companyId.accounts'
@@ -56,6 +57,11 @@ const AccountRoute = AccountRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsAccountRoute = SettingsAccountRouteImport.update({
+  id: '/settings/account',
+  path: '/settings/account',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiSplatRoute = ApiSplatRouteImport.update({
@@ -102,6 +108,7 @@ export interface FileRoutesByFullPath {
   '/register': typeof RegisterRoute
   '/reports': typeof ReportsRoute
   '/api/$': typeof ApiSplatRoute
+  '/settings/account': typeof SettingsAccountRoute
   '/auth/callback/$provider': typeof AuthCallbackProviderRoute
   '/companies/$companyId/accounts': typeof CompaniesCompanyIdAccountsRoute
   '/companies/$companyId/reports': typeof CompaniesCompanyIdReportsRoute
@@ -117,6 +124,7 @@ export interface FileRoutesByTo {
   '/register': typeof RegisterRoute
   '/reports': typeof ReportsRoute
   '/api/$': typeof ApiSplatRoute
+  '/settings/account': typeof SettingsAccountRoute
   '/auth/callback/$provider': typeof AuthCallbackProviderRoute
   '/companies/$companyId/accounts': typeof CompaniesCompanyIdAccountsRoute
   '/companies/$companyId/reports': typeof CompaniesCompanyIdReportsRoute
@@ -133,6 +141,7 @@ export interface FileRoutesById {
   '/register': typeof RegisterRoute
   '/reports': typeof ReportsRoute
   '/api/$': typeof ApiSplatRoute
+  '/settings/account': typeof SettingsAccountRoute
   '/auth/callback/$provider': typeof AuthCallbackProviderRoute
   '/companies/$companyId/accounts': typeof CompaniesCompanyIdAccountsRoute
   '/companies/$companyId/reports': typeof CompaniesCompanyIdReportsRoute
@@ -150,6 +159,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/reports'
     | '/api/$'
+    | '/settings/account'
     | '/auth/callback/$provider'
     | '/companies/$companyId/accounts'
     | '/companies/$companyId/reports'
@@ -165,6 +175,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/reports'
     | '/api/$'
+    | '/settings/account'
     | '/auth/callback/$provider'
     | '/companies/$companyId/accounts'
     | '/companies/$companyId/reports'
@@ -180,6 +191,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/reports'
     | '/api/$'
+    | '/settings/account'
     | '/auth/callback/$provider'
     | '/companies/$companyId/accounts'
     | '/companies/$companyId/reports'
@@ -196,6 +208,7 @@ export interface RootRouteChildren {
   RegisterRoute: typeof RegisterRoute
   ReportsRoute: typeof ReportsRoute
   ApiSplatRoute: typeof ApiSplatRoute
+  SettingsAccountRoute: typeof SettingsAccountRoute
   AuthCallbackProviderRoute: typeof AuthCallbackProviderRoute
 }
 
@@ -248,6 +261,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/account': {
+      id: '/settings/account'
+      path: '/settings/account'
+      fullPath: '/settings/account'
+      preLoaderRoute: typeof SettingsAccountRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/$': {
@@ -324,6 +344,7 @@ const rootRouteChildren: RootRouteChildren = {
   RegisterRoute: RegisterRoute,
   ReportsRoute: ReportsRoute,
   ApiSplatRoute: ApiSplatRoute,
+  SettingsAccountRoute: SettingsAccountRoute,
   AuthCallbackProviderRoute: AuthCallbackProviderRoute,
 }
 export const routeTree = rootRouteImport

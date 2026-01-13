@@ -624,3 +624,8 @@
 **Story**: 8.4.5 - Add user menu and logout functionality
 **Status**: complete
 ---
+
+## Iteration 2 - 2026-01-13 13:02
+**Story**: 8.4.6 - Create account settings page
+**Status**: complete
+---

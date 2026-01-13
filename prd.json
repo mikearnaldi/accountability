@@ -776,7 +776,7 @@
         "location": "packages/web/src/routes/settings/account.tsx",
         "pattern": "useAtom for user/identities state, mutations for link/unlink"
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "medium"
     },
     {
