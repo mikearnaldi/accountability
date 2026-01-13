@@ -922,6 +922,43 @@
       "estimated_complexity": "small"
     },
     {
+      "id": "8.5.1.4",
+      "phase": "Infrastructure",
+      "epic": "Build",
+      "title": "Switch Vite to use Rolldown bundler",
+      "description": "Rolldown is a Rust-based JavaScript bundler that provides 3x-16x faster production builds and up to 100x less memory usage compared to Rollup. Vite 8 ships with Rolldown built-in, or we can use rolldown-vite package with Vite 7.",
+      "acceptance_criteria": [
+        "Switch from vite to rolldown-vite package using pnpm overrides",
+        "Upgrade @vitejs/plugin-react to v5.0.0+ for Oxc React refresh transform",
+        "Pin rolldown-vite version to avoid unexpected breaking changes",
+        "Replace manualChunks with advancedChunks if used",
+        "pnpm dev works correctly with Rolldown",
+        "pnpm build completes successfully with Rolldown",
+        "Verify build output is correct and app runs properly"
+      ],
+      "technical_details": {
+        "approach_options": {
+          "option_1_rolldown_vite": "Use pnpm overrides to alias vite to rolldown-vite (works with Vite 7)",
+          "option_2_vite_8": "Upgrade directly to Vite 8 beta which has Rolldown built-in"
+        },
+        "pnpm_override_config": {
+          "pnpm": {
+            "overrides": {
+              "vite": "npm:rolldown-vite@latest"
+            }
+          }
+        },
+        "breaking_changes": [
+          "manualChunks is deprecated - use advancedChunks instead",
+          "Some Rollup/esbuild specific options may need adjustment"
+        ],
+        "performance_gains": "3x-16x faster builds, up to 100x less memory usage",
+        "documentation": "https://vite.dev/guide/rolldown"
+      },
+      "status": "complete",
+      "estimated_complexity": "small"
+    },
+    {
       "id": "8.5.2",
       "phase": "Testing",
       "epic": "Authentication",

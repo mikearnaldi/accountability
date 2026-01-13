@@ -3,6 +3,11 @@
   "private": true,
   "type": "module",
   "packageManager": "pnpm@10.17.1",
+  "pnpm": {
+    "overrides": {
+      "vite": "npm:rolldown-vite@7.3.1"
+    }
+  },
   "scripts": {
     "prepare": "effect-language-service patch",
     "dev": "pnpm --filter @accountability/web run dev",
