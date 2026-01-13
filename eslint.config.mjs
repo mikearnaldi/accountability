@@ -245,6 +245,8 @@ export default [
       "**/build/**",
       "**/.output/**",
       "**/node_modules/**",
+      "**/playwright-report/**",
+      "**/test-results/**",
       "repos/**",
       "**/*.md"
     ]

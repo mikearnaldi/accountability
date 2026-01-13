@@ -86,6 +86,11 @@ export interface AccountSelectorProps {
    * Optional ID for the component
    */
   readonly id?: string
+
+  /**
+   * Optional data-testid for testing
+   */
+  readonly "data-testid"?: string
 }
 
 // =============================================================================
@@ -157,7 +162,8 @@ export function AccountSelector({
   className,
   "aria-label": ariaLabel,
   "aria-labelledby": ariaLabelledBy,
-  id
+  id,
+  "data-testid": dataTestId
 }: AccountSelectorProps): React.ReactElement {
   // Generate unique IDs for ARIA
   const componentId = id ?? React.useId()
@@ -426,6 +432,7 @@ export function AccountSelector({
       className={className}
       style={containerStyle}
       id={componentId}
+      data-testid={dataTestId}
     >
       {/* Input Container */}
       <div

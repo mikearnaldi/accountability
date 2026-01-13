@@ -14,7 +14,7 @@
 
 import { createFileRoute, redirect } from "@tanstack/react-router"
 import * as React from "react"
-import { useAtomValue, useAtomSet, useAtom } from "@effect-atom/atom-react"
+import { useAtomValue, useAtomSet, useAtom, useAtomRefresh } from "@effect-atom/atom-react"
 import * as Atom from "@effect-atom/atom/Atom"
 import * as Result from "@effect-atom/atom/Result"
 import * as Duration from "effect/Duration"
@@ -93,7 +93,7 @@ const accountTypeFilterAtom = Atom.make<AccountType | null>(null)
 const searchQueryAtom = Atom.make("")
 
 /**
- * Create parameterized accounts query atom
+ * Create parameterized accounts query atom with reactivity keys for automatic refresh
  */
 const createAccountsQueryAtom = (companyId: CompanyId, accountType?: AccountType | null) => {
   const urlParams: {
@@ -113,7 +113,8 @@ const createAccountsQueryAtom = (companyId: CompanyId, accountType?: AccountType
 
   return ApiClient.query("accounts", "listAccounts", {
     urlParams,
-    timeToLive: Duration.minutes(5)
+    timeToLive: Duration.minutes(5),
+    reactivityKeys: ["accounts", companyId]  // Will be invalidated by mutations with matching keys
   })
 }
 
@@ -520,7 +521,8 @@ function AddAccountModal({
           currencyRestriction: formData.currencyRestriction
             ? Option.some(CurrencyCodeSchema.make(formData.currencyRestriction))
             : Option.none()
-        }
+        },
+        reactivityKeys: ["accounts", companyId]  // Invalidate accounts queries for this company
       })
       onSuccess()
       onClose()
@@ -807,7 +809,8 @@ function EditAccountModal({
             ? Option.some(CurrencyCodeSchema.make(formData.currencyRestriction))
             : Option.none(),
           isActive: Option.some(formData.isActive)
-        }
+        },
+        reactivityKeys: ["accounts", account.companyId]  // Invalidate accounts queries for this company
       })
       onSuccess()
       onClose()
@@ -1153,17 +1156,17 @@ function ChartOfAccountsPage(): React.ReactElement {
     account: null
   })
 
-  // Data refresh key - increment to refetch
-  const [refreshKey, setRefreshKey] = React.useState(0)
-
   // Create accounts query atom
   const accountsQueryAtom = React.useMemo(
     () => createAccountsQueryAtom(typedCompanyId, accountTypeFilter),
-    [typedCompanyId, accountTypeFilter, refreshKey]
+    [typedCompanyId, accountTypeFilter]
   )
 
   // Fetch accounts
   const accountsResult = useAtomValue(accountsQueryAtom)
+
+  // Refresh function to refetch accounts after mutations
+  const refreshAccounts = useAtomRefresh(accountsQueryAtom)
 
   // Process accounts into hierarchical list
   const hierarchicalAccounts = React.useMemo(() => {
@@ -1205,8 +1208,8 @@ function ChartOfAccountsPage(): React.ReactElement {
   }
 
   const handleSuccess = () => {
-    // Trigger refetch by incrementing refresh key
-    setRefreshKey(k => k + 1)
+    // Trigger refetch using the atom refresh function
+    refreshAccounts()
   }
 
   // Loading state

@@ -24,9 +24,11 @@ import { Route as OrganizationsOrganizationIdRouteImport } from './routes/organi
 import { Route as ApiSplatRouteImport } from './routes/api/$'
 import { Route as OrganizationsOrganizationIdIndexRouteImport } from './routes/organizations/$organizationId/index'
 import { Route as CompaniesCompanyIdReportsRouteImport } from './routes/companies/$companyId.reports'
+import { Route as CompaniesCompanyIdJournalEntriesRouteImport } from './routes/companies/$companyId.journal-entries'
 import { Route as CompaniesCompanyIdAccountsRouteImport } from './routes/companies/$companyId.accounts'
 import { Route as AuthCallbackProviderRouteImport } from './routes/auth/callback/$provider'
 import { Route as OrganizationsOrganizationIdCompaniesIndexRouteImport } from './routes/organizations/$organizationId/companies.index'
+import { Route as CompaniesCompanyIdJournalEntriesIndexRouteImport } from './routes/companies/$companyId.journal-entries.index'
 import { Route as OrganizationsOrganizationIdCompaniesCompanyIdRouteImport } from './routes/organizations/$organizationId/companies.$companyId'
 import { Route as CompaniesCompanyIdJournalEntriesNewRouteImport } from './routes/companies/$companyId.journal-entries.new'
 import { Route as CompaniesCompanyIdJournalEntriesEntryIdEditRouteImport } from './routes/companies/$companyId.journal-entries.$entryId.edit'
@@ -109,6 +111,12 @@ const CompaniesCompanyIdReportsRoute =
     path: '/$companyId/reports',
     getParentRoute: () => CompaniesRoute,
   } as any)
+const CompaniesCompanyIdJournalEntriesRoute =
+  CompaniesCompanyIdJournalEntriesRouteImport.update({
+    id: '/$companyId/journal-entries',
+    path: '/$companyId/journal-entries',
+    getParentRoute: () => CompaniesRoute,
+  } as any)
 const CompaniesCompanyIdAccountsRoute =
   CompaniesCompanyIdAccountsRouteImport.update({
     id: '/$companyId/accounts',
@@ -126,6 +134,12 @@ const OrganizationsOrganizationIdCompaniesIndexRoute =
     path: '/companies/',
     getParentRoute: () => OrganizationsOrganizationIdRoute,
   } as any)
+const CompaniesCompanyIdJournalEntriesIndexRoute =
+  CompaniesCompanyIdJournalEntriesIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => CompaniesCompanyIdJournalEntriesRoute,
+  } as any)
 const OrganizationsOrganizationIdCompaniesCompanyIdRoute =
   OrganizationsOrganizationIdCompaniesCompanyIdRouteImport.update({
     id: '/companies/$companyId',
@@ -134,15 +148,15 @@ const OrganizationsOrganizationIdCompaniesCompanyIdRoute =
   } as any)
 const CompaniesCompanyIdJournalEntriesNewRoute =
   CompaniesCompanyIdJournalEntriesNewRouteImport.update({
-    id: '/$companyId/journal-entries/new',
-    path: '/$companyId/journal-entries/new',
-    getParentRoute: () => CompaniesRoute,
+    id: '/new',
+    path: '/new',
+    getParentRoute: () => CompaniesCompanyIdJournalEntriesRoute,
   } as any)
 const CompaniesCompanyIdJournalEntriesEntryIdEditRoute =
   CompaniesCompanyIdJournalEntriesEntryIdEditRouteImport.update({
-    id: '/$companyId/journal-entries/$entryId/edit',
-    path: '/$companyId/journal-entries/$entryId/edit',
-    getParentRoute: () => CompaniesRoute,
+    id: '/$entryId/edit',
+    path: '/$entryId/edit',
+    getParentRoute: () => CompaniesCompanyIdJournalEntriesRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -161,10 +175,12 @@ export interface FileRoutesByFullPath {
   '/organizations/': typeof OrganizationsIndexRoute
   '/auth/callback/$provider': typeof AuthCallbackProviderRoute
   '/companies/$companyId/accounts': typeof CompaniesCompanyIdAccountsRoute
+  '/companies/$companyId/journal-entries': typeof CompaniesCompanyIdJournalEntriesRouteWithChildren
   '/companies/$companyId/reports': typeof CompaniesCompanyIdReportsRoute
   '/organizations/$organizationId/': typeof OrganizationsOrganizationIdIndexRoute
   '/companies/$companyId/journal-entries/new': typeof CompaniesCompanyIdJournalEntriesNewRoute
   '/organizations/$organizationId/companies/$companyId': typeof OrganizationsOrganizationIdCompaniesCompanyIdRoute
+  '/companies/$companyId/journal-entries/': typeof CompaniesCompanyIdJournalEntriesIndexRoute
   '/organizations/$organizationId/companies': typeof OrganizationsOrganizationIdCompaniesIndexRoute
   '/companies/$companyId/journal-entries/$entryId/edit': typeof CompaniesCompanyIdJournalEntriesEntryIdEditRoute
 }
@@ -185,6 +201,7 @@ export interface FileRoutesByTo {
   '/organizations/$organizationId': typeof OrganizationsOrganizationIdIndexRoute
   '/companies/$companyId/journal-entries/new': typeof CompaniesCompanyIdJournalEntriesNewRoute
   '/organizations/$organizationId/companies/$companyId': typeof OrganizationsOrganizationIdCompaniesCompanyIdRoute
+  '/companies/$companyId/journal-entries': typeof CompaniesCompanyIdJournalEntriesIndexRoute
   '/organizations/$organizationId/companies': typeof OrganizationsOrganizationIdCompaniesIndexRoute
   '/companies/$companyId/journal-entries/$entryId/edit': typeof CompaniesCompanyIdJournalEntriesEntryIdEditRoute
 }
@@ -205,10 +222,12 @@ export interface FileRoutesById {
   '/organizations/': typeof OrganizationsIndexRoute
   '/auth/callback/$provider': typeof AuthCallbackProviderRoute
   '/companies/$companyId/accounts': typeof CompaniesCompanyIdAccountsRoute
+  '/companies/$companyId/journal-entries': typeof CompaniesCompanyIdJournalEntriesRouteWithChildren
   '/companies/$companyId/reports': typeof CompaniesCompanyIdReportsRoute
   '/organizations/$organizationId/': typeof OrganizationsOrganizationIdIndexRoute
   '/companies/$companyId/journal-entries/new': typeof CompaniesCompanyIdJournalEntriesNewRoute
   '/organizations/$organizationId/companies/$companyId': typeof OrganizationsOrganizationIdCompaniesCompanyIdRoute
+  '/companies/$companyId/journal-entries/': typeof CompaniesCompanyIdJournalEntriesIndexRoute
   '/organizations/$organizationId/companies/': typeof OrganizationsOrganizationIdCompaniesIndexRoute
   '/companies/$companyId/journal-entries/$entryId/edit': typeof CompaniesCompanyIdJournalEntriesEntryIdEditRoute
 }
@@ -230,10 +249,12 @@ export interface FileRouteTypes {
     | '/organizations/'
     | '/auth/callback/$provider'
     | '/companies/$companyId/accounts'
+    | '/companies/$companyId/journal-entries'
     | '/companies/$companyId/reports'
     | '/organizations/$organizationId/'
     | '/companies/$companyId/journal-entries/new'
     | '/organizations/$organizationId/companies/$companyId'
+    | '/companies/$companyId/journal-entries/'
     | '/organizations/$organizationId/companies'
     | '/companies/$companyId/journal-entries/$entryId/edit'
   fileRoutesByTo: FileRoutesByTo
@@ -254,6 +275,7 @@ export interface FileRouteTypes {
     | '/organizations/$organizationId'
     | '/companies/$companyId/journal-entries/new'
     | '/organizations/$organizationId/companies/$companyId'
+    | '/companies/$companyId/journal-entries'
     | '/organizations/$organizationId/companies'
     | '/companies/$companyId/journal-entries/$entryId/edit'
   id:
@@ -273,10 +295,12 @@ export interface FileRouteTypes {
     | '/organizations/'
     | '/auth/callback/$provider'
     | '/companies/$companyId/accounts'
+    | '/companies/$companyId/journal-entries'
     | '/companies/$companyId/reports'
     | '/organizations/$organizationId/'
     | '/companies/$companyId/journal-entries/new'
     | '/organizations/$organizationId/companies/$companyId'
+    | '/companies/$companyId/journal-entries/'
     | '/organizations/$organizationId/companies/'
     | '/companies/$companyId/journal-entries/$entryId/edit'
   fileRoutesById: FileRoutesById
@@ -402,6 +426,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CompaniesCompanyIdReportsRouteImport
       parentRoute: typeof CompaniesRoute
     }
+    '/companies/$companyId/journal-entries': {
+      id: '/companies/$companyId/journal-entries'
+      path: '/$companyId/journal-entries'
+      fullPath: '/companies/$companyId/journal-entries'
+      preLoaderRoute: typeof CompaniesCompanyIdJournalEntriesRouteImport
+      parentRoute: typeof CompaniesRoute
+    }
     '/companies/$companyId/accounts': {
       id: '/companies/$companyId/accounts'
       path: '/$companyId/accounts'
@@ -423,6 +454,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrganizationsOrganizationIdCompaniesIndexRouteImport
       parentRoute: typeof OrganizationsOrganizationIdRoute
     }
+    '/companies/$companyId/journal-entries/': {
+      id: '/companies/$companyId/journal-entries/'
+      path: '/'
+      fullPath: '/companies/$companyId/journal-entries/'
+      preLoaderRoute: typeof CompaniesCompanyIdJournalEntriesIndexRouteImport
+      parentRoute: typeof CompaniesCompanyIdJournalEntriesRoute
+    }
     '/organizations/$organizationId/companies/$companyId': {
       id: '/organizations/$organizationId/companies/$companyId'
       path: '/companies/$companyId'
@@ -432,37 +470,55 @@ declare module '@tanstack/react-router' {
     }
     '/companies/$companyId/journal-entries/new': {
       id: '/companies/$companyId/journal-entries/new'
-      path: '/$companyId/journal-entries/new'
+      path: '/new'
       fullPath: '/companies/$companyId/journal-entries/new'
       preLoaderRoute: typeof CompaniesCompanyIdJournalEntriesNewRouteImport
-      parentRoute: typeof CompaniesRoute
+      parentRoute: typeof CompaniesCompanyIdJournalEntriesRoute
     }
     '/companies/$companyId/journal-entries/$entryId/edit': {
       id: '/companies/$companyId/journal-entries/$entryId/edit'
-      path: '/$companyId/journal-entries/$entryId/edit'
+      path: '/$entryId/edit'
       fullPath: '/companies/$companyId/journal-entries/$entryId/edit'
       preLoaderRoute: typeof CompaniesCompanyIdJournalEntriesEntryIdEditRouteImport
-      parentRoute: typeof CompaniesRoute
+      parentRoute: typeof CompaniesCompanyIdJournalEntriesRoute
     }
   }
 }
 
+interface CompaniesCompanyIdJournalEntriesRouteChildren {
+  CompaniesCompanyIdJournalEntriesNewRoute: typeof CompaniesCompanyIdJournalEntriesNewRoute
+  CompaniesCompanyIdJournalEntriesIndexRoute: typeof CompaniesCompanyIdJournalEntriesIndexRoute
+  CompaniesCompanyIdJournalEntriesEntryIdEditRoute: typeof CompaniesCompanyIdJournalEntriesEntryIdEditRoute
+}
+
+const CompaniesCompanyIdJournalEntriesRouteChildren: CompaniesCompanyIdJournalEntriesRouteChildren =
+  {
+    CompaniesCompanyIdJournalEntriesNewRoute:
+      CompaniesCompanyIdJournalEntriesNewRoute,
+    CompaniesCompanyIdJournalEntriesIndexRoute:
+      CompaniesCompanyIdJournalEntriesIndexRoute,
+    CompaniesCompanyIdJournalEntriesEntryIdEditRoute:
+      CompaniesCompanyIdJournalEntriesEntryIdEditRoute,
+  }
+
+const CompaniesCompanyIdJournalEntriesRouteWithChildren =
+  CompaniesCompanyIdJournalEntriesRoute._addFileChildren(
+    CompaniesCompanyIdJournalEntriesRouteChildren,
+  )
+
 interface CompaniesRouteChildren {
   CompaniesIndexRoute: typeof CompaniesIndexRoute
   CompaniesCompanyIdAccountsRoute: typeof CompaniesCompanyIdAccountsRoute
+  CompaniesCompanyIdJournalEntriesRoute: typeof CompaniesCompanyIdJournalEntriesRouteWithChildren
   CompaniesCompanyIdReportsRoute: typeof CompaniesCompanyIdReportsRoute
-  CompaniesCompanyIdJournalEntriesNewRoute: typeof CompaniesCompanyIdJournalEntriesNewRoute
-  CompaniesCompanyIdJournalEntriesEntryIdEditRoute: typeof CompaniesCompanyIdJournalEntriesEntryIdEditRoute
 }
 
 const CompaniesRouteChildren: CompaniesRouteChildren = {
   CompaniesIndexRoute: CompaniesIndexRoute,
   CompaniesCompanyIdAccountsRoute: CompaniesCompanyIdAccountsRoute,
+  CompaniesCompanyIdJournalEntriesRoute:
+    CompaniesCompanyIdJournalEntriesRouteWithChildren,
   CompaniesCompanyIdReportsRoute: CompaniesCompanyIdReportsRoute,
-  CompaniesCompanyIdJournalEntriesNewRoute:
-    CompaniesCompanyIdJournalEntriesNewRoute,
-  CompaniesCompanyIdJournalEntriesEntryIdEditRoute:
-    CompaniesCompanyIdJournalEntriesEntryIdEditRoute,
 }
 
 const CompaniesRouteWithChildren = CompaniesRoute._addFileChildren(

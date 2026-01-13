@@ -113,6 +113,11 @@ export interface CurrencyInputProps {
    * ID of the element that describes this input
    */
   readonly "aria-describedby"?: string
+
+  /**
+   * Optional data-testid for testing
+   */
+  readonly "data-testid"?: string
 }
 
 // =============================================================================
@@ -200,7 +205,8 @@ export function CurrencyInput({
   "aria-labelledby": ariaLabelledBy,
   id,
   "aria-invalid": ariaInvalid,
-  "aria-describedby": ariaDescribedBy
+  "aria-describedby": ariaDescribedBy,
+  "data-testid": dataTestId
 }: CurrencyInputProps): React.ReactElement {
   // Generate unique IDs
   const componentId = id ?? React.useId()
@@ -385,7 +391,7 @@ export function CurrencyInput({
   }
 
   return (
-    <div className={className} style={containerStyle} id={componentId}>
+    <div className={className} style={containerStyle} id={componentId} data-testid={dataTestId}>
       {/* Currency Selector */}
       {showCurrencySelector && onCurrencyChange && (
         <CurrencySelector

@@ -7,11 +7,16 @@
   "specs_dir": "specs/",
   "available_specs": [
     "ACCOUNTING_RESEARCH.md",
-    "HTTP_API_TANSTACK.md",
-    "API_BEST_PRACTICES.md",
+    "EFFECT_BEST_PRACTICES.md",
+    "EFFECT_ATOM.md",
+    "EFFECT_SQL.md",
     "EFFECT_LAYERS.md",
     "EFFECT_TESTING.md",
-    "E2E_TESTING.md"
+    "HTTP_API_TANSTACK.md",
+    "API_BEST_PRACTICES.md",
+    "AUTHENTICATION.md",
+    "E2E_TESTING.md",
+    "REACT_BEST_PRACTICES.md"
   ],
   "technology": {
     "effect": {
@@ -1372,7 +1377,7 @@
         "ui_location": "packages/web/src/routes/companies/$companyId/journal-entries/",
         "pattern": "Implement UI first, then write E2E tests against the UI"
       },
-      "status": "pending",
+      "status": "in_progress",
       "estimated_complexity": "large"
     },
     {

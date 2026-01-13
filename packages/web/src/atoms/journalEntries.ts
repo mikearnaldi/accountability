@@ -380,10 +380,10 @@ export const journalEntryByIdFamily = Atom.family((id: string) =>
  */
 export interface JournalEntriesQueryParams {
   readonly companyId: CompanyId
-  readonly status?: "Draft" | "PendingApproval" | "Approved" | "Posted" | "Reversed"
-  readonly entryType?: JournalEntryType
-  readonly limit?: number
-  readonly offset?: number
+  readonly status?: "Draft" | "PendingApproval" | "Approved" | "Posted" | "Reversed" | undefined
+  readonly entryType?: JournalEntryType | undefined
+  readonly limit?: number | undefined
+  readonly offset?: number | undefined
 }
 
 /**
@@ -398,7 +398,7 @@ export const createJournalEntriesQueryAtom = (params: JournalEntriesQueryParams)
       limit: params.limit,
       offset: params.offset
     },
-    timeToLive: Duration.minutes(1)
+    timeToLive: Duration.seconds(5)  // Short TTL to ensure fresh data
   })
 }
 
@@ -420,6 +420,21 @@ export const updateJournalEntryMutation = ApiClient.mutation("journal-entries", 
  * Submit for approval mutation
  */
 export const submitForApprovalMutation = ApiClient.mutation("journal-entries", "submitForApproval")
+
+/**
+ * Approve journal entry mutation
+ */
+export const approveJournalEntryMutation = ApiClient.mutation("journal-entries", "approveJournalEntry")
+
+/**
+ * Reject journal entry mutation
+ */
+export const rejectJournalEntryMutation = ApiClient.mutation("journal-entries", "rejectJournalEntry")
+
+/**
+ * Post journal entry mutation
+ */
+export const postJournalEntryMutation = ApiClient.mutation("journal-entries", "postJournalEntry")
 
 /**
  * Delete journal entry mutation

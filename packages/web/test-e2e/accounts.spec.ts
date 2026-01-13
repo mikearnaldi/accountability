@@ -223,14 +223,9 @@ test.describe("Accounts Management", () => {
       // Wait for form to close (indicating success)
       await expect(authenticatedPage.getByTestId("create-account-form")).not.toBeVisible({ timeout: 10000 })
 
-      // Reload the page to ensure fresh data
-      await authenticatedPage.reload()
-
-      // Wait for accounts list to load
-      await expect(authenticatedPage.getByTestId("accounts-list")).toBeVisible({ timeout: 10000 })
-
-      // Should show the new account in the list
-      await expect(authenticatedPage.getByText(accountName)).toBeVisible({ timeout: 5000 })
+      // Wait for the accounts list to update with the new account (handleSuccess triggers refetch)
+      // The new account should appear in the list after the modal closes
+      await expect(authenticatedPage.getByText(accountName)).toBeVisible({ timeout: 10000 })
     })
   })
 
@@ -293,6 +288,9 @@ test.describe("Accounts Management", () => {
       // Wait for accounts list
       await expect(authenticatedPage.getByTestId("accounts-list")).toBeVisible({ timeout: 10000 })
 
+      // Verify the original account name is present
+      await expect(authenticatedPage.getByText(testAccount.name)).toBeVisible()
+
       // Click edit button
       await authenticatedPage.getByTestId(`edit-account-${testAccount.id}`).click()
       await expect(authenticatedPage.getByTestId("edit-account-form")).toBeVisible()
@@ -307,13 +305,11 @@ test.describe("Accounts Management", () => {
       // Wait for form to close
       await expect(authenticatedPage.getByTestId("edit-account-form")).not.toBeVisible({ timeout: 10000 })
 
-      // Reload the page to ensure fresh data
+      // Reload page to ensure fresh data from server (bypasses client-side caching)
       await authenticatedPage.reload()
-
-      // Wait for accounts list
       await expect(authenticatedPage.getByTestId("accounts-list")).toBeVisible({ timeout: 10000 })
 
-      // Should show the updated account name
+      // Verify the updated name is now displayed
       await expect(authenticatedPage.getByText(newName)).toBeVisible({ timeout: 5000 })
     })
 

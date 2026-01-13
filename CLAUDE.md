@@ -31,12 +31,17 @@ accountability/
 |-----------|-------------|
 | [specs/ACCOUNTING_RESEARCH.md](specs/ACCOUNTING_RESEARCH.md) | Domain specifications (entities, services, reports) |
 | [specs/EFFECT_BEST_PRACTICES.md](specs/EFFECT_BEST_PRACTICES.md) | **Critical rules**, Schema patterns, services, layers |
+| [specs/EFFECT_ATOM.md](specs/EFFECT_ATOM.md) | **Effect Atom reactivity**, refresh patterns, anti-patterns |
 | [specs/EFFECT_SQL.md](specs/EFFECT_SQL.md) | SqlSchema, Model.Class, repository patterns |
+| [specs/EFFECT_LAYERS.md](specs/EFFECT_LAYERS.md) | Layer composition, memoization, service patterns |
 | [specs/EFFECT_TESTING.md](specs/EFFECT_TESTING.md) | @effect/vitest, testcontainers, property testing |
 | [specs/TYPESCRIPT_CONVENTIONS.md](specs/TYPESCRIPT_CONVENTIONS.md) | Project refs, imports, module structure |
 | [specs/REFERENCE_REPOS.md](specs/REFERENCE_REPOS.md) | Effect, TanStack, Effect-Atom package references |
 | [specs/HTTP_API_TANSTACK.md](specs/HTTP_API_TANSTACK.md) | TanStack Start server function patterns |
 | [specs/API_BEST_PRACTICES.md](specs/API_BEST_PRACTICES.md) | API layer conventions |
+| [specs/AUTHENTICATION.md](specs/AUTHENTICATION.md) | Multi-provider auth system, session management |
+| [specs/E2E_TESTING.md](specs/E2E_TESTING.md) | Playwright E2E testing patterns |
+| [specs/REACT_BEST_PRACTICES.md](specs/REACT_BEST_PRACTICES.md) | **React patterns**, Tailwind, Effect Atom state |
 
 ## Key Files
 

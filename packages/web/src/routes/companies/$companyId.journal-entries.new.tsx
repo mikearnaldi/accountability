@@ -13,7 +13,7 @@
  * @module routes/companies/$companyId.journal-entries.new
  */
 
-import { createFileRoute, useNavigate, redirect } from "@tanstack/react-router"
+import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import * as React from "react"
 import { useAtomValue, useAtomSet } from "@effect-atom/atom-react"
 import * as Result from "@effect-atom/atom/Result"
@@ -42,40 +42,14 @@ import {
   type JournalEntryFormLine,
   type JournalEntryFormErrors
 } from "../../atoms/journalEntries.ts"
-import { AuthGuard } from "../../components/AuthGuard.tsx"
 
 // =============================================================================
 // Route Definition
 // =============================================================================
 
 export const Route = createFileRoute("/companies/$companyId/journal-entries/new")({
-  component: NewJournalEntryPageWithAuth,
-  beforeLoad: async ({ params }) => {
-    // Quick client-side check for auth token
-    if (typeof window !== "undefined") {
-      const token = window.localStorage.getItem("accountability_auth_token")
-      if (!token) {
-        throw redirect({
-          to: "/login",
-          search: { redirect: `/companies/${params.companyId}/journal-entries/new` },
-          replace: true
-        })
-      }
-    }
-  }
+  component: NewJournalEntryPage
 })
-
-/**
- * Wrapper component that adds AuthGuard protection
- */
-function NewJournalEntryPageWithAuth(): React.ReactElement {
-  const { companyId } = Route.useParams()
-  return (
-    <AuthGuard redirectTo={`/companies/${companyId}/journal-entries/new`}>
-      <NewJournalEntryPage />
-    </AuthGuard>
-  )
-}
 
 // =============================================================================
 // Types
@@ -321,7 +295,7 @@ function JournalEntryLineRow({
   }
 
   return (
-    <tr>
+    <tr data-testid={`journal-line-${line.lineNumber}`}>
       <td style={tdStyles}>
         <span style={{ color: "#999", fontFamily: "monospace" }}>{line.lineNumber}</span>
       </td>
@@ -335,9 +309,10 @@ function JournalEntryLineRow({
           placeholder="Select account..."
           aria-label={`Account for line ${line.lineNumber}`}
           aria-invalid={!!lineError?.accountId}
+          data-testid={`line-account-${line.lineNumber}`}
         />
         {lineError?.accountId && (
-          <div style={errorStyles}>{lineError.accountId}</div>
+          <div style={errorStyles} data-testid={`line-account-error-${line.lineNumber}`}>{lineError.accountId}</div>
         )}
       </td>
       <td style={{ ...tdStyles, width: "180px" }}>
@@ -348,6 +323,7 @@ function JournalEntryLineRow({
           placeholder="0.00"
           aria-label={`Debit amount for line ${line.lineNumber}`}
           disabled={!!line.creditAmount.trim()}
+          data-testid={`line-debit-${line.lineNumber}`}
         />
       </td>
       <td style={{ ...tdStyles, width: "180px" }}>
@@ -358,9 +334,10 @@ function JournalEntryLineRow({
           placeholder="0.00"
           aria-label={`Credit amount for line ${line.lineNumber}`}
           disabled={!!line.debitAmount.trim()}
+          data-testid={`line-credit-${line.lineNumber}`}
         />
         {lineError?.amount && (
-          <div style={errorStyles}>{lineError.amount}</div>
+          <div style={errorStyles} data-testid={`line-amount-error-${line.lineNumber}`}>{lineError.amount}</div>
         )}
       </td>
       <td style={{ ...tdStyles, minWidth: "150px" }}>
@@ -371,6 +348,7 @@ function JournalEntryLineRow({
           placeholder="Optional memo"
           style={{ ...inputStyles, padding: "6px 8px" }}
           aria-label={`Memo for line ${line.lineNumber}`}
+          data-testid={`line-memo-${line.lineNumber}`}
         />
       </td>
       <td style={{ ...tdStyles, width: "60px", textAlign: "center" }}>
@@ -381,6 +359,7 @@ function JournalEntryLineRow({
             style={{ ...smallButtonStyles, color: "#ff4d4f", borderColor: "#ff4d4f" }}
             title="Remove line"
             aria-label={`Remove line ${line.lineNumber}`}
+            data-testid={`remove-line-${line.lineNumber}`}
           >
             x
           </button>
@@ -401,22 +380,22 @@ function RunningBalanceDisplay({
   const balance = calculateRunningBalance(lines)
 
   return (
-    <div style={balanceDisplayStyles}>
+    <div style={balanceDisplayStyles} data-testid="running-balance">
       <div style={balanceItemStyles}>
         <div style={balanceLabelStyles}>Total Debits</div>
-        <div style={balanceValueStyles(balance.isBalanced, false)}>
+        <div style={balanceValueStyles(balance.isBalanced, false)} data-testid="total-debits">
           {balance.formattedDebits}
         </div>
       </div>
       <div style={balanceItemStyles}>
         <div style={balanceLabelStyles}>Total Credits</div>
-        <div style={balanceValueStyles(balance.isBalanced, false)}>
+        <div style={balanceValueStyles(balance.isBalanced, false)} data-testid="total-credits">
           {balance.formattedCredits}
         </div>
       </div>
       <div style={balanceItemStyles}>
         <div style={balanceLabelStyles}>Difference</div>
-        <div style={balanceValueStyles(balance.isBalanced, true)}>
+        <div style={balanceValueStyles(balance.isBalanced, true)} data-testid="balance-difference">
           {balance.isBalanced ? "Balanced" : balance.formattedBalance}
         </div>
       </div>
@@ -548,7 +527,7 @@ function NewJournalEntryPage(): React.ReactElement {
       const request = formStateToCreateRequest(formState)
       await createEntry({ payload: request })
       navigate({
-        to: "/companies/$companyId/accounts",
+        to: "/companies/$companyId/journal-entries",
         params: { companyId }
       })
     } catch (err) {
@@ -577,7 +556,7 @@ function NewJournalEntryPage(): React.ReactElement {
 
       // Navigate back - user can submit for approval from the entry list/detail view
       navigate({
-        to: "/companies/$companyId/accounts",
+        to: "/companies/$companyId/journal-entries",
         params: { companyId }
       })
     } catch (err) {
@@ -592,7 +571,7 @@ function NewJournalEntryPage(): React.ReactElement {
   // Cancel and go back
   const handleCancel = () => {
     navigate({
-      to: "/companies/$companyId/accounts",
+      to: "/companies/$companyId/journal-entries",
       params: { companyId }
     })
   }
@@ -618,11 +597,11 @@ function NewJournalEntryPage(): React.ReactElement {
   }
 
   return (
-    <div style={pageStyles}>
+    <div style={pageStyles} data-testid="new-journal-entry-page">
       {/* Header */}
       <div style={headerStyles}>
         <div>
-          <h1 style={{ margin: 0 }}>New Journal Entry</h1>
+          <h1 style={{ margin: 0 }} data-testid="page-title">New Journal Entry</h1>
           <p style={{ color: "#666", margin: "8px 0 0" }}>
             Company: {Result.isSuccess(companyResult) ? companyResult.value.name : companyId}
           </p>
@@ -633,6 +612,7 @@ function NewJournalEntryPage(): React.ReactElement {
             onClick={handleCancel}
             style={secondaryButtonStyles}
             disabled={formState.isSubmitting}
+            data-testid="cancel-button"
           >
             Cancel
           </button>
@@ -641,6 +621,7 @@ function NewJournalEntryPage(): React.ReactElement {
             onClick={handleSaveAsDraft}
             style={secondaryButtonStyles}
             disabled={formState.isSubmitting}
+            data-testid="save-draft-button"
           >
             {formState.isSubmitting ? "Saving..." : "Save as Draft"}
           </button>
@@ -649,6 +630,7 @@ function NewJournalEntryPage(): React.ReactElement {
             onClick={handleSubmitForApproval}
             style={buttonStyles}
             disabled={formState.isSubmitting}
+            data-testid="submit-for-approval-button"
           >
             {formState.isSubmitting ? "Submitting..." : "Submit for Approval"}
           </button>
@@ -657,16 +639,16 @@ function NewJournalEntryPage(): React.ReactElement {
 
       {/* Error display */}
       {formState.error && (
-        <div style={globalErrorStyles}>{formState.error}</div>
+        <div style={globalErrorStyles} data-testid="form-error">{formState.error}</div>
       )}
 
       {/* Balance error */}
       {showValidation && validationErrors.balance && (
-        <div style={globalErrorStyles}>{validationErrors.balance}</div>
+        <div style={globalErrorStyles} data-testid="balance-error">{validationErrors.balance}</div>
       )}
 
       {/* Entry Details Section */}
-      <div style={formSectionStyles}>
+      <div style={formSectionStyles} data-testid="entry-details-section">
         <h2 style={{ marginTop: 0, marginBottom: "16px", fontSize: "16px" }}>
           Entry Details
         </h2>
@@ -679,9 +661,10 @@ function NewJournalEntryPage(): React.ReactElement {
             placeholder="Enter a description for this journal entry"
             style={textareaStyles}
             aria-invalid={showValidation && !!validationErrors.description}
+            data-testid="description-input"
           />
           {showValidation && validationErrors.description && (
-            <div style={errorStyles}>{validationErrors.description}</div>
+            <div style={errorStyles} data-testid="description-error">{validationErrors.description}</div>
           )}
         </div>
 
@@ -694,9 +677,10 @@ function NewJournalEntryPage(): React.ReactElement {
               onChange={(e) => updateField("transactionDate", e.target.value)}
               style={inputStyles}
               aria-invalid={showValidation && !!validationErrors.transactionDate}
+              data-testid="transaction-date-input"
             />
             {showValidation && validationErrors.transactionDate && (
-              <div style={errorStyles}>{validationErrors.transactionDate}</div>
+              <div style={errorStyles} data-testid="transaction-date-error">{validationErrors.transactionDate}</div>
             )}
           </div>
 
@@ -722,6 +706,7 @@ function NewJournalEntryPage(): React.ReactElement {
               max={2999}
               style={inputStyles}
               aria-invalid={showValidation && !!validationErrors.fiscalYear}
+              data-testid="fiscal-year-input"
             />
             {showValidation && validationErrors.fiscalYear && (
               <div style={errorStyles}>{validationErrors.fiscalYear}</div>
@@ -735,6 +720,7 @@ function NewJournalEntryPage(): React.ReactElement {
               onChange={(e) => updateField("fiscalPeriod", parseInt(e.target.value, 10))}
               style={selectStyles}
               aria-invalid={showValidation && !!validationErrors.fiscalPeriod}
+              data-testid="fiscal-period-select"
             >
               {Array.from({ length: 13 }, (_, i) => i + 1).map((period) => (
                 <option key={period} value={period}>
@@ -760,6 +746,7 @@ function NewJournalEntryPage(): React.ReactElement {
                 }
               }}
               style={selectStyles}
+              data-testid="entry-type-select"
             >
               {JOURNAL_ENTRY_TYPES.map((type) => (
                 <option key={type} value={type}>{type}</option>
@@ -778,6 +765,7 @@ function NewJournalEntryPage(): React.ReactElement {
                 }
               }}
               style={selectStyles}
+              data-testid="source-module-select"
             >
               {SOURCE_MODULES.map((module) => (
                 <option key={module} value={module}>{module}</option>
@@ -795,6 +783,7 @@ function NewJournalEntryPage(): React.ReactElement {
               onChange={(e) => updateField("referenceNumber", e.target.value)}
               placeholder="e.g., INV-2025-001"
               style={inputStyles}
+              data-testid="reference-number-input"
             />
           </div>
 
@@ -806,29 +795,31 @@ function NewJournalEntryPage(): React.ReactElement {
               onChange={(e) => updateField("sourceDocumentRef", e.target.value)}
               placeholder="e.g., PO-12345"
               style={inputStyles}
+              data-testid="source-document-ref-input"
             />
           </div>
         </div>
       </div>
 
       {/* Journal Lines Section */}
-      <div style={formSectionStyles}>
+      <div style={formSectionStyles} data-testid="journal-lines-section">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
           <h2 style={{ margin: 0, fontSize: "16px" }}>Journal Lines</h2>
           <button
             type="button"
             onClick={addLine}
             style={secondaryButtonStyles}
+            data-testid="add-line-button"
           >
             + Add Line
           </button>
         </div>
 
         {showValidation && validationErrors.lines && (
-          <div style={{ ...errorStyles, marginBottom: "16px" }}>{validationErrors.lines}</div>
+          <div style={{ ...errorStyles, marginBottom: "16px" }} data-testid="lines-error">{validationErrors.lines}</div>
         )}
 
-        <table style={linesTableStyles}>
+        <table style={linesTableStyles} data-testid="journal-lines-table">
           <thead>
             <tr>
               <th style={{ ...thStyles, width: "50px" }}>#</th>

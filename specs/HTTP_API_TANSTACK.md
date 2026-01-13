@@ -339,6 +339,8 @@ const program = Effect.gen(function* () {
 Packages: `@effect-atom/atom` and `@effect-atom/atom-react`
 Reference: `repos/effect-atom/`
 
+> **For comprehensive Effect Atom documentation including reactivity patterns, refresh mechanics, and anti-patterns, see [EFFECT_ATOM.md](./EFFECT_ATOM.md)**
+
 ### 3.1 Core Concepts
 
 Effect Atom provides reactive state management that integrates with Effect:
