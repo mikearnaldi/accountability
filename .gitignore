@@ -19,6 +19,8 @@ dist/
 
 # Testing
 coverage/
+playwright-report/
+test-results/
 
 # Logs (but not .ralph/ logs)
 npm-debug.log*

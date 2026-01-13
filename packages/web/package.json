@@ -10,11 +10,14 @@
     "preview": "vite preview",
     "start": "node .output/server/index.mjs",
     "clean": "rm -rf dist .output",
-    "test": "cd ../.. && vitest run packages/web/test"
+    "test": "cd ../.. && vitest run packages/web/test",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:report": "playwright show-report"
   },
   "dependencies": {
-    "@accountability/core": "workspace:*",
     "@accountability/api": "workspace:*",
+    "@accountability/core": "workspace:*",
     "@accountability/persistence": "workspace:*",
     "@effect-atom/atom": "^0.4.11",
     "@effect-atom/atom-react": "^0.4.4",
@@ -31,6 +34,7 @@
     "scheduler": "^0.27.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.57.0",
     "@testcontainers/postgresql": "^10.25.0",
     "@types/node": "^22.5.4",
     "@types/react": "^19.0.8",
