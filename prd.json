@@ -1268,19 +1268,24 @@
       "phase": "E2E Testing",
       "epic": "Feature Tests",
       "title": "Implement organizations E2E tests",
-      "description": "Create E2E tests for organization management.",
+      "description": "Create E2E tests for organization management. Implement any missing UI pages/components required to complete the user flows. Tests must interact through the UI only - direct API calls are not allowed in E2E tests.",
       "acceptance_criteria": [
-        "Test: list organizations shows user's orgs",
-        "Test: create organization via UI works",
+        "Implement organizations list page if missing (/organizations route)",
+        "Implement create organization form/modal if missing",
+        "Implement organization details page if missing",
+        "Test: list organizations shows user's orgs via UI",
+        "Test: create organization via UI form works",
         "Test: organization details page displays correctly",
-        "Test: API returns 401 without authentication"
+        "Test: unauthenticated access redirects to login",
+        "All tests interact through UI elements only, no direct API calls"
       ],
       "specs": [
         "E2E_TESTING.md"
       ],
       "technical_details": {
-        "location": "packages/web/tests/organizations/organizations.spec.ts",
-        "pattern": "Use org fixtures for setup, test UI flows"
+        "location": "packages/web/test-e2e/organizations.spec.ts",
+        "ui_location": "packages/web/src/routes/organizations/",
+        "pattern": "Implement UI first, then write E2E tests against the UI"
       },
       "status": "pending",
       "estimated_complexity": "medium"
@@ -1290,19 +1295,24 @@
       "phase": "E2E Testing",
       "epic": "Feature Tests",
       "title": "Implement companies E2E tests",
-      "description": "Create E2E tests for company management within organizations.",
+      "description": "Create E2E tests for company management within organizations. Implement any missing UI pages/components required to complete the user flows. Tests must interact through the UI only - direct API calls are not allowed in E2E tests.",
       "acceptance_criteria": [
-        "Test: list companies shows org's companies",
-        "Test: create company via UI works",
+        "Implement companies list page if missing (/organizations/:orgId/companies route)",
+        "Implement create company form/modal if missing",
+        "Implement company details page if missing",
+        "Test: list companies shows org's companies via UI",
+        "Test: create company via UI form works",
         "Test: company details page displays correctly",
-        "Test: companies require organization context"
+        "Test: companies require organization context",
+        "All tests interact through UI elements only, no direct API calls"
       ],
       "specs": [
         "E2E_TESTING.md"
       ],
       "technical_details": {
-        "location": "packages/web/tests/companies/companies.spec.ts",
-        "pattern": "Use org + company fixtures, test CRUD flows"
+        "location": "packages/web/test-e2e/companies.spec.ts",
+        "ui_location": "packages/web/src/routes/organizations/$orgId/companies/",
+        "pattern": "Implement UI first, then write E2E tests against the UI"
       },
       "status": "pending",
       "estimated_complexity": "medium"
@@ -1312,20 +1322,25 @@
       "phase": "E2E Testing",
       "epic": "Feature Tests",
       "title": "Implement accounts E2E tests",
-      "description": "Create E2E tests for chart of accounts management.",
+      "description": "Create E2E tests for chart of accounts management. Implement any missing UI pages/components required to complete the user flows. Tests must interact through the UI only - direct API calls are not allowed in E2E tests.",
       "acceptance_criteria": [
-        "Test: list accounts shows company's accounts",
-        "Test: create account via UI works with validation",
-        "Test: edit account updates correctly",
+        "Implement accounts list page if missing (/companies/:companyId/accounts route)",
+        "Implement create account form/modal if missing",
+        "Implement edit account form if missing",
+        "Test: list accounts shows company's accounts via UI",
+        "Test: create account via UI form works with validation",
+        "Test: edit account via UI updates correctly",
         "Test: account hierarchy displays properly",
-        "Test: filter/search accounts works"
+        "Test: filter/search accounts works via UI",
+        "All tests interact through UI elements only, no direct API calls"
       ],
       "specs": [
         "E2E_TESTING.md"
       ],
       "technical_details": {
-        "location": "packages/web/tests/accounts/accounts.spec.ts",
-        "pattern": "Use full fixture chain, test account workflows"
+        "location": "packages/web/test-e2e/accounts.spec.ts",
+        "ui_location": "packages/web/src/routes/companies/$companyId/accounts/",
+        "pattern": "Implement UI first, then write E2E tests against the UI"
       },
       "status": "pending",
       "estimated_complexity": "medium"
@@ -1335,21 +1350,27 @@
       "phase": "E2E Testing",
       "epic": "Feature Tests",
       "title": "Implement journal entries E2E tests",
-      "description": "Create E2E tests for journal entry workflows.",
+      "description": "Create E2E tests for journal entry workflows. Implement any missing UI pages/components required to complete the user flows. Tests must interact through the UI only - direct API calls are not allowed in E2E tests.",
       "acceptance_criteria": [
-        "Test: create journal entry with lines",
-        "Test: validation: debits must equal credits",
-        "Test: submit for approval workflow",
-        "Test: approve/reject workflow",
-        "Test: post entry workflow",
-        "Test: view entry history"
+        "Implement journal entries list page if missing (/companies/:companyId/journal-entries route)",
+        "Implement create journal entry form with line items if missing",
+        "Implement journal entry detail/edit page if missing",
+        "Implement approval workflow UI (submit, approve, reject buttons) if missing",
+        "Test: create journal entry with lines via UI",
+        "Test: validation UI shows debits must equal credits",
+        "Test: submit for approval workflow via UI",
+        "Test: approve/reject workflow via UI",
+        "Test: post entry workflow via UI",
+        "Test: view entry history via UI",
+        "All tests interact through UI elements only, no direct API calls"
       ],
       "specs": [
         "E2E_TESTING.md"
       ],
       "technical_details": {
-        "location": "packages/web/tests/journal-entries/workflow.spec.ts",
-        "pattern": "Test multi-step workflows with state transitions"
+        "location": "packages/web/test-e2e/journal-entries.spec.ts",
+        "ui_location": "packages/web/src/routes/companies/$companyId/journal-entries/",
+        "pattern": "Implement UI first, then write E2E tests against the UI"
       },
       "status": "pending",
       "estimated_complexity": "large"
