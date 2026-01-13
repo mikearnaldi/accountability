@@ -644,3 +644,8 @@
 **Story**: 8.5.2 - Write auth repository integration tests
 **Status**: complete
 ---
+
+## Iteration 4 - 2026-01-13 14:26
+**Story**: 8.5.3 - Write auth API endpoint tests
+**Status**: complete
+---
