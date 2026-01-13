@@ -896,6 +896,32 @@
       "estimated_complexity": "small"
     },
     {
+      "id": "8.5.1.3",
+      "phase": "Infrastructure",
+      "epic": "Build",
+      "title": "Fix missing package exports for production build",
+      "description": "Production build fails due to missing exports in package.json files. Vite/Rollup cannot resolve deep imports like '@accountability/persistence/Services/SessionRepository' because they are not listed in the exports field.",
+      "acceptance_criteria": [
+        "Add all missing exports to @accountability/persistence package.json",
+        "Add all missing exports to @accountability/api package.json",
+        "Verify @accountability/core package.json has all exports (partially fixed)",
+        "pnpm build completes successfully without errors",
+        "No 'Missing specifier' errors from Vite/Rollup"
+      ],
+      "technical_details": {
+        "root_cause": "Package.json exports field must explicitly list all subpath exports for ESM packages. Deep imports like '@pkg/Services/Foo' require './Services/Foo': './src/Services/Foo.ts' in exports.",
+        "files_to_update": [
+          "packages/core/package.json - verify all Auth/* exports present",
+          "packages/persistence/package.json - add Services/*, Layers/* exports",
+          "packages/api/package.json - add Definitions/*, Layers/* exports"
+        ],
+        "pattern": "List all .ts files in src/ subdirectories as exports",
+        "verification": "Run 'pnpm build' and ensure no Missing specifier errors"
+      },
+      "status": "complete",
+      "estimated_complexity": "small"
+    },
+    {
       "id": "8.5.2",
       "phase": "Testing",
       "epic": "Authentication",

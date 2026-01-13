@@ -41,9 +41,20 @@ else
     FAILED=1
 fi
 
+# Building
+echo ""
+echo "3. Building..."
+echo "--------------"
+if pnpm build 2>&1; then
+    echo -e "${GREEN}Build passed${NC}"
+else
+    echo -e "${RED}Build failed${NC}"
+    FAILED=1
+fi
+
 # Testing
 echo ""
-echo "3. Running Tests..."
+echo "4. Running Tests..."
 echo "-------------------"
 if CI=true pnpm test 2>&1; then
     echo -e "${GREEN}Tests passed${NC}"
