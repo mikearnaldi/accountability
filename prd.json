@@ -614,7 +614,7 @@
         "storage": "localStorage for token persistence across sessions",
         "oauth_flow": "OAuth mutations redirect to authorize URL, callback page handles token storage"
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "medium"
     },
     {

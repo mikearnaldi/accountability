@@ -594,3 +594,8 @@
 **Story**: 8.3.4 - Integrate AuthApi into AppApi
 **Status**: complete
 ---
+
+## Iteration 4 - 2026-01-13 10:41
+**Story**: 8.4.1 - Create auth state management atoms
+**Status**: complete
+---
