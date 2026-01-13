@@ -72,11 +72,6 @@ pnpm test             # Run tests
 pnpm typecheck        # Check types
 pnpm lint             # Run linter
 
-# PRD Management
-./scripts/prd-status.sh              # Check story status
-./scripts/prd-update.sh <id> <status> # Update story
-./scripts/ci-check.sh                # Run CI checks
-
 # Ralph Agent
 ./ralph.sh [max_iterations]          # Start autonomous loop
 ```
