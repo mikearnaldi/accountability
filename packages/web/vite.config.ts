@@ -8,6 +8,31 @@ export default defineConfig({
   server: {
     port: 3000
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes("node_modules")) {
+            if (id.includes("/effect/")) {
+              return "vendor-effect"
+            }
+            if (id.includes("/@effect/platform")) {
+              return "vendor-effect-platform"
+            }
+            if (id.includes("/@effect-atom/")) {
+              return "vendor-effect-atom"
+            }
+            if (id.includes("/@tanstack/react-router")) {
+              return "vendor-tanstack"
+            }
+            if (id.includes("/react/") || id.includes("/react-dom/") || id.includes("/scheduler/")) {
+              return "vendor-react"
+            }
+          }
+        }
+      }
+    }
+  },
   optimizeDeps: {
     // Exclude testcontainers and native dependencies from pre-bundling
     exclude: [
