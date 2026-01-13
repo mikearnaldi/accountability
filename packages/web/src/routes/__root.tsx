@@ -3,15 +3,15 @@ import {
   Link,
   Outlet,
   Scripts,
-  createRootRoute,
-  useNavigate
+  createRootRoute
 } from "@tanstack/react-router"
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools"
-import { RegistryProvider, useAtomValue, useAtomSet } from "@effect-atom/atom-react"
+import { RegistryProvider, useAtomValue } from "@effect-atom/atom-react"
 import * as React from "react"
 import * as Option from "effect/Option"
 import * as Result from "@effect-atom/atom/Result"
-import { authTokenAtom, currentUserAtom, logoutMutation } from "../atoms/auth.ts"
+import { authTokenAtom, currentUserAtom } from "../atoms/auth.ts"
+import { UserMenu } from "../components/UserMenu.tsx"
 
 export const Route = createRootRoute({
   head: () => ({
@@ -70,25 +70,6 @@ const navLinksStyles: React.CSSProperties = {
   gap: "1rem"
 }
 
-const authSectionStyles: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: "1rem"
-}
-
-const userEmailStyles: React.CSSProperties = {
-  color: "#666",
-  fontSize: "14px"
-}
-
-const logoutButtonStyles: React.CSSProperties = {
-  padding: "0.5rem 1rem",
-  border: "1px solid #d9d9d9",
-  borderRadius: "4px",
-  backgroundColor: "#fff",
-  cursor: "pointer",
-  fontSize: "14px"
-}
 
 // =============================================================================
 // Navigation Component
@@ -97,18 +78,9 @@ const logoutButtonStyles: React.CSSProperties = {
 function Navigation(): React.ReactElement {
   const tokenOption = useAtomValue(authTokenAtom)
   const userResult = useAtomValue(currentUserAtom)
-  const executeLogout = useAtomSet(logoutMutation)
-  const navigate = useNavigate()
 
   const hasToken = Option.isSome(tokenOption)
   const isAuthenticated = hasToken && Result.isSuccess(userResult)
-  const userEmail = isAuthenticated ? userResult.value.user.email : null
-
-  const handleLogout = async (): Promise<void> => {
-    executeLogout()
-    // Navigate to home after logout
-    navigate({ to: "/", replace: true })
-  }
 
   return (
     <nav style={navStyles}>
@@ -143,25 +115,7 @@ function Navigation(): React.ReactElement {
           </>
         )}
       </div>
-      <div style={authSectionStyles}>
-        {isAuthenticated ? (
-          <>
-            <span style={userEmailStyles}>{userEmail}</span>
-            <button
-              type="button"
-              onClick={handleLogout}
-              style={logoutButtonStyles}
-            >
-              Log out
-            </button>
-          </>
-        ) : (
-          <>
-            <Link to="/login">Sign in</Link>
-            <Link to="/register">Register</Link>
-          </>
-        )}
-      </div>
+      <UserMenu />
     </nav>
   )
 }

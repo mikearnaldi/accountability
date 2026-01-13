@@ -750,7 +750,7 @@
         "location": "packages/web/src/components/UserMenu.tsx",
         "integration": "Add to main layout/header component"
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "small"
     },
     {

@@ -619,3 +619,8 @@
 **Story**: 8.4.4 - Implement protected route handling
 **Status**: complete
 ---
+
+## Iteration 1 - 2026-01-13 12:56
+**Story**: 8.4.5 - Add user menu and logout functionality
+**Status**: complete
+---
