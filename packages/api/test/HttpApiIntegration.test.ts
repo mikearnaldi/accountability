@@ -24,7 +24,7 @@ import { HttpApiBuilder, HttpApiClient, HttpClient, HttpClientRequest } from "@e
 import { NodeHttpServer } from "@effect/platform-node"
 import { AppApi, HealthCheckResponse } from "@accountability/api/Definitions/AppApi"
 import { AppApiLive } from "@accountability/api/Layers/AppApiLive"
-import { RepositoriesLive } from "@accountability/persistence/Layers/RepositoriesLive"
+import { RepositoriesWithAuthLive } from "@accountability/persistence/Layers/RepositoriesLive"
 import { MigrationLayer } from "@accountability/persistence/Layers/MigrationsLive"
 import { AccountId } from "@accountability/core/Domains/Account"
 import { PgContainer } from "./PgTestUtils.ts"
@@ -40,7 +40,7 @@ import { PgContainer } from "./PgTestUtils.ts"
  * then runs all migrations to create the schema.
  */
 const DatabaseLayer = MigrationLayer.pipe(
-  Layer.provideMerge(RepositoriesLive),
+  Layer.provideMerge(RepositoriesWithAuthLive),
   Layer.provide(PgContainer.ClientLive)
 )
 

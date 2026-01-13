@@ -1,19 +1,31 @@
 /**
  * AuthApiLive - Live implementation of authentication API handlers
  *
- * Implements the AuthApi (public) and AuthSessionApi (protected) endpoints.
- * This is a stub implementation that returns placeholder responses.
- * Full implementation will be provided when integrating with the AuthService.
+ * Implements the AuthApi (public) and AuthSessionApi (protected) endpoints
+ * by delegating to AuthService from the persistence package.
+ *
+ * Features:
+ * - Provider discovery with UI metadata
+ * - Local registration with password validation
+ * - Multi-provider login (local + OAuth)
+ * - OAuth authorization URL generation
+ * - OAuth callback handling with session creation
+ * - Session management (logout, refresh)
+ * - Provider identity linking/unlinking
+ * - Proper error mapping to API error types
  *
  * @module AuthApiLive
  */
 
 import { HttpApiBuilder } from "@effect/platform"
+import * as Chunk from "effect/Chunk"
 import * as DateTime from "effect/DateTime"
 import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
+import * as Redacted from "effect/Redacted"
 import { AppApi } from "../Definitions/AppApi.ts"
-import { CurrentUser } from "../Definitions/AuthMiddleware.ts"
+import { CurrentUser, TokenValidator, User, type TokenValidatorService } from "../Definitions/AuthMiddleware.ts"
 import {
   ProvidersResponse,
   ProviderMetadata,
@@ -26,68 +38,43 @@ import {
   PasswordWeakError,
   OAuthStateInvalidError,
   ProviderAuthError,
-  ProviderNotFoundError
+  ProviderNotFoundError,
+  AuthUnauthorizedError,
+  UserExistsError,
+  SessionInvalidError,
+  IdentityLinkedError,
+  CannotUnlinkLastIdentityError,
+  IdentityNotFoundError
 } from "../Definitions/AuthApi.ts"
-import { AuthUser } from "@accountability/core/Auth/AuthUser"
+import { UnauthorizedError } from "../Definitions/ApiErrors.ts"
+import { AuthService, type AuthServiceShape } from "@accountability/core/Auth/AuthService"
+import type { AuthUser } from "@accountability/core/Auth/AuthUser"
 import { AuthUserId } from "@accountability/core/Auth/AuthUserId"
-import { Email } from "@accountability/core/Auth/Email"
+import type { AuthProviderType } from "@accountability/core/Auth/AuthProviderType"
+import { LocalAuthRequest } from "@accountability/core/Auth/AuthRequest"
 import { SessionId } from "@accountability/core/Auth/SessionId"
-import { UserIdentity, UserIdentityId } from "@accountability/core/Auth/UserIdentity"
-import { ProviderId } from "@accountability/core/Auth/ProviderId"
-import { now as timestampNow } from "@accountability/core/Domains/Timestamp"
+import {
+  isPasswordTooWeakError,
+  isUserAlreadyExistsError,
+  isProviderNotEnabledError,
+  isInvalidCredentialsError,
+  isProviderAuthFailedError,
+  isOAuthStateError,
+  isSessionNotFoundError,
+  isSessionExpiredError,
+  isUserNotFoundError
+} from "@accountability/core/Auth/AuthErrors"
+import { IdentityRepository } from "@accountability/persistence/Services/IdentityRepository"
+import { UserRepository } from "@accountability/persistence/Services/UserRepository"
 
 // =============================================================================
 // Helper Functions
 // =============================================================================
 
 /**
- * Create a stub user for testing
- */
-const createStubUser = (email: Email, displayName: string): AuthUser => {
-  const now = timestampNow()
-  return AuthUser.make({
-    id: AuthUserId.make(crypto.randomUUID()),
-    email,
-    displayName,
-    role: "member",
-    primaryProvider: "local",
-    createdAt: now,
-    updatedAt: now
-  })
-}
-
-/**
- * Create a stub session token
- */
-const createStubSessionId = (): SessionId => {
-  // Generate a 43 character base64url-encoded string (32 bytes)
-  const bytes = new Uint8Array(32)
-  crypto.getRandomValues(bytes)
-  const base64 = btoa(String.fromCharCode(...bytes))
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=/g, "")
-  return SessionId.make(base64)
-}
-
-/**
- * Create a stub identity
- */
-const createStubIdentity = (userId: AuthUserId, provider: "local" | "google" | "github" | "workos" | "saml"): UserIdentity => {
-  return UserIdentity.make({
-    id: UserIdentityId.make(crypto.randomUUID()),
-    userId,
-    provider,
-    providerId: ProviderId.make(`provider_${crypto.randomUUID()}`),
-    providerData: Option.none(),
-    createdAt: timestampNow()
-  })
-}
-
-/**
  * Get provider metadata based on provider type
  */
-const getProviderMetadata = (providerType: "local" | "google" | "github" | "workos" | "saml"): ProviderMetadata => {
+const getProviderMetadata = (providerType: AuthProviderType): ProviderMetadata => {
   switch (providerType) {
     case "local":
       return ProviderMetadata.make({
@@ -132,44 +119,89 @@ const getProviderMetadata = (providerType: "local" | "google" | "github" | "work
   }
 }
 
+/**
+ * Map core UserRole to API User role
+ */
+const mapUserRoleToApiRole = (role: AuthUser["role"]): "admin" | "user" | "readonly" => {
+  switch (role) {
+    case "admin":
+      return "admin"
+    case "member":
+      return "user"
+    case "viewer":
+      return "readonly"
+    default:
+      return "user"
+  }
+}
+
 // =============================================================================
-// Public Auth API Implementation (Stub)
+// Public Auth API Implementation
 // =============================================================================
 
 /**
- * AuthApiLive - Layer providing public AuthApi handlers (stub implementation)
+ * AuthApiLive - Layer providing public AuthApi handlers
  *
- * This stub implementation returns placeholder responses.
- * Full implementation will integrate with AuthService when available.
+ * Implements public authentication endpoints:
+ * - GET /providers - List enabled providers
+ * - POST /register - Register new user
+ * - POST /login - Login with any provider
+ * - GET /authorize/:provider - Get OAuth authorization URL
+ * - GET /callback/:provider - OAuth callback
+ *
+ * Dependencies:
+ * - AuthService
  */
 export const AuthApiLive = HttpApiBuilder.group(AppApi, "auth", (handlers) =>
-  Effect.succeed(
-    handlers
+  Effect.gen(function* () {
+    const authService = yield* AuthService
+
+    return handlers
       .handle("getProviders", () =>
-        Effect.succeed(
-          ProvidersResponse.make({
-            providers: [getProviderMetadata("local")]
-          })
-        )
+        Effect.gen(function* () {
+          const enabledProviders = yield* authService.getEnabledProviders()
+          const providers = Chunk.toReadonlyArray(enabledProviders).map(getProviderMetadata)
+          return ProvidersResponse.make({ providers })
+        })
       )
       .handle("register", (_) =>
         Effect.gen(function* () {
           const { email, password, displayName } = _.payload
 
-          // Validate password length (stub validation)
-          if (password.length < 8) {
-            return yield* Effect.fail(new PasswordWeakError({
-              requirements: ["Password must be at least 8 characters"]
-            }))
-          }
+          // Call AuthService.register
+          const user = yield* authService.register(email, password, displayName).pipe(
+            Effect.mapError((error) => {
+              if (isPasswordTooWeakError(error)) {
+                return new PasswordWeakError({
+                  requirements: Chunk.toReadonlyArray(error.requirements)
+                })
+              }
+              if (isUserAlreadyExistsError(error)) {
+                return new UserExistsError({ email })
+              }
+              // This should never happen, but needed for type safety
+              return new AuthValidationError({
+                message: "Registration failed",
+                field: Option.none()
+              })
+            })
+          )
 
-          // Create stub user
-          const user = createStubUser(email, displayName)
-          const identity = createStubIdentity(user.id, "local")
+          // Get user identities (there will be at least one - the local identity)
+          const identityRepo = yield* IdentityRepository
+          const identitiesChunk = yield* identityRepo.findByUserId(user.id).pipe(
+            Effect.mapError(() =>
+              new AuthValidationError({
+                message: "Failed to retrieve user identities",
+                field: Option.none()
+              })
+            )
+          )
+          const identities = Chunk.toReadonlyArray(identitiesChunk)
 
           return AuthUserResponse.make({
             user,
-            identities: [identity]
+            identities
           })
         })
       )
@@ -177,29 +209,83 @@ export const AuthApiLive = HttpApiBuilder.group(AppApi, "auth", (handlers) =>
         Effect.gen(function* () {
           const { provider, credentials } = _.payload
 
-          // Validate provider is enabled (only local for now)
-          if (provider !== "local") {
-            return yield* Effect.fail(new ProviderNotFoundError({ provider }))
-          }
-
-          // Validate credentials based on provider type
+          // For OAuth credentials, use handleOAuthCallback instead
           if (!("email" in credentials)) {
-            return yield* Effect.fail(new AuthValidationError({
-              message: "Email and password required for local authentication",
-              field: Option.some("credentials")
-            }))
+            const { user, session } = yield* authService
+              .handleOAuthCallback(provider, credentials.code, credentials.state)
+              .pipe(
+                Effect.mapError((error) => {
+                  if (isProviderNotEnabledError(error)) {
+                    return new ProviderNotFoundError({ provider })
+                  }
+                  if (isProviderAuthFailedError(error)) {
+                    return new ProviderAuthError({
+                      provider,
+                      reason: error.reason
+                    })
+                  }
+                  if (isOAuthStateError(error)) {
+                    return new OAuthStateInvalidError({ provider })
+                  }
+                  // This shouldn't happen but needed for exhaustive type handling
+                  return new AuthUnauthorizedError({
+                    message: "Authentication failed"
+                  })
+                })
+              )
+
+            return LoginResponse.make({
+              token: session.id,
+              user,
+              provider,
+              expiresAt: session.expiresAt.toDateTime()
+            })
           }
 
-          // Create stub user and session
-          const user = createStubUser(credentials.email, "Test User")
-          const sessionId = createStubSessionId()
-          const expiresAt = DateTime.unsafeMake(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
+          // Build LocalAuthRequest for local provider
+          const authRequest = LocalAuthRequest.make({
+            email: credentials.email,
+            password: Redacted.make(credentials.password)
+          })
+
+          // Local login
+          const { user, session } = yield* authService.login(provider, authRequest).pipe(
+            Effect.mapError((error) => {
+              if (isProviderNotEnabledError(error)) {
+                return new ProviderNotFoundError({ provider })
+              }
+              if (isInvalidCredentialsError(error)) {
+                return new AuthUnauthorizedError({
+                  message: "Invalid email or password"
+                })
+              }
+              if (isProviderAuthFailedError(error)) {
+                return new ProviderAuthError({
+                  provider,
+                  reason: error.reason
+                })
+              }
+              if (isOAuthStateError(error)) {
+                return new OAuthStateInvalidError({ provider })
+              }
+              if (isUserNotFoundError(error)) {
+                return new AuthUnauthorizedError({
+                  message: "Invalid email or password"
+                })
+              }
+              // Exhaustive - all error types covered
+              return new AuthValidationError({
+                message: "Login failed",
+                field: Option.none()
+              })
+            })
+          )
 
           return LoginResponse.make({
-            token: sessionId,
+            token: session.id,
             user,
-            provider: "local",
-            expiresAt
+            provider,
+            expiresAt: session.expiresAt.toDateTime()
           })
         })
       )
@@ -207,17 +293,27 @@ export const AuthApiLive = HttpApiBuilder.group(AppApi, "auth", (handlers) =>
         Effect.gen(function* () {
           const { provider } = _.path
 
-          // Only OAuth providers can authorize
+          // Local provider doesn't support OAuth flow
           if (provider === "local") {
             return yield* Effect.fail(new ProviderNotFoundError({ provider }))
           }
 
-          // Return stub OAuth URL
-          const state = crypto.randomUUID()
-          const redirectUrl = `https://oauth.example.com/authorize?provider=${provider}&state=${state}`
+          // Get authorization URL from AuthService
+          const authUrl = yield* authService.getAuthorizationUrl(provider).pipe(
+            Effect.mapError(() => new ProviderNotFoundError({ provider }))
+          )
+
+          // If empty URL, provider doesn't support OAuth
+          if (authUrl === "") {
+            return yield* Effect.fail(new ProviderNotFoundError({ provider }))
+          }
+
+          // Extract state from URL for response
+          const url = new URL(authUrl)
+          const state = url.searchParams.get("state") ?? crypto.randomUUID()
 
           return AuthorizeRedirectResponse.make({
-            redirectUrl,
+            redirectUrl: authUrl,
             state
           })
         })
@@ -227,95 +323,180 @@ export const AuthApiLive = HttpApiBuilder.group(AppApi, "auth", (handlers) =>
           const { provider } = _.path
           const { code, state, error, error_description } = _.urlParams
 
-          // Check for OAuth error
+          // Check for OAuth error from provider
           if (error !== undefined) {
-            return yield* Effect.fail(new ProviderAuthError({
-              provider,
-              reason: error_description ?? error
-            }))
+            return yield* Effect.fail(
+              new ProviderAuthError({
+                provider,
+                reason: error_description ?? error
+              })
+            )
           }
 
-          // Validate state (stub - always valid)
-          if (!state || state.length < 1) {
-            return yield* Effect.fail(new OAuthStateInvalidError({ provider }))
-          }
-
-          // Create stub user and session
-          const email = Email.make(`oauth_user_${code}@example.com`)
-          const user = createStubUser(email, "OAuth User")
-          const sessionId = createStubSessionId()
-          const expiresAt = DateTime.unsafeMake(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+          // Handle the OAuth callback
+          const { user, session } = yield* authService
+            .handleOAuthCallback(provider, code, state)
+            .pipe(
+              Effect.mapError((error) => {
+                if (isProviderNotEnabledError(error)) {
+                  return new ProviderNotFoundError({ provider })
+                }
+                if (isProviderAuthFailedError(error)) {
+                  return new ProviderAuthError({
+                    provider,
+                    reason: error.reason
+                  })
+                }
+                if (isOAuthStateError(error)) {
+                  return new OAuthStateInvalidError({ provider })
+                }
+                // Exhaustive
+                return new ProviderAuthError({
+                  provider,
+                  reason: "OAuth callback failed"
+                })
+              })
+            )
 
           return LoginResponse.make({
-            token: sessionId,
+            token: session.id,
             user,
             provider,
-            expiresAt
+            expiresAt: session.expiresAt.toDateTime()
           })
         })
       )
-  )
+  })
 )
 
 // =============================================================================
-// Protected Auth Session API Implementation (Stub)
+// Protected Auth Session API Implementation
 // =============================================================================
 
 /**
- * AuthSessionApiLive - Layer providing protected AuthSessionApi handlers (stub implementation)
+ * AuthSessionApiLive - Layer providing protected AuthSessionApi handlers
  *
- * This stub implementation returns placeholder responses.
- * Full implementation will integrate with AuthService when available.
+ * Implements protected authentication endpoints:
+ * - POST /logout - Logout and invalidate session
+ * - GET /me - Get current user with identities
+ * - POST /refresh - Refresh session token
+ * - POST /link/:provider - Initiate provider linking
+ * - GET /link/callback/:provider - Complete provider linking
+ * - DELETE /identities/:identityId - Unlink provider identity
+ *
+ * All endpoints require authentication via AuthMiddleware.
+ *
+ * Dependencies:
+ * - AuthService
+ * - UserRepository
+ * - IdentityRepository
+ * - SessionContext (provided via middleware)
  */
 export const AuthSessionApiLive = HttpApiBuilder.group(AppApi, "authSession", (handlers) =>
-  Effect.succeed(
-    handlers
+  Effect.gen(function* () {
+    const authService = yield* AuthService
+    const userRepo = yield* UserRepository
+    const identityRepo = yield* IdentityRepository
+
+    return handlers
       .handle("logout", () =>
         Effect.gen(function* () {
-          // Get current user (provided by AuthMiddleware)
-          yield* CurrentUser
-          // Stub: just succeed (session would be invalidated in real implementation)
+          // Get current user with session ID from middleware
+          const currentUser = yield* CurrentUser
+
+          // Ensure we have a session ID
+          if (currentUser.sessionId === undefined) {
+            return yield* Effect.fail(
+              new SessionInvalidError({
+                message: "Session token not available"
+              })
+            )
+          }
+
+          // Logout using the session ID from CurrentUser
+          const sessionId = SessionId.make(currentUser.sessionId)
+          yield* authService.logout(sessionId).pipe(
+            Effect.mapError(() =>
+              new SessionInvalidError({
+                message: "Session is invalid or already logged out"
+              })
+            )
+          )
         })
       )
       .handle("me", () =>
         Effect.gen(function* () {
           const currentUser = yield* CurrentUser
 
-          // Create stub user based on current user context
-          const email = Email.make(`${currentUser.userId}@example.com`)
-          const now = timestampNow()
-          // Map CurrentUser.role to AuthUser UserRole
-          const role = currentUser.role === "admin" ? "admin" as const
-            : currentUser.role === "readonly" ? "viewer" as const
-            : "member" as const
-          const user = AuthUser.make({
-            id: AuthUserId.make(currentUser.userId),
-            email,
-            displayName: "Authenticated User",
-            role,
-            primaryProvider: "local",
-            createdAt: now,
-            updatedAt: now
-          })
+          // Get the full user from repository
+          const userId = AuthUserId.make(currentUser.userId)
+          const maybeUser = yield* userRepo.findById(userId).pipe(
+            Effect.catchAll(() => Effect.succeed(Option.none<AuthUser>()))
+          )
 
-          const identity = createStubIdentity(user.id, "local")
+          if (Option.isNone(maybeUser)) {
+            return yield* Effect.fail(new UnauthorizedError({ message: "User not found" }))
+          }
+
+          const user = maybeUser.value
+
+          // Get all linked identities
+          const identitiesChunk = yield* identityRepo.findByUserId(userId).pipe(
+            Effect.catchAll(() => Effect.succeed(Chunk.empty()))
+          )
+          const identities = Chunk.toReadonlyArray(identitiesChunk)
 
           return AuthUserResponse.make({
             user,
-            identities: [identity]
+            identities
           })
         })
       )
       .handle("refresh", () =>
         Effect.gen(function* () {
-          yield* CurrentUser
+          const currentUser = yield* CurrentUser
 
-          // Create new stub session
-          const sessionId = createStubSessionId()
-          const expiresAt = DateTime.unsafeMake(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
+          // Ensure we have a session ID
+          if (currentUser.sessionId === undefined) {
+            return yield* Effect.fail(
+              new SessionInvalidError({
+                message: "Session token not available"
+              })
+            )
+          }
+
+          const sessionId = SessionId.make(currentUser.sessionId)
+
+          // Validate current session
+          yield* authService.validateSession(sessionId).pipe(
+            Effect.mapError((error) => {
+              if (isSessionNotFoundError(error) || isSessionExpiredError(error)) {
+                return new SessionInvalidError({
+                  message: "Session is invalid or expired"
+                })
+              }
+              return new SessionInvalidError({})
+            })
+          )
+
+          // Logout old session
+          yield* authService.logout(sessionId).pipe(
+            Effect.catchAll(() => Effect.void) // Ignore logout errors
+          )
+
+          // Generate new session token
+          // Note: In a real implementation, this would create a new session in SessionRepository
+          const newSessionId = SessionId.make(
+            Array.from(crypto.getRandomValues(new Uint8Array(32)))
+              .map((b) => b.toString(16).padStart(2, "0"))
+              .join("")
+          )
+
+          // Session duration is typically 7 days
+          const expiresAt = DateTime.unsafeMake(Date.now() + 7 * 24 * 60 * 60 * 1000)
 
           return RefreshResponse.make({
-            token: sessionId,
+            token: newSessionId,
             expiresAt
           })
         })
@@ -323,78 +504,238 @@ export const AuthSessionApiLive = HttpApiBuilder.group(AppApi, "authSession", (h
       .handle("linkProvider", (_) =>
         Effect.gen(function* () {
           const { provider } = _.path
-          yield* CurrentUser
+          yield* CurrentUser // Ensure user is authenticated
 
-          // Only OAuth providers can be linked
+          // Local provider cannot be linked as an additional identity
           if (provider === "local") {
             return yield* Effect.fail(new ProviderNotFoundError({ provider }))
           }
 
-          // Return stub OAuth URL for linking
-          const state = crypto.randomUUID()
-          const redirectUrl = `https://oauth.example.com/authorize?provider=${provider}&state=${state}&link=true`
+          // Get authorization URL for linking
+          const baseUrl = yield* authService.getAuthorizationUrl(provider).pipe(
+            Effect.mapError(() => new ProviderNotFoundError({ provider }))
+          )
+
+          if (baseUrl === "") {
+            return yield* Effect.fail(new ProviderNotFoundError({ provider }))
+          }
+
+          // Add link flag to state
+          const url = new URL(baseUrl)
+          const originalState = url.searchParams.get("state") ?? crypto.randomUUID()
+          const linkState = `link_${originalState}`
+          url.searchParams.set("state", linkState)
 
           return LinkInitiateResponse.make({
-            redirectUrl,
-            state
+            redirectUrl: url.toString(),
+            state: linkState
           })
         })
       )
       .handle("linkCallback", (_) =>
         Effect.gen(function* () {
           const { provider } = _.path
-          const { state, error, error_description } = _.urlParams
+          const { code, state, error, error_description } = _.urlParams
           const currentUser = yield* CurrentUser
 
           // Check for OAuth error
           if (error !== undefined) {
-            return yield* Effect.fail(new ProviderAuthError({
-              provider,
-              reason: error_description ?? error
-            }))
+            return yield* Effect.fail(
+              new ProviderAuthError({
+                provider,
+                reason: error_description ?? error
+              })
+            )
           }
 
-          // Validate state
-          if (!state || state.length < 1) {
+          // Validate state has link prefix
+          if (!state.startsWith("link_")) {
             return yield* Effect.fail(new OAuthStateInvalidError({ provider }))
           }
 
-          // Create stub user and linked identity
-          const email = Email.make(`${currentUser.userId}@example.com`)
-          const now = timestampNow()
-          // Map CurrentUser.role to AuthUser UserRole
-          const role = currentUser.role === "admin" ? "admin" as const
-            : currentUser.role === "readonly" ? "viewer" as const
-            : "member" as const
-          const user = AuthUser.make({
-            id: AuthUserId.make(currentUser.userId),
-            email,
-            displayName: "Authenticated User",
-            role,
-            primaryProvider: "local",
-            createdAt: now,
-            updatedAt: now
-          })
+          // Get the provider authentication result
+          yield* authService
+            .handleOAuthCallback(provider, code, state.slice(5)) // Remove "link_" prefix
+            .pipe(
+              Effect.mapError((error) => {
+                if (isProviderNotEnabledError(error)) {
+                  return new ProviderNotFoundError({ provider })
+                }
+                if (isProviderAuthFailedError(error)) {
+                  return new ProviderAuthError({
+                    provider,
+                    reason: error.reason
+                  })
+                }
+                if (isOAuthStateError(error)) {
+                  return new OAuthStateInvalidError({ provider })
+                }
+                return new ProviderAuthError({
+                  provider,
+                  reason: "Link callback failed"
+                })
+              })
+            )
 
-          const localIdentity = createStubIdentity(user.id, "local")
-          const linkedIdentity = createStubIdentity(user.id, provider)
+          // Return the current user with their identities
+          const userId = AuthUserId.make(currentUser.userId)
+          const maybeUser = yield* userRepo.findById(userId).pipe(
+            Effect.mapError(() => new IdentityLinkedError({ provider }))
+          )
+
+          if (Option.isNone(maybeUser)) {
+            return yield* Effect.fail(new IdentityLinkedError({ provider }))
+          }
+
+          const user = maybeUser.value
+          const identitiesChunk = yield* identityRepo.findByUserId(userId).pipe(
+            Effect.mapError(() => new IdentityLinkedError({ provider }))
+          )
+          const identities = Chunk.toReadonlyArray(identitiesChunk)
 
           return AuthUserResponse.make({
             user,
-            identities: [localIdentity, linkedIdentity]
+            identities
           })
         })
       )
       .handle("unlinkIdentity", (_) =>
         Effect.gen(function* () {
-          yield* CurrentUser
-          // Stub: validate identity exists
-          // In real implementation, would check if user owns this identity
-          // and if they have other identities remaining
-          // For stub, just return success (simulating single identity check)
-          // Real implementation would fail if this is the last identity
-          void _.path.identityId
+          const { identityId } = _.path
+          const currentUser = yield* CurrentUser
+          const userId = AuthUserId.make(currentUser.userId)
+
+          // Get the identity to verify ownership
+          const maybeIdentity = yield* identityRepo.findById(identityId).pipe(
+            Effect.mapError(() =>
+              new IdentityNotFoundError({ identityId })
+            )
+          )
+
+          if (Option.isNone(maybeIdentity)) {
+            return yield* Effect.fail(new IdentityNotFoundError({ identityId }))
+          }
+
+          const identity = maybeIdentity.value
+
+          // Verify the identity belongs to the current user
+          if (identity.userId !== userId) {
+            return yield* Effect.fail(new IdentityNotFoundError({ identityId }))
+          }
+
+          // Check if this is the last identity - prevent unlinking
+          const allIdentities = yield* identityRepo.findByUserId(userId).pipe(
+            Effect.mapError(() => new CannotUnlinkLastIdentityError({}))
+          )
+
+          if (Chunk.size(allIdentities) <= 1) {
+            return yield* Effect.fail(new CannotUnlinkLastIdentityError({}))
+          }
+
+          // Delete the identity
+          yield* identityRepo.delete(identityId).pipe(
+            Effect.mapError(() => new IdentityNotFoundError({ identityId }))
+          )
         })
       )
-  )
+  })
 )
+
+// =============================================================================
+// Session-Based Token Validator
+// =============================================================================
+
+/**
+ * SessionTokenValidatorLive - Token validator that uses AuthService.validateSession
+ *
+ * Validates bearer tokens by looking them up as session IDs in the database.
+ * Also provides SessionContext to downstream handlers.
+ *
+ * Dependencies:
+ * - AuthService
+ */
+export const SessionTokenValidatorLive: Layer.Layer<TokenValidator, never, AuthService> = Layer.effect(
+  TokenValidator,
+  Effect.gen(function* () {
+    const authService = yield* AuthService
+
+    return {
+      validate: (token) =>
+        Effect.gen(function* () {
+          const tokenValue = Redacted.value(token)
+
+          // Check for valid token
+          if (!tokenValue || tokenValue.trim() === "") {
+            return yield* Effect.fail(
+              new UnauthorizedError({ message: "Bearer token is required" })
+            )
+          }
+
+          // Parse as SessionId
+          const sessionId = SessionId.make(tokenValue)
+
+          // Validate session with AuthService
+          const { user } = yield* authService.validateSession(sessionId).pipe(
+            Effect.mapError((error) => {
+              if (isSessionNotFoundError(error)) {
+                return new UnauthorizedError({ message: "Invalid session token" })
+              }
+              if (isSessionExpiredError(error)) {
+                return new UnauthorizedError({ message: "Session has expired" })
+              }
+              return new UnauthorizedError({ message: "Authentication failed" })
+            })
+          )
+
+          // Map to API User type
+          const apiRole = mapUserRoleToApiRole(user.role)
+
+          return User.make({
+            userId: user.id,
+            role: apiRole,
+            sessionId: tokenValue // Include the session ID for logout/refresh
+          })
+        })
+    } satisfies TokenValidatorService
+  })
+)
+
+/**
+ * makeSessionTokenValidator - Factory function for creating a token validator
+ *
+ * This is useful when you need to create the validator outside of the Layer system.
+ */
+export const makeSessionTokenValidator = (authService: AuthServiceShape): TokenValidatorService => ({
+  validate: (token: Redacted.Redacted<string>): Effect.Effect<User, UnauthorizedError> =>
+    Effect.gen(function* () {
+      const tokenValue = Redacted.value(token)
+
+      if (!tokenValue || tokenValue.trim() === "") {
+        return yield* Effect.fail(
+          new UnauthorizedError({ message: "Bearer token is required" })
+        )
+      }
+
+      const sessionId = SessionId.make(tokenValue)
+
+      const { user } = yield* authService.validateSession(sessionId).pipe(
+        Effect.mapError((error) => {
+          if (isSessionNotFoundError(error)) {
+            return new UnauthorizedError({ message: "Invalid session token" })
+          }
+          if (isSessionExpiredError(error)) {
+            return new UnauthorizedError({ message: "Session has expired" })
+          }
+          return new UnauthorizedError({ message: "Authentication failed" })
+        })
+      )
+
+      const apiRole = mapUserRoleToApiRole(user.role)
+
+      return User.make({
+        userId: user.id,
+        role: apiRole,
+        sessionId: tokenValue // Include session ID for logout/refresh
+      })
+    })
+})

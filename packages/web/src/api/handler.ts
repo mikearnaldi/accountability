@@ -1,7 +1,7 @@
 import { HttpApiBuilder, HttpApiSwagger, HttpServer } from "@effect/platform"
 import * as Layer from "effect/Layer"
 import { AppApiLive } from "@accountability/api/Layers/AppApiLive"
-import { RepositoriesLive } from "@accountability/persistence/Layers/RepositoriesLive"
+import { RepositoriesWithAuthLive } from "@accountability/persistence/Layers/RepositoriesLive"
 import { MigrationsLive } from "@accountability/persistence/Layers/MigrationsLive"
 import { PgClientLayer } from "./PgClientLayer.ts"
 
@@ -36,8 +36,8 @@ const { handler, dispose } = HttpApiBuilder.toWebHandler(
     HttpApiBuilder.middlewareOpenApi({ path: "/api/openapi.json" })
   ).pipe(
     Layer.provideMerge(AppApiLive),
-    // Use real repositories with PostgreSQL
-    Layer.provide(RepositoriesLive),
+    // Use real repositories with PostgreSQL and AuthService
+    Layer.provide(RepositoriesWithAuthLive),
     // Run migrations on startup (ensures schema is up to date)
     Layer.provide(MigrationsLive),
     // Use dev container (testcontainers) or production PgClient based on NODE_ENV

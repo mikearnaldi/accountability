@@ -529,7 +529,7 @@
         "pattern": "HttpApiBuilder.group pattern",
         "oauth_state": "Use signed/encrypted state param for CSRF protection"
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "large"
     },
     {

@@ -579,3 +579,8 @@
 **Story**: 8.3.1 - Define AuthApi endpoints
 **Status**: complete
 ---
+
+## Iteration 1 - 2026-01-13 10:17
+**Story**: 8.3.2 - Implement AuthApiLive handlers
+**Status**: complete
+---

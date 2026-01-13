@@ -22,10 +22,17 @@ import { UnauthorizedError } from "./ApiErrors.ts"
  * User - Represents the authenticated user
  *
  * Contains minimal user information extracted from the bearer token.
+ * For session-based auth, also includes the session ID for logout/refresh.
  */
 export class User extends Schema.Class<User>("User")({
   userId: Schema.String,
-  role: Schema.Literal("admin", "user", "readonly")
+  role: Schema.Literal("admin", "user", "readonly"),
+  /**
+   * Session ID for session-based authentication.
+   * Used by logout and refresh handlers to invalidate/renew the session.
+   * Optional to support both token-based and session-based auth.
+   */
+  sessionId: Schema.optional(Schema.String)
 }) {}
 
 /**
