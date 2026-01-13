@@ -1167,7 +1167,7 @@
         "location": "packages/web/tests/fixtures/auth.ts",
         "pattern": "Playwright test.extend pattern with fixture dependencies"
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "small"
     },
     {
