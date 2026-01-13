@@ -851,6 +851,51 @@
       "estimated_complexity": "medium"
     },
     {
+      "id": "8.5.1.2",
+      "phase": "Testing",
+      "epic": "Infrastructure",
+      "title": "Migrate tests to use SharedPgClientLive",
+      "description": "Update all database tests to use the shared PostgreSQL container from globalSetup instead of per-block PgContainer.ClientLive. Remove PgContainer after migration.",
+      "acceptance_criteria": [
+        "Update Container.test.ts to use SharedPgClientLive",
+        "Update LocalAuthProvider.test.ts to use SharedPgClientLive",
+        "Update Migrations.test.ts to use SharedPgClientLive",
+        "Update AuthService.test.ts RepositoriesLayer to use SharedPgClientLive",
+        "Update Repositories.test.ts to use SharedPgClientLive",
+        "Update AuthRepositories.test.ts to use SharedPgClientLive",
+        "Remove duplicate PgContainer from packages/api/test/PgTestUtils.ts",
+        "Update API tests to import SharedPgClientLive from persistence test utils",
+        "Remove PgContainer class and ContainerError from Utils.ts after migration",
+        "Remove PostgreSqlContainer import from Utils.ts after migration",
+        "All tests pass with shared container",
+        "Make test data unique using Date.now() or Math.random() to avoid conflicts"
+      ],
+      "specs": [
+        "EFFECT_LAYERS.md",
+        "EFFECT_TESTING.md"
+      ],
+      "technical_details": {
+        "files_to_update": [
+          "packages/persistence/test/Container.test.ts",
+          "packages/persistence/test/LocalAuthProvider.test.ts",
+          "packages/persistence/test/Migrations.test.ts",
+          "packages/persistence/test/AuthService.test.ts",
+          "packages/persistence/test/Repositories.test.ts",
+          "packages/persistence/test/AuthRepositories.test.ts",
+          "packages/api/test/PgTestUtils.ts"
+        ],
+        "cleanup_after_migration": [
+          "Remove PgContainer class from Utils.ts",
+          "Remove ContainerError class from Utils.ts",
+          "Remove PostgreSqlContainer import from Utils.ts",
+          "Remove PgContainer from PgTestUtils.ts entirely"
+        ],
+        "pattern": "Replace PgContainer.ClientLive with SharedPgClientLive in all Layer compositions"
+      },
+      "status": "in_progress",
+      "estimated_complexity": "small"
+    },
+    {
       "id": "8.5.2",
       "phase": "Testing",
       "epic": "Authentication",

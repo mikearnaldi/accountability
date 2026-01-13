@@ -11,12 +11,20 @@
  * @module vitest.global-setup
  */
 
-import type { TestProject } from "vitest/node"
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql"
+
+/**
+ * Vitest global setup context with typed provide method.
+ * We define this locally because module augmentation in vitest.d.ts
+ * isn't visible to files outside the main TypeScript project.
+ */
+interface GlobalSetupContext {
+  provide: (key: "dbUrl", value: string) => void
+}
 
 let container: StartedPostgreSqlContainer
 
-export async function setup(project: TestProject) {
+export async function setup(project: GlobalSetupContext) {
   console.log("Starting shared PostgreSQL container...")
 
   container = await new PostgreSqlContainer("postgres:alpine").start()
@@ -32,11 +40,4 @@ export async function setup(project: TestProject) {
 export async function teardown() {
   console.log("Stopping shared PostgreSQL container...")
   await container?.stop()
-}
-
-// Type augmentation for provide/inject
-declare module "vitest" {
-  export interface ProvidedContext {
-    dbUrl: string
-  }
 }
