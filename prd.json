@@ -1260,7 +1260,7 @@
         "location": "packages/web/tests/auth/session.spec.ts",
         "pattern": "Test session lifecycle: create, persist, invalidate"
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "small"
     },
     {

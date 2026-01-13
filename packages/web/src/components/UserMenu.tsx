@@ -12,7 +12,7 @@
  */
 
 import * as React from "react"
-import { Link, useNavigate } from "@tanstack/react-router"
+import { Link } from "@tanstack/react-router"
 import { useAtomValue, useAtomSet } from "@effect-atom/atom-react"
 import * as Result from "@effect-atom/atom/Result"
 import * as Option from "effect/Option"
@@ -283,7 +283,6 @@ function getPrimaryProvider(identities: ReadonlyArray<UserIdentity>, primaryProv
  * - When not authenticated: Login button
  */
 export function UserMenu({ className }: UserMenuProps): React.ReactElement {
-  const navigate = useNavigate()
   const tokenOption = useAtomValue(authTokenAtom)
   const userResult = useAtomValue(currentUserAtom)
   const executeLogout = useAtomSet(logoutMutation)
@@ -332,11 +331,22 @@ export function UserMenu({ className }: UserMenuProps): React.ReactElement {
   }, [isOpen])
 
   // Handle logout
-  const handleLogout = async (): Promise<void> => {
+  const handleLogout = (): void => {
     setIsOpen(false)
+
+    // Clear token from localStorage SYNCHRONOUSLY before navigation
+    // This ensures the token is cleared even if the page navigates away
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem("accountability_auth_token")
+    }
+
+    // Execute logout to clear server session (this is async and may not complete)
     executeLogout()
-    // Redirect to login after logout
-    navigate({ to: "/login", replace: true })
+
+    // Navigate to login page
+    if (typeof window !== "undefined") {
+      window.location.href = "/login"
+    }
   }
 
   // Not authenticated - show login button

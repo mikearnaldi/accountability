@@ -11,7 +11,7 @@
  * @module routes/account
  */
 
-import { createFileRoute, Link } from "@tanstack/react-router"
+import { createFileRoute, Link, redirect } from "@tanstack/react-router"
 import * as React from "react"
 import { useAtomValue } from "@effect-atom/atom-react"
 import * as Result from "@effect-atom/atom/Result"
@@ -26,7 +26,20 @@ import type { UserIdentity } from "@accountability/core/Auth/UserIdentity"
 // =============================================================================
 
 export const Route = createFileRoute("/account")({
-  component: AccountPage
+  component: AccountPage,
+  beforeLoad: async () => {
+    // Quick client-side check for auth token
+    if (typeof window !== "undefined") {
+      const token = window.localStorage.getItem("accountability_auth_token")
+      if (!token) {
+        throw redirect({
+          to: "/login",
+          search: { redirect: "/account" },
+          replace: true
+        })
+      }
+    }
+  }
 })
 
 // =============================================================================
@@ -349,7 +362,7 @@ function AccountContent(): React.ReactElement {
 
 function AccountPage(): React.ReactElement {
   return (
-    <AuthGuard>
+    <AuthGuard redirectTo="/account">
       <AccountContent />
     </AuthGuard>
   )
