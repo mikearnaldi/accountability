@@ -5,6 +5,7 @@
   "packageManager": "pnpm@10.17.1",
   "scripts": {
     "prepare": "effect-language-service patch",
+    "dev": "pnpm --filter @accountability/web run dev",
     "build": "pnpm --filter @accountability/web run build",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
