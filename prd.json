@@ -581,7 +581,7 @@
           "packages/web/src/api/handler.ts"
         ]
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "small"
     },
     {

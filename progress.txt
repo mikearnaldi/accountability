@@ -589,3 +589,8 @@
 **Story**: 8.3.3 - Update TokenValidator to use sessions
 **Status**: complete
 ---
+
+## Iteration 3 - 2026-01-13 10:29
+**Story**: 8.3.4 - Integrate AuthApi into AppApi
+**Status**: complete
+---
