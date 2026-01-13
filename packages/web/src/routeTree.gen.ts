@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ReportsRouteImport } from './routes/reports'
+import { Route as RegisterRouteImport } from './routes/register'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as JournalEntriesRouteImport } from './routes/journal-entries'
 import { Route as CompaniesRouteImport } from './routes/companies'
@@ -24,6 +25,11 @@ import { Route as CompaniesCompanyIdJournalEntriesEntryIdEditRouteImport } from 
 const ReportsRoute = ReportsRouteImport.update({
   id: '/reports',
   path: '/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RegisterRoute = RegisterRouteImport.update({
+  id: '/register',
+  path: '/register',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -86,6 +92,7 @@ export interface FileRoutesByFullPath {
   '/companies': typeof CompaniesRouteWithChildren
   '/journal-entries': typeof JournalEntriesRoute
   '/login': typeof LoginRoute
+  '/register': typeof RegisterRoute
   '/reports': typeof ReportsRoute
   '/api/$': typeof ApiSplatRoute
   '/auth/callback/$provider': typeof AuthCallbackProviderRoute
@@ -99,6 +106,7 @@ export interface FileRoutesByTo {
   '/companies': typeof CompaniesRouteWithChildren
   '/journal-entries': typeof JournalEntriesRoute
   '/login': typeof LoginRoute
+  '/register': typeof RegisterRoute
   '/reports': typeof ReportsRoute
   '/api/$': typeof ApiSplatRoute
   '/auth/callback/$provider': typeof AuthCallbackProviderRoute
@@ -113,6 +121,7 @@ export interface FileRoutesById {
   '/companies': typeof CompaniesRouteWithChildren
   '/journal-entries': typeof JournalEntriesRoute
   '/login': typeof LoginRoute
+  '/register': typeof RegisterRoute
   '/reports': typeof ReportsRoute
   '/api/$': typeof ApiSplatRoute
   '/auth/callback/$provider': typeof AuthCallbackProviderRoute
@@ -128,6 +137,7 @@ export interface FileRouteTypes {
     | '/companies'
     | '/journal-entries'
     | '/login'
+    | '/register'
     | '/reports'
     | '/api/$'
     | '/auth/callback/$provider'
@@ -141,6 +151,7 @@ export interface FileRouteTypes {
     | '/companies'
     | '/journal-entries'
     | '/login'
+    | '/register'
     | '/reports'
     | '/api/$'
     | '/auth/callback/$provider'
@@ -154,6 +165,7 @@ export interface FileRouteTypes {
     | '/companies'
     | '/journal-entries'
     | '/login'
+    | '/register'
     | '/reports'
     | '/api/$'
     | '/auth/callback/$provider'
@@ -168,6 +180,7 @@ export interface RootRouteChildren {
   CompaniesRoute: typeof CompaniesRouteWithChildren
   JournalEntriesRoute: typeof JournalEntriesRoute
   LoginRoute: typeof LoginRoute
+  RegisterRoute: typeof RegisterRoute
   ReportsRoute: typeof ReportsRoute
   ApiSplatRoute: typeof ApiSplatRoute
   AuthCallbackProviderRoute: typeof AuthCallbackProviderRoute
@@ -180,6 +193,13 @@ declare module '@tanstack/react-router' {
       path: '/reports'
       fullPath: '/reports'
       preLoaderRoute: typeof ReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/register': {
+      id: '/register'
+      path: '/register'
+      fullPath: '/register'
+      preLoaderRoute: typeof RegisterRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -280,6 +300,7 @@ const rootRouteChildren: RootRouteChildren = {
   CompaniesRoute: CompaniesRouteWithChildren,
   JournalEntriesRoute: JournalEntriesRoute,
   LoginRoute: LoginRoute,
+  RegisterRoute: RegisterRoute,
   ReportsRoute: ReportsRoute,
   ApiSplatRoute: ApiSplatRoute,
   AuthCallbackProviderRoute: AuthCallbackProviderRoute,

@@ -677,7 +677,7 @@
         "validation": "Client-side validation before submit, server validation for uniqueness",
         "conditional": "Hide/redirect if local provider not enabled"
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "medium"
     },
     {

@@ -17,6 +17,7 @@ export default defineConfig({
       "**/node_modules/**"
     ],
     passWithNoTests: true,
+    hookTimeout: 120000, // 2 minutes for testcontainer setup hooks
     coverage: {
       provider: "v8",
       reporter: ["text", "html", "lcov"],

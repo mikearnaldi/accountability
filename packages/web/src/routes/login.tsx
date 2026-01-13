@@ -15,6 +15,7 @@
 
 import {
   createFileRoute,
+  Link,
   redirect,
   useNavigate
 } from "@tanstack/react-router"
@@ -707,10 +708,13 @@ function LoginPage(): React.ReactElement {
           </div>
         )}
 
-        {/* Registration info - register page would be implemented in a separate story */}
+        {/* Link to registration page */}
         {localProvider?.supportsRegistration && (
           <div style={footerStyles}>
-            Don't have an account? Contact your administrator for access.
+            Don't have an account?{" "}
+            <Link to="/register" search={{ redirect: redirectTo }} style={{ color: "#1890ff", textDecoration: "none" }}>
+              Create one
+            </Link>
           </div>
         )}
       </div>
