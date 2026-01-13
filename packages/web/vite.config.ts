@@ -15,7 +15,10 @@ export default defineConfig({
       "testcontainers",
       "dockerode",
       "ssh2",
-      "cpu-features"
+      "cpu-features",
+      "pg",
+      "pg-pool",
+      "pg-native"
     ]
   },
   ssr: {
@@ -25,7 +28,10 @@ export default defineConfig({
       "testcontainers",
       "dockerode",
       "ssh2",
-      "cpu-features"
+      "cpu-features",
+      "pg",
+      "pg-pool",
+      "pg-native"
     ]
   },
   plugins: [
@@ -45,7 +51,11 @@ export default defineConfig({
           "testcontainers",
           "dockerode",
           "ssh2",
-          "cpu-features"
+          "cpu-features",
+          // Externalize pg and related packages - native bindings don't bundle well
+          "pg",
+          "pg-pool",
+          "pg-native"
         ]
       }
     })

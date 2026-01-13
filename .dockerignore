@@ -1,0 +1,35 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Build outputs
+packages/*/dist
+packages/web/.output
+.db
+
+# Development
+*.log
+.env*
+.git
+.gitignore
+
+# Testing
+coverage
+packages/web/playwright-report
+packages/web/test-results
+**/*.test.ts
+**/*.spec.ts
+
+# Documentation and reference
+*.md
+specs/
+repos/
+docs/
+
+# IDE
+.vscode
+.idea
+
+# OS
+.DS_Store
+Thumbs.db
