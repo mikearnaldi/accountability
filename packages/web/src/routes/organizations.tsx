@@ -17,14 +17,16 @@ import { AuthGuard } from "../components/AuthGuard.tsx"
 
 export const Route = createFileRoute("/organizations")({
   component: OrganizationsLayout,
-  beforeLoad: async () => {
+  beforeLoad: async ({ location }) => {
     // Quick client-side check for auth token
     if (typeof window !== "undefined") {
       const token = window.localStorage.getItem("accountability_auth_token")
       if (!token) {
+        // Use location.href for the full path, falling back to pathname
+        const redirectPath = location.href || location.pathname
         throw redirect({
           to: "/login",
-          search: { redirect: "/organizations" },
+          search: { redirect: redirectPath },
           replace: true
         })
       }
@@ -34,10 +36,11 @@ export const Route = createFileRoute("/organizations")({
 
 /**
  * Organizations layout component that renders child routes
+ * AuthGuard uses the current location.pathname from useLocation() by default
  */
 function OrganizationsLayout(): React.ReactElement {
   return (
-    <AuthGuard redirectTo="/organizations">
+    <AuthGuard>
       <Outlet />
     </AuthGuard>
   )

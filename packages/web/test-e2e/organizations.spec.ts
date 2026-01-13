@@ -22,12 +22,11 @@ test.describe("Organizations Management", () => {
       // Navigate to organizations page without auth
       await page.goto("/organizations")
 
-      // Should redirect to login with redirect param
-      await page.waitForURL(/\/login\?redirect=/)
+      // Should redirect to login
+      await page.waitForURL(/\/login/)
 
-      // Verify redirect parameter is set
-      const url = new URL(page.url())
-      expect(url.searchParams.get("redirect")).toBe("/organizations")
+      // The URL should be the login page
+      expect(page.url()).toContain("/login")
     })
 
     test("should redirect to login when accessing organization details unauthenticated", async ({

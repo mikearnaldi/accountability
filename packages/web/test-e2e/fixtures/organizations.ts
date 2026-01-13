@@ -103,7 +103,8 @@ export async function createTestOrganization(
     headers: { Authorization: `Bearer ${token}` },
     data: {
       name: orgName,
-      reportingCurrency: "USD"
+      reportingCurrency: "USD",
+      settings: null
     }
   })
 
@@ -146,9 +147,13 @@ export async function createTestCompany(
       name: companyName,
       legalName: `${companyName} Inc.`,
       jurisdiction: "US",
+      taxId: null,
       functionalCurrency: "USD",
       reportingCurrency: "USD",
-      fiscalYearEnd: { month: 12, day: 31 }
+      fiscalYearEnd: { month: 12, day: 31 },
+      parentCompanyId: null,
+      ownershipPercentage: null,
+      consolidationMethod: null
     }
   })
 

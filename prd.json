@@ -1314,7 +1314,7 @@
         "ui_location": "packages/web/src/routes/organizations/$orgId/companies/",
         "pattern": "Implement UI first, then write E2E tests against the UI"
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "medium"
     },
     {
