@@ -22,11 +22,10 @@ export const Route = createFileRoute("/organizations")({
     if (typeof window !== "undefined") {
       const token = window.localStorage.getItem("accountability_auth_token")
       if (!token) {
-        // Use location.href for the full path, falling back to pathname
-        const redirectPath = location.href || location.pathname
+        // Use location.pathname for the redirect path
         throw redirect({
           to: "/login",
-          search: { redirect: redirectPath },
+          search: { redirect: location.pathname },
           replace: true
         })
       }
@@ -36,11 +35,21 @@ export const Route = createFileRoute("/organizations")({
 
 /**
  * Organizations layout component that renders child routes
- * AuthGuard uses the current location.pathname from useLocation() by default
+ *
+ * We use AuthGuard here for client-side auth verification after hydration.
+ * The beforeLoad handles client-side navigation redirects, but for initial
+ * page loads (SSR), AuthGuard provides the client-side redirect.
+ *
+ * We use window.location.pathname to get the actual browser URL path.
  */
 function OrganizationsLayout(): React.ReactElement {
+  // Get the actual browser pathname for redirect purposes
+  const currentPath = typeof window !== "undefined"
+    ? window.location.pathname
+    : "/organizations"
+
   return (
-    <AuthGuard>
+    <AuthGuard redirectTo={currentPath}>
       <Outlet />
     </AuthGuard>
   )

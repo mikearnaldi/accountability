@@ -533,10 +533,10 @@ function AddAccountModal({
 
   return (
     <div style={modalOverlayStyles} onClick={onClose}>
-      <div style={modalContentStyles} onClick={e => e.stopPropagation()}>
+      <div style={modalContentStyles} onClick={e => e.stopPropagation()} data-testid="create-account-form">
         <h2 style={{ marginTop: 0 }}>Add New Account</h2>
         {error && (
-          <div style={{ color: "#ff4d4f", marginBottom: "1rem" }}>{error}</div>
+          <div style={{ color: "#ff4d4f", marginBottom: "1rem" }} data-testid="form-error">{error}</div>
         )}
         <form onSubmit={handleSubmit}>
           <div style={formGroupStyles}>
@@ -548,6 +548,7 @@ function AddAccountModal({
               style={inputStyles}
               placeholder="e.g., 1000"
               required
+              data-testid="account-number-input"
             />
           </div>
 
@@ -560,6 +561,7 @@ function AddAccountModal({
               style={inputStyles}
               placeholder="e.g., Cash"
               required
+              data-testid="account-name-input"
             />
           </div>
 
@@ -570,6 +572,7 @@ function AddAccountModal({
               onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
               style={{ ...inputStyles, minHeight: "60px" }}
               placeholder="Optional description"
+              data-testid="account-description-input"
             />
           </div>
 
@@ -586,6 +589,7 @@ function AddAccountModal({
                 }}
                 style={selectStyles}
                 disabled={parentAccount !== null}
+                data-testid="account-type-select"
               >
                 {ACCOUNT_TYPES.map(type => (
                   <option key={type} value={type}>{type}</option>
@@ -604,6 +608,7 @@ function AddAccountModal({
                   }
                 }}
                 style={selectStyles}
+                data-testid="account-category-select"
               >
                 {ACCOUNT_CATEGORIES[formData.accountType].map(cat => (
                   <option key={cat} value={cat}>{formatCategoryLabel(cat)}</option>
@@ -621,6 +626,7 @@ function AddAccountModal({
                 parentAccountId: e.target.value || null
               }))}
               style={selectStyles}
+              data-testid="parent-account-select"
             >
               <option value="">None (Top-level account)</option>
               {accounts
@@ -640,6 +646,7 @@ function AddAccountModal({
                 id="isPostable"
                 checked={formData.isPostable}
                 onChange={e => setFormData(prev => ({ ...prev, isPostable: e.target.checked }))}
+                data-testid="is-postable-checkbox"
               />
               <label htmlFor="isPostable">Allow posting journal entries</label>
             </div>
@@ -654,6 +661,7 @@ function AddAccountModal({
                   isCashFlowRelevant: e.target.checked,
                   cashFlowCategory: e.target.checked ? "Operating" : null
                 }))}
+                data-testid="is-cash-flow-checkbox"
               />
               <label htmlFor="isCashFlowRelevant">Cash flow relevant</label>
             </div>
@@ -672,6 +680,7 @@ function AddAccountModal({
                   }))
                 }}
                 style={selectStyles}
+                data-testid="cash-flow-category-select"
               >
                 {CASH_FLOW_CATEGORIES.map(cat => (
                   <option key={cat} value={cat}>{cat}</option>
@@ -690,6 +699,7 @@ function AddAccountModal({
                 isIntercompany: e.target.checked,
                 intercompanyPartnerId: e.target.checked ? prev.intercompanyPartnerId : null
               }))}
+              data-testid="is-intercompany-checkbox"
             />
             <label htmlFor="isIntercompany">Intercompany account</label>
           </div>
@@ -700,10 +710,11 @@ function AddAccountModal({
               onClick={onClose}
               style={secondaryButtonStyles}
               disabled={isSubmitting}
+              data-testid="cancel-create-account"
             >
               Cancel
             </button>
-            <button type="submit" style={buttonStyles} disabled={isSubmitting}>
+            <button type="submit" style={buttonStyles} disabled={isSubmitting} data-testid="submit-create-account">
               {isSubmitting ? "Creating..." : "Create Account"}
             </button>
           </div>
@@ -809,15 +820,15 @@ function EditAccountModal({
 
   return (
     <div style={modalOverlayStyles} onClick={onClose}>
-      <div style={modalContentStyles} onClick={e => e.stopPropagation()}>
+      <div style={modalContentStyles} onClick={e => e.stopPropagation()} data-testid="edit-account-form">
         <h2 style={{ marginTop: 0 }}>Edit Account</h2>
         <p style={{ color: "#666" }}>
-          <span style={accountNumberStyles}>{account.accountNumber}</span>
+          <span style={accountNumberStyles} data-testid="edit-account-number">{account.accountNumber}</span>
           {" - "}
-          <span style={accountTypeStyles}>{account.accountType}</span>
+          <span style={accountTypeStyles} data-testid="edit-account-type">{account.accountType}</span>
         </p>
         {error && (
-          <div style={{ color: "#ff4d4f", marginBottom: "1rem" }}>{error}</div>
+          <div style={{ color: "#ff4d4f", marginBottom: "1rem" }} data-testid="edit-form-error">{error}</div>
         )}
         <form onSubmit={handleSubmit}>
           <div style={formGroupStyles}>
@@ -828,6 +839,7 @@ function EditAccountModal({
               onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
               style={inputStyles}
               required
+              data-testid="edit-account-name-input"
             />
           </div>
 
@@ -837,6 +849,7 @@ function EditAccountModal({
               value={formData.description}
               onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
               style={{ ...inputStyles, minHeight: "60px" }}
+              data-testid="edit-account-description-input"
             />
           </div>
 
@@ -849,6 +862,7 @@ function EditAccountModal({
                 parentAccountId: e.target.value || null
               }))}
               style={selectStyles}
+              data-testid="edit-parent-account-select"
             >
               <option value="">None (Top-level account)</option>
               {accounts
@@ -868,6 +882,7 @@ function EditAccountModal({
                 id="editIsPostable"
                 checked={formData.isPostable}
                 onChange={e => setFormData(prev => ({ ...prev, isPostable: e.target.checked }))}
+                data-testid="edit-is-postable-checkbox"
               />
               <label htmlFor="editIsPostable">Allow posting journal entries</label>
             </div>
@@ -882,6 +897,7 @@ function EditAccountModal({
                   isCashFlowRelevant: e.target.checked,
                   cashFlowCategory: e.target.checked ? (prev.cashFlowCategory ?? "Operating") : null
                 }))}
+                data-testid="edit-is-cash-flow-checkbox"
               />
               <label htmlFor="editIsCashFlowRelevant">Cash flow relevant</label>
             </div>
@@ -900,6 +916,7 @@ function EditAccountModal({
                   }))
                 }}
                 style={selectStyles}
+                data-testid="edit-cash-flow-category-select"
               >
                 {CASH_FLOW_CATEGORIES.map(cat => (
                   <option key={cat} value={cat}>{cat}</option>
@@ -917,6 +934,7 @@ function EditAccountModal({
                 ...prev,
                 isIntercompany: e.target.checked
               }))}
+              data-testid="edit-is-intercompany-checkbox"
             />
             <label htmlFor="editIsIntercompany">Intercompany account</label>
           </div>
@@ -927,6 +945,7 @@ function EditAccountModal({
               id="editIsActive"
               checked={formData.isActive}
               onChange={e => setFormData(prev => ({ ...prev, isActive: e.target.checked }))}
+              data-testid="edit-is-active-checkbox"
             />
             <label htmlFor="editIsActive">Active</label>
           </div>
@@ -937,10 +956,11 @@ function EditAccountModal({
               onClick={onClose}
               style={secondaryButtonStyles}
               disabled={isSubmitting}
+              data-testid="cancel-edit-account"
             >
               Cancel
             </button>
-            <button type="submit" style={buttonStyles} disabled={isSubmitting}>
+            <button type="submit" style={buttonStyles} disabled={isSubmitting} data-testid="submit-edit-account">
               {isSubmitting ? "Saving..." : "Save Changes"}
             </button>
           </div>
@@ -989,14 +1009,14 @@ function DeactivateAccountModal({
 
   return (
     <div style={modalOverlayStyles} onClick={onClose}>
-      <div style={modalContentStyles} onClick={e => e.stopPropagation()}>
+      <div style={modalContentStyles} onClick={e => e.stopPropagation()} data-testid="deactivate-account-modal">
         <h2 style={{ marginTop: 0 }}>Deactivate Account</h2>
         {error && (
-          <div style={{ color: "#ff4d4f", marginBottom: "1rem" }}>{error}</div>
+          <div style={{ color: "#ff4d4f", marginBottom: "1rem" }} data-testid="deactivate-error">{error}</div>
         )}
         <p>
           Are you sure you want to deactivate account{" "}
-          <strong>{account.accountNumber} - {account.name}</strong>?
+          <strong data-testid="deactivate-account-info">{account.accountNumber} - {account.name}</strong>?
         </p>
         <p style={{ color: "#666" }}>
           This will prevent any new journal entries from being posted to this account.
@@ -1008,6 +1028,7 @@ function DeactivateAccountModal({
             onClick={onClose}
             style={secondaryButtonStyles}
             disabled={isSubmitting}
+            data-testid="cancel-deactivate-account"
           >
             Cancel
           </button>
@@ -1016,6 +1037,7 @@ function DeactivateAccountModal({
             onClick={handleDeactivate}
             style={dangerButtonStyles}
             disabled={isSubmitting}
+            data-testid="confirm-deactivate-account"
           >
             {isSubmitting ? "Deactivating..." : "Deactivate Account"}
           </button>
@@ -1042,31 +1064,31 @@ function AccountRow({
   readonly onAddChild: (parentId: AccountId) => void
 }): React.ReactElement {
   return (
-    <tr style={{ opacity: account.isActive ? 1 : 0.6 }}>
+    <tr style={{ opacity: account.isActive ? 1 : 0.6 }} data-testid={`account-row-${account.id}`}>
       <td style={tdStyles}>
-        <div style={accountRowStyles(depth, account.isActive)}>
+        <div style={accountRowStyles(depth, account.isActive)} data-testid={`account-cell-${account.id}`}>
           {depth > 0 && (
-            <span style={{ color: "#ccc" }}>{"└"}</span>
+            <span style={{ color: "#ccc" }} data-testid={`account-indent-${account.id}`}>{"└"}</span>
           )}
-          <span style={accountNumberStyles}>{account.accountNumber}</span>
-          <span>{account.name}</span>
+          <span style={accountNumberStyles} data-testid={`account-number-${account.id}`}>{account.accountNumber}</span>
+          <span data-testid={`account-name-${account.id}`}>{account.name}</span>
         </div>
       </td>
       <td style={tdStyles}>
-        <span style={accountTypeStyles}>{account.accountType}</span>
+        <span style={accountTypeStyles} data-testid={`account-type-${account.id}`}>{account.accountType}</span>
       </td>
       <td style={tdStyles}>
-        <span style={{ fontSize: "12px" }}>{formatCategoryLabel(account.accountCategory)}</span>
+        <span style={{ fontSize: "12px" }} data-testid={`account-category-${account.id}`}>{formatCategoryLabel(account.accountCategory)}</span>
       </td>
       <td style={tdStyles}>
-        <span style={{ fontSize: "12px" }}>{account.normalBalance}</span>
+        <span style={{ fontSize: "12px" }} data-testid={`account-normal-balance-${account.id}`}>{account.normalBalance}</span>
       </td>
       <td style={tdStyles}>
-        <span style={statusBadgeStyles(account.isActive)}>
+        <span style={statusBadgeStyles(account.isActive)} data-testid={`account-status-${account.id}`}>
           {account.isActive ? "Active" : "Inactive"}
         </span>
       </td>
-      <td style={tdStyles}>
+      <td style={tdStyles} data-testid={`account-postable-${account.id}`}>
         {account.isPostable ? "Yes" : "No"}
       </td>
       <td style={tdStyles}>
@@ -1075,6 +1097,7 @@ function AccountRow({
             style={smallButtonStyles}
             onClick={() => onEdit(account)}
             title="Edit account"
+            data-testid={`edit-account-${account.id}`}
           >
             Edit
           </button>
@@ -1084,6 +1107,7 @@ function AccountRow({
                 style={smallButtonStyles}
                 onClick={() => onAddChild(account.id)}
                 title="Add sub-account"
+                data-testid={`add-sub-account-${account.id}`}
               >
                 + Sub
               </button>
@@ -1091,6 +1115,7 @@ function AccountRow({
                 style={{ ...smallButtonStyles, color: "#ff4d4f", borderColor: "#ff4d4f" }}
                 onClick={() => onDeactivate(account)}
                 title="Deactivate account"
+                data-testid={`deactivate-account-${account.id}`}
               >
                 Deactivate
               </button>
@@ -1189,20 +1214,20 @@ function ChartOfAccountsPage(): React.ReactElement {
   const hasError = Result.isFailure(accountsResult)
 
   return (
-    <div style={pageStyles}>
+    <div style={pageStyles} data-testid="accounts-page">
       <div style={headerStyles}>
         <div>
-          <h1 style={{ margin: 0 }}>Chart of Accounts</h1>
-          <p style={{ color: "#666", margin: "0.5rem 0 0" }}>
+          <h1 style={{ margin: 0 }} data-testid="page-title">Chart of Accounts</h1>
+          <p style={{ color: "#666", margin: "0.5rem 0 0" }} data-testid="page-subtitle">
             Company ID: {companyId}
           </p>
         </div>
-        <button style={buttonStyles} onClick={() => handleOpenAddModal()}>
+        <button style={buttonStyles} onClick={() => handleOpenAddModal()} data-testid="create-account-button">
           + Add Account
         </button>
       </div>
 
-      <div style={filtersStyles}>
+      <div style={filtersStyles} data-testid="accounts-filters">
         <select
           value={accountTypeFilter ?? ""}
           onChange={e => {
@@ -1210,6 +1235,7 @@ function ChartOfAccountsPage(): React.ReactElement {
             setAccountTypeFilter(isAccountType(value) ? value : null)
           }}
           style={filterSelectStyles}
+          data-testid="account-type-filter"
         >
           <option value="">All Account Types</option>
           {ACCOUNT_TYPES.map(type => (
@@ -1223,6 +1249,7 @@ function ChartOfAccountsPage(): React.ReactElement {
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
           style={searchInputStyles}
+          data-testid="search-accounts-input"
         />
 
         {(accountTypeFilter || searchQuery) && (
@@ -1232,6 +1259,7 @@ function ChartOfAccountsPage(): React.ReactElement {
               setAccountTypeFilter(null)
               setSearchQuery("")
             }}
+            data-testid="clear-filters-button"
           >
             Clear Filters
           </button>
@@ -1239,13 +1267,13 @@ function ChartOfAccountsPage(): React.ReactElement {
       </div>
 
       {isLoading && (
-        <div style={{ textAlign: "center", padding: "2rem", color: "#666" }}>
+        <div style={{ textAlign: "center", padding: "2rem", color: "#666" }} data-testid="accounts-loading">
           Loading accounts...
         </div>
       )}
 
       {hasError && (
-        <div style={{ textAlign: "center", padding: "2rem", color: "#ff4d4f" }}>
+        <div style={{ textAlign: "center", padding: "2rem", color: "#ff4d4f" }} data-testid="accounts-error">
           Error loading accounts. Please try again.
         </div>
       )}
@@ -1253,13 +1281,13 @@ function ChartOfAccountsPage(): React.ReactElement {
       {!isLoading && !hasError && (
         <>
           {filteredAccounts.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "2rem", color: "#666" }}>
+            <div style={{ textAlign: "center", padding: "2rem", color: "#666" }} data-testid="accounts-empty">
               {searchQuery
                 ? "No accounts match your search"
                 : "No accounts found. Create your first account to get started."}
             </div>
           ) : (
-            <table style={tableStyles}>
+            <table style={tableStyles} data-testid="accounts-table">
               <thead>
                 <tr>
                   <th style={thStyles}>Account</th>
@@ -1271,7 +1299,7 @@ function ChartOfAccountsPage(): React.ReactElement {
                   <th style={thStyles}>Actions</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody data-testid="accounts-list">
                 {filteredAccounts.map(({ account, depth }) => (
                   <AccountRow
                     key={account.id}
@@ -1286,7 +1314,7 @@ function ChartOfAccountsPage(): React.ReactElement {
             </table>
           )}
 
-          <div style={{ marginTop: "1rem", color: "#666", fontSize: "14px" }}>
+          <div style={{ marginTop: "1rem", color: "#666", fontSize: "14px" }} data-testid="accounts-count">
             Showing {filteredAccounts.length} of {hierarchicalAccounts.length} accounts
           </div>
         </>

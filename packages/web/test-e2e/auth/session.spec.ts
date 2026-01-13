@@ -26,7 +26,7 @@ test.describe("Session Management", () => {
     await authenticatedPage.goto("/companies")
     await expect(authenticatedPage.getByTestId("user-menu")).toBeVisible()
     await expect(
-      authenticatedPage.getByRole("heading", { name: "Companies" })
+      authenticatedPage.locator("h1").filter({ hasText: "Companies" })
     ).toBeVisible()
 
     // Navigate to reports page (protected route)
@@ -157,7 +157,8 @@ test.describe("Session Management", () => {
     // Try to access protected page: /companies
     await page.goto("/companies")
     await page.waitForURL(/\/login\?redirect=/)
-    await expect(page).toHaveURL(/\/login\?redirect=%2Fcompanies/)
+    // URL-encoded /companies or /companies/ (trailing slash may be present)
+    await expect(page).toHaveURL(/\/login\?redirect=%2Fcompanies(%2F)?$/)
     await expect(page.getByRole("heading", { name: "Sign In" })).toBeVisible()
 
     // Go back to home and clear token again before next test
@@ -211,9 +212,10 @@ test.describe("Session Management", () => {
     // Should redirect to login with the redirect parameter set
     await page.waitForURL(/\/login\?redirect=/)
 
-    // Verify the redirect parameter is the original path
+    // Verify the redirect parameter is the original path (may have trailing slash)
     const url = new URL(page.url())
-    expect(url.searchParams.get("redirect")).toBe("/companies")
+    const redirect = url.searchParams.get("redirect")
+    expect(redirect).toMatch(/^\/companies\/?$/)
   })
 
   test("should handle invalid token gracefully", async ({ page }) => {

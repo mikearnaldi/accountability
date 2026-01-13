@@ -18,6 +18,7 @@ import { Route as CompaniesRouteImport } from './routes/companies'
 import { Route as AccountRouteImport } from './routes/account'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as OrganizationsIndexRouteImport } from './routes/organizations/index'
+import { Route as CompaniesIndexRouteImport } from './routes/companies/index'
 import { Route as SettingsAccountRouteImport } from './routes/settings/account'
 import { Route as OrganizationsOrganizationIdRouteImport } from './routes/organizations/$organizationId'
 import { Route as ApiSplatRouteImport } from './routes/api/$'
@@ -74,6 +75,11 @@ const OrganizationsIndexRoute = OrganizationsIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => OrganizationsRoute,
+} as any)
+const CompaniesIndexRoute = CompaniesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => CompaniesRoute,
 } as any)
 const SettingsAccountRoute = SettingsAccountRouteImport.update({
   id: '/settings/account',
@@ -151,6 +157,7 @@ export interface FileRoutesByFullPath {
   '/api/$': typeof ApiSplatRoute
   '/organizations/$organizationId': typeof OrganizationsOrganizationIdRouteWithChildren
   '/settings/account': typeof SettingsAccountRoute
+  '/companies/': typeof CompaniesIndexRoute
   '/organizations/': typeof OrganizationsIndexRoute
   '/auth/callback/$provider': typeof AuthCallbackProviderRoute
   '/companies/$companyId/accounts': typeof CompaniesCompanyIdAccountsRoute
@@ -164,13 +171,13 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
-  '/companies': typeof CompaniesRouteWithChildren
   '/journal-entries': typeof JournalEntriesRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/reports': typeof ReportsRoute
   '/api/$': typeof ApiSplatRoute
   '/settings/account': typeof SettingsAccountRoute
+  '/companies': typeof CompaniesIndexRoute
   '/organizations': typeof OrganizationsIndexRoute
   '/auth/callback/$provider': typeof AuthCallbackProviderRoute
   '/companies/$companyId/accounts': typeof CompaniesCompanyIdAccountsRoute
@@ -194,6 +201,7 @@ export interface FileRoutesById {
   '/api/$': typeof ApiSplatRoute
   '/organizations/$organizationId': typeof OrganizationsOrganizationIdRouteWithChildren
   '/settings/account': typeof SettingsAccountRoute
+  '/companies/': typeof CompaniesIndexRoute
   '/organizations/': typeof OrganizationsIndexRoute
   '/auth/callback/$provider': typeof AuthCallbackProviderRoute
   '/companies/$companyId/accounts': typeof CompaniesCompanyIdAccountsRoute
@@ -218,6 +226,7 @@ export interface FileRouteTypes {
     | '/api/$'
     | '/organizations/$organizationId'
     | '/settings/account'
+    | '/companies/'
     | '/organizations/'
     | '/auth/callback/$provider'
     | '/companies/$companyId/accounts'
@@ -231,13 +240,13 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/account'
-    | '/companies'
     | '/journal-entries'
     | '/login'
     | '/register'
     | '/reports'
     | '/api/$'
     | '/settings/account'
+    | '/companies'
     | '/organizations'
     | '/auth/callback/$provider'
     | '/companies/$companyId/accounts'
@@ -260,6 +269,7 @@ export interface FileRouteTypes {
     | '/api/$'
     | '/organizations/$organizationId'
     | '/settings/account'
+    | '/companies/'
     | '/organizations/'
     | '/auth/callback/$provider'
     | '/companies/$companyId/accounts'
@@ -350,6 +360,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrganizationsIndexRouteImport
       parentRoute: typeof OrganizationsRoute
     }
+    '/companies/': {
+      id: '/companies/'
+      path: '/'
+      fullPath: '/companies/'
+      preLoaderRoute: typeof CompaniesIndexRouteImport
+      parentRoute: typeof CompaniesRoute
+    }
     '/settings/account': {
       id: '/settings/account'
       path: '/settings/account'
@@ -431,6 +448,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface CompaniesRouteChildren {
+  CompaniesIndexRoute: typeof CompaniesIndexRoute
   CompaniesCompanyIdAccountsRoute: typeof CompaniesCompanyIdAccountsRoute
   CompaniesCompanyIdReportsRoute: typeof CompaniesCompanyIdReportsRoute
   CompaniesCompanyIdJournalEntriesNewRoute: typeof CompaniesCompanyIdJournalEntriesNewRoute
@@ -438,6 +456,7 @@ interface CompaniesRouteChildren {
 }
 
 const CompaniesRouteChildren: CompaniesRouteChildren = {
+  CompaniesIndexRoute: CompaniesIndexRoute,
   CompaniesCompanyIdAccountsRoute: CompaniesCompanyIdAccountsRoute,
   CompaniesCompanyIdReportsRoute: CompaniesCompanyIdReportsRoute,
   CompaniesCompanyIdJournalEntriesNewRoute:

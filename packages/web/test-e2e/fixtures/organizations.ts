@@ -201,13 +201,17 @@ export async function createTestAccount(
       companyId,
       accountNumber: accountNumber ?? "1000",
       name: name ?? "Cash",
+      description: null,
       accountType: "Asset",
       accountCategory: "CurrentAsset",
       normalBalance: "Debit",
+      parentAccountId: null,
       isPostable: true,
       isCashFlowRelevant: true,
       cashFlowCategory: "Operating",
-      isIntercompany: false
+      isIntercompany: false,
+      intercompanyPartnerId: null,
+      currencyRestriction: null
     }
   })
 

@@ -68,20 +68,21 @@ test.describe("Login Flow", () => {
     // Should redirect to login with redirect param
     await page.waitForURL(/\/login\?redirect=/)
 
-    // Verify redirect parameter is set
+    // Verify redirect parameter is set (may be /companies or /companies/)
     const url = new URL(page.url())
-    expect(url.searchParams.get("redirect")).toBe("/companies")
+    const redirect = url.searchParams.get("redirect")
+    expect(redirect).toMatch(/^\/companies\/?$/)
 
     // Now login with valid credentials
     await page.fill("#email", testUser.email)
     await page.fill("#password", testUser.password)
     await page.click('button[type="submit"]')
 
-    // Should redirect back to the originally requested page
-    await page.waitForURL("/companies")
+    // Should redirect back to the originally requested page (may have trailing slash)
+    await page.waitForURL(/\/companies\/?$/)
 
-    // Verify we're on the companies page
-    await expect(page.getByRole("heading", { name: "Companies" })).toBeVisible()
+    // Verify we're on the companies page (use h1 specifically to avoid strict mode violation with h2)
+    await expect(page.locator("h1").filter({ hasText: "Companies" })).toBeVisible()
   })
 
   test("should redirect away from login page if already authenticated", async ({

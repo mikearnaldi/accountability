@@ -1342,7 +1342,7 @@
         "ui_location": "packages/web/src/routes/companies/$companyId/accounts/",
         "pattern": "Implement UI first, then write E2E tests against the UI"
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "medium"
     },
     {
