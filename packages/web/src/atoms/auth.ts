@@ -26,8 +26,6 @@ import {
   ProvidersResponse
 } from "@accountability/api/Definitions/AuthApi"
 import type {
-  LocalLoginCredentials,
-  OAuthLoginCredentials,
   ProviderMetadata
 } from "@accountability/api/Definitions/AuthApi"
 import * as Duration from "effect/Duration"
@@ -242,11 +240,27 @@ export const enabledProvidersAtom = atomRuntime.atom(
 // =============================================================================
 
 /**
+ * Local login credentials - plain strings validated on server
+ */
+export interface LocalLoginInput {
+  readonly email: string
+  readonly password: string
+}
+
+/**
+ * OAuth login credentials - authorization code and state
+ */
+export interface OAuthLoginInput {
+  readonly code: string
+  readonly state: string
+}
+
+/**
  * Credentials type for loginMutation
  */
 export type LoginCredentials =
-  | { readonly provider: "local"; readonly credentials: LocalLoginCredentials }
-  | { readonly provider: AuthProviderType; readonly credentials: OAuthLoginCredentials }
+  | { readonly provider: "local"; readonly credentials: LocalLoginInput }
+  | { readonly provider: AuthProviderType; readonly credentials: OAuthLoginInput }
 
 /**
  * loginMutation - Calls login API, stores token on success

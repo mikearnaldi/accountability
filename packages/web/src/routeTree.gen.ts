@@ -10,18 +10,25 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ReportsRouteImport } from './routes/reports'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as JournalEntriesRouteImport } from './routes/journal-entries'
 import { Route as CompaniesRouteImport } from './routes/companies'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiSplatRouteImport } from './routes/api/$'
 import { Route as CompaniesCompanyIdReportsRouteImport } from './routes/companies/$companyId.reports'
 import { Route as CompaniesCompanyIdAccountsRouteImport } from './routes/companies/$companyId.accounts'
+import { Route as AuthCallbackProviderRouteImport } from './routes/auth/callback/$provider'
 import { Route as CompaniesCompanyIdJournalEntriesNewRouteImport } from './routes/companies/$companyId.journal-entries.new'
 import { Route as CompaniesCompanyIdJournalEntriesEntryIdEditRouteImport } from './routes/companies/$companyId.journal-entries.$entryId.edit'
 
 const ReportsRoute = ReportsRouteImport.update({
   id: '/reports',
   path: '/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const JournalEntriesRoute = JournalEntriesRouteImport.update({
@@ -56,6 +63,11 @@ const CompaniesCompanyIdAccountsRoute =
     path: '/$companyId/accounts',
     getParentRoute: () => CompaniesRoute,
   } as any)
+const AuthCallbackProviderRoute = AuthCallbackProviderRouteImport.update({
+  id: '/auth/callback/$provider',
+  path: '/auth/callback/$provider',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CompaniesCompanyIdJournalEntriesNewRoute =
   CompaniesCompanyIdJournalEntriesNewRouteImport.update({
     id: '/$companyId/journal-entries/new',
@@ -73,8 +85,10 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/companies': typeof CompaniesRouteWithChildren
   '/journal-entries': typeof JournalEntriesRoute
+  '/login': typeof LoginRoute
   '/reports': typeof ReportsRoute
   '/api/$': typeof ApiSplatRoute
+  '/auth/callback/$provider': typeof AuthCallbackProviderRoute
   '/companies/$companyId/accounts': typeof CompaniesCompanyIdAccountsRoute
   '/companies/$companyId/reports': typeof CompaniesCompanyIdReportsRoute
   '/companies/$companyId/journal-entries/new': typeof CompaniesCompanyIdJournalEntriesNewRoute
@@ -84,8 +98,10 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/companies': typeof CompaniesRouteWithChildren
   '/journal-entries': typeof JournalEntriesRoute
+  '/login': typeof LoginRoute
   '/reports': typeof ReportsRoute
   '/api/$': typeof ApiSplatRoute
+  '/auth/callback/$provider': typeof AuthCallbackProviderRoute
   '/companies/$companyId/accounts': typeof CompaniesCompanyIdAccountsRoute
   '/companies/$companyId/reports': typeof CompaniesCompanyIdReportsRoute
   '/companies/$companyId/journal-entries/new': typeof CompaniesCompanyIdJournalEntriesNewRoute
@@ -96,8 +112,10 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/companies': typeof CompaniesRouteWithChildren
   '/journal-entries': typeof JournalEntriesRoute
+  '/login': typeof LoginRoute
   '/reports': typeof ReportsRoute
   '/api/$': typeof ApiSplatRoute
+  '/auth/callback/$provider': typeof AuthCallbackProviderRoute
   '/companies/$companyId/accounts': typeof CompaniesCompanyIdAccountsRoute
   '/companies/$companyId/reports': typeof CompaniesCompanyIdReportsRoute
   '/companies/$companyId/journal-entries/new': typeof CompaniesCompanyIdJournalEntriesNewRoute
@@ -109,8 +127,10 @@ export interface FileRouteTypes {
     | '/'
     | '/companies'
     | '/journal-entries'
+    | '/login'
     | '/reports'
     | '/api/$'
+    | '/auth/callback/$provider'
     | '/companies/$companyId/accounts'
     | '/companies/$companyId/reports'
     | '/companies/$companyId/journal-entries/new'
@@ -120,8 +140,10 @@ export interface FileRouteTypes {
     | '/'
     | '/companies'
     | '/journal-entries'
+    | '/login'
     | '/reports'
     | '/api/$'
+    | '/auth/callback/$provider'
     | '/companies/$companyId/accounts'
     | '/companies/$companyId/reports'
     | '/companies/$companyId/journal-entries/new'
@@ -131,8 +153,10 @@ export interface FileRouteTypes {
     | '/'
     | '/companies'
     | '/journal-entries'
+    | '/login'
     | '/reports'
     | '/api/$'
+    | '/auth/callback/$provider'
     | '/companies/$companyId/accounts'
     | '/companies/$companyId/reports'
     | '/companies/$companyId/journal-entries/new'
@@ -143,8 +167,10 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CompaniesRoute: typeof CompaniesRouteWithChildren
   JournalEntriesRoute: typeof JournalEntriesRoute
+  LoginRoute: typeof LoginRoute
   ReportsRoute: typeof ReportsRoute
   ApiSplatRoute: typeof ApiSplatRoute
+  AuthCallbackProviderRoute: typeof AuthCallbackProviderRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -154,6 +180,13 @@ declare module '@tanstack/react-router' {
       path: '/reports'
       fullPath: '/reports'
       preLoaderRoute: typeof ReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/journal-entries': {
@@ -198,6 +231,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CompaniesCompanyIdAccountsRouteImport
       parentRoute: typeof CompaniesRoute
     }
+    '/auth/callback/$provider': {
+      id: '/auth/callback/$provider'
+      path: '/auth/callback/$provider'
+      fullPath: '/auth/callback/$provider'
+      preLoaderRoute: typeof AuthCallbackProviderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/companies/$companyId/journal-entries/new': {
       id: '/companies/$companyId/journal-entries/new'
       path: '/$companyId/journal-entries/new'
@@ -239,8 +279,10 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CompaniesRoute: CompaniesRouteWithChildren,
   JournalEntriesRoute: JournalEntriesRoute,
+  LoginRoute: LoginRoute,
   ReportsRoute: ReportsRoute,
   ApiSplatRoute: ApiSplatRoute,
+  AuthCallbackProviderRoute: AuthCallbackProviderRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

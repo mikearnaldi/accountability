@@ -646,7 +646,7 @@
         "redirect": "Use router.navigate or redirect from loader",
         "oauth_buttons": "Each OAuth provider gets a button that calls oauthLoginMutation"
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "medium"
     },
     {
