@@ -12,7 +12,7 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import { AppApi, HealthCheckResponse } from "../Definitions/AppApi.ts"
-import { AuthMiddlewareWithSimpleValidation } from "./AuthMiddlewareLive.ts"
+import { AuthMiddlewareLive } from "./AuthMiddlewareLive.ts"
 import { AccountsApiLive } from "./AccountsApiLive.ts"
 import { AuthApiLive, AuthSessionApiLive } from "./AuthApiLive.ts"
 import { CompaniesApiLive } from "./CompaniesApiLive.ts"
@@ -92,5 +92,8 @@ export const AppApiLive = HttpApiBuilder.api(AppApi).pipe(
   Layer.provide(IntercompanyTransactionsApiLive),
   Layer.provide(ConsolidationApiLive),
   Layer.provide(EliminationRulesApiLive),
-  Layer.provide(AuthMiddlewareWithSimpleValidation)
+  // AuthMiddlewareLive requires TokenValidator to be provided externally
+  // - For production: use SessionTokenValidatorLive (validates against database)
+  // - For testing: use SimpleTokenValidatorLive (user_<id>_<role> format)
+  Layer.provide(AuthMiddlewareLive)
 )

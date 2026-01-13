@@ -28,6 +28,7 @@ import {
 import type {
   ProviderMetadata
 } from "@accountability/api/Definitions/AuthApi"
+import * as Cause from "effect/Cause"
 import * as Duration from "effect/Duration"
 import * as Effect from "effect/Effect"
 import * as Option from "effect/Option"
@@ -147,6 +148,34 @@ export const authTokenAtom: Atom.Writable<Option.Option<SessionId>, Option.Optio
 // =============================================================================
 
 /**
+ * fetchUserFamily - Memoized atom family for fetching user data by token
+ *
+ * Using Atom.family ensures the same atom instance is returned for the same
+ * token value, preventing infinite refetch loops.
+ */
+const fetchUserFamily = Atom.family((token: SessionId) =>
+  atomRuntime.atom(
+    Effect.gen(function*() {
+      const client = yield* HttpClient.HttpClient
+      const request = HttpClientRequest.get(`${getBaseUrl()}/api/auth/me`).pipe(
+        HttpClientRequest.bearerToken(token)
+      )
+      const response = yield* client.execute(request)
+
+      if (response.status === 401) {
+        // Token is invalid - will be cleared by the consumer
+        return yield* Effect.fail({ _tag: "Unauthorized" as const })
+      }
+
+      const body = yield* response.json
+      return yield* Schema.decodeUnknown(AuthUserResponse)(body)
+    })
+  ).pipe(
+    Atom.setIdleTTL(Duration.minutes(5)) // Cache for 5 minutes
+  )
+)
+
+/**
  * currentUserAtom - Async atom that fetches /api/auth/me when token exists
  *
  * This atom automatically fetches the current user's details when a valid
@@ -166,31 +195,20 @@ export const currentUserAtom: Atom.Atom<Result.Result<AuthUserResponse, unknown>
 
   const token = tokenOption.value
 
-  // Create the internal async atom for fetching user data
-  const fetchUserAtom = atomRuntime.atom(
-    Effect.gen(function*() {
-      const client = yield* HttpClient.HttpClient
-      const request = HttpClientRequest.get(`${getBaseUrl()}/api/auth/me`).pipe(
-        HttpClientRequest.bearerToken(token)
-      )
-      const response = yield* client.execute(request)
+  // Use family to get memoized atom for this token
+  const userResult = get(fetchUserFamily(token))
 
-      if (response.status === 401) {
-        // Token is invalid - clear it
-        clearStoredToken()
-        get.set(authTokenAtom, Option.none())
-        return yield* Effect.fail({ _tag: "Unauthorized" as const })
-      }
+  // If we got a 401, clear the token
+  if (Result.isFailure(userResult)) {
+    const errorOption = Cause.failureOption(userResult.cause)
+    if (Option.isSome(errorOption) && (errorOption.value as { _tag?: string })._tag === "Unauthorized") {
+      clearStoredToken()
+      get.set(authTokenAtom, Option.none())
+    }
+  }
 
-      const body = yield* response.json
-      return yield* Schema.decodeUnknown(AuthUserResponse)(body)
-    })
-  )
-
-  return get(fetchUserAtom)
-}).pipe(
-  Atom.setIdleTTL(Duration.minutes(5)) // Cache for 5 minutes
-)
+  return userResult
+})
 
 /**
  * userIdentitiesAtom - Derived from currentUserAtom, lists linked providers

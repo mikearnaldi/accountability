@@ -1,6 +1,7 @@
 import { HttpApiBuilder, HttpApiSwagger, HttpServer } from "@effect/platform"
 import * as Layer from "effect/Layer"
 import { AppApiLive } from "@accountability/api/Layers/AppApiLive"
+import { SessionTokenValidatorLive } from "@accountability/api/Layers/AuthApiLive"
 import { RepositoriesWithAuthLive } from "@accountability/persistence/Layers/RepositoriesLive"
 import { MigrationsLive } from "@accountability/persistence/Layers/MigrationsLive"
 import { PgClientLayer } from "./PgClientLayer.ts"
@@ -36,6 +37,9 @@ const { handler, dispose } = HttpApiBuilder.toWebHandler(
     HttpApiBuilder.middlewareOpenApi({ path: "/api/openapi.json" })
   ).pipe(
     Layer.provideMerge(AppApiLive),
+    // Use session-based token validation (validates against database)
+    // SessionTokenValidatorLive requires AuthService from RepositoriesWithAuthLive
+    Layer.provide(SessionTokenValidatorLive),
     // Use real repositories with PostgreSQL and AuthService
     Layer.provide(RepositoriesWithAuthLive),
     // Run migrations on startup (ensures schema is up to date)

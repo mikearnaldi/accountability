@@ -24,6 +24,7 @@ import { HttpApiBuilder, HttpApiClient, HttpClient, HttpClientRequest } from "@e
 import { NodeHttpServer } from "@effect/platform-node"
 import { AppApi, HealthCheckResponse } from "@accountability/api/Definitions/AppApi"
 import { AppApiLive } from "@accountability/api/Layers/AppApiLive"
+import { SimpleTokenValidatorLive } from "@accountability/api/Layers/AuthMiddlewareLive"
 import { RepositoriesWithAuthLive } from "@accountability/persistence/Layers/RepositoriesLive"
 import { MigrationLayer } from "@accountability/persistence/Layers/MigrationsLive"
 import { AccountId } from "@accountability/core/Domains/Account"
@@ -51,9 +52,11 @@ const DatabaseLayer = MigrationLayer.pipe(
  * for testing without binding to a real port.
  *
  * Uses real repositories with the shared PostgreSQL container from globalSetup.
+ * Uses SimpleTokenValidatorLive for testing with user_<id>_<role> token format.
  *
  * Pattern: HttpApiBuilder.serve().pipe(
  *   Layer.provide(ApiLive),
+ *   Layer.provide(SimpleTokenValidatorLive), // For test token format
  *   Layer.provide(RepositoriesLive),
  *   Layer.provide(MigrationLayer),
  *   Layer.provide(SharedPgClientLive),
@@ -62,6 +65,8 @@ const DatabaseLayer = MigrationLayer.pipe(
  */
 const HttpLive = HttpApiBuilder.serve().pipe(
   Layer.provide(AppApiLive),
+  // Use simple token validator for tests (user_<id>_<role> format)
+  Layer.provide(SimpleTokenValidatorLive),
   Layer.provide(DatabaseLayer),
   Layer.provideMerge(NodeHttpServer.layerTest)
 )

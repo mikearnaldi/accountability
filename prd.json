@@ -10,7 +10,8 @@
     "HTTP_API_TANSTACK.md",
     "API_BEST_PRACTICES.md",
     "EFFECT_LAYERS.md",
-    "EFFECT_TESTING.md"
+    "EFFECT_TESTING.md",
+    "E2E_TESTING.md"
   ],
   "technology": {
     "effect": {
@@ -1114,6 +1115,291 @@
         "format": "Markdown with code examples"
       },
       "status": "complete",
+      "estimated_complexity": "small"
+    },
+    {
+      "id": "9.1.1",
+      "phase": "E2E Testing",
+      "epic": "Infrastructure",
+      "title": "Set up Playwright E2E testing infrastructure",
+      "description": "Configure Playwright for E2E testing with TanStack Start and testcontainers.",
+      "acceptance_criteria": [
+        "Add @playwright/test as dev dependency",
+        "Create playwright.config.ts with proper web server configuration",
+        "Create global-setup.ts that starts PostgreSQL container and runs migrations",
+        "Create global-teardown.ts for cleanup",
+        "Add test:e2e script to package.json",
+        "Verify basic test runs with container and app server",
+        "Configure CI workflow for E2E tests"
+      ],
+      "specs": [
+        "E2E_TESTING.md"
+      ],
+      "technical_details": {
+        "location": "packages/web/",
+        "files": [
+          "playwright.config.ts",
+          "tests/global-setup.ts",
+          "tests/global-teardown.ts"
+        ],
+        "pattern": "Use testcontainers for PostgreSQL, build app, run preview server"
+      },
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "9.1.2",
+      "phase": "E2E Testing",
+      "epic": "Infrastructure",
+      "title": "Create authentication test fixtures",
+      "description": "Create reusable test fixtures for authenticated E2E tests.",
+      "acceptance_criteria": [
+        "testUser fixture: creates fresh user via API, returns credentials and token",
+        "authenticatedPage fixture: page with auth token pre-configured",
+        "Cleanup: logout after test to invalidate session",
+        "Helper functions: generateTestCredentials, createTestUser",
+        "Export extended test with fixtures"
+      ],
+      "specs": [
+        "E2E_TESTING.md"
+      ],
+      "technical_details": {
+        "location": "packages/web/tests/fixtures/auth.ts",
+        "pattern": "Playwright test.extend pattern with fixture dependencies"
+      },
+      "status": "pending",
+      "estimated_complexity": "small"
+    },
+    {
+      "id": "9.1.3",
+      "phase": "E2E Testing",
+      "epic": "Infrastructure",
+      "title": "Create organization and company test fixtures",
+      "description": "Create reusable fixtures for organization and company data.",
+      "acceptance_criteria": [
+        "testOrg fixture: creates organization via API",
+        "testCompany fixture: creates company within testOrg",
+        "testAccount fixture: creates account within testCompany",
+        "All fixtures depend on testUser for authentication",
+        "Extend auth fixtures with org fixtures"
+      ],
+      "specs": [
+        "E2E_TESTING.md"
+      ],
+      "technical_details": {
+        "location": "packages/web/tests/fixtures/organizations.ts",
+        "pattern": "Chain fixtures: testUser -> testOrg -> testCompany"
+      },
+      "status": "pending",
+      "estimated_complexity": "small"
+    },
+    {
+      "id": "9.2.1",
+      "phase": "E2E Testing",
+      "epic": "Authentication Tests",
+      "title": "Implement login flow E2E tests",
+      "description": "Create E2E tests for the complete login flow.",
+      "acceptance_criteria": [
+        "Test: login with valid credentials redirects to dashboard",
+        "Test: login with invalid credentials shows error",
+        "Test: login redirects to requested page after success",
+        "Test: login page redirects away if already authenticated",
+        "Test: login form validates email format",
+        "Test: login button shows loading state"
+      ],
+      "specs": [
+        "E2E_TESTING.md"
+      ],
+      "technical_details": {
+        "location": "packages/web/tests/auth/login.spec.ts",
+        "pattern": "Use auth fixtures, test UI + redirects"
+      },
+      "status": "pending",
+      "estimated_complexity": "small"
+    },
+    {
+      "id": "9.2.2",
+      "phase": "E2E Testing",
+      "epic": "Authentication Tests",
+      "title": "Implement registration flow E2E tests",
+      "description": "Create E2E tests for the user registration flow.",
+      "acceptance_criteria": [
+        "Test: register with valid data creates user and redirects",
+        "Test: register with existing email shows error",
+        "Test: register validates password strength",
+        "Test: register validates matching passwords",
+        "Test: registration page shows only if local provider enabled"
+      ],
+      "specs": [
+        "E2E_TESTING.md"
+      ],
+      "technical_details": {
+        "location": "packages/web/tests/auth/register.spec.ts",
+        "pattern": "Create unique emails per test to avoid conflicts"
+      },
+      "status": "pending",
+      "estimated_complexity": "small"
+    },
+    {
+      "id": "9.2.3",
+      "phase": "E2E Testing",
+      "epic": "Authentication Tests",
+      "title": "Implement session management E2E tests",
+      "description": "Create E2E tests for session persistence and logout.",
+      "acceptance_criteria": [
+        "Test: session persists across page navigations",
+        "Test: logout clears session and redirects to login",
+        "Test: expired/invalidated session redirects to login",
+        "Test: protected routes redirect to login without auth",
+        "Test: token is cleared from localStorage on logout"
+      ],
+      "specs": [
+        "E2E_TESTING.md"
+      ],
+      "technical_details": {
+        "location": "packages/web/tests/auth/session.spec.ts",
+        "pattern": "Test session lifecycle: create, persist, invalidate"
+      },
+      "status": "pending",
+      "estimated_complexity": "small"
+    },
+    {
+      "id": "9.3.1",
+      "phase": "E2E Testing",
+      "epic": "Feature Tests",
+      "title": "Implement organizations E2E tests",
+      "description": "Create E2E tests for organization management.",
+      "acceptance_criteria": [
+        "Test: list organizations shows user's orgs",
+        "Test: create organization via UI works",
+        "Test: organization details page displays correctly",
+        "Test: API returns 401 without authentication"
+      ],
+      "specs": [
+        "E2E_TESTING.md"
+      ],
+      "technical_details": {
+        "location": "packages/web/tests/organizations/organizations.spec.ts",
+        "pattern": "Use org fixtures for setup, test UI flows"
+      },
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "9.3.2",
+      "phase": "E2E Testing",
+      "epic": "Feature Tests",
+      "title": "Implement companies E2E tests",
+      "description": "Create E2E tests for company management within organizations.",
+      "acceptance_criteria": [
+        "Test: list companies shows org's companies",
+        "Test: create company via UI works",
+        "Test: company details page displays correctly",
+        "Test: companies require organization context"
+      ],
+      "specs": [
+        "E2E_TESTING.md"
+      ],
+      "technical_details": {
+        "location": "packages/web/tests/companies/companies.spec.ts",
+        "pattern": "Use org + company fixtures, test CRUD flows"
+      },
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "9.3.3",
+      "phase": "E2E Testing",
+      "epic": "Feature Tests",
+      "title": "Implement accounts E2E tests",
+      "description": "Create E2E tests for chart of accounts management.",
+      "acceptance_criteria": [
+        "Test: list accounts shows company's accounts",
+        "Test: create account via UI works with validation",
+        "Test: edit account updates correctly",
+        "Test: account hierarchy displays properly",
+        "Test: filter/search accounts works"
+      ],
+      "specs": [
+        "E2E_TESTING.md"
+      ],
+      "technical_details": {
+        "location": "packages/web/tests/accounts/accounts.spec.ts",
+        "pattern": "Use full fixture chain, test account workflows"
+      },
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "9.3.4",
+      "phase": "E2E Testing",
+      "epic": "Feature Tests",
+      "title": "Implement journal entries E2E tests",
+      "description": "Create E2E tests for journal entry workflows.",
+      "acceptance_criteria": [
+        "Test: create journal entry with lines",
+        "Test: validation: debits must equal credits",
+        "Test: submit for approval workflow",
+        "Test: approve/reject workflow",
+        "Test: post entry workflow",
+        "Test: view entry history"
+      ],
+      "specs": [
+        "E2E_TESTING.md"
+      ],
+      "technical_details": {
+        "location": "packages/web/tests/journal-entries/workflow.spec.ts",
+        "pattern": "Test multi-step workflows with state transitions"
+      },
+      "status": "pending",
+      "estimated_complexity": "large"
+    },
+    {
+      "id": "9.4.1",
+      "phase": "E2E Testing",
+      "epic": "CI Integration",
+      "title": "Set up GitHub Actions E2E workflow",
+      "description": "Configure CI pipeline to run E2E tests on pull requests.",
+      "acceptance_criteria": [
+        "Workflow runs on push to main and PRs",
+        "Installs Playwright browsers",
+        "Runs E2E tests with proper timeouts",
+        "Uploads test artifacts on failure",
+        "Publishes HTML report as artifact",
+        "Caches dependencies for speed"
+      ],
+      "specs": [
+        "E2E_TESTING.md"
+      ],
+      "technical_details": {
+        "location": ".github/workflows/e2e.yml",
+        "pattern": "Use Playwright GitHub Action, testcontainers"
+      },
+      "status": "pending",
+      "estimated_complexity": "small"
+    },
+    {
+      "id": "9.4.2",
+      "phase": "E2E Testing",
+      "epic": "CI Integration",
+      "title": "Add data-testid attributes for E2E stability",
+      "description": "Add stable test selectors to UI components for reliable E2E tests.",
+      "acceptance_criteria": [
+        "User menu: data-testid='user-menu'",
+        "Login form: data-testid='login-form', inputs with name attributes",
+        "Navigation links: data-testid for each major section",
+        "Submit buttons: data-testid for form submissions",
+        "Modal dialogs: data-testid for modals",
+        "Document pattern in E2E_TESTING.md"
+      ],
+      "specs": [
+        "E2E_TESTING.md"
+      ],
+      "technical_details": {
+        "location": "packages/web/src/components/",
+        "pattern": "data-testid on interactive elements and containers"
+      },
+      "status": "pending",
       "estimated_complexity": "small"
     }
   ]
