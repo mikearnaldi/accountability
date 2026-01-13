@@ -1027,7 +1027,7 @@
         "pattern": "Schema.Config for typed environment configuration",
         "env_vars": "AUTH_ENABLED_PROVIDERS, AUTH_LOCAL_*, AUTH_WORKOS_*, AUTH_GOOGLE_*, etc."
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "small"
     },
     {
