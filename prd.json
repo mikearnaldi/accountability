@@ -870,7 +870,7 @@
         "location": "packages/persistence/test/",
         "pattern": "testcontainers-node for PostgreSQL"
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "medium"
     },
     {

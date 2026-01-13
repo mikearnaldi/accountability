@@ -639,3 +639,8 @@
 **Story**: 8.5.1.1 - Optimize test suite with shared database container
 **Status**: complete
 ---
+
+## Iteration 2 - 2026-01-13 14:16
+**Story**: 8.5.2 - Write auth repository integration tests
+**Status**: complete
+---
