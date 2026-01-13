@@ -954,7 +954,7 @@
         "pattern": "Standard OAuth2 authorization code flow",
         "endpoints": "accounts.google.com/o/oauth2, oauth2.googleapis.com/token, googleapis.com/userinfo"
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "medium"
     },
     {

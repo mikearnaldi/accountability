@@ -654,3 +654,8 @@
 **Story**: 8.6.1 - Implement WorkOS AuthProvider
 **Status**: complete
 ---
+
+## Iteration 6 - 2026-01-13 14:38
+**Story**: 8.6.2 - Implement Google OAuth AuthProvider
+**Status**: complete
+---
