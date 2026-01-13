@@ -2,6 +2,8 @@
 
 This document covers testing patterns using `@effect/vitest` and testcontainers.
 
+> **See also**: [EFFECT_LAYERS.md](./EFFECT_LAYERS.md) for deep dive on layer memoization semantics.
+
 ## Testing with @effect/vitest
 
 Import from `@effect/vitest` for Effect-aware testing:
@@ -241,10 +243,173 @@ it.layer(PgContainer.ClientLive, { timeout: "30 seconds" })("AccountRepository",
 })
 ```
 
-### Key Points
+### Key Points (Per-Block Containers)
 
 - Container starts once per `it.layer` block, shared across all tests in that block
 - Container stops automatically when tests complete (acquireRelease cleanup)
 - Use `{ timeout: "30 seconds" }` because container startup takes time
 - Each test gets the same database - use transactions or cleanup between tests
 - `Layer.unwrapEffect` defers layer creation until container is running
+
+## Shared Database Container (Global Setup)
+
+**Problem**: Using `PgContainer.ClientLive` directly in tests creates a new container for each `it.layer()` block. This is slow and wasteful when tests could share a single container.
+
+**Solution**: Use vitest's `globalSetup` to start ONE container before all tests and share it.
+
+### Step 1: Create Global Setup File
+
+```typescript
+// vitest.global-setup.ts
+import { PostgreSqlContainer, StartedPostgreSqlContainer } from "@testcontainers/postgresql"
+
+let container: StartedPostgreSqlContainer
+
+export async function setup({ provide }: { provide: (key: string, value: unknown) => void }) {
+  console.log("Starting shared PostgreSQL container...")
+
+  container = await new PostgreSqlContainer("postgres:alpine").start()
+
+  // Make connection URL available to tests via inject()
+  provide("dbUrl", container.getConnectionUri())
+
+  console.log(`PostgreSQL ready at ${container.getConnectionUri()}`)
+}
+
+export async function teardown() {
+  console.log("Stopping shared PostgreSQL container...")
+  await container?.stop()
+}
+```
+
+### Step 2: Update Vitest Config
+
+```typescript
+// vitest.config.ts
+export default defineConfig({
+  test: {
+    globalSetup: ["./vitest.global-setup.ts"],
+    hookTimeout: 120000,
+    // ... rest of config
+  }
+})
+```
+
+### Step 3: Update Test Utils to Use Injected URL
+
+```typescript
+// packages/persistence/test/Utils.ts
+import { PgClient } from "@effect/sql-pg"
+import { Layer, Redacted } from "effect"
+import { inject } from "vitest"
+
+/**
+ * PgClient layer that uses the shared container from globalSetup.
+ *
+ * The container URL is injected via vitest's inject() mechanism,
+ * which reads from the globalSetup's provide() calls.
+ */
+export const SharedPgClientLive = Layer.effect(
+  PgClient.PgClient,
+  Effect.gen(function*() {
+    const url = inject("dbUrl") as string
+    return yield* PgClient.make({ url: Redacted.make(url) })
+  })
+)
+```
+
+### Step 4: Update Tests to Use Shared Layer
+
+```typescript
+// Before (per-block container - SLOW)
+const TestLayer = RepositoriesLayer.pipe(
+  Layer.provideMerge(MigrationLayer),
+  Layer.provideMerge(PgContainer.ClientLive)  // Creates new container!
+)
+
+// After (shared container - FAST)
+const TestLayer = RepositoriesLayer.pipe(
+  Layer.provideMerge(MigrationLayer),
+  Layer.provideMerge(SharedPgClientLive)  // Uses global container
+)
+```
+
+### Key Benefits
+
+- **Single container** for entire test suite (not per `it.layer` block)
+- **Faster tests** - container starts once before any test, stops after all tests
+- **Same isolation** - each test group still gets its own layer instances
+- **Migrations run per-block** - schema is set up fresh for each `it.layer` block
+
+## Layer.fresh: When NOT to Use
+
+**Common Misconception**: Using `Layer.fresh` in factory functions "to prevent memoization".
+
+```typescript
+// WRONG: Layer.fresh is unnecessary here!
+const createTestLayer = (options: Config) => {
+  return Layer.fresh(  // <- REMOVE THIS
+    ComposedLayer.pipe(...)
+  )
+}
+```
+
+**Why it's wrong**: Factory functions already return NEW layer objects on each call. Memoization is identity-based (object reference). Different calls to `createTestLayer()` return different objects, so no memoization occurs between them anyway.
+
+**When Layer.fresh IS needed**: Only when the **same layer reference** appears twice in a single composition and you want separate instances:
+
+```typescript
+// CORRECT use of Layer.fresh
+const sharedLayer = makeLayer()
+const needsBothInstances = Layer.merge(
+  sharedLayer,                  // First instance
+  Layer.fresh(sharedLayer)      // Force second instance
+)
+```
+
+See [EFFECT_LAYERS.md](./EFFECT_LAYERS.md) for complete details.
+
+## Migration Instructions: Shared Container Setup
+
+To switch from per-block containers to a shared container:
+
+1. **Create `vitest.global-setup.ts`** at project root (see template above)
+2. **Update `vitest.config.ts`** to add `globalSetup: ["./vitest.global-setup.ts"]`
+3. **Create `SharedPgClientLive`** layer in test utils that uses `inject("dbUrl")`
+4. **Update all test layers** to use `SharedPgClientLive` instead of `PgContainer.ClientLive`
+5. **Remove `Layer.fresh`** from `createTestLayer()` functions - it's unnecessary
+6. **Keep `MigrationLayer`** in test layer compositions - migrations will run once per `it.layer` block (idempotent)
+
+### Before and After
+
+```typescript
+// BEFORE: packages/persistence/test/AuthService.test.ts
+const RepositoriesLayer = Layer.mergeAll(
+  UserRepositoryLive,
+  IdentityRepositoryLive,
+  SessionRepositoryLive
+).pipe(
+  Layer.provideMerge(MigrationLayer),
+  Layer.provideMerge(PgContainer.ClientLive)  // <- New container per block!
+)
+
+const createTestLayer = (options = {}) => {
+  // ...
+  return Layer.fresh(AuthServiceLive.pipe(...))  // <- Unnecessary!
+}
+
+// AFTER
+const RepositoriesLayer = Layer.mergeAll(
+  UserRepositoryLive,
+  IdentityRepositoryLive,
+  SessionRepositoryLive
+).pipe(
+  Layer.provideMerge(MigrationLayer),
+  Layer.provideMerge(SharedPgClientLive)  // <- Uses global container
+)
+
+const createTestLayer = (options = {}) => {
+  // ...
+  return AuthServiceLive.pipe(...)  // <- No Layer.fresh needed!
+}
+```

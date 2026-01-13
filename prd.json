@@ -8,7 +8,9 @@
   "available_specs": [
     "ACCOUNTING_RESEARCH.md",
     "HTTP_API_TANSTACK.md",
-    "API_BEST_PRACTICES.md"
+    "API_BEST_PRACTICES.md",
+    "EFFECT_LAYERS.md",
+    "EFFECT_TESTING.md"
   ],
   "technology": {
     "effect": {
@@ -801,6 +803,51 @@
         "pattern": "@effect/vitest with Layer.succeed for mocks"
       },
       "status": "complete",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "8.5.1.1",
+      "phase": "Testing",
+      "epic": "Infrastructure",
+      "title": "Optimize test suite with shared database container",
+      "description": "Tests are slow because each it.layer() block creates a new PostgreSQL container. Effect layers are memoized by identity - each new layer object gets its own container. Layer.fresh() in AuthService.test.ts is unnecessary since factory functions already return new objects.",
+      "acceptance_criteria": [
+        "Single PostgreSQL container shared across ALL test files via vitest globalSetup",
+        "Container starts once before all tests, stops once after all tests complete",
+        "Remove unnecessary Layer.fresh() from createTestLayer() - factory functions already return new objects",
+        "SharedPgClientLive layer that uses inject('dbUrl') from globalSetup",
+        "All test files use SharedPgClientLive instead of PgContainer.ClientLive",
+        "Migrations still run per it.layer() block (idempotent, fast after first run)",
+        "Test suite time reduced by eliminating per-block container startup"
+      ],
+      "specs": [
+        "EFFECT_LAYERS.md",
+        "EFFECT_TESTING.md"
+      ],
+      "technical_details": {
+        "layer_semantics_key_insight": "Layers are memoized by object identity (reference equality), not by type. Factory functions return NEW objects each time - no memoization occurs between calls. Layer.fresh() is only needed when the SAME layer reference appears twice in a composition and you want separate instances.",
+        "implementation_steps": [
+          "1. Create vitest.global-setup.ts that starts PostgreSqlContainer and provides dbUrl via provide()",
+          "2. Update vitest.config.ts to add globalSetup: ['./vitest.global-setup.ts']",
+          "3. Create SharedPgClientLive in packages/persistence/test/Utils.ts using inject('dbUrl')",
+          "4. Update RepositoriesLayer in AuthService.test.ts to use SharedPgClientLive instead of PgContainer.ClientLive",
+          "5. Remove Layer.fresh() wrapper from createTestLayer() return - it's unnecessary",
+          "6. Update packages/persistence/test/Repositories.test.ts TestLayer to use SharedPgClientLive",
+          "7. Update packages/persistence/test/AuthRepositories.test.ts TestLayer to use SharedPgClientLive",
+          "8. Update packages/api/test/PgTestUtils.ts to use SharedPgClientLive or share with persistence"
+        ],
+        "affected_files": [
+          "vitest.global-setup.ts (NEW) - container lifecycle",
+          "vitest.config.ts - add globalSetup config",
+          "packages/persistence/test/Utils.ts - add SharedPgClientLive",
+          "packages/persistence/test/AuthService.test.ts - use SharedPgClientLive, remove Layer.fresh()",
+          "packages/persistence/test/Repositories.test.ts - use SharedPgClientLive",
+          "packages/persistence/test/AuthRepositories.test.ts - use SharedPgClientLive",
+          "packages/api/test/PgTestUtils.ts - use SharedPgClientLive"
+        ],
+        "why_layer_fresh_is_wrong": "The createTestLayer() function builds a NEW layer object on each call. Since memoization is identity-based, different calls never share. Layer.fresh() only escapes memoization within a single composition where the same reference appears multiple times - not across different factory calls."
+      },
+      "status": "in_progress",
       "estimated_complexity": "medium"
     },
     {
