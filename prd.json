@@ -1190,7 +1190,7 @@
         "location": "packages/web/tests/fixtures/organizations.ts",
         "pattern": "Chain fixtures: testUser -> testOrg -> testCompany"
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "small"
     },
     {
