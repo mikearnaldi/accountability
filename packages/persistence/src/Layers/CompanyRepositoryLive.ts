@@ -170,7 +170,15 @@ const make = Effect.gen(function* () {
 
   const update: CompanyRepositoryService["update"] = (company) =>
     Effect.gen(function* () {
-      const result = yield* sql`
+      // Check if company exists first
+      const existsResult = yield* exists(company.id)
+      if (!existsResult) {
+        return yield* Effect.fail(
+          new EntityNotFoundError({ entityType: "Company", entityId: company.id })
+        )
+      }
+
+      yield* sql`
         UPDATE companies SET
           name = ${company.name},
           legal_name = ${company.legalName},
@@ -186,12 +194,6 @@ const make = Effect.gen(function* () {
           is_active = ${company.isActive}
         WHERE id = ${company.id}
       `.pipe(wrapSqlError("update"))
-
-      if (result.length === 0) {
-        return yield* Effect.fail(
-          new EntityNotFoundError({ entityType: "Company", entityId: company.id })
-        )
-      }
 
       return company
     })

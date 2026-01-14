@@ -1,0 +1,450 @@
+/**
+ * CompanyRepository Integration Tests
+ *
+ * Tests for the CompanyRepository against a testcontainers PostgreSQL database.
+ * Verifies CRUD operations and query methods for companies.
+ *
+ * @module test/CompanyRepository
+ */
+
+import { describe, expect, it } from "@effect/vitest"
+import { Effect, Layer, Option } from "effect"
+import { Company, CompanyId, FiscalYearEnd, type ConsolidationMethod } from "@accountability/core/Domains/Company"
+import { CurrencyCode } from "@accountability/core/Domains/CurrencyCode"
+import { JurisdictionCode } from "@accountability/core/Domains/JurisdictionCode"
+import { Organization, OrganizationId, OrganizationSettings } from "@accountability/core/Domains/Organization"
+import { Percentage } from "@accountability/core/Domains/Percentage"
+import { Timestamp } from "@accountability/core/Domains/Timestamp"
+import { CompanyRepository } from "../src/Services/CompanyRepository.ts"
+import { OrganizationRepository } from "../src/Services/OrganizationRepository.ts"
+import { CompanyRepositoryLive } from "../src/Layers/CompanyRepositoryLive.ts"
+import { OrganizationRepositoryLive } from "../src/Layers/OrganizationRepositoryLive.ts"
+import { MigrationLayer } from "../src/Layers/MigrationsLive.ts"
+import { SharedPgClientLive } from "./Utils.ts"
+
+/**
+ * Layer with migrations and repositories
+ */
+const TestLayer = Layer.mergeAll(CompanyRepositoryLive, OrganizationRepositoryLive).pipe(
+  Layer.provideMerge(MigrationLayer),
+  Layer.provideMerge(SharedPgClientLive)
+)
+
+// Test UUIDs - these are valid UUID format so validation passes
+const testOrgId = OrganizationId.make("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
+const testCompanyId = CompanyId.make("cccccccc-cccc-cccc-cccc-cccccccccccc")
+const testCompanyId2 = CompanyId.make("cccccccc-cccc-cccc-cccc-cccccccccccd")
+const testCompanyId3 = CompanyId.make("cccccccc-cccc-cccc-cccc-ccccccccccce")
+const testSubsidiaryId = CompanyId.make("cccccccc-cccc-cccc-cccc-cccccccccccf")
+const nonExistentId = "cccccccc-cccc-cccc-cccc-ffffffffffff"
+
+describe("CompanyRepository", () => {
+  it.layer(TestLayer, { timeout: "60 seconds" })("CompanyRepository", (it) => {
+    // =========================================================================
+    // Setup: Create test organization first
+    // =========================================================================
+    it.effect("setup: creates test organization", () =>
+      Effect.gen(function* () {
+        const orgRepo = yield* OrganizationRepository
+        const organization = Organization.make({
+          id: testOrgId,
+          name: "Test Organization for Companies",
+          reportingCurrency: CurrencyCode.make("USD"),
+          createdAt: Timestamp.make({ epochMillis: Date.now() }),
+          settings: OrganizationSettings.make({})
+        })
+        const created = yield* orgRepo.create(organization)
+        expect(created.id).toBe(testOrgId)
+      })
+    )
+
+    // =========================================================================
+    // Create
+    // =========================================================================
+    it.effect("create: creates a new company", () =>
+      Effect.gen(function* () {
+        const repo = yield* CompanyRepository
+        const company = Company.make({
+          id: testCompanyId,
+          organizationId: testOrgId,
+          name: "Test Company",
+          legalName: "Test Company Inc.",
+          jurisdiction: JurisdictionCode.make("US"),
+          taxId: Option.none(),
+          functionalCurrency: CurrencyCode.make("USD"),
+          reportingCurrency: CurrencyCode.make("USD"),
+          fiscalYearEnd: FiscalYearEnd.make({ month: 12, day: 31 }),
+          parentCompanyId: Option.none(),
+          ownershipPercentage: Option.none(),
+          consolidationMethod: Option.none(),
+          isActive: true,
+          createdAt: Timestamp.make({ epochMillis: Date.now() })
+        })
+        const created = yield* repo.create(company)
+        expect(created.name).toBe("Test Company")
+        expect(created.legalName).toBe("Test Company Inc.")
+        expect(created.jurisdiction).toBe("US")
+        expect(created.functionalCurrency).toBe("USD")
+        expect(created.fiscalYearEnd.month).toBe(12)
+        expect(created.fiscalYearEnd.day).toBe(31)
+        expect(created.isActive).toBe(true)
+      })
+    )
+
+    it.effect("create: creates company with EUR currency", () =>
+      Effect.gen(function* () {
+        const repo = yield* CompanyRepository
+        const company = Company.make({
+          id: testCompanyId2,
+          organizationId: testOrgId,
+          name: "European Subsidiary",
+          legalName: "European Subsidiary GmbH",
+          jurisdiction: JurisdictionCode.make("DE"),
+          taxId: Option.some("DE123456789"),
+          functionalCurrency: CurrencyCode.make("EUR"),
+          reportingCurrency: CurrencyCode.make("EUR"),
+          fiscalYearEnd: FiscalYearEnd.make({ month: 12, day: 31 }),
+          parentCompanyId: Option.none(),
+          ownershipPercentage: Option.none(),
+          consolidationMethod: Option.none(),
+          isActive: true,
+          createdAt: Timestamp.make({ epochMillis: Date.now() })
+        })
+        const created = yield* repo.create(company)
+        expect(created.name).toBe("European Subsidiary")
+        expect(created.functionalCurrency).toBe("EUR")
+        expect(created.jurisdiction).toBe("DE")
+        expect(Option.isSome(created.taxId)).toBe(true)
+      })
+    )
+
+    it.effect("create: creates company with March fiscal year end", () =>
+      Effect.gen(function* () {
+        const repo = yield* CompanyRepository
+        const company = Company.make({
+          id: testCompanyId3,
+          organizationId: testOrgId,
+          name: "Japanese Company",
+          legalName: "Japanese Company K.K.",
+          jurisdiction: JurisdictionCode.make("JP"),
+          taxId: Option.none(),
+          functionalCurrency: CurrencyCode.make("JPY"),
+          reportingCurrency: CurrencyCode.make("JPY"),
+          fiscalYearEnd: FiscalYearEnd.make({ month: 3, day: 31 }),
+          parentCompanyId: Option.none(),
+          ownershipPercentage: Option.none(),
+          consolidationMethod: Option.none(),
+          isActive: true,
+          createdAt: Timestamp.make({ epochMillis: Date.now() })
+        })
+        const created = yield* repo.create(company)
+        expect(created.fiscalYearEnd.month).toBe(3)
+        expect(created.fiscalYearEnd.day).toBe(31)
+        expect(created.fiscalYearEnd.isCalendarYearEnd).toBe(false)
+      })
+    )
+
+    it.effect("create: creates subsidiary company with consolidation info", () =>
+      Effect.gen(function* () {
+        const repo = yield* CompanyRepository
+        const company = Company.make({
+          id: testSubsidiaryId,
+          organizationId: testOrgId,
+          name: "Subsidiary Corp",
+          legalName: "Subsidiary Corporation Ltd.",
+          jurisdiction: JurisdictionCode.make("GB"),
+          taxId: Option.none(),
+          functionalCurrency: CurrencyCode.make("GBP"),
+          reportingCurrency: CurrencyCode.make("GBP"),
+          fiscalYearEnd: FiscalYearEnd.make({ month: 12, day: 31 }),
+          parentCompanyId: Option.some(testCompanyId),
+          ownershipPercentage: Option.some(Percentage.make(80)),
+          consolidationMethod: Option.some<ConsolidationMethod>("FullConsolidation"),
+          isActive: true,
+          createdAt: Timestamp.make({ epochMillis: Date.now() })
+        })
+        const created = yield* repo.create(company)
+        expect(created.isSubsidiary).toBe(true)
+        expect(Option.isSome(created.parentCompanyId)).toBe(true)
+        if (Option.isSome(created.ownershipPercentage)) {
+          expect(created.ownershipPercentage.value).toBe(80)
+        }
+        if (Option.isSome(created.consolidationMethod)) {
+          expect(created.consolidationMethod.value).toBe("FullConsolidation")
+        }
+      })
+    )
+
+    // =========================================================================
+    // FindById
+    // =========================================================================
+    it.effect("findById: returns Some for existing company", () =>
+      Effect.gen(function* () {
+        const repo = yield* CompanyRepository
+        const result = yield* repo.findById(testCompanyId)
+        expect(Option.isSome(result)).toBe(true)
+        if (Option.isSome(result)) {
+          expect(result.value.name).toBe("Test Company")
+          expect(result.value.legalName).toBe("Test Company Inc.")
+        }
+      })
+    )
+
+    it.effect("findById: returns None for non-existing company", () =>
+      Effect.gen(function* () {
+        const repo = yield* CompanyRepository
+        const result = yield* repo.findById(CompanyId.make(nonExistentId))
+        expect(Option.isNone(result)).toBe(true)
+      })
+    )
+
+    // =========================================================================
+    // GetById
+    // =========================================================================
+    it.effect("getById: returns company for existing id", () =>
+      Effect.gen(function* () {
+        const repo = yield* CompanyRepository
+        const company = yield* repo.getById(testCompanyId)
+        expect(company.name).toBe("Test Company")
+      })
+    )
+
+    it.effect("getById: throws EntityNotFoundError for non-existing company", () =>
+      Effect.gen(function* () {
+        const repo = yield* CompanyRepository
+        const result = yield* Effect.either(repo.getById(CompanyId.make(nonExistentId)))
+        expect(result._tag).toBe("Left")
+        if (result._tag === "Left") {
+          expect(result.left._tag).toBe("EntityNotFoundError")
+        }
+      })
+    )
+
+    // =========================================================================
+    // FindByOrganization
+    // =========================================================================
+    it.effect("findByOrganization: returns all companies for organization", () =>
+      Effect.gen(function* () {
+        const repo = yield* CompanyRepository
+        const companies = yield* repo.findByOrganization(testOrgId)
+        // Should have at least 4 companies we created
+        expect(companies.length).toBeGreaterThanOrEqual(4)
+      })
+    )
+
+    it.effect("findByOrganization: returns empty array for org with no companies", () =>
+      Effect.gen(function* () {
+        const repo = yield* CompanyRepository
+        const companies = yield* repo.findByOrganization(OrganizationId.make("00000000-0000-0000-0000-000000000001"))
+        expect(companies.length).toBe(0)
+      })
+    )
+
+    // =========================================================================
+    // FindActiveByOrganization
+    // =========================================================================
+    it.effect("findActiveByOrganization: returns only active companies", () =>
+      Effect.gen(function* () {
+        const repo = yield* CompanyRepository
+        const companies = yield* repo.findActiveByOrganization(testOrgId)
+        // All should be active
+        for (const company of companies) {
+          expect(company.isActive).toBe(true)
+        }
+      })
+    )
+
+    // =========================================================================
+    // FindSubsidiaries
+    // =========================================================================
+    it.effect("findSubsidiaries: returns subsidiaries of parent company", () =>
+      Effect.gen(function* () {
+        const repo = yield* CompanyRepository
+        const subsidiaries = yield* repo.findSubsidiaries(testCompanyId)
+        expect(subsidiaries.length).toBeGreaterThanOrEqual(1)
+        const subsidiary = subsidiaries.find(c => c.id === testSubsidiaryId)
+        expect(subsidiary).toBeDefined()
+        if (subsidiary) {
+          expect(subsidiary.name).toBe("Subsidiary Corp")
+        }
+      })
+    )
+
+    it.effect("findSubsidiaries: returns empty array for company with no subsidiaries", () =>
+      Effect.gen(function* () {
+        const repo = yield* CompanyRepository
+        const subsidiaries = yield* repo.findSubsidiaries(testSubsidiaryId)
+        expect(subsidiaries.length).toBe(0)
+      })
+    )
+
+    // =========================================================================
+    // Exists
+    // =========================================================================
+    it.effect("exists: returns true for existing company", () =>
+      Effect.gen(function* () {
+        const repo = yield* CompanyRepository
+        const exists = yield* repo.exists(testCompanyId)
+        expect(exists).toBe(true)
+      })
+    )
+
+    it.effect("exists: returns false for non-existing company", () =>
+      Effect.gen(function* () {
+        const repo = yield* CompanyRepository
+        const exists = yield* repo.exists(CompanyId.make(nonExistentId))
+        expect(exists).toBe(false)
+      })
+    )
+
+    // =========================================================================
+    // Update
+    // =========================================================================
+    it.effect("update: updates company name", () =>
+      Effect.gen(function* () {
+        const repo = yield* CompanyRepository
+        const company = yield* repo.getById(testCompanyId)
+        const updated = Company.make({
+          ...company,
+          name: "Updated Test Company"
+        })
+        const result = yield* repo.update(updated)
+        expect(result.name).toBe("Updated Test Company")
+
+        // Verify persisted
+        const fetched = yield* repo.getById(testCompanyId)
+        expect(fetched.name).toBe("Updated Test Company")
+      })
+    )
+
+    it.effect("update: updates company legal name", () =>
+      Effect.gen(function* () {
+        const repo = yield* CompanyRepository
+        const company = yield* repo.getById(testCompanyId)
+        const updated = Company.make({
+          ...company,
+          legalName: "Updated Test Company LLC"
+        })
+        const result = yield* repo.update(updated)
+        expect(result.legalName).toBe("Updated Test Company LLC")
+      })
+    )
+
+    it.effect("update: updates company currency", () =>
+      Effect.gen(function* () {
+        const repo = yield* CompanyRepository
+        const company = yield* repo.getById(testCompanyId2)
+        const updated = Company.make({
+          ...company,
+          reportingCurrency: CurrencyCode.make("CHF")
+        })
+        const result = yield* repo.update(updated)
+        expect(result.reportingCurrency).toBe("CHF")
+        expect(result.hasSameFunctionalAndReportingCurrency).toBe(false)
+      })
+    )
+
+    it.effect("update: deactivates company", () =>
+      Effect.gen(function* () {
+        const repo = yield* CompanyRepository
+        const company = yield* repo.getById(testCompanyId3)
+        const updated = Company.make({
+          ...company,
+          isActive: false
+        })
+        const result = yield* repo.update(updated)
+        expect(result.isActive).toBe(false)
+      })
+    )
+
+    it.effect("update: throws EntityNotFoundError for non-existing company", () =>
+      Effect.gen(function* () {
+        const repo = yield* CompanyRepository
+        const nonExistent = Company.make({
+          id: CompanyId.make(nonExistentId),
+          organizationId: testOrgId,
+          name: "Non Existent",
+          legalName: "Non Existent Inc.",
+          jurisdiction: JurisdictionCode.make("US"),
+          taxId: Option.none(),
+          functionalCurrency: CurrencyCode.make("USD"),
+          reportingCurrency: CurrencyCode.make("USD"),
+          fiscalYearEnd: FiscalYearEnd.make({ month: 12, day: 31 }),
+          parentCompanyId: Option.none(),
+          ownershipPercentage: Option.none(),
+          consolidationMethod: Option.none(),
+          isActive: true,
+          createdAt: Timestamp.make({ epochMillis: Date.now() })
+        })
+        const result = yield* Effect.either(repo.update(nonExistent))
+        expect(result._tag).toBe("Left")
+        if (result._tag === "Left") {
+          expect(result.left._tag).toBe("EntityNotFoundError")
+        }
+      })
+    )
+
+    // =========================================================================
+    // Business Logic
+    // =========================================================================
+    it.effect("business: fiscal year end properties are correct", () =>
+      Effect.gen(function* () {
+        const repo = yield* CompanyRepository
+
+        // Calendar year end company
+        const usCompany = yield* repo.getById(testCompanyId)
+        expect(usCompany.fiscalYearEnd.isCalendarYearEnd).toBe(true)
+        expect(usCompany.fiscalYearEnd.toDisplayString()).toBe("December 31")
+
+        // March year end company (reactivate if needed first)
+        const jpCompany = yield* repo.getById(testCompanyId3)
+        expect(jpCompany.fiscalYearEnd.isCalendarYearEnd).toBe(false)
+        expect(jpCompany.fiscalYearEnd.toDisplayString()).toBe("March 31")
+      })
+    )
+
+    it.effect("business: non-controlling interest calculation", () =>
+      Effect.gen(function* () {
+        const repo = yield* CompanyRepository
+        const subsidiary = yield* repo.getById(testSubsidiaryId)
+
+        // Subsidiary has 80% ownership, so NCI is 20%
+        const nci = subsidiary.nonControllingInterestPercentage
+        expect(Option.isSome(nci)).toBe(true)
+        if (Option.isSome(nci)) {
+          expect(nci.value).toBe(20)
+        }
+      })
+    )
+
+    it.effect("business: top-level vs subsidiary detection", () =>
+      Effect.gen(function* () {
+        const repo = yield* CompanyRepository
+
+        // Top-level company
+        const topLevel = yield* repo.getById(testCompanyId)
+        expect(topLevel.isTopLevel).toBe(true)
+        expect(topLevel.isSubsidiary).toBe(false)
+
+        // Subsidiary
+        const subsidiary = yield* repo.getById(testSubsidiaryId)
+        expect(subsidiary.isTopLevel).toBe(false)
+        expect(subsidiary.isSubsidiary).toBe(true)
+      })
+    )
+
+    it.effect("business: functional vs reporting currency matching", () =>
+      Effect.gen(function* () {
+        const repo = yield* CompanyRepository
+
+        // Same currency
+        const usCompany = yield* repo.getById(testCompanyId)
+        expect(usCompany.hasSameFunctionalAndReportingCurrency).toBe(true)
+
+        // Different currency (EUR company was updated to CHF reporting)
+        const eurCompany = yield* repo.getById(testCompanyId2)
+        expect(eurCompany.hasSameFunctionalAndReportingCurrency).toBe(false)
+      })
+    )
+  })
+})

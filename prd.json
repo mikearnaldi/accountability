@@ -480,7 +480,7 @@
           "packages/persistence/test/CompanyRepository.test.ts"
         ]
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "medium"
     },
     {

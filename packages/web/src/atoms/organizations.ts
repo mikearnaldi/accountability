@@ -241,6 +241,23 @@ export const companiesByOrgFamily = Atom.family((organizationId: string) =>
   })
 )
 
+/**
+ * companyFamily - Parameterized atom for fetching a single company by ID
+ *
+ * Usage:
+ * ```typescript
+ * const companyAtom = companyFamily(companyId)
+ * const result = useAtomValue(companyAtom)
+ * ```
+ */
+export const companyFamily = Atom.family((id: string) =>
+  ApiClient.query("companies", "getCompany", {
+    path: { id },
+    timeToLive: Duration.minutes(5),
+    reactivityKeys: [COMPANIES_REACTIVITY_KEY, id]
+  })
+)
+
 // =============================================================================
 // Update Organization Mutation
 // =============================================================================
@@ -294,6 +311,114 @@ export const updateOrganizationMutation = ApiClient.runtime.fn<UpdateOrganizatio
     // Refresh the organization family and organizations list
     registry.refresh(organizationFamily(input.id))
     registry.refresh(organizationsAtom)
+
+    return response
+  })
+)
+
+// =============================================================================
+// Create Company Mutation
+// =============================================================================
+
+/**
+ * Input type for creating a company (form input)
+ * Uses plain strings since form data is untyped at runtime
+ */
+export interface CreateCompanyInput {
+  readonly organizationId: string
+  readonly name: string
+  readonly legalName: string
+  readonly jurisdiction: string
+  readonly taxId?: string
+  readonly functionalCurrency: string
+  readonly reportingCurrency: string
+  readonly fiscalYearEndMonth: number
+  readonly fiscalYearEndDay: number
+  readonly parentCompanyId?: string
+  readonly ownershipPercentage?: number
+  readonly consolidationMethod?: "FullConsolidation" | "EquityMethod" | "CostMethod" | "VariableInterestEntity"
+}
+
+/**
+ * createCompanyMutation - Create a new company
+ *
+ * This mutation:
+ * 1. Calls the create company API endpoint
+ * 2. On success, automatically refreshes the companies list via manual refresh
+ *
+ * Usage:
+ * ```typescript
+ * const [result, createCompany] = useAtom(createCompanyMutation)
+ *
+ * // Fire-and-forget (Result tracks loading/error)
+ * createCompany({
+ *   organizationId: orgId,
+ *   name: "My Company",
+ *   legalName: "My Company Inc.",
+ *   jurisdiction: "US",
+ *   functionalCurrency: "USD",
+ *   reportingCurrency: "USD",
+ *   fiscalYearEndMonth: 12,
+ *   fiscalYearEndDay: 31
+ * })
+ *
+ * // Or with promise mode for post-success actions
+ * const [, createCompany] = useAtom(createCompanyMutation, { mode: "promise" })
+ * const company = await createCompany({ ... })
+ * navigate(`/organizations/${orgId}/companies/${company.id}`)
+ * ```
+ */
+export const createCompanyMutation = ApiClient.runtime.fn<CreateCompanyInput>()(
+  Effect.fnUntraced(function* (input) {
+    const client = yield* ApiClient
+    const registry = yield* AtomRegistry
+
+    // Import the CreateCompanyRequest schema from CompaniesApi
+    const { CreateCompanyRequest } = yield* Effect.promise(() =>
+      import("@accountability/api/Definitions/CompaniesApi")
+    )
+
+    // Import domain types
+    const { JurisdictionCode } = yield* Effect.promise(() =>
+      import("@accountability/core/Domains/JurisdictionCode")
+    )
+    const { FiscalYearEnd, CompanyId } = yield* Effect.promise(() =>
+      import("@accountability/core/Domains/Company")
+    )
+    const { OrganizationId } = yield* Effect.promise(() =>
+      import("@accountability/core/Domains/Organization")
+    )
+    const { Percentage } = yield* Effect.promise(() =>
+      import("@accountability/core/Domains/Percentage")
+    )
+
+    // Build the payload using Schema.make() constructors
+    const payload = CreateCompanyRequest.make({
+      organizationId: OrganizationId.make(input.organizationId),
+      name: input.name,
+      legalName: input.legalName,
+      jurisdiction: JurisdictionCode.make(input.jurisdiction),
+      taxId: Option.fromNullable(input.taxId),
+      functionalCurrency: CurrencyCode.make(input.functionalCurrency),
+      reportingCurrency: CurrencyCode.make(input.reportingCurrency),
+      fiscalYearEnd: FiscalYearEnd.make({
+        month: input.fiscalYearEndMonth,
+        day: input.fiscalYearEndDay
+      }),
+      parentCompanyId: input.parentCompanyId !== undefined
+        ? Option.some(CompanyId.make(input.parentCompanyId))
+        : Option.none(),
+      ownershipPercentage: input.ownershipPercentage !== undefined
+        ? Option.some(Percentage.make(input.ownershipPercentage))
+        : Option.none(),
+      consolidationMethod: Option.fromNullable(input.consolidationMethod)
+    })
+
+    const response = yield* client.companies.createCompany({ payload })
+
+    // Refresh the companies list for this organization and organization company count
+    registry.refresh(companiesByOrgFamily(input.organizationId))
+    registry.refresh(organizationCompanyCountFamily(input.organizationId))
 
     return response
   })
