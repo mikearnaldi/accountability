@@ -410,7 +410,7 @@
         "Edit company: form calls api.PATCH, then router.invalidate()",
         "TESTS (E2E): Company details page works"
       ],
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "medium",
       "depends_on": [
         "11.3.1"
