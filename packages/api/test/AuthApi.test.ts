@@ -993,6 +993,328 @@ layer(HttpLive, { timeout: "120 seconds" })("Auth API Integration Tests", (it) =
   })
 
   // ===========================================================================
+  // Change Password Endpoint Tests
+  // ===========================================================================
+
+  describe("POST /api/auth/change-password", () => {
+    describe("Success cases", () => {
+      it.effect("changes password with valid current password", () =>
+        Effect.gen(function* () {
+          const httpClient = yield* HttpClient.HttpClient
+          const email = generateTestEmail()
+          const password = generateTestPassword()
+          const newPassword = generateTestPassword()
+
+          // Register
+          yield* HttpClientRequest.post("/api/auth/register").pipe(
+            HttpClientRequest.bodyUnsafeJson({
+              email,
+              password,
+              displayName: "Change Password Test User"
+            }),
+            httpClient.execute,
+            Effect.scoped
+          )
+
+          // Login
+          const loginResponse = yield* HttpClientRequest.post("/api/auth/login").pipe(
+            HttpClientRequest.bodyUnsafeJson({
+              provider: "local",
+              credentials: { email, password }
+            }),
+            httpClient.execute,
+            Effect.scoped
+          )
+
+          const loginJson = yield* loginResponse.json
+          const { token } = yield* decodeJsonResponse(LoginResponseSchema)(loginJson)
+
+          // Change password
+          const changePasswordResponse = yield* HttpClientRequest.post("/api/auth/change-password").pipe(
+            HttpClientRequest.bearerToken(token),
+            HttpClientRequest.bodyUnsafeJson({
+              currentPassword: password,
+              newPassword
+            }),
+            httpClient.execute,
+            Effect.scoped
+          )
+
+          expect(changePasswordResponse.status).toBe(204)
+        })
+      )
+
+      it.effect("can login with new password after change", () =>
+        Effect.gen(function* () {
+          const httpClient = yield* HttpClient.HttpClient
+          const email = generateTestEmail()
+          const password = generateTestPassword()
+          const newPassword = generateTestPassword()
+
+          // Register
+          yield* HttpClientRequest.post("/api/auth/register").pipe(
+            HttpClientRequest.bodyUnsafeJson({
+              email,
+              password,
+              displayName: "New Password Login Test"
+            }),
+            httpClient.execute,
+            Effect.scoped
+          )
+
+          // Login
+          const loginResponse = yield* HttpClientRequest.post("/api/auth/login").pipe(
+            HttpClientRequest.bodyUnsafeJson({
+              provider: "local",
+              credentials: { email, password }
+            }),
+            httpClient.execute,
+            Effect.scoped
+          )
+
+          const loginJson = yield* loginResponse.json
+          const { token } = yield* decodeJsonResponse(LoginResponseSchema)(loginJson)
+
+          // Change password
+          yield* HttpClientRequest.post("/api/auth/change-password").pipe(
+            HttpClientRequest.bearerToken(token),
+            HttpClientRequest.bodyUnsafeJson({
+              currentPassword: password,
+              newPassword
+            }),
+            httpClient.execute,
+            Effect.scoped
+          )
+
+          // Logout to clear the session
+          yield* HttpClientRequest.post("/api/auth/logout").pipe(
+            HttpClientRequest.bearerToken(token),
+            httpClient.execute,
+            Effect.scoped
+          )
+
+          // Login with new password should succeed
+          const newLoginResponse = yield* HttpClientRequest.post("/api/auth/login").pipe(
+            HttpClientRequest.bodyUnsafeJson({
+              provider: "local",
+              credentials: { email, password: newPassword }
+            }),
+            httpClient.execute,
+            Effect.scoped
+          )
+
+          expect(newLoginResponse.status).toBe(200)
+        })
+      )
+
+      it.effect("cannot login with old password after change", () =>
+        Effect.gen(function* () {
+          const httpClient = yield* HttpClient.HttpClient
+          const email = generateTestEmail()
+          const oldPassword = generateTestPassword()
+          const newPassword = generateTestPassword()
+
+          // Register
+          yield* HttpClientRequest.post("/api/auth/register").pipe(
+            HttpClientRequest.bodyUnsafeJson({
+              email,
+              password: oldPassword,
+              displayName: "Old Password Fail Test"
+            }),
+            httpClient.execute,
+            Effect.scoped
+          )
+
+          // Login
+          const loginResponse = yield* HttpClientRequest.post("/api/auth/login").pipe(
+            HttpClientRequest.bodyUnsafeJson({
+              provider: "local",
+              credentials: { email, password: oldPassword }
+            }),
+            httpClient.execute,
+            Effect.scoped
+          )
+
+          const loginJson = yield* loginResponse.json
+          const { token } = yield* decodeJsonResponse(LoginResponseSchema)(loginJson)
+
+          // Change password
+          const changePasswordResponse = yield* HttpClientRequest.post("/api/auth/change-password").pipe(
+            HttpClientRequest.bearerToken(token),
+            HttpClientRequest.bodyUnsafeJson({
+              currentPassword: oldPassword,
+              newPassword
+            }),
+            httpClient.execute,
+            Effect.scoped
+          )
+
+          expect(changePasswordResponse.status).toBe(204)
+
+          // Verify new password works
+          const newPasswordLoginResponse = yield* HttpClientRequest.post("/api/auth/login").pipe(
+            HttpClientRequest.bodyUnsafeJson({
+              provider: "local",
+              credentials: { email, password: newPassword }
+            }),
+            httpClient.execute,
+            Effect.scoped
+          )
+
+          expect(newPasswordLoginResponse.status).toBe(200)
+
+          // Login with old password should fail
+          const oldPasswordLoginResponse = yield* HttpClientRequest.post("/api/auth/login").pipe(
+            HttpClientRequest.bodyUnsafeJson({
+              provider: "local",
+              credentials: { email, password: oldPassword }
+            }),
+            httpClient.execute,
+            Effect.scoped
+          )
+
+          expect(oldPasswordLoginResponse.status).toBe(401)
+        })
+      )
+    })
+
+    describe("Wrong current password handling", () => {
+      it.effect("returns 401 for incorrect current password", () =>
+        Effect.gen(function* () {
+          const httpClient = yield* HttpClient.HttpClient
+          const email = generateTestEmail()
+          const password = generateTestPassword()
+
+          // Register
+          yield* HttpClientRequest.post("/api/auth/register").pipe(
+            HttpClientRequest.bodyUnsafeJson({
+              email,
+              password,
+              displayName: "Wrong Current Password Test"
+            }),
+            httpClient.execute,
+            Effect.scoped
+          )
+
+          // Login
+          const loginResponse = yield* HttpClientRequest.post("/api/auth/login").pipe(
+            HttpClientRequest.bodyUnsafeJson({
+              provider: "local",
+              credentials: { email, password }
+            }),
+            httpClient.execute,
+            Effect.scoped
+          )
+
+          const loginJson = yield* loginResponse.json
+          const { token } = yield* decodeJsonResponse(LoginResponseSchema)(loginJson)
+
+          // Try to change password with wrong current password
+          const changePasswordResponse = yield* HttpClientRequest.post("/api/auth/change-password").pipe(
+            HttpClientRequest.bearerToken(token),
+            HttpClientRequest.bodyUnsafeJson({
+              currentPassword: "wrongPassword123",
+              newPassword: generateTestPassword()
+            }),
+            httpClient.execute,
+            Effect.scoped
+          )
+
+          expect(changePasswordResponse.status).toBe(401)
+          const json = yield* changePasswordResponse.json
+          const body = yield* decodeJsonResponse(ErrorResponseSchema)(json)
+          expect(body).toHaveProperty("_tag", "ChangePasswordError")
+        })
+      )
+    })
+
+    describe("Weak new password handling", () => {
+      it.effect("returns 400 for new password shorter than 8 characters", () =>
+        Effect.gen(function* () {
+          const httpClient = yield* HttpClient.HttpClient
+          const email = generateTestEmail()
+          const password = generateTestPassword()
+
+          // Register
+          yield* HttpClientRequest.post("/api/auth/register").pipe(
+            HttpClientRequest.bodyUnsafeJson({
+              email,
+              password,
+              displayName: "Weak New Password Test"
+            }),
+            httpClient.execute,
+            Effect.scoped
+          )
+
+          // Login
+          const loginResponse = yield* HttpClientRequest.post("/api/auth/login").pipe(
+            HttpClientRequest.bodyUnsafeJson({
+              provider: "local",
+              credentials: { email, password }
+            }),
+            httpClient.execute,
+            Effect.scoped
+          )
+
+          const loginJson = yield* loginResponse.json
+          const { token } = yield* decodeJsonResponse(LoginResponseSchema)(loginJson)
+
+          // Try to change password with weak new password
+          const changePasswordResponse = yield* HttpClientRequest.post("/api/auth/change-password").pipe(
+            HttpClientRequest.bearerToken(token),
+            HttpClientRequest.bodyUnsafeJson({
+              currentPassword: password,
+              newPassword: "short"
+            }),
+            httpClient.execute,
+            Effect.scoped
+          )
+
+          // Password validation happens at schema level (minLength 8)
+          expect(changePasswordResponse.status).toBe(400)
+        })
+      )
+    })
+
+    describe("Authorization handling", () => {
+      it.effect("returns 401 without token", () =>
+        Effect.gen(function* () {
+          const httpClient = yield* HttpClient.HttpClient
+
+          const response = yield* HttpClientRequest.post("/api/auth/change-password").pipe(
+            HttpClientRequest.bodyUnsafeJson({
+              currentPassword: "currentPass123",
+              newPassword: "newPassword123"
+            }),
+            httpClient.execute,
+            Effect.scoped
+          )
+
+          expect(response.status).toBe(401)
+        })
+      )
+
+      it.effect("returns 401 with invalid token", () =>
+        Effect.gen(function* () {
+          const httpClient = yield* HttpClient.HttpClient
+
+          const response = yield* HttpClientRequest.post("/api/auth/change-password").pipe(
+            HttpClientRequest.bearerToken("invalid-session-token-that-does-not-exist"),
+            HttpClientRequest.bodyUnsafeJson({
+              currentPassword: "currentPass123",
+              newPassword: "newPassword123"
+            }),
+            httpClient.execute,
+            Effect.scoped
+          )
+
+          expect(response.status).toBe(401)
+        })
+      )
+    })
+  })
+
+  // ===========================================================================
   // Type-Safe Client Tests
   // ===========================================================================
 

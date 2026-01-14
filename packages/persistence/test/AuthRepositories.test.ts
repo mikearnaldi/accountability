@@ -20,11 +20,16 @@ import * as Option from "effect/Option"
 import { AuthUserId } from "@accountability/core/Auth/AuthUserId"
 import { SessionId } from "@accountability/core/Auth/SessionId"
 import { Email } from "@accountability/core/Auth/Email"
+import { HashedPassword } from "@accountability/core/Auth/HashedPassword"
+import { ProviderId } from "@accountability/core/Auth/ProviderId"
+import { UserIdentityId } from "@accountability/core/Auth/UserIdentity"
 import { Timestamp } from "@accountability/core/Domains/Timestamp"
 import { UserRepository, type AuthUserInsert, type AuthUserUpdate } from "../src/Services/UserRepository.ts"
 import { UserRepositoryLive } from "../src/Layers/UserRepositoryLive.ts"
 import { SessionRepository, type SessionInsert } from "../src/Services/SessionRepository.ts"
 import { SessionRepositoryLive } from "../src/Layers/SessionRepositoryLive.ts"
+import { IdentityRepository, type UserIdentityInsert } from "../src/Services/IdentityRepository.ts"
+import { IdentityRepositoryLive } from "../src/Layers/IdentityRepositoryLive.ts"
 import { MigrationLayer } from "../src/Layers/MigrationsLive.ts"
 import { SharedPgClientLive } from "./Utils.ts"
 
@@ -33,7 +38,8 @@ import { SharedPgClientLive } from "./Utils.ts"
  */
 const TestLayer = Layer.mergeAll(
   UserRepositoryLive,
-  SessionRepositoryLive
+  SessionRepositoryLive,
+  IdentityRepositoryLive
 ).pipe(
   Layer.provideMerge(MigrationLayer),
   Layer.provideMerge(SharedPgClientLive)
@@ -691,6 +697,259 @@ describe("AuthRepositories", () => {
 
         // Cleanup
         yield* repo.delete(duplicateSessionId)
+      })
+    )
+
+    // ============================================================================
+    // IdentityRepository Tests
+    // ============================================================================
+
+    // Generate unique test IDs for IdentityRepository tests using proper UUID format
+    const identityTestUserId = AuthUserId.make("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee")
+    const identityTestUserId2 = AuthUserId.make("ffffffff-ffff-ffff-ffff-ffffffffffff")
+    const identityTestEmail = Email.make(`identity-test-${uniqueId()}@example.com`)
+    const identityTestEmail2 = Email.make(`identity-test2-${uniqueId()}@example.com`)
+    // Generate proper UUIDs for identity IDs
+    const identityId1 = UserIdentityId.make("11111111-1111-1111-1111-111111111111")
+    const identityId2 = UserIdentityId.make("22222222-2222-2222-2222-222222222222")
+
+    // Setup: Create test users for identity tests
+    it.effect("IdentityRepository - setup: create test users for identities", () =>
+      Effect.gen(function* () {
+        const userRepo = yield* UserRepository
+
+        const user1: AuthUserInsert = {
+          id: identityTestUserId,
+          email: identityTestEmail,
+          displayName: "Identity Test User",
+          role: "member",
+          primaryProvider: "local"
+        }
+        yield* userRepo.create(user1)
+
+        const user2: AuthUserInsert = {
+          id: identityTestUserId2,
+          email: identityTestEmail2,
+          displayName: "Identity Test User 2",
+          role: "member",
+          primaryProvider: "local"
+        }
+        yield* userRepo.create(user2)
+      })
+    )
+
+    // --------------------------------------------------
+    // IdentityRepository CRUD Operations
+    // --------------------------------------------------
+
+    it.effect("IdentityRepository - create: creates a new identity with password hash", () =>
+      Effect.gen(function* () {
+        const repo = yield* IdentityRepository
+
+        const identity: UserIdentityInsert = {
+          id: identityId1,
+          userId: identityTestUserId,
+          provider: "local",
+          providerId: ProviderId.make(identityTestEmail),
+          providerData: Option.none(),
+          passwordHash: HashedPassword.make("$argon2id$test-hash-123")
+        }
+
+        const created = yield* repo.create(identity)
+        expect(created.id).toBe(identityId1)
+        expect(created.userId).toBe(identityTestUserId)
+        expect(created.provider).toBe("local")
+        expect(created.providerId).toBe(identityTestEmail)
+      })
+    )
+
+    it.effect("IdentityRepository - findById: returns Some for existing identity", () =>
+      Effect.gen(function* () {
+        const repo = yield* IdentityRepository
+
+        const result = yield* repo.findById(identityId1)
+        expect(Option.isSome(result)).toBe(true)
+        if (Option.isSome(result)) {
+          expect(result.value.id).toBe(identityId1)
+          expect(result.value.provider).toBe("local")
+        }
+      })
+    )
+
+    it.effect("IdentityRepository - findByUserId: returns all identities for user", () =>
+      Effect.gen(function* () {
+        const repo = yield* IdentityRepository
+
+        const identities = yield* repo.findByUserId(identityTestUserId)
+        expect(Chunk.size(identities)).toBeGreaterThanOrEqual(1)
+        for (const identity of identities) {
+          expect(identity.userId).toBe(identityTestUserId)
+        }
+      })
+    )
+
+    it.effect("IdentityRepository - findByProvider: finds identity by provider and providerId", () =>
+      Effect.gen(function* () {
+        const repo = yield* IdentityRepository
+
+        const result = yield* repo.findByProvider("local", ProviderId.make(identityTestEmail))
+        expect(Option.isSome(result)).toBe(true)
+        if (Option.isSome(result)) {
+          expect(result.value.provider).toBe("local")
+          expect(result.value.providerId).toBe(identityTestEmail)
+        }
+      })
+    )
+
+    it.effect("IdentityRepository - findByUserAndProvider: finds identity by user and provider", () =>
+      Effect.gen(function* () {
+        const repo = yield* IdentityRepository
+
+        const result = yield* repo.findByUserAndProvider(identityTestUserId, "local")
+        expect(Option.isSome(result)).toBe(true)
+        if (Option.isSome(result)) {
+          expect(result.value.userId).toBe(identityTestUserId)
+          expect(result.value.provider).toBe("local")
+        }
+      })
+    )
+
+    // --------------------------------------------------
+    // IdentityRepository Password Hash Operations
+    // --------------------------------------------------
+
+    it.effect("IdentityRepository - getPasswordHash: returns password hash for local identity", () =>
+      Effect.gen(function* () {
+        const repo = yield* IdentityRepository
+
+        const result = yield* repo.getPasswordHash("local", ProviderId.make(identityTestEmail))
+        expect(Option.isSome(result)).toBe(true)
+        if (Option.isSome(result)) {
+          expect(result.value).toBe("$argon2id$test-hash-123")
+        }
+      })
+    )
+
+    it.effect("IdentityRepository - getPasswordHash: returns None for non-existent identity", () =>
+      Effect.gen(function* () {
+        const repo = yield* IdentityRepository
+
+        const result = yield* repo.getPasswordHash("local", ProviderId.make("nonexistent@example.com"))
+        expect(Option.isNone(result)).toBe(true)
+      })
+    )
+
+    it.effect("IdentityRepository - updatePasswordHash: updates password hash for existing identity", () =>
+      Effect.gen(function* () {
+        const repo = yield* IdentityRepository
+        const newHash = HashedPassword.make("$argon2id$new-hash-456")
+
+        // Update the password hash
+        yield* repo.updatePasswordHash("local", ProviderId.make(identityTestEmail), newHash)
+
+        // Verify the hash was updated
+        const result = yield* repo.getPasswordHash("local", ProviderId.make(identityTestEmail))
+        expect(Option.isSome(result)).toBe(true)
+        if (Option.isSome(result)) {
+          expect(result.value).toBe("$argon2id$new-hash-456")
+        }
+      })
+    )
+
+    it.effect("IdentityRepository - updatePasswordHash: throws EntityNotFoundError for non-existent identity", () =>
+      Effect.gen(function* () {
+        const repo = yield* IdentityRepository
+        const newHash = HashedPassword.make("$argon2id$should-not-work")
+
+        const result = yield* Effect.either(
+          repo.updatePasswordHash("local", ProviderId.make("nonexistent@example.com"), newHash)
+        )
+        expect(result._tag).toBe("Left")
+        if (result._tag === "Left") {
+          expect(result.left._tag).toBe("EntityNotFoundError")
+        }
+      })
+    )
+
+    // --------------------------------------------------
+    // IdentityRepository Delete Operations
+    // --------------------------------------------------
+
+    it.effect("IdentityRepository - delete: deletes an identity by ID", () =>
+      Effect.gen(function* () {
+        const repo = yield* IdentityRepository
+        const deleteIdentityId = UserIdentityId.make("33333333-3333-3333-3333-333333333333")
+
+        // Create an identity to delete
+        const identity: UserIdentityInsert = {
+          id: deleteIdentityId,
+          userId: identityTestUserId2,
+          provider: "google",
+          providerId: ProviderId.make("google-user-id-123"),
+          providerData: Option.none()
+        }
+        yield* repo.create(identity)
+
+        // Verify it exists
+        const beforeDelete = yield* repo.findById(deleteIdentityId)
+        expect(Option.isSome(beforeDelete)).toBe(true)
+
+        // Delete it
+        yield* repo.delete(deleteIdentityId)
+
+        // Verify it's gone
+        const afterDelete = yield* repo.findById(deleteIdentityId)
+        expect(Option.isNone(afterDelete)).toBe(true)
+      })
+    )
+
+    it.effect("IdentityRepository - deleteByUserId: deletes all identities for a user", () =>
+      Effect.gen(function* () {
+        const repo = yield* IdentityRepository
+        const userRepo = yield* UserRepository
+        const deleteTestSuffix = uniqueId()
+        const deleteTestUserId = AuthUserId.make("44444444-4444-4444-4444-444444444444")
+        const deleteTestEmail = Email.make(`delete-test-${deleteTestSuffix}@example.com`)
+
+        // Create a user
+        yield* userRepo.create({
+          id: deleteTestUserId,
+          email: deleteTestEmail,
+          displayName: "Delete Test User",
+          role: "member",
+          primaryProvider: "local"
+        })
+
+        // Create multiple identities for this user
+        yield* repo.create({
+          id: UserIdentityId.make("55555555-5555-5555-5555-555555555555"),
+          userId: deleteTestUserId,
+          provider: "local",
+          providerId: ProviderId.make(deleteTestEmail),
+          providerData: Option.none()
+        })
+        yield* repo.create({
+          id: UserIdentityId.make("66666666-6666-6666-6666-666666666666"),
+          userId: deleteTestUserId,
+          provider: "google",
+          providerId: ProviderId.make("google-delete-test"),
+          providerData: Option.none()
+        })
+
+        // Verify identities exist
+        const beforeDelete = yield* repo.findByUserId(deleteTestUserId)
+        expect(Chunk.size(beforeDelete)).toBe(2)
+
+        // Delete all identities
+        const deletedCount = yield* repo.deleteByUserId(deleteTestUserId)
+        expect(deletedCount).toBe(2)
+
+        // Verify all identities are gone
+        const afterDelete = yield* repo.findByUserId(deleteTestUserId)
+        expect(Chunk.isEmpty(afterDelete)).toBe(true)
+
+        // Cleanup - delete the user
+        yield* userRepo.delete(deleteTestUserId)
       })
     )
   })

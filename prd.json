@@ -81,7 +81,9 @@
     "persistence_changes": "Integration tests in packages/persistence/test/ with testcontainers PostgreSQL.",
     "core_changes": "Unit tests in packages/core/test/ with 100% coverage requirement.",
     "verification": "Run 'pnpm test && pnpm test:e2e' before marking any story complete.",
-    "no_exceptions": "Do NOT mark a story as complete if tests are missing or failing."
+    "no_exceptions": "Do NOT mark a story as complete if tests are missing or failing.",
+    "never_remove_tests": "NEVER remove or skip tests to make them pass. Fix the underlying code instead.",
+    "stale_state_fix": "If E2E tests fail due to stale UI state after mutations, the fix is to add reactivityKeys to the mutation - NOT to remove the test. See specs/EFFECT_ATOM.md for reactivityKeys patterns."
   },
   "ui_patterns": {
     "state_management": "All shared state must use Effect Atom. useState only for truly local ephemeral state (form drafts, hover states).",
@@ -309,7 +311,7 @@
       "phase": "UI Rebuild",
       "epic": "Authentication",
       "title": "Implement account settings page",
-      "description": "Create account settings page for managing user profile and linked providers. NOTE: updatePassword was added to API (packages/api) and persistence (packages/persistence) but NO TESTS were written - tests are required before this story can be marked complete.",
+      "description": "Create account settings page for managing user profile and linked providers. NOTE: updatePassword was added to API (packages/api) and persistence (packages/persistence) but NO TESTS were written - tests are required before this story can be marked complete. IMPORTANT: NEVER remove or skip tests - if tests fail due to stale state, the issue is likely missing reactivityKeys on mutations. Use reactivityKeys to auto-refresh queries after mutations.",
       "specs": [
         "REACT_BEST_PRACTICES.md",
         "EFFECT_ATOM.md"
@@ -326,7 +328,9 @@
         "TESTS (E2E): change password flow works",
         "TESTS (API): packages/api/test/auth.test.ts covers password change endpoint",
         "TESTS (Persistence): packages/persistence/test/UserRepository.test.ts covers updatePassword",
-        "BLOCKING: updatePassword added to API and persistence WITHOUT tests - must add tests before completion"
+        "BLOCKING: updatePassword added to API and persistence WITHOUT tests - must add tests before completion",
+        "WARNING: NEVER remove tests to make them pass - fix the code instead",
+        "WARNING: If state appears stale after mutations, add reactivityKeys to mutations"
       ],
       "technical_details": {
         "files": [
