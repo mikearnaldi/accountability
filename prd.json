@@ -311,7 +311,7 @@
       "phase": "UI Rebuild",
       "epic": "Authentication",
       "title": "Implement account settings page",
-      "description": "Create account settings page for managing user profile and linked providers. SECURITY: Password change MUST invalidate the current session and force re-login with the new password - this is required behavior, not a bug. NOTE: updatePassword was added to API (packages/api) and persistence (packages/persistence) but NO TESTS were written - tests are required before this story can be marked complete. IMPORTANT: NEVER remove or skip tests - if tests fail due to stale state, the issue is likely missing reactivityKeys on mutations. Use reactivityKeys to auto-refresh queries after mutations.",
+      "description": "Create account settings page for managing user profile and linked providers. SECURITY: Password change MUST invalidate the current session and force re-login with the new password - this is required behavior, not a bug. NOTE: updatePassword was added to API (packages/api) and persistence (packages/persistence) but NO TESTS were written - tests are required before this story can be marked complete. IMPORTANT: NEVER remove or skip tests - if tests fail due to stale state, the issue is likely missing reactivityKeys on mutations. Use reactivityKeys to auto-refresh queries after mutations. CRITICAL: If you see stale data after mutations, this is because you are NOT using reactivityKeys - add them to your mutations to fix the issue. NAVIGATION: Do NOT use window.location.href for redirects - use TanStack Router's navigate() or useNavigate() hook instead. Direct location manipulation breaks SPA routing.",
       "specs": [
         "REACT_BEST_PRACTICES.md",
         "EFFECT_ATOM.md"

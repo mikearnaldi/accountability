@@ -546,6 +546,56 @@ const noUnmemoizedAtomCreationRule = {
   }
 }
 
+/**
+ * Custom ESLint rule to ban window.location.href for navigation/redirects.
+ * Use TanStack Router's navigate() or useNavigate() instead.
+ * Direct location manipulation breaks SPA routing and loses app state.
+ */
+const noLocationHrefRedirectRule = {
+  meta: {
+    type: "problem",
+    docs: {
+      description: "Disallow window.location.href for redirects - use TanStack Router navigate() instead"
+    },
+    messages: {
+      noLocationHref: "Do not use {{expression}} for navigation. Use TanStack Router's navigate() or useNavigate() hook instead. Direct location manipulation breaks SPA routing and loses all app state."
+    },
+    schema: []
+  },
+  create(context) {
+    return {
+      AssignmentExpression(node) {
+        const left = node.left
+        if (left.type !== "MemberExpression") return
+        if (left.property.type !== "Identifier") return
+
+        const prop = left.property.name
+        if (prop !== "href") return
+
+        // Check if assigning to location.href or window.location.href
+        const obj = left.object
+        const isLocationHref =
+          (obj.type === "Identifier" && obj.name === "location") ||
+          (obj.type === "MemberExpression" &&
+           obj.property.type === "Identifier" &&
+           obj.property.name === "location" &&
+           obj.object.type === "Identifier" &&
+           (obj.object.name === "window" || obj.object.name === "document"))
+
+        if (!isLocationHref) return
+
+        // Get the expression text for the error message
+        const expression = context.getSourceCode().getText(left)
+        context.report({
+          node,
+          messageId: "noLocationHref",
+          data: { expression }
+        })
+      }
+    }
+  }
+}
+
 const localPlugin = {
   rules: {
     "import-extensions": importExtensionsRule,
@@ -554,7 +604,8 @@ const localPlugin = {
     "prefer-option-from-nullable": preferOptionFromNullableRule,
     "no-page-reload": noPageReloadRule,
     "no-refresh-key-pattern": noRefreshKeyPatternRule,
-    "no-unmemoized-atom-creation": noUnmemoizedAtomCreationRule
+    "no-unmemoized-atom-creation": noUnmemoizedAtomCreationRule,
+    "no-location-href-redirect": noLocationHrefRedirectRule
   }
 }
 
@@ -623,6 +674,8 @@ export default [
       "local/no-page-reload": "error",
       "local/no-refresh-key-pattern": "error",
       "local/no-unmemoized-atom-creation": "error",
+      // Use TanStack Router navigate() instead of location.href
+      "local/no-location-href-redirect": "error",
       // Allow unused variables starting with underscore
       "no-unused-vars": "off",
       "@typescript-eslint/no-unused-vars": [
