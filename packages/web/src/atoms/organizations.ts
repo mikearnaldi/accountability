@@ -13,7 +13,7 @@ import * as Duration from "effect/Duration"
 import * as Effect from "effect/Effect"
 import * as Option from "effect/Option"
 import { ApiClient } from "./ApiClient.ts"
-import { CreateOrganizationRequest } from "@accountability/api/Definitions/CompaniesApi"
+import { CreateOrganizationRequest, UpdateOrganizationRequest } from "@accountability/api/Definitions/CompaniesApi"
 import { CurrencyCode } from "@accountability/core/Domains/CurrencyCode"
 import type { Organization } from "@accountability/core/Domains/Organization"
 
@@ -206,5 +206,95 @@ export const organizationCompanyCountFamily = Atom.family((organizationId: strin
       return 0
     }
     return result.value.total
+  })
+)
+
+// =============================================================================
+// Companies by Organization
+// =============================================================================
+
+/**
+ * Reactivity keys for companies - used to auto-refresh queries after mutations
+ */
+export const COMPANIES_REACTIVITY_KEY = "companies" as const
+
+/**
+ * companiesByOrgFamily - Fetch companies for a specific organization
+ *
+ * Returns all companies belonging to the specified organization.
+ *
+ * Usage:
+ * ```typescript
+ * const companiesAtom = companiesByOrgFamily(orgId)
+ * const result = useAtomValue(companiesAtom)
+ * ```
+ */
+export const companiesByOrgFamily = Atom.family((organizationId: string) =>
+  ApiClient.query("companies", "listCompanies", {
+    urlParams: {
+      organizationId,
+      limit: 100,
+      offset: 0
+    },
+    timeToLive: Duration.minutes(5),
+    reactivityKeys: [COMPANIES_REACTIVITY_KEY, organizationId]
+  })
+)
+
+// =============================================================================
+// Update Organization Mutation
+// =============================================================================
+
+/**
+ * Input type for updating an organization (form input)
+ */
+export interface UpdateOrganizationInput {
+  readonly id: string
+  readonly name: string | undefined
+  readonly reportingCurrency: string | undefined
+}
+
+/**
+ * updateOrganizationMutation - Update an existing organization
+ *
+ * This mutation:
+ * 1. Calls the update organization API endpoint
+ * 2. On success, automatically refreshes the organization and organizations list
+ *
+ * Usage:
+ * ```typescript
+ * const [result, updateOrg] = useAtom(updateOrganizationMutation)
+ *
+ * updateOrg({
+ *   id: orgId,
+ *   name: "New Name",
+ *   reportingCurrency: "EUR"
+ * })
+ * ```
+ */
+export const updateOrganizationMutation = ApiClient.runtime.fn<UpdateOrganizationInput>()(
+  Effect.fnUntraced(function* (input) {
+    const client = yield* ApiClient
+    const registry = yield* AtomRegistry
+
+    // Properly construct the request using Schema.make() constructor
+    const payload = UpdateOrganizationRequest.make({
+      name: Option.fromNullable(input.name),
+      reportingCurrency: input.reportingCurrency !== undefined
+        ? Option.some(CurrencyCode.make(input.reportingCurrency))
+        : Option.none(),
+      settings: Option.none()
+    })
+
+    const response = yield* client.companies.updateOrganization({
+      path: { id: input.id },
+      payload
+    })
+
+    // Refresh the organization family and organizations list
+    registry.refresh(organizationFamily(input.id))
+    registry.refresh(organizationsAtom)
+
+    return response
   })
 )
