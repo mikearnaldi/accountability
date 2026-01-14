@@ -754,3 +754,8 @@
 **Story**: 10.1.3 - Implement OAuth callback handler
 **Status**: complete
 ---
+
+## Iteration 8 - 2026-01-14 02:06
+**Story**: 10.1.4 - Implement user menu and logout
+**Status**: complete
+---

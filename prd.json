@@ -280,7 +280,7 @@
         ],
         "e2e_file": "packages/web/test-e2e/auth/session.spec.ts"
       },
-      "status": "in_progress",
+      "status": "complete",
       "estimated_complexity": "small"
     },
     {
