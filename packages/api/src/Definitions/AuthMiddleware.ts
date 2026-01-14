@@ -73,7 +73,8 @@ export class AuthMiddleware extends HttpApiMiddleware.Tag<AuthMiddleware>()(
     failure: UnauthorizedError,
     provides: CurrentUser,
     security: {
-      bearer: HttpApiSecurity.bearer
+      bearer: HttpApiSecurity.bearer,
+      cookie: HttpApiSecurity.apiKey({ in: "cookie", key: "accountability_session" })
     }
   }
 ) {}

@@ -1,19 +1,18 @@
 import { createFileRoute, redirect, useRouter, Link } from "@tanstack/react-router"
-// eslint-disable-next-line local/no-server-functions -- Required for SSR: need server-side access to httpOnly cookies
 import { createServerFn } from "@tanstack/react-start"
-import { getCookie, getRequestUrl } from "@tanstack/react-start/server"
+import { getCookie } from "@tanstack/react-start/server"
 import { useState } from "react"
-import { api } from "@/api/interceptor"
+import { api } from "@/api/client"
+import { createServerApi } from "@/api/server"
 
 // =============================================================================
 // Server Functions: Fetch organization and companies from API with cookie auth
 // =============================================================================
 
-// eslint-disable-next-line local/no-server-functions -- Required for SSR: TanStack Start server functions are the only way to access httpOnly cookies during SSR
 const fetchOrganization = createServerFn({ method: "GET" })
   .inputValidator((data: string) => data)
   .handler(async ({ data: organizationId }) => {
-    // Get the session token from the httpOnly cookie
+    // Get the session cookie to forward to API
     const sessionToken = getCookie("accountability_session")
 
     if (!sessionToken) {
@@ -21,35 +20,31 @@ const fetchOrganization = createServerFn({ method: "GET" })
     }
 
     try {
-      // Get the current request URL to determine the correct host/port for API calls
-      const requestUrl = getRequestUrl()
-      const apiBaseUrl = `${requestUrl.protocol}//${requestUrl.host}`
-
-      // Call the API with the session token as Bearer auth
-      // eslint-disable-next-line local/no-direct-fetch -- Required for SSR: must use native fetch with dynamic baseUrl from request context
-      const response = await fetch(`${apiBaseUrl}/api/v1/organizations/${organizationId}`, {
+      // Create server API client with dynamic base URL from request context
+      const serverApi = createServerApi()
+      // Forward session token to API using Authorization Bearer header
+      const { data, error } = await serverApi.GET("/api/v1/organizations/{id}", {
+        params: { path: { id: organizationId } },
         headers: { Authorization: `Bearer ${sessionToken}` }
       })
 
-      if (!response.ok) {
-        if (response.status === 404) {
+      if (error) {
+        if (typeof error === "object" && "status" in error && error.status === 404) {
           return { organization: null, error: "not_found" as const }
         }
         return { organization: null, error: "failed" as const }
       }
 
-      const data = await response.json()
       return { organization: data, error: null }
     } catch {
       return { organization: null, error: "failed" as const }
     }
   })
 
-// eslint-disable-next-line local/no-server-functions -- Required for SSR: TanStack Start server functions are the only way to access httpOnly cookies during SSR
 const fetchCompanies = createServerFn({ method: "GET" })
   .inputValidator((data: string) => data)
   .handler(async ({ data: organizationId }) => {
-    // Get the session token from the httpOnly cookie
+    // Get the session cookie to forward to API
     const sessionToken = getCookie("accountability_session")
 
     if (!sessionToken) {
@@ -57,24 +52,18 @@ const fetchCompanies = createServerFn({ method: "GET" })
     }
 
     try {
-      // Get the current request URL to determine the correct host/port for API calls
-      const requestUrl = getRequestUrl()
-      const apiBaseUrl = `${requestUrl.protocol}//${requestUrl.host}`
+      // Create server API client with dynamic base URL from request context
+      const serverApi = createServerApi()
+      // Forward session token to API using Authorization Bearer header
+      const { data, error } = await serverApi.GET("/api/v1/companies", {
+        params: { query: { organizationId } },
+        headers: { Authorization: `Bearer ${sessionToken}` }
+      })
 
-      // Call the API with the session token as Bearer auth
-      // eslint-disable-next-line local/no-direct-fetch -- Required for SSR: must use native fetch with dynamic baseUrl from request context
-      const response = await fetch(
-        `${apiBaseUrl}/api/v1/companies?organizationId=${encodeURIComponent(organizationId)}`,
-        {
-          headers: { Authorization: `Bearer ${sessionToken}` }
-        }
-      )
-
-      if (!response.ok) {
+      if (error) {
         return { companies: [], total: 0, error: "failed" as const }
       }
 
-      const data = await response.json()
       return {
         companies: data?.companies ?? [],
         total: data?.total ?? 0,

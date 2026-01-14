@@ -854,3 +854,8 @@
 **Story**: 11.4.1 - Chart of Accounts with SSR
 **Status**: complete
 ---
+
+## Iteration 2 - 2026-01-14 22:49
+**Story**: 11.0.4 - Fix ESLint violations: remove localStorage and direct fetch usage
+**Status**: complete
+---

@@ -396,6 +396,8 @@ console.log(data.id, data.name)
 
 ### 3.1 Route with SSR Data Fetching
 
+**IMPORTANT**: Always pass the cookie header in loaders for authenticated endpoints.
+
 ```typescript
 // packages/web/src/routes/organizations/index.tsx
 import { createFileRoute, redirect } from "@tanstack/react-router"
@@ -410,8 +412,14 @@ export const Route = createFileRoute("/organizations/")({
   },
 
   // SSR data fetch - runs on server
-  loader: async () => {
-    const { data, error } = await api.GET("/api/v1/organizations")
+  loader: async ({ request }) => {
+    // Forward cookie from request to API for authentication
+    const cookie = request.headers.get("cookie")
+
+    const { data, error } = await api.GET("/api/v1/organizations", {
+      headers: cookie ? { cookie } : undefined
+    })
+
     if (error) {
       throw new Error("Failed to load organizations")
     }
@@ -438,7 +446,9 @@ function OrganizationsPage() {
 }
 ```
 
-### 3.2 Root Route with Auth Context
+### 3.2 Root Route with Auth Context (Cookie-Based Auth)
+
+**IMPORTANT**: Authentication uses httpOnly cookies. The cookie header must be forwarded from the request to API calls during SSR.
 
 ```typescript
 // packages/web/src/routes/__root.tsx
@@ -451,18 +461,21 @@ interface RouterContext {
 
 export const Route = createRootRouteWithContext<RouterContext>()({
   beforeLoad: async ({ request }) => {
-    // Read session cookie from request headers
+    // Get the cookie header from the SSR request
     const cookie = request?.headers?.get("cookie")
-    const token = parseCookie(cookie, "accountability_session")
 
-    if (!token) {
+    if (!cookie) {
       return { user: null }
     }
 
-    // Validate token with API
-    const { data } = await api.GET("/api/auth/me", {
-      headers: { Authorization: `Bearer ${token}` }
+    // Pass cookie header to API - server will validate the session
+    const { data, error } = await api.GET("/api/auth/me", {
+      headers: { cookie }  // Forward the cookie header, NOT Authorization
     })
+
+    if (error) {
+      return { user: null }
+    }
 
     return { user: data?.user ?? null }
   },
@@ -614,13 +627,18 @@ export const Route = createFileRoute("/organizations/$organizationId/")({
     }
   },
 
-  loader: async ({ params }) => {
+  loader: async ({ params, request }) => {
+    // Forward cookie for SSR authentication
+    const cookie = request.headers.get("cookie")
+
     const [orgResult, companiesResult] = await Promise.all([
       api.GET("/api/v1/organizations/{organizationId}", {
-        params: { path: { organizationId: params.organizationId } }
+        params: { path: { organizationId: params.organizationId } },
+        headers: cookie ? { cookie } : undefined
       }),
       api.GET("/api/v1/organizations/{organizationId}/companies", {
-        params: { path: { organizationId: params.organizationId } }
+        params: { path: { organizationId: params.organizationId } },
+        headers: cookie ? { cookie } : undefined
       })
     ])
 
@@ -684,6 +702,88 @@ function OrganizationDetailsPage() {
 | Form state | `useState` |
 | Refresh after mutation | `router.invalidate()` |
 | Navigate after action | `useNavigate()` or `redirect()` |
+
+---
+
+## Part 5: Anti-Patterns (FORBIDDEN)
+
+### 5.1 DO NOT Use createServerFn for API Calls
+
+```typescript
+// ❌ WRONG - Do not use createServerFn for data fetching
+import { createServerFn } from "@tanstack/react-start"
+import { getCookie } from "@tanstack/react-start/server"
+
+const fetchData = createServerFn({ method: "GET" })
+  .handler(async () => {
+    const sessionToken = getCookie("session")
+    const response = await fetch("/api/v1/data", {
+      headers: { Authorization: `Bearer ${sessionToken}` }
+    })
+    return response.json()
+  })
+
+// ✅ CORRECT - Use loader with api client
+loader: async ({ request }) => {
+  const cookie = request.headers.get("cookie")
+  const { data } = await api.GET("/api/v1/data", {
+    headers: cookie ? { cookie } : undefined
+  })
+  return { data }
+}
+```
+
+### 5.2 DO NOT Use Raw fetch()
+
+```typescript
+// ❌ WRONG - Raw fetch bypasses type safety
+const response = await fetch("/api/v1/organizations")
+const data = await response.json()
+
+// ✅ CORRECT - Use typed api client
+const { data, error } = await api.GET("/api/v1/organizations")
+```
+
+### 5.3 DO NOT Store Tokens in localStorage
+
+```typescript
+// ❌ WRONG - localStorage is vulnerable to XSS
+localStorage.setItem("token", response.token)
+headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+
+// ✅ CORRECT - Server sets httpOnly cookie, client sends automatically
+// Login response sets cookie via Set-Cookie header
+// Browser includes cookies automatically with credentials: "include"
+await api.POST("/api/auth/login", { body: { email, password } })
+```
+
+### 5.4 DO NOT Return Tokens in API Response Body
+
+```typescript
+// ❌ WRONG - Token in response body can be stolen by XSS
+return { token: sessionToken, user: { ... } }
+
+// ✅ CORRECT - Set token in httpOnly cookie only
+HttpServerResponse.setCookie("session", token, {
+  httpOnly: true,
+  secure: true,
+  sameSite: "strict"
+})
+return { user: { id, email, displayName } }
+```
+
+### 5.5 DO NOT Manually Parse Cookies for Auth
+
+```typescript
+// ❌ WRONG - Manual cookie parsing and token handling
+const cookie = request.headers.get("cookie")
+const token = parseCookie(cookie, "session")
+headers: { Authorization: `Bearer ${token}` }
+
+// ✅ CORRECT - Forward entire cookie header, let server handle it
+const cookie = request.headers.get("cookie")
+headers: cookie ? { cookie } : undefined
+```
 
 ---
 

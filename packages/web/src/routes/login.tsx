@@ -1,7 +1,7 @@
 import { createFileRoute, redirect, useRouter, useNavigate } from "@tanstack/react-router"
 import { Link } from "@tanstack/react-router"
 import { useState } from "react"
-import { api } from "@/api/interceptor"
+import { api } from "@/api/client"
 
 // =============================================================================
 // Login Route
@@ -69,12 +69,8 @@ function LoginPage() {
         return
       }
 
-      // Store the session token in localStorage for bearer token auth
-      // This makes the token accessible to JavaScript for Bearer header injection
-      // even though the server also sets it as an httpOnly cookie
-      if (data.token) {
-        localStorage.setItem("accountabilitySessionToken", data.token)
-      }
+      // Cookie is set by the server via Set-Cookie header
+      // No token storage needed - httpOnly cookies are sent automatically
 
       // Check for redirect query parameter
       const searchParams = new URLSearchParams(window.location.search)

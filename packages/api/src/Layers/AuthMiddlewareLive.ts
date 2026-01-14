@@ -48,8 +48,14 @@ export const AuthMiddlewareLive: Layer.Layer<AuthMiddleware, never, TokenValidat
 
       return AuthMiddleware.of({
         bearer: (token) => {
-          // If no bearer token, return error
-          // (The cookie fallback could be added here in the future if needed)
+          return tokenValidator.validate(token).pipe(
+            Effect.catchAll((error) =>
+              Effect.fail(new UnauthorizedError({ message: error.message }))
+            )
+          )
+        },
+        cookie: (token) => {
+          // Cookie-based authentication using accountability_session cookie
           return tokenValidator.validate(token).pipe(
             Effect.catchAll((error) =>
               Effect.fail(new UnauthorizedError({ message: error.message }))

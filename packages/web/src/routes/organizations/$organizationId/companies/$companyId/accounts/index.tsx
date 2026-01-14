@@ -1,9 +1,9 @@
 import { createFileRoute, redirect, useRouter, Link } from "@tanstack/react-router"
-// eslint-disable-next-line local/no-server-functions -- Required for SSR: need server-side access to httpOnly cookies
 import { createServerFn } from "@tanstack/react-start"
-import { getCookie, getRequestUrl } from "@tanstack/react-start/server"
+import { getCookie } from "@tanstack/react-start/server"
 import { useState, useMemo } from "react"
-import { api } from "@/api/interceptor"
+import { api } from "@/api/client"
+import { createServerApi } from "@/api/server"
 
 // =============================================================================
 // Types (extracted from API response schema)
@@ -108,12 +108,12 @@ interface Organization {
 // Server Functions: Fetch accounts, company, and organization from API with cookie auth
 // =============================================================================
 
-// eslint-disable-next-line local/no-server-functions -- Required for SSR: TanStack Start server functions are the only way to access httpOnly cookies during SSR
 const fetchAccountsData = createServerFn({ method: "GET" })
   .inputValidator(
     (data: { companyId: string; organizationId: string }) => data
   )
   .handler(async ({ data }) => {
+    // Get the session cookie to forward to API
     const sessionToken = getCookie("accountability_session")
 
     if (!sessionToken) {
@@ -127,28 +127,27 @@ const fetchAccountsData = createServerFn({ method: "GET" })
     }
 
     try {
-      const requestUrl = getRequestUrl()
-      const apiBaseUrl = `${requestUrl.protocol}//${requestUrl.host}`
+      // Create server API client with dynamic base URL from request context
+      const serverApi = createServerApi()
+      const Authorization = `Bearer ${sessionToken}`
+      // Fetch accounts, company, and organization in parallel using api client with Bearer auth
+      const [accountsResult, companyResult, orgResult] = await Promise.all([
+        serverApi.GET("/api/v1/accounts", {
+          params: { query: { companyId: data.companyId, limit: "1000" } },
+          headers: { Authorization }
+        }),
+        serverApi.GET("/api/v1/companies/{id}", {
+          params: { path: { id: data.companyId } },
+          headers: { Authorization }
+        }),
+        serverApi.GET("/api/v1/organizations/{id}", {
+          params: { path: { id: data.organizationId } },
+          headers: { Authorization }
+        })
+      ])
 
-      /* eslint-disable local/no-direct-fetch -- Required for SSR: must use native fetch with dynamic baseUrl from request context */
-      const [accountsResponse, companyResponse, orgResponse] = await Promise.all(
-        [
-          fetch(
-            `${apiBaseUrl}/api/v1/accounts?companyId=${encodeURIComponent(data.companyId)}&limit=1000`,
-            { headers: { Authorization: `Bearer ${sessionToken}` } }
-          ),
-          fetch(`${apiBaseUrl}/api/v1/companies/${data.companyId}`, {
-            headers: { Authorization: `Bearer ${sessionToken}` }
-          }),
-          fetch(`${apiBaseUrl}/api/v1/organizations/${data.organizationId}`, {
-            headers: { Authorization: `Bearer ${sessionToken}` }
-          })
-        ]
-      )
-      /* eslint-enable local/no-direct-fetch */
-
-      if (!companyResponse.ok) {
-        if (companyResponse.status === 404) {
+      if (companyResult.error) {
+        if (typeof companyResult.error === "object" && "status" in companyResult.error && companyResult.error.status === 404) {
           return {
             accounts: [],
             total: 0,
@@ -166,7 +165,7 @@ const fetchAccountsData = createServerFn({ method: "GET" })
         }
       }
 
-      if (!orgResponse.ok || !accountsResponse.ok) {
+      if (orgResult.error || accountsResult.error) {
         return {
           accounts: [],
           total: 0,
@@ -176,15 +175,11 @@ const fetchAccountsData = createServerFn({ method: "GET" })
         }
       }
 
-      const accountsData = await accountsResponse.json()
-      const company = await companyResponse.json()
-      const organization = await orgResponse.json()
-
       return {
-        accounts: accountsData?.accounts ?? [],
-        total: accountsData?.total ?? 0,
-        company,
-        organization,
+        accounts: accountsResult.data?.accounts ?? [],
+        total: accountsResult.data?.total ?? 0,
+        company: companyResult.data,
+        organization: orgResult.data,
         error: null
       }
     } catch {

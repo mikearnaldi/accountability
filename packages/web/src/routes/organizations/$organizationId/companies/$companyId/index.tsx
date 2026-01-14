@@ -1,19 +1,18 @@
 import { createFileRoute, redirect, useRouter, Link } from "@tanstack/react-router"
-// eslint-disable-next-line local/no-server-functions -- Required for SSR: need server-side access to httpOnly cookies
 import { createServerFn } from "@tanstack/react-start"
-import { getCookie, getRequestUrl } from "@tanstack/react-start/server"
+import { getCookie } from "@tanstack/react-start/server"
 import { useState } from "react"
-import { api } from "@/api/interceptor"
+import { api } from "@/api/client"
+import { createServerApi } from "@/api/server"
 
 // =============================================================================
 // Server Functions: Fetch company from API with cookie auth
 // =============================================================================
 
-// eslint-disable-next-line local/no-server-functions -- Required for SSR: TanStack Start server functions are the only way to access httpOnly cookies during SSR
 const fetchCompany = createServerFn({ method: "GET" })
   .inputValidator((data: { companyId: string; organizationId: string }) => data)
   .handler(async ({ data }) => {
-    // Get the session token from the httpOnly cookie
+    // Get the session cookie to forward to API
     const sessionToken = getCookie("accountability_session")
 
     if (!sessionToken) {
@@ -21,37 +20,34 @@ const fetchCompany = createServerFn({ method: "GET" })
     }
 
     try {
-      // Get the current request URL to determine the correct host/port for API calls
-      const requestUrl = getRequestUrl()
-      const apiBaseUrl = `${requestUrl.protocol}//${requestUrl.host}`
-
-      // Fetch company and organization in parallel
-      /* eslint-disable local/no-direct-fetch -- Required for SSR: must use native fetch with dynamic baseUrl from request context */
-      const [companyResponse, orgResponse] = await Promise.all([
-        fetch(`${apiBaseUrl}/api/v1/companies/${data.companyId}`, {
-          headers: { Authorization: `Bearer ${sessionToken}` }
+      // Create server API client with dynamic base URL from request context
+      const serverApi = createServerApi()
+      const Authorization = `Bearer ${sessionToken}`
+      // Fetch company and organization in parallel using api client with Bearer auth
+      const [companyResult, orgResult] = await Promise.all([
+        serverApi.GET("/api/v1/companies/{id}", {
+          params: { path: { id: data.companyId } },
+          headers: { Authorization }
         }),
-        fetch(`${apiBaseUrl}/api/v1/organizations/${data.organizationId}`, {
-          headers: { Authorization: `Bearer ${sessionToken}` }
+        serverApi.GET("/api/v1/organizations/{id}", {
+          params: { path: { id: data.organizationId } },
+          headers: { Authorization }
         })
       ])
-      /* eslint-enable local/no-direct-fetch */
 
-      if (!companyResponse.ok) {
-        if (companyResponse.status === 404) {
+      if (companyResult.error) {
+        // Check for NotFoundError using _tag (from Effect Schema TaggedError)
+        if (typeof companyResult.error === "object" && "_tag" in companyResult.error && companyResult.error._tag === "NotFoundError") {
           return { company: null, organization: null, error: "not_found" as const }
         }
         return { company: null, organization: null, error: "failed" as const }
       }
 
-      if (!orgResponse.ok) {
+      if (orgResult.error) {
         return { company: null, organization: null, error: "failed" as const }
       }
 
-      const company = await companyResponse.json()
-      const organization = await orgResponse.json()
-
-      return { company, organization, error: null }
+      return { company: companyResult.data, organization: orgResult.data, error: null }
     } catch {
       return { company: null, organization: null, error: "failed" as const }
     }

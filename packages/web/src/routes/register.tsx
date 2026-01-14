@@ -1,7 +1,7 @@
 import { createFileRoute, redirect, useRouter, useNavigate } from "@tanstack/react-router"
 import { Link } from "@tanstack/react-router"
 import { useState } from "react"
-import { api } from "@/api/interceptor"
+import { api } from "@/api/client"
 
 // =============================================================================
 // Registration Route
@@ -238,10 +238,8 @@ function RegisterPage() {
         return
       }
 
-      // Store the session token in localStorage for bearer token auth
-      if (loginData.token) {
-        localStorage.setItem("accountabilitySessionToken", loginData.token)
-      }
+      // Cookie is set by the server via Set-Cookie header
+      // No token storage needed - httpOnly cookies are sent automatically
 
       // Invalidate to refresh user context
       await router.invalidate()

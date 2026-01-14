@@ -1,17 +1,16 @@
 import { createFileRoute, redirect, useRouter, Link } from "@tanstack/react-router"
-// eslint-disable-next-line local/no-server-functions -- Required for SSR: need server-side access to httpOnly cookies
 import { createServerFn } from "@tanstack/react-start"
-import { getCookie, getRequestUrl } from "@tanstack/react-start/server"
+import { getCookie } from "@tanstack/react-start/server"
 import { useState } from "react"
-import { api } from "@/api/interceptor"
+import { api } from "@/api/client"
+import { createServerApi } from "@/api/server"
 
 // =============================================================================
 // Server Function: Fetch organizations from API with cookie auth
 // =============================================================================
 
-// eslint-disable-next-line local/no-server-functions -- Required for SSR: TanStack Start server functions are the only way to access httpOnly cookies during SSR
 const fetchOrganizations = createServerFn({ method: "GET" }).handler(async () => {
-  // Get the session token from the httpOnly cookie
+  // Get the session cookie to forward to API
   const sessionToken = getCookie("accountability_session")
 
   if (!sessionToken) {
@@ -19,21 +18,17 @@ const fetchOrganizations = createServerFn({ method: "GET" }).handler(async () =>
   }
 
   try {
-    // Get the current request URL to determine the correct host/port for API calls
-    const requestUrl = getRequestUrl()
-    const apiBaseUrl = `${requestUrl.protocol}//${requestUrl.host}`
-
-    // Call the API with the session token as Bearer auth
-    // eslint-disable-next-line local/no-direct-fetch -- Required for SSR: must use native fetch with dynamic baseUrl from request context
-    const response = await fetch(`${apiBaseUrl}/api/v1/organizations`, {
+    // Create server API client with dynamic base URL from request context
+    const serverApi = createServerApi()
+    // Forward session token to API using Authorization Bearer header
+    const { data, error } = await serverApi.GET("/api/v1/organizations", {
       headers: { Authorization: `Bearer ${sessionToken}` }
     })
 
-    if (!response.ok) {
+    if (error) {
       return { organizations: [], total: 0, error: "failed" as const }
     }
 
-    const data = await response.json()
     return {
       organizations: data?.organizations ?? [],
       total: data?.total ?? 0,

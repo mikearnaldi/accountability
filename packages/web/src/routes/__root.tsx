@@ -6,21 +6,20 @@ import {
   createRootRouteWithContext
 } from "@tanstack/react-router"
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools"
-// eslint-disable-next-line local/no-server-functions -- Required for SSR auth: need server-side access to httpOnly cookies
 import { createServerFn } from "@tanstack/react-start"
-import { getCookie, getRequestUrl } from "@tanstack/react-start/server"
+import { getCookie } from "@tanstack/react-start/server"
 import * as React from "react"
 // Import CSS as URL to include in head (prevents FOUC)
 import appCss from "../index.css?url"
 import type { RouterContext } from "@/types/router"
+import { createServerApi } from "@/api/server"
 
 // =============================================================================
 // Server Function: Fetch current user from session cookie
 // =============================================================================
 
-// eslint-disable-next-line local/no-server-functions -- Required for SSR auth: TanStack Start server functions are the only way to access httpOnly cookies during SSR
 const fetchCurrentUser = createServerFn({ method: "GET" }).handler(async () => {
-  // Get the session token from the httpOnly cookie
+  // Get the session cookie to forward to API
   const sessionToken = getCookie("accountability_session")
 
   if (!sessionToken) {
@@ -28,21 +27,17 @@ const fetchCurrentUser = createServerFn({ method: "GET" }).handler(async () => {
   }
 
   try {
-    // Get the current request URL to determine the correct host/port for API calls
-    const requestUrl = getRequestUrl()
-    const apiBaseUrl = `${requestUrl.protocol}//${requestUrl.host}`
-
-    // Call the API with the session token as Bearer auth
-    // eslint-disable-next-line local/no-direct-fetch -- Required for SSR: must use native fetch with dynamic baseUrl from request context
-    const response = await fetch(`${apiBaseUrl}/api/auth/me`, {
+    // Create server API client with dynamic base URL from request context
+    const api = createServerApi()
+    // Forward session token to API using Authorization Bearer header
+    const { data, error } = await api.GET("/api/auth/me", {
       headers: { Authorization: `Bearer ${sessionToken}` }
     })
 
-    if (!response.ok) {
+    if (error) {
       return null
     }
 
-    const data = await response.json()
     return data?.user ?? null
   } catch {
     return null
