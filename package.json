@@ -24,6 +24,7 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "pnpm --filter @accountability/web run test:e2e",
+    "test:e2e:headed": "pnpm --filter @accountability/web run test:e2e:headed",
     "test:e2e:ui": "pnpm --filter @accountability/web run test:e2e:ui",
     "test:e2e:report": "pnpm --filter @accountability/web run test:e2e:report",
     "generate-routes": "pnpm --filter @accountability/web run generate-routes",

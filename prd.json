@@ -164,6 +164,54 @@
       "estimated_complexity": "medium"
     },
     {
+      "id": "10.0.3",
+      "phase": "UI Rebuild",
+      "epic": "Infrastructure",
+      "title": "Polish existing UI to production quality",
+      "description": "The current UI is functional but lacks visual polish. Before continuing with new features, make the existing pages beautiful with proper spacing, typography, colors, shadows, transitions, and professional styling. This is a BLOCKING task - do not proceed with other pending stories until this is complete.",
+      "specs": [
+        "REACT_BEST_PRACTICES.md"
+      ],
+      "acceptance_criteria": [
+        "BLOCKING: Complete this before any other pending stories",
+        "App shell: Professional sidebar with proper icons, hover states, active indicators",
+        "App shell: Clean header with proper spacing and user menu styling",
+        "Login page: Centered card layout, proper input styling, branded colors",
+        "Register page: Matching style to login, clear visual hierarchy",
+        "Organizations list: Beautiful cards with shadows, hover effects, proper grid layout",
+        "Organization detail: Clean layout with sections, proper typography",
+        "Companies list: Consistent card styling with organizations",
+        "Company detail: Tabs or sections with clear visual separation",
+        "Account settings: Clean form layout, proper section headings",
+        "Loading states: Skeleton loaders that match final content layout",
+        "Error states: Clear error messages with retry actions, not ugly red text",
+        "Empty states: Friendly illustrations or icons with call-to-action",
+        "Consistent color palette: Primary, secondary, success, error, warning colors",
+        "Consistent spacing: Use Tailwind spacing scale consistently (4, 6, 8, etc.)",
+        "Consistent typography: Proper heading sizes, line heights, font weights",
+        "Hover/focus states: All interactive elements have clear feedback",
+        "Transitions: Smooth transitions on hover, focus, and state changes",
+        "Mobile responsive: All pages work well on mobile devices",
+        "TESTS (E2E): Existing E2E tests still pass after styling changes"
+      ],
+      "technical_details": {
+        "files": [
+          "packages/web/src/routes/__root.tsx",
+          "packages/web/src/routes/login.tsx",
+          "packages/web/src/routes/register.tsx",
+          "packages/web/src/routes/organizations/index.tsx",
+          "packages/web/src/routes/organizations/$organizationId/index.tsx",
+          "packages/web/src/routes/organizations/$organizationId/companies/index.tsx",
+          "packages/web/src/routes/organizations/$organizationId/companies/$companyId/index.tsx",
+          "packages/web/src/routes/settings/account.tsx",
+          "packages/web/src/components/*.tsx"
+        ],
+        "approach": "Iteratively improve each page while maintaining functionality. Use Tailwind utility classes. Consider adding a few reusable styled components (Button, Card, Input) if patterns emerge."
+      },
+      "status": "pending",
+      "estimated_complexity": "large"
+    },
+    {
       "id": "10.1.1",
       "phase": "UI Rebuild",
       "epic": "Authentication",

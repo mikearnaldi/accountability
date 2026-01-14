@@ -13,9 +13,13 @@ import * as Duration from "effect/Duration"
 import * as Effect from "effect/Effect"
 import * as Option from "effect/Option"
 import { ApiClient } from "./ApiClient.ts"
-import { CreateOrganizationRequest, UpdateOrganizationRequest } from "@accountability/api/Definitions/CompaniesApi"
+import { CreateOrganizationRequest, UpdateOrganizationRequest, CreateCompanyRequest, UpdateCompanyRequest } from "@accountability/api/Definitions/CompaniesApi"
 import { CurrencyCode } from "@accountability/core/Domains/CurrencyCode"
+import { JurisdictionCode } from "@accountability/core/Domains/JurisdictionCode"
+import { FiscalYearEnd, CompanyId } from "@accountability/core/Domains/Company"
+import { OrganizationId } from "@accountability/core/Domains/Organization"
 import type { Organization } from "@accountability/core/Domains/Organization"
+import { Percentage } from "@accountability/core/Domains/Percentage"
 
 // =============================================================================
 // Reactivity Keys
@@ -373,25 +377,6 @@ export const createCompanyMutation = ApiClient.runtime.fn<CreateCompanyInput>()(
     const client = yield* ApiClient
     const registry = yield* AtomRegistry
 
-    // Import the CreateCompanyRequest schema from CompaniesApi
-    const { CreateCompanyRequest } = yield* Effect.promise(() =>
-      import("@accountability/api/Definitions/CompaniesApi")
-    )
-
-    // Import domain types
-    const { JurisdictionCode } = yield* Effect.promise(() =>
-      import("@accountability/core/Domains/JurisdictionCode")
-    )
-    const { FiscalYearEnd, CompanyId } = yield* Effect.promise(() =>
-      import("@accountability/core/Domains/Company")
-    )
-    const { OrganizationId } = yield* Effect.promise(() =>
-      import("@accountability/core/Domains/Organization")
-    )
-    const { Percentage } = yield* Effect.promise(() =>
-      import("@accountability/core/Domains/Percentage")
-    )
-
     // Build the payload using Schema.make() constructors
     const payload = CreateCompanyRequest.make({
       organizationId: OrganizationId.make(input.organizationId),
@@ -468,19 +453,6 @@ export const updateCompanyMutation = ApiClient.runtime.fn<UpdateCompanyInput>()(
   Effect.fnUntraced(function* (input) {
     const client = yield* ApiClient
     const registry = yield* AtomRegistry
-
-    // Import the UpdateCompanyRequest schema from CompaniesApi
-    const { UpdateCompanyRequest } = yield* Effect.promise(() =>
-      import("@accountability/api/Definitions/CompaniesApi")
-    )
-
-    // Import domain types
-    const { FiscalYearEnd, CompanyId } = yield* Effect.promise(() =>
-      import("@accountability/core/Domains/Company")
-    )
-    const { Percentage } = yield* Effect.promise(() =>
-      import("@accountability/core/Domains/Percentage")
-    )
 
     // Build the payload using Schema.make() constructors
     const payload = UpdateCompanyRequest.make({

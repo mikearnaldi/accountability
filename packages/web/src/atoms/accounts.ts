@@ -18,7 +18,12 @@ import * as Result from "@effect-atom/atom/Result"
 import * as Duration from "effect/Duration"
 import * as Effect from "effect/Effect"
 import * as Option from "effect/Option"
+import { AccountId } from "@accountability/core/Domains/Account"
 import type { Account, AccountType, AccountCategory } from "@accountability/core/Domains/Account"
+import { AccountNumber } from "@accountability/core/Domains/AccountNumber"
+import { CompanyId } from "@accountability/core/Domains/Company"
+import { CurrencyCode } from "@accountability/core/Domains/CurrencyCode"
+import { CreateAccountRequest, UpdateAccountRequest } from "@accountability/api/Definitions/AccountsApi"
 import { ApiClient } from "./ApiClient.ts"
 
 // =============================================================================
@@ -259,23 +264,6 @@ export const createAccountMutation = ApiClient.runtime.fn<CreateAccountInput>()(
     const client = yield* ApiClient
     const registry = yield* AtomRegistry
 
-    // Import types dynamically to avoid circular dependencies
-    const { AccountNumber } = yield* Effect.promise(() =>
-      import("@accountability/core/Domains/AccountNumber")
-    )
-    const { CompanyId } = yield* Effect.promise(() =>
-      import("@accountability/core/Domains/Company")
-    )
-    const { CurrencyCode } = yield* Effect.promise(() =>
-      import("@accountability/core/Domains/CurrencyCode")
-    )
-    const { CreateAccountRequest } = yield* Effect.promise(() =>
-      import("@accountability/api/Definitions/AccountsApi")
-    )
-    const { AccountId } = yield* Effect.promise(() =>
-      import("@accountability/core/Domains/Account")
-    )
-
     // Build the payload
     const payload = CreateAccountRequest.make({
       companyId: CompanyId.make(input.companyId),
@@ -338,20 +326,6 @@ export const updateAccountMutation = ApiClient.runtime.fn<UpdateAccountInput>()(
   Effect.fnUntraced(function* (input) {
     const client = yield* ApiClient
     const registry = yield* AtomRegistry
-
-    // Import types dynamically
-    const { UpdateAccountRequest } = yield* Effect.promise(() =>
-      import("@accountability/api/Definitions/AccountsApi")
-    )
-    const { AccountId } = yield* Effect.promise(() =>
-      import("@accountability/core/Domains/Account")
-    )
-    const { CompanyId } = yield* Effect.promise(() =>
-      import("@accountability/core/Domains/Company")
-    )
-    const { CurrencyCode } = yield* Effect.promise(() =>
-      import("@accountability/core/Domains/CurrencyCode")
-    )
 
     // Build the payload - only include fields that are provided
     const payload = UpdateAccountRequest.make({
