@@ -285,31 +285,41 @@ function OrganizationDetailsPage() {
                   {companiesTotal} compan{companiesTotal !== 1 ? "ies" : "y"} in this organization
                 </p>
               </div>
-              <button
-                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-                title="Create company (Coming soon)"
-              >
-                <svg
-                  className="h-4 w-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+              <div className="flex items-center gap-3">
+                <Link
+                  to="/organizations/$organizationId/companies"
+                  params={{ organizationId: organization.id }}
+                  className="text-sm font-medium text-blue-600 hover:text-blue-700"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 4v16m8-8H4"
-                  />
-                </svg>
-                New Company
-              </button>
+                  View all
+                </Link>
+                <Link
+                  to="/organizations/$organizationId/companies"
+                  params={{ organizationId: organization.id }}
+                  className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                >
+                  <svg
+                    className="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 4v16m8-8H4"
+                    />
+                  </svg>
+                  New Company
+                </Link>
+              </div>
             </div>
 
             {companies.length === 0 ? (
-              <CompaniesEmptyState />
+              <CompaniesEmptyState organizationId={organization.id} />
             ) : (
-              <CompaniesList companies={companies} />
+              <CompaniesList companies={companies} organizationId={organization.id} />
             )}
           </div>
         </div>
@@ -491,7 +501,7 @@ function EditOrganizationModal({
 // Companies Empty State Component
 // =============================================================================
 
-function CompaniesEmptyState() {
+function CompaniesEmptyState({ organizationId }: { readonly organizationId: string }) {
   return (
     <div className="rounded-lg border border-dashed border-gray-300 p-8 text-center">
       <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
@@ -513,9 +523,10 @@ function CompaniesEmptyState() {
       <p className="mb-4 text-sm text-gray-500">
         Create your first company to start managing accounts and journal entries.
       </p>
-      <button
+      <Link
+        to="/organizations/$organizationId/companies"
+        params={{ organizationId }}
         className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-        title="Create company (Coming soon)"
       >
         <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
@@ -526,7 +537,7 @@ function CompaniesEmptyState() {
           />
         </svg>
         Create Company
-      </button>
+      </Link>
     </div>
   )
 }
@@ -535,11 +546,17 @@ function CompaniesEmptyState() {
 // Companies List Component
 // =============================================================================
 
-function CompaniesList({ companies }: { readonly companies: readonly Company[] }) {
+function CompaniesList({
+  companies,
+  organizationId
+}: {
+  readonly companies: readonly Company[]
+  readonly organizationId: string
+}) {
   return (
     <div className="divide-y divide-gray-200">
       {companies.map((company) => (
-        <CompanyRow key={company.id} company={company} />
+        <CompanyRow key={company.id} company={company} organizationId={organizationId} />
       ))}
     </div>
   )
@@ -549,7 +566,13 @@ function CompaniesList({ companies }: { readonly companies: readonly Company[] }
 // Company Row Component
 // =============================================================================
 
-function CompanyRow({ company }: { readonly company: Company }) {
+function CompanyRow({
+  company,
+  organizationId
+}: {
+  readonly company: Company
+  readonly organizationId: string
+}) {
   return (
     <div className="flex items-center justify-between py-4">
       <div className="min-w-0 flex-1">
@@ -573,12 +596,13 @@ function CompanyRow({ company }: { readonly company: Company }) {
           <span>{company.functionalCurrency}</span>
         </div>
       </div>
-      <button
+      <Link
+        to="/organizations/$organizationId/companies/$companyId"
+        params={{ organizationId, companyId: company.id }}
         className="ml-4 rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-        title="View company details (Coming soon)"
       >
         View
-      </button>
+      </Link>
     </div>
   )
 }

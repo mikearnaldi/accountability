@@ -839,3 +839,8 @@
 **Story**: 11.2.2 - Organization details with SSR
 **Status**: complete
 ---
+
+## Iteration 5 - 2026-01-14 20:29
+**Story**: 11.3.1 - Companies list with SSR
+**Status**: complete
+---

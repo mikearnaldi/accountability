@@ -388,7 +388,7 @@
         "Link to company details",
         "TESTS (E2E): Companies list works"
       ],
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "medium",
       "depends_on": [
         "11.2.2"

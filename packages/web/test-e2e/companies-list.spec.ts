@@ -1,0 +1,689 @@
+/**
+ * Companies List Page E2E Tests
+ *
+ * Tests for companies list page within an organization with SSR:
+ * - loader fetches companies for organization
+ * - Display company cards with name, currency, fiscal year
+ * - Create company: form calls api.POST, then router.invalidate()
+ * - Link to company details
+ */
+
+import { test, expect } from "@playwright/test"
+
+test.describe("Companies List Page", () => {
+  test("should redirect to login if not authenticated", async ({ page }) => {
+    // 1. Navigate to companies list without authentication
+    await page.goto("/organizations/some-org-id/companies")
+
+    // 2. Should redirect to login with redirect param
+    await page.waitForURL(/\/login/)
+
+    // 3. Verify redirect query param
+    const url = new URL(page.url())
+    expect(url.pathname).toBe("/login")
+    expect(url.searchParams.get("redirect")).toBe("/organizations")
+  })
+
+  test("should display companies list with cards (SSR - no loading spinner)", async ({
+    page,
+    request
+  }) => {
+    // 1. Register a test user
+    const testUser = {
+      email: `test-companies-page-${Date.now()}@example.com`,
+      password: "TestPassword123",
+      displayName: "Companies Page Test User"
+    }
+
+    const registerRes = await request.post("/api/auth/register", {
+      data: testUser
+    })
+    expect(registerRes.ok()).toBeTruthy()
+
+    // 2. Login to get session token
+    const loginRes = await request.post("/api/auth/login", {
+      data: {
+        provider: "local",
+        credentials: {
+          email: testUser.email,
+          password: testUser.password
+        }
+      }
+    })
+    expect(loginRes.ok()).toBeTruthy()
+    const loginData = await loginRes.json()
+    const sessionToken = loginData.token
+
+    // 3. Create an organization via API
+    const orgName = `Companies Page Test Org ${Date.now()}`
+    const createOrgRes = await request.post("/api/v1/organizations", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        name: orgName,
+        reportingCurrency: "EUR",
+        settings: null
+      }
+    })
+    expect(createOrgRes.ok()).toBeTruthy()
+    const orgData = await createOrgRes.json()
+
+    // 4. Create companies via API
+    const companyName1 = `Alpha Company ${Date.now()}`
+    const createCompanyRes1 = await request.post("/api/v1/companies", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        organizationId: orgData.id,
+        name: companyName1,
+        legalName: `${companyName1} Inc.`,
+        jurisdiction: "US",
+        functionalCurrency: "USD",
+        reportingCurrency: "EUR",
+        fiscalYearEnd: { month: 12, day: 31 },
+        taxId: null,
+        parentCompanyId: null,
+        ownershipPercentage: null,
+        consolidationMethod: null
+      }
+    })
+    expect(createCompanyRes1.ok()).toBeTruthy()
+
+    const companyName2 = `Beta Company ${Date.now()}`
+    const createCompanyRes2 = await request.post("/api/v1/companies", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        organizationId: orgData.id,
+        name: companyName2,
+        legalName: `${companyName2} GmbH`,
+        jurisdiction: "DE",
+        functionalCurrency: "EUR",
+        reportingCurrency: "EUR",
+        fiscalYearEnd: { month: 3, day: 31 },
+        taxId: null,
+        parentCompanyId: null,
+        ownershipPercentage: null,
+        consolidationMethod: null
+      }
+    })
+    expect(createCompanyRes2.ok()).toBeTruthy()
+
+    // 5. Set session cookie
+    await page.context().addCookies([
+      {
+        name: "accountability_session",
+        value: sessionToken,
+        domain: "localhost",
+        path: "/",
+        httpOnly: true,
+        secure: false,
+        sameSite: "Lax"
+      }
+    ])
+
+    // 6. Navigate to companies list page
+    await page.goto(`/organizations/${orgData.id}/companies`)
+
+    // 7. Should be on companies list page
+    expect(page.url()).toContain(`/organizations/${orgData.id}/companies`)
+
+    // 8. Should show "Companies" heading in breadcrumb (page title)
+    await expect(page.getByRole("heading", { name: "Companies" })).toBeVisible()
+
+    // 9. Should show companies count
+    await expect(page.getByText(/2 companies/i)).toBeVisible()
+
+    // 10. Should show first company card with details (use heading role for company name)
+    await expect(page.getByRole("heading", { name: companyName1 })).toBeVisible()
+    await expect(page.getByText("USD")).toBeVisible() // Currency
+    await expect(page.getByText("Dec 31")).toBeVisible() // Fiscal year end
+
+    // 11. Should show second company card with details
+    await expect(page.getByRole("heading", { name: companyName2 })).toBeVisible()
+    await expect(page.getByText("DE", { exact: true })).toBeVisible() // Jurisdiction (exact match)
+    await expect(page.getByText("Mar 31")).toBeVisible() // Fiscal year end
+  })
+
+  test("should display empty state when no companies", async ({
+    page,
+    request
+  }) => {
+    // 1. Register a test user
+    const testUser = {
+      email: `test-companies-empty-${Date.now()}@example.com`,
+      password: "TestPassword123",
+      displayName: "Companies Empty Test User"
+    }
+
+    const registerRes = await request.post("/api/auth/register", {
+      data: testUser
+    })
+    expect(registerRes.ok()).toBeTruthy()
+
+    // 2. Login to get session token
+    const loginRes = await request.post("/api/auth/login", {
+      data: {
+        provider: "local",
+        credentials: {
+          email: testUser.email,
+          password: testUser.password
+        }
+      }
+    })
+    expect(loginRes.ok()).toBeTruthy()
+    const loginData = await loginRes.json()
+    const sessionToken = loginData.token
+
+    // 3. Create an organization via API (no companies)
+    const orgName = `Companies Empty Test Org ${Date.now()}`
+    const createOrgRes = await request.post("/api/v1/organizations", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        name: orgName,
+        reportingCurrency: "USD",
+        settings: null
+      }
+    })
+    expect(createOrgRes.ok()).toBeTruthy()
+    const orgData = await createOrgRes.json()
+
+    // 4. Set session cookie
+    await page.context().addCookies([
+      {
+        name: "accountability_session",
+        value: sessionToken,
+        domain: "localhost",
+        path: "/",
+        httpOnly: true,
+        secure: false,
+        sameSite: "Lax"
+      }
+    ])
+
+    // 5. Navigate to companies list page
+    await page.goto(`/organizations/${orgData.id}/companies`)
+
+    // 6. Should show 0 companies count
+    await expect(page.getByText(/0 companies/i)).toBeVisible()
+
+    // 7. Should show empty state
+    await expect(page.getByText(/No companies/i)).toBeVisible()
+
+    // 8. Should show create company button
+    await expect(page.getByRole("button", { name: /Create Company/i })).toBeVisible()
+  })
+
+  test("should create company via form", async ({ page, request }) => {
+    // 1. Register a test user
+    const testUser = {
+      email: `test-create-company-${Date.now()}@example.com`,
+      password: "TestPassword123",
+      displayName: "Create Company Test User"
+    }
+
+    const registerRes = await request.post("/api/auth/register", {
+      data: testUser
+    })
+    expect(registerRes.ok()).toBeTruthy()
+
+    // 2. Login to get session token
+    const loginRes = await request.post("/api/auth/login", {
+      data: {
+        provider: "local",
+        credentials: {
+          email: testUser.email,
+          password: testUser.password
+        }
+      }
+    })
+    expect(loginRes.ok()).toBeTruthy()
+    const loginData = await loginRes.json()
+    const sessionToken = loginData.token
+
+    // 3. Create an organization via API
+    const createOrgRes = await request.post("/api/v1/organizations", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        name: `Create Company Test Org ${Date.now()}`,
+        reportingCurrency: "USD",
+        settings: null
+      }
+    })
+    expect(createOrgRes.ok()).toBeTruthy()
+    const orgData = await createOrgRes.json()
+
+    // 4. Set session cookie
+    await page.context().addCookies([
+      {
+        name: "accountability_session",
+        value: sessionToken,
+        domain: "localhost",
+        path: "/",
+        httpOnly: true,
+        secure: false,
+        sameSite: "Lax"
+      }
+    ])
+
+    // 5. Set localStorage token (needed for client-side API calls)
+    await page.goto("/login")
+    await page.evaluate((token) => {
+      localStorage.setItem("accountabilitySessionToken", token)
+    }, sessionToken)
+
+    // 6. Navigate to companies list page
+    await page.goto(`/organizations/${orgData.id}/companies`)
+
+    // 7. Click "New Company" button
+    await page.getByRole("button", { name: /New Company/i }).click()
+
+    // 8. Should show create company form modal
+    await expect(page.getByRole("heading", { name: "Create Company" })).toBeVisible()
+
+    // 9. Fill in company details
+    const newCompanyName = `New Test Company ${Date.now()}`
+    await page.fill("#company-name", newCompanyName)
+    await page.fill("#company-legal-name", `${newCompanyName} LLC`)
+    await page.selectOption("#company-jurisdiction", "GB")
+    await page.selectOption("#company-functional-currency", "GBP")
+    await page.selectOption("#company-reporting-currency", "GBP")
+    await page.selectOption("#company-fy-month", "3")
+    await page.selectOption("#company-fy-day", "31")
+
+    // 10. Submit form
+    await page.click('button[type="submit"]')
+
+    // 11. Should show new company in list (after invalidation) - use heading role for company name
+    await expect(page.getByRole("heading", { name: newCompanyName })).toBeVisible({ timeout: 10000 })
+
+    // 12. Should show updated company count
+    await expect(page.getByText(/1 company/i)).toBeVisible()
+
+    // 13. Should show company details
+    await expect(page.getByText("GBP")).toBeVisible()
+    await expect(page.getByText("Mar 31")).toBeVisible()
+  })
+
+  test("should show validation error for empty company name", async ({
+    page,
+    request
+  }) => {
+    // 1. Register a test user
+    const testUser = {
+      email: `test-company-validation-${Date.now()}@example.com`,
+      password: "TestPassword123",
+      displayName: "Company Validation Test User"
+    }
+
+    const registerRes = await request.post("/api/auth/register", {
+      data: testUser
+    })
+    expect(registerRes.ok()).toBeTruthy()
+
+    // 2. Login to get session token
+    const loginRes = await request.post("/api/auth/login", {
+      data: {
+        provider: "local",
+        credentials: {
+          email: testUser.email,
+          password: testUser.password
+        }
+      }
+    })
+    expect(loginRes.ok()).toBeTruthy()
+    const loginData = await loginRes.json()
+    const sessionToken = loginData.token
+
+    // 3. Create an organization via API
+    const createOrgRes = await request.post("/api/v1/organizations", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        name: `Validation Test Org ${Date.now()}`,
+        reportingCurrency: "USD",
+        settings: null
+      }
+    })
+    expect(createOrgRes.ok()).toBeTruthy()
+    const orgData = await createOrgRes.json()
+
+    // 4. Set session cookie
+    await page.context().addCookies([
+      {
+        name: "accountability_session",
+        value: sessionToken,
+        domain: "localhost",
+        path: "/",
+        httpOnly: true,
+        secure: false,
+        sameSite: "Lax"
+      }
+    ])
+
+    // 5. Navigate to companies list page
+    await page.goto(`/organizations/${orgData.id}/companies`)
+
+    // 6. Click "New Company" button
+    await page.getByRole("button", { name: /New Company/i }).click()
+
+    // 7. Fill legal name and set company name to whitespace only (bypasses HTML5 required validation)
+    await page.fill("#company-name", "   ")
+    await page.fill("#company-legal-name", "Some Legal Name LLC")
+
+    // 8. Submit form
+    await page.click('button[type="submit"]')
+
+    // 9. Should show validation error (our custom validation catches whitespace-only input)
+    await expect(page.getByRole("alert")).toBeVisible()
+    await expect(page.getByText(/Company name is required/i)).toBeVisible()
+  })
+
+  test("should cancel create company form and close modal", async ({
+    page,
+    request
+  }) => {
+    // 1. Register a test user
+    const testUser = {
+      email: `test-cancel-company-${Date.now()}@example.com`,
+      password: "TestPassword123",
+      displayName: "Cancel Company Test User"
+    }
+
+    const registerRes = await request.post("/api/auth/register", {
+      data: testUser
+    })
+    expect(registerRes.ok()).toBeTruthy()
+
+    // 2. Login to get session token
+    const loginRes = await request.post("/api/auth/login", {
+      data: {
+        provider: "local",
+        credentials: {
+          email: testUser.email,
+          password: testUser.password
+        }
+      }
+    })
+    expect(loginRes.ok()).toBeTruthy()
+    const loginData = await loginRes.json()
+    const sessionToken = loginData.token
+
+    // 3. Create an organization via API
+    const createOrgRes = await request.post("/api/v1/organizations", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        name: `Cancel Company Test Org ${Date.now()}`,
+        reportingCurrency: "USD",
+        settings: null
+      }
+    })
+    expect(createOrgRes.ok()).toBeTruthy()
+    const orgData = await createOrgRes.json()
+
+    // 4. Set session cookie
+    await page.context().addCookies([
+      {
+        name: "accountability_session",
+        value: sessionToken,
+        domain: "localhost",
+        path: "/",
+        httpOnly: true,
+        secure: false,
+        sameSite: "Lax"
+      }
+    ])
+
+    // 5. Navigate to companies list page
+    await page.goto(`/organizations/${orgData.id}/companies`)
+
+    // 6. Click "New Company" button
+    await page.getByRole("button", { name: /New Company/i }).click()
+
+    // 7. Modal should be visible
+    await expect(page.getByRole("heading", { name: "Create Company" })).toBeVisible()
+
+    // 8. Click cancel
+    await page.getByRole("button", { name: /Cancel/i }).click()
+
+    // 9. Modal should be hidden
+    await expect(page.getByRole("heading", { name: "Create Company" })).not.toBeVisible()
+  })
+
+  test("should navigate to company details when clicking a company card", async ({
+    page,
+    request
+  }) => {
+    // 1. Register a test user
+    const testUser = {
+      email: `test-company-nav-${Date.now()}@example.com`,
+      password: "TestPassword123",
+      displayName: "Company Nav Test User"
+    }
+
+    const registerRes = await request.post("/api/auth/register", {
+      data: testUser
+    })
+    expect(registerRes.ok()).toBeTruthy()
+
+    // 2. Login to get session token
+    const loginRes = await request.post("/api/auth/login", {
+      data: {
+        provider: "local",
+        credentials: {
+          email: testUser.email,
+          password: testUser.password
+        }
+      }
+    })
+    expect(loginRes.ok()).toBeTruthy()
+    const loginData = await loginRes.json()
+    const sessionToken = loginData.token
+
+    // 3. Create an organization via API
+    const createOrgRes = await request.post("/api/v1/organizations", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        name: `Company Nav Test Org ${Date.now()}`,
+        reportingCurrency: "USD",
+        settings: null
+      }
+    })
+    expect(createOrgRes.ok()).toBeTruthy()
+    const orgData = await createOrgRes.json()
+
+    // 4. Create a company
+    const companyName = `Nav Test Company ${Date.now()}`
+    const createCompanyRes = await request.post("/api/v1/companies", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        organizationId: orgData.id,
+        name: companyName,
+        legalName: `${companyName} Inc.`,
+        jurisdiction: "US",
+        functionalCurrency: "USD",
+        reportingCurrency: "USD",
+        fiscalYearEnd: { month: 12, day: 31 },
+        taxId: null,
+        parentCompanyId: null,
+        ownershipPercentage: null,
+        consolidationMethod: null
+      }
+    })
+    expect(createCompanyRes.ok()).toBeTruthy()
+    const companyData = await createCompanyRes.json()
+
+    // 5. Set session cookie
+    await page.context().addCookies([
+      {
+        name: "accountability_session",
+        value: sessionToken,
+        domain: "localhost",
+        path: "/",
+        httpOnly: true,
+        secure: false,
+        sameSite: "Lax"
+      }
+    ])
+
+    // 6. Navigate to companies list page
+    await page.goto(`/organizations/${orgData.id}/companies`)
+
+    // 7. Should see company card (use heading role to avoid matching the legal name too)
+    await expect(page.getByRole("heading", { name: companyName })).toBeVisible()
+
+    // 8. Click on company card (use heading role for precise targeting)
+    await page.getByRole("heading", { name: companyName }).click()
+
+    // 9. Should be on company details page
+    await page.waitForURL(/\/companies\/[^/]+$/)
+    expect(page.url()).toContain(`/organizations/${orgData.id}/companies/${companyData.id}`)
+
+    // 10. Should show company details
+    await expect(page.getByRole("heading", { name: companyName })).toBeVisible()
+    await expect(page.getByText(`${companyName} Inc.`)).toBeVisible()
+  })
+
+  test("should show breadcrumb navigation", async ({ page, request }) => {
+    // 1. Register a test user
+    const testUser = {
+      email: `test-companies-breadcrumb-${Date.now()}@example.com`,
+      password: "TestPassword123",
+      displayName: "Companies Breadcrumb Test User"
+    }
+
+    const registerRes = await request.post("/api/auth/register", {
+      data: testUser
+    })
+    expect(registerRes.ok()).toBeTruthy()
+
+    // 2. Login to get session token
+    const loginRes = await request.post("/api/auth/login", {
+      data: {
+        provider: "local",
+        credentials: {
+          email: testUser.email,
+          password: testUser.password
+        }
+      }
+    })
+    expect(loginRes.ok()).toBeTruthy()
+    const loginData = await loginRes.json()
+    const sessionToken = loginData.token
+
+    // 3. Create an organization via API
+    const orgName = `Breadcrumb Test Org ${Date.now()}`
+    const createOrgRes = await request.post("/api/v1/organizations", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        name: orgName,
+        reportingCurrency: "USD",
+        settings: null
+      }
+    })
+    expect(createOrgRes.ok()).toBeTruthy()
+    const orgData = await createOrgRes.json()
+
+    // 4. Set session cookie
+    await page.context().addCookies([
+      {
+        name: "accountability_session",
+        value: sessionToken,
+        domain: "localhost",
+        path: "/",
+        httpOnly: true,
+        secure: false,
+        sameSite: "Lax"
+      }
+    ])
+
+    // 5. Navigate to companies list page
+    await page.goto(`/organizations/${orgData.id}/companies`)
+
+    // 6. Should show breadcrumb with Accountability link
+    await expect(page.getByRole("link", { name: "Accountability" })).toBeVisible()
+
+    // 7. Should show Organizations link in breadcrumb
+    await expect(page.getByRole("link", { name: "Organizations" })).toBeVisible()
+
+    // 8. Should show organization name link in breadcrumb
+    await expect(page.getByRole("link", { name: orgName })).toBeVisible()
+
+    // 9. Click organization name link to navigate back
+    await page.getByRole("link", { name: orgName }).click()
+
+    // 10. Should be on organization details page
+    await page.waitForURL(`/organizations/${orgData.id}`)
+    expect(page.url()).toContain(`/organizations/${orgData.id}`)
+    expect(page.url()).not.toContain("/companies")
+  })
+
+  test("should navigate from organization details to companies list", async ({
+    page,
+    request
+  }) => {
+    // 1. Register a test user
+    const testUser = {
+      email: `test-org-to-companies-${Date.now()}@example.com`,
+      password: "TestPassword123",
+      displayName: "Org to Companies Test User"
+    }
+
+    const registerRes = await request.post("/api/auth/register", {
+      data: testUser
+    })
+    expect(registerRes.ok()).toBeTruthy()
+
+    // 2. Login to get session token
+    const loginRes = await request.post("/api/auth/login", {
+      data: {
+        provider: "local",
+        credentials: {
+          email: testUser.email,
+          password: testUser.password
+        }
+      }
+    })
+    expect(loginRes.ok()).toBeTruthy()
+    const loginData = await loginRes.json()
+    const sessionToken = loginData.token
+
+    // 3. Create an organization via API
+    const orgName = `Org to Companies Test Org ${Date.now()}`
+    const createOrgRes = await request.post("/api/v1/organizations", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        name: orgName,
+        reportingCurrency: "USD",
+        settings: null
+      }
+    })
+    expect(createOrgRes.ok()).toBeTruthy()
+    const orgData = await createOrgRes.json()
+
+    // 4. Set session cookie
+    await page.context().addCookies([
+      {
+        name: "accountability_session",
+        value: sessionToken,
+        domain: "localhost",
+        path: "/",
+        httpOnly: true,
+        secure: false,
+        sameSite: "Lax"
+      }
+    ])
+
+    // 5. Navigate to organization details page
+    await page.goto(`/organizations/${orgData.id}`)
+
+    // 6. Should see "View all" link
+    await expect(page.getByRole("link", { name: "View all" })).toBeVisible()
+
+    // 7. Click "View all" link
+    await page.getByRole("link", { name: "View all" }).click()
+
+    // 8. Should be on companies list page
+    await page.waitForURL(`/organizations/${orgData.id}/companies`)
+    expect(page.url()).toContain(`/organizations/${orgData.id}/companies`)
+
+    // 9. Should show Companies heading (use exact match to avoid matching org name containing "Companies")
+    await expect(page.getByRole("heading", { name: "Companies", exact: true })).toBeVisible()
+  })
+})
