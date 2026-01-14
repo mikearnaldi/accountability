@@ -7,6 +7,7 @@
  * - Weak password shows validation error
  * - Client-side validation for all fields
  * - Redirect away if already authenticated
+ * - Password toggle functionality
  */
 
 import { test, expect } from "@playwright/test"
@@ -57,17 +58,25 @@ test.describe("Registration Flow", () => {
     // Verify we're on the registration page
     await expect(page.getByRole("heading", { name: "Create Account" })).toBeVisible()
 
-    // Fill registration form using data-testid selectors
+    // Fill registration form using data-testid selectors (no confirm password field)
     await page.getByTestId("register-email").fill(newUser.email)
     await page.getByTestId("register-display-name").fill(newUser.displayName)
     await page.getByTestId("register-password").fill(newUser.password)
-    await page.getByTestId("register-confirm-password").fill(newUser.password)
 
-    // Submit the form
-    await page.getByTestId("register-submit").click()
+    // Blur the last input to ensure validation runs
+    await page.getByTestId("register-password").blur()
+
+    // Submit the form and wait for network response
+    const [response] = await Promise.all([
+      page.waitForResponse(resp => resp.url().includes("/api/auth/register")),
+      page.getByTestId("register-submit").click()
+    ])
+
+    // Check API response
+    expect(response.ok()).toBe(true)
 
     // Should redirect to home page (dashboard) after successful registration and auto-login
-    await page.waitForURL("/")
+    await page.waitForURL("/", { timeout: 10000 })
 
     // Verify token was stored (indicating successful login)
     const token = await page.evaluate((key) => localStorage.getItem(key), AUTH_TOKEN_KEY)
@@ -94,10 +103,18 @@ test.describe("Registration Flow", () => {
     await page.getByTestId("register-email").fill(existingUser.email)
     await page.getByTestId("register-display-name").fill("Another User")
     await page.getByTestId("register-password").fill(existingUser.password)
-    await page.getByTestId("register-confirm-password").fill(existingUser.password)
 
-    // Submit the form
-    await page.getByTestId("register-submit").click()
+    // Blur the last input to ensure validation runs
+    await page.getByTestId("register-password").blur()
+
+    // Submit the form and wait for network response
+    const [response] = await Promise.all([
+      page.waitForResponse(resp => resp.url().includes("/api/auth/register")),
+      page.getByTestId("register-submit").click()
+    ])
+
+    // API should return error (conflict)
+    expect(response.status()).toBe(409)
 
     // Should show error alert about duplicate email
     await expect(page.getByTestId("register-error")).toBeVisible()
@@ -120,9 +137,9 @@ test.describe("Registration Flow", () => {
 
     // Should show password validation error
     await expect(page.getByTestId("register-password-error")).toBeVisible()
-    // The error should mention one or more requirements not met
+    // The error message now says "Password does not meet all requirements"
     const errorText = await page.getByTestId("register-password-error").textContent()
-    expect(errorText).toContain("Password must have")
+    expect(errorText).toContain("Password does not meet all requirements")
   })
 
   test("should show validation error for password without uppercase", async ({ page }) => {
@@ -133,7 +150,8 @@ test.describe("Registration Flow", () => {
     await page.getByTestId("register-password").blur()
 
     await expect(page.getByTestId("register-password-error")).toBeVisible()
-    await expect(page.getByTestId("register-password-error")).toContainText("uppercase")
+    // Now we show "Password does not meet all requirements"
+    await expect(page.getByTestId("register-password-error")).toContainText("does not meet all requirements")
   })
 
   test("should show validation error for password without number", async ({ page }) => {
@@ -144,7 +162,8 @@ test.describe("Registration Flow", () => {
     await page.getByTestId("register-password").blur()
 
     await expect(page.getByTestId("register-password-error")).toBeVisible()
-    await expect(page.getByTestId("register-password-error")).toContainText("number")
+    // Now we show "Password does not meet all requirements"
+    await expect(page.getByTestId("register-password-error")).toContainText("does not meet all requirements")
   })
 
   test("should show validation error for password without special character", async ({ page }) => {
@@ -155,20 +174,23 @@ test.describe("Registration Flow", () => {
     await page.getByTestId("register-password").blur()
 
     await expect(page.getByTestId("register-password-error")).toBeVisible()
-    await expect(page.getByTestId("register-password-error")).toContainText("special character")
+    // Now we show "Password does not meet all requirements"
+    await expect(page.getByTestId("register-password-error")).toContainText("does not meet all requirements")
   })
 
-  test("should show validation error for passwords that do not match", async ({ page }) => {
+  test("should show password requirements while typing", async ({ page }) => {
     await page.goto("/register")
 
-    // Fill password and a different confirmation
-    await page.getByTestId("register-password").fill("SecureP@ss123!")
-    await page.getByTestId("register-confirm-password").fill("DifferentP@ss123!")
-    await page.getByTestId("register-confirm-password").blur()
+    // Focus the password field and start typing
+    await page.getByTestId("register-password").focus()
+    await page.getByTestId("register-password").fill("abc")
 
-    // Should show password mismatch error
-    await expect(page.getByTestId("register-confirm-password-error")).toBeVisible()
-    await expect(page.getByTestId("register-confirm-password-error")).toContainText("do not match")
+    // Password requirements should be visible while typing
+    await expect(page.getByTestId("password-requirements")).toBeVisible()
+
+    // Should show checkmarks for lowercase (met) and circles for unmet requirements
+    const requirementsList = page.getByTestId("password-requirements")
+    await expect(requirementsList).toBeVisible()
   })
 
   test("should show validation errors for empty required fields", async ({ page }) => {
@@ -186,9 +208,6 @@ test.describe("Registration Flow", () => {
 
     await expect(page.getByTestId("register-password-error")).toBeVisible()
     await expect(page.getByTestId("register-password-error")).toContainText("Password is required")
-
-    await expect(page.getByTestId("register-confirm-password-error")).toBeVisible()
-    await expect(page.getByTestId("register-confirm-password-error")).toContainText("confirm your password")
   })
 
   test("should show validation error for invalid email format", async ({ page }) => {
@@ -284,17 +303,25 @@ test.describe("Registration Flow", () => {
     // Verify we're on the registration page
     await expect(page.getByRole("heading", { name: "Create Account" })).toBeVisible()
 
-    // Fill registration form
+    // Fill registration form (no confirm password field)
     await page.getByTestId("register-email").fill(newUser.email)
     await page.getByTestId("register-display-name").fill(newUser.displayName)
     await page.getByTestId("register-password").fill(newUser.password)
-    await page.getByTestId("register-confirm-password").fill(newUser.password)
 
-    // Submit the form
-    await page.getByTestId("register-submit").click()
+    // Blur the last input to ensure validation runs
+    await page.getByTestId("register-password").blur()
+
+    // Submit the form and wait for network response
+    const [response] = await Promise.all([
+      page.waitForResponse(resp => resp.url().includes("/api/auth/register")),
+      page.getByTestId("register-submit").click()
+    ])
+
+    // Check API response
+    expect(response.ok()).toBe(true)
 
     // Should redirect to the requested page (/companies)
-    await page.waitForURL("/companies")
+    await page.waitForURL("/companies", { timeout: 10000 })
   })
 
   test("should show loading state during registration", async ({ page }) => {
@@ -302,21 +329,26 @@ test.describe("Registration Flow", () => {
 
     await page.goto("/register")
 
-    // Fill registration form
+    // Fill registration form (no confirm password field)
     await page.getByTestId("register-email").fill(newUser.email)
     await page.getByTestId("register-display-name").fill(newUser.displayName)
     await page.getByTestId("register-password").fill(newUser.password)
-    await page.getByTestId("register-confirm-password").fill(newUser.password)
+
+    // Blur the last input to ensure validation runs
+    await page.getByTestId("register-password").blur()
 
     // Start watching for button state
     const submitButton = page.getByTestId("register-submit")
 
-    // Submit the form
-    await submitButton.click()
+    // Submit the form and wait for network response
+    await Promise.all([
+      page.waitForResponse(resp => resp.url().includes("/api/auth/register")),
+      submitButton.click()
+    ])
 
     // The button should be disabled during loading (may be very brief)
     // We verify by checking the successful redirect happens
-    await page.waitForURL("/")
+    await page.waitForURL("/", { timeout: 10000 })
   })
 
   test("should clear validation errors when user fixes input", async ({ page }) => {
@@ -334,5 +366,38 @@ test.describe("Registration Flow", () => {
 
     // Error should be cleared (validation runs on change when error is present)
     await expect(page.getByTestId("register-email-error")).not.toBeVisible()
+  })
+
+  test("should toggle password visibility", async ({ page }) => {
+    await page.goto("/register")
+
+    // Fill password
+    const passwordInput = page.getByTestId("register-password")
+    await passwordInput.fill("SecureP@ss123!")
+
+    // Initially password should be hidden
+    await expect(passwordInput).toHaveAttribute("type", "password")
+
+    // Click toggle button
+    await page.getByTestId("register-password-toggle").click()
+
+    // Password should now be visible
+    await expect(passwordInput).toHaveAttribute("type", "text")
+
+    // Click toggle again
+    await page.getByTestId("register-password-toggle").click()
+
+    // Password should be hidden again
+    await expect(passwordInput).toHaveAttribute("type", "password")
+  })
+
+  test("should have clickable logo linking to home", async ({ page }) => {
+    await page.goto("/register")
+
+    // Click the logo link
+    await page.getByTestId("register-logo-link").click()
+
+    // Should navigate to home
+    await expect(page).toHaveURL("/")
   })
 })

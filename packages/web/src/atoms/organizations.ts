@@ -17,7 +17,7 @@ import { CreateOrganizationRequest, UpdateOrganizationRequest, CreateCompanyRequ
 import { CurrencyCode } from "@accountability/core/Domains/CurrencyCode"
 import { JurisdictionCode } from "@accountability/core/Domains/JurisdictionCode"
 import { FiscalYearEnd, CompanyId } from "@accountability/core/Domains/Company"
-import { OrganizationId } from "@accountability/core/Domains/Organization"
+import { OrganizationId, OrganizationSettings as OrganizationSettingsObj } from "@accountability/core/Domains/Organization"
 import type { Organization } from "@accountability/core/Domains/Organization"
 import { Percentage } from "@accountability/core/Domains/Percentage"
 
@@ -86,12 +86,23 @@ export const hasOrganizationsAtom = Atom.readable((get) => {
 // =============================================================================
 
 /**
+ * Input type for organization settings (form input)
+ */
+export interface OrganizationSettingsInput {
+  readonly defaultLocale: string
+  readonly defaultTimezone: string
+  readonly useFiscalYear: boolean
+  readonly defaultDecimalPlaces: number
+}
+
+/**
  * Input type for creating an organization (form input)
  * Uses plain strings since form data is untyped at runtime
  */
 export interface CreateOrganizationInput {
   readonly name: string
   readonly reportingCurrency: string
+  readonly settings?: OrganizationSettingsInput
 }
 
 /**
@@ -149,7 +160,14 @@ export const createOrganizationMutation = ApiClient.runtime.fn<CreateOrganizatio
     const payload = CreateOrganizationRequest.make({
       name: input.name,
       reportingCurrency: CurrencyCode.make(input.reportingCurrency),
-      settings: Option.none()
+      settings: input.settings !== undefined
+        ? Option.some(OrganizationSettingsObj.make({
+            defaultLocale: input.settings.defaultLocale,
+            defaultTimezone: input.settings.defaultTimezone,
+            useFiscalYear: input.settings.useFiscalYear,
+            defaultDecimalPlaces: input.settings.defaultDecimalPlaces
+          }))
+        : Option.none()
     })
     const response: Organization = yield* client.companies.createOrganization({
       payload

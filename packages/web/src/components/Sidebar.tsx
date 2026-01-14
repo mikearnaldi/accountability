@@ -177,18 +177,29 @@ export function Sidebar() {
       `}
       data-testid="sidebar"
     >
-      {/* Logo/Brand Area */}
+      {/* Logo/Brand Area - Clickable to return home */}
       <div className={`
         flex h-16 items-center border-b border-gray-100
         ${isOpen ? "justify-between px-4" : "justify-center px-2"}
       `}>
-        <div className={`flex items-center gap-3 ${!isOpen ? "hidden" : ""}`}>
+        <Link
+          to="/"
+          className={`
+            flex items-center gap-3 rounded-lg
+            transition-transform hover:scale-[1.02] active:scale-[0.98]
+            focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2
+            ${!isOpen ? "p-1" : ""}
+          `}
+          title="Go to Dashboard"
+          data-testid="sidebar-logo-link"
+        >
           <LogoIcon />
-          <span className="text-lg font-semibold bg-gradient-to-r from-indigo-600 to-indigo-800 bg-clip-text text-transparent">
-            Accountability
-          </span>
-        </div>
-        {!isOpen && <LogoIcon />}
+          {isOpen && (
+            <span className="text-lg font-semibold bg-gradient-to-r from-indigo-600 to-indigo-800 bg-clip-text text-transparent">
+              Accountability
+            </span>
+          )}
+        </Link>
         <button
           onClick={toggleSidebar}
           className={`

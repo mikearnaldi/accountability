@@ -5,8 +5,12 @@
  * Features:
  * - Centered card layout with branded design
  * - Professional input styling with error states
- * - Password strength requirements
+ * - Password strength requirements shown while typing
  * - Loading spinner during registration
+ * - Auto-focus on first field
+ * - Show/hide password toggle
+ * - Caps Lock indicator
+ * - Clickable logo linking to home
  */
 
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router"
@@ -58,10 +62,35 @@ function LockIcon() {
   )
 }
 
-function ShieldCheckIcon() {
+function EyeIcon() {
   return (
     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+  )
+}
+
+function EyeSlashIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
+    </svg>
+  )
+}
+
+function CheckIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className ?? "h-4 w-4"} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+    </svg>
+  )
+}
+
+function CircleIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className ?? "h-4 w-4"} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <circle cx="12" cy="12" r="6" />
     </svg>
   )
 }
@@ -95,11 +124,11 @@ export const Route = createFileRoute("/register")({
 
 const PASSWORD_MIN_LENGTH = 8
 const PASSWORD_REQUIREMENTS = [
-  { test: (p: string) => p.length >= PASSWORD_MIN_LENGTH, message: `At least ${PASSWORD_MIN_LENGTH} characters` },
-  { test: (p: string) => /[A-Z]/.test(p), message: "At least one uppercase letter" },
-  { test: (p: string) => /[a-z]/.test(p), message: "At least one lowercase letter" },
-  { test: (p: string) => /[0-9]/.test(p), message: "At least one number" },
-  { test: (p: string) => /[!@#$%^&*(),.?":{}|<>]/.test(p), message: "At least one special character" }
+  { test: (p: string) => p.length >= PASSWORD_MIN_LENGTH, label: `At least ${PASSWORD_MIN_LENGTH} characters` },
+  { test: (p: string) => /[A-Z]/.test(p), label: "One uppercase letter" },
+  { test: (p: string) => /[a-z]/.test(p), label: "One lowercase letter" },
+  { test: (p: string) => /[0-9]/.test(p), label: "One number" },
+  { test: (p: string) => /[!@#$%^&*(),.?":{}|<>]/.test(p), label: "One special character" }
 ]
 
 // =============================================================================
@@ -125,6 +154,41 @@ function isErrorWithMessage(error: unknown): error is { message: string } {
 }
 
 // =============================================================================
+// Password Requirements Component
+// =============================================================================
+
+function PasswordRequirements({
+  password,
+  show
+}: {
+  password: string
+  show: boolean
+}) {
+  if (!show) return null
+
+  return (
+    <ul className="mt-2 space-y-1 text-sm" data-testid="password-requirements">
+      {PASSWORD_REQUIREMENTS.map((req, index) => {
+        const passed = req.test(password)
+        return (
+          <li
+            key={index}
+            className={`flex items-center gap-2 ${passed ? "text-green-600" : "text-gray-500"}`}
+          >
+            {passed ? (
+              <CheckIcon className="h-4 w-4 flex-shrink-0" />
+            ) : (
+              <CircleIcon className="h-4 w-4 flex-shrink-0" />
+            )}
+            {req.label}
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
+
+// =============================================================================
 // RegisterPage Component
 // =============================================================================
 
@@ -138,19 +202,35 @@ function RegisterPage() {
   const [email, setEmail] = React.useState("")
   const [displayName, setDisplayName] = React.useState("")
   const [password, setPassword] = React.useState("")
-  const [confirmPassword, setConfirmPassword] = React.useState("")
 
   // Validation state
   const [emailError, setEmailError] = React.useState<string | null>(null)
   const [displayNameError, setDisplayNameError] = React.useState<string | null>(null)
   const [passwordError, setPasswordError] = React.useState<string | null>(null)
-  const [confirmPasswordError, setConfirmPasswordError] = React.useState<string | null>(null)
+
+  // UI state
+  const [showPassword, setShowPassword] = React.useState(false)
+  const [capsLockOn, setCapsLockOn] = React.useState(false)
+  const [passwordFocused, setPasswordFocused] = React.useState(false)
+
+  // Refs
+  const emailInputRef = React.useRef<HTMLInputElement>(null)
 
   // Register mutation with promise mode
   const [registerResult, register] = useAtom(registerMutation, { mode: "promise" })
 
   // Track state transitions
   const prevWaiting = React.useRef(false)
+
+  // Auto-focus email input on mount (only if not already authenticated)
+  React.useEffect(() => {
+    if (!hasToken) {
+      const timer = setTimeout(() => {
+        emailInputRef.current?.focus()
+      }, 100)
+      return () => clearTimeout(timer)
+    }
+  }, [hasToken])
 
   // Redirect if already authenticated
   React.useEffect(() => {
@@ -203,29 +283,13 @@ function RegisterPage() {
       return false
     }
 
-    const failedRequirements = PASSWORD_REQUIREMENTS
-      .filter(req => !req.test(value))
-      .map(req => req.message)
-
-    if (failedRequirements.length > 0) {
-      setPasswordError(`Password must have: ${failedRequirements.join(", ")}`)
+    const allPassed = PASSWORD_REQUIREMENTS.every(req => req.test(value))
+    if (!allPassed) {
+      setPasswordError("Password does not meet all requirements")
       return false
     }
 
     setPasswordError(null)
-    return true
-  }
-
-  const validateConfirmPassword = (value: string): boolean => {
-    if (!value) {
-      setConfirmPasswordError("Please confirm your password")
-      return false
-    }
-    if (value !== password) {
-      setConfirmPasswordError("Passwords do not match")
-      return false
-    }
-    setConfirmPasswordError(null)
     return true
   }
 
@@ -236,9 +300,8 @@ function RegisterPage() {
     const emailValid = validateEmail(email)
     const displayNameValid = validateDisplayName(displayName)
     const passwordValid = validatePassword(password)
-    const confirmPasswordValid = validateConfirmPassword(confirmPassword)
 
-    if (!emailValid || !displayNameValid || !passwordValid || !confirmPasswordValid) {
+    if (!emailValid || !displayNameValid || !passwordValid) {
       return
     }
 
@@ -261,7 +324,7 @@ function RegisterPage() {
     if (Option.isSome(firstFailure)) {
       const error = firstFailure.value
       if (isErrorWithTag(error, "UserExistsError")) {
-        return "An account with this email already exists"
+        return "An account with this email already exists. Sign in instead?"
       }
       if (isErrorWithTag(error, "PasswordWeakError")) {
         return "Password does not meet security requirements"
@@ -294,11 +357,18 @@ function RegisterPage() {
       </div>
 
       <div className="w-full max-w-md space-y-8">
-        {/* Logo and Title */}
+        {/* Logo and Title - Logo links to home */}
         <div className="text-center">
-          <div className="flex justify-center mb-6">
+          <Link
+            to="/"
+            className="inline-flex flex-col items-center gap-2 mb-6 transition-transform hover:scale-105"
+            data-testid="register-logo-link"
+          >
             <LogoIcon />
-          </div>
+            <span className="text-lg font-semibold bg-gradient-to-r from-indigo-600 to-indigo-800 bg-clip-text text-transparent">
+              Accountability
+            </span>
+          </Link>
           <h1 className="text-3xl font-bold tracking-tight text-gray-900">
             Create Account
           </h1>
@@ -317,8 +387,9 @@ function RegisterPage() {
               </Alert>
             )}
 
-            {/* Email Field */}
+            {/* Email Field - auto-focused */}
             <Input
+              ref={emailInputRef}
               label="Email address"
               type="email"
               id="email"
@@ -359,50 +430,59 @@ function RegisterPage() {
               data-testid="register-display-name"
             />
 
-            {/* Password Field */}
-            <Input
-              label="Password"
-              type="password"
-              id="password"
-              name="password"
-              value={password}
-              onChange={(e) => {
-                setPassword(e.target.value)
-                if (passwordError) validatePassword(e.target.value)
-                if (confirmPassword && confirmPasswordError) {
-                  validateConfirmPassword(confirmPassword)
+            {/* Password Field with show/hide toggle, caps lock indicator, and requirements */}
+            <div className="space-y-1">
+              <Input
+                label="Password"
+                type={showPassword ? "text" : "password"}
+                id="password"
+                name="password"
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value)
+                  if (passwordError) setPasswordError(null)
+                }}
+                onFocus={() => setPasswordFocused(true)}
+                onBlur={() => {
+                  setPasswordFocused(false)
+                  validatePassword(password)
+                }}
+                onKeyDown={(e) => setCapsLockOn(e.getModifierState("CapsLock"))}
+                onKeyUp={(e) => setCapsLockOn(e.getModifierState("CapsLock"))}
+                error={passwordError ?? undefined}
+                errorTestId="register-password-error"
+                placeholder="Create a strong password"
+                autoComplete="new-password"
+                disabled={isLoading}
+                leftIcon={<LockIcon />}
+                rightIcon={
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="text-gray-400 hover:text-gray-600 transition-colors focus:outline-none"
+                    tabIndex={-1}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    data-testid="register-password-toggle"
+                  >
+                    {showPassword ? <EyeSlashIcon /> : <EyeIcon />}
+                  </button>
                 }
-              }}
-              onBlur={() => validatePassword(password)}
-              error={passwordError ?? undefined}
-              errorTestId="register-password-error"
-              placeholder="Create a strong password"
-              autoComplete="new-password"
-              disabled={isLoading}
-              leftIcon={<LockIcon />}
-              data-testid="register-password"
-            />
-
-            {/* Confirm Password Field */}
-            <Input
-              label="Confirm password"
-              type="password"
-              id="confirmPassword"
-              name="confirmPassword"
-              value={confirmPassword}
-              onChange={(e) => {
-                setConfirmPassword(e.target.value)
-                if (confirmPasswordError) validateConfirmPassword(e.target.value)
-              }}
-              onBlur={() => validateConfirmPassword(confirmPassword)}
-              error={confirmPasswordError ?? undefined}
-              errorTestId="register-confirm-password-error"
-              placeholder="Confirm your password"
-              autoComplete="new-password"
-              disabled={isLoading}
-              leftIcon={<ShieldCheckIcon />}
-              data-testid="register-confirm-password"
-            />
+                data-testid="register-password"
+              />
+              {capsLockOn && (
+                <p className="text-amber-600 text-sm flex items-center gap-1" data-testid="caps-lock-warning">
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                  </svg>
+                  Caps Lock is on
+                </p>
+              )}
+              {/* Password requirements shown while typing */}
+              <PasswordRequirements
+                password={password}
+                show={passwordFocused && password.length > 0}
+              />
+            </div>
 
             {/* Submit Button */}
             <Button

@@ -64,10 +64,15 @@ test.describe("Account Settings", () => {
     await page.goto("/login")
     await page.getByTestId("login-email").fill(testUser.email)
     await page.getByTestId("login-password").fill(testUser.password)
-    await page.getByTestId("login-submit").click()
+
+    // Submit login and wait for network response
+    await Promise.all([
+      page.waitForResponse(resp => resp.url().includes("/api/auth/login")),
+      page.getByTestId("login-submit").click()
+    ])
 
     // Wait for redirect to home
-    await page.waitForURL("/")
+    await page.waitForURL("/", { timeout: 10000 })
   })
 
   test("should display user information correctly", async ({ page }) => {
@@ -242,12 +247,24 @@ test.describe("Account Settings", () => {
       }
     })
 
+    // Clear any existing auth state from beforeEach (we need to login as changeUser, not testUser)
+    await page.evaluate((key) => {
+      localStorage.removeItem(key)
+    }, AUTH_TOKEN_KEY)
+
     // Login the user
     await page.goto("/login")
+    // Wait for the login form to be fully loaded and stable (avoid hydration issues)
+    await page.getByTestId("login-form").waitFor({ state: "visible", timeout: 10000 })
     await page.getByTestId("login-email").fill(changeUser.email)
     await page.getByTestId("login-password").fill(changeUser.password)
-    await page.getByTestId("login-submit").click()
-    await page.waitForURL("/")
+
+    // Submit login and wait for network response
+    await Promise.all([
+      page.waitForResponse(resp => resp.url().includes("/api/auth/login")),
+      page.getByTestId("login-submit").click()
+    ])
+    await page.waitForURL("/", { timeout: 10000 })
 
     // Go to settings and change password
     await page.goto("/settings/account")
@@ -259,10 +276,21 @@ test.describe("Account Settings", () => {
     // Wait for redirect to login
     await page.waitForURL(/\/login.*message=password_changed/, { timeout: 15000 })
 
+    // Wait for the login form to be fully loaded and visible
+    await page.getByTestId("login-form").waitFor({ state: "visible", timeout: 10000 })
+
     // Try to login with the OLD password - should fail
     await page.getByTestId("login-email").fill(changeUser.email)
     await page.getByTestId("login-password").fill(changeUser.password)
-    await page.getByTestId("login-submit").click()
+
+    // Submit login and wait for network response
+    const [oldPasswordResponse] = await Promise.all([
+      page.waitForResponse(resp => resp.url().includes("/api/auth/login")),
+      page.getByTestId("login-submit").click()
+    ])
+
+    // API should return an error
+    expect(oldPasswordResponse.ok()).toBe(false)
 
     // Should see an error
     await expect(page.getByTestId("login-error")).toBeVisible({ timeout: 10000 })
@@ -271,7 +299,15 @@ test.describe("Account Settings", () => {
     // Now try with new password - should succeed
     await page.getByTestId("login-password").clear()
     await page.getByTestId("login-password").fill(newPassword)
-    await page.getByTestId("login-submit").click()
+
+    // Submit login and wait for network response
+    const [newPasswordResponse] = await Promise.all([
+      page.waitForResponse(resp => resp.url().includes("/api/auth/login")),
+      page.getByTestId("login-submit").click()
+    ])
+
+    // API should succeed
+    expect(newPasswordResponse.ok()).toBe(true)
 
     // Should redirect to home
     await page.waitForURL("/", { timeout: 10000 })

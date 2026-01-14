@@ -28,6 +28,12 @@ const importExtensionsRule = {
       const isRelative = source.startsWith("./") || source.startsWith("../")
 
       if (isRelative) {
+        // Allow Vite special import suffixes like ?url, ?raw, ?worker, etc.
+        // These are used for special asset handling and don't follow normal extension rules
+        if (source.includes("?")) {
+          return
+        }
+
         // Relative imports must use .ts or .tsx
         if (source.endsWith(".js") || source.endsWith(".jsx")) {
           const fixed = source.replace(/\.jsx?$/, ".ts")

@@ -97,6 +97,7 @@ export function Button({
   children,
   className = "",
   disabled,
+  type = "button",
   ...props
 }: ButtonProps) {
   const baseClasses = [
@@ -109,6 +110,7 @@ export function Button({
 
   return (
     <button
+      type={type}
       className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
       disabled={disabled || loading}
       {...props}

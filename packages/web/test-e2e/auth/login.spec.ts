@@ -72,11 +72,17 @@ test.describe("Login Flow", () => {
     await page.getByTestId("login-email").fill(testUser.email)
     await page.getByTestId("login-password").fill(testUser.password)
 
-    // Submit the form
-    await page.getByTestId("login-submit").click()
+    // Submit the form and wait for network response
+    const [response] = await Promise.all([
+      page.waitForResponse(resp => resp.url().includes("/api/auth/login")),
+      page.getByTestId("login-submit").click()
+    ])
+
+    // Check API response
+    expect(response.ok()).toBe(true)
 
     // Should redirect to home page (dashboard) after successful login
-    await page.waitForURL("/")
+    await page.waitForURL("/", { timeout: 10000 })
 
     // Verify token was stored
     const token = await page.evaluate((key) => localStorage.getItem(key), AUTH_TOKEN_KEY)
@@ -91,8 +97,14 @@ test.describe("Login Flow", () => {
     await page.getByTestId("login-email").fill("wrong@example.com")
     await page.getByTestId("login-password").fill("wrongpassword123")
 
-    // Submit the form
-    await page.getByTestId("login-submit").click()
+    // Submit the form and wait for network response
+    const [response] = await Promise.all([
+      page.waitForResponse(resp => resp.url().includes("/api/auth/login")),
+      page.getByTestId("login-submit").click()
+    ])
+
+    // API should return error
+    expect(response.ok()).toBe(false)
 
     // Should show error alert
     await expect(page.getByTestId("login-error")).toBeVisible()
@@ -117,11 +129,17 @@ test.describe("Login Flow", () => {
     await page.getByTestId("login-email").fill(testUser.email)
     await page.getByTestId("login-password").fill(testUser.password)
 
-    // Submit the form
-    await page.getByTestId("login-submit").click()
+    // Submit the form and wait for network response
+    const [response] = await Promise.all([
+      page.waitForResponse(resp => resp.url().includes("/api/auth/login")),
+      page.getByTestId("login-submit").click()
+    ])
+
+    // Check API response
+    expect(response.ok()).toBe(true)
 
     // Should redirect to the requested page (/companies)
-    await page.waitForURL("/companies")
+    await page.waitForURL("/companies", { timeout: 10000 })
   })
 
   test("should redirect away if already authenticated", async ({ page }) => {
@@ -129,17 +147,22 @@ test.describe("Login Flow", () => {
     await page.goto("/login")
     await page.getByTestId("login-email").fill(testUser.email)
     await page.getByTestId("login-password").fill(testUser.password)
-    await page.getByTestId("login-submit").click()
+
+    // Submit login and wait for network response
+    await Promise.all([
+      page.waitForResponse(resp => resp.url().includes("/api/auth/login")),
+      page.getByTestId("login-submit").click()
+    ])
 
     // Wait for redirect to home
-    await page.waitForURL("/")
+    await page.waitForURL("/", { timeout: 10000 })
 
     // Now try to navigate to login page
     await page.goto("/login")
 
     // Should be redirected away from login page
     // (back to home since no redirect param)
-    await page.waitForURL("/")
+    await page.waitForURL("/", { timeout: 10000 })
   })
 
   test("should show validation errors for empty fields", async ({ page }) => {
@@ -213,11 +236,14 @@ test.describe("Login Flow", () => {
     // Start watching for button text change
     const submitButton = page.getByTestId("login-submit")
 
-    // Submit the form
-    await submitButton.click()
+    // Submit the form and wait for network response
+    await Promise.all([
+      page.waitForResponse(resp => resp.url().includes("/api/auth/login")),
+      submitButton.click()
+    ])
 
     // The button should show loading state (may be very brief)
     // We check that submission started by waiting for URL change
-    await page.waitForURL("/")
+    await page.waitForURL("/", { timeout: 10000 })
   })
 })

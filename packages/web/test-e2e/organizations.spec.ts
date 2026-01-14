@@ -215,8 +215,8 @@ test.describe("Organizations List Page", () => {
     await expect(page.getByText(orgName)).toBeVisible()
   })
 
-  test("should display organization card with correct information", async ({ page, request }) => {
-    const orgName = `Card Test Org ${Date.now()}`
+  test("should display organization row with correct information", async ({ page, request }) => {
+    const orgName = `Table Test Org ${Date.now()}`
 
     // Create organization via API first
     const authResponse = await request.post("/api/auth/login", {
@@ -255,21 +255,21 @@ test.describe("Organizations List Page", () => {
     // Visit organizations page
     await page.goto("/organizations")
 
-    // Organization card should be visible
-    const card = page.getByTestId(`organization-card-${org.id}`)
-    await expect(card).toBeVisible()
+    // Organization row should be visible in table
+    const row = page.getByTestId(`organization-row-${org.id}`)
+    await expect(row).toBeVisible()
 
-    // Card should show name (scoped testID)
+    // Row should show name
     await expect(page.getByTestId(`organization-name-${org.id}`)).toContainText(orgName)
 
-    // Card should show currency (scoped testID)
+    // Row should show currency
     await expect(page.getByTestId(`organization-currency-${org.id}`)).toContainText("EUR")
 
-    // Card should show company count badge (scoped to this card)
-    await expect(card.getByTestId("organization-company-count")).toBeVisible()
+    // Row should show company count
+    await expect(page.getByTestId(`organization-company-count-${org.id}`)).toBeVisible()
   })
 
-  test("should navigate to organization details when clicking card", async ({ page, request }) => {
+  test("should navigate to organization details when clicking view link", async ({ page, request }) => {
     const orgName = `Navigate Test Org ${Date.now()}`
 
     // Create organization via API first
@@ -309,10 +309,10 @@ test.describe("Organizations List Page", () => {
     // Visit organizations page
     await page.goto("/organizations")
 
-    // Click the organization card
-    const card = page.getByTestId(`organization-card-${org.id}`)
-    await expect(card).toBeVisible()
-    await card.click()
+    // Click the organization view link
+    const viewLink = page.getByTestId(`organization-view-${org.id}`)
+    await expect(viewLink).toBeVisible()
+    await viewLink.click()
 
     // Should navigate to organization details
     await expect(page).toHaveURL(`/organizations/${org.id}`)
@@ -465,10 +465,10 @@ test.describe("Organizations List Page", () => {
     // Organization should appear with the name
     await expect(page.getByText(orgName)).toBeVisible()
 
-    // Since the testIDs are now scoped by org.id, find the card that contains the org name
-    // and check its currency text inside
-    const card = page.locator('[data-testid^="organization-card-"]').filter({ hasText: orgName })
-    await expect(card.locator('p[data-testid^="organization-currency-"]')).toContainText("EUR")
+    // Since we now use a table, find the row that contains the org name
+    // and check its currency badge inside
+    const row = page.locator('[data-testid^="organization-row-"]').filter({ hasText: orgName })
+    await expect(row.locator('span[data-testid^="organization-currency-"]')).toContainText("EUR")
   })
 })
 
