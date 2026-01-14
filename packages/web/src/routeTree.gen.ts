@@ -11,12 +11,13 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as RegisterRouteImport } from './routes/register'
-import { Route as OrganizationsRouteImport } from './routes/organizations'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as JournalEntriesRouteImport } from './routes/journal-entries'
 import { Route as CompaniesRouteImport } from './routes/companies'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as OrganizationsIndexRouteImport } from './routes/organizations/index'
 import { Route as SettingsAccountRouteImport } from './routes/settings/account'
+import { Route as OrganizationsIdRouteImport } from './routes/organizations/$id'
 import { Route as ApiSplatRouteImport } from './routes/api/$'
 import { Route as AuthCallbackProviderRouteImport } from './routes/auth/callback/$provider'
 
@@ -28,11 +29,6 @@ const ReportsRoute = ReportsRouteImport.update({
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
   path: '/register',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OrganizationsRoute = OrganizationsRouteImport.update({
-  id: '/organizations',
-  path: '/organizations',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -55,9 +51,19 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OrganizationsIndexRoute = OrganizationsIndexRouteImport.update({
+  id: '/organizations/',
+  path: '/organizations/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsAccountRoute = SettingsAccountRouteImport.update({
   id: '/settings/account',
   path: '/settings/account',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OrganizationsIdRoute = OrganizationsIdRouteImport.update({
+  id: '/organizations/$id',
+  path: '/organizations/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiSplatRoute = ApiSplatRouteImport.update({
@@ -76,11 +82,12 @@ export interface FileRoutesByFullPath {
   '/companies': typeof CompaniesRoute
   '/journal-entries': typeof JournalEntriesRoute
   '/login': typeof LoginRoute
-  '/organizations': typeof OrganizationsRoute
   '/register': typeof RegisterRoute
   '/reports': typeof ReportsRoute
   '/api/$': typeof ApiSplatRoute
+  '/organizations/$id': typeof OrganizationsIdRoute
   '/settings/account': typeof SettingsAccountRoute
+  '/organizations': typeof OrganizationsIndexRoute
   '/auth/callback/$provider': typeof AuthCallbackProviderRoute
 }
 export interface FileRoutesByTo {
@@ -88,11 +95,12 @@ export interface FileRoutesByTo {
   '/companies': typeof CompaniesRoute
   '/journal-entries': typeof JournalEntriesRoute
   '/login': typeof LoginRoute
-  '/organizations': typeof OrganizationsRoute
   '/register': typeof RegisterRoute
   '/reports': typeof ReportsRoute
   '/api/$': typeof ApiSplatRoute
+  '/organizations/$id': typeof OrganizationsIdRoute
   '/settings/account': typeof SettingsAccountRoute
+  '/organizations': typeof OrganizationsIndexRoute
   '/auth/callback/$provider': typeof AuthCallbackProviderRoute
 }
 export interface FileRoutesById {
@@ -101,11 +109,12 @@ export interface FileRoutesById {
   '/companies': typeof CompaniesRoute
   '/journal-entries': typeof JournalEntriesRoute
   '/login': typeof LoginRoute
-  '/organizations': typeof OrganizationsRoute
   '/register': typeof RegisterRoute
   '/reports': typeof ReportsRoute
   '/api/$': typeof ApiSplatRoute
+  '/organizations/$id': typeof OrganizationsIdRoute
   '/settings/account': typeof SettingsAccountRoute
+  '/organizations/': typeof OrganizationsIndexRoute
   '/auth/callback/$provider': typeof AuthCallbackProviderRoute
 }
 export interface FileRouteTypes {
@@ -115,11 +124,12 @@ export interface FileRouteTypes {
     | '/companies'
     | '/journal-entries'
     | '/login'
-    | '/organizations'
     | '/register'
     | '/reports'
     | '/api/$'
+    | '/organizations/$id'
     | '/settings/account'
+    | '/organizations'
     | '/auth/callback/$provider'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -127,11 +137,12 @@ export interface FileRouteTypes {
     | '/companies'
     | '/journal-entries'
     | '/login'
-    | '/organizations'
     | '/register'
     | '/reports'
     | '/api/$'
+    | '/organizations/$id'
     | '/settings/account'
+    | '/organizations'
     | '/auth/callback/$provider'
   id:
     | '__root__'
@@ -139,11 +150,12 @@ export interface FileRouteTypes {
     | '/companies'
     | '/journal-entries'
     | '/login'
-    | '/organizations'
     | '/register'
     | '/reports'
     | '/api/$'
+    | '/organizations/$id'
     | '/settings/account'
+    | '/organizations/'
     | '/auth/callback/$provider'
   fileRoutesById: FileRoutesById
 }
@@ -152,11 +164,12 @@ export interface RootRouteChildren {
   CompaniesRoute: typeof CompaniesRoute
   JournalEntriesRoute: typeof JournalEntriesRoute
   LoginRoute: typeof LoginRoute
-  OrganizationsRoute: typeof OrganizationsRoute
   RegisterRoute: typeof RegisterRoute
   ReportsRoute: typeof ReportsRoute
   ApiSplatRoute: typeof ApiSplatRoute
+  OrganizationsIdRoute: typeof OrganizationsIdRoute
   SettingsAccountRoute: typeof SettingsAccountRoute
+  OrganizationsIndexRoute: typeof OrganizationsIndexRoute
   AuthCallbackProviderRoute: typeof AuthCallbackProviderRoute
 }
 
@@ -174,13 +187,6 @@ declare module '@tanstack/react-router' {
       path: '/register'
       fullPath: '/register'
       preLoaderRoute: typeof RegisterRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/organizations': {
-      id: '/organizations'
-      path: '/organizations'
-      fullPath: '/organizations'
-      preLoaderRoute: typeof OrganizationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -211,11 +217,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/organizations/': {
+      id: '/organizations/'
+      path: '/organizations'
+      fullPath: '/organizations'
+      preLoaderRoute: typeof OrganizationsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings/account': {
       id: '/settings/account'
       path: '/settings/account'
       fullPath: '/settings/account'
       preLoaderRoute: typeof SettingsAccountRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/organizations/$id': {
+      id: '/organizations/$id'
+      path: '/organizations/$id'
+      fullPath: '/organizations/$id'
+      preLoaderRoute: typeof OrganizationsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/$': {
@@ -240,11 +260,12 @@ const rootRouteChildren: RootRouteChildren = {
   CompaniesRoute: CompaniesRoute,
   JournalEntriesRoute: JournalEntriesRoute,
   LoginRoute: LoginRoute,
-  OrganizationsRoute: OrganizationsRoute,
   RegisterRoute: RegisterRoute,
   ReportsRoute: ReportsRoute,
   ApiSplatRoute: ApiSplatRoute,
+  OrganizationsIdRoute: OrganizationsIdRoute,
   SettingsAccountRoute: SettingsAccountRoute,
+  OrganizationsIndexRoute: OrganizationsIndexRoute,
   AuthCallbackProviderRoute: AuthCallbackProviderRoute,
 }
 export const routeTree = rootRouteImport

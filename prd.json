@@ -400,7 +400,7 @@
           "packages/persistence/test/OrganizationRepository.test.ts"
         ]
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "medium"
     },
     {
