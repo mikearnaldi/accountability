@@ -1,7 +1,7 @@
 {
   "project": "Accountability",
   "description": "Multi-company, multi-currency accounting application built on US GAAP principles",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "created_at": "2026-01-10",
   "updated_at": "2026-01-14",
   "specs_dir": "specs/",
@@ -27,80 +27,77 @@
     },
     "frontend": {
       "package": "web",
-      "stack": "TanStack Start + React + Tailwind CSS + generated fetch client",
-      "state": "TanStack Query for server state, React useState/useReducer for local state",
-      "no_effect": "NO Effect code in frontend. No Effect Atom. No HttpApiClient. Plain fetch via generated client.",
+      "stack": "TanStack Start + React + Tailwind CSS + openapi-fetch client",
+      "state": "React useState/useReducer for local state. Server state via loaders.",
+      "no_effect": "NO Effect code in frontend. Plain fetch via generated openapi-fetch client.",
       "testing": "Playwright for E2E tests"
     },
     "api_client": {
-      "generation": "Generate typed fetch client from OpenAPI spec exported by Effect HttpApi",
-      "approach": "Use @effect/platform HttpApiBuilder.toOpenApi() to export spec, then generate client with openapi-typescript + openapi-fetch or similar",
-      "benefits": ["No Effect dependency in frontend", "Standard fetch patterns", "Works with any React data fetching library", "Smaller bundle size"]
+      "generation": "pnpm generate:api in packages/web",
+      "tools": "openapi-typescript generates types, openapi-fetch provides typed client",
+      "output": ["src/api/schema.ts - generated types", "src/api/client.ts - configured client"],
+      "usage": "import { api } from '@/api/client'; await api.GET('/api/v1/organizations')"
     }
   },
   "technology": {
     "effect": {
       "version": "^3.19.0",
-      "scope": "Backend only (core, persistence, api packages)",
-      "notes": "Schema is included in core effect package since 3.10.0"
-    },
-    "effect_sql": {
-      "packages": ["@effect/sql", "@effect/sql-pg"],
-      "scope": "Backend only (persistence package)"
-    },
-    "effect_vitest": {
-      "package": "@effect/vitest",
-      "version": "^0.27.0",
-      "scope": "Backend testing only"
+      "scope": "Backend only (core, persistence, api packages)"
     },
     "tanstack_start": {
       "package": "@tanstack/react-start",
       "version": "^1.147.0",
-      "peer_deps": ["react ^19.0.0", "react-dom ^19.0.0", "vite ^7.0.0"],
-      "notes": "File-based routing with SSR. Use loaders for data fetching."
+      "patterns": {
+        "ssr_data": "Use loader() to fetch data server-side, access via Route.useLoaderData()",
+        "ssr_auth": "Use beforeLoad() to check auth from cookie, redirect if needed",
+        "client_mutations": "Use api client directly in event handlers, revalidate with router.invalidate()"
+      }
     },
-    "tanstack_query": {
-      "package": "@tanstack/react-query",
-      "notes": "For client-side data fetching, caching, and mutations. Replaces Effect Atom."
-    },
-    "api_client_generation": {
-      "openapi_export": "@effect/platform HttpApiBuilder exports OpenAPI spec",
-      "client_generator": "openapi-typescript + openapi-fetch (or hey-api/openapi-ts)",
-      "output": "packages/web/src/api/client.ts - generated typed fetch client"
+    "openapi_fetch": {
+      "package": "openapi-fetch",
+      "version": "^0.13.0",
+      "usage": "Type-safe fetch client generated from OpenAPI spec"
     }
-  },
-  "reference_repos": {
-    "effect": "repos/effect/packages/effect/src/",
-    "effect_sql": "repos/effect/packages/sql/src/",
-    "effect_sql_pg": "repos/effect/packages/sql-pg/src/",
-    "effect_vitest": "repos/effect/packages/vitest/src/",
-    "tanstack_start": "repos/tanstack-router/packages/react-start/src/",
-    "tanstack_examples": "repos/tanstack-router/examples/react/start-basic/"
   },
   "testing_policy": {
     "mandatory": "EVERY story MUST include tests. A story is NOT complete without passing tests.",
-    "ui_changes": "E2E tests in packages/web/test-e2e/ that prove the UI works through user interactions.",
+    "ui_changes": "E2E tests in packages/web/test-e2e/",
     "api_changes": "Unit/integration tests in packages/api/test/ using @effect/vitest.",
-    "persistence_changes": "Integration tests in packages/persistence/test/ with testcontainers PostgreSQL.",
-    "core_changes": "Unit tests in packages/core/test/ with 100% coverage requirement.",
-    "verification": "Run 'pnpm test && pnpm test:e2e' before marking any story complete.",
-    "no_exceptions": "Do NOT mark a story as complete if tests are missing or failing.",
-    "never_remove_tests": "NEVER remove or skip tests to make them pass. Fix the underlying code instead."
-  },
-  "api_patterns": {
-    "server_api": "Effect HttpApi defines typed endpoints with Schema validation. HttpApiBuilder creates handlers.",
-    "openapi_export": "Export OpenAPI spec from Effect HttpApi for client generation.",
-    "client_generation": "Generate typed fetch client from OpenAPI spec. No Effect in generated client.",
-    "authentication": "JWT tokens in httpOnly cookies. Server validates on each request.",
-    "error_handling": "API returns typed errors. Client handles via standard try/catch or response checking."
+    "verification": "Run 'pnpm test && pnpm test:e2e' before marking any story complete."
   },
   "ui_patterns": {
-    "state_management": "TanStack Query for server state (fetching, caching, mutations). React useState for local UI state.",
-    "data_fetching": "Use generated API client with TanStack Query useQuery/useMutation hooks.",
-    "styling": "Tailwind CSS classes only. No inline styles. Use clsx for conditional classes.",
-    "forms": "React Hook Form or native form handling. useState for form state.",
-    "ssr": "TanStack Start loaders prefetch data server-side. Components receive data via useLoaderData().",
-    "testing": "Every UI must have E2E tests. Tests interact through UI only."
+    "data_fetching": {
+      "ssr": "loader() fetches data server-side using api client",
+      "access": "Route.useLoaderData() in component - data available immediately",
+      "mutations": "Call api client in handlers, then router.invalidate() to refetch"
+    },
+    "auth": {
+      "cookie": "httpOnly secure cookie stores session token",
+      "ssr_check": "beforeLoad() reads cookie, validates session, redirects if needed",
+      "client_check": "Check loader data for user presence"
+    },
+    "example_route": {
+      "code": [
+        "export const Route = createFileRoute('/organizations/')({",
+        "  beforeLoad: async ({ context }) => {",
+        "    // Auth check - redirect if not logged in",
+        "    if (!context.user) throw redirect({ to: '/login' })",
+        "  },",
+        "  loader: async () => {",
+        "    // SSR data fetch",
+        "    const { data } = await api.GET('/api/v1/organizations')",
+        "    return { organizations: data ?? [] }",
+        "  },",
+        "  component: OrganizationsPage",
+        "})",
+        "",
+        "function OrganizationsPage() {",
+        "  const { organizations } = Route.useLoaderData()",
+        "  // Data available immediately - no loading state needed for SSR",
+        "  return <OrganizationsList items={organizations} />",
+        "}"
+      ]
+    }
   },
   "stories": [
     {
@@ -108,192 +105,110 @@
       "phase": "Frontend Rebuild",
       "epic": "Infrastructure",
       "title": "Generate typed API client from OpenAPI spec",
-      "description": "Export OpenAPI spec from Effect HttpApi and generate a typed fetch client for the frontend. This replaces Effect Atom/HttpApiClient.",
-      "specs": ["HTTP_API_TANSTACK.md", "API_BEST_PRACTICES.md"],
-      "acceptance_criteria": [
-        "Export OpenAPI spec from Effect HttpApi at build time",
-        "Generate typed fetch client using openapi-typescript + openapi-fetch (or similar)",
-        "Generated client has full TypeScript types for all endpoints",
-        "Generated client uses native fetch() - no Effect dependencies",
-        "Client handles authentication via cookies automatically",
-        "Add npm script: pnpm generate:api-client",
-        "Generated client outputs to packages/web/src/api/client.ts",
-        "TESTS: Generated client compiles without errors"
-      ],
-      "technical_details": {
-        "openapi_export": {
-          "source": "packages/api/src/Definitions/AppApi.ts",
-          "method": "HttpApiBuilder.toOpenApi(AppApi) or @effect/platform OpenApi module",
-          "output": "packages/api/openapi.json"
-        },
-        "client_generation": {
-          "tool_options": [
-            "openapi-typescript + openapi-fetch - mature, well-maintained",
-            "@hey-api/openapi-ts - newer, generates more idiomatic code",
-            "orval - generates React Query hooks directly"
-          ],
-          "output": "packages/web/src/api/client.ts"
-        },
-        "build_integration": {
-          "script": "pnpm generate:api-client",
-          "steps": ["Export OpenAPI from API package", "Run client generator", "Output to web package"]
-        }
-      },
-      "status": "pending",
-      "estimated_complexity": "medium",
-      "priority": "critical"
+      "description": "Export OpenAPI spec from Effect HttpApi and generate a typed fetch client.",
+      "status": "complete",
+      "estimated_complexity": "medium"
     },
     {
       "id": "11.0.2",
       "phase": "Frontend Rebuild",
       "epic": "Infrastructure",
-      "title": "Set up TanStack Query for data fetching",
-      "description": "Configure TanStack Query as the data fetching layer, replacing Effect Atom.",
-      "specs": ["REACT_BEST_PRACTICES.md"],
+      "title": "API: Add httpOnly secure cookie authentication",
+      "description": "Update the API auth handlers to set/clear httpOnly secure cookies on login/logout. This enables SSR auth checks.",
+      "specs": ["AUTHENTICATION.md", "API_BEST_PRACTICES.md"],
       "acceptance_criteria": [
-        "Install @tanstack/react-query",
-        "Configure QueryClient with sensible defaults",
-        "Wrap app in QueryClientProvider",
-        "Create custom hooks that combine generated API client with useQuery/useMutation",
-        "Set up query key conventions (e.g., ['organizations', id])",
-        "Configure devtools for development",
-        "TESTS: Basic query/mutation works in E2E test"
-      ],
-      "technical_details": {
-        "files_to_create": [
-          "packages/web/src/lib/query-client.ts - QueryClient configuration",
-          "packages/web/src/hooks/useApi.ts - Custom hooks wrapping generated client"
-        ],
-        "files_to_modify": [
-          "packages/web/src/routes/__root.tsx - Add QueryClientProvider"
-        ],
-        "query_key_convention": {
-          "pattern": "['resource', ...params]",
-          "examples": [
-            "['organizations'] - list all",
-            "['organizations', id] - single org",
-            "['companies', { organizationId }] - companies by org"
-          ]
-        }
-      },
-      "status": "pending",
-      "estimated_complexity": "small",
-      "priority": "critical",
-      "depends_on": ["11.0.1"]
-    },
-    {
-      "id": "11.0.3",
-      "phase": "Frontend Rebuild",
-      "epic": "Infrastructure",
-      "title": "Remove Effect Atom and Effect dependencies from frontend",
-      "description": "Clean up all Effect-related code from the web package. Replace with TanStack Query patterns.",
-      "specs": ["REACT_BEST_PRACTICES.md"],
-      "acceptance_criteria": [
-        "Remove @effect-atom/atom and @effect-atom/atom-react from package.json",
-        "Remove effect and @effect/platform from web package.json",
-        "Delete packages/web/src/atoms/ directory entirely",
-        "Remove RegistryProvider from root route",
-        "Update all components to use TanStack Query hooks instead of useAtomValue/useAtom",
-        "Update auth to use cookies + TanStack Query instead of atoms",
-        "Ensure no Effect imports remain in packages/web/src/",
-        "TESTS: All existing E2E tests still pass"
-      ],
-      "technical_details": {
-        "files_to_delete": [
-          "packages/web/src/atoms/ - entire directory"
-        ],
-        "files_to_modify": [
-          "packages/web/package.json - remove Effect dependencies",
-          "packages/web/src/routes/__root.tsx - remove RegistryProvider",
-          "packages/web/src/routes/*.tsx - replace atom usage with TanStack Query",
-          "packages/web/src/components/*.tsx - replace atom usage"
-        ],
-        "migration_pattern": {
-          "before": "const orgs = useAtomValue(organizationsAtom)",
-          "after": "const { data: orgs } = useQuery({ queryKey: ['organizations'], queryFn: () => api.organizations.list() })"
-        }
-      },
-      "status": "pending",
-      "estimated_complexity": "large",
-      "priority": "critical",
-      "depends_on": ["11.0.2"]
-    },
-    {
-      "id": "11.0.4",
-      "phase": "Frontend Rebuild",
-      "epic": "Infrastructure",
-      "title": "Implement SSR with TanStack Start loaders",
-      "description": "Use TanStack Start loaders for server-side data prefetching. Pages render with data immediately.",
-      "specs": ["REACT_BEST_PRACTICES.md"],
-      "acceptance_criteria": [
-        "Root route beforeLoad fetches session from cookie",
-        "Protected routes redirect to /login in beforeLoad if not authenticated",
-        "Auth routes redirect to / in beforeLoad if already authenticated",
-        "Data routes use loader to prefetch data server-side",
-        "Components use Route.useLoaderData() for initial data",
-        "TanStack Query hydrates from loader data (no double-fetch)",
-        "No loading flash on initial page load",
-        "TESTS (E2E): Pages load with data immediately"
-      ],
-      "technical_details": {
-        "pattern": {
-          "loader": "async ({ params }) => { return api.organizations.get(params.id) }",
-          "component": "const data = Route.useLoaderData(); // immediate, no loading"
-        },
-        "hydration": {
-          "approach": "Pass loader data to TanStack Query as initialData",
-          "benefit": "No refetch on client, data already available"
-        }
-      },
-      "status": "pending",
-      "estimated_complexity": "medium",
-      "depends_on": ["11.0.3"]
-    },
-    {
-      "id": "11.0.5",
-      "phase": "Frontend Rebuild",
-      "epic": "Infrastructure",
-      "title": "Set up httpOnly session cookie for authentication",
-      "description": "Store auth token in httpOnly cookie for SSR auth. Keep localStorage as backup for client-side checks.",
-      "specs": ["AUTHENTICATION.md"],
-      "acceptance_criteria": [
-        "Login API sets httpOnly cookie with session token",
-        "Logout API clears the session cookie",
+        "Login handler sets httpOnly cookie with session token via Set-Cookie header",
+        "Logout handler clears the cookie (maxAge=0)",
         "Cookie config: httpOnly=true, secure=true, sameSite=lax, path=/",
-        "Server can read cookie in loaders for auth checks",
-        "Generated API client automatically includes cookies in requests",
-        "TESTS (E2E): Login sets cookie, logout clears it"
+        "Cookie name: accountability_session",
+        "Existing Bearer token auth continues to work (dual support)",
+        "TESTS: Integration test verifies Set-Cookie header on login response"
       ],
       "technical_details": {
+        "files_to_modify": [
+          "packages/api/src/Layers/AuthApiLive.ts - Add Set-Cookie to login/logout responses"
+        ],
         "cookie_config": {
           "name": "accountability_session",
           "httpOnly": true,
           "secure": true,
           "sameSite": "lax",
           "path": "/",
-          "maxAge": "30 * 24 * 60 * 60"
-        }
+          "maxAge": "30 * 24 * 60 * 60 (30 days)"
+        },
+        "effect_pattern": "Use HttpServerResponse.setCookie() from @effect/platform"
       },
       "status": "pending",
       "estimated_complexity": "small",
-      "depends_on": ["11.0.1"]
+      "priority": "critical"
+    },
+    {
+      "id": "11.0.3",
+      "phase": "Frontend Rebuild",
+      "epic": "Infrastructure",
+      "title": "Root route with SSR auth check",
+      "description": "Set up root route to read session cookie and provide user context to all routes.",
+      "specs": ["REACT_BEST_PRACTICES.md"],
+      "acceptance_criteria": [
+        "Root route beforeLoad reads session cookie from request",
+        "Validates token by calling /api/auth/me endpoint",
+        "Returns user object in context for child routes",
+        "Child routes access user via Route.useRouteContext()",
+        "No flash of unauthenticated content",
+        "TESTS (E2E): Authenticated user sees correct UI on page load"
+      ],
+      "technical_details": {
+        "files_to_modify": ["packages/web/src/routes/__root.tsx"],
+        "pattern": [
+          "beforeLoad: async ({ request }) => {",
+          "  const cookie = request.headers.get('cookie')",
+          "  const token = parseCookie(cookie, 'accountability_session')",
+          "  if (!token) return { user: null }",
+          "  const { data } = await api.GET('/api/auth/me', {",
+          "    headers: { Authorization: `Bearer ${token}` }",
+          "  })",
+          "  return { user: data?.user ?? null }",
+          "}"
+        ]
+      },
+      "status": "pending",
+      "estimated_complexity": "medium",
+      "depends_on": ["11.0.2"]
     },
     {
       "id": "11.1.1",
       "phase": "Frontend Rebuild",
       "epic": "Authentication",
-      "title": "Rebuild login page with TanStack Query",
-      "description": "Rewrite login page to use generated API client and TanStack Query mutation.",
+      "title": "Login page with SSR redirect",
+      "description": "Build login page using api client. Redirect to home if already authenticated.",
       "specs": ["REACT_BEST_PRACTICES.md", "USABILITY_BEST_PRACTICES.md"],
       "acceptance_criteria": [
+        "beforeLoad redirects to / if user already authenticated",
         "Login form with email/password fields",
-        "useMutation hook for login API call",
+        "Submit calls api.POST('/api/auth/login', { body })",
+        "On success: cookie is set by API, redirect to / or ?redirect param",
+        "On error: display error message",
         "Loading state during submission",
-        "Error display for invalid credentials",
-        "Redirect to / or ?redirect param on success",
-        "beforeLoad redirects to / if already authenticated",
-        "TESTS (E2E): Login flow works end-to-end"
+        "TESTS (E2E): Login flow works, sets cookie"
       ],
+      "technical_details": {
+        "files_to_create": ["packages/web/src/routes/login.tsx"],
+        "pattern": [
+          "beforeLoad: ({ context }) => {",
+          "  if (context.user) throw redirect({ to: '/' })",
+          "},",
+          "component: function LoginPage() {",
+          "  const router = useRouter()",
+          "  const handleSubmit = async (e) => {",
+          "    const { error } = await api.POST('/api/auth/login', { body: formData })",
+          "    if (!error) {",
+          "      await router.invalidate()",
+          "      navigate({ to: '/' })",
+          "    }",
+          "  }",
+          "}"
+        ]
+      },
       "status": "pending",
       "estimated_complexity": "small",
       "depends_on": ["11.0.3"]
@@ -302,16 +217,17 @@
       "id": "11.1.2",
       "phase": "Frontend Rebuild",
       "epic": "Authentication",
-      "title": "Rebuild registration page with TanStack Query",
-      "description": "Rewrite registration page to use generated API client and TanStack Query mutation.",
+      "title": "Registration page",
+      "description": "Build registration page using api client.",
       "specs": ["REACT_BEST_PRACTICES.md", "USABILITY_BEST_PRACTICES.md"],
       "acceptance_criteria": [
-        "Registration form with email, display name, password fields",
+        "beforeLoad redirects to / if user already authenticated",
+        "Registration form with email, displayName, password fields",
         "Client-side validation",
-        "useMutation hook for register API call",
-        "Auto-login on success, redirect to /",
-        "Error display for duplicate email",
-        "TESTS (E2E): Registration flow works end-to-end"
+        "Submit calls api.POST('/api/auth/register', { body })",
+        "On success: auto-login (cookie set), redirect to /",
+        "On error: display validation errors",
+        "TESTS (E2E): Registration flow works"
       ],
       "status": "pending",
       "estimated_complexity": "small",
@@ -321,34 +237,43 @@
       "id": "11.2.1",
       "phase": "Frontend Rebuild",
       "epic": "Organizations",
-      "title": "Rebuild organizations list with TanStack Query",
-      "description": "Rewrite organizations list page using generated API client and TanStack Query.",
+      "title": "Organizations list with SSR",
+      "description": "Build organizations list page with server-side data fetching.",
       "specs": ["REACT_BEST_PRACTICES.md"],
       "acceptance_criteria": [
-        "useQuery hook fetches organizations",
-        "Loader prefetches data for SSR",
-        "Create organization uses useMutation with automatic refetch",
-        "Loading, error, and empty states handled",
-        "TESTS (E2E): Organizations list works"
+        "beforeLoad checks auth, redirects to /login if not authenticated",
+        "loader fetches organizations via api.GET('/api/v1/organizations')",
+        "Component uses Route.useLoaderData() for immediate data access",
+        "No loading spinner on initial page load (SSR)",
+        "Create organization: form calls api.POST, then router.invalidate()",
+        "Empty state when no organizations",
+        "TESTS (E2E): Organizations list renders with data"
       ],
+      "technical_details": {
+        "files_to_create": ["packages/web/src/routes/organizations/index.tsx"]
+      },
       "status": "pending",
       "estimated_complexity": "medium",
-      "depends_on": ["11.0.4"]
+      "depends_on": ["11.1.1"]
     },
     {
       "id": "11.2.2",
       "phase": "Frontend Rebuild",
       "epic": "Organizations",
-      "title": "Rebuild organization details with TanStack Query",
-      "description": "Rewrite organization details page using generated API client and TanStack Query.",
+      "title": "Organization details with SSR",
+      "description": "Build organization details page with server-side data fetching.",
       "specs": ["REACT_BEST_PRACTICES.md"],
       "acceptance_criteria": [
-        "useQuery hook fetches organization by ID",
-        "Loader prefetches data for SSR",
-        "Edit organization uses useMutation with automatic refetch",
-        "Companies list within org",
+        "loader fetches organization by ID and its companies",
+        "Display organization name, currency, creation date",
+        "List companies within the organization",
+        "Edit organization: form calls api.PATCH, then router.invalidate()",
+        "Link to create new company",
         "TESTS (E2E): Organization details page works"
       ],
+      "technical_details": {
+        "files_to_create": ["packages/web/src/routes/organizations/$organizationId/index.tsx"]
+      },
       "status": "pending",
       "estimated_complexity": "medium",
       "depends_on": ["11.2.1"]
@@ -357,13 +282,14 @@
       "id": "11.3.1",
       "phase": "Frontend Rebuild",
       "epic": "Companies",
-      "title": "Rebuild companies list with TanStack Query",
-      "description": "Rewrite companies list page using generated API client and TanStack Query.",
+      "title": "Companies list with SSR",
+      "description": "Build companies list page within an organization.",
       "specs": ["REACT_BEST_PRACTICES.md"],
       "acceptance_criteria": [
-        "useQuery hook fetches companies for organization",
-        "Loader prefetches data for SSR",
-        "Create company uses useMutation",
+        "loader fetches companies for organization",
+        "Display company cards with name, currency, fiscal year",
+        "Create company: form calls api.POST, then router.invalidate()",
+        "Link to company details",
         "TESTS (E2E): Companies list works"
       ],
       "status": "pending",
@@ -374,14 +300,14 @@
       "id": "11.3.2",
       "phase": "Frontend Rebuild",
       "epic": "Companies",
-      "title": "Rebuild company details with TanStack Query",
-      "description": "Rewrite company details page using generated API client and TanStack Query.",
+      "title": "Company details with SSR",
+      "description": "Build company details page with navigation to accounts, journal entries, reports.",
       "specs": ["REACT_BEST_PRACTICES.md"],
       "acceptance_criteria": [
-        "useQuery hook fetches company by ID",
-        "Loader prefetches data for SSR",
-        "Edit company uses useMutation",
-        "Navigation to accounts, journal entries, reports",
+        "loader fetches company by ID",
+        "Display company info: name, currency, fiscal year, address",
+        "Navigation links: Chart of Accounts, Journal Entries, Reports",
+        "Edit company: form calls api.PATCH, then router.invalidate()",
         "TESTS (E2E): Company details page works"
       ],
       "status": "pending",
@@ -392,16 +318,17 @@
       "id": "11.4.1",
       "phase": "Frontend Rebuild",
       "epic": "Accounts",
-      "title": "Rebuild accounts list with TanStack Query",
-      "description": "Rewrite chart of accounts page using generated API client and TanStack Query.",
+      "title": "Chart of Accounts with SSR",
+      "description": "Build chart of accounts page with tree view and CRUD operations.",
       "specs": ["REACT_BEST_PRACTICES.md"],
       "acceptance_criteria": [
-        "useQuery hook fetches accounts for company",
-        "Loader prefetches data for SSR",
-        "Tree view with hierarchy",
-        "Filter by type, search by name",
-        "Create/edit account uses useMutation",
-        "TESTS (E2E): Accounts list works"
+        "loader fetches accounts for company",
+        "Tree view displaying account hierarchy",
+        "Filter by account type (Asset, Liability, etc.)",
+        "Search by account name/number",
+        "Create account: modal form, api.POST, router.invalidate()",
+        "Edit account: modal form, api.PATCH, router.invalidate()",
+        "TESTS (E2E): Accounts CRUD works"
       ],
       "status": "pending",
       "estimated_complexity": "large",
