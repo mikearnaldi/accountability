@@ -309,7 +309,7 @@
       "phase": "UI Rebuild",
       "epic": "Authentication",
       "title": "Implement account settings page",
-      "description": "Create account settings page for managing user profile and linked providers.",
+      "description": "Create account settings page for managing user profile and linked providers. NOTE: updatePassword was added to API (packages/api) and persistence (packages/persistence) but NO TESTS were written - tests are required before this story can be marked complete.",
       "specs": [
         "REACT_BEST_PRACTICES.md",
         "EFFECT_ATOM.md"
@@ -324,7 +324,9 @@
         "Success/error notifications for all actions",
         "TESTS (E2E): account settings displays user info correctly",
         "TESTS (E2E): change password flow works",
-        "TESTS (API): packages/api/test/auth.test.ts covers password change endpoint"
+        "TESTS (API): packages/api/test/auth.test.ts covers password change endpoint",
+        "TESTS (Persistence): packages/persistence/test/UserRepository.test.ts covers updatePassword",
+        "BLOCKING: updatePassword added to API and persistence WITHOUT tests - must add tests before completion"
       ],
       "technical_details": {
         "files": [
@@ -339,7 +341,12 @@
         ],
         "e2e_file": "packages/web/test-e2e/auth/account-settings.spec.ts",
         "unit_tests": [
-          "packages/api/test/auth.test.ts"
+          "packages/api/test/auth.test.ts",
+          "packages/persistence/test/UserRepository.test.ts"
+        ],
+        "missing_tests": [
+          "packages/api/test/auth.test.ts - updatePassword endpoint NOT tested",
+          "packages/persistence/test/UserRepository.test.ts - updatePassword NOT tested"
         ]
       },
       "status": "in_progress",
