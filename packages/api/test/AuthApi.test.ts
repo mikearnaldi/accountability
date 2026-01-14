@@ -548,7 +548,13 @@ layer(HttpLive, { timeout: "120 seconds" })("Auth API Integration Tests", (it) =
             Effect.scoped
           )
 
-          expect(logoutResponse.status).toBe(204)
+          // Logout returns 200 OK with success response
+          expect(logoutResponse.status).toBe(200)
+
+          // Verify response body
+          const logoutJson = yield* logoutResponse.json
+          const logoutData = yield* decodeJsonResponse(Schema.Struct({ success: Schema.Boolean }))(logoutJson)
+          expect(logoutData.success).toBe(true)
         })
       )
 

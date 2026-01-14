@@ -17,9 +17,10 @@
  * @module AuthApiLive
  */
 
-import { HttpApiBuilder } from "@effect/platform"
+import { HttpApiBuilder, HttpServerResponse, HttpApp } from "@effect/platform"
 import * as Chunk from "effect/Chunk"
 import * as DateTime from "effect/DateTime"
+import * as Duration from "effect/Duration"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
@@ -30,6 +31,7 @@ import {
   ProvidersResponse,
   ProviderMetadata,
   LoginResponse,
+  LogoutResponse,
   AuthUserResponse,
   RefreshResponse,
   AuthorizeRedirectResponse,
@@ -73,8 +75,49 @@ import { PasswordHasher } from "@accountability/core/Auth/PasswordHasher"
 import { ProviderId } from "@accountability/core/Auth/ProviderId"
 
 // =============================================================================
+// Constants
+// =============================================================================
+
+const SESSION_COOKIE_NAME = "accountability_session"
+const SESSION_COOKIE_MAX_AGE = Duration.days(30)
+
+// =============================================================================
 // Helper Functions
 // =============================================================================
+
+/**
+ * Set httpOnly session cookie via pre-response handler
+ */
+const setSessionCookie = (token: string): Effect.Effect<void> => {
+  return HttpApp.appendPreResponseHandler((_req, response) =>
+    Effect.orDie(
+      HttpServerResponse.setCookie(response, SESSION_COOKIE_NAME, token, {
+        httpOnly: true,
+        secure: true,
+        sameSite: "lax",
+        path: "/",
+        maxAge: SESSION_COOKIE_MAX_AGE
+      })
+    )
+  )
+}
+
+/**
+ * Clear the session cookie by expiring it with a past date
+ */
+const clearSessionCookie = (): Effect.Effect<void> => {
+  return HttpApp.appendPreResponseHandler((_req, response) =>
+    Effect.orDie(
+      HttpServerResponse.setCookie(response, SESSION_COOKIE_NAME, "", {
+        httpOnly: true,
+        secure: true,
+        sameSite: "lax",
+        path: "/",
+        expires: new Date(0) // Expire in the past
+      })
+    )
+  )
+}
 
 /**
  * Get provider metadata based on provider type
@@ -239,6 +282,9 @@ export const AuthApiLive = HttpApiBuilder.group(AppApi, "auth", (handlers) =>
                 })
               )
 
+            // Set httpOnly session cookie
+            yield* setSessionCookie(session.id)
+
             return LoginResponse.make({
               token: session.id,
               user,
@@ -285,6 +331,9 @@ export const AuthApiLive = HttpApiBuilder.group(AppApi, "auth", (handlers) =>
               })
             })
           )
+
+          // Set httpOnly session cookie
+          yield* setSessionCookie(session.id)
 
           return LoginResponse.make({
             token: session.id,
@@ -363,6 +412,9 @@ export const AuthApiLive = HttpApiBuilder.group(AppApi, "auth", (handlers) =>
               })
             )
 
+          // Set httpOnly session cookie
+          yield* setSessionCookie(session.id)
+
           return LoginResponse.make({
             token: session.id,
             user,
@@ -407,7 +459,6 @@ export const AuthSessionApiLive = HttpApiBuilder.group(AppApi, "authSession", (h
     return handlers
       .handle("logout", () =>
         Effect.gen(function* () {
-          // Get current user with session ID from middleware
           const currentUser = yield* CurrentUser
 
           // Ensure we have a session ID
@@ -428,6 +479,12 @@ export const AuthSessionApiLive = HttpApiBuilder.group(AppApi, "authSession", (h
               })
             )
           )
+
+          // Clear the session cookie
+          yield* clearSessionCookie()
+
+          // Return success response
+          return LogoutResponse.make({ success: true })
         })
       )
       .handle("me", () =>

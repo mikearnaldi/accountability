@@ -438,10 +438,19 @@ const callback = HttpApiEndpoint.get("callback", "/callback/:provider")
 // =============================================================================
 
 /**
+ * LogoutResponse - Successful logout response
+ */
+export class LogoutResponse extends Schema.Class<LogoutResponse>("LogoutResponse")({
+  success: Schema.Boolean.annotations({
+    description: "Whether the logout was successful"
+  })
+}) {}
+
+/**
  * POST /api/auth/logout - Logout and invalidate session
  */
 const logout = HttpApiEndpoint.post("logout", "/logout")
-  .addSuccess(HttpApiSchema.NoContent)
+  .addSuccess(LogoutResponse)
   .addError(SessionInvalidError)
   .annotateContext(OpenApi.annotations({
     summary: "Logout",

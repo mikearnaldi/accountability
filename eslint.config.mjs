@@ -553,6 +553,94 @@ const noUnmemoizedAtomCreationRule = {
 }
 
 /**
+ * Custom ESLint rule to ban TanStack Start server functions.
+ * Use HttpApiClient with ManagedRuntime instead for server-side data fetching.
+ * Server functions bypass type safety, schema validation, and the Effect ecosystem.
+ */
+const noServerFunctionsRule = {
+  meta: {
+    type: "problem",
+    docs: {
+      description: "Disallow TanStack Start server functions - use HttpApiClient with ManagedRuntime instead"
+    },
+    messages: {
+      noServerFn: "Do not use createServerFn(). Use HttpApiClient with a ManagedRuntime for server-side data fetching. Server functions bypass type safety and schema validation.",
+      noServerFnImport: "Do not import createServerFn from @tanstack/react-start. Use HttpApiClient with ManagedRuntime instead."
+    },
+    schema: []
+  },
+  create(context) {
+    return {
+      // Catch: import { createServerFn } from "@tanstack/react-start"
+      ImportDeclaration(node) {
+        if (node.source.value !== "@tanstack/react-start" &&
+            node.source.value !== "@tanstack/start") {
+          return
+        }
+
+        for (const specifier of node.specifiers) {
+          if (specifier.type === "ImportSpecifier" &&
+              specifier.imported.type === "Identifier" &&
+              specifier.imported.name === "createServerFn") {
+            context.report({ node: specifier, messageId: "noServerFnImport" })
+          }
+        }
+      },
+      // Catch: createServerFn() calls
+      CallExpression(node) {
+        const callee = node.callee
+
+        // Direct createServerFn() call
+        if (callee.type === "Identifier" && callee.name === "createServerFn") {
+          context.report({ node, messageId: "noServerFn" })
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Custom ESLint rule to ban direct fetch() usage.
+ * Use HttpApiClient (ApiClient) generated from the API spec instead.
+ * Direct fetch bypasses type safety, authentication handling, and error handling.
+ */
+const noDirectFetchRule = {
+  meta: {
+    type: "problem",
+    docs: {
+      description: "Disallow direct fetch() usage - use ApiClient from HttpApiClient instead"
+    },
+    messages: {
+      noDirectFetch: "Do not use fetch() directly. Use ApiClient.query() or ApiClient.mutation() from the auto-generated HttpApiClient instead. This provides type safety, automatic authentication, and proper error handling."
+    },
+    schema: []
+  },
+  create(context) {
+    return {
+      CallExpression(node) {
+        const callee = node.callee
+
+        // Direct fetch() call
+        if (callee.type === "Identifier" && callee.name === "fetch") {
+          context.report({ node, messageId: "noDirectFetch" })
+          return
+        }
+
+        // window.fetch() or globalThis.fetch()
+        if (callee.type === "MemberExpression" &&
+            callee.property.type === "Identifier" &&
+            callee.property.name === "fetch" &&
+            callee.object.type === "Identifier" &&
+            (callee.object.name === "window" || callee.object.name === "globalThis")) {
+          context.report({ node, messageId: "noDirectFetch" })
+          return
+        }
+      }
+    }
+  }
+}
+
+/**
  * Custom ESLint rule to ban window.location.href for navigation/redirects.
  * Use TanStack Router's navigate() or useNavigate() instead.
  * Direct location manipulation breaks SPA routing and loses app state.
@@ -611,7 +699,9 @@ const localPlugin = {
     "no-page-reload": noPageReloadRule,
     "no-refresh-key-pattern": noRefreshKeyPatternRule,
     "no-unmemoized-atom-creation": noUnmemoizedAtomCreationRule,
-    "no-location-href-redirect": noLocationHrefRedirectRule
+    "no-location-href-redirect": noLocationHrefRedirectRule,
+    "no-direct-fetch": noDirectFetchRule,
+    "no-server-functions": noServerFunctionsRule
   }
 }
 
@@ -682,6 +772,10 @@ export default [
       "local/no-unmemoized-atom-creation": "error",
       // Use TanStack Router navigate() instead of location.href
       "local/no-location-href-redirect": "error",
+      // Use ApiClient instead of direct fetch()
+      "local/no-direct-fetch": "error",
+      // Use HttpApiClient with ManagedRuntime instead of server functions
+      "local/no-server-functions": "error",
       // Allow unused variables starting with underscore
       "no-unused-vars": "off",
       "@typescript-eslint/no-unused-vars": [

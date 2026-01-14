@@ -35,6 +35,7 @@ accountability/
 | [specs/EFFECT_SQL.md](specs/EFFECT_SQL.md) | SqlSchema, Model.Class, repository patterns |
 | [specs/EFFECT_LAYERS.md](specs/EFFECT_LAYERS.md) | Layer composition, memoization, service patterns |
 | [specs/EFFECT_TESTING.md](specs/EFFECT_TESTING.md) | @effect/vitest, testcontainers, property testing |
+| [specs/EFFECT_TANSTACK_SSR.md](specs/EFFECT_TANSTACK_SSR.md) | **SSR patterns**, loaders, HttpApiClient on server |
 | [specs/TYPESCRIPT_CONVENTIONS.md](specs/TYPESCRIPT_CONVENTIONS.md) | Project refs, imports, module structure |
 | [specs/REFERENCE_REPOS.md](specs/REFERENCE_REPOS.md) | Effect, TanStack, Effect-Atom package references |
 | [specs/HTTP_API_TANSTACK.md](specs/HTTP_API_TANSTACK.md) | TanStack Start server function patterns |
