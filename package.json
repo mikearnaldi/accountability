@@ -26,6 +26,7 @@
     "test:e2e": "pnpm --filter @accountability/web run test:e2e",
     "test:e2e:ui": "pnpm --filter @accountability/web run test:e2e:ui",
     "test:e2e:report": "pnpm --filter @accountability/web run test:e2e:report",
+    "generate-routes": "pnpm --filter @accountability/web run generate-routes",
     "typecheck": "tsc -b tsconfig.json",
     "lint": "eslint packages --ext .ts,.tsx",
     "lint:fix": "eslint packages --ext .ts,.tsx --fix",

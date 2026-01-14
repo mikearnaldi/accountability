@@ -251,9 +251,13 @@ export default [
       // Dependencies
       "**/node_modules/**",
 
-      // Playwright / E2E testing
+      // Playwright / E2E testing - include all file types
+      "packages/web/playwright-report/**",
+      "packages/web/test-results/**",
       "**/playwright-report/**",
+      "**/playwright-report",
       "**/test-results/**",
+      "**/test-results",
       "**/test-e2e/**",
 
       // Coverage

@@ -72,13 +72,33 @@ accountability/
 
 ```bash
 # Development
-pnpm dev              # Start dev server
-pnpm test             # Run tests
-pnpm typecheck        # Check types
-pnpm lint             # Run linter
+pnpm dev                # Start dev server (port 3000)
+pnpm build              # Build for production
+pnpm preview            # Preview production build
+pnpm start              # Start production server
+
+# Code Generation
+pnpm generate-routes    # Regenerate TanStack Router routes (routeTree.gen.ts)
+
+# Testing
+pnpm test               # Run unit/integration tests (vitest)
+pnpm test:coverage      # Run tests with coverage
+pnpm test:e2e           # Run Playwright E2E tests
+pnpm test:e2e:ui        # Run E2E tests with interactive UI
+pnpm test:e2e:report    # View E2E test report
+
+# Code Quality
+pnpm typecheck          # Check TypeScript types
+pnpm lint               # Run ESLint
+pnpm lint:fix           # Run ESLint with auto-fix
+pnpm format             # Format code with Prettier
+pnpm format:check       # Check formatting
+
+# Maintenance
+pnpm clean              # Clean build outputs
 
 # Ralph Agent
-./ralph.sh [max_iterations]          # Start autonomous loop
+./ralph.sh [max_iterations]   # Start autonomous agent loop
 ```
 
 ---

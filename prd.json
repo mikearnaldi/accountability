@@ -117,7 +117,7 @@
         ],
         "pattern": "Composition: AppShell renders Sidebar + Header + children"
       },
-      "status": "pending",
+      "status": "in_progress",
       "estimated_complexity": "medium"
     },
     {
