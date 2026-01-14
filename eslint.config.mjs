@@ -229,12 +229,332 @@ const preferOptionFromNullableRule = {
   }
 }
 
+/**
+ * Custom ESLint rule to ban window.location.reload() and similar page reload tricks.
+ * Use useAtomRefresh() or reactivityKeys instead of full page reloads.
+ * See specs/EFFECT_ATOM.md Section 4.1
+ */
+const noPageReloadRule = {
+  meta: {
+    type: "problem",
+    docs: {
+      description: "Disallow page reload methods - use useAtomRefresh() or reactivityKeys instead"
+    },
+    messages: {
+      noReload: "Do not use {{method}}. Use useAtomRefresh() to refresh specific atoms or reactivityKeys for automatic invalidation. Page reloads destroy all state and provide poor UX.",
+      noLocationAssign: "Do not assign to {{property}} for reloading. Use useAtomRefresh() or reactivityKeys instead."
+    },
+    schema: []
+  },
+  create(context) {
+    return {
+      // Catch: window.location.reload(), location.reload(), document.location.reload()
+      CallExpression(node) {
+        const callee = node.callee
+        if (callee.type !== "MemberExpression") return
+        if (callee.property.type !== "Identifier" || callee.property.name !== "reload") return
+
+        const obj = callee.object
+        // Direct: location.reload()
+        if (obj.type === "Identifier" && obj.name === "location") {
+          context.report({ node, messageId: "noReload", data: { method: "location.reload()" } })
+          return
+        }
+        // window.location.reload() or document.location.reload()
+        if (obj.type === "MemberExpression" &&
+            obj.property.type === "Identifier" &&
+            obj.property.name === "location") {
+          const base = obj.object
+          if (base.type === "Identifier" && (base.name === "window" || base.name === "document")) {
+            context.report({ node, messageId: "noReload", data: { method: `${base.name}.location.reload()` } })
+          }
+        }
+      },
+      // Catch: window.location.href = window.location.href (reload trick)
+      AssignmentExpression(node) {
+        const left = node.left
+        if (left.type !== "MemberExpression") return
+        if (left.property.type !== "Identifier") return
+
+        const prop = left.property.name
+        if (prop !== "href" && prop !== "pathname") return
+
+        // Check if assigning to location.href or window.location.href
+        const obj = left.object
+        const isLocationHref =
+          (obj.type === "Identifier" && obj.name === "location") ||
+          (obj.type === "MemberExpression" &&
+           obj.property.type === "Identifier" &&
+           obj.property.name === "location" &&
+           obj.object.type === "Identifier" &&
+           (obj.object.name === "window" || obj.object.name === "document"))
+
+        if (!isLocationHref) return
+
+        // Check if right side references same location (self-assignment = reload)
+        const right = node.right
+        const sourceText = context.getSourceCode().getText(right)
+        if (sourceText.includes("location.href") || sourceText.includes("location.pathname")) {
+          context.report({
+            node,
+            messageId: "noLocationAssign",
+            data: { property: `location.${prop}` }
+          })
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Custom ESLint rule to ban the refreshKey anti-pattern with atoms.
+ * Using useState refreshKey in useMemo deps creates new atoms on every "refresh".
+ * Use useAtomRefresh() instead.
+ * See specs/EFFECT_ATOM.md Section 4.2
+ */
+const noRefreshKeyPatternRule = {
+  meta: {
+    type: "problem",
+    docs: {
+      description: "Disallow refreshKey pattern for atom refresh - use useAtomRefresh() instead"
+    },
+    messages: {
+      noRefreshKey: "Do not use refreshKey/forceUpdate state to refresh atoms. This creates new atom instances and loses memoization. Use useAtomRefresh(atom) instead."
+    },
+    schema: []
+  },
+  create(context) {
+    // Track useState calls that look like refresh keys
+    const refreshKeyStates = new Set()
+
+    return {
+      // Find useState calls with names suggesting refresh key pattern
+      VariableDeclarator(node) {
+        if (node.init?.type !== "CallExpression") return
+        const callee = node.init.callee
+
+        // Check for useState() or React.useState()
+        const isUseState =
+          (callee.type === "Identifier" && callee.name === "useState") ||
+          (callee.type === "MemberExpression" &&
+           callee.object.type === "Identifier" &&
+           callee.object.name === "React" &&
+           callee.property.type === "Identifier" &&
+           callee.property.name === "useState")
+
+        if (!isUseState) return
+
+        // Check if destructured name suggests refresh key
+        if (node.id.type !== "ArrayPattern") return
+        const firstName = node.id.elements[0]
+        if (firstName?.type !== "Identifier") return
+
+        const name = firstName.name.toLowerCase()
+        const refreshKeyNames = ["refreshkey", "refreshcount", "forceupdate", "updatekey", "reloadkey", "invalidatekey"]
+        if (refreshKeyNames.some(rk => name.includes(rk.toLowerCase()))) {
+          refreshKeyStates.add(firstName.name)
+        }
+      },
+      // Check useMemo deps for refresh key usage with atom creation
+      CallExpression(node) {
+        const callee = node.callee
+
+        // Check for useMemo() or React.useMemo()
+        const isUseMemo =
+          (callee.type === "Identifier" && callee.name === "useMemo") ||
+          (callee.type === "MemberExpression" &&
+           callee.object.type === "Identifier" &&
+           callee.object.name === "React" &&
+           callee.property.type === "Identifier" &&
+           callee.property.name === "useMemo")
+
+        if (!isUseMemo) return
+        if (node.arguments.length < 2) return
+
+        const deps = node.arguments[1]
+        if (deps.type !== "ArrayExpression") return
+
+        // Check if deps include a refresh key variable
+        const hasRefreshKeyDep = deps.elements.some(el =>
+          el?.type === "Identifier" && refreshKeyStates.has(el.name)
+        )
+
+        if (!hasRefreshKeyDep) return
+
+        // Check if the memo body creates an atom (ApiClient.query, Atom.*, etc.)
+        const memoBody = node.arguments[0]
+        const bodyText = context.getSourceCode().getText(memoBody)
+
+        const atomCreationPatterns = [
+          "ApiClient.query",
+          "ApiClient.mutation",
+          "Atom.make",
+          "Atom.readable",
+          "Atom.writable",
+          "Atom.family",
+          "createAtom",
+          "QueryAtom",
+          "MutationAtom"
+        ]
+
+        if (atomCreationPatterns.some(pattern => bodyText.includes(pattern))) {
+          context.report({ node, messageId: "noRefreshKey" })
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Custom ESLint rule to warn about creating atoms inside render without memoization.
+ * Atoms created on every render cause new subscriptions and lose cache benefits.
+ * See specs/EFFECT_ATOM.md Section 4.3
+ */
+const noUnmemoizedAtomCreationRule = {
+  meta: {
+    type: "problem",
+    docs: {
+      description: "Disallow creating atoms inside components without useMemo or Atom.family"
+    },
+    messages: {
+      unmemoizedAtom: "Atom created inside component without memoization. Use Atom.family() for parameterized atoms or wrap in useMemo() with stable dependencies. Creating atoms on every render causes performance issues."
+    },
+    schema: []
+  },
+  create(context) {
+    // Track if we're inside a function component
+    let componentDepth = 0
+    let inUseMemo = false
+
+    function isComponentFunction(node) {
+      // Function starting with uppercase letter (React convention)
+      if (node.id?.type === "Identifier") {
+        return /^[A-Z]/.test(node.id.name)
+      }
+      // Arrow function assigned to uppercase variable
+      if (node.parent?.type === "VariableDeclarator" &&
+          node.parent.id?.type === "Identifier") {
+        return /^[A-Z]/.test(node.parent.id.name)
+      }
+      return false
+    }
+
+    function isAtomCreation(node) {
+      if (node.type !== "CallExpression") return false
+      const callee = node.callee
+
+      // ApiClient.query() or ApiClient.mutation()
+      if (callee.type === "MemberExpression" &&
+          callee.object.type === "Identifier" &&
+          callee.object.name === "ApiClient" &&
+          callee.property.type === "Identifier" &&
+          (callee.property.name === "query" || callee.property.name === "mutation")) {
+        return true
+      }
+
+      // Atom.make(), Atom.readable(), Atom.writable()
+      if (callee.type === "MemberExpression" &&
+          callee.object.type === "Identifier" &&
+          callee.object.name === "Atom" &&
+          callee.property.type === "Identifier" &&
+          ["make", "readable", "writable"].includes(callee.property.name)) {
+        return true
+      }
+
+      return false
+    }
+
+    return {
+      // Track entering component functions
+      "FunctionDeclaration"(node) {
+        if (isComponentFunction(node)) componentDepth++
+      },
+      "FunctionDeclaration:exit"(node) {
+        if (isComponentFunction(node)) componentDepth--
+      },
+      "FunctionExpression"(node) {
+        if (isComponentFunction(node)) componentDepth++
+      },
+      "FunctionExpression:exit"(node) {
+        if (isComponentFunction(node)) componentDepth--
+      },
+      "ArrowFunctionExpression"(node) {
+        if (isComponentFunction(node)) componentDepth++
+      },
+      "ArrowFunctionExpression:exit"(node) {
+        if (isComponentFunction(node)) componentDepth--
+      },
+
+      // Track useMemo calls
+      "CallExpression"(node) {
+        const callee = node.callee
+        const isUseMemo =
+          (callee.type === "Identifier" && callee.name === "useMemo") ||
+          (callee.type === "MemberExpression" &&
+           callee.object.type === "Identifier" &&
+           callee.object.name === "React" &&
+           callee.property.type === "Identifier" &&
+           callee.property.name === "useMemo")
+
+        if (isUseMemo && node.arguments[0]) {
+          inUseMemo = true
+        }
+
+        // Check for unmemoized atom creation inside components
+        if (componentDepth > 0 && !inUseMemo && isAtomCreation(node)) {
+          // Check if it's inside a variable declaration at component level
+          // (not inside a callback or other nested function)
+          let parent = node.parent
+          while (parent) {
+            // If inside useMemo callback, it's fine
+            if (parent.type === "CallExpression") {
+              const c = parent.callee
+              if ((c.type === "Identifier" && c.name === "useMemo") ||
+                  (c.type === "MemberExpression" && c.property?.name === "useMemo")) {
+                return
+              }
+            }
+            // If inside useCallback, useEffect, etc., it's likely intentional
+            if (parent.type === "CallExpression") {
+              const c = parent.callee
+              if (c.type === "Identifier" &&
+                  ["useCallback", "useEffect", "useLayoutEffect"].includes(c.name)) {
+                return
+              }
+            }
+            parent = parent.parent
+          }
+
+          context.report({ node, messageId: "unmemoizedAtom" })
+        }
+      },
+      "CallExpression:exit"(node) {
+        const callee = node.callee
+        const isUseMemo =
+          (callee.type === "Identifier" && callee.name === "useMemo") ||
+          (callee.type === "MemberExpression" &&
+           callee.object.type === "Identifier" &&
+           callee.object.name === "React" &&
+           callee.property.type === "Identifier" &&
+           callee.property.name === "useMemo")
+
+        if (isUseMemo) {
+          inUseMemo = false
+        }
+      }
+    }
+  }
+}
+
 const localPlugin = {
   rules: {
     "import-extensions": importExtensionsRule,
     "no-disable-validation": noDisableValidationRule,
     "no-sql-type-parameter": noSqlTypeParameterRule,
-    "prefer-option-from-nullable": preferOptionFromNullableRule
+    "prefer-option-from-nullable": preferOptionFromNullableRule,
+    "no-page-reload": noPageReloadRule,
+    "no-refresh-key-pattern": noRefreshKeyPatternRule,
+    "no-unmemoized-atom-creation": noUnmemoizedAtomCreationRule
   }
 }
 
@@ -299,6 +619,10 @@ export default [
       "local/no-sql-type-parameter": "error",
       // Prefer Option.fromNullable over ternary
       "local/prefer-option-from-nullable": "error",
+      // Effect Atom anti-patterns (see specs/EFFECT_ATOM.md)
+      "local/no-page-reload": "error",
+      "local/no-refresh-key-pattern": "error",
+      "local/no-unmemoized-atom-creation": "error",
       // Allow unused variables starting with underscore
       "no-unused-vars": "off",
       "@typescript-eslint/no-unused-vars": [
