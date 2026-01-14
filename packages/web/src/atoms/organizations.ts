@@ -423,3 +423,102 @@ export const createCompanyMutation = ApiClient.runtime.fn<CreateCompanyInput>()(
     return response
   })
 )
+
+// =============================================================================
+// Update Company Mutation
+// =============================================================================
+
+/**
+ * Input type for updating a company (form input)
+ */
+export interface UpdateCompanyInput {
+  readonly id: string
+  readonly organizationId: string
+  readonly name?: string
+  readonly legalName?: string
+  readonly taxId?: string | null
+  readonly reportingCurrency?: string
+  readonly fiscalYearEndMonth?: number
+  readonly fiscalYearEndDay?: number
+  readonly parentCompanyId?: string | null
+  readonly ownershipPercentage?: number | null
+  readonly consolidationMethod?: "FullConsolidation" | "EquityMethod" | "CostMethod" | "VariableInterestEntity" | null
+  readonly isActive?: boolean
+}
+
+/**
+ * updateCompanyMutation - Update an existing company
+ *
+ * This mutation:
+ * 1. Calls the update company API endpoint
+ * 2. On success, automatically refreshes the company and companies list
+ *
+ * Usage:
+ * ```typescript
+ * const [result, updateCompany] = useAtom(updateCompanyMutation)
+ *
+ * updateCompany({
+ *   id: companyId,
+ *   organizationId: orgId,
+ *   name: "New Name"
+ * })
+ * ```
+ */
+export const updateCompanyMutation = ApiClient.runtime.fn<UpdateCompanyInput>()(
+  Effect.fnUntraced(function* (input) {
+    const client = yield* ApiClient
+    const registry = yield* AtomRegistry
+
+    // Import the UpdateCompanyRequest schema from CompaniesApi
+    const { UpdateCompanyRequest } = yield* Effect.promise(() =>
+      import("@accountability/api/Definitions/CompaniesApi")
+    )
+
+    // Import domain types
+    const { FiscalYearEnd, CompanyId } = yield* Effect.promise(() =>
+      import("@accountability/core/Domains/Company")
+    )
+    const { Percentage } = yield* Effect.promise(() =>
+      import("@accountability/core/Domains/Percentage")
+    )
+
+    // Build the payload using Schema.make() constructors
+    const payload = UpdateCompanyRequest.make({
+      name: Option.fromNullable(input.name),
+      legalName: Option.fromNullable(input.legalName),
+      taxId: input.taxId !== undefined
+        ? (input.taxId === null ? Option.none() : Option.some(input.taxId))
+        : Option.none(),
+      reportingCurrency: input.reportingCurrency !== undefined
+        ? Option.some(CurrencyCode.make(input.reportingCurrency))
+        : Option.none(),
+      fiscalYearEnd: (input.fiscalYearEndMonth !== undefined && input.fiscalYearEndDay !== undefined)
+        ? Option.some(FiscalYearEnd.make({
+            month: input.fiscalYearEndMonth,
+            day: input.fiscalYearEndDay
+          }))
+        : Option.none(),
+      parentCompanyId: input.parentCompanyId !== undefined
+        ? (input.parentCompanyId === null ? Option.none() : Option.some(CompanyId.make(input.parentCompanyId)))
+        : Option.none(),
+      ownershipPercentage: input.ownershipPercentage !== undefined
+        ? (input.ownershipPercentage === null ? Option.none() : Option.some(Percentage.make(input.ownershipPercentage)))
+        : Option.none(),
+      consolidationMethod: input.consolidationMethod !== undefined
+        ? Option.fromNullable(input.consolidationMethod)
+        : Option.none(),
+      isActive: Option.fromNullable(input.isActive)
+    })
+
+    const response = yield* client.companies.updateCompany({
+      path: { id: input.id },
+      payload
+    })
+
+    // Refresh the company family and companies list for this organization
+    registry.refresh(companyFamily(input.id))
+    registry.refresh(companiesByOrgFamily(input.organizationId))
+
+    return response
+  })
+)

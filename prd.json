@@ -517,7 +517,7 @@
           "packages/api/test/companies.test.ts"
         ]
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "medium"
     },
     {

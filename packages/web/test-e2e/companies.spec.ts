@@ -595,3 +595,309 @@ test.describe("Companies List Page", () => {
     await expect(card.locator('[data-testid^="company-jurisdiction-"]')).toContainText("DE")
   })
 })
+
+// =============================================================================
+// Company Details Page Tests
+// =============================================================================
+
+test.describe("Company Details Page", () => {
+  let testUser: TestUser
+  let testOrgId: string
+  let testOrgName: string
+  let testCompanyId: string
+  let testCompanyName: string
+
+  test.beforeAll(async ({ request }) => {
+    // Create a test user via API before running tests
+    testUser = generateTestCredentials()
+    testOrgName = `Company Details Test Org ${Date.now()}`
+    testCompanyName = `Test Company ${Date.now()}`
+
+    const response = await request.post("/api/auth/register", {
+      data: {
+        email: testUser.email,
+        password: testUser.password,
+        displayName: testUser.displayName
+      }
+    })
+
+    if (!response.ok()) {
+      console.error("Failed to register test user:", await response.text())
+    }
+    expect(response.ok()).toBe(true)
+
+    // Login to get token
+    const authResponse = await request.post("/api/auth/login", {
+      headers: {
+        "Content-Type": "application/json"
+      },
+      data: {
+        provider: "local",
+        credentials: {
+          email: testUser.email,
+          password: testUser.password
+        }
+      }
+    })
+    expect(authResponse.ok()).toBe(true)
+    const { token } = await authResponse.json()
+
+    // Create test organization
+    const createOrgResponse = await request.post("/api/v1/organizations", {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      data: {
+        name: testOrgName,
+        reportingCurrency: "USD",
+        settings: null
+      }
+    })
+    if (!createOrgResponse.ok()) {
+      console.error(`Failed to create organization: ${createOrgResponse.status()} - ${await createOrgResponse.text()}`)
+    }
+    expect(createOrgResponse.ok()).toBe(true)
+    const org = await createOrgResponse.json()
+    testOrgId = org.id
+
+    // Create test company
+    const createCompanyResponse = await request.post("/api/v1/companies", {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      data: {
+        organizationId: testOrgId,
+        name: testCompanyName,
+        legalName: `${testCompanyName} Inc.`,
+        jurisdiction: "US",
+        taxId: "12-3456789",
+        functionalCurrency: "USD",
+        reportingCurrency: "USD",
+        fiscalYearEnd: { month: 12, day: 31 },
+        parentCompanyId: null,
+        ownershipPercentage: null,
+        consolidationMethod: null
+      }
+    })
+    if (!createCompanyResponse.ok()) {
+      console.error(`Failed to create company: ${createCompanyResponse.status()} - ${await createCompanyResponse.text()}`)
+    }
+    expect(createCompanyResponse.ok()).toBe(true)
+    const company = await createCompanyResponse.json()
+    testCompanyId = company.id
+  })
+
+  test.beforeEach(async ({ page }) => {
+    // Clear any existing auth state before each test
+    await page.goto("/")
+    await page.evaluate((key) => {
+      localStorage.removeItem(key)
+    }, AUTH_TOKEN_KEY)
+
+    // Login the test user
+    await page.goto("/login")
+    await page.getByTestId("login-email").fill(testUser.email)
+    await page.getByTestId("login-password").fill(testUser.password)
+    await page.getByTestId("login-submit").click()
+    await page.waitForURL("/")
+  })
+
+  test("should display company details correctly", async ({ page }) => {
+    await page.goto(`/organizations/${testOrgId}/companies/${testCompanyId}`)
+
+    // Should be on the company details page
+    await expect(page).toHaveURL(`/organizations/${testOrgId}/companies/${testCompanyId}`)
+
+    // Should show the company details page
+    await expect(page.getByTestId("company-details-page")).toBeVisible()
+
+    // Should show company name
+    await expect(page.getByTestId("company-name")).toContainText(testCompanyName)
+
+    // Should show legal name
+    await expect(page.getByTestId("company-legal-name")).toContainText(`${testCompanyName} Inc.`)
+
+    // Should show status
+    await expect(page.getByTestId("company-status")).toContainText("Active")
+
+    // Should show company details card
+    await expect(page.getByTestId("company-details-card")).toBeVisible()
+
+    // Should show jurisdiction
+    await expect(page.getByTestId("company-jurisdiction")).toContainText("US")
+
+    // Should show tax ID
+    await expect(page.getByTestId("company-tax-id")).toContainText("12-3456789")
+
+    // Should show functional currency
+    await expect(page.getByTestId("company-functional-currency")).toContainText("USD")
+
+    // Should show reporting currency
+    await expect(page.getByTestId("company-reporting-currency")).toContainText("USD")
+
+    // Should show fiscal year end
+    await expect(page.getByTestId("company-fiscal-year-end")).toContainText("December 31")
+  })
+
+  test("should have correct breadcrumb navigation", async ({ page }) => {
+    await page.goto(`/organizations/${testOrgId}/companies/${testCompanyId}`)
+
+    // Should show breadcrumb
+    await expect(page.getByTestId("breadcrumb")).toBeVisible()
+    await expect(page.getByTestId("breadcrumb-organizations")).toContainText("Organizations")
+    await expect(page.getByTestId("breadcrumb-organization")).toBeVisible()
+    await expect(page.getByTestId("breadcrumb-companies")).toContainText("Companies")
+    await expect(page.getByTestId("breadcrumb-current")).toContainText(testCompanyName)
+  })
+
+  test("should show navigation tabs", async ({ page }) => {
+    await page.goto(`/organizations/${testOrgId}/companies/${testCompanyId}`)
+
+    // Should show navigation section
+    await expect(page.getByTestId("company-navigation")).toBeVisible()
+
+    // Should show all navigation tabs
+    await expect(page.getByTestId("nav-accounts")).toBeVisible()
+    await expect(page.getByTestId("nav-accounts")).toContainText("Accounts")
+
+    await expect(page.getByTestId("nav-journal-entries")).toBeVisible()
+    await expect(page.getByTestId("nav-journal-entries")).toContainText("Journal Entries")
+
+    await expect(page.getByTestId("nav-fiscal-periods")).toBeVisible()
+    await expect(page.getByTestId("nav-fiscal-periods")).toContainText("Fiscal Periods")
+
+    await expect(page.getByTestId("nav-reports")).toBeVisible()
+    await expect(page.getByTestId("nav-reports")).toContainText("Reports")
+  })
+
+  test("should show edit button", async ({ page }) => {
+    await page.goto(`/organizations/${testOrgId}/companies/${testCompanyId}`)
+
+    // Should show edit button
+    await expect(page.getByTestId("company-edit-button")).toBeVisible()
+    await expect(page.getByTestId("company-edit-button")).toContainText("Edit")
+  })
+
+  test("should open edit modal when clicking edit button", async ({ page }) => {
+    await page.goto(`/organizations/${testOrgId}/companies/${testCompanyId}`)
+
+    // Click edit button
+    await page.getByTestId("company-edit-button").click()
+
+    // Modal should appear
+    await expect(page.getByTestId("edit-company-modal")).toBeVisible()
+
+    // Modal should have title
+    await expect(page.getByRole("heading", { name: "Edit Company Settings" })).toBeVisible()
+
+    // Modal should have form inputs pre-filled
+    await expect(page.getByTestId("edit-company-name-input")).toHaveValue(testCompanyName)
+    await expect(page.getByTestId("edit-company-legal-name-input")).toHaveValue(`${testCompanyName} Inc.`)
+    await expect(page.getByTestId("edit-company-tax-id-input")).toHaveValue("12-3456789")
+  })
+
+  test("should close edit modal when clicking cancel", async ({ page }) => {
+    await page.goto(`/organizations/${testOrgId}/companies/${testCompanyId}`)
+
+    // Open the modal
+    await page.getByTestId("company-edit-button").click()
+    await expect(page.getByTestId("edit-company-modal")).toBeVisible()
+
+    // Click cancel
+    await page.getByTestId("edit-company-cancel").click()
+
+    // Modal should close
+    await expect(page.getByTestId("edit-company-modal")).not.toBeVisible()
+  })
+
+  test("should close edit modal when pressing Escape", async ({ page }) => {
+    await page.goto(`/organizations/${testOrgId}/companies/${testCompanyId}`)
+
+    // Open the modal
+    await page.getByTestId("company-edit-button").click()
+    await expect(page.getByTestId("edit-company-modal")).toBeVisible()
+
+    // Press Escape
+    await page.keyboard.press("Escape")
+
+    // Modal should close
+    await expect(page.getByTestId("edit-company-modal")).not.toBeVisible()
+  })
+
+  test("should update company name successfully", async ({ page }) => {
+    const updatedName = `Updated Company ${Date.now()}`
+
+    await page.goto(`/organizations/${testOrgId}/companies/${testCompanyId}`)
+
+    // Open the modal
+    await page.getByTestId("company-edit-button").click()
+    await expect(page.getByTestId("edit-company-modal")).toBeVisible()
+
+    // Update the name
+    await page.getByTestId("edit-company-name-input").clear()
+    await page.getByTestId("edit-company-name-input").fill(updatedName)
+
+    // Submit
+    await page.getByTestId("edit-company-submit").click()
+
+    // Modal should close
+    await expect(page.getByTestId("edit-company-modal")).not.toBeVisible({ timeout: 15000 })
+
+    // Company name should be updated on the page
+    await expect(page.getByTestId("company-name")).toContainText(updatedName)
+  })
+
+  test("should show validation error for empty name", async ({ page }) => {
+    await page.goto(`/organizations/${testOrgId}/companies/${testCompanyId}`)
+
+    // Open the modal
+    await page.getByTestId("company-edit-button").click()
+    await expect(page.getByTestId("edit-company-modal")).toBeVisible()
+
+    // Clear the name
+    await page.getByTestId("edit-company-name-input").clear()
+
+    // Submit
+    await page.getByTestId("edit-company-submit").click()
+
+    // Should show error
+    await expect(page.getByTestId("edit-company-error")).toBeVisible()
+    await expect(page.getByTestId("edit-company-error")).toContainText("required")
+  })
+
+  test("should navigate to companies list via breadcrumb", async ({ page }) => {
+    await page.goto(`/organizations/${testOrgId}/companies/${testCompanyId}`)
+
+    // Click on Companies breadcrumb
+    await page.getByTestId("breadcrumb-companies").click()
+
+    // Should navigate to companies list
+    await expect(page).toHaveURL(`/organizations/${testOrgId}/companies`)
+  })
+
+  test("should navigate to organization via breadcrumb", async ({ page }) => {
+    await page.goto(`/organizations/${testOrgId}/companies/${testCompanyId}`)
+
+    // Click on organization breadcrumb
+    await page.getByTestId("breadcrumb-organization").click()
+
+    // Should navigate to organization details
+    await expect(page).toHaveURL(`/organizations/${testOrgId}`)
+  })
+
+  test("should require authentication to access company details page", async ({ page }) => {
+    // Clear the auth token
+    await page.evaluate((key) => {
+      localStorage.removeItem(key)
+    }, AUTH_TOKEN_KEY)
+
+    // Try to access company details page
+    await page.goto(`/organizations/${testOrgId}/companies/${testCompanyId}`)
+
+    // Should be redirected to login
+    await page.waitForURL(/\/login/)
+    await expect(page.getByRole("heading", { name: "Sign In" })).toBeVisible()
+  })
+})
