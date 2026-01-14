@@ -241,14 +241,34 @@ const localPlugin = {
 export default [
   {
     ignores: [
+      // Build outputs
       "**/dist/**",
       "**/build/**",
       "**/.output/**",
+      "**/.next/**",
+      "**/.turbo/**",
+
+      // Dependencies
       "**/node_modules/**",
+
+      // Playwright / E2E testing
       "**/playwright-report/**",
       "**/test-results/**",
+      "**/test-e2e/**",
+
+      // Coverage
+      "**/coverage/**",
+
+      // Reference repos (git subtrees)
       "repos/**",
-      "**/*.md"
+
+      // Generated files
+      "**/*.gen.ts",
+      "**/*.gen.tsx",
+
+      // Other
+      "**/*.md",
+      "**/.ralph/**"
     ]
   },
   js.configs.recommended,
