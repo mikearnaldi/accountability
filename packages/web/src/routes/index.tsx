@@ -1,25 +1,22 @@
 import { createFileRoute } from "@tanstack/react-router"
 
 export const Route = createFileRoute("/")({
-  component: Home
+  component: HomePage
 })
 
-function Home() {
+function HomePage() {
   return (
-    <div>
-      <h1>Welcome to Accountability</h1>
-      <p>
-        Multi-company, multi-currency accounting application built on US GAAP principles.
+    <div className="flex min-h-screen flex-col items-center justify-center p-8">
+      <h1 className="mb-4 text-4xl font-bold text-gray-900">
+        Accountability
+      </h1>
+      <p className="mb-8 max-w-md text-center text-gray-600">
+        Multi-company, multi-currency accounting application built on US GAAP
+        principles.
       </p>
-      <section>
-        <h2>Quick Start</h2>
-        <ul>
-          <li>Manage your companies and chart of accounts</li>
-          <li>Record journal entries with multi-currency support</li>
-          <li>Generate financial reports (Trial Balance, Balance Sheet, Income Statement)</li>
-          <li>Perform consolidation for multi-entity groups</li>
-        </ul>
-      </section>
+      <p className="text-sm text-gray-400">
+        UI is being rebuilt. Check prd.json for the implementation plan.
+      </p>
     </div>
   )
 }

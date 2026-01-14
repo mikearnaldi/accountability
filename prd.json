@@ -1,9 +1,9 @@
 {
   "project": "Accountability",
   "description": "Multi-company, multi-currency accounting application built on US GAAP principles",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "created_at": "2026-01-10",
-  "updated_at": "2026-01-12",
+  "updated_at": "2026-01-14",
   "specs_dir": "specs/",
   "available_specs": [
     "ACCOUNTING_RESEARCH.md",
@@ -60,7 +60,7 @@
         "@effect-atom/atom",
         "@effect-atom/atom-react"
       ],
-      "notes": "For reactive state management with Effect. See repos/effect-atom/ for source and specs/HTTP_API_TANSTACK.md Part 3 for patterns."
+      "notes": "For reactive state management with Effect. See repos/effect-atom/ for source and specs/EFFECT_ATOM.md for patterns."
     }
   },
   "reference_repos": {
@@ -74,1318 +74,1088 @@
     "tanstack_start": "repos/tanstack-router/packages/react-start/src/",
     "tanstack_examples": "repos/tanstack-router/examples/react/start-basic/"
   },
+  "ui_patterns": {
+    "state_management": "All shared state must use Effect Atom. useState only for truly local ephemeral state (form drafts, hover states).",
+    "styling": "Tailwind CSS classes only. No inline styles. Use clsx for conditional classes.",
+    "data_fetching": "Use ApiClient.query() for reads, ApiClient.mutation() for writes. Handle all Result states.",
+    "mutations": "Prefer fire-and-forget with reactivityKeys. Use mode: 'promise' only when awaiting is required (navigation after create).",
+    "forms": "Use atoms for form state when other components need it. Local useState acceptable for isolated form drafts.",
+    "testing": "Every UI must have E2E tests that prove it works. Tests interact through UI only, no direct API calls in assertions."
+  },
   "stories": [
     {
-      "id": "7.2.3",
-      "phase": "API Layer",
-      "epic": "Quality Assurance",
-      "title": "Verify OpenAPI spec generation",
-      "description": "Create a test that verifies the OpenAPI specification can be generated without errors for all API endpoints.",
-      "acceptance_criteria": [
-        "Test that OpenAPI JSON can be generated without errors",
-        "Verify all schemas have valid JSON Schema representations",
-        "No missing jsonSchema annotations"
+      "id": "10.0.1",
+      "phase": "UI Rebuild",
+      "epic": "Infrastructure",
+      "title": "Set up base app shell and routing",
+      "description": "Create the foundational app layout with navigation, header, and content area. Set up TanStack Router with protected routes.",
+      "specs": [
+        "REACT_BEST_PRACTICES.md",
+        "EFFECT_ATOM.md"
       ],
-      "status": "complete",
+      "acceptance_criteria": [
+        "App shell with sidebar navigation and main content area",
+        "Header with app logo/title area and user menu slot",
+        "Responsive layout: sidebar collapses to icons on mobile",
+        "RegistryProvider wrapping the app for Effect Atom",
+        "Protected route wrapper that redirects to /login if not authenticated",
+        "Public routes: /login, /register, /auth/callback/:provider",
+        "Navigation links: Organizations, Companies, Journal Entries, Reports",
+        "Active route highlighting in navigation",
+        "Tailwind CSS styling throughout"
+      ],
+      "technical_details": {
+        "files": [
+          "packages/web/src/routes/__root.tsx",
+          "packages/web/src/components/AppShell.tsx",
+          "packages/web/src/components/Sidebar.tsx",
+          "packages/web/src/components/Header.tsx",
+          "packages/web/src/components/ProtectedRoute.tsx"
+        ],
+        "atoms": [
+          "sidebarOpenAtom - controls sidebar expanded/collapsed state"
+        ],
+        "pattern": "Composition: AppShell renders Sidebar + Header + children"
+      },
+      "status": "pending",
       "estimated_complexity": "medium"
     },
     {
-      "id": "7.2.4",
-      "phase": "UI Layer",
-      "epic": "Pages",
-      "title": "Implement report viewer page",
-      "description": "Create page for viewing and exporting financial reports using Effect Atom for async report generation.",
+      "id": "10.0.2",
+      "phase": "UI Rebuild",
+      "epic": "Infrastructure",
+      "title": "Create ApiClient and base atoms",
+      "description": "Set up the Effect Atom API client with authentication support and base state atoms.",
       "specs": [
+        "EFFECT_ATOM.md",
         "HTTP_API_TANSTACK.md"
       ],
       "acceptance_criteria": [
-        "Route: /companies/:companyId/reports",
-        "Report type selector: Trial Balance, Balance Sheet, Income Statement, Cash Flow",
-        "Date/period parameter inputs stored in local state",
-        "Report data fetched via reportAtom(type, params)",
-        "Report display with proper formatting (indentation, subtotals, totals)",
-        "Drill-down to transactions using transactionsAtom(accountId, dateRange)",
-        "Loading and error states via Atom status",
-        "Export to PDF/Excel (can be future enhancement)"
-      ],
-      "technical_details": {
-        "report_atom": "Atom.family((params) => asyncAtom calling reports API)",
-        "params_pattern": "Local React state for report type, dates - atom key changes trigger refetch",
-        "drill_down": "On account click, set selectedAccount state, show transactionsAtom data"
-      },
-      "status": "complete",
-      "estimated_complexity": "large"
-    },
-    {
-      "id": "8.1.1",
-      "phase": "Core",
-      "epic": "Authentication",
-      "title": "Define authentication domain schemas",
-      "description": "Create core authentication schemas and types supporting multiple concurrent auth providers (Local + WorkOS + OAuth).",
-      "acceptance_criteria": [
-        "AuthUserId branded type (string, UUIDv4 pattern)",
-        "SessionId branded type (string, secure random token)",
-        "ProviderId branded type for external provider user IDs",
-        "AuthProviderType literal schema: 'local' | 'workos' | 'google' | 'github' | 'saml' (extensible)",
-        "AuthUser schema class with: id (AuthUserId), email (Email branded), displayName, role (literal union), primaryProvider (AuthProviderType), createdAt, updatedAt",
-        "UserIdentity schema class with: id, userId (AuthUserId), provider (AuthProviderType), providerId (ProviderId), providerData (optional JSON), createdAt - links user to provider",
-        "Session schema class with: id (SessionId), userId (AuthUserId), provider (AuthProviderType), expiresAt (DateTimeUtc), createdAt, userAgent (optional)",
-        "LocalCredentials schema: email + password (Redacted) - for local provider only",
-        "All schemas follow Effect best practices (Schema.Class, branded types, no *FromSelf)"
-      ],
-      "specs": [
-        "EFFECT_BEST_PRACTICES.md"
-      ],
-      "technical_details": {
-        "location": "packages/core/src/Auth/",
-        "files": [
-          "AuthUserId.ts",
-          "SessionId.ts",
-          "ProviderId.ts",
-          "AuthProviderType.ts",
-          "AuthUser.ts",
-          "UserIdentity.ts",
-          "Session.ts",
-          "LocalCredentials.ts"
-        ],
-        "pattern": "Flat module structure, no index.ts barrel files",
-        "multi_provider": "One AuthUser can have multiple UserIdentity records (e.g., local + WorkOS)"
-      },
-      "status": "complete",
-      "estimated_complexity": "small"
-    },
-    {
-      "id": "8.1.2",
-      "phase": "Core",
-      "epic": "Authentication",
-      "title": "Define authentication error types",
-      "description": "Create tagged error types for all authentication failure scenarios across multiple providers.",
-      "acceptance_criteria": [
-        "InvalidCredentialsError - wrong username/password (local provider)",
-        "UserNotFoundError - user does not exist",
-        "UserAlreadyExistsError - duplicate registration (email already taken)",
-        "IdentityAlreadyLinkedError - provider identity already linked to another user",
-        "ProviderNotEnabledError - auth provider not configured/enabled",
-        "ProviderAuthFailedError - external provider auth failed (WorkOS, OAuth)",
-        "SessionExpiredError - session has expired",
-        "SessionNotFoundError - invalid session token",
-        "PasswordTooWeakError - password validation failed (local provider)",
-        "OAuthStateError - OAuth state mismatch (CSRF protection)",
-        "All errors extend Schema.TaggedError",
-        "Errors include provider field where applicable",
-        "Appropriate HTTP status annotations (400, 401, 404, 409)"
-      ],
-      "specs": [
-        "EFFECT_BEST_PRACTICES.md",
-        "API_BEST_PRACTICES.md"
-      ],
-      "technical_details": {
-        "location": "packages/core/src/Auth/AuthErrors.ts",
-        "pattern": "Schema.TaggedError with HttpApiSchema.annotations for status codes"
-      },
-      "status": "complete",
-      "estimated_complexity": "small"
-    },
-    {
-      "id": "8.1.3",
-      "phase": "Core",
-      "epic": "Authentication",
-      "title": "Implement password hashing service",
-      "description": "Create a password hashing service abstraction with secure implementation using bcrypt/argon2.",
-      "acceptance_criteria": [
-        "PasswordHasher service interface with hash and verify methods",
-        "PasswordHasher Context.Tag for dependency injection",
-        "BcryptPasswordHasher implementation (or Argon2 based on available packages)",
-        "hash(plaintext: Redacted<string>) => Effect<HashedPassword, never>",
-        "verify(plaintext: Redacted<string>, hash: HashedPassword) => Effect<boolean, never>",
-        "HashedPassword branded type for type safety",
-        "Configurable work factor / cost"
-      ],
-      "specs": [
-        "EFFECT_BEST_PRACTICES.md"
-      ],
-      "technical_details": {
-        "location": "packages/core/src/Auth/",
-        "files": [
-          "PasswordHasher.ts",
-          "HashedPassword.ts"
-        ],
-        "implementation": "Use 'bcryptjs' or 'argon2' package",
-        "pattern": "Layer.effect for service creation, Redacted for sensitive data"
-      },
-      "status": "complete",
-      "estimated_complexity": "small"
-    },
-    {
-      "id": "8.1.4",
-      "phase": "Core",
-      "epic": "Authentication",
-      "title": "Implement session token service",
-      "description": "Create a service for generating and validating secure session tokens.",
-      "acceptance_criteria": [
-        "SessionTokenGenerator service interface",
-        "generate() => Effect<SessionId, never> - creates cryptographically secure token",
-        "Token format: URL-safe base64, 32+ bytes of entropy",
-        "Configurable token length",
-        "Uses Effect-idiomatic random generation (Effect.random or crypto.getRandomValues)"
-      ],
-      "specs": [
-        "EFFECT_BEST_PRACTICES.md"
-      ],
-      "technical_details": {
-        "location": "packages/core/src/Auth/SessionTokenGenerator.ts",
-        "pattern": "Service tag with Layer.succeed for stateless service"
-      },
-      "status": "complete",
-      "estimated_complexity": "small"
-    },
-    {
-      "id": "8.1.5",
-      "phase": "Core",
-      "epic": "Authentication",
-      "title": "Define AuthProvider interface and AuthService",
-      "description": "Create the auth provider interface (strategy pattern) and main AuthService that routes to multiple concurrent providers.",
-      "acceptance_criteria": [
-        "AuthProvider interface - individual provider implementation contract",
-        "AuthProvider.authenticate(request: AuthRequest) => Effect<AuthResult, AuthError>",
-        "AuthProvider.getAuthorizationUrl(state: string) => Option<string> - for OAuth/SAML providers",
-        "AuthProvider.handleCallback(code: string, state: string) => Effect<AuthResult, AuthError> - for OAuth/SAML",
-        "AuthProvider.supportsRegistration: boolean - local supports, WorkOS SSO may not",
-        "AuthProvider.type: AuthProviderType - identifies the provider",
-        "AuthService service interface with Context.Tag - orchestrates multiple providers",
-        "AuthService.login(provider: AuthProviderType, request: AuthRequest) => Effect<{user, session}, AuthError>",
-        "AuthService.register(email, password, displayName) => Effect<AuthUser, AuthError> - local only",
-        "AuthService.getAuthorizationUrl(provider: AuthProviderType) => Effect<string, ProviderNotEnabledError>",
-        "AuthService.handleOAuthCallback(provider, code, state) => Effect<{user, session}, AuthError>",
-        "AuthService.logout(sessionId: SessionId) => Effect<void, SessionNotFoundError>",
-        "AuthService.validateSession(sessionId: SessionId) => Effect<{user, session}, SessionError>",
-        "AuthService.linkIdentity(userId, provider, providerResult) => Effect<UserIdentity, AuthError>",
-        "AuthService.getEnabledProviders() => Effect<Array<AuthProviderType>>",
-        "getCurrentUser helper that uses CurrentUser context"
-      ],
-      "specs": [
-        "EFFECT_BEST_PRACTICES.md"
-      ],
-      "technical_details": {
-        "location": "packages/core/src/Auth/",
-        "files": [
-          "AuthProvider.ts",
-          "AuthService.ts",
-          "AuthRequest.ts",
-          "AuthResult.ts"
-        ],
-        "pattern": "Strategy pattern for providers, registry pattern for AuthService",
-        "multi_provider": "AuthService holds Map<AuthProviderType, AuthProvider> for routing"
-      },
-      "status": "complete",
-      "estimated_complexity": "medium"
-    },
-    {
-      "id": "8.2.1",
-      "phase": "Persistence",
-      "epic": "Authentication",
-      "title": "Create auth database migrations",
-      "description": "Create PostgreSQL migrations for users, identities, and sessions tables supporting multiple auth providers.",
-      "acceptance_criteria": [
-        "Migration: CREATE TABLE auth_users (id UUID PK, email VARCHAR UNIQUE, display_name VARCHAR, role VARCHAR, primary_provider VARCHAR NOT NULL, created_at TIMESTAMPTZ, updated_at TIMESTAMPTZ)",
-        "Migration: CREATE TABLE auth_identities (id UUID PK, user_id UUID FK NOT NULL, provider VARCHAR NOT NULL, provider_id VARCHAR NOT NULL, password_hash VARCHAR NULL, provider_data JSONB NULL, created_at TIMESTAMPTZ, UNIQUE(provider, provider_id))",
-        "Migration: CREATE TABLE auth_sessions (id VARCHAR PK, user_id UUID FK NOT NULL, provider VARCHAR NOT NULL, expires_at TIMESTAMPTZ NOT NULL, created_at TIMESTAMPTZ, user_agent VARCHAR NULL, ip_address VARCHAR NULL)",
-        "Indexes on auth_users.email, auth_identities.user_id, auth_identities(provider, provider_id), auth_sessions.user_id, auth_sessions.expires_at",
-        "Foreign keys: auth_identities.user_id -> auth_users.id ON DELETE CASCADE, auth_sessions.user_id -> auth_users.id ON DELETE CASCADE",
-        "Follows existing migration patterns in packages/persistence/src/Migrations/"
-      ],
-      "specs": [
-        "EFFECT_SQL.md"
-      ],
-      "technical_details": {
-        "location": "packages/persistence/src/Migrations/",
-        "files": [
-          "010_create_auth_users.ts",
-          "011_create_auth_identities.ts",
-          "012_create_auth_sessions.ts"
-        ],
-        "pattern": "SqlClient.execute template tag for migrations",
-        "note": "password_hash is on auth_identities (not auth_users) since only local provider uses it"
-      },
-      "status": "complete",
-      "estimated_complexity": "small"
-    },
-    {
-      "id": "8.2.2",
-      "phase": "Persistence",
-      "epic": "Authentication",
-      "title": "Implement UserRepository",
-      "description": "Create repository for user CRUD operations following existing repository patterns.",
-      "acceptance_criteria": [
-        "UserRepository service interface with Context.Tag",
-        "findById(id: AuthUserId) => Effect<Option<AuthUser>, PersistenceError>",
-        "findByEmail(email: Email) => Effect<Option<AuthUser>, PersistenceError>",
-        "create(user: AuthUserInsert) => Effect<AuthUser, PersistenceError>",
-        "update(id: AuthUserId, data: AuthUserUpdate) => Effect<AuthUser, EntityNotFoundError | PersistenceError>",
-        "delete(id: AuthUserId) => Effect<void, EntityNotFoundError | PersistenceError>",
-        "SqlSchema for row mapping (AuthUserRow <-> AuthUser)",
-        "UserRepositoryLive Layer implementation"
-      ],
-      "specs": [
-        "EFFECT_SQL.md",
-        "EFFECT_BEST_PRACTICES.md"
-      ],
-      "technical_details": {
-        "location": "packages/persistence/src/",
-        "files": [
-          "Services/UserRepository.ts",
-          "Layers/UserRepositoryLive.ts"
-        ],
-        "pattern": "Follow AccountRepository patterns"
-      },
-      "status": "complete",
-      "estimated_complexity": "medium"
-    },
-    {
-      "id": "8.2.3",
-      "phase": "Persistence",
-      "epic": "Authentication",
-      "title": "Implement IdentityRepository",
-      "description": "Create repository for user identity (provider link) CRUD operations.",
-      "acceptance_criteria": [
-        "IdentityRepository service interface with Context.Tag",
-        "findById(id: IdentityId) => Effect<Option<UserIdentity>, PersistenceError>",
-        "findByUserId(userId: AuthUserId) => Effect<Chunk<UserIdentity>, PersistenceError>",
-        "findByProvider(provider: AuthProviderType, providerId: ProviderId) => Effect<Option<UserIdentity>, PersistenceError>",
-        "findByUserAndProvider(userId: AuthUserId, provider: AuthProviderType) => Effect<Option<UserIdentity>, PersistenceError>",
-        "create(identity: UserIdentityInsert) => Effect<UserIdentity, PersistenceError>",
-        "update(id: IdentityId, data: UserIdentityUpdate) => Effect<UserIdentity, EntityNotFoundError | PersistenceError>",
-        "delete(id: IdentityId) => Effect<void, PersistenceError>",
-        "deleteByUserId(userId: AuthUserId) => Effect<number, PersistenceError>",
-        "IdentityRepositoryLive Layer implementation"
-      ],
-      "specs": [
-        "EFFECT_SQL.md",
-        "EFFECT_BEST_PRACTICES.md"
-      ],
-      "technical_details": {
-        "location": "packages/persistence/src/",
-        "files": [
-          "Services/IdentityRepository.ts",
-          "Layers/IdentityRepositoryLive.ts"
-        ],
-        "pattern": "Follow AccountRepository patterns"
-      },
-      "status": "complete",
-      "estimated_complexity": "medium"
-    },
-    {
-      "id": "8.2.4",
-      "phase": "Persistence",
-      "epic": "Authentication",
-      "title": "Implement SessionRepository",
-      "description": "Create repository for session CRUD operations.",
-      "acceptance_criteria": [
-        "SessionRepository service interface with Context.Tag",
-        "findById(id: SessionId) => Effect<Option<Session>, PersistenceError>",
-        "findByUserId(userId: AuthUserId) => Effect<Chunk<Session>, PersistenceError>",
-        "create(session: SessionInsert) => Effect<Session, PersistenceError>",
-        "delete(id: SessionId) => Effect<void, PersistenceError>",
-        "deleteExpired() => Effect<number, PersistenceError> - cleanup expired sessions",
-        "deleteByUserId(userId: AuthUserId) => Effect<number, PersistenceError> - logout all",
-        "updateExpiry(id: SessionId, expiresAt: DateTimeUtc) => Effect<Session, EntityNotFoundError | PersistenceError>",
-        "SessionRepositoryLive Layer implementation"
-      ],
-      "specs": [
-        "EFFECT_SQL.md",
-        "EFFECT_BEST_PRACTICES.md"
-      ],
-      "technical_details": {
-        "location": "packages/persistence/src/",
-        "files": [
-          "Services/SessionRepository.ts",
-          "Layers/SessionRepositoryLive.ts"
-        ],
-        "pattern": "Follow AccountRepository patterns"
-      },
-      "status": "complete",
-      "estimated_complexity": "medium"
-    },
-    {
-      "id": "8.2.5",
-      "phase": "Persistence",
-      "epic": "Authentication",
-      "title": "Implement LocalAuthProvider",
-      "description": "Create the local (username/password) implementation of AuthProvider interface.",
-      "acceptance_criteria": [
-        "LocalAuthProvider implements AuthProvider interface",
-        "type = 'local'",
-        "supportsRegistration = true",
-        "authenticate(LocalCredentials) validates email/password against IdentityRepository",
-        "getAuthorizationUrl returns Option.none() (not OAuth-based)",
-        "handleCallback returns error (not OAuth-based)",
-        "Uses PasswordHasher for password verification",
-        "LocalAuthProviderLive Layer with dependencies"
-      ],
-      "specs": [
-        "EFFECT_BEST_PRACTICES.md"
-      ],
-      "technical_details": {
-        "location": "packages/persistence/src/Layers/LocalAuthProviderLive.ts",
-        "dependencies": [
-          "UserRepository",
-          "IdentityRepository",
-          "PasswordHasher"
-        ],
-        "pattern": "Layer.effect with dependency injection"
-      },
-      "status": "complete",
-      "estimated_complexity": "medium"
-    },
-    {
-      "id": "8.2.6",
-      "phase": "Persistence",
-      "epic": "Authentication",
-      "title": "Implement AuthServiceLive",
-      "description": "Create the main AuthService implementation that orchestrates multiple providers.",
-      "acceptance_criteria": [
-        "AuthServiceLive implements AuthService interface",
-        "Accepts Array<AuthProvider> via Layer config",
-        "Routes login requests to appropriate provider by type",
-        "Creates/updates user and identity records on successful auth",
-        "Handles user creation for new external provider users (auto-provisioning)",
-        "Links identity to existing user if email matches (configurable)",
-        "Creates sessions via SessionRepository",
-        "Uses SessionTokenGenerator for session token creation",
-        "Configurable session duration per provider",
-        "AuthServiceLive Layer with all dependencies"
-      ],
-      "specs": [
-        "EFFECT_BEST_PRACTICES.md"
-      ],
-      "technical_details": {
-        "location": "packages/persistence/src/Layers/AuthServiceLive.ts",
-        "dependencies": [
-          "UserRepository",
-          "IdentityRepository",
-          "SessionRepository",
-          "SessionTokenGenerator",
-          "Array<AuthProvider>"
-        ],
-        "pattern": "Layer.effect with dependency injection, provider registry internal"
-      },
-      "status": "complete",
-      "estimated_complexity": "large"
-    },
-    {
-      "id": "8.3.1",
-      "phase": "API Layer",
-      "epic": "Authentication",
-      "title": "Define AuthApi endpoints",
-      "description": "Create authentication API endpoints supporting multiple providers, OAuth callbacks, and session management.",
-      "acceptance_criteria": [
-        "GET /api/auth/providers - returns list of enabled providers with metadata (public)",
-        "POST /api/auth/register - RegisterRequest => AuthUserResponse (local provider only, public)",
-        "POST /api/auth/login - LoginRequest(provider, credentials) => LoginResponse (public)",
-        "GET /api/auth/authorize/:provider - redirects to OAuth/SAML provider (public)",
-        "GET /api/auth/callback/:provider - handles OAuth/SAML callback, returns LoginResponse or redirects (public)",
-        "POST /api/auth/logout - (protected) => void",
-        "GET /api/auth/me - (protected) => AuthUserResponse with linked identities",
-        "POST /api/auth/refresh - (protected) => RefreshResponse (new session)",
-        "POST /api/auth/link/:provider - (protected) initiates linking additional provider to account",
-        "GET /api/auth/link/callback/:provider - (protected) completes provider linking",
-        "DELETE /api/auth/identities/:identityId - (protected) unlinks provider from account",
-        "Proper error responses with status codes and provider info",
-        "AuthApi group with /api/auth prefix"
-      ],
-      "specs": [
-        "HTTP_API_TANSTACK.md",
-        "API_BEST_PRACTICES.md"
-      ],
-      "technical_details": {
-        "location": "packages/api/src/Definitions/AuthApi.ts",
-        "request_schemas": "LoginRequest(provider + credentials), RegisterRequest, OAuthCallbackParams",
-        "response_schemas": "LoginResponse (token + user + provider), AuthUserResponse, ProvidersResponse",
-        "pattern": "HttpApiGroup.make with mixed public/protected endpoints"
-      },
-      "status": "complete",
-      "estimated_complexity": "medium"
-    },
-    {
-      "id": "8.3.2",
-      "phase": "API Layer",
-      "epic": "Authentication",
-      "title": "Implement AuthApiLive handlers",
-      "description": "Implement handlers for all authentication endpoints with multi-provider support.",
-      "acceptance_criteria": [
-        "providers handler: returns AuthService.getEnabledProviders() with UI metadata",
-        "register handler: validate input, call AuthService.register, return user",
-        "login handler: route to AuthService.login(provider, request), return token + user",
-        "authorize handler: call AuthService.getAuthorizationUrl(provider), redirect response",
-        "callback handler: call AuthService.handleOAuthCallback, create session, return/redirect",
-        "logout handler: extract session from CurrentUser context, call AuthService.logout",
-        "me handler: return current user with all linked identities",
-        "refresh handler: validate current session, call AuthService.refreshSession",
-        "link handler: initiate provider linking for authenticated user",
-        "link callback handler: complete provider linking",
-        "unlink handler: remove identity (prevent unlinking last identity)",
-        "Proper error mapping to API error types",
-        "OAuth state management (CSRF protection) via secure cookies or session",
-        "AuthApiLive Layer"
-      ],
-      "specs": [
-        "HTTP_API_TANSTACK.md",
-        "API_BEST_PRACTICES.md"
-      ],
-      "technical_details": {
-        "location": "packages/api/src/Layers/AuthApiLive.ts",
-        "pattern": "HttpApiBuilder.group pattern",
-        "oauth_state": "Use signed/encrypted state param for CSRF protection"
-      },
-      "status": "complete",
-      "estimated_complexity": "large"
-    },
-    {
-      "id": "8.3.3",
-      "phase": "API Layer",
-      "epic": "Authentication",
-      "title": "Update TokenValidator to use sessions",
-      "description": "Replace SimpleTokenValidatorLive with SessionTokenValidator that validates against the database.",
-      "acceptance_criteria": [
-        "SessionTokenValidator implements TokenValidatorService",
-        "Validates token exists in auth_sessions table",
-        "Checks session is not expired",
-        "Loads full user from auth_users table",
-        "Maps database user to CurrentUser service",
-        "Returns UnauthorizedError for invalid/expired sessions",
-        "SessionTokenValidatorLive Layer"
-      ],
-      "specs": [
-        "EFFECT_BEST_PRACTICES.md"
-      ],
-      "technical_details": {
-        "location": "packages/api/src/Layers/AuthMiddlewareLive.ts",
-        "pattern": "Update existing AuthMiddlewareLive to use SessionTokenValidator",
-        "keep_simple": "Keep SimpleTokenValidatorLive for testing"
-      },
-      "status": "complete",
-      "estimated_complexity": "small"
-    },
-    {
-      "id": "8.3.4",
-      "phase": "API Layer",
-      "epic": "Authentication",
-      "title": "Integrate AuthApi into AppApi",
-      "description": "Add AuthApi group to the main API and update layer composition.",
-      "acceptance_criteria": [
-        "AuthApi added to AppApi definition",
-        "AuthApiLive added to AppApiLive layer composition",
-        "All auth-related layers properly provided",
-        "API route handler updated with new dependencies",
-        "OpenAPI spec includes auth endpoints"
-      ],
-      "specs": [
-        "HTTP_API_TANSTACK.md"
-      ],
-      "technical_details": {
-        "files": [
-          "packages/api/src/Definitions/AppApi.ts",
-          "packages/api/src/Layers/AppApiLive.ts",
-          "packages/web/src/api/handler.ts"
-        ]
-      },
-      "status": "complete",
-      "estimated_complexity": "small"
-    },
-    {
-      "id": "8.4.1",
-      "phase": "UI Layer",
-      "epic": "Authentication",
-      "title": "Create auth state management atoms",
-      "description": "Create Effect Atom based state management for authentication state with multi-provider support.",
-      "acceptance_criteria": [
-        "authTokenAtom - stores current session token (persisted to localStorage)",
+        "ApiClient extends AtomHttpApi.Tag with AppApi",
+        "AuthenticatedHttpClient layer adds Bearer token from localStorage",
+        "Auto-clear token on 401 responses",
+        "authTokenAtom - persisted to localStorage",
         "currentUserAtom - async atom that fetches /api/auth/me when token exists",
-        "userIdentitiesAtom - derived from currentUserAtom, lists linked providers",
-        "enabledProvidersAtom - async atom that fetches /api/auth/providers",
-        "isAuthenticatedAtom - derived boolean from currentUserAtom",
-        "loginMutation(provider, credentials) - calls login API, stores token on success",
-        "oauthLoginMutation(provider) - initiates OAuth flow (redirects to authorize URL)",
-        "logoutMutation - calls logout API, clears token",
-        "registerMutation - calls register API (local provider)",
-        "linkProviderMutation(provider) - initiates provider linking for logged-in user",
-        "unlinkProviderMutation(identityId) - removes linked provider",
-        "Auto-clear token on 401 response",
-        "Token included in all API requests via HttpClient layer"
-      ],
-      "specs": [
-        "HTTP_API_TANSTACK.md"
+        "isAuthenticatedAtom - derived from currentUserAtom",
+        "Runtime properly configured with layers"
       ],
       "technical_details": {
-        "location": "packages/web/src/atoms/auth.ts",
-        "pattern": "Atom.make for token, async atom for user, Atom.fn for mutations",
-        "storage": "localStorage for token persistence across sessions",
-        "oauth_flow": "OAuth mutations redirect to authorize URL, callback page handles token storage"
+        "files": [
+          "packages/web/src/atoms/ApiClient.ts",
+          "packages/web/src/atoms/auth.ts",
+          "packages/web/src/atoms/runtime.ts"
+        ],
+        "pattern": "AtomHttpApi.Tag for type-safe API client"
       },
-      "status": "complete",
+      "status": "pending",
       "estimated_complexity": "medium"
     },
     {
-      "id": "8.4.2",
-      "phase": "UI Layer",
+      "id": "10.1.1",
+      "phase": "UI Rebuild",
       "epic": "Authentication",
-      "title": "Create login page with multi-provider support",
-      "description": "Create the login page UI supporting multiple authentication methods.",
+      "title": "Implement login page",
+      "description": "Create login page with local authentication and multi-provider support.",
+      "specs": [
+        "REACT_BEST_PRACTICES.md",
+        "EFFECT_ATOM.md"
+      ],
       "acceptance_criteria": [
         "Route: /login",
-        "Fetches and displays enabled providers from /api/auth/providers",
-        "Local auth section: email + password form with validation",
-        "OAuth/SSO section: buttons for each enabled external provider (WorkOS, Google, etc.)",
-        "Provider buttons styled with appropriate branding/icons",
-        "Loading states for form submission and OAuth redirects",
-        "Error display for invalid credentials and provider errors",
-        "Link to registration page (if local provider enabled)",
-        "Redirect to / (or intended route from ?redirect param) on successful login",
+        "Email and password input fields with validation",
+        "Form submission uses loginMutation atom",
+        "Loading state shown during authentication (from Result)",
+        "Error display for invalid credentials",
+        "Link to registration page",
+        "Redirect to / or ?redirect param on success",
         "Redirect away if already authenticated",
-        "Accessible form with proper labels and ARIA",
-        "Handles OAuth callback via /auth/callback/:provider route"
-      ],
-      "specs": [
-        "HTTP_API_TANSTACK.md"
+        "data-testid attributes on all interactive elements",
+        "E2E test: successful login redirects to dashboard",
+        "E2E test: invalid credentials shows error",
+        "E2E test: redirect param works after login"
       ],
       "technical_details": {
-        "location": "packages/web/src/routes/login.tsx",
-        "pattern": "useAtom for auth state, conditional rendering based on enabled providers",
-        "redirect": "Use router.navigate or redirect from loader",
-        "oauth_buttons": "Each OAuth provider gets a button that calls oauthLoginMutation"
+        "files": [
+          "packages/web/src/routes/login.tsx",
+          "packages/web/src/atoms/auth.ts"
+        ],
+        "mutations": [
+          "loginMutation - calls /api/auth/login, stores token on success"
+        ],
+        "e2e_file": "packages/web/test-e2e/auth/login.spec.ts"
       },
-      "status": "complete",
+      "status": "pending",
       "estimated_complexity": "medium"
     },
     {
-      "id": "8.4.3",
-      "phase": "UI Layer",
+      "id": "10.1.2",
+      "phase": "UI Rebuild",
       "epic": "Authentication",
-      "title": "Create registration page",
-      "description": "Create the registration page UI (local provider only).",
+      "title": "Implement registration page",
+      "description": "Create registration page for local provider user signup.",
+      "specs": [
+        "REACT_BEST_PRACTICES.md"
+      ],
       "acceptance_criteria": [
         "Route: /register",
-        "Only shown if local provider is enabled",
-        "Email input field with validation",
-        "Display name input field",
-        "Password input field with strength indicator",
-        "Confirm password field with match validation",
-        "Submit button with loading state",
-        "Error display for validation failures and duplicate email",
+        "Email, display name, password, confirm password fields",
+        "Client-side validation (email format, password strength, passwords match)",
+        "Form submission uses registerMutation atom",
+        "Loading and error states from Result",
+        "Success: auto-login and redirect to /",
+        "Error display for duplicate email",
         "Link to login page",
-        "Auto-login after successful registration (or redirect to login)",
         "Redirect away if already authenticated",
-        "Note: SSO/OAuth users don't register - they auto-provision on first login"
-      ],
-      "specs": [
-        "HTTP_API_TANSTACK.md"
-      ],
-      "technical_details": {
-        "location": "packages/web/src/routes/register.tsx",
-        "validation": "Client-side validation before submit, server validation for uniqueness",
-        "conditional": "Hide/redirect if local provider not enabled"
-      },
-      "status": "complete",
-      "estimated_complexity": "medium"
-    },
-    {
-      "id": "8.4.3.1",
-      "phase": "UI Layer",
-      "epic": "Authentication",
-      "title": "Create OAuth callback page",
-      "description": "Create the OAuth/SAML callback handler page that processes provider redirects.",
-      "acceptance_criteria": [
-        "Route: /auth/callback/:provider",
-        "Extracts code and state from URL query params",
-        "Calls /api/auth/callback/:provider with code and state",
-        "On success: stores token, redirects to intended destination",
-        "On error: displays error message with retry/back to login options",
-        "Loading state while processing callback",
-        "Handles link callback flow differently (for adding providers to existing account)"
-      ],
-      "specs": [
-        "HTTP_API_TANSTACK.md"
+        "data-testid attributes for testing",
+        "E2E test: successful registration creates user and logs in",
+        "E2E test: duplicate email shows error",
+        "E2E test: weak password shows validation error"
       ],
       "technical_details": {
-        "location": "packages/web/src/routes/auth/callback.$provider.tsx",
-        "pattern": "useEffect to process callback on mount, show loading, then redirect",
-        "state_validation": "State param validated server-side for CSRF protection"
-      },
-      "status": "complete",
-      "estimated_complexity": "small"
-    },
-    {
-      "id": "8.4.4",
-      "phase": "UI Layer",
-      "epic": "Authentication",
-      "title": "Implement protected route handling",
-      "description": "Create route protection mechanism for authenticated-only routes.",
-      "acceptance_criteria": [
-        "AuthGuard component or route middleware",
-        "Redirect to /login if not authenticated",
-        "Preserve intended destination for post-login redirect",
-        "Loading state while checking authentication",
-        "Apply to all protected routes (companies, journal entries, reports, etc.)",
-        "Public routes: /login, /register, / (landing)"
-      ],
-      "specs": [
-        "HTTP_API_TANSTACK.md"
-      ],
-      "technical_details": {
-        "location": "packages/web/src/components/AuthGuard.tsx or route middleware",
-        "pattern": "TanStack Router beforeLoad or component wrapper",
-        "redirect_param": "?redirect=/intended/path stored for post-login"
-      },
-      "status": "complete",
-      "estimated_complexity": "medium"
-    },
-    {
-      "id": "8.4.5",
-      "phase": "UI Layer",
-      "epic": "Authentication",
-      "title": "Add user menu and logout functionality",
-      "description": "Add user information display and logout button to the app header/navigation.",
-      "acceptance_criteria": [
-        "User avatar/name display in header when authenticated",
-        "Dropdown menu with user info and email",
-        "Shows which provider user authenticated with (icon/badge)",
-        "Link to account settings page",
-        "Logout button in dropdown",
-        "Logout clears session and redirects to /login",
-        "Shows login button when not authenticated"
-      ],
-      "technical_details": {
-        "location": "packages/web/src/components/UserMenu.tsx",
-        "integration": "Add to main layout/header component"
-      },
-      "status": "complete",
-      "estimated_complexity": "small"
-    },
-    {
-      "id": "8.4.6",
-      "phase": "UI Layer",
-      "epic": "Authentication",
-      "title": "Create account settings page",
-      "description": "Create account settings page for managing linked auth providers.",
-      "acceptance_criteria": [
-        "Route: /settings/account",
-        "Display current user info (email, display name)",
-        "List all linked identities with provider icons and connection date",
-        "Button to link additional providers (shows unlinked enabled providers)",
-        "Button to unlink providers (disabled if only one identity remains)",
-        "Change password section (only if local provider linked)",
-        "Delete account option with confirmation",
-        "Success/error notifications for all actions"
-      ],
-      "specs": [
-        "HTTP_API_TANSTACK.md"
-      ],
-      "technical_details": {
-        "location": "packages/web/src/routes/settings/account.tsx",
-        "pattern": "useAtom for user/identities state, mutations for link/unlink"
-      },
-      "status": "complete",
-      "estimated_complexity": "medium"
-    },
-    {
-      "id": "8.5.1",
-      "phase": "Testing",
-      "epic": "Authentication",
-      "title": "Write auth service unit tests",
-      "description": "Create comprehensive unit tests for authentication services.",
-      "acceptance_criteria": [
-        "PasswordHasher tests: hash produces different output, verify works correctly",
-        "SessionTokenGenerator tests: generates unique tokens, correct length",
-        "LocalAuthService tests: register, login, logout, validateSession flows",
-        "Error cases: wrong password, duplicate email, expired session",
-        "Use @effect/vitest patterns",
-        "Mock repositories for unit tests"
-      ],
-      "specs": [
-        "EFFECT_TESTING.md"
-      ],
-      "technical_details": {
-        "location": "packages/core/test/Auth/",
-        "pattern": "@effect/vitest with Layer.succeed for mocks"
-      },
-      "status": "complete",
-      "estimated_complexity": "medium"
-    },
-    {
-      "id": "8.5.1.1",
-      "phase": "Testing",
-      "epic": "Infrastructure",
-      "title": "Optimize test suite with shared database container",
-      "description": "Tests are slow because each it.layer() block creates a new PostgreSQL container. Effect layers are memoized by identity - each new layer object gets its own container. Layer.fresh() in AuthService.test.ts is unnecessary since factory functions already return new objects.",
-      "acceptance_criteria": [
-        "Single PostgreSQL container shared across ALL test files via vitest globalSetup",
-        "Container starts once before all tests, stops once after all tests complete",
-        "Remove unnecessary Layer.fresh() from createTestLayer() - factory functions already return new objects",
-        "SharedPgClientLive layer that uses inject('dbUrl') from globalSetup",
-        "All test files use SharedPgClientLive instead of PgContainer.ClientLive",
-        "Migrations still run per it.layer() block (idempotent, fast after first run)",
-        "Test suite time reduced by eliminating per-block container startup"
-      ],
-      "specs": [
-        "EFFECT_LAYERS.md",
-        "EFFECT_TESTING.md"
-      ],
-      "technical_details": {
-        "layer_semantics_key_insight": "Layers are memoized by object identity (reference equality), not by type. Factory functions return NEW objects each time - no memoization occurs between calls. Layer.fresh() is only needed when the SAME layer reference appears twice in a composition and you want separate instances.",
-        "implementation_steps": [
-          "1. Create vitest.global-setup.ts that starts PostgreSqlContainer and provides dbUrl via provide()",
-          "2. Update vitest.config.ts to add globalSetup: ['./vitest.global-setup.ts']",
-          "3. Create SharedPgClientLive in packages/persistence/test/Utils.ts using inject('dbUrl')",
-          "4. Update RepositoriesLayer in AuthService.test.ts to use SharedPgClientLive instead of PgContainer.ClientLive",
-          "5. Remove Layer.fresh() wrapper from createTestLayer() return - it's unnecessary",
-          "6. Update packages/persistence/test/Repositories.test.ts TestLayer to use SharedPgClientLive",
-          "7. Update packages/persistence/test/AuthRepositories.test.ts TestLayer to use SharedPgClientLive",
-          "8. Update packages/api/test/PgTestUtils.ts to use SharedPgClientLive or share with persistence"
-        ],
-        "affected_files": [
-          "vitest.global-setup.ts (NEW) - container lifecycle",
-          "vitest.config.ts - add globalSetup config",
-          "packages/persistence/test/Utils.ts - add SharedPgClientLive",
-          "packages/persistence/test/AuthService.test.ts - use SharedPgClientLive, remove Layer.fresh()",
-          "packages/persistence/test/Repositories.test.ts - use SharedPgClientLive",
-          "packages/persistence/test/AuthRepositories.test.ts - use SharedPgClientLive",
-          "packages/api/test/PgTestUtils.ts - use SharedPgClientLive"
-        ],
-        "why_layer_fresh_is_wrong": "The createTestLayer() function builds a NEW layer object on each call. Since memoization is identity-based, different calls never share. Layer.fresh() only escapes memoization within a single composition where the same reference appears multiple times - not across different factory calls."
-      },
-      "status": "complete",
-      "estimated_complexity": "medium"
-    },
-    {
-      "id": "8.5.1.2",
-      "phase": "Testing",
-      "epic": "Infrastructure",
-      "title": "Migrate tests to use SharedPgClientLive",
-      "description": "Update all database tests to use the shared PostgreSQL container from globalSetup instead of per-block PgContainer.ClientLive. Remove PgContainer after migration.",
-      "acceptance_criteria": [
-        "Update Container.test.ts to use SharedPgClientLive",
-        "Update LocalAuthProvider.test.ts to use SharedPgClientLive",
-        "Update Migrations.test.ts to use SharedPgClientLive",
-        "Update AuthService.test.ts RepositoriesLayer to use SharedPgClientLive",
-        "Update Repositories.test.ts to use SharedPgClientLive",
-        "Update AuthRepositories.test.ts to use SharedPgClientLive",
-        "Remove duplicate PgContainer from packages/api/test/PgTestUtils.ts",
-        "Update API tests to import SharedPgClientLive from persistence test utils",
-        "Remove PgContainer class and ContainerError from Utils.ts after migration",
-        "Remove PostgreSqlContainer import from Utils.ts after migration",
-        "All tests pass with shared container",
-        "Make test data unique using Date.now() or Math.random() to avoid conflicts"
-      ],
-      "specs": [
-        "EFFECT_LAYERS.md",
-        "EFFECT_TESTING.md"
-      ],
-      "technical_details": {
-        "files_to_update": [
-          "packages/persistence/test/Container.test.ts",
-          "packages/persistence/test/LocalAuthProvider.test.ts",
-          "packages/persistence/test/Migrations.test.ts",
-          "packages/persistence/test/AuthService.test.ts",
-          "packages/persistence/test/Repositories.test.ts",
-          "packages/persistence/test/AuthRepositories.test.ts",
-          "packages/api/test/PgTestUtils.ts"
-        ],
-        "cleanup_after_migration": [
-          "Remove PgContainer class from Utils.ts",
-          "Remove ContainerError class from Utils.ts",
-          "Remove PostgreSqlContainer import from Utils.ts",
-          "Remove PgContainer from PgTestUtils.ts entirely"
-        ],
-        "pattern": "Replace PgContainer.ClientLive with SharedPgClientLive in all Layer compositions"
-      },
-      "status": "complete",
-      "estimated_complexity": "small"
-    },
-    {
-      "id": "8.5.1.3",
-      "phase": "Infrastructure",
-      "epic": "Build",
-      "title": "Fix missing package exports for production build",
-      "description": "Production build fails due to missing exports in package.json files. Vite/Rollup cannot resolve deep imports like '@accountability/persistence/Services/SessionRepository' because they are not listed in the exports field.",
-      "acceptance_criteria": [
-        "Add all missing exports to @accountability/persistence package.json",
-        "Add all missing exports to @accountability/api package.json",
-        "Verify @accountability/core package.json has all exports (partially fixed)",
-        "pnpm build completes successfully without errors",
-        "No 'Missing specifier' errors from Vite/Rollup"
-      ],
-      "technical_details": {
-        "root_cause": "Package.json exports field must explicitly list all subpath exports for ESM packages. Deep imports like '@pkg/Services/Foo' require './Services/Foo': './src/Services/Foo.ts' in exports.",
-        "files_to_update": [
-          "packages/core/package.json - verify all Auth/* exports present",
-          "packages/persistence/package.json - add Services/*, Layers/* exports",
-          "packages/api/package.json - add Definitions/*, Layers/* exports"
-        ],
-        "pattern": "List all .ts files in src/ subdirectories as exports",
-        "verification": "Run 'pnpm build' and ensure no Missing specifier errors"
-      },
-      "status": "complete",
-      "estimated_complexity": "small"
-    },
-    {
-      "id": "8.5.1.4",
-      "phase": "Infrastructure",
-      "epic": "Build",
-      "title": "Switch Vite to use Rolldown bundler",
-      "description": "Rolldown is a Rust-based JavaScript bundler that provides 3x-16x faster production builds and up to 100x less memory usage compared to Rollup. Vite 8 ships with Rolldown built-in, or we can use rolldown-vite package with Vite 7.",
-      "acceptance_criteria": [
-        "Switch from vite to rolldown-vite package using pnpm overrides",
-        "Upgrade @vitejs/plugin-react to v5.0.0+ for Oxc React refresh transform",
-        "Pin rolldown-vite version to avoid unexpected breaking changes",
-        "Replace manualChunks with advancedChunks if used",
-        "pnpm dev works correctly with Rolldown",
-        "pnpm build completes successfully with Rolldown",
-        "Verify build output is correct and app runs properly"
-      ],
-      "technical_details": {
-        "approach_options": {
-          "option_1_rolldown_vite": "Use pnpm overrides to alias vite to rolldown-vite (works with Vite 7)",
-          "option_2_vite_8": "Upgrade directly to Vite 8 beta which has Rolldown built-in"
-        },
-        "pnpm_override_config": {
-          "pnpm": {
-            "overrides": {
-              "vite": "npm:rolldown-vite@latest"
-            }
-          }
-        },
-        "breaking_changes": [
-          "manualChunks is deprecated - use advancedChunks instead",
-          "Some Rollup/esbuild specific options may need adjustment"
-        ],
-        "performance_gains": "3x-16x faster builds, up to 100x less memory usage",
-        "documentation": "https://vite.dev/guide/rolldown"
-      },
-      "status": "complete",
-      "estimated_complexity": "small"
-    },
-    {
-      "id": "8.5.2",
-      "phase": "Testing",
-      "epic": "Authentication",
-      "title": "Write auth repository integration tests",
-      "description": "Create integration tests for auth repositories using testcontainers.",
-      "acceptance_criteria": [
-        "UserRepository tests with real PostgreSQL",
-        "SessionRepository tests with real PostgreSQL",
-        "Test CRUD operations, unique constraints, foreign keys",
-        "Test session expiry queries",
-        "Use testcontainers PostgreSQL setup"
-      ],
-      "specs": [
-        "EFFECT_TESTING.md"
-      ],
-      "technical_details": {
-        "location": "packages/persistence/test/",
-        "pattern": "testcontainers-node for PostgreSQL"
-      },
-      "status": "complete",
-      "estimated_complexity": "medium"
-    },
-    {
-      "id": "8.5.3",
-      "phase": "Testing",
-      "epic": "Authentication",
-      "title": "Write auth API endpoint tests",
-      "description": "Create API integration tests for authentication endpoints.",
-      "acceptance_criteria": [
-        "Test register endpoint: success, duplicate email, weak password",
-        "Test login endpoint: success, wrong password, unknown user",
-        "Test logout endpoint: success, unauthorized",
-        "Test me endpoint: success, unauthorized",
-        "Test protected endpoints return 401 without token",
-        "Test expired session returns 401"
-      ],
-      "specs": [
-        "EFFECT_TESTING.md"
-      ],
-      "technical_details": {
-        "location": "packages/api/test/",
-        "pattern": "HttpApiClient for testing API endpoints"
-      },
-      "status": "complete",
-      "estimated_complexity": "medium"
-    },
-    {
-      "id": "8.6.1",
-      "phase": "Persistence",
-      "epic": "Authentication",
-      "title": "Implement WorkOS AuthProvider",
-      "description": "Create WorkOS SSO provider implementation for enterprise authentication.",
-      "acceptance_criteria": [
-        "WorkOSAuthProvider implements AuthProvider interface",
-        "type = 'workos'",
-        "supportsRegistration = false (users auto-provision)",
-        "getAuthorizationUrl generates WorkOS authorization URL with correct scopes",
-        "handleCallback exchanges code for user profile via WorkOS API",
-        "Maps WorkOS user profile to AuthResult (id, email, name)",
-        "Handles WorkOS organization/connection context",
-        "WorkOSConfig schema for environment configuration (API key, client ID, redirect URI)",
-        "WorkOSAuthProviderLive Layer with HttpClient dependency"
-      ],
-      "specs": [
-        "EFFECT_BEST_PRACTICES.md"
-      ],
-      "technical_details": {
-        "location": "packages/persistence/src/Layers/WorkOSAuthProviderLive.ts",
-        "dependencies": [
-          "HttpClient for WorkOS API calls",
-          "WorkOSConfig"
-        ],
-        "workos_sdk": "Use WorkOS REST API directly with HttpClient (no SDK dependency)",
-        "endpoints": "Authorization URL, Token exchange, User info"
-      },
-      "status": "complete",
-      "estimated_complexity": "medium"
-    },
-    {
-      "id": "8.6.2",
-      "phase": "Persistence",
-      "epic": "Authentication",
-      "title": "Implement Google OAuth AuthProvider",
-      "description": "Create Google OAuth provider implementation as example OAuth2 provider.",
-      "acceptance_criteria": [
-        "GoogleAuthProvider implements AuthProvider interface",
-        "type = 'google'",
-        "supportsRegistration = false (users auto-provision)",
-        "getAuthorizationUrl generates Google OAuth URL with email/profile scopes",
-        "handleCallback exchanges code for tokens via Google OAuth API",
-        "Fetches user profile from Google userinfo endpoint",
-        "Maps Google profile to AuthResult (sub as id, email, name, picture)",
-        "GoogleConfig schema for environment configuration (client ID, client secret, redirect URI)",
-        "GoogleAuthProviderLive Layer"
-      ],
-      "specs": [
-        "EFFECT_BEST_PRACTICES.md"
-      ],
-      "technical_details": {
-        "location": "packages/persistence/src/Layers/GoogleAuthProviderLive.ts",
-        "pattern": "Standard OAuth2 authorization code flow",
-        "endpoints": "accounts.google.com/o/oauth2, oauth2.googleapis.com/token, googleapis.com/userinfo"
-      },
-      "status": "complete",
-      "estimated_complexity": "medium"
-    },
-    {
-      "id": "8.6.3",
-      "phase": "Core",
-      "epic": "Authentication",
-      "title": "Create auth provider configuration system",
-      "description": "Create configuration system for enabling/disabling auth providers at runtime.",
-      "acceptance_criteria": [
-        "AuthConfig schema for global auth settings",
-        "enabledProviders: Array<AuthProviderType> - which providers are active",
-        "providerConfigs: Record<AuthProviderType, ProviderConfig> - per-provider settings",
-        "defaultRole: UserRole - role assigned to new users",
-        "sessionDuration: Duration - default session length",
-        "autoLinkByEmail: boolean - whether to auto-link identities by email match",
-        "requireEmailVerification: boolean - for local provider",
-        "AuthConfig loaded from environment variables",
-        "AuthConfigLive Layer"
-      ],
-      "specs": [
-        "EFFECT_BEST_PRACTICES.md"
-      ],
-      "technical_details": {
-        "location": "packages/core/src/Auth/AuthConfig.ts",
-        "pattern": "Schema.Config for typed environment configuration",
-        "env_vars": "AUTH_ENABLED_PROVIDERS, AUTH_LOCAL_*, AUTH_WORKOS_*, AUTH_GOOGLE_*, etc."
-      },
-      "status": "complete",
-      "estimated_complexity": "small"
-    },
-    {
-      "id": "8.6.4",
-      "phase": "Documentation",
-      "epic": "Authentication",
-      "title": "Document authentication system and provider guide",
-      "description": "Create documentation for the authentication system and guide for adding new providers.",
-      "acceptance_criteria": [
-        "Overview of multi-provider architecture in specs/",
-        "Configuration guide: environment variables, enabling providers",
-        "Local provider setup guide",
-        "WorkOS integration guide with screenshots",
-        "Google OAuth setup guide",
-        "Guide for implementing new AuthProvider (step by step)",
-        "Security considerations (CSRF, session management, token storage)",
-        "Troubleshooting common issues"
-      ],
-      "technical_details": {
-        "location": "specs/AUTHENTICATION.md",
-        "format": "Markdown with code examples"
-      },
-      "status": "complete",
-      "estimated_complexity": "small"
-    },
-    {
-      "id": "9.1.1",
-      "phase": "E2E Testing",
-      "epic": "Infrastructure",
-      "title": "Set up Playwright E2E testing infrastructure",
-      "description": "Configure Playwright for E2E testing with TanStack Start and testcontainers.",
-      "acceptance_criteria": [
-        "Add @playwright/test as dev dependency",
-        "Create playwright.config.ts with proper web server configuration",
-        "Create global-setup.ts that starts PostgreSQL container and runs migrations",
-        "Create global-teardown.ts for cleanup",
-        "Add test:e2e script to package.json",
-        "Verify basic test runs with container and app server",
-        "Configure CI workflow for E2E tests"
-      ],
-      "specs": [
-        "E2E_TESTING.md"
-      ],
-      "technical_details": {
-        "location": "packages/web/",
         "files": [
-          "playwright.config.ts",
-          "tests/global-setup.ts",
-          "tests/global-teardown.ts"
+          "packages/web/src/routes/register.tsx"
         ],
-        "pattern": "Use testcontainers for PostgreSQL, build app, run preview server"
+        "mutations": [
+          "registerMutation - calls /api/auth/register"
+        ],
+        "e2e_file": "packages/web/test-e2e/auth/register.spec.ts"
       },
-      "status": "complete",
+      "status": "pending",
       "estimated_complexity": "medium"
     },
     {
-      "id": "9.1.2",
-      "phase": "E2E Testing",
-      "epic": "Infrastructure",
-      "title": "Create authentication test fixtures",
-      "description": "Create reusable test fixtures for authenticated E2E tests.",
-      "acceptance_criteria": [
-        "testUser fixture: creates fresh user via API, returns credentials and token",
-        "authenticatedPage fixture: page with auth token pre-configured",
-        "Cleanup: logout after test to invalidate session",
-        "Helper functions: generateTestCredentials, createTestUser",
-        "Export extended test with fixtures"
-      ],
+      "id": "10.1.3",
+      "phase": "UI Rebuild",
+      "epic": "Authentication",
+      "title": "Implement OAuth callback handler",
+      "description": "Create callback page that handles OAuth/SSO provider redirects.",
       "specs": [
-        "E2E_TESTING.md"
+        "EFFECT_ATOM.md"
+      ],
+      "acceptance_criteria": [
+        "Route: /auth/callback/$provider",
+        "Extract code and state from URL params",
+        "Call handleOAuthCallbackMutation with params",
+        "Loading spinner while processing",
+        "On success: store token, redirect to intended destination",
+        "On error: show error message with retry/back to login options",
+        "Handle link callback flow for adding providers to existing account"
       ],
       "technical_details": {
-        "location": "packages/web/tests/fixtures/auth.ts",
-        "pattern": "Playwright test.extend pattern with fixture dependencies"
+        "files": [
+          "packages/web/src/routes/auth/callback/$provider.tsx"
+        ],
+        "mutations": [
+          "handleOAuthCallbackMutation - calls /api/auth/callback/:provider"
+        ]
       },
-      "status": "complete",
+      "status": "pending",
       "estimated_complexity": "small"
     },
     {
-      "id": "9.1.3",
-      "phase": "E2E Testing",
-      "epic": "Infrastructure",
-      "title": "Create organization and company test fixtures",
-      "description": "Create reusable fixtures for organization and company data.",
-      "acceptance_criteria": [
-        "testOrg fixture: creates organization via API",
-        "testCompany fixture: creates company within testOrg",
-        "testAccount fixture: creates account within testCompany",
-        "All fixtures depend on testUser for authentication",
-        "Extend auth fixtures with org fixtures"
-      ],
+      "id": "10.1.4",
+      "phase": "UI Rebuild",
+      "epic": "Authentication",
+      "title": "Implement user menu and logout",
+      "description": "Create user menu dropdown in header with user info and logout.",
       "specs": [
-        "E2E_TESTING.md"
+        "REACT_BEST_PRACTICES.md"
+      ],
+      "acceptance_criteria": [
+        "UserMenu component in header (slot from AppShell)",
+        "Shows user avatar/initials and name when authenticated",
+        "Dropdown on click with: user email, account settings link, logout button",
+        "Logout clears token and redirects to /login",
+        "Shows Login button when not authenticated",
+        "data-testid='user-menu' on menu trigger",
+        "E2E test: logout clears session and redirects"
       ],
       "technical_details": {
-        "location": "packages/web/tests/fixtures/organizations.ts",
-        "pattern": "Chain fixtures: testUser -> testOrg -> testCompany"
+        "files": [
+          "packages/web/src/components/UserMenu.tsx"
+        ],
+        "atoms": [
+          "currentUserAtom - read user info",
+          "logoutMutation - calls /api/auth/logout, clears token"
+        ],
+        "e2e_file": "packages/web/test-e2e/auth/session.spec.ts"
       },
-      "status": "complete",
+      "status": "pending",
       "estimated_complexity": "small"
     },
     {
-      "id": "9.2.1",
-      "phase": "E2E Testing",
-      "epic": "Authentication Tests",
-      "title": "Implement login flow E2E tests",
-      "description": "Create E2E tests for the complete login flow.",
-      "acceptance_criteria": [
-        "Test: login with valid credentials redirects to dashboard",
-        "Test: login with invalid credentials shows error",
-        "Test: login redirects to requested page after success",
-        "Test: login page redirects away if already authenticated",
-        "Test: login form validates email format",
-        "Test: login button shows loading state"
-      ],
+      "id": "10.1.5",
+      "phase": "UI Rebuild",
+      "epic": "Authentication",
+      "title": "Implement account settings page",
+      "description": "Create account settings page for managing user profile and linked providers.",
       "specs": [
-        "E2E_TESTING.md"
+        "REACT_BEST_PRACTICES.md",
+        "EFFECT_ATOM.md"
+      ],
+      "acceptance_criteria": [
+        "Route: /settings/account (protected)",
+        "Display current user info (email, display name)",
+        "List all linked identity providers with dates",
+        "Button to link additional providers (if more available)",
+        "Button to unlink provider (disabled if only one remains)",
+        "Change password section (if local provider linked)",
+        "Success/error notifications for all actions",
+        "E2E test: account settings displays user info correctly"
       ],
       "technical_details": {
-        "location": "packages/web/tests/auth/login.spec.ts",
-        "pattern": "Use auth fixtures, test UI + redirects"
+        "files": [
+          "packages/web/src/routes/settings/account.tsx"
+        ],
+        "atoms": [
+          "currentUserAtom",
+          "enabledProvidersAtom",
+          "linkProviderMutation",
+          "unlinkProviderMutation",
+          "changePasswordMutation"
+        ]
       },
-      "status": "complete",
-      "estimated_complexity": "small"
-    },
-    {
-      "id": "9.2.2",
-      "phase": "E2E Testing",
-      "epic": "Authentication Tests",
-      "title": "Implement registration flow E2E tests",
-      "description": "Create E2E tests for the user registration flow.",
-      "acceptance_criteria": [
-        "Test: register with valid data creates user and redirects",
-        "Test: register with existing email shows error",
-        "Test: register validates password strength",
-        "Test: register validates matching passwords",
-        "Test: registration page shows only if local provider enabled"
-      ],
-      "specs": [
-        "E2E_TESTING.md"
-      ],
-      "technical_details": {
-        "location": "packages/web/tests/auth/register.spec.ts",
-        "pattern": "Create unique emails per test to avoid conflicts"
-      },
-      "status": "complete",
-      "estimated_complexity": "small"
-    },
-    {
-      "id": "9.2.3",
-      "phase": "E2E Testing",
-      "epic": "Authentication Tests",
-      "title": "Implement session management E2E tests",
-      "description": "Create E2E tests for session persistence and logout.",
-      "acceptance_criteria": [
-        "Test: session persists across page navigations",
-        "Test: logout clears session and redirects to login",
-        "Test: expired/invalidated session redirects to login",
-        "Test: protected routes redirect to login without auth",
-        "Test: token is cleared from localStorage on logout"
-      ],
-      "specs": [
-        "E2E_TESTING.md"
-      ],
-      "technical_details": {
-        "location": "packages/web/tests/auth/session.spec.ts",
-        "pattern": "Test session lifecycle: create, persist, invalidate"
-      },
-      "status": "complete",
-      "estimated_complexity": "small"
-    },
-    {
-      "id": "9.3.1",
-      "phase": "E2E Testing",
-      "epic": "Feature Tests",
-      "title": "Implement organizations E2E tests",
-      "description": "Create E2E tests for organization management. Implement any missing UI pages/components required to complete the user flows. Tests must interact through the UI only - direct API calls are not allowed in E2E tests.",
-      "acceptance_criteria": [
-        "Implement organizations list page if missing (/organizations route)",
-        "Implement create organization form/modal if missing",
-        "Implement organization details page if missing",
-        "Test: list organizations shows user's orgs via UI",
-        "Test: create organization via UI form works",
-        "Test: organization details page displays correctly",
-        "Test: unauthenticated access redirects to login",
-        "All tests interact through UI elements only, no direct API calls"
-      ],
-      "specs": [
-        "E2E_TESTING.md"
-      ],
-      "technical_details": {
-        "location": "packages/web/test-e2e/organizations.spec.ts",
-        "ui_location": "packages/web/src/routes/organizations/",
-        "pattern": "Implement UI first, then write E2E tests against the UI"
-      },
-      "status": "complete",
+      "status": "pending",
       "estimated_complexity": "medium"
     },
     {
-      "id": "9.3.2",
-      "phase": "E2E Testing",
-      "epic": "Feature Tests",
-      "title": "Implement companies E2E tests",
-      "description": "Create E2E tests for company management within organizations. Implement any missing UI pages/components required to complete the user flows. Tests must interact through the UI only - direct API calls are not allowed in E2E tests.",
-      "acceptance_criteria": [
-        "Implement companies list page if missing (/organizations/:orgId/companies route)",
-        "Implement create company form/modal if missing",
-        "Implement company details page if missing",
-        "Test: list companies shows org's companies via UI",
-        "Test: create company via UI form works",
-        "Test: company details page displays correctly",
-        "Test: companies require organization context",
-        "All tests interact through UI elements only, no direct API calls"
-      ],
+      "id": "10.2.1",
+      "phase": "UI Rebuild",
+      "epic": "Organizations",
+      "title": "Implement organizations list page",
+      "description": "Create the organizations list page showing user's organizations.",
       "specs": [
-        "E2E_TESTING.md"
+        "REACT_BEST_PRACTICES.md",
+        "EFFECT_ATOM.md"
+      ],
+      "acceptance_criteria": [
+        "Route: /organizations (protected)",
+        "Fetches organizations via organizationsAtom",
+        "Displays organizations in card grid or list",
+        "Each card shows: name, reporting currency, company count",
+        "Click card navigates to /organizations/:id",
+        "'Create Organization' button opens modal/form",
+        "Empty state with call-to-action to create first org",
+        "Loading skeleton during initial fetch",
+        "Error state with retry option",
+        "data-testid attributes for testing",
+        "E2E test: list displays organizations",
+        "E2E test: create organization via UI works",
+        "E2E test: navigate to organization details"
       ],
       "technical_details": {
-        "location": "packages/web/test-e2e/companies.spec.ts",
-        "ui_location": "packages/web/src/routes/organizations/$orgId/companies/",
-        "pattern": "Implement UI first, then write E2E tests against the UI"
+        "files": [
+          "packages/web/src/routes/organizations/index.tsx",
+          "packages/web/src/components/OrganizationCard.tsx",
+          "packages/web/src/components/CreateOrganizationModal.tsx"
+        ],
+        "atoms": [
+          "organizationsAtom - ApiClient.query('organizations', 'list')",
+          "createOrganizationMutation"
+        ],
+        "e2e_file": "packages/web/test-e2e/organizations.spec.ts"
       },
-      "status": "complete",
+      "status": "pending",
       "estimated_complexity": "medium"
     },
     {
-      "id": "9.3.3",
-      "phase": "E2E Testing",
-      "epic": "Feature Tests",
-      "title": "Implement accounts E2E tests",
-      "description": "Create E2E tests for chart of accounts management. Implement any missing UI pages/components required to complete the user flows. Tests must interact through the UI only - direct API calls are not allowed in E2E tests.",
-      "acceptance_criteria": [
-        "Implement accounts list page if missing (/companies/:companyId/accounts route)",
-        "Implement create account form/modal if missing",
-        "Implement edit account form if missing",
-        "Test: list accounts shows company's accounts via UI",
-        "Test: create account via UI form works with validation",
-        "Test: edit account via UI updates correctly",
-        "Test: account hierarchy displays properly",
-        "Test: filter/search accounts works via UI",
-        "All tests interact through UI elements only, no direct API calls"
-      ],
+      "id": "10.2.2",
+      "phase": "UI Rebuild",
+      "epic": "Organizations",
+      "title": "Implement organization details page",
+      "description": "Create organization details page with companies list.",
       "specs": [
-        "E2E_TESTING.md"
+        "REACT_BEST_PRACTICES.md",
+        "EFFECT_ATOM.md"
+      ],
+      "acceptance_criteria": [
+        "Route: /organizations/:organizationId (protected)",
+        "Fetch organization details via organizationFamily(id)",
+        "Display organization name, reporting currency, settings",
+        "Tab or section showing companies within org",
+        "'Create Company' button",
+        "Edit organization settings (name, currency)",
+        "Breadcrumb navigation: Organizations > Org Name",
+        "E2E test: organization details page displays correctly"
       ],
       "technical_details": {
-        "location": "packages/web/test-e2e/accounts.spec.ts",
-        "ui_location": "packages/web/src/routes/companies/$companyId/accounts/",
-        "pattern": "Implement UI first, then write E2E tests against the UI"
+        "files": [
+          "packages/web/src/routes/organizations/$organizationId/index.tsx"
+        ],
+        "atoms": [
+          "organizationFamily - Atom.family for single org",
+          "companiesByOrgAtom - companies filtered by org"
+        ]
       },
-      "status": "complete",
+      "status": "pending",
       "estimated_complexity": "medium"
     },
     {
-      "id": "9.3.4",
-      "phase": "E2E Testing",
-      "epic": "Feature Tests",
-      "title": "Implement journal entries E2E tests",
-      "description": "Create E2E tests for journal entry workflows. Implement any missing UI pages/components required to complete the user flows. Tests must interact through the UI only - direct API calls are not allowed in E2E tests.",
-      "acceptance_criteria": [
-        "Implement journal entries list page if missing (/companies/:companyId/journal-entries route)",
-        "Implement create journal entry form with line items if missing",
-        "Implement journal entry detail/edit page if missing",
-        "Implement approval workflow UI (submit, approve, reject buttons) if missing",
-        "Test: create journal entry with lines via UI",
-        "Test: validation UI shows debits must equal credits",
-        "Test: submit for approval workflow via UI",
-        "Test: approve/reject workflow via UI",
-        "Test: post entry workflow via UI",
-        "Test: view entry history via UI",
-        "All tests interact through UI elements only, no direct API calls"
-      ],
+      "id": "10.3.1",
+      "phase": "UI Rebuild",
+      "epic": "Companies",
+      "title": "Implement companies list page",
+      "description": "Create companies list page within an organization.",
       "specs": [
-        "E2E_TESTING.md"
+        "REACT_BEST_PRACTICES.md",
+        "EFFECT_ATOM.md"
+      ],
+      "acceptance_criteria": [
+        "Route: /organizations/:organizationId/companies (protected)",
+        "Fetches companies for organization",
+        "Table or card list with: name, legal name, jurisdiction, functional currency",
+        "Click row/card navigates to company details",
+        "'Create Company' button opens form/modal",
+        "Empty state when no companies exist",
+        "Loading and error states",
+        "E2E test: list displays companies in org",
+        "E2E test: create company via UI works"
       ],
       "technical_details": {
-        "location": "packages/web/test-e2e/journal-entries.spec.ts",
-        "ui_location": "packages/web/src/routes/companies/$companyId/journal-entries/",
-        "pattern": "Implement UI first, then write E2E tests against the UI"
+        "files": [
+          "packages/web/src/routes/organizations/$organizationId/companies/index.tsx",
+          "packages/web/src/components/CompanyCard.tsx",
+          "packages/web/src/components/CreateCompanyModal.tsx"
+        ],
+        "atoms": [
+          "companiesByOrgFamily - Atom.family((orgId) => query)",
+          "createCompanyMutation"
+        ],
+        "e2e_file": "packages/web/test-e2e/companies.spec.ts"
       },
-      "status": "in_progress",
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "10.3.2",
+      "phase": "UI Rebuild",
+      "epic": "Companies",
+      "title": "Implement company details page",
+      "description": "Create company details page with navigation to accounts, journal entries, reports.",
+      "specs": [
+        "REACT_BEST_PRACTICES.md",
+        "EFFECT_ATOM.md"
+      ],
+      "acceptance_criteria": [
+        "Route: /organizations/:organizationId/companies/:companyId (protected)",
+        "Fetch company details via companyFamily(id)",
+        "Display: name, legal name, jurisdiction, tax ID, currencies, fiscal year end",
+        "Navigation tabs/links to: Accounts, Journal Entries, Fiscal Periods, Reports",
+        "Edit company settings button",
+        "Consolidation info if subsidiary (parent, ownership %, method)",
+        "Breadcrumb: Organizations > Org > Companies > Company",
+        "E2E test: company details display correctly"
+      ],
+      "technical_details": {
+        "files": [
+          "packages/web/src/routes/organizations/$organizationId/companies/$companyId/index.tsx"
+        ],
+        "atoms": [
+          "companyFamily - Atom.family for single company"
+        ]
+      },
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "10.3.3",
+      "phase": "UI Rebuild",
+      "epic": "Companies",
+      "title": "Implement company selector component",
+      "description": "Create a reusable company selector for global context switching.",
+      "specs": [
+        "REACT_BEST_PRACTICES.md",
+        "EFFECT_ATOM.md"
+      ],
+      "acceptance_criteria": [
+        "CompanySelector dropdown component",
+        "Shows currently selected company name",
+        "Dropdown lists all companies user has access to (grouped by org)",
+        "Selection updates selectedCompanyAtom",
+        "Persisted to localStorage for session continuity",
+        "Used in header or sidebar for quick switching",
+        "Updates URL context when switching"
+      ],
+      "technical_details": {
+        "files": [
+          "packages/web/src/components/CompanySelector.tsx"
+        ],
+        "atoms": [
+          "selectedCompanyAtom - current company context",
+          "allCompaniesAtom - all companies for selector"
+        ]
+      },
+      "status": "pending",
+      "estimated_complexity": "small"
+    },
+    {
+      "id": "10.4.1",
+      "phase": "UI Rebuild",
+      "epic": "Chart of Accounts",
+      "title": "Implement accounts list page",
+      "description": "Create chart of accounts list with hierarchy display and filtering.",
+      "specs": [
+        "REACT_BEST_PRACTICES.md",
+        "EFFECT_ATOM.md"
+      ],
+      "acceptance_criteria": [
+        "Route: /organizations/:orgId/companies/:companyId/accounts (protected)",
+        "Fetches accounts for company via accountsAtom",
+        "Tree view showing account hierarchy with expand/collapse",
+        "Columns: Account Number, Name, Type, Category, Normal Balance, Active",
+        "Filter by account type (Asset, Liability, Equity, Revenue, Expense)",
+        "Search by account number or name",
+        "'Create Account' button opens form",
+        "Click row opens account detail/edit view",
+        "Empty state when no accounts",
+        "E2E test: list displays accounts with hierarchy",
+        "E2E test: filter by type works",
+        "E2E test: search by name works"
+      ],
+      "technical_details": {
+        "files": [
+          "packages/web/src/routes/organizations/$orgId/companies/$companyId/accounts/index.tsx",
+          "packages/web/src/components/AccountsTree.tsx",
+          "packages/web/src/components/AccountRow.tsx"
+        ],
+        "atoms": [
+          "accountsByCompanyFamily - Atom.family((companyId) => query)",
+          "accountTypeFilterAtom",
+          "accountSearchAtom",
+          "filteredAccountsAtom - derived"
+        ],
+        "e2e_file": "packages/web/test-e2e/accounts.spec.ts"
+      },
+      "status": "pending",
       "estimated_complexity": "large"
     },
     {
-      "id": "9.4.1",
-      "phase": "E2E Testing",
+      "id": "10.4.2",
+      "phase": "UI Rebuild",
+      "epic": "Chart of Accounts",
+      "title": "Implement create/edit account form",
+      "description": "Create form for adding and editing accounts.",
+      "specs": [
+        "REACT_BEST_PRACTICES.md",
+        "EFFECT_ATOM.md"
+      ],
+      "acceptance_criteria": [
+        "Modal or page form for account creation/editing",
+        "Fields: account number, name, description, type, category, normal balance",
+        "Parent account selector (optional, for sub-accounts)",
+        "Checkboxes: is postable, is cash flow relevant",
+        "Cash flow category dropdown (if cash flow relevant)",
+        "Intercompany checkbox with partner company selector",
+        "Currency restriction dropdown (optional)",
+        "Validation: account number uniqueness, required fields",
+        "Create mode: createAccountMutation",
+        "Edit mode: updateAccountMutation with pre-filled values",
+        "Success: close modal, refresh accounts list via reactivityKeys",
+        "E2E test: create account with all fields",
+        "E2E test: edit existing account"
+      ],
+      "technical_details": {
+        "files": [
+          "packages/web/src/components/AccountForm.tsx",
+          "packages/web/src/routes/organizations/$orgId/companies/$companyId/accounts/new.tsx",
+          "packages/web/src/routes/organizations/$orgId/companies/$companyId/accounts/$accountId/edit.tsx"
+        ],
+        "mutations": [
+          "createAccountMutation",
+          "updateAccountMutation"
+        ]
+      },
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "10.5.1",
+      "phase": "UI Rebuild",
+      "epic": "Fiscal Periods",
+      "title": "Implement fiscal years list page",
+      "description": "Create fiscal years management page.",
+      "specs": [
+        "REACT_BEST_PRACTICES.md",
+        "EFFECT_ATOM.md"
+      ],
+      "acceptance_criteria": [
+        "Route: /organizations/:orgId/companies/:companyId/fiscal (protected)",
+        "List fiscal years for company with: year, start date, end date, status",
+        "Expand year to show periods with: number, name, dates, status",
+        "Color-coded status badges (Open, Soft Close, Closed, Locked)",
+        "'Create Fiscal Year' button",
+        "Actions per period: Open, Soft Close, Close (based on current status)",
+        "E2E test: list displays fiscal years and periods",
+        "E2E test: create fiscal year works",
+        "E2E test: open/close period works"
+      ],
+      "technical_details": {
+        "files": [
+          "packages/web/src/routes/organizations/$orgId/companies/$companyId/fiscal/index.tsx",
+          "packages/web/src/components/FiscalYearCard.tsx",
+          "packages/web/src/components/FiscalPeriodRow.tsx"
+        ],
+        "atoms": [
+          "fiscalYearsByCompanyFamily",
+          "createFiscalYearMutation",
+          "openPeriodMutation",
+          "closePeriodMutation"
+        ],
+        "e2e_file": "packages/web/test-e2e/fiscal.spec.ts"
+      },
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "10.5.2",
+      "phase": "UI Rebuild",
+      "epic": "Fiscal Periods",
+      "title": "Implement create fiscal year form",
+      "description": "Create form for adding new fiscal years with auto-generated periods.",
+      "specs": [
+        "REACT_BEST_PRACTICES.md"
+      ],
+      "acceptance_criteria": [
+        "Modal form for fiscal year creation",
+        "Start date input (defaults to Jan 1 of next year or after last year)",
+        "Checkbox: include adjustment period (period 13)",
+        "Preview of generated periods before creation",
+        "Validation: no overlapping years",
+        "Success: close modal, show new year in list"
+      ],
+      "technical_details": {
+        "files": [
+          "packages/web/src/components/CreateFiscalYearModal.tsx"
+        ]
+      },
+      "status": "pending",
+      "estimated_complexity": "small"
+    },
+    {
+      "id": "10.6.1",
+      "phase": "UI Rebuild",
+      "epic": "Journal Entries",
+      "title": "Implement journal entries list page",
+      "description": "Create journal entries list with filtering and status display.",
+      "specs": [
+        "REACT_BEST_PRACTICES.md",
+        "EFFECT_ATOM.md"
+      ],
+      "acceptance_criteria": [
+        "Route: /organizations/:orgId/companies/:companyId/journal-entries (protected)",
+        "Fetches entries via journalEntriesAtom",
+        "Table with: Entry #, Date, Description, Total Amount, Type, Status",
+        "Status badges: Draft, Pending Approval, Approved, Posted, Reversed",
+        "Filter by status dropdown",
+        "Filter by date range",
+        "Filter by entry type",
+        "Search by description or reference",
+        "Click row opens entry detail",
+        "'New Entry' button navigates to creation form",
+        "Pagination or infinite scroll for large lists",
+        "E2E test: list displays entries with status",
+        "E2E test: filter by status works",
+        "E2E test: navigate to entry detail"
+      ],
+      "technical_details": {
+        "files": [
+          "packages/web/src/routes/organizations/$orgId/companies/$companyId/journal-entries/index.tsx",
+          "packages/web/src/components/JournalEntryRow.tsx",
+          "packages/web/src/components/JournalEntryFilters.tsx"
+        ],
+        "atoms": [
+          "journalEntriesByCompanyFamily",
+          "entryStatusFilterAtom",
+          "entryDateRangeAtom",
+          "entrySearchAtom",
+          "filteredEntriesAtom - derived"
+        ],
+        "e2e_file": "packages/web/test-e2e/journal-entries.spec.ts"
+      },
+      "status": "pending",
+      "estimated_complexity": "large"
+    },
+    {
+      "id": "10.6.2",
+      "phase": "UI Rebuild",
+      "epic": "Journal Entries",
+      "title": "Implement create journal entry form",
+      "description": "Create multi-line journal entry form with balance validation.",
+      "specs": [
+        "REACT_BEST_PRACTICES.md",
+        "EFFECT_ATOM.md"
+      ],
+      "acceptance_criteria": [
+        "Route: /organizations/:orgId/companies/:companyId/journal-entries/new (protected)",
+        "Header fields: transaction date, description, reference, entry type",
+        "Lines table with: account selector, description, debit, credit, currency",
+        "'Add Line' button to add more lines",
+        "Remove line button (X) on each row",
+        "Running totals for debits and credits",
+        "Visual indicator when totals don't balance (red highlight)",
+        "Balance validation: debits must equal credits",
+        "Account selector shows hierarchy, filters to postable accounts",
+        "'Save as Draft' and 'Submit for Approval' buttons",
+        "Multi-currency support: select currency per line, show exchange rate",
+        "E2E test: create entry with multiple lines",
+        "E2E test: validation prevents unbalanced entry",
+        "E2E test: save as draft works",
+        "E2E test: submit for approval works"
+      ],
+      "technical_details": {
+        "files": [
+          "packages/web/src/routes/organizations/$orgId/companies/$companyId/journal-entries/new.tsx",
+          "packages/web/src/components/JournalEntryForm.tsx",
+          "packages/web/src/components/JournalEntryLine.tsx",
+          "packages/web/src/components/AccountSelector.tsx",
+          "packages/web/src/components/CurrencyInput.tsx"
+        ],
+        "atoms": [
+          "createJournalEntryMutation",
+          "submitForApprovalMutation"
+        ]
+      },
+      "status": "pending",
+      "estimated_complexity": "large"
+    },
+    {
+      "id": "10.6.3",
+      "phase": "UI Rebuild",
+      "epic": "Journal Entries",
+      "title": "Implement journal entry detail page",
+      "description": "Create entry detail view with approval workflow actions.",
+      "specs": [
+        "REACT_BEST_PRACTICES.md",
+        "EFFECT_ATOM.md"
+      ],
+      "acceptance_criteria": [
+        "Route: /organizations/:orgId/companies/:companyId/journal-entries/:entryId (protected)",
+        "Display entry header: number, dates, description, type, status",
+        "Display all lines with accounts, amounts, currencies",
+        "Total debits and credits displayed",
+        "Workflow action buttons based on status:",
+        "  - Draft: Edit, Delete, Submit for Approval",
+        "  - Pending Approval: Approve, Reject (with reason)",
+        "  - Approved: Post",
+        "  - Posted: Reverse (creates reversing entry)",
+        "Audit info: created by, created at, posted by, posted at",
+        "Link to reversing/reversed entry if applicable",
+        "E2E test: view entry details",
+        "E2E test: approve entry workflow",
+        "E2E test: reject entry with reason",
+        "E2E test: post approved entry",
+        "E2E test: reverse posted entry"
+      ],
+      "technical_details": {
+        "files": [
+          "packages/web/src/routes/organizations/$orgId/companies/$companyId/journal-entries/$entryId/index.tsx",
+          "packages/web/src/components/JournalEntryDetail.tsx",
+          "packages/web/src/components/WorkflowActions.tsx",
+          "packages/web/src/components/RejectModal.tsx"
+        ],
+        "atoms": [
+          "journalEntryFamily",
+          "approveEntryMutation",
+          "rejectEntryMutation",
+          "postEntryMutation",
+          "reverseEntryMutation"
+        ]
+      },
+      "status": "pending",
+      "estimated_complexity": "large"
+    },
+    {
+      "id": "10.6.4",
+      "phase": "UI Rebuild",
+      "epic": "Journal Entries",
+      "title": "Implement edit journal entry page",
+      "description": "Create edit form for draft journal entries.",
+      "specs": [
+        "REACT_BEST_PRACTICES.md"
+      ],
+      "acceptance_criteria": [
+        "Route: /organizations/:orgId/companies/:companyId/journal-entries/:entryId/edit (protected)",
+        "Only accessible for Draft status entries",
+        "Pre-populate form with existing entry data",
+        "Same form layout as create, reuse JournalEntryForm component",
+        "Save updates existing entry",
+        "Redirect to detail page on save",
+        "E2E test: edit draft entry"
+      ],
+      "technical_details": {
+        "files": [
+          "packages/web/src/routes/organizations/$orgId/companies/$companyId/journal-entries/$entryId/edit.tsx"
+        ],
+        "mutations": [
+          "updateJournalEntryMutation"
+        ]
+      },
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "10.7.1",
+      "phase": "UI Rebuild",
+      "epic": "Reports",
+      "title": "Implement reports page with report selector",
+      "description": "Create reports landing page with report type selection and parameters.",
+      "specs": [
+        "REACT_BEST_PRACTICES.md",
+        "EFFECT_ATOM.md"
+      ],
+      "acceptance_criteria": [
+        "Route: /organizations/:orgId/companies/:companyId/reports (protected)",
+        "Report type selector: Trial Balance, Balance Sheet, Income Statement, Cash Flow",
+        "Date/period parameter inputs based on report type:",
+        "  - Point-in-time reports: As-of date picker",
+        "  - Period reports: Start date, end date pickers",
+        "Comparative periods checkbox and count input",
+        "Generate Report button",
+        "Report output area below parameters",
+        "Loading state during generation",
+        "Export buttons: PDF, Excel, CSV (can be placeholder initially)",
+        "E2E test: generate Trial Balance report",
+        "E2E test: generate Balance Sheet report"
+      ],
+      "technical_details": {
+        "files": [
+          "packages/web/src/routes/organizations/$orgId/companies/$companyId/reports/index.tsx",
+          "packages/web/src/components/ReportSelector.tsx",
+          "packages/web/src/components/ReportParameters.tsx",
+          "packages/web/src/components/ReportViewer.tsx"
+        ],
+        "atoms": [
+          "selectedReportTypeAtom",
+          "reportParametersAtom",
+          "reportDataAtom - async, depends on params"
+        ],
+        "e2e_file": "packages/web/test-e2e/reports.spec.ts"
+      },
+      "status": "pending",
+      "estimated_complexity": "large"
+    },
+    {
+      "id": "10.7.2",
+      "phase": "UI Rebuild",
+      "epic": "Reports",
+      "title": "Implement Trial Balance report display",
+      "description": "Create Trial Balance report visualization component.",
+      "specs": [
+        "REACT_BEST_PRACTICES.md"
+      ],
+      "acceptance_criteria": [
+        "Table with columns: Account Number, Account Name, Debit Balance, Credit Balance",
+        "Grouped by account type with subtotals",
+        "Total row at bottom showing total debits and credits",
+        "Validation row: Debits must equal Credits",
+        "Click account row drills down to transactions (optional enhancement)",
+        "Proper number formatting with thousand separators",
+        "Negative numbers in parentheses or red"
+      ],
+      "technical_details": {
+        "files": [
+          "packages/web/src/components/reports/TrialBalanceReport.tsx"
+        ]
+      },
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "10.7.3",
+      "phase": "UI Rebuild",
+      "epic": "Reports",
+      "title": "Implement Balance Sheet report display",
+      "description": "Create Balance Sheet report visualization with proper formatting.",
+      "specs": [
+        "REACT_BEST_PRACTICES.md"
+      ],
+      "acceptance_criteria": [
+        "Structured layout with Assets, Liabilities, Equity sections",
+        "Current/Non-current asset classification",
+        "Current/Non-current liability classification",
+        "Subtotals for each section",
+        "Total Assets line",
+        "Total Liabilities + Equity line",
+        "Validation: Total Assets = Total Liabilities + Equity",
+        "Comparative period column if requested",
+        "Variance from prior period",
+        "Indentation for sub-categories"
+      ],
+      "technical_details": {
+        "files": [
+          "packages/web/src/components/reports/BalanceSheetReport.tsx"
+        ]
+      },
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "10.7.4",
+      "phase": "UI Rebuild",
+      "epic": "Reports",
+      "title": "Implement Income Statement report display",
+      "description": "Create Income Statement (P&L) report visualization.",
+      "specs": [
+        "REACT_BEST_PRACTICES.md"
+      ],
+      "acceptance_criteria": [
+        "Multi-step format with clear sections",
+        "Revenue section with line items",
+        "Cost of Sales section with line items",
+        "Gross Profit subtotal",
+        "Operating Expenses by function",
+        "Operating Income subtotal",
+        "Other Income/Expense section",
+        "Income Before Tax",
+        "Tax Expense",
+        "Net Income",
+        "Comparative period columns if requested",
+        "Variance and variance percentage"
+      ],
+      "technical_details": {
+        "files": [
+          "packages/web/src/components/reports/IncomeStatementReport.tsx"
+        ]
+      },
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "10.7.5",
+      "phase": "UI Rebuild",
+      "epic": "Reports",
+      "title": "Implement Cash Flow Statement report display",
+      "description": "Create Cash Flow Statement report visualization.",
+      "specs": [
+        "REACT_BEST_PRACTICES.md"
+      ],
+      "acceptance_criteria": [
+        "Beginning cash balance",
+        "Operating Activities section (indirect method)",
+        "  - Net Income starting point",
+        "  - Adjustments for non-cash items",
+        "  - Changes in working capital",
+        "  - Net cash from operating activities",
+        "Investing Activities section",
+        "Financing Activities section",
+        "Effect of exchange rate changes",
+        "Net change in cash",
+        "Ending cash balance",
+        "Validation: Beginning + Net Change = Ending"
+      ],
+      "technical_details": {
+        "files": [
+          "packages/web/src/components/reports/CashFlowReport.tsx"
+        ]
+      },
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "10.8.1",
+      "phase": "UI Rebuild",
+      "epic": "Common Components",
+      "title": "Implement reusable UI components",
+      "description": "Create shared UI components used across the application.",
+      "specs": [
+        "REACT_BEST_PRACTICES.md"
+      ],
+      "acceptance_criteria": [
+        "Button component with variants (primary, secondary, danger, ghost) and sizes",
+        "Input component with label, error state, description",
+        "Select/Dropdown component with search capability",
+        "Modal/Dialog component with header, body, footer slots",
+        "Card component for content containers",
+        "Badge/Tag component for status indicators",
+        "Skeleton component for loading states",
+        "Alert component for notifications (success, error, warning, info)",
+        "Table component with sorting, pagination support",
+        "DatePicker component",
+        "CurrencyInput component with formatting",
+        "All components use Tailwind CSS",
+        "All components support className prop for customization"
+      ],
+      "technical_details": {
+        "files": [
+          "packages/web/src/components/ui/Button.tsx",
+          "packages/web/src/components/ui/Input.tsx",
+          "packages/web/src/components/ui/Select.tsx",
+          "packages/web/src/components/ui/Modal.tsx",
+          "packages/web/src/components/ui/Card.tsx",
+          "packages/web/src/components/ui/Badge.tsx",
+          "packages/web/src/components/ui/Skeleton.tsx",
+          "packages/web/src/components/ui/Alert.tsx",
+          "packages/web/src/components/ui/Table.tsx",
+          "packages/web/src/components/ui/DatePicker.tsx",
+          "packages/web/src/components/ui/CurrencyInput.tsx"
+        ]
+      },
+      "status": "pending",
+      "estimated_complexity": "large"
+    },
+    {
+      "id": "10.8.2",
+      "phase": "UI Rebuild",
+      "epic": "Common Components",
+      "title": "Implement Result handling components",
+      "description": "Create components for handling Effect Atom Result states.",
+      "specs": [
+        "EFFECT_ATOM.md",
+        "REACT_BEST_PRACTICES.md"
+      ],
+      "acceptance_criteria": [
+        "ResultHandler component that renders based on Result state",
+        "  - Initial: renders loading skeleton or custom component",
+        "  - Waiting: renders loading overlay with optional previous data",
+        "  - Success: renders children with data",
+        "  - Failure: renders error component with retry option",
+        "ErrorBoundary component for catching React errors",
+        "ErrorDisplay component for showing Cause errors",
+        "LoadingOverlay component for mutation loading states",
+        "EmptyState component for empty lists with CTA"
+      ],
+      "technical_details": {
+        "files": [
+          "packages/web/src/components/ResultHandler.tsx",
+          "packages/web/src/components/ErrorBoundary.tsx",
+          "packages/web/src/components/ErrorDisplay.tsx",
+          "packages/web/src/components/LoadingOverlay.tsx",
+          "packages/web/src/components/EmptyState.tsx"
+        ]
+      },
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "10.9.1",
+      "phase": "UI Rebuild",
+      "epic": "E2E Testing",
+      "title": "E2E tests for authentication flows",
+      "description": "Create comprehensive E2E tests for all authentication user flows.",
+      "specs": [
+        "E2E_TESTING.md"
+      ],
+      "acceptance_criteria": [
+        "Login flow tests: valid credentials, invalid credentials, redirect after login",
+        "Registration flow tests: successful registration, duplicate email, validation errors",
+        "Session tests: persistence across navigation, logout clears session, expired session handling",
+        "Protected route tests: redirect to login when not authenticated",
+        "All tests use UI interactions only (no direct API calls for assertions)",
+        "Tests use data-testid selectors for stability"
+      ],
+      "technical_details": {
+        "files": [
+          "packages/web/test-e2e/auth/login.spec.ts",
+          "packages/web/test-e2e/auth/register.spec.ts",
+          "packages/web/test-e2e/auth/session.spec.ts"
+        ]
+      },
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "10.9.2",
+      "phase": "UI Rebuild",
+      "epic": "E2E Testing",
+      "title": "E2E tests for organizations and companies",
+      "description": "Create E2E tests for organization and company management.",
+      "specs": [
+        "E2E_TESTING.md"
+      ],
+      "acceptance_criteria": [
+        "Organization tests: list, create via UI, view details",
+        "Company tests: list within org, create via UI, view details",
+        "Navigation tests: breadcrumbs work correctly",
+        "All tests create fresh data via UI (not API fixtures)"
+      ],
+      "technical_details": {
+        "files": [
+          "packages/web/test-e2e/organizations.spec.ts",
+          "packages/web/test-e2e/companies.spec.ts"
+        ]
+      },
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "10.9.3",
+      "phase": "UI Rebuild",
+      "epic": "E2E Testing",
+      "title": "E2E tests for chart of accounts",
+      "description": "Create E2E tests for account management.",
+      "specs": [
+        "E2E_TESTING.md"
+      ],
+      "acceptance_criteria": [
+        "Accounts list tests: displays hierarchy, filter by type, search",
+        "Create account tests: all fields, validation errors, success",
+        "Edit account tests: pre-populated form, save changes"
+      ],
+      "technical_details": {
+        "files": [
+          "packages/web/test-e2e/accounts.spec.ts"
+        ]
+      },
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "10.9.4",
+      "phase": "UI Rebuild",
+      "epic": "E2E Testing",
+      "title": "E2E tests for journal entries workflow",
+      "description": "Create E2E tests for complete journal entry lifecycle.",
+      "specs": [
+        "E2E_TESTING.md"
+      ],
+      "acceptance_criteria": [
+        "List tests: displays entries, filter by status, navigate to detail",
+        "Create tests: multi-line entry, balance validation, save as draft",
+        "Workflow tests: submit for approval, approve, reject with reason, post",
+        "Reversal tests: reverse posted entry creates new reversing entry",
+        "Edit tests: edit draft entry"
+      ],
+      "technical_details": {
+        "files": [
+          "packages/web/test-e2e/journal-entries.spec.ts"
+        ]
+      },
+      "status": "pending",
+      "estimated_complexity": "large"
+    },
+    {
+      "id": "10.9.5",
+      "phase": "UI Rebuild",
+      "epic": "E2E Testing",
+      "title": "E2E tests for reports",
+      "description": "Create E2E tests for report generation.",
+      "specs": [
+        "E2E_TESTING.md"
+      ],
+      "acceptance_criteria": [
+        "Report selector tests: type selection updates parameters",
+        "Trial Balance tests: generates report, totals balance",
+        "Balance Sheet tests: generates report, equation balances",
+        "Income Statement tests: generates report with correct structure",
+        "Parameter tests: date selection, comparative periods"
+      ],
+      "technical_details": {
+        "files": [
+          "packages/web/test-e2e/reports.spec.ts"
+        ]
+      },
+      "status": "pending",
+      "estimated_complexity": "medium"
+    },
+    {
+      "id": "10.10.1",
+      "phase": "UI Rebuild",
       "epic": "CI Integration",
       "title": "Set up GitHub Actions E2E workflow",
       "description": "Configure CI pipeline to run E2E tests on pull requests.",
+      "specs": [
+        "E2E_TESTING.md"
+      ],
       "acceptance_criteria": [
         "Workflow runs on push to main and PRs",
         "Installs Playwright browsers",
@@ -1394,36 +1164,10 @@
         "Publishes HTML report as artifact",
         "Caches dependencies for speed"
       ],
-      "specs": [
-        "E2E_TESTING.md"
-      ],
       "technical_details": {
-        "location": ".github/workflows/e2e.yml",
-        "pattern": "Use Playwright GitHub Action, testcontainers"
-      },
-      "status": "pending",
-      "estimated_complexity": "small"
-    },
-    {
-      "id": "9.4.2",
-      "phase": "E2E Testing",
-      "epic": "CI Integration",
-      "title": "Add data-testid attributes for E2E stability",
-      "description": "Add stable test selectors to UI components for reliable E2E tests.",
-      "acceptance_criteria": [
-        "User menu: data-testid='user-menu'",
-        "Login form: data-testid='login-form', inputs with name attributes",
-        "Navigation links: data-testid for each major section",
-        "Submit buttons: data-testid for form submissions",
-        "Modal dialogs: data-testid for modals",
-        "Document pattern in E2E_TESTING.md"
-      ],
-      "specs": [
-        "E2E_TESTING.md"
-      ],
-      "technical_details": {
-        "location": "packages/web/src/components/",
-        "pattern": "data-testid on interactive elements and containers"
+        "files": [
+          ".github/workflows/e2e.yml"
+        ]
       },
       "status": "pending",
       "estimated_complexity": "small"
