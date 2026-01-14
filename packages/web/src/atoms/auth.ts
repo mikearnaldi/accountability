@@ -8,12 +8,17 @@
 import * as Atom from "@effect-atom/atom/Atom"
 import * as Result from "@effect-atom/atom/Result"
 import * as Duration from "effect/Duration"
+import * as Effect from "effect/Effect"
+import { unsafeCoerce } from "effect/Function"
 import { ApiClient } from "./ApiClient.ts"
-import { getStoredToken, setStoredToken } from "./tokenStorage.ts"
-import type { AuthUserResponse } from "@accountability/api/Definitions/AuthApi"
+import { getStoredToken, setStoredToken, clearStoredToken } from "./tokenStorage.ts"
+import type { AuthUserResponse, LoginRequest, LoginResponse, LocalLoginCredentials } from "@accountability/api/Definitions/AuthApi"
 
 // Re-export for backwards compatibility and convenience
 export { setStoredToken, getStoredToken, clearStoredToken } from "./tokenStorage.ts"
+
+// Re-export types for convenience
+export type { LoginRequest, LoginResponse }
 
 // =============================================================================
 // Auth Token Atom
@@ -113,3 +118,83 @@ export const currentUserValueAtom = Atom.readable((get) => {
   }
   return undefined
 })
+
+// =============================================================================
+// Login Mutation
+// =============================================================================
+
+/**
+ * Input type for local login credentials (form input)
+ * Uses plain strings since form data is untyped at runtime
+ */
+export interface LocalLoginInput {
+  readonly email: string
+  readonly password: string
+}
+
+/**
+ * loginMutation - Login with credentials and store token on success
+ *
+ * This mutation:
+ * 1. Calls the login API endpoint with local credentials
+ * 2. On success, stores the returned token in localStorage
+ *
+ * Usage:
+ * ```typescript
+ * const [result, login] = useAtom(loginMutation)
+ *
+ * // Fire-and-forget (Result tracks loading/error)
+ * login({
+ *   email: "user@example.com",
+ *   password: "secret"
+ * })
+ *
+ * // Or with promise mode for navigation after login
+ * const [, login] = useAtom(loginMutation, { mode: "promise" })
+ * const response = await login({ email, password })
+ * navigate(redirectTo)
+ * ```
+ */
+export const loginMutation = ApiClient.runtime.fn<LocalLoginInput>()(
+  Effect.fnUntraced(function* (input) {
+    const client = yield* ApiClient
+    // The HttpApiClient will serialize this to JSON and the server will validate via Schema
+    // Use unsafeCoerce to convert plain string credentials to the branded types
+    // This is safe because the server-side Schema decoder will validate the data
+    const credentials: LocalLoginCredentials = unsafeCoerce(input)
+    const response: LoginResponse = yield* client.auth.login({
+      payload: {
+        provider: "local",
+        credentials
+      }
+    })
+
+    // Store the token on successful login
+    setStoredToken(response.token)
+
+    return response
+  })
+)
+
+// =============================================================================
+// Logout Mutation
+// =============================================================================
+
+/**
+ * logoutMutation - Logout and clear session
+ *
+ * This mutation:
+ * 1. Calls the logout API endpoint to invalidate the session server-side
+ * 2. Clears the token from localStorage
+ */
+export const logoutMutation = ApiClient.runtime.fn<void>()(
+  Effect.fnUntraced(function* () {
+    const client = yield* ApiClient
+    yield* client.authSession.logout({})
+
+    // Clear the token from localStorage
+    clearStoredToken()
+
+    return undefined
+  })
+)
