@@ -711,7 +711,6 @@ describe("AuthRepositories", () => {
     const identityTestEmail2 = Email.make(`identity-test2-${uniqueId()}@example.com`)
     // Generate proper UUIDs for identity IDs
     const identityId1 = UserIdentityId.make("11111111-1111-1111-1111-111111111111")
-    const identityId2 = UserIdentityId.make("22222222-2222-2222-2222-222222222222")
 
     // Setup: Create test users for identity tests
     it.effect("IdentityRepository - setup: create test users for identities", () =>

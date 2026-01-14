@@ -115,7 +115,7 @@ const HttpLive = HttpApiBuilder.serve().pipe(
  * Generate unique test data to avoid conflicts with other tests in shared database
  */
 const generateTestEmail = () => `test-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`
-const generateTestPassword = () => `SecureP@ss${Date.now()}`
+const generateTestPassword = () => `SecureP@ss${Date.now()}${Math.random().toString(36).slice(2)}`
 
 // Schemas for decoding API responses
 const UserSchema = Schema.Struct({

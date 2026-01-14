@@ -193,7 +193,7 @@ function ChangePasswordForm({
   const [newPassword, setNewPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [validationError, setValidationError] = useState<string | null>(null)
-  const [changePasswordResult, changePassword] = useAtom(changePasswordMutation)
+  const [changePasswordResult, changePassword] = useAtom(changePasswordMutation, { mode: "promise" })
   const isLoading = Result.isWaiting(changePasswordResult)
 
   const handleSubmit = useCallback(

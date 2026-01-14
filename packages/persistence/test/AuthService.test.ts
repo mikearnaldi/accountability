@@ -840,7 +840,8 @@ describe("AuthServiceLive", () => {
         Effect.gen(function* () {
           const auth = yield* AuthService
 
-          const fakeUserId = AuthUserId.make("ffffffff-ffff-ffff-ffff-ffffffffffff")
+          // Use a UUID that won't exist in the database (not used by any other test)
+          const fakeUserId = AuthUserId.make("00000000-0000-0000-0000-000000000001")
 
           const githubResult = AuthResult.make({
             provider: "github",

@@ -311,7 +311,7 @@
       "phase": "UI Rebuild",
       "epic": "Authentication",
       "title": "Implement account settings page",
-      "description": "Create account settings page for managing user profile and linked providers. NOTE: updatePassword was added to API (packages/api) and persistence (packages/persistence) but NO TESTS were written - tests are required before this story can be marked complete. IMPORTANT: NEVER remove or skip tests - if tests fail due to stale state, the issue is likely missing reactivityKeys on mutations. Use reactivityKeys to auto-refresh queries after mutations.",
+      "description": "Create account settings page for managing user profile and linked providers. SECURITY: Password change MUST invalidate the current session and force re-login with the new password - this is required behavior, not a bug. NOTE: updatePassword was added to API (packages/api) and persistence (packages/persistence) but NO TESTS were written - tests are required before this story can be marked complete. IMPORTANT: NEVER remove or skip tests - if tests fail due to stale state, the issue is likely missing reactivityKeys on mutations. Use reactivityKeys to auto-refresh queries after mutations.",
       "specs": [
         "REACT_BEST_PRACTICES.md",
         "EFFECT_ATOM.md"
@@ -323,9 +323,10 @@
         "Button to link additional providers (if more available)",
         "Button to unlink provider (disabled if only one remains)",
         "Change password section (if local provider linked)",
+        "Password change MUST invalidate session and require re-login with new password",
         "Success/error notifications for all actions",
         "TESTS (E2E): account settings displays user info correctly",
-        "TESTS (E2E): change password flow works",
+        "TESTS (E2E): change password flow works - MUST verify user is logged out and can re-login with new password",
         "TESTS (API): packages/api/test/auth.test.ts covers password change endpoint",
         "TESTS (Persistence): packages/persistence/test/UserRepository.test.ts covers updatePassword",
         "BLOCKING: updatePassword added to API and persistence WITHOUT tests - must add tests before completion",
