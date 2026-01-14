@@ -5,24 +5,48 @@ This document provides guidance for Claude Code when working on the Accountabili
 ## Project Overview
 
 Accountability is a multi-company, multi-currency accounting application using:
-- **Effect** - Functional TypeScript library for type-safe, composable business logic
-- **TanStack Start** - Full-stack React framework with server functions
-- **Effect Atom** - State management for Effect
+- **Effect** - Functional TypeScript library for type-safe backend business logic (server only)
+- **TanStack Start** - Full-stack React framework with SSR and file-based routing
+- **TanStack Query** - Data fetching and caching for React (replaces Effect Atom)
+- **Generated API Client** - Typed fetch client generated from OpenAPI spec
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      FRONTEND (web)                         │
+│  React + TanStack Start + TanStack Query + Tailwind         │
+│  NO Effect code - pure React with generated fetch client    │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              │ HTTP (generated fetch client)
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                       BACKEND (api)                          │
+│  Effect HttpApi + HttpApiBuilder                             │
+│  Exports OpenAPI spec for client generation                  │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                   PERSISTENCE + CORE                         │
+│  @effect/sql + PostgreSQL │ Effect business logic            │
+└─────────────────────────────────────────────────────────────┘
+```
 
 ## Project Structure
 
 ```
 accountability/
 ├── packages/
-│   ├── core/           # Core accounting logic (100% tested, no deps)
+│   ├── core/           # Core accounting logic (Effect, 100% tested)
 │   ├── persistence/    # Database layer (@effect/sql + PostgreSQL)
-│   ├── api/            # TanStack Start server functions
-│   └── web/            # React UI
+│   ├── api/            # Effect HttpApi server + OpenAPI export
+│   └── web/            # React UI (NO Effect - TanStack Query + generated client)
 ├── specs/              # Detailed specifications (see below)
 └── repos/              # Reference repositories (git subtrees)
     ├── effect/         # Effect-TS source
-    ├── tanstack-router/# TanStack Router/Start source
-    └── effect-atom/    # Effect Atom source
+    └── tanstack-router/# TanStack Router/Start source
 ```
 
 ## Specifications Index
@@ -30,20 +54,17 @@ accountability/
 | Spec File | Description |
 |-----------|-------------|
 | [specs/ACCOUNTING_RESEARCH.md](specs/ACCOUNTING_RESEARCH.md) | Domain specifications (entities, services, reports) |
-| [specs/EFFECT_BEST_PRACTICES.md](specs/EFFECT_BEST_PRACTICES.md) | **Critical rules**, Schema patterns, services, layers |
-| [specs/EFFECT_ATOM.md](specs/EFFECT_ATOM.md) | **Effect Atom reactivity**, refresh patterns, anti-patterns |
+| [specs/EFFECT_BEST_PRACTICES.md](specs/EFFECT_BEST_PRACTICES.md) | **Critical rules** for backend Effect code |
 | [specs/EFFECT_SQL.md](specs/EFFECT_SQL.md) | SqlSchema, Model.Class, repository patterns |
 | [specs/EFFECT_LAYERS.md](specs/EFFECT_LAYERS.md) | Layer composition, memoization, service patterns |
 | [specs/EFFECT_TESTING.md](specs/EFFECT_TESTING.md) | @effect/vitest, testcontainers, property testing |
-| [specs/EFFECT_TANSTACK_SSR.md](specs/EFFECT_TANSTACK_SSR.md) | **SSR patterns**, loaders, HttpApiClient on server |
 | [specs/TYPESCRIPT_CONVENTIONS.md](specs/TYPESCRIPT_CONVENTIONS.md) | Project refs, imports, module structure |
-| [specs/REFERENCE_REPOS.md](specs/REFERENCE_REPOS.md) | Effect, TanStack, Effect-Atom package references |
-| [specs/HTTP_API_TANSTACK.md](specs/HTTP_API_TANSTACK.md) | TanStack Start server function patterns |
+| [specs/HTTP_API_TANSTACK.md](specs/HTTP_API_TANSTACK.md) | Effect HttpApi + OpenAPI export patterns |
 | [specs/API_BEST_PRACTICES.md](specs/API_BEST_PRACTICES.md) | API layer conventions |
 | [specs/AUTHENTICATION.md](specs/AUTHENTICATION.md) | Multi-provider auth system, session management |
 | [specs/E2E_TESTING.md](specs/E2E_TESTING.md) | Playwright E2E testing patterns |
-| [specs/REACT_BEST_PRACTICES.md](specs/REACT_BEST_PRACTICES.md) | **React patterns**, Tailwind, Effect Atom state |
-| [specs/USABILITY_BEST_PRACTICES.md](specs/USABILITY_BEST_PRACTICES.md) | **UX patterns**, navigation, forms, empty/error states |
+| [specs/REACT_BEST_PRACTICES.md](specs/REACT_BEST_PRACTICES.md) | React patterns, TanStack Query, Tailwind |
+| [specs/USABILITY_BEST_PRACTICES.md](specs/USABILITY_BEST_PRACTICES.md) | UX patterns, navigation, forms, states |
 
 ## Key Files
 
@@ -58,6 +79,8 @@ accountability/
 
 ## Quick Start: Critical Rules
 
+### Backend (Effect code in core, persistence, api)
+
 **Read [specs/EFFECT_BEST_PRACTICES.md](specs/EFFECT_BEST_PRACTICES.md) first.** Key rules:
 
 1. **NEVER use `any` or type casts** - use Schema.make(), decodeUnknown, identity
@@ -67,6 +90,16 @@ accountability/
 5. **NEVER use `*FromSelf` schemas** - use standard variants (Schema.Option, not OptionFromSelf)
 6. **NEVER use Sync variants** - use Schema.decodeUnknown not decodeUnknownSync
 7. **NEVER create index.ts barrel files** - import from specific modules
+
+### Frontend (React code in web package)
+
+**NO Effect code in frontend.** Key patterns:
+
+1. **Use generated API client** - typed fetch client from OpenAPI spec
+2. **Use TanStack Query** - useQuery for fetching, useMutation for mutations
+3. **Use TanStack Start loaders** - SSR data prefetching in route loaders
+4. **Use React state** - useState/useReducer for local UI state
+5. **Use Tailwind CSS** - no inline styles, use clsx for conditional classes
 
 ---
 
@@ -81,6 +114,7 @@ pnpm start              # Start production server
 
 # Code Generation
 pnpm generate-routes    # Regenerate TanStack Router routes (routeTree.gen.ts)
+pnpm generate:api-client # Generate typed API client from OpenAPI spec
 
 # Testing
 pnpm test               # Run unit/integration tests (vitest)
@@ -107,6 +141,8 @@ pnpm clean              # Clean build outputs
 
 ## Implementation Guidelines
 
+### Backend (Effect)
+
 1. **Flat modules, no barrel files** - `CurrencyCode.ts` not `domain/currency/index.ts`
 2. **Prefer Schema.Class over Schema.Struct** - classes give you constructor, Equal, Hash
 3. **Use Schema's `.make()` constructor** - all schemas have it, never use `new`
@@ -116,6 +152,14 @@ pnpm clean              # Clean build outputs
 7. **Use Layer.effect or Layer.scoped** - avoid Layer.succeed and Tag.of
 8. **Write tests** alongside implementation using `@effect/vitest`
 
+### Frontend (React)
+
+1. **Use generated API client** - never write fetch calls manually
+2. **Use TanStack Query hooks** - useQuery, useMutation with proper query keys
+3. **Prefetch in loaders** - use TanStack Start loaders for SSR
+4. **Handle all states** - loading, error, empty, success
+5. **Use Tailwind utilities** - consistent spacing, colors, typography
+
 ---
 
 ## Notes for Ralph Agent
@@ -123,7 +167,8 @@ pnpm clean              # Clean build outputs
 When working on stories:
 
 1. **Read [specs/ACCOUNTING_RESEARCH.md](specs/ACCOUNTING_RESEARCH.md)** for domain requirements
-2. **Read [specs/EFFECT_BEST_PRACTICES.md](specs/EFFECT_BEST_PRACTICES.md)** for coding rules
-3. **Search repos/** for implementation patterns
-4. **Signal STORY_COMPLETE** when done (don't commit, script handles it)
-5. **Run tests** before signaling completion: `pnpm test && pnpm typecheck`
+2. **Read [specs/EFFECT_BEST_PRACTICES.md](specs/EFFECT_BEST_PRACTICES.md)** for backend coding rules
+3. **Read [specs/REACT_BEST_PRACTICES.md](specs/REACT_BEST_PRACTICES.md)** for frontend patterns
+4. **Search repos/** for implementation patterns
+5. **Signal STORY_COMPLETE** when done (don't commit, script handles it)
+6. **Run tests** before signaling completion: `pnpm test && pnpm typecheck`

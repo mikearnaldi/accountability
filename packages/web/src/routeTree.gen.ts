@@ -9,65 +9,12 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as ReportsRouteImport } from './routes/reports'
-import { Route as RegisterRouteImport } from './routes/register'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as JournalEntriesRouteImport } from './routes/journal-entries'
-import { Route as CompaniesRouteImport } from './routes/companies'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as OrganizationsIndexRouteImport } from './routes/organizations/index'
-import { Route as SettingsAccountRouteImport } from './routes/settings/account'
-import { Route as OrganizationsIdRouteImport } from './routes/organizations/$id'
 import { Route as ApiSplatRouteImport } from './routes/api/$'
-import { Route as AuthCallbackProviderRouteImport } from './routes/auth/callback/$provider'
-import { Route as OrganizationsOrganizationIdCompaniesIndexRouteImport } from './routes/organizations/$organizationId/companies/index'
-import { Route as OrganizationsOrganizationIdCompaniesCompanyIdRouteImport } from './routes/organizations/$organizationId/companies/$companyId'
-import { Route as OrganizationsOrganizationIdCompaniesCompanyIdIndexRouteImport } from './routes/organizations/$organizationId/companies/$companyId/index'
-import { Route as OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRouteImport } from './routes/organizations/$organizationId/companies/$companyId/accounts/index'
 
-const ReportsRoute = ReportsRouteImport.update({
-  id: '/reports',
-  path: '/reports',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RegisterRoute = RegisterRouteImport.update({
-  id: '/register',
-  path: '/register',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const JournalEntriesRoute = JournalEntriesRouteImport.update({
-  id: '/journal-entries',
-  path: '/journal-entries',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CompaniesRoute = CompaniesRouteImport.update({
-  id: '/companies',
-  path: '/companies',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OrganizationsIndexRoute = OrganizationsIndexRouteImport.update({
-  id: '/organizations/',
-  path: '/organizations/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SettingsAccountRoute = SettingsAccountRouteImport.update({
-  id: '/settings/account',
-  path: '/settings/account',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OrganizationsIdRoute = OrganizationsIdRouteImport.update({
-  id: '/organizations/$id',
-  path: '/organizations/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiSplatRoute = ApiSplatRouteImport.update({
@@ -75,219 +22,40 @@ const ApiSplatRoute = ApiSplatRouteImport.update({
   path: '/api/$',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthCallbackProviderRoute = AuthCallbackProviderRouteImport.update({
-  id: '/auth/callback/$provider',
-  path: '/auth/callback/$provider',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OrganizationsOrganizationIdCompaniesIndexRoute =
-  OrganizationsOrganizationIdCompaniesIndexRouteImport.update({
-    id: '/organizations/$organizationId/companies/',
-    path: '/organizations/$organizationId/companies/',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const OrganizationsOrganizationIdCompaniesCompanyIdRoute =
-  OrganizationsOrganizationIdCompaniesCompanyIdRouteImport.update({
-    id: '/organizations/$organizationId/companies/$companyId',
-    path: '/organizations/$organizationId/companies/$companyId',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const OrganizationsOrganizationIdCompaniesCompanyIdIndexRoute =
-  OrganizationsOrganizationIdCompaniesCompanyIdIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => OrganizationsOrganizationIdCompaniesCompanyIdRoute,
-  } as any)
-const OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute =
-  OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRouteImport.update({
-    id: '/accounts/',
-    path: '/accounts/',
-    getParentRoute: () => OrganizationsOrganizationIdCompaniesCompanyIdRoute,
-  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/companies': typeof CompaniesRoute
-  '/journal-entries': typeof JournalEntriesRoute
-  '/login': typeof LoginRoute
-  '/register': typeof RegisterRoute
-  '/reports': typeof ReportsRoute
   '/api/$': typeof ApiSplatRoute
-  '/organizations/$id': typeof OrganizationsIdRoute
-  '/settings/account': typeof SettingsAccountRoute
-  '/organizations': typeof OrganizationsIndexRoute
-  '/auth/callback/$provider': typeof AuthCallbackProviderRoute
-  '/organizations/$organizationId/companies/$companyId': typeof OrganizationsOrganizationIdCompaniesCompanyIdRouteWithChildren
-  '/organizations/$organizationId/companies': typeof OrganizationsOrganizationIdCompaniesIndexRoute
-  '/organizations/$organizationId/companies/$companyId/': typeof OrganizationsOrganizationIdCompaniesCompanyIdIndexRoute
-  '/organizations/$organizationId/companies/$companyId/accounts': typeof OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/companies': typeof CompaniesRoute
-  '/journal-entries': typeof JournalEntriesRoute
-  '/login': typeof LoginRoute
-  '/register': typeof RegisterRoute
-  '/reports': typeof ReportsRoute
   '/api/$': typeof ApiSplatRoute
-  '/organizations/$id': typeof OrganizationsIdRoute
-  '/settings/account': typeof SettingsAccountRoute
-  '/organizations': typeof OrganizationsIndexRoute
-  '/auth/callback/$provider': typeof AuthCallbackProviderRoute
-  '/organizations/$organizationId/companies': typeof OrganizationsOrganizationIdCompaniesIndexRoute
-  '/organizations/$organizationId/companies/$companyId': typeof OrganizationsOrganizationIdCompaniesCompanyIdIndexRoute
-  '/organizations/$organizationId/companies/$companyId/accounts': typeof OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/companies': typeof CompaniesRoute
-  '/journal-entries': typeof JournalEntriesRoute
-  '/login': typeof LoginRoute
-  '/register': typeof RegisterRoute
-  '/reports': typeof ReportsRoute
   '/api/$': typeof ApiSplatRoute
-  '/organizations/$id': typeof OrganizationsIdRoute
-  '/settings/account': typeof SettingsAccountRoute
-  '/organizations/': typeof OrganizationsIndexRoute
-  '/auth/callback/$provider': typeof AuthCallbackProviderRoute
-  '/organizations/$organizationId/companies/$companyId': typeof OrganizationsOrganizationIdCompaniesCompanyIdRouteWithChildren
-  '/organizations/$organizationId/companies/': typeof OrganizationsOrganizationIdCompaniesIndexRoute
-  '/organizations/$organizationId/companies/$companyId/': typeof OrganizationsOrganizationIdCompaniesCompanyIdIndexRoute
-  '/organizations/$organizationId/companies/$companyId/accounts/': typeof OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/'
-    | '/companies'
-    | '/journal-entries'
-    | '/login'
-    | '/register'
-    | '/reports'
-    | '/api/$'
-    | '/organizations/$id'
-    | '/settings/account'
-    | '/organizations'
-    | '/auth/callback/$provider'
-    | '/organizations/$organizationId/companies/$companyId'
-    | '/organizations/$organizationId/companies'
-    | '/organizations/$organizationId/companies/$companyId/'
-    | '/organizations/$organizationId/companies/$companyId/accounts'
+  fullPaths: '/' | '/api/$'
   fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/'
-    | '/companies'
-    | '/journal-entries'
-    | '/login'
-    | '/register'
-    | '/reports'
-    | '/api/$'
-    | '/organizations/$id'
-    | '/settings/account'
-    | '/organizations'
-    | '/auth/callback/$provider'
-    | '/organizations/$organizationId/companies'
-    | '/organizations/$organizationId/companies/$companyId'
-    | '/organizations/$organizationId/companies/$companyId/accounts'
-  id:
-    | '__root__'
-    | '/'
-    | '/companies'
-    | '/journal-entries'
-    | '/login'
-    | '/register'
-    | '/reports'
-    | '/api/$'
-    | '/organizations/$id'
-    | '/settings/account'
-    | '/organizations/'
-    | '/auth/callback/$provider'
-    | '/organizations/$organizationId/companies/$companyId'
-    | '/organizations/$organizationId/companies/'
-    | '/organizations/$organizationId/companies/$companyId/'
-    | '/organizations/$organizationId/companies/$companyId/accounts/'
+  to: '/' | '/api/$'
+  id: '__root__' | '/' | '/api/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  CompaniesRoute: typeof CompaniesRoute
-  JournalEntriesRoute: typeof JournalEntriesRoute
-  LoginRoute: typeof LoginRoute
-  RegisterRoute: typeof RegisterRoute
-  ReportsRoute: typeof ReportsRoute
   ApiSplatRoute: typeof ApiSplatRoute
-  OrganizationsIdRoute: typeof OrganizationsIdRoute
-  SettingsAccountRoute: typeof SettingsAccountRoute
-  OrganizationsIndexRoute: typeof OrganizationsIndexRoute
-  AuthCallbackProviderRoute: typeof AuthCallbackProviderRoute
-  OrganizationsOrganizationIdCompaniesCompanyIdRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdRouteWithChildren
-  OrganizationsOrganizationIdCompaniesIndexRoute: typeof OrganizationsOrganizationIdCompaniesIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/reports': {
-      id: '/reports'
-      path: '/reports'
-      fullPath: '/reports'
-      preLoaderRoute: typeof ReportsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/register': {
-      id: '/register'
-      path: '/register'
-      fullPath: '/register'
-      preLoaderRoute: typeof RegisterRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/journal-entries': {
-      id: '/journal-entries'
-      path: '/journal-entries'
-      fullPath: '/journal-entries'
-      preLoaderRoute: typeof JournalEntriesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/companies': {
-      id: '/companies'
-      path: '/companies'
-      fullPath: '/companies'
-      preLoaderRoute: typeof CompaniesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/': {
       id: '/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/organizations/': {
-      id: '/organizations/'
-      path: '/organizations'
-      fullPath: '/organizations'
-      preLoaderRoute: typeof OrganizationsIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/settings/account': {
-      id: '/settings/account'
-      path: '/settings/account'
-      fullPath: '/settings/account'
-      preLoaderRoute: typeof SettingsAccountRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/organizations/$id': {
-      id: '/organizations/$id'
-      path: '/organizations/$id'
-      fullPath: '/organizations/$id'
-      preLoaderRoute: typeof OrganizationsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/$': {
@@ -297,88 +65,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/auth/callback/$provider': {
-      id: '/auth/callback/$provider'
-      path: '/auth/callback/$provider'
-      fullPath: '/auth/callback/$provider'
-      preLoaderRoute: typeof AuthCallbackProviderRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/organizations/$organizationId/companies/': {
-      id: '/organizations/$organizationId/companies/'
-      path: '/organizations/$organizationId/companies'
-      fullPath: '/organizations/$organizationId/companies'
-      preLoaderRoute: typeof OrganizationsOrganizationIdCompaniesIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/organizations/$organizationId/companies/$companyId': {
-      id: '/organizations/$organizationId/companies/$companyId'
-      path: '/organizations/$organizationId/companies/$companyId'
-      fullPath: '/organizations/$organizationId/companies/$companyId'
-      preLoaderRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/organizations/$organizationId/companies/$companyId/': {
-      id: '/organizations/$organizationId/companies/$companyId/'
-      path: '/'
-      fullPath: '/organizations/$organizationId/companies/$companyId/'
-      preLoaderRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdIndexRouteImport
-      parentRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdRoute
-    }
-    '/organizations/$organizationId/companies/$companyId/accounts/': {
-      id: '/organizations/$organizationId/companies/$companyId/accounts/'
-      path: '/accounts'
-      fullPath: '/organizations/$organizationId/companies/$companyId/accounts'
-      preLoaderRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRouteImport
-      parentRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdRoute
-    }
   }
 }
-
-interface OrganizationsOrganizationIdCompaniesCompanyIdRouteChildren {
-  OrganizationsOrganizationIdCompaniesCompanyIdIndexRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdIndexRoute
-  OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute
-}
-
-const OrganizationsOrganizationIdCompaniesCompanyIdRouteChildren: OrganizationsOrganizationIdCompaniesCompanyIdRouteChildren =
-  {
-    OrganizationsOrganizationIdCompaniesCompanyIdIndexRoute:
-      OrganizationsOrganizationIdCompaniesCompanyIdIndexRoute,
-    OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute:
-      OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute,
-  }
-
-const OrganizationsOrganizationIdCompaniesCompanyIdRouteWithChildren =
-  OrganizationsOrganizationIdCompaniesCompanyIdRoute._addFileChildren(
-    OrganizationsOrganizationIdCompaniesCompanyIdRouteChildren,
-  )
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  CompaniesRoute: CompaniesRoute,
-  JournalEntriesRoute: JournalEntriesRoute,
-  LoginRoute: LoginRoute,
-  RegisterRoute: RegisterRoute,
-  ReportsRoute: ReportsRoute,
   ApiSplatRoute: ApiSplatRoute,
-  OrganizationsIdRoute: OrganizationsIdRoute,
-  SettingsAccountRoute: SettingsAccountRoute,
-  OrganizationsIndexRoute: OrganizationsIndexRoute,
-  AuthCallbackProviderRoute: AuthCallbackProviderRoute,
-  OrganizationsOrganizationIdCompaniesCompanyIdRoute:
-    OrganizationsOrganizationIdCompaniesCompanyIdRouteWithChildren,
-  OrganizationsOrganizationIdCompaniesIndexRoute:
-    OrganizationsOrganizationIdCompaniesIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}

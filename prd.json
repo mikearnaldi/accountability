@@ -1,18 +1,16 @@
 {
   "project": "Accountability",
   "description": "Multi-company, multi-currency accounting application built on US GAAP principles",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "created_at": "2026-01-10",
   "updated_at": "2026-01-14",
   "specs_dir": "specs/",
   "available_specs": [
     "ACCOUNTING_RESEARCH.md",
     "EFFECT_BEST_PRACTICES.md",
-    "EFFECT_ATOM.md",
     "EFFECT_SQL.md",
     "EFFECT_LAYERS.md",
     "EFFECT_TESTING.md",
-    "EFFECT_TANSTACK_SSR.md",
     "HTTP_API_TANSTACK.md",
     "API_BEST_PRACTICES.md",
     "AUTHENTICATION.md",
@@ -20,59 +18,62 @@
     "REACT_BEST_PRACTICES.md",
     "USABILITY_BEST_PRACTICES.md"
   ],
+  "architecture": {
+    "principle": "Effect on server only. Pure React + generated fetch client on frontend.",
+    "backend": {
+      "packages": ["core", "persistence", "api"],
+      "stack": "Effect for type-safe business logic, @effect/sql for database, HttpApi for REST endpoints",
+      "testing": "@effect/vitest for unit/integration tests"
+    },
+    "frontend": {
+      "package": "web",
+      "stack": "TanStack Start + React + Tailwind CSS + generated fetch client",
+      "state": "TanStack Query for server state, React useState/useReducer for local state",
+      "no_effect": "NO Effect code in frontend. No Effect Atom. No HttpApiClient. Plain fetch via generated client.",
+      "testing": "Playwright for E2E tests"
+    },
+    "api_client": {
+      "generation": "Generate typed fetch client from OpenAPI spec exported by Effect HttpApi",
+      "approach": "Use @effect/platform HttpApiBuilder.toOpenApi() to export spec, then generate client with openapi-typescript + openapi-fetch or similar",
+      "benefits": ["No Effect dependency in frontend", "Standard fetch patterns", "Works with any React data fetching library", "Smaller bundle size"]
+    }
+  },
   "technology": {
     "effect": {
       "version": "^3.19.0",
-      "notes": "Schema is included in core effect package since 3.10.0. Import as: import * as Schema from 'effect/Schema'"
+      "scope": "Backend only (core, persistence, api packages)",
+      "notes": "Schema is included in core effect package since 3.10.0"
     },
     "effect_sql": {
-      "packages": [
-        "@effect/sql",
-        "@effect/sql-pg",
-        "@effect/sql-drizzle"
-      ],
-      "notes": "@effect/sql-pg requires @effect/experimental and @effect/platform as peer deps"
+      "packages": ["@effect/sql", "@effect/sql-pg"],
+      "scope": "Backend only (persistence package)"
     },
     "effect_vitest": {
       "package": "@effect/vitest",
       "version": "^0.27.0",
-      "peer_deps": [
-        "vitest ^3.2.0"
-      ]
+      "scope": "Backend testing only"
     },
     "tanstack_start": {
       "package": "@tanstack/react-start",
       "version": "^1.147.0",
-      "peer_deps": [
-        "react ^19.0.0",
-        "react-dom ^19.0.0",
-        "vite ^7.0.0"
-      ],
-      "notes": "Use for file-based routing. API served via Effect HttpApi with HttpApiBuilder.toWebHandler at /api route. See specs/HTTP_API_TANSTACK.md"
+      "peer_deps": ["react ^19.0.0", "react-dom ^19.0.0", "vite ^7.0.0"],
+      "notes": "File-based routing with SSR. Use loaders for data fetching."
     },
-    "effect_platform": {
-      "packages": [
-        "@effect/platform",
-        "@effect/platform-node"
-      ],
-      "notes": "Required for HttpApi and HttpApiClient. Use HttpApiBuilder for server handlers, HttpApiClient for type-safe client."
+    "tanstack_query": {
+      "package": "@tanstack/react-query",
+      "notes": "For client-side data fetching, caching, and mutations. Replaces Effect Atom."
     },
-    "effect_atom": {
-      "packages": [
-        "@effect-atom/atom",
-        "@effect-atom/atom-react"
-      ],
-      "notes": "For reactive state management with Effect. See repos/effect-atom/ for source and specs/EFFECT_ATOM.md for patterns."
+    "api_client_generation": {
+      "openapi_export": "@effect/platform HttpApiBuilder exports OpenAPI spec",
+      "client_generator": "openapi-typescript + openapi-fetch (or hey-api/openapi-ts)",
+      "output": "packages/web/src/api/client.ts - generated typed fetch client"
     }
   },
   "reference_repos": {
     "effect": "repos/effect/packages/effect/src/",
     "effect_sql": "repos/effect/packages/sql/src/",
     "effect_sql_pg": "repos/effect/packages/sql-pg/src/",
-    "effect_sql_drizzle": "repos/effect/packages/sql-drizzle/src/",
     "effect_vitest": "repos/effect/packages/vitest/src/",
-    "effect_atom": "repos/effect-atom/packages/atom/src/",
-    "effect_atom_react": "repos/effect-atom/packages/atom-react/src/",
     "tanstack_start": "repos/tanstack-router/packages/react-start/src/",
     "tanstack_examples": "repos/tanstack-router/examples/react/start-basic/"
   },
@@ -84,1609 +85,327 @@
     "core_changes": "Unit tests in packages/core/test/ with 100% coverage requirement.",
     "verification": "Run 'pnpm test && pnpm test:e2e' before marking any story complete.",
     "no_exceptions": "Do NOT mark a story as complete if tests are missing or failing.",
-    "never_remove_tests": "NEVER remove or skip tests to make them pass. Fix the underlying code instead.",
-    "stale_state_fix": "If E2E tests fail due to stale UI state after mutations, the fix is to add reactivityKeys to the mutation - NOT to remove the test. See specs/EFFECT_ATOM.md for reactivityKeys patterns."
+    "never_remove_tests": "NEVER remove or skip tests to make them pass. Fix the underlying code instead."
   },
   "api_patterns": {
-    "CRITICAL_NO_SERVER_FUNCTIONS": "!!! BANNED !!! NEVER use TanStack Start server functions (createServerFn). They are COMPLETELY BANNED. ESLint rule 'local/no-server-functions' enforces this. DELETE any existing server function code in packages/web/src/server/.",
-    "why_server_functions_banned": "Server functions bypass: (1) Type safety from API spec, (2) Schema validation, (3) The Effect ecosystem, (4) Proper error handling. They cause bugs like stale router context after auth changes. Use HttpApiClient with ManagedRuntime instead.",
-    "client_usage": "ALWAYS use HttpApiClient for ALL API interactions. NEVER use fetch() directly. ESLint rule 'local/no-direct-fetch' enforces this with NO exceptions.",
-    "why_api_client": "HttpApiClient provides: (1) Full type safety from API spec, (2) Automatic Bearer token injection, (3) Automatic 401 handling and logout, (4) Consistent error handling via Effect, (5) Request/response schema validation.",
-    "managed_runtime": "Use ManagedRuntime.make() to create reusable runtimes for running Effects. Configure once with all required layers (HttpClient, auth, etc.) and reuse across the application. Works on both client and server.",
-    "server_side_usage": "For SSR data fetching, use HttpApiClient with a server-configured ManagedRuntime. The same client works on both client and server - just provide the appropriate HttpClient layer. DO NOT use createServerFn.",
-    "schema_serialization": "ALWAYS use Schema.encode/decode for data crossing network boundaries. Never trust raw JSON - validate with schemas. Use Schema.parseJson for JSON string parsing with validation.",
-    "server_client_boundary": "Data passed between server and client must be serializable (plain JSON). Use Schema to: (1) Validate incoming data, (2) Transform Effect types (Option, Either, DateTime) to JSON-safe formats, (3) Ensure type safety across the boundary.",
-    "error_handling": "API errors should be typed using Schema.TaggedError. Client code must handle all error cases explicitly. Never swallow errors silently.",
-    "example_pattern": "const result = ApiClient.query('groupName', 'endpointName', { timeToLive: Duration.minutes(5) }); // Returns atom with Result<Success, Error>"
+    "server_api": "Effect HttpApi defines typed endpoints with Schema validation. HttpApiBuilder creates handlers.",
+    "openapi_export": "Export OpenAPI spec from Effect HttpApi for client generation.",
+    "client_generation": "Generate typed fetch client from OpenAPI spec. No Effect in generated client.",
+    "authentication": "JWT tokens in httpOnly cookies. Server validates on each request.",
+    "error_handling": "API returns typed errors. Client handles via standard try/catch or response checking."
   },
   "ui_patterns": {
-    "state_management": "All shared state must use Effect Atom. useState only for truly local ephemeral state (form drafts, hover states).",
+    "state_management": "TanStack Query for server state (fetching, caching, mutations). React useState for local UI state.",
+    "data_fetching": "Use generated API client with TanStack Query useQuery/useMutation hooks.",
     "styling": "Tailwind CSS classes only. No inline styles. Use clsx for conditional classes.",
-    "data_fetching": "Use ApiClient.query() for reads, ApiClient.mutation() for writes. Handle all Result states.",
-    "mutations": "Prefer fire-and-forget with reactivityKeys. Use mode: 'promise' only when awaiting is required (navigation after create).",
-    "forms": "Use atoms for form state when other components need it. Local useState acceptable for isolated form drafts.",
-    "testing": "Every UI must have E2E tests that prove it works. Tests interact through UI only, no direct API calls in assertions."
+    "forms": "React Hook Form or native form handling. useState for form state.",
+    "ssr": "TanStack Start loaders prefetch data server-side. Components receive data via useLoaderData().",
+    "testing": "Every UI must have E2E tests. Tests interact through UI only."
   },
   "stories": [
     {
-      "id": "10.0.1",
-      "phase": "UI Rebuild",
+      "id": "11.0.1",
+      "phase": "Frontend Rebuild",
       "epic": "Infrastructure",
-      "title": "Set up base app shell and routing",
-      "description": "Create the foundational app layout with navigation, header, and content area. Set up TanStack Router with protected routes.",
-      "specs": [
-        "REACT_BEST_PRACTICES.md",
-        "EFFECT_ATOM.md"
-      ],
+      "title": "Generate typed API client from OpenAPI spec",
+      "description": "Export OpenAPI spec from Effect HttpApi and generate a typed fetch client for the frontend. This replaces Effect Atom/HttpApiClient.",
+      "specs": ["HTTP_API_TANSTACK.md", "API_BEST_PRACTICES.md"],
       "acceptance_criteria": [
-        "App shell with sidebar navigation and main content area",
-        "Header with app logo/title area and user menu slot",
-        "Responsive layout: sidebar collapses to icons on mobile",
-        "RegistryProvider wrapping the app for Effect Atom",
-        "Protected route wrapper that redirects to /login if not authenticated",
-        "Public routes: /login, /register, /auth/callback/:provider",
-        "Navigation links: Organizations, Companies, Journal Entries, Reports",
-        "Active route highlighting in navigation",
-        "Tailwind CSS styling throughout",
-        "TESTS: E2E smoke test verifies app shell renders correctly"
+        "Export OpenAPI spec from Effect HttpApi at build time",
+        "Generate typed fetch client using openapi-typescript + openapi-fetch (or similar)",
+        "Generated client has full TypeScript types for all endpoints",
+        "Generated client uses native fetch() - no Effect dependencies",
+        "Client handles authentication via cookies automatically",
+        "Add npm script: pnpm generate:api-client",
+        "Generated client outputs to packages/web/src/api/client.ts",
+        "TESTS: Generated client compiles without errors"
       ],
       "technical_details": {
-        "files": [
-          "packages/web/src/routes/__root.tsx",
-          "packages/web/src/components/AppShell.tsx",
-          "packages/web/src/components/Sidebar.tsx",
-          "packages/web/src/components/Header.tsx",
-          "packages/web/src/components/ProtectedRoute.tsx"
-        ],
-        "atoms": [
-          "sidebarOpenAtom - controls sidebar expanded/collapsed state"
-        ],
-        "pattern": "Composition: AppShell renders Sidebar + Header + children"
-      },
-      "status": "complete",
-      "estimated_complexity": "medium"
-    },
-    {
-      "id": "10.0.2",
-      "phase": "UI Rebuild",
-      "epic": "Infrastructure",
-      "title": "Create ApiClient and base atoms",
-      "description": "Set up the Effect Atom API client with authentication support and base state atoms.",
-      "specs": [
-        "EFFECT_ATOM.md",
-        "HTTP_API_TANSTACK.md"
-      ],
-      "acceptance_criteria": [
-        "ApiClient extends AtomHttpApi.Tag with AppApi",
-        "AuthenticatedHttpClient layer adds Bearer token from localStorage",
-        "Auto-clear token on 401 responses",
-        "authTokenAtom - persisted to localStorage",
-        "currentUserAtom - async atom that fetches /api/auth/me when token exists",
-        "isAuthenticatedAtom - derived from currentUserAtom",
-        "Runtime properly configured with layers",
-        "TESTS: Unit tests for auth atom logic (token storage, 401 handling)"
-      ],
-      "technical_details": {
-        "files": [
-          "packages/web/src/atoms/ApiClient.ts",
-          "packages/web/src/atoms/auth.ts",
-          "packages/web/src/atoms/runtime.ts"
-        ],
-        "pattern": "AtomHttpApi.Tag for type-safe API client"
-      },
-      "status": "complete",
-      "estimated_complexity": "medium"
-    },
-    {
-      "id": "10.0.3",
-      "phase": "UI Rebuild",
-      "epic": "Infrastructure",
-      "title": "Fix Tailwind CSS setup and polish UI to production quality",
-      "description": "CRITICAL: Tailwind setup is now working. Focus on usability issues: navigation (home links, breadcrumbs), form UX (auto-focus, validation, password toggles), empty/loading/error states, then visual polish. This is a BLOCKING task - do not proceed with other pending stories until this is complete.",
-      "specs": [
-        "REACT_BEST_PRACTICES.md",
-        "USABILITY_BEST_PRACTICES.md"
-      ],
-      "acceptance_criteria": [
-        "BLOCKING: Complete this before any other pending stories",
-        "PHASE 1 - FIX TAILWIND SETUP (DONE):",
-        "✓ Install dependencies: tailwindcss @tailwindcss/vite",
-        "✓ Update vite.config.ts with tailwindcss() plugin",
-        "✓ Create src/index.css with @import 'tailwindcss' and @theme",
-        "✓ Import CSS with ?url and add to head() links (prevents FOUC)",
-        "PHASE 2 - USABILITY & NAVIGATION (critical UX issues):",
-        "Login/Register: Add clickable logo/brand linking back to home page",
-        "Login/Register: Easy switching between forms - link at bottom 'Don't have an account? Register' / 'Already have an account? Sign in'",
-        "Login/Register: Auto-focus on first input field to save clicks",
-        "Login/Register: Show/hide password toggle instead of confirm password field",
-        "Login/Register: Display password requirements while typing, not after failure",
-        "Login/Register: Validate fields on blur with inline error messages",
-        "Login/Register: Remember typed values between failed attempts",
-        "Login/Register: Clear action button labels ('Sign In' not 'Submit')",
-        "Forms: Use type='email' for email inputs (mobile keyboard optimization)",
-        "Forms: Caps Lock indicator for password fields",
-        "Navigation: Breadcrumbs on nested pages (Org > Company > Accounts)",
-        "Navigation: Back links or breadcrumbs to return to parent pages",
-        "Navigation: Active route clearly highlighted in sidebar",
-        "Navigation: Clickable logo in header returns to home/dashboard",
-        "PHASE 3 - EMPTY, LOADING & ERROR STATES:",
-        "Empty states: Friendly message explaining what will appear + clear CTA",
-        "Empty states: Use illustrations or icons, not just text",
-        "Empty states: Guide users on how to add their first item",
-        "Loading states: Skeleton loaders matching final content layout",
-        "Loading states: Button spinners during form submission",
-        "Loading states: Disable submit button while loading to prevent double-submit",
-        "Error states: Explain WHAT happened, WHY, and WHAT TO DO next",
-        "Error states: Provide retry action for recoverable errors",
-        "Error states: Use inline errors for form fields, not just top-of-form alerts",
-        "Error states: Specific messages ('Email already registered') not generic ('Error occurred')",
-        "PHASE 4 - ORGANIZATIONS LIST & FORMS (incomplete implementation):",
-        "Organizations list: Replace grid cards with table/list view showing full names without truncation",
-        "Organizations list: Show all key fields: name, reporting currency, locale, timezone, company count",
-        "Organizations list: Add sortable columns and optional search/filter",
-        "Create Organization modal: Add all OrganizationSettings fields:",
-        "  - defaultLocale (dropdown: en-US, en-GB, de-DE, fr-FR, etc.)",
-        "  - defaultTimezone (dropdown with common timezones)",
-        "  - useFiscalYear (checkbox/toggle)",
-        "  - defaultDecimalPlaces (dropdown: 0, 1, 2, 3, 4)",
-        "Edit Organization: Create edit modal/page with all fields pre-populated",
-        "Edit Organization: Allow updating name, currency, and all settings",
-        "Organization detail page: Show all settings in a readable format",
-        "PHASE 5 - VISUAL POLISH:",
-        "App shell: Professional sidebar with icons, hover states, active indicators",
-        "App shell: Clean header with proper spacing and user menu",
-        "Cards: Consistent shadows, borders, hover effects across all list pages",
-        "Typography: Proper heading hierarchy (h1 > h2 > h3), consistent line heights",
-        "Spacing: Use Tailwind spacing scale consistently (p-4, p-6, gap-4, etc.)",
-        "Colors: Consistent use of primary, success, error, warning colors",
-        "Transitions: Smooth hover/focus transitions (transition-colors, transition-shadow)",
-        "Focus states: Visible focus rings for keyboard navigation (accessibility)",
-        "Mobile: Responsive layouts, touch-friendly tap targets (min 44px)",
-        "TESTS (E2E): Existing E2E tests still pass after changes"
-      ],
-      "technical_details": {
-        "tailwind_v4_setup_DONE": {
-          "step1_install": "✓ pnpm add tailwindcss @tailwindcss/vite",
-          "step2_vite_config": "✓ Added tailwindcss() to plugins",
-          "step3_css_file": "✓ Created src/index.css with @import 'tailwindcss' and @theme",
-          "step4_import_CRITICAL": "✓ Import CSS with ?url and add to head() links to PREVENT FOUC"
+        "openapi_export": {
+          "source": "packages/api/src/Definitions/AppApi.ts",
+          "method": "HttpApiBuilder.toOpenApi(AppApi) or @effect/platform OpenApi module",
+          "output": "packages/api/openapi.json"
         },
-        "usability_best_practices": {
-          "login_signup": [
-            "Auto-focus first field to eliminate clicks",
-            "Show/hide password toggle (no confirm field)",
-            "Validate on blur with inline errors",
-            "Easy switch between login/register at bottom of form",
-            "Clickable logo/brand to return home",
-            "Remember values between failed attempts",
-            "Use type='email' for mobile keyboard",
-            "Display password requirements while typing"
+        "client_generation": {
+          "tool_options": [
+            "openapi-typescript + openapi-fetch - mature, well-maintained",
+            "@hey-api/openapi-ts - newer, generates more idiomatic code",
+            "orval - generates React Query hooks directly"
           ],
-          "navigation": [
-            "Breadcrumbs on nested pages",
-            "Clickable logo returns to dashboard",
-            "Active route highlighting",
-            "Clear back/parent navigation"
-          ],
-          "empty_states": [
-            "Explain what will appear here",
-            "Use illustration or icon",
-            "Clear CTA to add first item",
-            "Guide user through next steps"
-          ],
-          "error_states": [
-            "WHAT happened + WHY + WHAT TO DO",
-            "Specific messages not generic",
-            "Inline field errors",
-            "Retry action for recoverable errors"
-          ],
-          "loading_states": [
-            "Skeleton loaders matching content layout",
-            "Button spinners during submission",
-            "Disable button to prevent double-submit"
-          ]
+          "output": "packages/web/src/api/client.ts"
         },
-        "organizations_implementation": {
-          "problem": "OrganizationCard uses truncate class cutting off names. CreateOrganizationModal only has name + currency, missing OrganizationSettings fields.",
-          "api_status": "API already supports full OrganizationSettings in CreateOrganizationRequest and UpdateOrganizationRequest - only UI changes needed.",
-          "organization_settings_fields": {
-            "defaultLocale": "String, default 'en-US' - locale for number/date formatting",
-            "defaultTimezone": "String, default 'UTC' - IANA timezone identifier",
-            "useFiscalYear": "Boolean, default true - use fiscal year vs calendar year",
-            "defaultDecimalPlaces": "Number 0-4, default 2 - decimal places for monetary display"
-          },
-          "ui_changes_needed": [
-            "Replace OrganizationCard grid with table/list view for full names",
-            "Add settings fields to CreateOrganizationModal",
-            "Create EditOrganizationModal with all fields",
-            "Show settings on organization detail page"
-          ]
-        },
-        "research_sources": [
-          "https://www.learnui.design/blog/tips-signup-login-ux.html",
-          "https://uxdworld.com/12-best-practices-for-sign-up-and-login-page-design/",
-          "https://www.authgear.com/post/login-signup-ux-guide",
-          "https://userpilot.com/blog/empty-state-saas/",
-          "https://www.pencilandpaper.io/articles/ux-pattern-analysis-error-feedback"
-        ],
-        "files": [
-          "packages/web/src/routes/__root.tsx",
-          "packages/web/src/routes/login.tsx",
-          "packages/web/src/routes/register.tsx",
-          "packages/web/src/routes/index.tsx",
-          "packages/web/src/routes/organizations/index.tsx",
-          "packages/web/src/routes/organizations/$organizationId/index.tsx",
-          "packages/web/src/routes/organizations/$organizationId/companies/index.tsx",
-          "packages/web/src/routes/organizations/$organizationId/companies/$companyId/index.tsx",
-          "packages/web/src/routes/settings/account.tsx",
-          "packages/web/src/components/*.tsx"
-        ],
-        "approach": "Phase 1 (Tailwind) is DONE. Now focus on usability: fix navigation issues first (home links, breadcrumbs), then empty/loading/error states, finally visual polish."
+        "build_integration": {
+          "script": "pnpm generate:api-client",
+          "steps": ["Export OpenAPI from API package", "Run client generator", "Output to web package"]
+        }
       },
-      "status": "complete",
-      "estimated_complexity": "large"
+      "status": "pending",
+      "estimated_complexity": "medium",
+      "priority": "critical"
     },
     {
-      "id": "10.1.1",
-      "phase": "UI Rebuild",
-      "epic": "Authentication",
-      "title": "Implement login page",
-      "description": "Create login page with local authentication and multi-provider support.",
-      "specs": [
-        "REACT_BEST_PRACTICES.md",
-        "EFFECT_ATOM.md"
-      ],
-      "acceptance_criteria": [
-        "Route: /login",
-        "Email and password input fields with validation",
-        "Form submission uses loginMutation atom",
-        "Loading state shown during authentication (from Result)",
-        "Error display for invalid credentials",
-        "Link to registration page",
-        "Redirect to / or ?redirect param on success",
-        "Redirect away if already authenticated",
-        "data-testid attributes on all interactive elements",
-        "TESTS (E2E): successful login redirects to dashboard",
-        "TESTS (E2E): invalid credentials shows error",
-        "TESTS (E2E): redirect param works after login",
-        "TESTS (API): packages/api/test/auth.test.ts covers login endpoint"
-      ],
-      "technical_details": {
-        "files": [
-          "packages/web/src/routes/login.tsx",
-          "packages/web/src/atoms/auth.ts"
-        ],
-        "mutations": [
-          "loginMutation - calls /api/auth/login, stores token on success"
-        ],
-        "e2e_file": "packages/web/test-e2e/auth/login.spec.ts",
-        "unit_tests": [
-          "packages/api/test/auth.test.ts"
-        ]
-      },
-      "status": "complete",
-      "estimated_complexity": "medium"
-    },
-    {
-      "id": "10.1.2",
-      "phase": "UI Rebuild",
-      "epic": "Authentication",
-      "title": "Implement registration page",
-      "description": "Create registration page for local provider user signup.",
-      "specs": [
-        "REACT_BEST_PRACTICES.md"
-      ],
-      "acceptance_criteria": [
-        "Route: /register",
-        "Email, display name, password, confirm password fields",
-        "Client-side validation (email format, password strength, passwords match)",
-        "Form submission uses registerMutation atom",
-        "Loading and error states from Result",
-        "Success: auto-login and redirect to /",
-        "Error display for duplicate email",
-        "Link to login page",
-        "Redirect away if already authenticated",
-        "data-testid attributes for testing",
-        "TESTS (E2E): successful registration creates user and logs in",
-        "TESTS (E2E): duplicate email shows error",
-        "TESTS (E2E): weak password shows validation error",
-        "TESTS (API): packages/api/test/auth.test.ts covers register endpoint",
-        "TESTS (Persistence): packages/persistence/test/UserRepository.test.ts"
-      ],
-      "technical_details": {
-        "files": [
-          "packages/web/src/routes/register.tsx"
-        ],
-        "mutations": [
-          "registerMutation - calls /api/auth/register"
-        ],
-        "e2e_file": "packages/web/test-e2e/auth/register.spec.ts",
-        "unit_tests": [
-          "packages/api/test/auth.test.ts",
-          "packages/persistence/test/UserRepository.test.ts"
-        ]
-      },
-      "status": "complete",
-      "estimated_complexity": "medium"
-    },
-    {
-      "id": "10.1.3",
-      "phase": "UI Rebuild",
-      "epic": "Authentication",
-      "title": "Implement OAuth callback handler",
-      "description": "Create callback page that handles OAuth/SSO provider redirects.",
-      "specs": [
-        "EFFECT_ATOM.md"
-      ],
-      "acceptance_criteria": [
-        "Route: /auth/callback/$provider",
-        "Extract code and state from URL params",
-        "Call handleOAuthCallbackMutation with params",
-        "Loading spinner while processing",
-        "On success: store token, redirect to intended destination",
-        "On error: show error message with retry/back to login options",
-        "Handle link callback flow for adding providers to existing account"
-      ],
-      "technical_details": {
-        "files": [
-          "packages/web/src/routes/auth/callback/$provider.tsx"
-        ],
-        "mutations": [
-          "handleOAuthCallbackMutation - calls /api/auth/callback/:provider"
-        ]
-      },
-      "status": "complete",
-      "estimated_complexity": "small"
-    },
-    {
-      "id": "10.1.4",
-      "phase": "UI Rebuild",
-      "epic": "Authentication",
-      "title": "Implement user menu and logout",
-      "description": "Create user menu dropdown in header with user info and logout.",
-      "specs": [
-        "REACT_BEST_PRACTICES.md"
-      ],
-      "acceptance_criteria": [
-        "UserMenu component in header (slot from AppShell)",
-        "Shows user avatar/initials and name when authenticated",
-        "Dropdown on click with: user email, account settings link, logout button",
-        "Logout clears token and redirects to /login",
-        "Shows Login button when not authenticated",
-        "data-testid='user-menu' on menu trigger",
-        "E2E test: logout clears session and redirects"
-      ],
-      "technical_details": {
-        "files": [
-          "packages/web/src/components/UserMenu.tsx"
-        ],
-        "atoms": [
-          "currentUserAtom - read user info",
-          "logoutMutation - calls /api/auth/logout, clears token"
-        ],
-        "e2e_file": "packages/web/test-e2e/auth/session.spec.ts"
-      },
-      "status": "complete",
-      "estimated_complexity": "small"
-    },
-    {
-      "id": "10.1.5",
-      "phase": "UI Rebuild",
-      "epic": "Authentication",
-      "title": "Implement account settings page",
-      "description": "Create account settings page for managing user profile and linked providers. SECURITY: Password change MUST invalidate the current session and force re-login with the new password - this is required behavior, not a bug. NOTE: updatePassword was added to API (packages/api) and persistence (packages/persistence) but NO TESTS were written - tests are required before this story can be marked complete. IMPORTANT: NEVER remove or skip tests - if tests fail due to stale state, the issue is likely missing reactivityKeys on mutations. Use reactivityKeys to auto-refresh queries after mutations. CRITICAL: If you see stale data after mutations, this is because you are NOT using reactivityKeys - add them to your mutations to fix the issue. NAVIGATION: Do NOT use window.location.href for redirects - use TanStack Router's navigate() or useNavigate() hook instead. Direct location manipulation breaks SPA routing.",
-      "specs": [
-        "REACT_BEST_PRACTICES.md",
-        "EFFECT_ATOM.md"
-      ],
-      "acceptance_criteria": [
-        "Route: /settings/account (protected)",
-        "Display current user info (email, display name)",
-        "List all linked identity providers with dates",
-        "Button to link additional providers (if more available)",
-        "Button to unlink provider (disabled if only one remains)",
-        "Change password section (if local provider linked)",
-        "Password change MUST invalidate session and require re-login with new password",
-        "Success/error notifications for all actions",
-        "TESTS (E2E): account settings displays user info correctly",
-        "TESTS (E2E): change password flow works - MUST verify user is logged out and can re-login with new password",
-        "TESTS (API): packages/api/test/auth.test.ts covers password change endpoint",
-        "TESTS (Persistence): packages/persistence/test/UserRepository.test.ts covers updatePassword",
-        "BLOCKING: updatePassword added to API and persistence WITHOUT tests - must add tests before completion",
-        "WARNING: NEVER remove tests to make them pass - fix the code instead",
-        "WARNING: If state appears stale after mutations, add reactivityKeys to mutations"
-      ],
-      "technical_details": {
-        "files": [
-          "packages/web/src/routes/settings/account.tsx"
-        ],
-        "atoms": [
-          "currentUserAtom",
-          "enabledProvidersAtom",
-          "linkProviderMutation",
-          "unlinkProviderMutation",
-          "changePasswordMutation"
-        ],
-        "e2e_file": "packages/web/test-e2e/auth/account-settings.spec.ts",
-        "unit_tests": [
-          "packages/api/test/auth.test.ts",
-          "packages/persistence/test/UserRepository.test.ts"
-        ],
-        "missing_tests": [
-          "packages/api/test/auth.test.ts - updatePassword endpoint NOT tested",
-          "packages/persistence/test/UserRepository.test.ts - updatePassword NOT tested"
-        ]
-      },
-      "status": "complete",
-      "estimated_complexity": "medium"
-    },
-    {
-      "id": "10.2.1",
-      "phase": "UI Rebuild",
-      "epic": "Organizations",
-      "title": "Implement organizations list page",
-      "description": "Create the organizations list page showing user's organizations.",
-      "specs": [
-        "REACT_BEST_PRACTICES.md",
-        "EFFECT_ATOM.md"
-      ],
-      "acceptance_criteria": [
-        "Route: /organizations (protected)",
-        "Fetches organizations via organizationsAtom",
-        "Displays organizations in card grid or list",
-        "Each card shows: name, reporting currency, company count",
-        "Click card navigates to /organizations/:id",
-        "'Create Organization' button opens modal/form",
-        "Empty state with call-to-action to create first org",
-        "Loading skeleton during initial fetch",
-        "Error state with retry option",
-        "data-testid attributes for testing",
-        "TESTS (E2E): list displays organizations",
-        "TESTS (E2E): create organization via UI works",
-        "TESTS (E2E): navigate to organization details",
-        "TESTS (API): packages/api/test/organizations.test.ts covers list/create endpoints",
-        "TESTS (Persistence): packages/persistence/test/OrganizationRepository.test.ts"
-      ],
-      "technical_details": {
-        "files": [
-          "packages/web/src/routes/organizations/index.tsx",
-          "packages/web/src/components/OrganizationCard.tsx",
-          "packages/web/src/components/CreateOrganizationModal.tsx"
-        ],
-        "atoms": [
-          "organizationsAtom - ApiClient.query('organizations', 'list')",
-          "createOrganizationMutation"
-        ],
-        "e2e_file": "packages/web/test-e2e/organizations.spec.ts",
-        "unit_tests": [
-          "packages/api/test/organizations.test.ts",
-          "packages/persistence/test/OrganizationRepository.test.ts"
-        ]
-      },
-      "status": "complete",
-      "estimated_complexity": "medium"
-    },
-    {
-      "id": "10.2.2",
-      "phase": "UI Rebuild",
-      "epic": "Organizations",
-      "title": "Implement organization details page",
-      "description": "Create organization details page with companies list.",
-      "specs": [
-        "REACT_BEST_PRACTICES.md",
-        "EFFECT_ATOM.md"
-      ],
-      "acceptance_criteria": [
-        "Route: /organizations/:organizationId (protected)",
-        "Fetch organization details via organizationFamily(id)",
-        "Display organization name, reporting currency, settings",
-        "Tab or section showing companies within org",
-        "'Create Company' button",
-        "Edit organization settings (name, currency)",
-        "Breadcrumb navigation: Organizations > Org Name",
-        "TESTS (E2E): organization details page displays correctly",
-        "TESTS (E2E): edit organization settings works",
-        "TESTS (API): packages/api/test/organizations.test.ts covers get/update endpoints"
-      ],
-      "technical_details": {
-        "files": [
-          "packages/web/src/routes/organizations/$organizationId/index.tsx"
-        ],
-        "atoms": [
-          "organizationFamily - Atom.family for single org",
-          "companiesByOrgAtom - companies filtered by org"
-        ],
-        "e2e_file": "packages/web/test-e2e/organizations.spec.ts",
-        "unit_tests": [
-          "packages/api/test/organizations.test.ts"
-        ]
-      },
-      "status": "complete",
-      "estimated_complexity": "medium"
-    },
-    {
-      "id": "10.3.1",
-      "phase": "UI Rebuild",
-      "epic": "Companies",
-      "title": "Implement companies list page",
-      "description": "Create companies list page within an organization.",
-      "specs": [
-        "REACT_BEST_PRACTICES.md",
-        "EFFECT_ATOM.md"
-      ],
-      "acceptance_criteria": [
-        "Route: /organizations/:organizationId/companies (protected)",
-        "Fetches companies for organization",
-        "Table or card list with: name, legal name, jurisdiction, functional currency",
-        "Click row/card navigates to company details",
-        "'Create Company' button opens form/modal",
-        "Empty state when no companies exist",
-        "Loading and error states",
-        "TESTS (E2E): list displays companies in org",
-        "TESTS (E2E): create company via UI works",
-        "TESTS (API): packages/api/test/companies.test.ts covers list/create endpoints",
-        "TESTS (Persistence): packages/persistence/test/CompanyRepository.test.ts"
-      ],
-      "technical_details": {
-        "files": [
-          "packages/web/src/routes/organizations/$organizationId/companies/index.tsx",
-          "packages/web/src/components/CompanyCard.tsx",
-          "packages/web/src/components/CreateCompanyModal.tsx"
-        ],
-        "atoms": [
-          "companiesByOrgFamily - Atom.family((orgId) => query)",
-          "createCompanyMutation"
-        ],
-        "e2e_file": "packages/web/test-e2e/companies.spec.ts",
-        "unit_tests": [
-          "packages/api/test/companies.test.ts",
-          "packages/persistence/test/CompanyRepository.test.ts"
-        ]
-      },
-      "status": "complete",
-      "estimated_complexity": "medium"
-    },
-    {
-      "id": "10.3.2",
-      "phase": "UI Rebuild",
-      "epic": "Companies",
-      "title": "Implement company details page",
-      "description": "Create company details page with navigation to accounts, journal entries, reports.",
-      "specs": [
-        "REACT_BEST_PRACTICES.md",
-        "EFFECT_ATOM.md"
-      ],
-      "acceptance_criteria": [
-        "Route: /organizations/:organizationId/companies/:companyId (protected)",
-        "Fetch company details via companyFamily(id)",
-        "Display: name, legal name, jurisdiction, tax ID, currencies, fiscal year end",
-        "Navigation tabs/links to: Accounts, Journal Entries, Fiscal Periods, Reports",
-        "Edit company settings button",
-        "Consolidation info if subsidiary (parent, ownership %, method)",
-        "Breadcrumb: Organizations > Org > Companies > Company",
-        "TESTS (E2E): company details display correctly",
-        "TESTS (E2E): edit company settings works",
-        "TESTS (API): packages/api/test/companies.test.ts covers get/update endpoints"
-      ],
-      "technical_details": {
-        "files": [
-          "packages/web/src/routes/organizations/$organizationId/companies/$companyId/index.tsx"
-        ],
-        "atoms": [
-          "companyFamily - Atom.family for single company"
-        ],
-        "e2e_file": "packages/web/test-e2e/companies.spec.ts",
-        "unit_tests": [
-          "packages/api/test/companies.test.ts"
-        ]
-      },
-      "status": "complete",
-      "estimated_complexity": "medium"
-    },
-    {
-      "id": "10.3.3",
-      "phase": "UI Rebuild",
-      "epic": "Companies",
-      "title": "Implement company selector component",
-      "description": "Create a reusable company selector for global context switching.",
-      "specs": [
-        "REACT_BEST_PRACTICES.md",
-        "EFFECT_ATOM.md"
-      ],
-      "acceptance_criteria": [
-        "CompanySelector dropdown component",
-        "Shows currently selected company name",
-        "Dropdown lists all companies user has access to (grouped by org)",
-        "Selection updates selectedCompanyAtom",
-        "Persisted to localStorage for session continuity",
-        "Used in header or sidebar for quick switching",
-        "Updates URL context when switching"
-      ],
-      "technical_details": {
-        "files": [
-          "packages/web/src/components/CompanySelector.tsx"
-        ],
-        "atoms": [
-          "selectedCompanyAtom - current company context",
-          "allCompaniesAtom - all companies for selector"
-        ]
-      },
-      "status": "complete",
-      "estimated_complexity": "small"
-    },
-    {
-      "id": "10.4.1",
-      "phase": "UI Rebuild",
-      "epic": "Chart of Accounts",
-      "title": "Implement accounts list page",
-      "description": "Create chart of accounts list with hierarchy display and filtering.",
-      "specs": [
-        "REACT_BEST_PRACTICES.md",
-        "EFFECT_ATOM.md"
-      ],
-      "acceptance_criteria": [
-        "Route: /organizations/:orgId/companies/:companyId/accounts (protected)",
-        "Fetches accounts for company via accountsAtom",
-        "Tree view showing account hierarchy with expand/collapse",
-        "Columns: Account Number, Name, Type, Category, Normal Balance, Active",
-        "Filter by account type (Asset, Liability, Equity, Revenue, Expense)",
-        "Search by account number or name",
-        "'Create Account' button opens form",
-        "Click row opens account detail/edit view",
-        "Empty state when no accounts",
-        "TESTS (E2E): list displays accounts with hierarchy",
-        "TESTS (E2E): filter by type works",
-        "TESTS (E2E): search by name works",
-        "TESTS (API): packages/api/test/accounts.test.ts covers list endpoint",
-        "TESTS (Persistence): packages/persistence/test/AccountRepository.test.ts"
-      ],
-      "technical_details": {
-        "files": [
-          "packages/web/src/routes/organizations/$orgId/companies/$companyId/accounts/index.tsx",
-          "packages/web/src/components/AccountsTree.tsx",
-          "packages/web/src/components/AccountRow.tsx"
-        ],
-        "atoms": [
-          "accountsByCompanyFamily - Atom.family((companyId) => query)",
-          "accountTypeFilterAtom",
-          "accountSearchAtom",
-          "filteredAccountsAtom - derived"
-        ],
-        "e2e_file": "packages/web/test-e2e/accounts.spec.ts",
-        "unit_tests": [
-          "packages/api/test/accounts.test.ts",
-          "packages/persistence/test/AccountRepository.test.ts"
-        ]
-      },
-      "status": "complete",
-      "estimated_complexity": "large"
-    },
-    {
-      "id": "10.0.4a",
-      "phase": "UI Rebuild",
+      "id": "11.0.2",
+      "phase": "Frontend Rebuild",
       "epic": "Infrastructure",
-      "title": "SSR Auth: Add httpOnly session cookie",
-      "description": "Enable server-side authentication by storing session token in an httpOnly cookie alongside localStorage. This allows the server to know if a user is authenticated during SSR.",
-      "specs": [
-        "EFFECT_TANSTACK_SSR.md",
-        "AUTHENTICATION.md"
-      ],
+      "title": "Set up TanStack Query for data fetching",
+      "description": "Configure TanStack Query as the data fetching layer, replacing Effect Atom.",
+      "specs": ["REACT_BEST_PRACTICES.md"],
       "acceptance_criteria": [
-        "Login API sets httpOnly cookie with session token (Set-Cookie header)",
-        "Logout API clears the session cookie",
-        "Cookie config: httpOnly=true, secure=true (works on localhost in Chrome), sameSite=lax, path=/, maxAge=30days",
-        "Cookie name: 'accountability_session'",
-        "localStorage token storage continues to work (dual storage)",
-        "Create getServerSession() server function that reads cookie and validates token",
-        "getServerSession() returns User or null",
-        "TESTS (E2E): Login sets cookie (verify via browser context)",
-        "TESTS (E2E): Logout clears cookie"
+        "Install @tanstack/react-query",
+        "Configure QueryClient with sensible defaults",
+        "Wrap app in QueryClientProvider",
+        "Create custom hooks that combine generated API client with useQuery/useMutation",
+        "Set up query key conventions (e.g., ['organizations', id])",
+        "Configure devtools for development",
+        "TESTS: Basic query/mutation works in E2E test"
       ],
       "technical_details": {
-        "files_to_modify": [
-          "packages/api/src/Definitions/AuthApi.ts - Add Set-Cookie header to login response",
-          "packages/api/src/Handlers/AuthHandler.ts - Set cookie on login, clear on logout"
-        ],
         "files_to_create": [
-          "packages/web/src/server/auth.ts - getServerSession() and serverSetSession()"
+          "packages/web/src/lib/query-client.ts - QueryClient configuration",
+          "packages/web/src/hooks/useApi.ts - Custom hooks wrapping generated client"
         ],
-        "cookie_configuration": {
+        "files_to_modify": [
+          "packages/web/src/routes/__root.tsx - Add QueryClientProvider"
+        ],
+        "query_key_convention": {
+          "pattern": "['resource', ...params]",
+          "examples": [
+            "['organizations'] - list all",
+            "['organizations', id] - single org",
+            "['companies', { organizationId }] - companies by org"
+          ]
+        }
+      },
+      "status": "pending",
+      "estimated_complexity": "small",
+      "priority": "critical",
+      "depends_on": ["11.0.1"]
+    },
+    {
+      "id": "11.0.3",
+      "phase": "Frontend Rebuild",
+      "epic": "Infrastructure",
+      "title": "Remove Effect Atom and Effect dependencies from frontend",
+      "description": "Clean up all Effect-related code from the web package. Replace with TanStack Query patterns.",
+      "specs": ["REACT_BEST_PRACTICES.md"],
+      "acceptance_criteria": [
+        "Remove @effect-atom/atom and @effect-atom/atom-react from package.json",
+        "Remove effect and @effect/platform from web package.json",
+        "Delete packages/web/src/atoms/ directory entirely",
+        "Remove RegistryProvider from root route",
+        "Update all components to use TanStack Query hooks instead of useAtomValue/useAtom",
+        "Update auth to use cookies + TanStack Query instead of atoms",
+        "Ensure no Effect imports remain in packages/web/src/",
+        "TESTS: All existing E2E tests still pass"
+      ],
+      "technical_details": {
+        "files_to_delete": [
+          "packages/web/src/atoms/ - entire directory"
+        ],
+        "files_to_modify": [
+          "packages/web/package.json - remove Effect dependencies",
+          "packages/web/src/routes/__root.tsx - remove RegistryProvider",
+          "packages/web/src/routes/*.tsx - replace atom usage with TanStack Query",
+          "packages/web/src/components/*.tsx - replace atom usage"
+        ],
+        "migration_pattern": {
+          "before": "const orgs = useAtomValue(organizationsAtom)",
+          "after": "const { data: orgs } = useQuery({ queryKey: ['organizations'], queryFn: () => api.organizations.list() })"
+        }
+      },
+      "status": "pending",
+      "estimated_complexity": "large",
+      "priority": "critical",
+      "depends_on": ["11.0.2"]
+    },
+    {
+      "id": "11.0.4",
+      "phase": "Frontend Rebuild",
+      "epic": "Infrastructure",
+      "title": "Implement SSR with TanStack Start loaders",
+      "description": "Use TanStack Start loaders for server-side data prefetching. Pages render with data immediately.",
+      "specs": ["REACT_BEST_PRACTICES.md"],
+      "acceptance_criteria": [
+        "Root route beforeLoad fetches session from cookie",
+        "Protected routes redirect to /login in beforeLoad if not authenticated",
+        "Auth routes redirect to / in beforeLoad if already authenticated",
+        "Data routes use loader to prefetch data server-side",
+        "Components use Route.useLoaderData() for initial data",
+        "TanStack Query hydrates from loader data (no double-fetch)",
+        "No loading flash on initial page load",
+        "TESTS (E2E): Pages load with data immediately"
+      ],
+      "technical_details": {
+        "pattern": {
+          "loader": "async ({ params }) => { return api.organizations.get(params.id) }",
+          "component": "const data = Route.useLoaderData(); // immediate, no loading"
+        },
+        "hydration": {
+          "approach": "Pass loader data to TanStack Query as initialData",
+          "benefit": "No refetch on client, data already available"
+        }
+      },
+      "status": "pending",
+      "estimated_complexity": "medium",
+      "depends_on": ["11.0.3"]
+    },
+    {
+      "id": "11.0.5",
+      "phase": "Frontend Rebuild",
+      "epic": "Infrastructure",
+      "title": "Set up httpOnly session cookie for authentication",
+      "description": "Store auth token in httpOnly cookie for SSR auth. Keep localStorage as backup for client-side checks.",
+      "specs": ["AUTHENTICATION.md"],
+      "acceptance_criteria": [
+        "Login API sets httpOnly cookie with session token",
+        "Logout API clears the session cookie",
+        "Cookie config: httpOnly=true, secure=true, sameSite=lax, path=/",
+        "Server can read cookie in loaders for auth checks",
+        "Generated API client automatically includes cookies in requests",
+        "TESTS (E2E): Login sets cookie, logout clears it"
+      ],
+      "technical_details": {
+        "cookie_config": {
           "name": "accountability_session",
           "httpOnly": true,
           "secure": true,
           "sameSite": "lax",
           "path": "/",
-          "maxAge": "30 * 24 * 60 * 60",
-          "note": "Always use secure:true even on localhost - Chrome treats localhost as secure context"
+          "maxAge": "30 * 24 * 60 * 60"
         }
       },
-      "status": "complete",
-      "estimated_complexity": "small",
-      "depends_on": []
-    },
-    {
-      "id": "10.0.4b",
-      "phase": "UI Rebuild",
-      "epic": "Infrastructure",
-      "title": "SSR Auth: Root route session + protected redirects",
-      "description": "Add session fetching to root route beforeLoad and implement server-side auth redirects. Protected routes redirect to /login, auth routes redirect to dashboard if authenticated.",
-      "specs": [
-        "EFFECT_TANSTACK_SSR.md",
-        "AUTHENTICATION.md"
-      ],
-      "acceptance_criteria": [
-        "Root route beforeLoad calls getServerSession() and passes user to context",
-        "All child routes can access session via context.user",
-        "Protected routes (organizations, companies, accounts, settings) check auth in beforeLoad",
-        "Unauthenticated access to protected routes redirects to /login?redirect=<original>",
-        "Auth routes (login, register) redirect to / if already authenticated",
-        "Home page (/) uses server session to determine landing vs dashboard view",
-        "No flash of wrong UI on initial page load",
-        "TESTS (E2E): Direct URL to /organizations when logged out redirects to login",
-        "TESTS (E2E): Direct URL to /login when logged in redirects to dashboard",
-        "TESTS (E2E): Login redirect parameter works after authentication"
-      ],
-      "technical_details": {
-        "files_to_modify": [
-          "packages/web/src/routes/__root.tsx - Add beforeLoad for session",
-          "packages/web/src/routes/index.tsx - Use context.user instead of client atom",
-          "packages/web/src/routes/login.tsx - Add beforeLoad redirect if authenticated",
-          "packages/web/src/routes/register.tsx - Add beforeLoad redirect if authenticated",
-          "packages/web/src/routes/organizations/index.tsx - Add auth check in beforeLoad",
-          "packages/web/src/routes/settings/account.tsx - Add auth check in beforeLoad"
-        ],
-        "pattern": "beforeLoad: ({ context }) => { if (!context.user) throw redirect({ to: '/login' }) }"
-      },
-      "status": "pending",
-      "estimated_complexity": "medium",
-      "depends_on": [
-        "10.0.4a"
-      ]
-    },
-    {
-      "id": "10.0.4c",
-      "phase": "UI Rebuild",
-      "epic": "Infrastructure",
-      "title": "SSR Data: Organizations route loaders",
-      "description": "Add server-side data prefetching to organizations routes. Pages render with data on first paint - no loading skeleton flash.",
-      "specs": [
-        "EFFECT_TANSTACK_SSR.md",
-        "EFFECT_ATOM.md"
-      ],
-      "acceptance_criteria": [
-        "Create server API functions: getOrganizations(), getOrganization(id)",
-        "Server functions call API with session token from cookie",
-        "/organizations route beforeLoad prefetches organization list",
-        "/organizations/$organizationId route beforeLoad prefetches org details",
-        "Components use Route.useLoaderData() for initial render",
-        "No skeleton/loading state on initial page load",
-        "Client-side navigation may still show brief loading (acceptable)",
-        "TESTS (E2E): /organizations loads with data visible immediately",
-        "TESTS (E2E): Refresh /organizations - data present, no flash"
-      ],
-      "technical_details": {
-        "files_to_modify": [
-          "packages/web/src/routes/organizations/index.tsx - Add loader, use loader data",
-          "packages/web/src/routes/organizations/$organizationId/index.tsx - Add loader"
-        ],
-        "files_to_create": [
-          "packages/web/src/server/organizations.ts - Server functions"
-        ],
-        "pattern": "beforeLoad fetches data, component uses Route.useLoaderData()"
-      },
-      "status": "pending",
-      "estimated_complexity": "medium",
-      "depends_on": [
-        "10.0.4b"
-      ]
-    },
-    {
-      "id": "10.0.4d",
-      "phase": "UI Rebuild",
-      "epic": "Infrastructure",
-      "title": "SSR Data: Companies route loaders",
-      "description": "Add server-side data prefetching to companies routes.",
-      "specs": [
-        "EFFECT_TANSTACK_SSR.md",
-        "EFFECT_ATOM.md"
-      ],
-      "acceptance_criteria": [
-        "Create server API functions: getCompanies(orgId), getCompany(id)",
-        "/organizations/$id/companies route beforeLoad prefetches company list",
-        "/organizations/$id/companies/$companyId route beforeLoad prefetches company details",
-        "Components use Route.useLoaderData() for initial render",
-        "No skeleton/loading state on initial page load",
-        "TESTS (E2E): Companies list loads with data immediately",
-        "TESTS (E2E): Company details page loads with data immediately"
-      ],
-      "technical_details": {
-        "files_to_modify": [
-          "packages/web/src/routes/organizations/$organizationId/companies/index.tsx",
-          "packages/web/src/routes/organizations/$organizationId/companies/$companyId/index.tsx"
-        ],
-        "files_to_create": [
-          "packages/web/src/server/companies.ts - Server functions"
-        ]
-      },
-      "status": "pending",
-      "estimated_complexity": "medium",
-      "depends_on": [
-        "10.0.4c"
-      ]
-    },
-    {
-      "id": "10.0.4e",
-      "phase": "UI Rebuild",
-      "epic": "Infrastructure",
-      "title": "SSR Data: Accounts route loaders",
-      "description": "Add server-side data prefetching to accounts route.",
-      "specs": [
-        "EFFECT_TANSTACK_SSR.md",
-        "EFFECT_ATOM.md"
-      ],
-      "acceptance_criteria": [
-        "Create server API function: getAccounts(companyId)",
-        "/organizations/$id/companies/$companyId/accounts route beforeLoad prefetches accounts",
-        "Component uses Route.useLoaderData() for initial render",
-        "No skeleton/loading state on initial page load",
-        "TESTS (E2E): Accounts list loads with data immediately"
-      ],
-      "technical_details": {
-        "files_to_modify": [
-          "packages/web/src/routes/organizations/$organizationId/companies/$companyId/accounts/index.tsx"
-        ],
-        "files_to_create": [
-          "packages/web/src/server/accounts.ts - Server functions"
-        ]
-      },
       "status": "pending",
       "estimated_complexity": "small",
-      "depends_on": [
-        "10.0.4d"
-      ]
+      "depends_on": ["11.0.1"]
     },
     {
-      "id": "10.0.4f",
-      "phase": "UI Rebuild",
-      "epic": "Infrastructure",
-      "title": "SSR Polish: Atom hydration + loading state cleanup",
-      "description": "Integrate loader data with Effect Atoms and clean up loading states. Atoms receive initial data from loaders to avoid double-fetch. Remove skeleton loaders for server-rendered content.",
-      "specs": [
-        "EFFECT_TANSTACK_SSR.md",
-        "EFFECT_ATOM.md",
-        "REACT_BEST_PRACTICES.md"
-      ],
+      "id": "11.1.1",
+      "phase": "Frontend Rebuild",
+      "epic": "Authentication",
+      "title": "Rebuild login page with TanStack Query",
+      "description": "Rewrite login page to use generated API client and TanStack Query mutation.",
+      "specs": ["REACT_BEST_PRACTICES.md", "USABILITY_BEST_PRACTICES.md"],
       "acceptance_criteria": [
-        "Pass loader data to atoms as initial value (avoid client refetch)",
-        "Atoms still work for mutations and client-side refetching via reactivityKeys",
-        "Remove skeleton loading states for initial server-rendered content",
-        "Keep loading states only for client-side navigation and mutations",
-        "No layout shift between server HTML and hydrated content",
-        "TESTS (E2E): All data-driven pages load without skeleton flash",
-        "TESTS (E2E): Mutations still trigger reactivity and refresh data"
+        "Login form with email/password fields",
+        "useMutation hook for login API call",
+        "Loading state during submission",
+        "Error display for invalid credentials",
+        "Redirect to / or ?redirect param on success",
+        "beforeLoad redirects to / if already authenticated",
+        "TESTS (E2E): Login flow works end-to-end"
       ],
-      "technical_details": {
-        "pattern": "Loader data passed to atom via initial value or hydration mechanism",
-        "files_to_modify": [
-          "packages/web/src/routes/organizations/index.tsx - Remove skeleton, use loader data",
-          "packages/web/src/routes/organizations/$organizationId/index.tsx",
-          "packages/web/src/routes/organizations/$organizationId/companies/index.tsx",
-          "packages/web/src/routes/organizations/$organizationId/companies/$companyId/index.tsx",
-          "packages/web/src/routes/organizations/$organizationId/companies/$companyId/accounts/index.tsx"
-        ]
-      },
+      "status": "pending",
+      "estimated_complexity": "small",
+      "depends_on": ["11.0.3"]
+    },
+    {
+      "id": "11.1.2",
+      "phase": "Frontend Rebuild",
+      "epic": "Authentication",
+      "title": "Rebuild registration page with TanStack Query",
+      "description": "Rewrite registration page to use generated API client and TanStack Query mutation.",
+      "specs": ["REACT_BEST_PRACTICES.md", "USABILITY_BEST_PRACTICES.md"],
+      "acceptance_criteria": [
+        "Registration form with email, display name, password fields",
+        "Client-side validation",
+        "useMutation hook for register API call",
+        "Auto-login on success, redirect to /",
+        "Error display for duplicate email",
+        "TESTS (E2E): Registration flow works end-to-end"
+      ],
+      "status": "pending",
+      "estimated_complexity": "small",
+      "depends_on": ["11.0.3"]
+    },
+    {
+      "id": "11.2.1",
+      "phase": "Frontend Rebuild",
+      "epic": "Organizations",
+      "title": "Rebuild organizations list with TanStack Query",
+      "description": "Rewrite organizations list page using generated API client and TanStack Query.",
+      "specs": ["REACT_BEST_PRACTICES.md"],
+      "acceptance_criteria": [
+        "useQuery hook fetches organizations",
+        "Loader prefetches data for SSR",
+        "Create organization uses useMutation with automatic refetch",
+        "Loading, error, and empty states handled",
+        "TESTS (E2E): Organizations list works"
+      ],
       "status": "pending",
       "estimated_complexity": "medium",
-      "depends_on": [
-        "10.0.4e"
-      ]
+      "depends_on": ["11.0.4"]
     },
     {
-      "id": "10.4.2",
-      "phase": "UI Rebuild",
-      "epic": "Chart of Accounts",
-      "title": "Implement create/edit account form",
-      "description": "Create form for adding and editing accounts.",
-      "specs": [
-        "REACT_BEST_PRACTICES.md",
-        "EFFECT_ATOM.md"
-      ],
+      "id": "11.2.2",
+      "phase": "Frontend Rebuild",
+      "epic": "Organizations",
+      "title": "Rebuild organization details with TanStack Query",
+      "description": "Rewrite organization details page using generated API client and TanStack Query.",
+      "specs": ["REACT_BEST_PRACTICES.md"],
       "acceptance_criteria": [
-        "Modal or page form for account creation/editing",
-        "Fields: account number, name, description, type, category, normal balance",
-        "Parent account selector (optional, for sub-accounts)",
-        "Checkboxes: is postable, is cash flow relevant",
-        "Cash flow category dropdown (if cash flow relevant)",
-        "Intercompany checkbox with partner company selector",
-        "Currency restriction dropdown (optional)",
-        "Validation: account number uniqueness, required fields",
-        "Create mode: createAccountMutation",
-        "Edit mode: updateAccountMutation with pre-filled values",
-        "Success: close modal, refresh accounts list via reactivityKeys",
-        "TESTS (E2E): create account with all fields",
-        "TESTS (E2E): edit existing account",
-        "TESTS (E2E): validation errors shown for invalid data",
-        "TESTS (API): packages/api/test/accounts.test.ts covers create/update endpoints",
-        "TESTS (Core): packages/core/test/Account.test.ts covers account validation"
+        "useQuery hook fetches organization by ID",
+        "Loader prefetches data for SSR",
+        "Edit organization uses useMutation with automatic refetch",
+        "Companies list within org",
+        "TESTS (E2E): Organization details page works"
       ],
-      "technical_details": {
-        "files": [
-          "packages/web/src/components/AccountForm.tsx",
-          "packages/web/src/routes/organizations/$orgId/companies/$companyId/accounts/new.tsx",
-          "packages/web/src/routes/organizations/$orgId/companies/$companyId/accounts/$accountId/edit.tsx"
-        ],
-        "mutations": [
-          "createAccountMutation",
-          "updateAccountMutation"
-        ],
-        "e2e_file": "packages/web/test-e2e/accounts.spec.ts",
-        "unit_tests": [
-          "packages/api/test/accounts.test.ts",
-          "packages/core/test/Account.test.ts"
-        ]
-      },
       "status": "pending",
-      "estimated_complexity": "medium"
+      "estimated_complexity": "medium",
+      "depends_on": ["11.2.1"]
     },
     {
-      "id": "10.5.1",
-      "phase": "UI Rebuild",
-      "epic": "Fiscal Periods",
-      "title": "Implement fiscal years list page",
-      "description": "Create fiscal years management page.",
-      "specs": [
-        "REACT_BEST_PRACTICES.md",
-        "EFFECT_ATOM.md"
-      ],
+      "id": "11.3.1",
+      "phase": "Frontend Rebuild",
+      "epic": "Companies",
+      "title": "Rebuild companies list with TanStack Query",
+      "description": "Rewrite companies list page using generated API client and TanStack Query.",
+      "specs": ["REACT_BEST_PRACTICES.md"],
       "acceptance_criteria": [
-        "Route: /organizations/:orgId/companies/:companyId/fiscal (protected)",
-        "List fiscal years for company with: year, start date, end date, status",
-        "Expand year to show periods with: number, name, dates, status",
-        "Color-coded status badges (Open, Soft Close, Closed, Locked)",
-        "'Create Fiscal Year' button",
-        "Actions per period: Open, Soft Close, Close (based on current status)",
-        "TESTS (E2E): list displays fiscal years and periods",
-        "TESTS (E2E): create fiscal year works",
-        "TESTS (E2E): open/close period works",
-        "TESTS (API): packages/api/test/fiscal.test.ts covers fiscal year/period endpoints",
-        "TESTS (Persistence): packages/persistence/test/FiscalPeriodRepository.test.ts",
-        "TESTS (Core): packages/core/test/FiscalPeriod.test.ts covers period state transitions"
+        "useQuery hook fetches companies for organization",
+        "Loader prefetches data for SSR",
+        "Create company uses useMutation",
+        "TESTS (E2E): Companies list works"
       ],
-      "technical_details": {
-        "files": [
-          "packages/web/src/routes/organizations/$orgId/companies/$companyId/fiscal/index.tsx",
-          "packages/web/src/components/FiscalYearCard.tsx",
-          "packages/web/src/components/FiscalPeriodRow.tsx"
-        ],
-        "atoms": [
-          "fiscalYearsByCompanyFamily",
-          "createFiscalYearMutation",
-          "openPeriodMutation",
-          "closePeriodMutation"
-        ],
-        "e2e_file": "packages/web/test-e2e/fiscal.spec.ts",
-        "unit_tests": [
-          "packages/api/test/fiscal.test.ts",
-          "packages/persistence/test/FiscalPeriodRepository.test.ts",
-          "packages/core/test/FiscalPeriod.test.ts"
-        ]
-      },
       "status": "pending",
-      "estimated_complexity": "medium"
+      "estimated_complexity": "medium",
+      "depends_on": ["11.2.2"]
     },
     {
-      "id": "10.5.2",
-      "phase": "UI Rebuild",
-      "epic": "Fiscal Periods",
-      "title": "Implement create fiscal year form",
-      "description": "Create form for adding new fiscal years with auto-generated periods.",
-      "specs": [
-        "REACT_BEST_PRACTICES.md"
-      ],
+      "id": "11.3.2",
+      "phase": "Frontend Rebuild",
+      "epic": "Companies",
+      "title": "Rebuild company details with TanStack Query",
+      "description": "Rewrite company details page using generated API client and TanStack Query.",
+      "specs": ["REACT_BEST_PRACTICES.md"],
       "acceptance_criteria": [
-        "Modal form for fiscal year creation",
-        "Start date input (defaults to Jan 1 of next year or after last year)",
-        "Checkbox: include adjustment period (period 13)",
-        "Preview of generated periods before creation",
-        "Validation: no overlapping years",
-        "Success: close modal, show new year in list"
+        "useQuery hook fetches company by ID",
+        "Loader prefetches data for SSR",
+        "Edit company uses useMutation",
+        "Navigation to accounts, journal entries, reports",
+        "TESTS (E2E): Company details page works"
       ],
-      "technical_details": {
-        "files": [
-          "packages/web/src/components/CreateFiscalYearModal.tsx"
-        ]
-      },
       "status": "pending",
-      "estimated_complexity": "small"
+      "estimated_complexity": "medium",
+      "depends_on": ["11.3.1"]
     },
     {
-      "id": "10.6.1",
-      "phase": "UI Rebuild",
-      "epic": "Journal Entries",
-      "title": "Implement journal entries list page",
-      "description": "Create journal entries list with filtering and status display.",
-      "specs": [
-        "REACT_BEST_PRACTICES.md",
-        "EFFECT_ATOM.md"
-      ],
+      "id": "11.4.1",
+      "phase": "Frontend Rebuild",
+      "epic": "Accounts",
+      "title": "Rebuild accounts list with TanStack Query",
+      "description": "Rewrite chart of accounts page using generated API client and TanStack Query.",
+      "specs": ["REACT_BEST_PRACTICES.md"],
       "acceptance_criteria": [
-        "Route: /organizations/:orgId/companies/:companyId/journal-entries (protected)",
-        "Fetches entries via journalEntriesAtom",
-        "Table with: Entry #, Date, Description, Total Amount, Type, Status",
-        "Status badges: Draft, Pending Approval, Approved, Posted, Reversed",
-        "Filter by status dropdown",
-        "Filter by date range",
-        "Filter by entry type",
-        "Search by description or reference",
-        "Click row opens entry detail",
-        "'New Entry' button navigates to creation form",
-        "Pagination or infinite scroll for large lists",
-        "TESTS (E2E): list displays entries with status",
-        "TESTS (E2E): filter by status works",
-        "TESTS (E2E): navigate to entry detail",
-        "TESTS (API): packages/api/test/journal-entries.test.ts covers list endpoint",
-        "TESTS (Persistence): packages/persistence/test/JournalEntryRepository.test.ts"
+        "useQuery hook fetches accounts for company",
+        "Loader prefetches data for SSR",
+        "Tree view with hierarchy",
+        "Filter by type, search by name",
+        "Create/edit account uses useMutation",
+        "TESTS (E2E): Accounts list works"
       ],
-      "technical_details": {
-        "files": [
-          "packages/web/src/routes/organizations/$orgId/companies/$companyId/journal-entries/index.tsx",
-          "packages/web/src/components/JournalEntryRow.tsx",
-          "packages/web/src/components/JournalEntryFilters.tsx"
-        ],
-        "atoms": [
-          "journalEntriesByCompanyFamily",
-          "entryStatusFilterAtom",
-          "entryDateRangeAtom",
-          "entrySearchAtom",
-          "filteredEntriesAtom - derived"
-        ],
-        "e2e_file": "packages/web/test-e2e/journal-entries.spec.ts",
-        "unit_tests": [
-          "packages/api/test/journal-entries.test.ts",
-          "packages/persistence/test/JournalEntryRepository.test.ts"
-        ]
-      },
       "status": "pending",
-      "estimated_complexity": "large"
-    },
-    {
-      "id": "10.6.2",
-      "phase": "UI Rebuild",
-      "epic": "Journal Entries",
-      "title": "Implement create journal entry form",
-      "description": "Create multi-line journal entry form with balance validation.",
-      "specs": [
-        "REACT_BEST_PRACTICES.md",
-        "EFFECT_ATOM.md"
-      ],
-      "acceptance_criteria": [
-        "Route: /organizations/:orgId/companies/:companyId/journal-entries/new (protected)",
-        "Header fields: transaction date, description, reference, entry type",
-        "Lines table with: account selector, description, debit, credit, currency",
-        "'Add Line' button to add more lines",
-        "Remove line button (X) on each row",
-        "Running totals for debits and credits",
-        "Visual indicator when totals don't balance (red highlight)",
-        "Balance validation: debits must equal credits",
-        "Account selector shows hierarchy, filters to postable accounts",
-        "'Save as Draft' and 'Submit for Approval' buttons",
-        "Multi-currency support: select currency per line, show exchange rate",
-        "TESTS (E2E): create entry with multiple lines",
-        "TESTS (E2E): validation prevents unbalanced entry",
-        "TESTS (E2E): save as draft works",
-        "TESTS (E2E): submit for approval works",
-        "TESTS (API): packages/api/test/journal-entries.test.ts covers create/submit endpoints",
-        "TESTS (Core): packages/core/test/JournalEntry.test.ts covers balance validation"
-      ],
-      "technical_details": {
-        "files": [
-          "packages/web/src/routes/organizations/$orgId/companies/$companyId/journal-entries/new.tsx",
-          "packages/web/src/components/JournalEntryForm.tsx",
-          "packages/web/src/components/JournalEntryLine.tsx",
-          "packages/web/src/components/AccountSelector.tsx",
-          "packages/web/src/components/CurrencyInput.tsx"
-        ],
-        "atoms": [
-          "createJournalEntryMutation",
-          "submitForApprovalMutation"
-        ],
-        "e2e_file": "packages/web/test-e2e/journal-entries.spec.ts",
-        "unit_tests": [
-          "packages/api/test/journal-entries.test.ts",
-          "packages/core/test/JournalEntry.test.ts"
-        ]
-      },
-      "status": "pending",
-      "estimated_complexity": "large"
-    },
-    {
-      "id": "10.6.3",
-      "phase": "UI Rebuild",
-      "epic": "Journal Entries",
-      "title": "Implement journal entry detail page",
-      "description": "Create entry detail view with approval workflow actions.",
-      "specs": [
-        "REACT_BEST_PRACTICES.md",
-        "EFFECT_ATOM.md"
-      ],
-      "acceptance_criteria": [
-        "Route: /organizations/:orgId/companies/:companyId/journal-entries/:entryId (protected)",
-        "Display entry header: number, dates, description, type, status",
-        "Display all lines with accounts, amounts, currencies",
-        "Total debits and credits displayed",
-        "Workflow action buttons based on status:",
-        "  - Draft: Edit, Delete, Submit for Approval",
-        "  - Pending Approval: Approve, Reject (with reason)",
-        "  - Approved: Post",
-        "  - Posted: Reverse (creates reversing entry)",
-        "Audit info: created by, created at, posted by, posted at",
-        "Link to reversing/reversed entry if applicable",
-        "TESTS (E2E): view entry details",
-        "TESTS (E2E): approve entry workflow",
-        "TESTS (E2E): reject entry with reason",
-        "TESTS (E2E): post approved entry",
-        "TESTS (E2E): reverse posted entry",
-        "TESTS (API): packages/api/test/journal-entries.test.ts covers workflow endpoints",
-        "TESTS (Core): packages/core/test/JournalEntryWorkflow.test.ts covers state transitions"
-      ],
-      "technical_details": {
-        "files": [
-          "packages/web/src/routes/organizations/$orgId/companies/$companyId/journal-entries/$entryId/index.tsx",
-          "packages/web/src/components/JournalEntryDetail.tsx",
-          "packages/web/src/components/WorkflowActions.tsx",
-          "packages/web/src/components/RejectModal.tsx"
-        ],
-        "atoms": [
-          "journalEntryFamily",
-          "approveEntryMutation",
-          "rejectEntryMutation",
-          "postEntryMutation",
-          "reverseEntryMutation"
-        ],
-        "e2e_file": "packages/web/test-e2e/journal-entries.spec.ts",
-        "unit_tests": [
-          "packages/api/test/journal-entries.test.ts",
-          "packages/core/test/JournalEntryWorkflow.test.ts"
-        ]
-      },
-      "status": "pending",
-      "estimated_complexity": "large"
-    },
-    {
-      "id": "10.6.4",
-      "phase": "UI Rebuild",
-      "epic": "Journal Entries",
-      "title": "Implement edit journal entry page",
-      "description": "Create edit form for draft journal entries.",
-      "specs": [
-        "REACT_BEST_PRACTICES.md"
-      ],
-      "acceptance_criteria": [
-        "Route: /organizations/:orgId/companies/:companyId/journal-entries/:entryId/edit (protected)",
-        "Only accessible for Draft status entries",
-        "Pre-populate form with existing entry data",
-        "Same form layout as create, reuse JournalEntryForm component",
-        "Save updates existing entry",
-        "Redirect to detail page on save",
-        "TESTS (E2E): edit draft entry",
-        "TESTS (E2E): cannot edit non-draft entries (shows error or redirects)",
-        "TESTS (API): packages/api/test/journal-entries.test.ts covers update endpoint"
-      ],
-      "technical_details": {
-        "files": [
-          "packages/web/src/routes/organizations/$orgId/companies/$companyId/journal-entries/$entryId/edit.tsx"
-        ],
-        "mutations": [
-          "updateJournalEntryMutation"
-        ],
-        "e2e_file": "packages/web/test-e2e/journal-entries.spec.ts",
-        "unit_tests": [
-          "packages/api/test/journal-entries.test.ts"
-        ]
-      },
-      "status": "pending",
-      "estimated_complexity": "medium"
-    },
-    {
-      "id": "10.7.1",
-      "phase": "UI Rebuild",
-      "epic": "Reports",
-      "title": "Implement reports page with report selector",
-      "description": "Create reports landing page with report type selection and parameters.",
-      "specs": [
-        "REACT_BEST_PRACTICES.md",
-        "EFFECT_ATOM.md"
-      ],
-      "acceptance_criteria": [
-        "Route: /organizations/:orgId/companies/:companyId/reports (protected)",
-        "Report type selector: Trial Balance, Balance Sheet, Income Statement, Cash Flow",
-        "Date/period parameter inputs based on report type:",
-        "  - Point-in-time reports: As-of date picker",
-        "  - Period reports: Start date, end date pickers",
-        "Comparative periods checkbox and count input",
-        "Generate Report button",
-        "Report output area below parameters",
-        "Loading state during generation",
-        "Export buttons: PDF, Excel, CSV (can be placeholder initially)",
-        "TESTS (E2E): generate Trial Balance report",
-        "TESTS (E2E): generate Balance Sheet report",
-        "TESTS (API): packages/api/test/reports.test.ts covers report generation endpoints",
-        "TESTS (Core): packages/core/test/Reports.test.ts covers report calculations"
-      ],
-      "technical_details": {
-        "files": [
-          "packages/web/src/routes/organizations/$orgId/companies/$companyId/reports/index.tsx",
-          "packages/web/src/components/ReportSelector.tsx",
-          "packages/web/src/components/ReportParameters.tsx",
-          "packages/web/src/components/ReportViewer.tsx"
-        ],
-        "atoms": [
-          "selectedReportTypeAtom",
-          "reportParametersAtom",
-          "reportDataAtom - async, depends on params"
-        ],
-        "e2e_file": "packages/web/test-e2e/reports.spec.ts",
-        "unit_tests": [
-          "packages/api/test/reports.test.ts",
-          "packages/core/test/Reports.test.ts"
-        ]
-      },
-      "status": "pending",
-      "estimated_complexity": "large"
-    },
-    {
-      "id": "10.7.2",
-      "phase": "UI Rebuild",
-      "epic": "Reports",
-      "title": "Implement Trial Balance report display",
-      "description": "Create Trial Balance report visualization component.",
-      "specs": [
-        "REACT_BEST_PRACTICES.md"
-      ],
-      "acceptance_criteria": [
-        "Table with columns: Account Number, Account Name, Debit Balance, Credit Balance",
-        "Grouped by account type with subtotals",
-        "Total row at bottom showing total debits and credits",
-        "Validation row: Debits must equal Credits",
-        "Click account row drills down to transactions (optional enhancement)",
-        "Proper number formatting with thousand separators",
-        "Negative numbers in parentheses or red",
-        "TESTS (Core): packages/core/test/TrialBalance.test.ts covers trial balance generation"
-      ],
-      "technical_details": {
-        "files": [
-          "packages/web/src/components/reports/TrialBalanceReport.tsx"
-        ],
-        "unit_tests": [
-          "packages/core/test/TrialBalance.test.ts"
-        ]
-      },
-      "status": "pending",
-      "estimated_complexity": "medium"
-    },
-    {
-      "id": "10.7.3",
-      "phase": "UI Rebuild",
-      "epic": "Reports",
-      "title": "Implement Balance Sheet report display",
-      "description": "Create Balance Sheet report visualization with proper formatting.",
-      "specs": [
-        "REACT_BEST_PRACTICES.md"
-      ],
-      "acceptance_criteria": [
-        "Structured layout with Assets, Liabilities, Equity sections",
-        "Current/Non-current asset classification",
-        "Current/Non-current liability classification",
-        "Subtotals for each section",
-        "Total Assets line",
-        "Total Liabilities + Equity line",
-        "Validation: Total Assets = Total Liabilities + Equity",
-        "Comparative period column if requested",
-        "Variance from prior period",
-        "Indentation for sub-categories",
-        "TESTS (Core): packages/core/test/BalanceSheet.test.ts covers balance sheet generation"
-      ],
-      "technical_details": {
-        "files": [
-          "packages/web/src/components/reports/BalanceSheetReport.tsx"
-        ],
-        "unit_tests": [
-          "packages/core/test/BalanceSheet.test.ts"
-        ]
-      },
-      "status": "pending",
-      "estimated_complexity": "medium"
-    },
-    {
-      "id": "10.7.4",
-      "phase": "UI Rebuild",
-      "epic": "Reports",
-      "title": "Implement Income Statement report display",
-      "description": "Create Income Statement (P&L) report visualization.",
-      "specs": [
-        "REACT_BEST_PRACTICES.md"
-      ],
-      "acceptance_criteria": [
-        "Multi-step format with clear sections",
-        "Revenue section with line items",
-        "Cost of Sales section with line items",
-        "Gross Profit subtotal",
-        "Operating Expenses by function",
-        "Operating Income subtotal",
-        "Other Income/Expense section",
-        "Income Before Tax",
-        "Tax Expense",
-        "Net Income",
-        "Comparative period columns if requested",
-        "Variance and variance percentage",
-        "TESTS (Core): packages/core/test/IncomeStatement.test.ts covers income statement generation"
-      ],
-      "technical_details": {
-        "files": [
-          "packages/web/src/components/reports/IncomeStatementReport.tsx"
-        ],
-        "unit_tests": [
-          "packages/core/test/IncomeStatement.test.ts"
-        ]
-      },
-      "status": "pending",
-      "estimated_complexity": "medium"
-    },
-    {
-      "id": "10.7.5",
-      "phase": "UI Rebuild",
-      "epic": "Reports",
-      "title": "Implement Cash Flow Statement report display",
-      "description": "Create Cash Flow Statement report visualization.",
-      "specs": [
-        "REACT_BEST_PRACTICES.md"
-      ],
-      "acceptance_criteria": [
-        "Beginning cash balance",
-        "Operating Activities section (indirect method)",
-        "  - Net Income starting point",
-        "  - Adjustments for non-cash items",
-        "  - Changes in working capital",
-        "  - Net cash from operating activities",
-        "Investing Activities section",
-        "Financing Activities section",
-        "Effect of exchange rate changes",
-        "Net change in cash",
-        "Ending cash balance",
-        "Validation: Beginning + Net Change = Ending",
-        "TESTS (Core): packages/core/test/CashFlowStatement.test.ts covers cash flow generation"
-      ],
-      "technical_details": {
-        "files": [
-          "packages/web/src/components/reports/CashFlowReport.tsx"
-        ],
-        "unit_tests": [
-          "packages/core/test/CashFlowStatement.test.ts"
-        ]
-      },
-      "status": "pending",
-      "estimated_complexity": "medium"
-    },
-    {
-      "id": "10.8.1",
-      "phase": "UI Rebuild",
-      "epic": "Common Components",
-      "title": "Implement reusable UI components",
-      "description": "Create shared UI components used across the application.",
-      "specs": [
-        "REACT_BEST_PRACTICES.md"
-      ],
-      "acceptance_criteria": [
-        "Button component with variants (primary, secondary, danger, ghost) and sizes",
-        "Input component with label, error state, description",
-        "Select/Dropdown component with search capability",
-        "Modal/Dialog component with header, body, footer slots",
-        "Card component for content containers",
-        "Badge/Tag component for status indicators",
-        "Skeleton component for loading states",
-        "Alert component for notifications (success, error, warning, info)",
-        "Table component with sorting, pagination support",
-        "DatePicker component",
-        "CurrencyInput component with formatting",
-        "All components use Tailwind CSS",
-        "All components support className prop for customization"
-      ],
-      "technical_details": {
-        "files": [
-          "packages/web/src/components/ui/Button.tsx",
-          "packages/web/src/components/ui/Input.tsx",
-          "packages/web/src/components/ui/Select.tsx",
-          "packages/web/src/components/ui/Modal.tsx",
-          "packages/web/src/components/ui/Card.tsx",
-          "packages/web/src/components/ui/Badge.tsx",
-          "packages/web/src/components/ui/Skeleton.tsx",
-          "packages/web/src/components/ui/Alert.tsx",
-          "packages/web/src/components/ui/Table.tsx",
-          "packages/web/src/components/ui/DatePicker.tsx",
-          "packages/web/src/components/ui/CurrencyInput.tsx"
-        ]
-      },
-      "status": "pending",
-      "estimated_complexity": "large"
-    },
-    {
-      "id": "10.8.2",
-      "phase": "UI Rebuild",
-      "epic": "Common Components",
-      "title": "Implement Result handling components",
-      "description": "Create components for handling Effect Atom Result states.",
-      "specs": [
-        "EFFECT_ATOM.md",
-        "REACT_BEST_PRACTICES.md"
-      ],
-      "acceptance_criteria": [
-        "ResultHandler component that renders based on Result state",
-        "  - Initial: renders loading skeleton or custom component",
-        "  - Waiting: renders loading overlay with optional previous data",
-        "  - Success: renders children with data",
-        "  - Failure: renders error component with retry option",
-        "ErrorBoundary component for catching React errors",
-        "ErrorDisplay component for showing Cause errors",
-        "LoadingOverlay component for mutation loading states",
-        "EmptyState component for empty lists with CTA"
-      ],
-      "technical_details": {
-        "files": [
-          "packages/web/src/components/ResultHandler.tsx",
-          "packages/web/src/components/ErrorBoundary.tsx",
-          "packages/web/src/components/ErrorDisplay.tsx",
-          "packages/web/src/components/LoadingOverlay.tsx",
-          "packages/web/src/components/EmptyState.tsx"
-        ]
-      },
-      "status": "pending",
-      "estimated_complexity": "medium"
-    },
-    {
-      "id": "10.9.1",
-      "phase": "UI Rebuild",
-      "epic": "E2E Testing",
-      "title": "E2E tests for authentication flows",
-      "description": "Create comprehensive E2E tests for all authentication user flows.",
-      "specs": [
-        "E2E_TESTING.md"
-      ],
-      "acceptance_criteria": [
-        "Login flow tests: valid credentials, invalid credentials, redirect after login",
-        "Registration flow tests: successful registration, duplicate email, validation errors",
-        "Session tests: persistence across navigation, logout clears session, expired session handling",
-        "Protected route tests: redirect to login when not authenticated",
-        "All tests use UI interactions only (no direct API calls for assertions)",
-        "Tests use data-testid selectors for stability"
-      ],
-      "technical_details": {
-        "files": [
-          "packages/web/test-e2e/auth/login.spec.ts",
-          "packages/web/test-e2e/auth/register.spec.ts",
-          "packages/web/test-e2e/auth/session.spec.ts"
-        ]
-      },
-      "status": "pending",
-      "estimated_complexity": "medium"
-    },
-    {
-      "id": "10.9.2",
-      "phase": "UI Rebuild",
-      "epic": "E2E Testing",
-      "title": "E2E tests for organizations and companies",
-      "description": "Create E2E tests for organization and company management.",
-      "specs": [
-        "E2E_TESTING.md"
-      ],
-      "acceptance_criteria": [
-        "Organization tests: list, create via UI, view details",
-        "Company tests: list within org, create via UI, view details",
-        "Navigation tests: breadcrumbs work correctly",
-        "All tests create fresh data via UI (not API fixtures)"
-      ],
-      "technical_details": {
-        "files": [
-          "packages/web/test-e2e/organizations.spec.ts",
-          "packages/web/test-e2e/companies.spec.ts"
-        ]
-      },
-      "status": "pending",
-      "estimated_complexity": "medium"
-    },
-    {
-      "id": "10.9.3",
-      "phase": "UI Rebuild",
-      "epic": "E2E Testing",
-      "title": "E2E tests for chart of accounts",
-      "description": "Create E2E tests for account management.",
-      "specs": [
-        "E2E_TESTING.md"
-      ],
-      "acceptance_criteria": [
-        "Accounts list tests: displays hierarchy, filter by type, search",
-        "Create account tests: all fields, validation errors, success",
-        "Edit account tests: pre-populated form, save changes"
-      ],
-      "technical_details": {
-        "files": [
-          "packages/web/test-e2e/accounts.spec.ts"
-        ]
-      },
-      "status": "pending",
-      "estimated_complexity": "medium"
-    },
-    {
-      "id": "10.9.4",
-      "phase": "UI Rebuild",
-      "epic": "E2E Testing",
-      "title": "E2E tests for journal entries workflow",
-      "description": "Create E2E tests for complete journal entry lifecycle.",
-      "specs": [
-        "E2E_TESTING.md"
-      ],
-      "acceptance_criteria": [
-        "List tests: displays entries, filter by status, navigate to detail",
-        "Create tests: multi-line entry, balance validation, save as draft",
-        "Workflow tests: submit for approval, approve, reject with reason, post",
-        "Reversal tests: reverse posted entry creates new reversing entry",
-        "Edit tests: edit draft entry"
-      ],
-      "technical_details": {
-        "files": [
-          "packages/web/test-e2e/journal-entries.spec.ts"
-        ]
-      },
-      "status": "pending",
-      "estimated_complexity": "large"
-    },
-    {
-      "id": "10.9.5",
-      "phase": "UI Rebuild",
-      "epic": "E2E Testing",
-      "title": "E2E tests for reports",
-      "description": "Create E2E tests for report generation.",
-      "specs": [
-        "E2E_TESTING.md"
-      ],
-      "acceptance_criteria": [
-        "Report selector tests: type selection updates parameters",
-        "Trial Balance tests: generates report, totals balance",
-        "Balance Sheet tests: generates report, equation balances",
-        "Income Statement tests: generates report with correct structure",
-        "Parameter tests: date selection, comparative periods"
-      ],
-      "technical_details": {
-        "files": [
-          "packages/web/test-e2e/reports.spec.ts"
-        ]
-      },
-      "status": "pending",
-      "estimated_complexity": "medium"
-    },
-    {
-      "id": "10.10.1",
-      "phase": "UI Rebuild",
-      "epic": "CI Integration",
-      "title": "Set up GitHub Actions E2E workflow",
-      "description": "Configure CI pipeline to run E2E tests on pull requests.",
-      "specs": [
-        "E2E_TESTING.md"
-      ],
-      "acceptance_criteria": [
-        "Workflow runs on push to main and PRs",
-        "Installs Playwright browsers",
-        "Runs E2E tests with proper timeouts",
-        "Uploads test artifacts on failure",
-        "Publishes HTML report as artifact",
-        "Caches dependencies for speed"
-      ],
-      "technical_details": {
-        "files": [
-          ".github/workflows/e2e.yml"
-        ]
-      },
-      "status": "pending",
-      "estimated_complexity": "small"
+      "estimated_complexity": "large",
+      "depends_on": ["11.3.2"]
     }
   ]
 }
