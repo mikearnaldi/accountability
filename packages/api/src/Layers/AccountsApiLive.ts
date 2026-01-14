@@ -17,8 +17,10 @@ import * as Equal from "effect/Equal"
 import * as Option from "effect/Option"
 import {
   Account,
-  AccountId
+  AccountId,
+  type AccountCategory
 } from "@accountability/core/Domains/Account"
+import { CompanyId } from "@accountability/core/Domains/Company"
 import { now as timestampNow } from "@accountability/core/Domains/Timestamp"
 import { AccountRepository } from "@accountability/persistence/Services/AccountRepository"
 import { CompanyRepository } from "@accountability/persistence/Services/CompanyRepository"
@@ -95,27 +97,27 @@ export const AccountsApiLive = HttpApiBuilder.group(AppApi, "accounts", (handler
     return handlers
       .handle("listAccounts", (_) =>
         Effect.gen(function* () {
-          // URL params are already decoded to domain types by HttpApi
-          const { companyId, accountType, accountCategory, isActive, isPostable, parentAccountId } = _.urlParams
+          // URL params are strings - convert to branded types
+          const { accountType, accountCategory, isActive, isPostable, parentAccountId } = _.urlParams
+          const companyId = CompanyId.make(_.urlParams.companyId)
+          const parentAcctId = parentAccountId !== undefined ? AccountId.make(parentAccountId) : undefined
 
           // Check company exists
           const companyExists = yield* companyRepo.exists(companyId).pipe(
             Effect.mapError((e) => mapPersistenceToValidation(e))
           )
           if (!companyExists) {
-            return yield* Effect.fail(new NotFoundError({ resource: "Company", id: companyId }))
+            return yield* Effect.fail(new NotFoundError({ resource: "Company", id: _.urlParams.companyId }))
           }
 
-          // Get accounts based on filters - all params are already decoded
+          // Get accounts based on filters
           let accounts: ReadonlyArray<Account>
 
           if (accountType !== undefined) {
-            // accountType is already AccountType - no parsing needed
             accounts = yield* accountRepo.findByType(companyId, accountType).pipe(
               Effect.mapError((e) => mapPersistenceToValidation(e))
             )
           } else if (isActive !== undefined) {
-            // isActive is already boolean - no parsing needed
             if (isActive) {
               accounts = yield* accountRepo.findActiveByCompany(companyId).pipe(
                 Effect.mapError((e) => mapPersistenceToValidation(e))
@@ -126,9 +128,8 @@ export const AccountsApiLive = HttpApiBuilder.group(AppApi, "accounts", (handler
               )
               accounts = all.filter((a) => !a.isActive)
             }
-          } else if (parentAccountId !== undefined) {
-            // parentAccountId is already AccountId - no parsing needed
-            accounts = yield* accountRepo.findChildren(parentAccountId).pipe(
+          } else if (parentAcctId !== undefined) {
+            accounts = yield* accountRepo.findChildren(parentAcctId).pipe(
               Effect.mapError((e) => mapPersistenceToValidation(e))
             )
           } else {
@@ -137,9 +138,10 @@ export const AccountsApiLive = HttpApiBuilder.group(AppApi, "accounts", (handler
             )
           }
 
-          // Apply category filter if provided - already decoded
+          // Apply category filter if provided
           if (accountCategory !== undefined) {
-            accounts = accounts.filter((a) => a.accountCategory === accountCategory)
+            const category: AccountCategory = accountCategory
+            accounts = accounts.filter((a) => a.accountCategory === category)
           }
 
           // Apply postable filter if provided - already decoded
@@ -163,15 +165,15 @@ export const AccountsApiLive = HttpApiBuilder.group(AppApi, "accounts", (handler
       )
       .handle("getAccount", (_) =>
         Effect.gen(function* () {
-          // _.path.id is already AccountId - no decoding needed
-          const accountId = _.path.id
+          // _.path.id is a string - convert to AccountId
+          const accountId = AccountId.make(_.path.id)
 
           const maybeAccount = yield* accountRepo.findById(accountId).pipe(
-            Effect.mapError((e) => mapPersistenceToNotFound("Account", accountId, e))
+            Effect.mapError((e) => mapPersistenceToNotFound("Account", _.path.id, e))
           )
 
           return yield* Option.match(maybeAccount, {
-            onNone: () => Effect.fail(new NotFoundError({ resource: "Account", id: accountId })),
+            onNone: () => Effect.fail(new NotFoundError({ resource: "Account", id: _.path.id })),
             onSome: Effect.succeed
           })
         })
@@ -217,7 +219,7 @@ export const AccountsApiLive = HttpApiBuilder.group(AppApi, "accounts", (handler
                 details: Option.none()
               }))
             }
-            if (parentAccount.value.companyId !== req.companyId) {
+            if (!Equal.equals(parentAccount.value.companyId, req.companyId)) {
               return yield* Effect.fail(new BusinessRuleError({
                 code: "PARENT_DIFFERENT_COMPANY",
                 message: "Parent account must be in the same company",
@@ -259,15 +261,15 @@ export const AccountsApiLive = HttpApiBuilder.group(AppApi, "accounts", (handler
         Effect.gen(function* () {
           const req = _.payload
 
-          // _.path.id is already AccountId - no decoding needed
-          const accountId = _.path.id
+          // _.path.id is a string - convert to AccountId
+          const accountId = AccountId.make(_.path.id)
 
           // Get existing account
           const maybeExisting = yield* accountRepo.findById(accountId).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
           if (Option.isNone(maybeExisting)) {
-            return yield* Effect.fail(new NotFoundError({ resource: "Account", id: accountId }))
+            return yield* Effect.fail(new NotFoundError({ resource: "Account", id: _.path.id }))
           }
           const existing = maybeExisting.value
 
@@ -298,7 +300,7 @@ export const AccountsApiLive = HttpApiBuilder.group(AppApi, "accounts", (handler
                   details: Option.none()
                 }))
               }
-              if (parentAccount.value.companyId !== existing.companyId) {
+              if (!Equal.equals(parentAccount.value.companyId, existing.companyId)) {
                 return yield* Effect.fail(new BusinessRuleError({
                   code: "PARENT_DIFFERENT_COMPANY",
                   message: "Parent account must be in the same company",
@@ -347,15 +349,15 @@ export const AccountsApiLive = HttpApiBuilder.group(AppApi, "accounts", (handler
       )
       .handle("deactivateAccount", (_) =>
         Effect.gen(function* () {
-          // _.path.id is already AccountId - no decoding needed
-          const accountId = _.path.id
+          // _.path.id is a string - convert to AccountId
+          const accountId = AccountId.make(_.path.id)
 
           // Get existing account
           const maybeExisting = yield* accountRepo.findById(accountId).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
           if (Option.isNone(maybeExisting)) {
-            return yield* Effect.fail(new NotFoundError({ resource: "Account", id: accountId }))
+            return yield* Effect.fail(new NotFoundError({ resource: "Account", id: _.path.id }))
           }
           const existing = maybeExisting.value
 

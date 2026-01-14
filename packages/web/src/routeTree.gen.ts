@@ -22,6 +22,8 @@ import { Route as ApiSplatRouteImport } from './routes/api/$'
 import { Route as AuthCallbackProviderRouteImport } from './routes/auth/callback/$provider'
 import { Route as OrganizationsOrganizationIdCompaniesIndexRouteImport } from './routes/organizations/$organizationId/companies/index'
 import { Route as OrganizationsOrganizationIdCompaniesCompanyIdRouteImport } from './routes/organizations/$organizationId/companies/$companyId'
+import { Route as OrganizationsOrganizationIdCompaniesCompanyIdIndexRouteImport } from './routes/organizations/$organizationId/companies/$companyId/index'
+import { Route as OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRouteImport } from './routes/organizations/$organizationId/companies/$companyId/accounts/index'
 
 const ReportsRoute = ReportsRouteImport.update({
   id: '/reports',
@@ -90,6 +92,18 @@ const OrganizationsOrganizationIdCompaniesCompanyIdRoute =
     path: '/organizations/$organizationId/companies/$companyId',
     getParentRoute: () => rootRouteImport,
   } as any)
+const OrganizationsOrganizationIdCompaniesCompanyIdIndexRoute =
+  OrganizationsOrganizationIdCompaniesCompanyIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => OrganizationsOrganizationIdCompaniesCompanyIdRoute,
+  } as any)
+const OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute =
+  OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRouteImport.update({
+    id: '/accounts/',
+    path: '/accounts/',
+    getParentRoute: () => OrganizationsOrganizationIdCompaniesCompanyIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -103,8 +117,10 @@ export interface FileRoutesByFullPath {
   '/settings/account': typeof SettingsAccountRoute
   '/organizations': typeof OrganizationsIndexRoute
   '/auth/callback/$provider': typeof AuthCallbackProviderRoute
-  '/organizations/$organizationId/companies/$companyId': typeof OrganizationsOrganizationIdCompaniesCompanyIdRoute
+  '/organizations/$organizationId/companies/$companyId': typeof OrganizationsOrganizationIdCompaniesCompanyIdRouteWithChildren
   '/organizations/$organizationId/companies': typeof OrganizationsOrganizationIdCompaniesIndexRoute
+  '/organizations/$organizationId/companies/$companyId/': typeof OrganizationsOrganizationIdCompaniesCompanyIdIndexRoute
+  '/organizations/$organizationId/companies/$companyId/accounts': typeof OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -118,8 +134,9 @@ export interface FileRoutesByTo {
   '/settings/account': typeof SettingsAccountRoute
   '/organizations': typeof OrganizationsIndexRoute
   '/auth/callback/$provider': typeof AuthCallbackProviderRoute
-  '/organizations/$organizationId/companies/$companyId': typeof OrganizationsOrganizationIdCompaniesCompanyIdRoute
   '/organizations/$organizationId/companies': typeof OrganizationsOrganizationIdCompaniesIndexRoute
+  '/organizations/$organizationId/companies/$companyId': typeof OrganizationsOrganizationIdCompaniesCompanyIdIndexRoute
+  '/organizations/$organizationId/companies/$companyId/accounts': typeof OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -134,8 +151,10 @@ export interface FileRoutesById {
   '/settings/account': typeof SettingsAccountRoute
   '/organizations/': typeof OrganizationsIndexRoute
   '/auth/callback/$provider': typeof AuthCallbackProviderRoute
-  '/organizations/$organizationId/companies/$companyId': typeof OrganizationsOrganizationIdCompaniesCompanyIdRoute
+  '/organizations/$organizationId/companies/$companyId': typeof OrganizationsOrganizationIdCompaniesCompanyIdRouteWithChildren
   '/organizations/$organizationId/companies/': typeof OrganizationsOrganizationIdCompaniesIndexRoute
+  '/organizations/$organizationId/companies/$companyId/': typeof OrganizationsOrganizationIdCompaniesCompanyIdIndexRoute
+  '/organizations/$organizationId/companies/$companyId/accounts/': typeof OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -153,6 +172,8 @@ export interface FileRouteTypes {
     | '/auth/callback/$provider'
     | '/organizations/$organizationId/companies/$companyId'
     | '/organizations/$organizationId/companies'
+    | '/organizations/$organizationId/companies/$companyId/'
+    | '/organizations/$organizationId/companies/$companyId/accounts'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -166,8 +187,9 @@ export interface FileRouteTypes {
     | '/settings/account'
     | '/organizations'
     | '/auth/callback/$provider'
-    | '/organizations/$organizationId/companies/$companyId'
     | '/organizations/$organizationId/companies'
+    | '/organizations/$organizationId/companies/$companyId'
+    | '/organizations/$organizationId/companies/$companyId/accounts'
   id:
     | '__root__'
     | '/'
@@ -183,6 +205,8 @@ export interface FileRouteTypes {
     | '/auth/callback/$provider'
     | '/organizations/$organizationId/companies/$companyId'
     | '/organizations/$organizationId/companies/'
+    | '/organizations/$organizationId/companies/$companyId/'
+    | '/organizations/$organizationId/companies/$companyId/accounts/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -197,7 +221,7 @@ export interface RootRouteChildren {
   SettingsAccountRoute: typeof SettingsAccountRoute
   OrganizationsIndexRoute: typeof OrganizationsIndexRoute
   AuthCallbackProviderRoute: typeof AuthCallbackProviderRoute
-  OrganizationsOrganizationIdCompaniesCompanyIdRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdRoute
+  OrganizationsOrganizationIdCompaniesCompanyIdRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdRouteWithChildren
   OrganizationsOrganizationIdCompaniesIndexRoute: typeof OrganizationsOrganizationIdCompaniesIndexRoute
 }
 
@@ -294,8 +318,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/organizations/$organizationId/companies/$companyId/': {
+      id: '/organizations/$organizationId/companies/$companyId/'
+      path: '/'
+      fullPath: '/organizations/$organizationId/companies/$companyId/'
+      preLoaderRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdIndexRouteImport
+      parentRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdRoute
+    }
+    '/organizations/$organizationId/companies/$companyId/accounts/': {
+      id: '/organizations/$organizationId/companies/$companyId/accounts/'
+      path: '/accounts'
+      fullPath: '/organizations/$organizationId/companies/$companyId/accounts'
+      preLoaderRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRouteImport
+      parentRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdRoute
+    }
   }
 }
+
+interface OrganizationsOrganizationIdCompaniesCompanyIdRouteChildren {
+  OrganizationsOrganizationIdCompaniesCompanyIdIndexRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdIndexRoute
+  OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute
+}
+
+const OrganizationsOrganizationIdCompaniesCompanyIdRouteChildren: OrganizationsOrganizationIdCompaniesCompanyIdRouteChildren =
+  {
+    OrganizationsOrganizationIdCompaniesCompanyIdIndexRoute:
+      OrganizationsOrganizationIdCompaniesCompanyIdIndexRoute,
+    OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute:
+      OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute,
+  }
+
+const OrganizationsOrganizationIdCompaniesCompanyIdRouteWithChildren =
+  OrganizationsOrganizationIdCompaniesCompanyIdRoute._addFileChildren(
+    OrganizationsOrganizationIdCompaniesCompanyIdRouteChildren,
+  )
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -310,7 +366,7 @@ const rootRouteChildren: RootRouteChildren = {
   OrganizationsIndexRoute: OrganizationsIndexRoute,
   AuthCallbackProviderRoute: AuthCallbackProviderRoute,
   OrganizationsOrganizationIdCompaniesCompanyIdRoute:
-    OrganizationsOrganizationIdCompaniesCompanyIdRoute,
+    OrganizationsOrganizationIdCompaniesCompanyIdRouteWithChildren,
   OrganizationsOrganizationIdCompaniesIndexRoute:
     OrganizationsOrganizationIdCompaniesIndexRoute,
 }

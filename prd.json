@@ -595,7 +595,7 @@
           "packages/persistence/test/AccountRepository.test.ts"
         ]
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "large"
     },
     {

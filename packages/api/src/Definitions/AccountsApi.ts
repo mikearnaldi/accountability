@@ -81,15 +81,15 @@ export class AccountListResponse extends Schema.Class<AccountListResponse>("Acco
 
 /**
  * Query parameters for listing accounts
- * Uses domain types directly - HttpApi handles automatic decoding
+ * Uses strings for URL params - validation happens at handler level
  */
 export const AccountListParams = Schema.Struct({
-  companyId: CompanyId,
+  companyId: Schema.String,
   accountType: Schema.optional(AccountType),
   accountCategory: Schema.optional(AccountCategory),
   isActive: Schema.optional(Schema.BooleanFromString),
   isPostable: Schema.optional(Schema.BooleanFromString),
-  parentAccountId: Schema.optional(AccountId),
+  parentAccountId: Schema.optional(Schema.String),
   limit: Schema.optional(Schema.NumberFromString.pipe(Schema.int(), Schema.greaterThan(0))),
   offset: Schema.optional(Schema.NumberFromString.pipe(Schema.int(), Schema.greaterThanOrEqualTo(0)))
 })
@@ -120,7 +120,7 @@ const listAccounts = HttpApiEndpoint.get("listAccounts", "/")
  * Get a single account by ID
  */
 const getAccount = HttpApiEndpoint.get("getAccount", "/:id")
-  .setPath(Schema.Struct({ id: AccountId }))
+  .setPath(Schema.Struct({ id: Schema.String }))
   .addSuccess(Account)
   .addError(NotFoundError)
   .annotateContext(OpenApi.annotations({
@@ -146,7 +146,7 @@ const createAccount = HttpApiEndpoint.post("createAccount", "/")
  * Update an existing account
  */
 const updateAccount = HttpApiEndpoint.put("updateAccount", "/:id")
-  .setPath(Schema.Struct({ id: AccountId }))
+  .setPath(Schema.Struct({ id: Schema.String }))
   .setPayload(UpdateAccountRequest)
   .addSuccess(Account)
   .addError(NotFoundError)
@@ -162,7 +162,7 @@ const updateAccount = HttpApiEndpoint.put("updateAccount", "/:id")
  * Deactivate an account (soft delete)
  */
 const deactivateAccount = HttpApiEndpoint.del("deactivateAccount", "/:id")
-  .setPath(Schema.Struct({ id: AccountId }))
+  .setPath(Schema.Struct({ id: Schema.String }))
   .addSuccess(HttpApiSchema.NoContent)
   .addError(NotFoundError)
   .addError(BusinessRuleError)
