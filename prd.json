@@ -252,7 +252,7 @@
           "packages/web/src/routes/index.tsx"
         ]
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "small",
       "depends_on": [
         "11.1.2"

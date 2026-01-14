@@ -13,8 +13,8 @@ test.describe("Smoke Tests", () => {
     // Verify the page loads with the expected title
     await expect(page).toHaveTitle(/Accountability/)
 
-    // Verify the main heading is visible
-    await expect(page.getByRole("heading", { name: "Accountability" })).toBeVisible()
+    // Verify the main heading is visible (exact: true to avoid matching "Welcome to Accountability")
+    await expect(page.getByRole("heading", { name: "Accountability", exact: true })).toBeVisible()
   })
 
   test("should return 404 for non-existent routes", async ({ page }) => {
