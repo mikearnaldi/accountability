@@ -147,7 +147,7 @@
         ],
         "pattern": "AtomHttpApi.Tag for type-safe API client"
       },
-      "status": "in_progress",
+      "status": "complete",
       "estimated_complexity": "medium"
     },
     {

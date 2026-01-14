@@ -14,25 +14,11 @@ import * as Context from "effect/Context"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import { AppApi } from "@accountability/api/Definitions/AppApi"
-import { setStoredToken } from "./auth.ts"
-
-// =============================================================================
-// Auth Token Storage Key
-// =============================================================================
-
-const AUTH_TOKEN_KEY = "auth_token"
+import { getStoredToken, clearStoredToken } from "./tokenStorage.ts"
 
 // =============================================================================
 // Authenticated HTTP Client Layer
 // =============================================================================
-
-/**
- * Reads the auth token from localStorage (client-side only)
- */
-function getStoredToken(): string | null {
-  if (typeof window === "undefined") return null
-  return localStorage.getItem(AUTH_TOKEN_KEY)
-}
 
 /**
  * AuthenticatedHttpClient - HTTP client layer that adds Bearer token authentication
@@ -59,7 +45,7 @@ export const AuthenticatedHttpClient = FetchHttpClient.layer.pipe(
         Effect.sync(() => {
           if (response.status === 401) {
             // Clear token on 401 responses (session expired/invalid)
-            setStoredToken(null)
+            clearStoredToken()
           }
         })
       )

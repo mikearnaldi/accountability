@@ -734,3 +734,8 @@
 **Story**: 10.0.1 - Set up base app shell and routing
 **Status**: complete
 ---
+
+## Iteration 2 - 2026-01-14 01:28
+**Story**: 10.0.2 - Create ApiClient and base atoms
+**Status**: complete
+---

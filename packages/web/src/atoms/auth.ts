@@ -9,33 +9,11 @@ import * as Atom from "@effect-atom/atom/Atom"
 import * as Result from "@effect-atom/atom/Result"
 import * as Duration from "effect/Duration"
 import { ApiClient } from "./ApiClient.ts"
+import { getStoredToken, setStoredToken } from "./tokenStorage.ts"
 import type { AuthUserResponse } from "@accountability/api/Definitions/AuthApi"
 
-// =============================================================================
-// Token Management
-// =============================================================================
-
-const AUTH_TOKEN_KEY = "auth_token"
-
-/**
- * Reads the auth token from localStorage (client-side only)
- */
-function getStoredToken(): string | null {
-  if (typeof window === "undefined") return null
-  return localStorage.getItem(AUTH_TOKEN_KEY)
-}
-
-/**
- * Stores the auth token in localStorage
- */
-export function setStoredToken(token: string | null): void {
-  if (typeof window === "undefined") return
-  if (token === null) {
-    localStorage.removeItem(AUTH_TOKEN_KEY)
-  } else {
-    localStorage.setItem(AUTH_TOKEN_KEY, token)
-  }
-}
+// Re-export for backwards compatibility and convenience
+export { setStoredToken, getStoredToken, clearStoredToken } from "./tokenStorage.ts"
 
 // =============================================================================
 // Auth Token Atom
