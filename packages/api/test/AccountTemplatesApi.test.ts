@@ -1,0 +1,525 @@
+/**
+ * AccountTemplatesApi Tests
+ *
+ * Tests for the account templates API endpoints.
+ * Verifies:
+ * - GET /api/v1/account-templates returns list of templates
+ * - GET /api/v1/account-templates/:type returns template with accounts
+ * - POST /api/v1/account-templates/:type/apply applies template to company
+ * - Authentication is required for all endpoints
+ *
+ * @module AccountTemplatesApi.test
+ */
+
+import { describe, expect, layer } from "@effect/vitest"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import * as Schema from "effect/Schema"
+import { HttpApiBuilder, HttpApiClient, HttpClient, HttpClientRequest } from "@effect/platform"
+import { NodeHttpServer } from "@effect/platform-node"
+import { AppApi } from "@accountability/api/Definitions/AppApi"
+import {
+  AccountTemplateListResponse,
+  AccountTemplateItem,
+  AccountTemplateDetailResponse
+} from "@accountability/api/Definitions/AccountTemplatesApi"
+import { AppApiLive } from "@accountability/api/Layers/AppApiLive"
+import { SimpleTokenValidatorLive } from "@accountability/api/Layers/AuthMiddlewareLive"
+import { RepositoriesWithAuthLive } from "@accountability/persistence/Layers/RepositoriesLive"
+import { MigrationLayer } from "@accountability/persistence/Layers/MigrationsLive"
+import {
+  getAllTemplates,
+  getTemplateByType
+} from "@accountability/core/Domains/AccountTemplate"
+import { SharedPgClientLive } from "./PgTestUtils.ts"
+
+// =============================================================================
+// Test Layer Setup
+// =============================================================================
+
+/**
+ * DatabaseLayer - Provides PostgreSQL with migrations
+ */
+const DatabaseLayer = MigrationLayer.pipe(
+  Layer.provideMerge(RepositoriesWithAuthLive),
+  Layer.provide(SharedPgClientLive)
+)
+
+/**
+ * HttpLive - Complete test layer for API integration tests
+ */
+const HttpLive = HttpApiBuilder.serve().pipe(
+  Layer.provide(AppApiLive),
+  Layer.provide(SimpleTokenValidatorLive),
+  Layer.provide(DatabaseLayer),
+  Layer.provideMerge(NodeHttpServer.layerTest)
+)
+
+// =============================================================================
+// Test Helpers
+// =============================================================================
+
+/**
+ * Schema for extracting id from API response
+ */
+const EntityWithIdSchema = Schema.Struct({ id: Schema.String })
+
+/**
+ * Create a test organization via API
+ */
+const createTestOrganizationViaApi = (httpClient: HttpClient.HttpClient) =>
+  Effect.gen(function* () {
+    const response = yield* HttpClientRequest.post("/api/v1/organizations").pipe(
+      HttpClientRequest.bearerToken("user_123_admin"),
+      HttpClientRequest.bodyUnsafeJson({
+        name: `Test Org ${Date.now()}`,
+        reportingCurrency: "USD",
+        settings: null
+      }),
+      httpClient.execute,
+      Effect.scoped
+    )
+    expect(response.status).toBe(201)
+    const body = yield* response.json
+    const decoded = yield* Schema.decodeUnknown(EntityWithIdSchema)(body)
+    return decoded
+  })
+
+/**
+ * Create a test company via API
+ */
+const createTestCompanyViaApi = (httpClient: HttpClient.HttpClient, organizationId: string) =>
+  Effect.gen(function* () {
+    const response = yield* HttpClientRequest.post("/api/v1/companies").pipe(
+      HttpClientRequest.bearerToken("user_123_admin"),
+      HttpClientRequest.bodyUnsafeJson({
+        organizationId,
+        name: `Test Company ${Date.now()}`,
+        legalName: `Test Company Legal ${Date.now()}`,
+        jurisdiction: "US",
+        taxId: null,
+        functionalCurrency: "USD",
+        reportingCurrency: "USD",
+        fiscalYearEnd: { month: 12, day: 31 },
+        parentCompanyId: null,
+        ownershipPercentage: null,
+        consolidationMethod: null
+      }),
+      httpClient.execute,
+      Effect.scoped
+    )
+    expect(response.status).toBe(201)
+    const body = yield* response.json
+    const decoded = yield* Schema.decodeUnknown(EntityWithIdSchema)(body)
+    return decoded
+  })
+
+// =============================================================================
+// Tests
+// =============================================================================
+
+layer(HttpLive, { timeout: "120 seconds" })("AccountTemplatesApi", (it) => {
+  describe("GET /api/v1/account-templates", () => {
+    it.effect("returns list of templates with authentication", () =>
+      Effect.gen(function* () {
+        const httpClient = yield* HttpClient.HttpClient
+        const response = yield* HttpClientRequest.get("/api/v1/account-templates").pipe(
+          HttpClientRequest.bearerToken("user_123_admin"),
+          httpClient.execute,
+          Effect.scoped
+        )
+
+        expect(response.status).toBe(200)
+        const body = yield* response.json
+        expect(body).toHaveProperty("templates")
+        expect(body).toMatchObject({
+          templates: expect.arrayContaining([expect.any(Object)])
+        })
+      })
+    )
+
+    it.effect("returns templates in expected format using typed client", () =>
+      Effect.gen(function* () {
+        const client = yield* HttpApiClient.makeWith(AppApi, {
+          httpClient: (yield* HttpClient.HttpClient).pipe(
+            HttpClient.mapRequest(HttpClientRequest.bearerToken("user_123_admin"))
+          )
+        })
+
+        const response = yield* client.accountTemplates.listAccountTemplates()
+
+        expect(response.templates.length).toBe(4) // 4 template types
+
+        // Verify structure of first template
+        const firstTemplate = response.templates[0]
+        expect(typeof firstTemplate.templateType).toBe("string")
+        expect(typeof firstTemplate.name).toBe("string")
+        expect(typeof firstTemplate.description).toBe("string")
+        expect(typeof firstTemplate.accountCount).toBe("number")
+      })
+    )
+
+    it.effect("returns all predefined templates", () =>
+      Effect.gen(function* () {
+        const client = yield* HttpApiClient.makeWith(AppApi, {
+          httpClient: (yield* HttpClient.HttpClient).pipe(
+            HttpClient.mapRequest(HttpClientRequest.bearerToken("user_123_admin"))
+          )
+        })
+
+        const response = yield* client.accountTemplates.listAccountTemplates()
+
+        const allTemplates = getAllTemplates()
+        expect(response.templates.length).toBe(allTemplates.length)
+
+        // Verify all expected template types are present
+        const types = new Set(response.templates.map((t) => t.templateType))
+        expect(types.has("GeneralBusiness")).toBe(true)
+        expect(types.has("Manufacturing")).toBe(true)
+        expect(types.has("ServiceBusiness")).toBe(true)
+        expect(types.has("HoldingCompany")).toBe(true)
+      })
+    )
+
+    it.effect("returns correct account counts", () =>
+      Effect.gen(function* () {
+        const client = yield* HttpApiClient.makeWith(AppApi, {
+          httpClient: (yield* HttpClient.HttpClient).pipe(
+            HttpClient.mapRequest(HttpClientRequest.bearerToken("user_123_admin"))
+          )
+        })
+
+        const response = yield* client.accountTemplates.listAccountTemplates()
+
+        // Verify account counts match the actual templates
+        for (const templateItem of response.templates) {
+          const template = getTemplateByType(templateItem.templateType)
+          expect(templateItem.accountCount).toBe(template.accountCount)
+        }
+      })
+    )
+  })
+
+  describe("GET /api/v1/account-templates/:type", () => {
+    it.effect("returns GeneralBusiness template with all accounts", () =>
+      Effect.gen(function* () {
+        const client = yield* HttpApiClient.makeWith(AppApi, {
+          httpClient: (yield* HttpClient.HttpClient).pipe(
+            HttpClient.mapRequest(HttpClientRequest.bearerToken("user_123_admin"))
+          )
+        })
+
+        const response = yield* client.accountTemplates.getAccountTemplate({
+          path: { type: "GeneralBusiness" }
+        })
+
+        expect(response.template.templateType).toBe("GeneralBusiness")
+        expect(response.template.name).toBe("General Business")
+        expect(response.template.accounts.length).toBeGreaterThan(0)
+
+        // Verify account structure
+        const firstAccount = response.template.accounts[0]
+        expect(typeof firstAccount.accountNumber).toBe("string")
+        expect(typeof firstAccount.name).toBe("string")
+        expect(typeof firstAccount.accountType).toBe("string")
+        expect(typeof firstAccount.accountCategory).toBe("string")
+        expect(typeof firstAccount.isPostable).toBe("boolean")
+        expect(typeof firstAccount.isCashFlowRelevant).toBe("boolean")
+        expect(typeof firstAccount.isIntercompany).toBe("boolean")
+      })
+    )
+
+    it.effect("returns Manufacturing template", () =>
+      Effect.gen(function* () {
+        const client = yield* HttpApiClient.makeWith(AppApi, {
+          httpClient: (yield* HttpClient.HttpClient).pipe(
+            HttpClient.mapRequest(HttpClientRequest.bearerToken("user_123_admin"))
+          )
+        })
+
+        const response = yield* client.accountTemplates.getAccountTemplate({
+          path: { type: "Manufacturing" }
+        })
+
+        expect(response.template.templateType).toBe("Manufacturing")
+        expect(response.template.name).toBe("Manufacturing")
+        // Manufacturing template has more accounts than general business
+        expect(response.template.accounts.length).toBeGreaterThan(50)
+      })
+    )
+
+    it.effect("returns ServiceBusiness template", () =>
+      Effect.gen(function* () {
+        const client = yield* HttpApiClient.makeWith(AppApi, {
+          httpClient: (yield* HttpClient.HttpClient).pipe(
+            HttpClient.mapRequest(HttpClientRequest.bearerToken("user_123_admin"))
+          )
+        })
+
+        const response = yield* client.accountTemplates.getAccountTemplate({
+          path: { type: "ServiceBusiness" }
+        })
+
+        expect(response.template.templateType).toBe("ServiceBusiness")
+        expect(response.template.name).toBe("Service Business")
+      })
+    )
+
+    it.effect("returns HoldingCompany template", () =>
+      Effect.gen(function* () {
+        const client = yield* HttpApiClient.makeWith(AppApi, {
+          httpClient: (yield* HttpClient.HttpClient).pipe(
+            HttpClient.mapRequest(HttpClientRequest.bearerToken("user_123_admin"))
+          )
+        })
+
+        const response = yield* client.accountTemplates.getAccountTemplate({
+          path: { type: "HoldingCompany" }
+        })
+
+        expect(response.template.templateType).toBe("HoldingCompany")
+        expect(response.template.name).toBe("Holding Company")
+      })
+    )
+
+    it.effect("returns 400 for invalid template type", () =>
+      Effect.gen(function* () {
+        const httpClient = yield* HttpClient.HttpClient
+        const response = yield* HttpClientRequest.get("/api/v1/account-templates/InvalidType").pipe(
+          HttpClientRequest.bearerToken("user_123_admin"),
+          httpClient.execute,
+          Effect.scoped
+        )
+
+        // Invalid template type should result in a 400 Bad Request
+        expect(response.status).toBe(400)
+      })
+    )
+  })
+
+  describe("POST /api/v1/account-templates/:type/apply", () => {
+    it.effect("applies template to company and creates accounts", () =>
+      Effect.gen(function* () {
+        const httpClient = yield* HttpClient.HttpClient
+
+        // Create test organization and company via API
+        const org = yield* createTestOrganizationViaApi(httpClient)
+        const company = yield* createTestCompanyViaApi(httpClient, org.id)
+
+        const client = yield* HttpApiClient.makeWith(AppApi, {
+          httpClient: httpClient.pipe(
+            HttpClient.mapRequest(HttpClientRequest.bearerToken("user_123_admin"))
+          )
+        })
+
+        // Apply template
+        const response = yield* client.accountTemplates.applyAccountTemplate({
+          path: { type: "GeneralBusiness" },
+          payload: { companyId: company.id }
+        })
+
+        expect(response.templateType).toBe("GeneralBusiness")
+        expect(response.companyId).toBe(company.id)
+
+        // Verify correct number of accounts created
+        const template = getTemplateByType("GeneralBusiness")
+        expect(response.createdCount).toBe(template.accountCount)
+      })
+    )
+
+    it.effect("returns error when company not found", () =>
+      Effect.gen(function* () {
+        const httpClient = yield* HttpClient.HttpClient
+        const fakeCompanyId = crypto.randomUUID()
+
+        const response = yield* HttpClientRequest.post("/api/v1/account-templates/GeneralBusiness/apply").pipe(
+          HttpClientRequest.bearerToken("user_123_admin"),
+          HttpClientRequest.bodyUnsafeJson({ companyId: fakeCompanyId }),
+          httpClient.execute,
+          Effect.scoped
+        )
+
+        expect(response.status).toBe(404)
+        const body = yield* response.json
+        expect(body).toHaveProperty("_tag", "NotFoundError")
+      })
+    )
+
+    it.effect("returns error when company already has accounts", () =>
+      Effect.gen(function* () {
+        const httpClient = yield* HttpClient.HttpClient
+
+        // Create test organization and company via API
+        const org = yield* createTestOrganizationViaApi(httpClient)
+        const company = yield* createTestCompanyViaApi(httpClient, org.id)
+
+        const client = yield* HttpApiClient.makeWith(AppApi, {
+          httpClient: httpClient.pipe(
+            HttpClient.mapRequest(HttpClientRequest.bearerToken("user_123_admin"))
+          )
+        })
+
+        // Apply template first time - should succeed
+        yield* client.accountTemplates.applyAccountTemplate({
+          path: { type: "GeneralBusiness" },
+          payload: { companyId: company.id }
+        })
+
+        // Try to apply template second time - should fail
+        const response = yield* HttpClientRequest.post("/api/v1/account-templates/GeneralBusiness/apply").pipe(
+          HttpClientRequest.bearerToken("user_123_admin"),
+          HttpClientRequest.bodyUnsafeJson({ companyId: company.id }),
+          httpClient.execute,
+          Effect.scoped
+        )
+
+        expect(response.status).toBe(422) // BusinessRuleError
+        const body = yield* response.json
+        expect(body).toHaveProperty("_tag", "BusinessRuleError")
+        expect(body).toHaveProperty("code", "ACCOUNTS_ALREADY_EXIST")
+      })
+    )
+
+    it.effect("applies ServiceBusiness template successfully", () =>
+      Effect.gen(function* () {
+        const httpClient = yield* HttpClient.HttpClient
+
+        // Create test organization and company via API
+        const org = yield* createTestOrganizationViaApi(httpClient)
+        const company = yield* createTestCompanyViaApi(httpClient, org.id)
+
+        const client = yield* HttpApiClient.makeWith(AppApi, {
+          httpClient: httpClient.pipe(
+            HttpClient.mapRequest(HttpClientRequest.bearerToken("user_123_admin"))
+          )
+        })
+
+        // Apply ServiceBusiness template
+        const response = yield* client.accountTemplates.applyAccountTemplate({
+          path: { type: "ServiceBusiness" },
+          payload: { companyId: company.id }
+        })
+
+        expect(response.templateType).toBe("ServiceBusiness")
+        expect(response.createdCount).toBeGreaterThan(0)
+      })
+    )
+  })
+
+  describe("Authentication", () => {
+    it.effect("returns 401 without authentication for list", () =>
+      Effect.gen(function* () {
+        const httpClient = yield* HttpClient.HttpClient
+        const response = yield* HttpClientRequest.get("/api/v1/account-templates").pipe(
+          httpClient.execute,
+          Effect.scoped
+        )
+
+        expect(response.status).toBe(401)
+      })
+    )
+
+    it.effect("returns 401 without authentication for get", () =>
+      Effect.gen(function* () {
+        const httpClient = yield* HttpClient.HttpClient
+        const response = yield* HttpClientRequest.get("/api/v1/account-templates/GeneralBusiness").pipe(
+          httpClient.execute,
+          Effect.scoped
+        )
+
+        expect(response.status).toBe(401)
+      })
+    )
+
+    it.effect("returns 401 without authentication for apply", () =>
+      Effect.gen(function* () {
+        const httpClient = yield* HttpClient.HttpClient
+        const response = yield* HttpClientRequest.post("/api/v1/account-templates/GeneralBusiness/apply").pipe(
+          HttpClientRequest.bodyUnsafeJson({ companyId: crypto.randomUUID() }),
+          httpClient.execute,
+          Effect.scoped
+        )
+
+        expect(response.status).toBe(401)
+      })
+    )
+
+    it.effect("returns 401 with invalid token", () =>
+      Effect.gen(function* () {
+        const httpClient = yield* HttpClient.HttpClient
+        const response = yield* HttpClientRequest.get("/api/v1/account-templates").pipe(
+          HttpClientRequest.bearerToken("invalid-token"),
+          httpClient.execute,
+          Effect.scoped
+        )
+
+        expect(response.status).toBe(401)
+      })
+    )
+
+    it.effect("accepts valid token", () =>
+      Effect.gen(function* () {
+        const httpClient = yield* HttpClient.HttpClient
+        const response = yield* HttpClientRequest.get("/api/v1/account-templates").pipe(
+          HttpClientRequest.bearerToken("user_456_user"),
+          httpClient.execute,
+          Effect.scoped
+        )
+
+        expect(response.status).toBe(200)
+      })
+    )
+  })
+
+  describe("Type-Safe HttpApiClient", () => {
+    it.effect("accountTemplates group is properly typed", () =>
+      Effect.gen(function* () {
+        const client = yield* HttpApiClient.make(AppApi)
+
+        expect(client.accountTemplates).toBeDefined()
+        expect(typeof client.accountTemplates.listAccountTemplates).toBe("function")
+        expect(typeof client.accountTemplates.getAccountTemplate).toBe("function")
+        expect(typeof client.accountTemplates.applyAccountTemplate).toBe("function")
+      })
+    )
+
+    it.effect("listAccountTemplates returns typed response with valid token", () =>
+      Effect.gen(function* () {
+        const client = yield* HttpApiClient.makeWith(AppApi, {
+          httpClient: (yield* HttpClient.HttpClient).pipe(
+            HttpClient.mapRequest(HttpClientRequest.bearerToken("user_123_admin"))
+          )
+        })
+
+        const response = yield* client.accountTemplates.listAccountTemplates()
+
+        expect(response).toBeInstanceOf(AccountTemplateListResponse)
+        expect(Array.isArray(response.templates)).toBe(true)
+        expect(response.templates.length).toBeGreaterThan(0)
+
+        // Each template should be an AccountTemplateItem
+        for (const template of response.templates) {
+          expect(template).toBeInstanceOf(AccountTemplateItem)
+        }
+      })
+    )
+
+    it.effect("getAccountTemplate returns typed response", () =>
+      Effect.gen(function* () {
+        const client = yield* HttpApiClient.makeWith(AppApi, {
+          httpClient: (yield* HttpClient.HttpClient).pipe(
+            HttpClient.mapRequest(HttpClientRequest.bearerToken("user_123_admin"))
+          )
+        })
+
+        const response = yield* client.accountTemplates.getAccountTemplate({
+          path: { type: "GeneralBusiness" }
+        })
+
+        expect(response).toBeInstanceOf(AccountTemplateDetailResponse)
+        expect(response.template.templateType).toBe("GeneralBusiness")
+        expect(Array.isArray(response.template.accounts)).toBe(true)
+      })
+    )
+  })
+})

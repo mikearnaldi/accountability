@@ -10,6 +10,7 @@
 import { HttpApi, HttpApiEndpoint, HttpApiGroup, OpenApi } from "@effect/platform"
 import * as Schema from "effect/Schema"
 import { AccountsApi } from "./AccountsApi.ts"
+import { AccountTemplatesApi } from "./AccountTemplatesApi.ts"
 import { AuthApi, AuthSessionApi } from "./AuthApi.ts"
 import { CompaniesApi } from "./CompaniesApi.ts"
 import { ConsolidationApi } from "./ConsolidationApi.ts"
@@ -74,6 +75,7 @@ export class HealthApi extends HttpApiGroup.make("health")
  * - /api/health - Health check (unprotected)
  * - /api/auth - Authentication (mixed public/protected)
  * - /api/v1/accounts - Account management (protected)
+ * - /api/v1/account-templates - Account template master data (protected)
  * - /api/v1/organizations - Organization management (protected)
  * - /api/v1/companies - Company management (protected)
  * - /api/v1/journal-entries - Journal entry management (protected)
@@ -91,6 +93,7 @@ export class AppApi extends HttpApi.make("AppApi")
   .add(AuthApi)
   .add(AuthSessionApi)
   .add(AccountsApi)
+  .add(AccountTemplatesApi)
   .add(CompaniesApi)
   .add(JournalEntriesApi)
   .add(ReportsApi)

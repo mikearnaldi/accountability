@@ -884,3 +884,8 @@
 **Story**: 1.2 - Jurisdiction master data endpoint
 **Status**: complete
 ---
+
+## Iteration 4 - 2026-01-15 00:58
+**Story**: 1.3 - Account templates endpoint
+**Status**: complete
+---
