@@ -253,9 +253,12 @@ function OrganizationCard({ organization }: { readonly organization: Organizatio
     day: "numeric"
   })
 
-  // Note: Link to organization detail page will be added when that route exists
   return (
-    <div className="block rounded-lg border border-gray-200 bg-white p-6 transition-shadow hover:shadow-md">
+    <Link
+      to="/organizations/$organizationId"
+      params={{ organizationId: organization.id }}
+      className="block rounded-lg border border-gray-200 bg-white p-6 transition-shadow hover:shadow-md"
+    >
       <div className="mb-2 flex items-start justify-between">
         <h3 className="font-medium text-gray-900">{organization.name}</h3>
         <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
@@ -263,7 +266,7 @@ function OrganizationCard({ organization }: { readonly organization: Organizatio
         </span>
       </div>
       <p className="text-sm text-gray-500">Created {createdDate}</p>
-    </div>
+    </Link>
   )
 }
 

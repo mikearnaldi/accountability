@@ -366,7 +366,7 @@
           "packages/web/src/routes/organizations/$organizationId/index.tsx"
         ]
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "medium",
       "depends_on": [
         "11.2.1"
