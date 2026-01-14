@@ -42,6 +42,7 @@ accountability/
 | [specs/AUTHENTICATION.md](specs/AUTHENTICATION.md) | Multi-provider auth system, session management |
 | [specs/E2E_TESTING.md](specs/E2E_TESTING.md) | Playwright E2E testing patterns |
 | [specs/REACT_BEST_PRACTICES.md](specs/REACT_BEST_PRACTICES.md) | **React patterns**, Tailwind, Effect Atom state |
+| [specs/USABILITY_BEST_PRACTICES.md](specs/USABILITY_BEST_PRACTICES.md) | **UX patterns**, navigation, forms, empty/error states |
 
 ## Key Files
 

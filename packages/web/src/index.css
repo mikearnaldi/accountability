@@ -1,0 +1,57 @@
+@import "tailwindcss";
+
+/* Custom theme using Tailwind v4's CSS-first configuration */
+@theme {
+  /* Brand colors */
+  --color-primary-50: oklch(97% 0.01 250);
+  --color-primary-100: oklch(94% 0.02 250);
+  --color-primary-200: oklch(88% 0.04 250);
+  --color-primary-300: oklch(80% 0.07 250);
+  --color-primary-400: oklch(70% 0.12 250);
+  --color-primary-500: oklch(60% 0.16 250);
+  --color-primary-600: oklch(50% 0.18 250);
+  --color-primary-700: oklch(42% 0.16 250);
+  --color-primary-800: oklch(35% 0.12 250);
+  --color-primary-900: oklch(28% 0.08 250);
+  --color-primary-950: oklch(20% 0.05 250);
+
+  /* Semantic colors for accounting */
+  --color-debit: oklch(55% 0.20 145);
+  --color-credit: oklch(55% 0.20 25);
+  --color-balance: oklch(50% 0.18 250);
+
+  /* Sidebar width */
+  --sidebar-width: 16rem;
+  --sidebar-collapsed-width: 4rem;
+}
+
+/* Base styles */
+@layer base {
+  html {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+
+  body {
+    @apply bg-gray-50 text-gray-900 antialiased;
+  }
+
+  /* Focus styles for accessibility */
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-primary-500;
+  }
+}
+
+/* Custom utilities */
+@layer utilities {
+  .text-debit {
+    color: var(--color-debit);
+  }
+
+  .text-credit {
+    color: var(--color-credit);
+  }
+
+  .text-balance {
+    color: var(--color-balance);
+  }
+}

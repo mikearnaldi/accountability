@@ -8,6 +8,8 @@ import {
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools"
 import { RegistryProvider } from "@effect-atom/atom-react"
 import * as React from "react"
+// Import CSS as URL to include in head (prevents FOUC)
+import appCss from "../index.css?url"
 
 export const Route = createRootRoute({
   head: () => ({
@@ -22,6 +24,9 @@ export const Route = createRootRoute({
       {
         title: "Accountability - Multi-Company Accounting"
       }
+    ],
+    links: [
+      { rel: "stylesheet", href: appCss }
     ]
   }),
   component: RootComponent,

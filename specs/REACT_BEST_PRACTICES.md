@@ -154,6 +154,40 @@ function EntriesList() {
 
 ## 2. Styling: Tailwind CSS
 
+### 2.0 CSS Setup for TanStack Start (CRITICAL)
+
+To prevent Flash of Unstyled Content (FOUC), **NEVER** use side-effect CSS imports in TanStack Start. Always import CSS with the `?url` suffix and add it to the route's `head()` function:
+
+```typescript
+// ✅ CORRECT: Import CSS as URL and add to head (prevents FOUC)
+import appCss from "../index.css?url"
+
+export const Route = createRootRoute({
+  head: () => ({
+    meta: [...],
+    links: [
+      { rel: "stylesheet", href: appCss }  // CSS loads in <head> before render
+    ]
+  }),
+  component: RootComponent
+})
+
+// ❌ WRONG: Side-effect import (causes FOUC - CSS loads after hydration)
+import "../index.css"  // DON'T DO THIS
+```
+
+**Why this matters:**
+- Side-effect imports load CSS via JavaScript after hydration
+- This causes a visible flash where HTML renders without styles
+- Using `?url` + `head()` links ensures CSS is in the `<head>` tag
+- The browser loads CSS synchronously before rendering content
+
+**Tailwind v4 Setup:**
+1. Install: `pnpm add tailwindcss @tailwindcss/vite`
+2. Add `tailwindcss()` plugin to `vite.config.ts`
+3. Create `src/index.css` with `@import "tailwindcss";`
+4. Import with `?url` and add to `head()` links as shown above
+
 ### 2.1 Use Tailwind Classes Directly
 
 ```typescript

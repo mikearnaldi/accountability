@@ -16,7 +16,8 @@
     "API_BEST_PRACTICES.md",
     "AUTHENTICATION.md",
     "E2E_TESTING.md",
-    "REACT_BEST_PRACTICES.md"
+    "REACT_BEST_PRACTICES.md",
+    "USABILITY_BEST_PRACTICES.md"
   ],
   "technology": {
     "effect": {
@@ -167,38 +168,139 @@
       "id": "10.0.3",
       "phase": "UI Rebuild",
       "epic": "Infrastructure",
-      "title": "Polish existing UI to production quality",
-      "description": "The current UI is functional but lacks visual polish. Before continuing with new features, make the existing pages beautiful with proper spacing, typography, colors, shadows, transitions, and professional styling. This is a BLOCKING task - do not proceed with other pending stories until this is complete.",
+      "title": "Fix Tailwind CSS setup and polish UI to production quality",
+      "description": "CRITICAL: Tailwind setup is now working. Focus on usability issues: navigation (home links, breadcrumbs), form UX (auto-focus, validation, password toggles), empty/loading/error states, then visual polish. This is a BLOCKING task - do not proceed with other pending stories until this is complete.",
       "specs": [
-        "REACT_BEST_PRACTICES.md"
+        "REACT_BEST_PRACTICES.md",
+        "USABILITY_BEST_PRACTICES.md"
       ],
       "acceptance_criteria": [
         "BLOCKING: Complete this before any other pending stories",
-        "App shell: Professional sidebar with proper icons, hover states, active indicators",
-        "App shell: Clean header with proper spacing and user menu styling",
-        "Login page: Centered card layout, proper input styling, branded colors",
-        "Register page: Matching style to login, clear visual hierarchy",
-        "Organizations list: Beautiful cards with shadows, hover effects, proper grid layout",
-        "Organization detail: Clean layout with sections, proper typography",
-        "Companies list: Consistent card styling with organizations",
-        "Company detail: Tabs or sections with clear visual separation",
-        "Account settings: Clean form layout, proper section headings",
-        "Loading states: Skeleton loaders that match final content layout",
-        "Error states: Clear error messages with retry actions, not ugly red text",
-        "Empty states: Friendly illustrations or icons with call-to-action",
-        "Consistent color palette: Primary, secondary, success, error, warning colors",
-        "Consistent spacing: Use Tailwind spacing scale consistently (4, 6, 8, etc.)",
-        "Consistent typography: Proper heading sizes, line heights, font weights",
-        "Hover/focus states: All interactive elements have clear feedback",
-        "Transitions: Smooth transitions on hover, focus, and state changes",
-        "Mobile responsive: All pages work well on mobile devices",
-        "TESTS (E2E): Existing E2E tests still pass after styling changes"
+        "PHASE 1 - FIX TAILWIND SETUP (DONE):",
+        "✓ Install dependencies: tailwindcss @tailwindcss/vite",
+        "✓ Update vite.config.ts with tailwindcss() plugin",
+        "✓ Create src/index.css with @import 'tailwindcss' and @theme",
+        "✓ Import CSS with ?url and add to head() links (prevents FOUC)",
+        "PHASE 2 - USABILITY & NAVIGATION (critical UX issues):",
+        "Login/Register: Add clickable logo/brand linking back to home page",
+        "Login/Register: Easy switching between forms - link at bottom 'Don't have an account? Register' / 'Already have an account? Sign in'",
+        "Login/Register: Auto-focus on first input field to save clicks",
+        "Login/Register: Show/hide password toggle instead of confirm password field",
+        "Login/Register: Display password requirements while typing, not after failure",
+        "Login/Register: Validate fields on blur with inline error messages",
+        "Login/Register: Remember typed values between failed attempts",
+        "Login/Register: Clear action button labels ('Sign In' not 'Submit')",
+        "Forms: Use type='email' for email inputs (mobile keyboard optimization)",
+        "Forms: Caps Lock indicator for password fields",
+        "Navigation: Breadcrumbs on nested pages (Org > Company > Accounts)",
+        "Navigation: Back links or breadcrumbs to return to parent pages",
+        "Navigation: Active route clearly highlighted in sidebar",
+        "Navigation: Clickable logo in header returns to home/dashboard",
+        "PHASE 3 - EMPTY, LOADING & ERROR STATES:",
+        "Empty states: Friendly message explaining what will appear + clear CTA",
+        "Empty states: Use illustrations or icons, not just text",
+        "Empty states: Guide users on how to add their first item",
+        "Loading states: Skeleton loaders matching final content layout",
+        "Loading states: Button spinners during form submission",
+        "Loading states: Disable submit button while loading to prevent double-submit",
+        "Error states: Explain WHAT happened, WHY, and WHAT TO DO next",
+        "Error states: Provide retry action for recoverable errors",
+        "Error states: Use inline errors for form fields, not just top-of-form alerts",
+        "Error states: Specific messages ('Email already registered') not generic ('Error occurred')",
+        "PHASE 4 - ORGANIZATIONS LIST & FORMS (incomplete implementation):",
+        "Organizations list: Replace grid cards with table/list view showing full names without truncation",
+        "Organizations list: Show all key fields: name, reporting currency, locale, timezone, company count",
+        "Organizations list: Add sortable columns and optional search/filter",
+        "Create Organization modal: Add all OrganizationSettings fields:",
+        "  - defaultLocale (dropdown: en-US, en-GB, de-DE, fr-FR, etc.)",
+        "  - defaultTimezone (dropdown with common timezones)",
+        "  - useFiscalYear (checkbox/toggle)",
+        "  - defaultDecimalPlaces (dropdown: 0, 1, 2, 3, 4)",
+        "Edit Organization: Create edit modal/page with all fields pre-populated",
+        "Edit Organization: Allow updating name, currency, and all settings",
+        "Organization detail page: Show all settings in a readable format",
+        "PHASE 5 - VISUAL POLISH:",
+        "App shell: Professional sidebar with icons, hover states, active indicators",
+        "App shell: Clean header with proper spacing and user menu",
+        "Cards: Consistent shadows, borders, hover effects across all list pages",
+        "Typography: Proper heading hierarchy (h1 > h2 > h3), consistent line heights",
+        "Spacing: Use Tailwind spacing scale consistently (p-4, p-6, gap-4, etc.)",
+        "Colors: Consistent use of primary, success, error, warning colors",
+        "Transitions: Smooth hover/focus transitions (transition-colors, transition-shadow)",
+        "Focus states: Visible focus rings for keyboard navigation (accessibility)",
+        "Mobile: Responsive layouts, touch-friendly tap targets (min 44px)",
+        "TESTS (E2E): Existing E2E tests still pass after changes"
       ],
       "technical_details": {
+        "tailwind_v4_setup_DONE": {
+          "step1_install": "✓ pnpm add tailwindcss @tailwindcss/vite",
+          "step2_vite_config": "✓ Added tailwindcss() to plugins",
+          "step3_css_file": "✓ Created src/index.css with @import 'tailwindcss' and @theme",
+          "step4_import_CRITICAL": "✓ Import CSS with ?url and add to head() links to PREVENT FOUC"
+        },
+        "usability_best_practices": {
+          "login_signup": [
+            "Auto-focus first field to eliminate clicks",
+            "Show/hide password toggle (no confirm field)",
+            "Validate on blur with inline errors",
+            "Easy switch between login/register at bottom of form",
+            "Clickable logo/brand to return home",
+            "Remember values between failed attempts",
+            "Use type='email' for mobile keyboard",
+            "Display password requirements while typing"
+          ],
+          "navigation": [
+            "Breadcrumbs on nested pages",
+            "Clickable logo returns to dashboard",
+            "Active route highlighting",
+            "Clear back/parent navigation"
+          ],
+          "empty_states": [
+            "Explain what will appear here",
+            "Use illustration or icon",
+            "Clear CTA to add first item",
+            "Guide user through next steps"
+          ],
+          "error_states": [
+            "WHAT happened + WHY + WHAT TO DO",
+            "Specific messages not generic",
+            "Inline field errors",
+            "Retry action for recoverable errors"
+          ],
+          "loading_states": [
+            "Skeleton loaders matching content layout",
+            "Button spinners during submission",
+            "Disable button to prevent double-submit"
+          ]
+        },
+        "organizations_implementation": {
+          "problem": "OrganizationCard uses truncate class cutting off names. CreateOrganizationModal only has name + currency, missing OrganizationSettings fields.",
+          "api_status": "API already supports full OrganizationSettings in CreateOrganizationRequest and UpdateOrganizationRequest - only UI changes needed.",
+          "organization_settings_fields": {
+            "defaultLocale": "String, default 'en-US' - locale for number/date formatting",
+            "defaultTimezone": "String, default 'UTC' - IANA timezone identifier",
+            "useFiscalYear": "Boolean, default true - use fiscal year vs calendar year",
+            "defaultDecimalPlaces": "Number 0-4, default 2 - decimal places for monetary display"
+          },
+          "ui_changes_needed": [
+            "Replace OrganizationCard grid with table/list view for full names",
+            "Add settings fields to CreateOrganizationModal",
+            "Create EditOrganizationModal with all fields",
+            "Show settings on organization detail page"
+          ]
+        },
+        "research_sources": [
+          "https://www.learnui.design/blog/tips-signup-login-ux.html",
+          "https://uxdworld.com/12-best-practices-for-sign-up-and-login-page-design/",
+          "https://www.authgear.com/post/login-signup-ux-guide",
+          "https://userpilot.com/blog/empty-state-saas/",
+          "https://www.pencilandpaper.io/articles/ux-pattern-analysis-error-feedback"
+        ],
         "files": [
           "packages/web/src/routes/__root.tsx",
           "packages/web/src/routes/login.tsx",
           "packages/web/src/routes/register.tsx",
+          "packages/web/src/routes/index.tsx",
           "packages/web/src/routes/organizations/index.tsx",
           "packages/web/src/routes/organizations/$organizationId/index.tsx",
           "packages/web/src/routes/organizations/$organizationId/companies/index.tsx",
@@ -206,9 +308,9 @@
           "packages/web/src/routes/settings/account.tsx",
           "packages/web/src/components/*.tsx"
         ],
-        "approach": "Iteratively improve each page while maintaining functionality. Use Tailwind utility classes. Consider adding a few reusable styled components (Button, Card, Input) if patterns emerge."
+        "approach": "Phase 1 (Tailwind) is DONE. Now focus on usability: fix navigation issues first (home links, breadcrumbs), then empty/loading/error states, finally visual polish."
       },
-      "status": "complete",
+      "status": "in_progress",
       "estimated_complexity": "large"
     },
     {

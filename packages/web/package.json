@@ -27,14 +27,16 @@
     "@effect/platform": "^0.94.1",
     "@effect/sql": "^0.49.0",
     "@effect/sql-pg": "^0.50.1",
-    "pg": "^8.13.1",
+    "@tailwindcss/vite": "^4.1.18",
     "@tanstack/react-router": "^1.147.0",
     "@tanstack/react-router-devtools": "^1.147.0",
     "@tanstack/react-start": "^1.147.0",
     "effect": "^3.19.14",
+    "pg": "^8.13.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "scheduler": "^0.27.0"
+    "scheduler": "^0.27.0",
+    "tailwindcss": "^4.1.18"
   },
   "devDependencies": {
     "@playwright/test": "^1.57.0",
@@ -44,6 +46,7 @@
     "@types/react-dom": "^19.0.3",
     "@vitejs/plugin-react": "^5.1.2",
     "nitro": "npm:nitro-nightly@latest",
+    "tsx": "^4.21.0",
     "typescript": "^5.7.2",
     "vite": "^7.1.7",
     "vite-tsconfig-paths": "^5.1.4"
