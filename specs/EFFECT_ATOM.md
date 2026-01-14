@@ -933,7 +933,372 @@ const combinedRuntime = Atom.runtime(
 
 ---
 
-## 10. Summary
+## 10. AtomRuntime Deep Dive
+
+### 10.1 What is AtomRuntime?
+
+An `AtomRuntime<R, ER>` is a special atom that represents an Effect Layer execution environment. It provides methods to create atoms that can access services from a specific Effect context.
+
+```typescript
+import * as Atom from "@effect-atom/atom/Atom"
+import * as Layer from "effect/Layer"
+import * as Context from "effect/Context"
+
+// Define a service
+interface Counter {
+  readonly get: Effect.Effect<number>
+  readonly inc: Effect.Effect<void>
+}
+const Counter = Context.GenericTag<Counter>("Counter")
+
+// Create layer implementation
+const CounterLive = Layer.effect(
+  Counter,
+  Effect.sync(() => {
+    let count = 0
+    return Counter.of({
+      get: Effect.sync(() => count),
+      inc: Effect.sync(() => { count++ })
+    })
+  })
+)
+
+// Create runtime from layer
+const counterRuntime = Atom.runtime(CounterLive)
+```
+
+**Key characteristics:**
+- Extends `Atom<Result.Result<Runtime.Runtime<R>, ER>>`
+- Manages a `Layer<R, ER>` that defines services/dependencies
+- Provides a `factory: RuntimeFactory` for creating derived atoms
+- Includes methods: `atom()`, `fn()`, `pull()`, `subscriptionRef()`, `subscribable()`
+
+### 10.2 runtime.atom() - Read-Only Async Atoms
+
+Creates a read-only atom that executes an Effect with access to the runtime's context.
+
+**Signatures:**
+```typescript
+// Direct effect
+runtime.atom<A, E>(
+  effect: Effect.Effect<A, E, Scope.Scope | R>,
+  options?: { readonly initialValue?: A }
+): Atom<Result.Result<A, E | ER>>
+
+// Function form with atom access
+runtime.atom<A, E>(
+  create: (get: Context) => Effect.Effect<A, E, Scope.Scope | R>,
+  options?: { readonly initialValue?: A }
+): Atom<Result.Result<A, E | ER>>
+```
+
+**Examples:**
+
+```typescript
+// Direct effect - access service from runtime context
+const countAtom = counterRuntime.atom(
+  Effect.flatMap(Counter, (counter) => counter.get)
+)
+
+// Function form - access other atoms via get()
+const doubleCountAtom = counterRuntime.atom((get) =>
+  Effect.gen(function*() {
+    const counter = yield* Counter
+    const current = yield* counter.get
+    // Can also read other atoms
+    const otherValue = yield* get.result(someOtherAtom)
+    return current * 2
+  })
+)
+
+// With initial value for optimistic loading
+const usersAtom = apiRuntime.atom(
+  Effect.flatMap(UserService, (svc) => svc.listUsers()),
+  { initialValue: [] }  // Show empty array while loading
+)
+```
+
+**Behavior:**
+- Returns `Result.Result<A, E>` (Initial, Waiting, Success, or Failure)
+- Automatically manages Effect execution and cleanup
+- Supports `initialValue` for optimistic loading
+- Can access other atoms via `get()` in function form
+
+### 10.3 runtime.fn() - Writable Function Atoms (Mutations)
+
+Creates writable atoms that execute an Effect when set with a value (argument).
+
+**Signatures:**
+```typescript
+// Curried form - explicit Arg type (recommended)
+runtime.fn<Arg>(): {
+  <E, A>(
+    fn: (arg: Arg, get: FnContext) => Effect.Effect<A, E, Scope.Scope | R>,
+    options?: {
+      readonly initialValue?: A
+      readonly reactivityKeys?: ReadonlyArray<unknown>
+      readonly concurrent?: boolean
+    }
+  ): AtomResultFn<Arg, A, E | ER>
+}
+
+// Direct form - Arg inferred
+runtime.fn<E, A, Arg>(
+  fn: (arg: Arg, get: FnContext) => Effect.Effect<A, E, Scope.Scope | R>,
+  options?: { ... }
+): AtomResultFn<Arg, A, E | ER>
+```
+
+**Examples:**
+
+```typescript
+// Simple mutation with no argument
+const incrementFn = counterRuntime.fn<void>()(
+  (_arg) => Effect.flatMap(Counter, (c) => c.inc)
+)
+
+// Usage
+registry.set(incrementFn, void 0)  // Trigger increment
+
+// Mutation with typed argument
+interface CreateUserInput {
+  name: string
+  email: string
+}
+
+const createUserFn = userRuntime.fn<CreateUserInput>()(
+  (input, get) => Effect.flatMap(UserService, (svc) => svc.create(input))
+)
+
+// Usage
+registry.set(createUserFn, { name: "John", email: "john@example.com" })
+
+// With initial value
+const counterFn = counterRuntime.fn<number>()(
+  (n, _get) => Effect.succeed(n + 1),
+  { initialValue: 0 }
+)
+
+// With concurrent execution (multiple calls run in parallel)
+const uploadFn = apiRuntime.fn<File>()(
+  (file, _get) => Effect.flatMap(UploadService, (svc) => svc.upload(file)),
+  { concurrent: true }
+)
+
+// With reactivity keys (auto-refresh related queries)
+const updateUserFn = userRuntime.fn<UpdateUserInput>()(
+  (input, _get) => Effect.flatMap(UserService, (svc) => svc.update(input)),
+  { reactivityKeys: ["users"] }
+)
+```
+
+**Key features:**
+- Returns `AtomResultFn<Arg, A, E>` (a Writable atom)
+- Write context provides `FnContext` with atom access
+- Supports `Reset` and `Interrupt` symbols for special operations
+- `concurrent: true` allows multiple concurrent executions
+- `reactivityKeys` automatically refreshes matching query atoms
+
+### 10.4 Reset and Interrupt
+
+Function atoms support special control symbols:
+
+```typescript
+const longRunningFn = apiRuntime.fn<void>()(
+  () => Effect.sleep(Duration.seconds(30)).pipe(Effect.as("done"))
+)
+
+// Start the operation
+registry.set(longRunningFn, void 0)
+
+// Cancel/interrupt the ongoing execution
+registry.set(longRunningFn, Atom.Interrupt)
+
+// Reset to initial state (clears result)
+registry.set(longRunningFn, Atom.Reset)
+```
+
+### 10.5 runtime.pull() - Streaming Data
+
+For paginated or streamed data with backpressure control:
+
+```typescript
+import * as Stream from "effect/Stream"
+
+const paginatedUsersAtom = apiRuntime.pull(
+  Stream.paginateChunkEffect(1, (page) =>
+    Effect.gen(function*() {
+      const client = yield* UserService
+      const users = yield* client.list({ page, limit: 20 })
+      const nextPage = users.length === 20
+        ? Option.some(page + 1)
+        : Option.none()
+      return [Chunk.fromIterable(users), nextPage]
+    })
+  ),
+  { disableAccumulation: false }  // Accumulate pages
+)
+
+// Usage in component
+const [result, pullMore] = useAtom(paginatedUsersAtom)
+
+// result.value = { done: boolean, items: NonEmptyArray<User> }
+
+// Pull next page
+const handleLoadMore = () => pullMore(void 0)
+```
+
+### 10.6 RuntimeFactory
+
+The `runtime.factory` provides utilities for creating and managing runtimes:
+
+```typescript
+interface RuntimeFactory {
+  // Create new runtime from layer
+  <R, E>(layer: Layer.Layer<R, E>): AtomRuntime<R, E>
+
+  // Memoization map for layer building
+  readonly memoMap: Layer.MemoMap
+
+  // Add global layers (middleware, logging, etc.)
+  readonly addGlobalLayer: <A, E>(layer: Layer.Layer<A, E>) => void
+
+  // Wrap atom with reactivity keys
+  readonly withReactivity: (
+    keys: ReadonlyArray<unknown>
+  ) => <A extends Atom<any>>(atom: A) => A
+}
+
+// Usage
+const runtime = Atom.runtime(MyServiceLive)
+
+// Add global middleware to all atoms created from this factory
+runtime.factory.addGlobalLayer(LoggingLive)
+
+// Manually add reactivity to an atom
+const refreshableAtom = runtime.factory.withReactivity(["data"])(
+  runtime.atom(fetchData)
+)
+```
+
+### 10.7 Creating Custom API Clients with Runtime
+
+The `AtomHttpApi.Tag` uses runtime internally. Here's how it works:
+
+```typescript
+import * as AtomHttpApi from "@effect-atom/atom/AtomHttpApi"
+
+export class ApiClient extends AtomHttpApi.Tag<ApiClient>()(
+  "ApiClient",
+  {
+    api: AppApi,                      // HttpApi definition
+    httpClient: AuthenticatedClient,  // Layer providing HttpClient
+    baseUrl: window.location.origin
+  }
+) {}
+
+// What Tag provides internally:
+// - ApiClient.layer: Layer that builds HttpApiClient
+// - ApiClient.runtime: AtomRuntime for running effects
+// - ApiClient.query(): Creates query atoms (uses runtime.atom internally)
+// - ApiClient.mutation(): Creates mutation atoms (uses runtime.fn internally)
+```
+
+### 10.8 Composing Multiple Runtimes
+
+```typescript
+// Define multiple service runtimes
+const userRuntime = Atom.runtime(UserServiceLive)
+const productRuntime = Atom.runtime(ProductServiceLive)
+
+// Option 1: Use independently
+const usersAtom = userRuntime.atom(/* ... */)
+const productsAtom = productRuntime.atom(/* ... */)
+
+// Option 2: Compose layers into single runtime
+const combinedRuntime = Atom.runtime(
+  Layer.merge(UserServiceLive, ProductServiceLive)
+)
+
+const orderAtom = combinedRuntime.atom((get) =>
+  Effect.gen(function*() {
+    const users = yield* UserService
+    const products = yield* ProductService
+    // Can access both services
+    return yield* createOrder(users, products)
+  })
+)
+```
+
+### 10.9 FnContext vs Context
+
+The `get` parameter in `runtime.fn()` is a `FnContext`, which extends `Context`:
+
+```typescript
+interface Context {
+  // Read atom value (Result)
+  <A>(atom: Atom<A>): A
+
+  // Read as Effect (extracts from Result)
+  result<A, E>(atom: Atom<Result.Result<A, E>>): Effect.Effect<A, E>
+
+  // Create dependency on atom
+  subscribe<A>(atom: Atom<A>): A
+}
+
+interface FnContext extends Context {
+  // Write to an atom
+  set<A>(atom: Writable<A>, value: A): void
+
+  // Refresh an atom
+  refresh<A>(atom: Atom<A>): void
+}
+
+// Example: mutation that reads and writes atoms
+const transferFn = bankRuntime.fn<TransferInput>()(
+  (input, get) => Effect.gen(function*() {
+    const bank = yield* BankService
+
+    // Read current balances
+    const fromBalance = yield* get.result(balanceFamily(input.from))
+    const toBalance = yield* get.result(balanceFamily(input.to))
+
+    // Perform transfer
+    yield* bank.transfer(input)
+
+    // Refresh affected atoms
+    get.refresh(balanceFamily(input.from))
+    get.refresh(balanceFamily(input.to))
+  })
+)
+```
+
+### 10.10 Runtime Lifecycle
+
+```
+1. Runtime created: Atom.runtime(Layer)
+   └── Layer NOT built yet (lazy)
+
+2. First atom reads from runtime
+   └── Layer builds, services initialize
+   └── Effect executes with service context
+
+3. Atom disposed (no subscribers, TTL expires)
+   └── Effect scope closed, cleanup runs
+
+4. Runtime disposed (no dependent atoms)
+   └── Layer scope closed, all services cleanup
+```
+
+**Best practices:**
+- Create runtimes at module level (not inside components)
+- Use `timeToLive` to control atom lifecycle
+- Compose related services into single runtime when they're used together
+- Use separate runtimes for independent service domains
+
+---
+
+## 11. Summary
 
 | Do | Don't |
 |----|-------|

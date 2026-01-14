@@ -7,6 +7,7 @@
 
 import * as Atom from "@effect-atom/atom/Atom"
 import * as Result from "@effect-atom/atom/Result"
+import { AtomRegistry } from "@effect-atom/atom/Registry"
 import * as Duration from "effect/Duration"
 import * as Effect from "effect/Effect"
 import { unsafeCoerce } from "effect/Function"
@@ -25,19 +26,25 @@ export type { LoginRequest, LoginResponse, RegisterRequest }
 // =============================================================================
 
 /**
- * The current authentication token.
- * Initialized from localStorage on client-side.
- * Setting to null clears the token and triggers logout behavior.
- *
- * This atom is persisted to localStorage - changes are automatically synced.
+ * Version counter to trigger re-reads of localStorage token.
+ * Incremented whenever the token is updated via setAuthToken.
  */
-export const authTokenAtom = Atom.writable(
-  () => getStoredToken(),
-  (_set, token: string | null) => {
-    setStoredToken(token)
-    return token
-  }
-)
+const authTokenVersionAtom = Atom.make(0)
+
+/**
+ * The current authentication token.
+ * Reads from localStorage and re-reads when version changes.
+ *
+ * To update the token, use setAuthToken() which:
+ * 1. Writes to localStorage
+ * 2. Increments the version to trigger subscribers
+ */
+export const authTokenAtom = Atom.readable((get) => {
+  // Subscribe to version changes to trigger re-reads
+  get(authTokenVersionAtom)
+  return getStoredToken()
+})
+
 
 // =============================================================================
 // Auth Status Atom
@@ -158,6 +165,7 @@ export interface LocalLoginInput {
 export const loginMutation = ApiClient.runtime.fn<LocalLoginInput>()(
   Effect.fnUntraced(function* (input) {
     const client = yield* ApiClient
+    const registry = yield* AtomRegistry
     // The HttpApiClient will serialize this to JSON and the server will validate via Schema
     // Use unsafeCoerce to convert plain string credentials to the branded types
     // This is safe because the server-side Schema decoder will validate the data
@@ -169,8 +177,9 @@ export const loginMutation = ApiClient.runtime.fn<LocalLoginInput>()(
       }
     })
 
-    // Store the token on successful login
+    // Store the token and trigger atom update
     setStoredToken(response.token)
+    registry.update(authTokenVersionAtom, (v) => v + 1)
 
     return response
   })
@@ -217,6 +226,7 @@ export interface LocalRegisterInput {
 export const registerMutation = ApiClient.runtime.fn<LocalRegisterInput>()(
   Effect.fnUntraced(function* (input) {
     const client = yield* ApiClient
+    const registry = yield* AtomRegistry
     // Register the user - use unsafeCoerce since server validates via Schema
     const registerPayload: RegisterRequest = unsafeCoerce(input)
     yield* client.auth.register({ payload: registerPayload })
@@ -233,8 +243,9 @@ export const registerMutation = ApiClient.runtime.fn<LocalRegisterInput>()(
       }
     })
 
-    // Store the token on successful login
+    // Store the token and trigger atom update
     setStoredToken(loginResponse.token)
+    registry.update(authTokenVersionAtom, (v) => v + 1)
 
     return loginResponse
   })
@@ -254,10 +265,12 @@ export const registerMutation = ApiClient.runtime.fn<LocalRegisterInput>()(
 export const logoutMutation = ApiClient.runtime.fn<void>()(
   Effect.fnUntraced(function* () {
     const client = yield* ApiClient
+    const registry = yield* AtomRegistry
     yield* client.authSession.logout({})
 
-    // Clear the token from localStorage
+    // Clear the token and trigger atom update
     clearStoredToken()
+    registry.update(authTokenVersionAtom, (v) => v + 1)
 
     return undefined
   })
@@ -298,6 +311,7 @@ export interface OAuthCallbackInput {
 export const handleOAuthCallbackMutation = ApiClient.runtime.fn<OAuthCallbackInput>()(
   Effect.fnUntraced(function* (input) {
     const client = yield* ApiClient
+    const registry = yield* AtomRegistry
     const response: LoginResponse = yield* client.auth.callback({
       path: { provider: unsafeCoerce(input.provider) },
       urlParams: {
@@ -306,8 +320,9 @@ export const handleOAuthCallbackMutation = ApiClient.runtime.fn<OAuthCallbackInp
       }
     })
 
-    // Store the token on successful callback
+    // Store the token and trigger atom update
     setStoredToken(response.token)
+    registry.update(authTokenVersionAtom, (v) => v + 1)
 
     return response
   })

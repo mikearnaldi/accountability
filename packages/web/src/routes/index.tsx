@@ -3,6 +3,7 @@ import { useAtomValue } from "@effect-atom/atom-react"
 import { hasTokenAtom } from "../atoms/auth.ts"
 import { AppShell } from "../components/AppShell.tsx"
 import { ProtectedRoute } from "../components/ProtectedRoute.tsx"
+import { UserMenu } from "../components/UserMenu.tsx"
 
 export const Route = createFileRoute("/")({
   component: HomePage
@@ -15,7 +16,7 @@ function HomePage() {
   if (hasToken) {
     return (
       <ProtectedRoute>
-        <AppShell>
+        <AppShell userMenu={<UserMenu />}>
           <div className="space-y-6">
             <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
             <p className="text-gray-600">

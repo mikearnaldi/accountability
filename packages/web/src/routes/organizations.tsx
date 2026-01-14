@@ -8,6 +8,7 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { AppShell } from "../components/AppShell.tsx"
 import { ProtectedRoute } from "../components/ProtectedRoute.tsx"
+import { UserMenu } from "../components/UserMenu.tsx"
 
 export const Route = createFileRoute("/organizations")({
   component: OrganizationsPage
@@ -16,7 +17,7 @@ export const Route = createFileRoute("/organizations")({
 function OrganizationsPage() {
   return (
     <ProtectedRoute>
-      <AppShell>
+      <AppShell userMenu={<UserMenu />}>
         <div className="space-y-6">
           <h1 className="text-2xl font-bold text-gray-900">Organizations</h1>
           <p className="text-gray-600">
