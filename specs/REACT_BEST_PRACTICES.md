@@ -1,152 +1,193 @@
 # React Best Practices
 
-This document covers React patterns and conventions for the Accountability project.
+This document covers React patterns and conventions for the Accountability project frontend using TanStack Start and openapi-fetch.
 
 ---
 
-## 1. State Management: Effect Atom First
+## 1. State Management
 
-### 1.1 Use Effect Atom for All Shared State
+### 1.1 Server State: Use TanStack Start Loaders
 
-**All application state should live in atoms**, not React state:
-
-```typescript
-// atoms/ui.ts
-import * as Atom from "@effect-atom/atom/Atom"
-
-// UI state
-export const sidebarOpenAtom = Atom.make(true)
-export const selectedTabAtom = Atom.make<string>("overview")
-export const modalStateAtom = Atom.make<{ type: string; data?: unknown } | null>(null)
-
-// Filter/search state
-export const searchQueryAtom = Atom.make("")
-export const filterAtom = Atom.make<FilterState>({ status: "", type: "" })
-
-// Selection state
-export const selectedIdsAtom = Atom.make<ReadonlySet<string>>(new Set())
-```
+Server data should be fetched in route loaders, not in components:
 
 ```typescript
-// Component usage
-function Sidebar() {
-  const [isOpen, setIsOpen] = useAtom(sidebarOpenAtom)
+// routes/organizations/index.tsx
+import { createFileRoute } from "@tanstack/react-router"
+import { api } from "@/api/client"
+
+export const Route = createFileRoute("/organizations/")({
+  loader: async () => {
+    const { data } = await api.GET("/api/v1/organizations")
+    return { organizations: data ?? [] }
+  },
+  component: OrganizationsPage
+})
+
+function OrganizationsPage() {
+  // Data is immediately available from SSR - no loading state needed
+  const { organizations } = Route.useLoaderData()
 
   return (
-    <aside className={isOpen ? "w-64" : "w-16"}>
-      <button onClick={() => setIsOpen(o => !o)}>Toggle</button>
-    </aside>
+    <ul>
+      {organizations.map(org => (
+        <li key={org.id}>{org.name}</li>
+      ))}
+    </ul>
   )
 }
 ```
 
-### 1.2 When useState is Acceptable
+### 1.2 Local State: Use useState for UI
 
-Use `useState` ONLY for:
-
-1. **Truly local, ephemeral UI state** that no other component needs:
-   ```typescript
-   // OK: Form input before submission
-   function SearchInput() {
-     const [draft, setDraft] = useState("")
-     const [, setSearch] = useAtom(searchQueryAtom)
-
-     const handleSubmit = () => {
-       setSearch(draft)
-       setDraft("")
-     }
-
-     return <input value={draft} onChange={e => setDraft(e.target.value)} />
-   }
-   ```
-
-2. **Uncontrolled component wrappers**:
-   ```typescript
-   // OK: Local hover/focus state
-   function Tooltip({ children, content }: Props) {
-     const [isVisible, setIsVisible] = useState(false)
-
-     return (
-       <div
-         onMouseEnter={() => setIsVisible(true)}
-         onMouseLeave={() => setIsVisible(false)}
-       >
-         {children}
-         {isVisible && <div className="tooltip">{content}</div>}
-       </div>
-     )
-   }
-   ```
-
-3. **Animation/transition state**:
-   ```typescript
-   // OK: CSS transition state
-   function Collapsible({ children, isOpen }: Props) {
-     const [height, setHeight] = useState(0)
-     const ref = useRef<HTMLDivElement>(null)
-
-     useEffect(() => {
-       if (ref.current) setHeight(ref.current.scrollHeight)
-     }, [children])
-
-     return (
-       <div style={{ height: isOpen ? height : 0 }} className="transition-all">
-         <div ref={ref}>{children}</div>
-       </div>
-     )
-   }
-   ```
-
-### 1.3 useState Anti-Patterns
+Use `useState` for local, ephemeral UI state:
 
 ```typescript
-// ❌ BAD: Loading state that should come from Result
-const [isLoading, setIsLoading] = useState(false)
+function FilterPanel() {
+  // Local UI state
+  const [isExpanded, setIsExpanded] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
 
-// ❌ BAD: Error state that should come from Result
-const [error, setError] = useState<string | null>(null)
-
-// ❌ BAD: Data that should be in an atom
-const [users, setUsers] = useState<User[]>([])
-
-// ❌ BAD: Filter state that other components might need
-const [statusFilter, setStatusFilter] = useState("")
-
-// ❌ BAD: Modal/dialog state
-const [showModal, setShowModal] = useState(false)
-
-// ❌ BAD: Selection state
-const [selectedIds, setSelectedIds] = useState<string[]>([])
-```
-
-### 1.4 Derived State with Atoms
-
-Don't duplicate state - derive it:
-
-```typescript
-// atoms/entries.ts
-export const entriesAtom = ApiClient.query("entries", "list", { ... })
-export const statusFilterAtom = Atom.make<string>("")
-
-// Derived atom - computed from other atoms
-export const filteredEntriesAtom = Atom.readable((get) => {
-  const result = get(entriesAtom)
-  const filter = get(statusFilterAtom)
-
-  if (!Result.isSuccess(result)) return result
-  if (!filter) return result
-
-  return Result.map(result, entries =>
-    entries.filter(e => e.status === filter)
+  return (
+    <div>
+      <button onClick={() => setIsExpanded(!isExpanded)}>
+        {isExpanded ? "Collapse" : "Expand"}
+      </button>
+      {isExpanded && (
+        <input
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          placeholder="Search..."
+        />
+      )}
+    </div>
   )
-})
+}
 ```
 
+### 1.3 Form State: useState Until Submit
+
+Keep form state local until submission:
+
 ```typescript
-// Component just reads the derived atom
-function EntriesList() {
-  const result = useAtomValue(filteredEntriesAtom)
-  // No local filtering logic needed
+function CreateOrganizationForm() {
+  const router = useRouter()
+  const [name, setName] = useState("")
+  const [currency, setCurrency] = useState("USD")
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsSubmitting(true)
+    setError(null)
+
+    const { data, error: apiError } = await api.POST("/api/v1/organizations", {
+      body: { name, defaultCurrency: currency }
+    })
+
+    if (apiError) {
+      setError(apiError.body?.message ?? "Failed to create")
+      setIsSubmitting(false)
+      return
+    }
+
+    // Revalidate to show new data
+    await router.invalidate()
+    router.navigate({ to: `/organizations/${data.id}` })
+  }
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <input value={name} onChange={e => setName(e.target.value)} />
+      <select value={currency} onChange={e => setCurrency(e.target.value)}>
+        <option value="USD">USD</option>
+        <option value="EUR">EUR</option>
+      </select>
+      {error && <p className="text-red-500">{error}</p>}
+      <button disabled={isSubmitting}>
+        {isSubmitting ? "Creating..." : "Create"}
+      </button>
+    </form>
+  )
+}
+```
+
+### 1.4 URL State: Use Search Params for Shareable State
+
+For filters, pagination, and other shareable state, use URL search params:
+
+```typescript
+import { createFileRoute, useSearch } from "@tanstack/react-router"
+
+// Define search params schema
+const searchSchema = z.object({
+  page: z.number().optional().default(1),
+  status: z.string().optional(),
+  sort: z.enum(["name", "date"]).optional().default("name")
+})
+
+export const Route = createFileRoute("/entries/")({
+  validateSearch: searchSchema,
+
+  loader: async ({ deps: { page, status, sort } }) => {
+    const { data } = await api.GET("/api/v1/entries", {
+      params: { query: { page, status, sort, limit: 20 } }
+    })
+    return { entries: data ?? [] }
+  },
+
+  component: EntriesPage
+})
+
+function EntriesPage() {
+  const { entries } = Route.useLoaderData()
+  const { page, status, sort } = useSearch({ from: "/entries/" })
+  const navigate = useNavigate()
+
+  const setPage = (newPage: number) => {
+    navigate({ search: { page: newPage, status, sort } })
+  }
+
+  return (
+    <div>
+      <FilterBar status={status} sort={sort} />
+      <EntriesList entries={entries} />
+      <Pagination page={page} onPageChange={setPage} />
+    </div>
+  )
+}
+```
+
+### 1.5 State Anti-Patterns
+
+```typescript
+// Don't fetch data in useEffect
+function BadComponent() {
+  const [data, setData] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    api.GET("/api/v1/items").then(({ data }) => {
+      setData(data ?? [])
+      setLoading(false)
+    })
+  }, [])
+
+  // This causes loading flash, no SSR, duplicate requests
+}
+
+// Don't store server data in useState
+function AlsoBad() {
+  const { items } = Route.useLoaderData()
+  const [localItems, setLocalItems] = useState(items) // Syncing nightmare
+}
+
+// Don't manage async state manually
+function StillBad() {
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+  const [data, setData] = useState(null)
+  // This is what loaders handle for you
 }
 ```
 
@@ -159,7 +200,7 @@ function EntriesList() {
 To prevent Flash of Unstyled Content (FOUC), **NEVER** use side-effect CSS imports in TanStack Start. Always import CSS with the `?url` suffix and add it to the route's `head()` function:
 
 ```typescript
-// ✅ CORRECT: Import CSS as URL and add to head (prevents FOUC)
+// CORRECT: Import CSS as URL and add to head (prevents FOUC)
 import appCss from "../index.css?url"
 
 export const Route = createRootRoute({
@@ -172,7 +213,7 @@ export const Route = createRootRoute({
   component: RootComponent
 })
 
-// ❌ WRONG: Side-effect import (causes FOUC - CSS loads after hydration)
+// WRONG: Side-effect import (causes FOUC - CSS loads after hydration)
 import "../index.css"  // DON'T DO THIS
 ```
 
@@ -191,7 +232,7 @@ import "../index.css"  // DON'T DO THIS
 ### 2.1 Use Tailwind Classes Directly
 
 ```typescript
-// ✅ GOOD: Tailwind classes
+// GOOD: Tailwind classes
 function Button({ children, variant = "primary" }: Props) {
   const baseClasses = "px-4 py-2 rounded-md font-medium transition-colors"
   const variantClasses = {
@@ -207,7 +248,7 @@ function Button({ children, variant = "primary" }: Props) {
   )
 }
 
-// ❌ BAD: Inline styles
+// BAD: Inline styles
 function Button({ children }: Props) {
   return (
     <button style={{
@@ -245,11 +286,10 @@ function Card({ children, highlighted }: Props) {
 }
 ```
 
-### 2.3 Use clsx or cn for Conditional Classes
+### 2.3 Use clsx for Conditional Classes
 
 ```typescript
 import { clsx } from "clsx"
-// Or use a cn utility combining clsx + tailwind-merge
 
 function Button({ disabled, loading, className, children }: Props) {
   return (
@@ -368,84 +408,143 @@ function Card({ children }: Props) {
 
 ## 3. Component Patterns
 
-### 3.1 Result-Driven Rendering
+### 3.1 Loading and Error States
 
-Always handle all Result states:
+For SSR routes, data is available immediately. Handle errors in the loader:
 
 ```typescript
-function DataList() {
-  const result = useAtomValue(dataAtom)
+export const Route = createFileRoute("/organizations/$id")({
+  loader: async ({ params }) => {
+    const { data, error } = await api.GET("/api/v1/organizations/{id}", {
+      params: { path: { id: params.id } }
+    })
 
-  // Handle all states explicitly
-  if (Result.isInitial(result)) {
-    return <Skeleton />
-  }
+    if (error) {
+      throw new Error("Organization not found")
+    }
 
-  if (Result.isWaiting(result)) {
-    // Show previous data with loading indicator
-    const previous = Result.value(result)
-    return (
-      <div className="relative">
-        <LoadingOverlay />
-        {Option.isSome(previous) && <List items={previous.value} />}
-      </div>
-    )
-  }
+    return { organization: data }
+  },
 
-  if (Result.isFailure(result)) {
-    return <ErrorCard cause={result.cause} />
-  }
+  // TanStack Router handles the error boundary
+  errorComponent: ({ error }) => (
+    <div className="text-red-500">Error: {error.message}</div>
+  ),
 
-  return <List items={result.value} />
+  // Optional: Show while navigating client-side
+  pendingComponent: () => <div>Loading...</div>,
+
+  component: OrganizationPage
+})
+
+function OrganizationPage() {
+  // Data guaranteed to be available
+  const { organization } = Route.useLoaderData()
+  return <h1>{organization.name}</h1>
 }
 ```
 
-### 3.2 Presentational vs Container Components
+### 3.2 Mutation Loading States
 
-**Container components** connect to atoms:
-
-```typescript
-// containers/UserList.tsx
-function UserListContainer() {
-  const result = useAtomValue(usersAtom)
-  const [, deleteUser] = useAtom(deleteUserMutation)
-
-  const handleDelete = (id: string) => {
-    deleteUser({ path: { id }, reactivityKeys: ["users"] })
-  }
-
-  if (!Result.isSuccess(result)) {
-    return <LoadingOrError result={result} />
-  }
-
-  return <UserList users={result.value} onDelete={handleDelete} />
-}
-```
-
-**Presentational components** receive props, no atoms:
+For mutations, manage loading state locally:
 
 ```typescript
-// components/UserList.tsx
-interface UserListProps {
-  readonly users: ReadonlyArray<User>
-  readonly onDelete: (id: string) => void
-}
+function DeleteButton({ id, onDeleted }: { id: string; onDeleted: () => void }) {
+  const [isDeleting, setIsDeleting] = useState(false)
+  const router = useRouter()
 
-function UserList({ users, onDelete }: UserListProps) {
+  const handleDelete = async () => {
+    if (!confirm("Are you sure?")) return
+
+    setIsDeleting(true)
+    const { error } = await api.DELETE("/api/v1/items/{id}", {
+      params: { path: { id } }
+    })
+
+    if (error) {
+      setIsDeleting(false)
+      alert("Failed to delete")
+      return
+    }
+
+    await router.invalidate()
+    onDeleted()
+  }
+
   return (
-    <ul className="divide-y divide-gray-200">
-      {users.map(user => (
-        <UserRow key={user.id} user={user} onDelete={() => onDelete(user.id)} />
-      ))}
-    </ul>
+    <button
+      onClick={handleDelete}
+      disabled={isDeleting}
+      className={clsx(
+        "px-3 py-1.5 text-sm rounded-md",
+        "bg-red-600 text-white hover:bg-red-700",
+        "disabled:opacity-50"
+      )}
+    >
+      {isDeleting ? "Deleting..." : "Delete"}
+    </button>
   )
 }
 ```
 
-### 3.3 Composition Over Props
+### 3.3 Presentational vs Container Components
+
+**Presentational components** receive props, don't fetch data:
 
 ```typescript
-// ✅ GOOD: Composition
+// components/UserCard.tsx
+interface UserCardProps {
+  readonly user: User
+  readonly onEdit: () => void
+  readonly onDelete: () => void
+}
+
+function UserCard({ user, onEdit, onDelete }: UserCardProps) {
+  return (
+    <div className="rounded-lg border p-4">
+      <h3 className="font-medium">{user.name}</h3>
+      <p className="text-gray-500">{user.email}</p>
+      <div className="mt-4 flex gap-2">
+        <button onClick={onEdit}>Edit</button>
+        <button onClick={onDelete}>Delete</button>
+      </div>
+    </div>
+  )
+}
+```
+
+**Route components** connect to loader data and handle mutations:
+
+```typescript
+// routes/users/index.tsx
+function UsersPage() {
+  const { users } = Route.useLoaderData()
+  const router = useRouter()
+
+  const handleDelete = async (id: string) => {
+    await api.DELETE("/api/v1/users/{id}", { params: { path: { id } } })
+    router.invalidate()
+  }
+
+  return (
+    <div className="grid gap-4">
+      {users.map(user => (
+        <UserCard
+          key={user.id}
+          user={user}
+          onEdit={() => router.navigate({ to: `/users/${user.id}/edit` })}
+          onDelete={() => handleDelete(user.id)}
+        />
+      ))}
+    </div>
+  )
+}
+```
+
+### 3.4 Composition Over Props
+
+```typescript
+// GOOD: Composition
 function Card({ children }: { children: React.ReactNode }) {
   return <div className="rounded-lg border p-6">{children}</div>
 }
@@ -468,7 +567,7 @@ function CardBody({ children }: { children: React.ReactNode }) {
   </CardBody>
 </Card>
 
-// ❌ BAD: Prop drilling
+// BAD: Prop drilling
 <Card
   title="Title"
   titleClassName="text-xl font-bold"
@@ -478,49 +577,32 @@ function CardBody({ children }: { children: React.ReactNode }) {
 />
 ```
 
-### 3.4 Form Handling
+### 3.5 Empty States
 
-Use atoms for form state when the form affects other parts of the app:
-
-```typescript
-// atoms/forms.ts
-export const createEntryFormAtom = Atom.make<CreateEntryForm>({
-  description: "",
-  amount: "",
-  accountId: ""
-})
-
-// Reset form
-export const resetCreateEntryForm = () => {
-  // This could be called from anywhere
-}
-```
-
-For simple, isolated forms, local state is acceptable:
+Always handle empty data gracefully:
 
 ```typescript
-function SimpleSearchForm() {
-  // OK: Form state only used here until submission
-  const [query, setQuery] = useState("")
-  const [, setGlobalSearch] = useAtom(searchQueryAtom)
+function OrganizationsList() {
+  const { organizations } = Route.useLoaderData()
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    setGlobalSearch(query)
+  if (organizations.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <h3 className="text-lg font-medium text-gray-900">No organizations</h3>
+        <p className="mt-1 text-gray-500">Get started by creating your first organization.</p>
+        <Link to="/organizations/new" className="mt-4 inline-block">
+          <Button>Create Organization</Button>
+        </Link>
+      </div>
+    )
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex gap-2">
-      <input
-        value={query}
-        onChange={e => setQuery(e.target.value)}
-        className="flex-1 rounded-md border px-3 py-2"
-        placeholder="Search..."
-      />
-      <button type="submit" className="rounded-md bg-blue-600 px-4 py-2 text-white">
-        Search
-      </button>
-    </form>
+    <ul className="divide-y">
+      {organizations.map(org => (
+        <li key={org.id}>{org.name}</li>
+      ))}
+    </ul>
   )
 }
 ```
@@ -529,75 +611,97 @@ function SimpleSearchForm() {
 
 ## 4. Data Fetching Patterns
 
-### 4.1 Query Atoms with Families
+### 4.1 Parallel Data Fetching in Loaders
 
 ```typescript
-// atoms/companies.ts
-export const companyFamily = Atom.family((id: CompanyId) =>
-  ApiClient.query("companies", "get", {
-    path: { id },
-    timeToLive: Duration.minutes(5)
-  })
-)
+export const Route = createFileRoute("/dashboard")({
+  loader: async () => {
+    // Fetch all data in parallel
+    const [orgsResult, statsResult, recentResult] = await Promise.all([
+      api.GET("/api/v1/organizations"),
+      api.GET("/api/v1/dashboard/stats"),
+      api.GET("/api/v1/activity/recent")
+    ])
 
-// Component
-function CompanyDetails({ companyId }: { companyId: string }) {
-  const result = useAtomValue(companyFamily(CompanyId.make(companyId)))
-
-  return Result.match(result, {
-    onInitial: () => <Skeleton className="h-48" />,
-    onSuccess: ({ value }) => <CompanyCard company={value} />,
-    onFailure: ({ cause }) => <ErrorCard cause={cause} />
-  })
-}
-```
-
-### 4.2 Dependent Queries
-
-```typescript
-// Query that depends on another atom's value
-export const companyAccountsAtom = Atom.readable((get) => {
-  const companyResult = get(selectedCompanyAtom)
-
-  if (!Result.isSuccess(companyResult)) {
-    return companyResult  // Propagate loading/error
-  }
-
-  // Create query for this specific company
-  return get(ApiClient.query("accounts", "list", {
-    urlParams: { companyId: companyResult.value.id },
-    timeToLive: Duration.minutes(5)
-  }))
+    return {
+      organizations: orgsResult.data ?? [],
+      stats: statsResult.data ?? null,
+      recentActivity: recentResult.data ?? []
+    }
+  },
+  component: DashboardPage
 })
 ```
 
-### 4.3 Mutations with Feedback
+### 4.2 Dependent Data Fetching
+
+When data depends on other data, fetch sequentially:
 
 ```typescript
-function DeleteButton({ entryId }: { entryId: string }) {
-  const [result, deleteEntry] = useAtom(deleteEntryMutation)
+export const Route = createFileRoute("/organizations/$orgId/companies/$companyId")({
+  loader: async ({ params }) => {
+    // First get the company to know its settings
+    const { data: company, error } = await api.GET(
+      "/api/v1/companies/{companyId}",
+      { params: { path: { companyId: params.companyId } } }
+    )
 
-  const handleDelete = () => {
-    if (confirm("Are you sure?")) {
-      deleteEntry({
-        path: { id: entryId },
-        reactivityKeys: ["entries"]
+    if (error) throw new Error("Company not found")
+
+    // Then fetch dependent data based on company settings
+    const [accountsResult, periodsResult] = await Promise.all([
+      api.GET("/api/v1/companies/{companyId}/accounts", {
+        params: { path: { companyId: params.companyId } }
+      }),
+      api.GET("/api/v1/companies/{companyId}/fiscal-periods", {
+        params: { path: { companyId: params.companyId } }
       })
+    ])
+
+    return {
+      company,
+      accounts: accountsResult.data ?? [],
+      fiscalPeriods: periodsResult.data ?? []
     }
+  }
+})
+```
+
+### 4.3 Revalidation After Mutations
+
+After any mutation, call `router.invalidate()` to refetch loader data:
+
+```typescript
+function EditOrganizationForm({ organization }: Props) {
+  const router = useRouter()
+  const [name, setName] = useState(organization.name)
+  const [saving, setSaving] = useState(false)
+
+  const handleSave = async () => {
+    setSaving(true)
+    const { error } = await api.PATCH("/api/v1/organizations/{id}", {
+      params: { path: { id: organization.id } },
+      body: { name }
+    })
+
+    if (error) {
+      setSaving(false)
+      alert("Failed to save")
+      return
+    }
+
+    // Refetch all loader data to show updated organization
+    await router.invalidate()
+    setSaving(false)
   }
 
   return (
-    <button
-      onClick={handleDelete}
-      disabled={Result.isWaiting(result)}
-      className={clsx(
-        "rounded-md px-3 py-1.5 text-sm",
-        "bg-red-600 text-white hover:bg-red-700",
-        "disabled:opacity-50"
-      )}
-    >
-      {Result.isWaiting(result) ? "Deleting..." : "Delete"}
-    </button>
+    <div>
+      <input value={name} onChange={e => setName(e.target.value)} />
+      <button onClick={handleSave} disabled={saving}>
+        {saving ? "Saving..." : "Save"}
+      </button>
+    </div>
   )
 }
 ```
@@ -606,89 +710,21 @@ function DeleteButton({ entryId }: { entryId: string }) {
 
 ## 5. Performance Patterns
 
-### 5.1 Memoize Expensive Computations in Atoms
+### 5.1 Split Large Pages into Components
 
 ```typescript
-// Do computation in atom, not component
-export const sortedEntriesAtom = Atom.readable((get) => {
-  const result = get(entriesAtom)
-  const sortBy = get(sortByAtom)
-  const sortOrder = get(sortOrderAtom)
-
-  if (!Result.isSuccess(result)) return result
-
-  // Sorting happens once when dependencies change
-  const sorted = [...result.value].sort((a, b) => {
-    const cmp = a[sortBy] < b[sortBy] ? -1 : 1
-    return sortOrder === "asc" ? cmp : -cmp
-  })
-
-  return Result.success(sorted)
-})
-
-// Component just renders
-function EntriesList() {
-  const result = useAtomValue(sortedEntriesAtom)
-  // No sorting logic here
-}
-```
-
-### 5.2 Avoid Inline Object/Array Creation
-
-```typescript
-// ❌ BAD: New object every render
-function Component() {
-  const result = useAtomValue(ApiClient.query("items", "list", {
-    urlParams: { page: 1 }  // New object each render!
-  }))
-}
-
-// ✅ GOOD: Stable atom reference
-const itemsAtom = ApiClient.query("items", "list", {
-  urlParams: { page: 1 }
-})
-
-function Component() {
-  const result = useAtomValue(itemsAtom)
-}
-
-// ✅ GOOD: Memoized with useMemo
-function Component({ page }: { page: number }) {
-  const atom = React.useMemo(
-    () => ApiClient.query("items", "list", { urlParams: { page } }),
-    [page]
-  )
-  const result = useAtomValue(atom)
-}
-
-// ✅ BEST: Use Atom.family
-const itemsFamily = Atom.family((page: number) =>
-  ApiClient.query("items", "list", { urlParams: { page } })
-)
-
-function Component({ page }: { page: number }) {
-  const result = useAtomValue(itemsFamily(page))
-}
-```
-
-### 5.3 Split Large Components
-
-```typescript
-// ❌ BAD: One large component with many atoms
+// BAD: One large component
 function Dashboard() {
-  const users = useAtomValue(usersAtom)
-  const stats = useAtomValue(statsAtom)
-  const recent = useAtomValue(recentActivityAtom)
-  const alerts = useAtomValue(alertsAtom)
-  // ... renders everything
+  const { orgs, stats, activity, alerts } = Route.useLoaderData()
+  // ... renders everything, re-renders on any state change
 }
 
-// ✅ GOOD: Split into focused components
+// GOOD: Split into focused components
 function Dashboard() {
   return (
     <div className="grid grid-cols-12 gap-6">
       <StatsPanel className="col-span-12" />
-      <UsersList className="col-span-8" />
+      <OrganizationsList className="col-span-8" />
       <RecentActivity className="col-span-4" />
       <AlertsBanner />
     </div>
@@ -696,8 +732,92 @@ function Dashboard() {
 }
 
 function StatsPanel({ className }: { className?: string }) {
-  const result = useAtomValue(statsAtom)
-  // Only re-renders when stats change
+  const { stats } = Route.useLoaderData()
+  // Only uses stats from loader data
+  return <div className={className}>...</div>
+}
+
+function OrganizationsList({ className }: { className?: string }) {
+  const { organizations } = Route.useLoaderData()
+  // Only uses organizations from loader data
+  return <div className={className}>...</div>
+}
+```
+
+### 5.2 Memoize Expensive Components
+
+```typescript
+import { memo } from "react"
+
+// Memoize presentational components that receive stable props
+const AccountRow = memo(function AccountRow({
+  account,
+  onSelect
+}: {
+  account: Account
+  onSelect: (id: string) => void
+}) {
+  return (
+    <tr onClick={() => onSelect(account.id)}>
+      <td>{account.code}</td>
+      <td>{account.name}</td>
+      <td>{account.balance}</td>
+    </tr>
+  )
+})
+
+// Use useCallback for handlers passed to memoized components
+function AccountsList() {
+  const { accounts } = Route.useLoaderData()
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+
+  const handleSelect = useCallback((id: string) => {
+    setSelectedId(id)
+  }, [])
+
+  return (
+    <table>
+      <tbody>
+        {accounts.map(account => (
+          <AccountRow
+            key={account.id}
+            account={account}
+            onSelect={handleSelect}
+          />
+        ))}
+      </tbody>
+    </table>
+  )
+}
+```
+
+### 5.3 Lazy Load Heavy Components
+
+```typescript
+import { lazy, Suspense } from "react"
+
+// Lazy load components not needed on initial render
+const ReportViewer = lazy(() => import("./ReportViewer"))
+const ChartWidget = lazy(() => import("./ChartWidget"))
+
+function DashboardPage() {
+  const [showReport, setShowReport] = useState(false)
+
+  return (
+    <div>
+      <button onClick={() => setShowReport(true)}>View Report</button>
+
+      {showReport && (
+        <Suspense fallback={<div>Loading report...</div>}>
+          <ReportViewer />
+        </Suspense>
+      )}
+
+      <Suspense fallback={<div className="h-64 animate-pulse bg-gray-100" />}>
+        <ChartWidget />
+      </Suspense>
+    </div>
+  )
 }
 ```
 
@@ -705,11 +825,11 @@ function StatsPanel({ className }: { className?: string }) {
 
 ## 6. Testing Patterns
 
-### 6.1 Test Presentational Components in Isolation
+### 6.1 Test Presentational Components
 
 ```typescript
 // components/UserCard.test.tsx
-import { render, screen } from "@testing-library/react"
+import { render, screen, fireEvent } from "@testing-library/react"
 import { UserCard } from "./UserCard"
 
 const mockUser = {
@@ -718,39 +838,56 @@ const mockUser = {
   email: "john@example.com"
 }
 
-test("renders user name", () => {
-  render(<UserCard user={mockUser} />)
+test("renders user information", () => {
+  render(<UserCard user={mockUser} onEdit={vi.fn()} onDelete={vi.fn()} />)
+
   expect(screen.getByText("John Doe")).toBeInTheDocument()
+  expect(screen.getByText("john@example.com")).toBeInTheDocument()
+})
+
+test("calls onDelete when delete button clicked", () => {
+  const onDelete = vi.fn()
+  render(<UserCard user={mockUser} onEdit={vi.fn()} onDelete={onDelete} />)
+
+  fireEvent.click(screen.getByText("Delete"))
+  expect(onDelete).toHaveBeenCalled()
 })
 ```
 
-### 6.2 Test Container Components with Registry
+### 6.2 E2E Tests for Full Flows
+
+For route components with loaders, use E2E tests:
 
 ```typescript
-// containers/UserList.test.tsx
-import { render, screen } from "@testing-library/react"
-import { RegistryProvider } from "@effect-atom/atom-react"
-import * as Registry from "@effect-atom/atom/Registry"
-import { UserListContainer } from "./UserListContainer"
-import { usersAtom } from "../atoms/users"
-import * as Result from "@effect-atom/atom/Result"
+// test-e2e/organizations.spec.ts
+import { test, expect } from "@playwright/test"
 
-test("renders users from atom", () => {
-  const registry = Registry.make()
-  // Pre-populate atom with test data
-  registry.set(usersAtom, Result.success([
-    { id: "1", name: "Alice" },
-    { id: "2", name: "Bob" }
-  ]))
+test("displays organizations list", async ({ page }) => {
+  // Login first
+  await page.goto("/login")
+  await page.fill('[name="email"]', "test@example.com")
+  await page.fill('[name="password"]', "password")
+  await page.click('button[type="submit"]')
 
-  render(
-    <RegistryProvider registry={registry}>
-      <UserListContainer />
-    </RegistryProvider>
-  )
+  // Navigate to organizations
+  await page.goto("/organizations")
 
-  expect(screen.getByText("Alice")).toBeInTheDocument()
-  expect(screen.getByText("Bob")).toBeInTheDocument()
+  // Verify data is rendered (SSR - no loading state)
+  await expect(page.locator("h1")).toContainText("Organizations")
+  await expect(page.locator("ul li")).toHaveCount.greaterThan(0)
+})
+
+test("creates new organization", async ({ page }) => {
+  await loginAsTestUser(page)
+  await page.goto("/organizations")
+
+  await page.click('text="Create Organization"')
+  await page.fill('[name="name"]', "Test Org")
+  await page.click('button[type="submit"]')
+
+  // Should redirect to new org page
+  await expect(page).toHaveURL(/\/organizations\/[a-z0-9-]+/)
+  await expect(page.locator("h1")).toContainText("Test Org")
 })
 ```
 
@@ -760,13 +897,14 @@ test("renders users from atom", () => {
 
 | Do | Don't |
 |----|-------|
-| Use Effect Atom for shared state | Use useState for shared state |
+| Use `loader()` for server data | Fetch data in useEffect |
+| Use `useState` for local UI state | Store server data in useState |
+| Use URL search params for filters | Store shareable state in useState |
+| Use `router.invalidate()` after mutations | Manually update local state after mutations |
 | Use Tailwind classes for styling | Use inline styles |
 | Use clsx for conditional classes | String concatenation for classes |
-| Handle all Result states | Assume success |
-| Use Atom.family for parameterized queries | Create atoms in render |
 | Split into focused components | Create monolithic components |
-| Use composition (children) | Prop drilling everything |
-| Derive state in atoms | Duplicate state |
-| Memoize atoms with useMemo or family | Create new atoms each render |
-| Use useState only for ephemeral local state | Use useState for app state |
+| Use composition (children) | Prop drill everything |
+| Handle empty states | Assume data exists |
+| Test presentational components with RTL | Only test with E2E |
+| Test full flows with Playwright | Skip E2E testing |

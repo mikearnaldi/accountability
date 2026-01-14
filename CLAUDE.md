@@ -7,19 +7,18 @@ This document provides guidance for Claude Code when working on the Accountabili
 Accountability is a multi-company, multi-currency accounting application using:
 - **Effect** - Functional TypeScript library for type-safe backend business logic (server only)
 - **TanStack Start** - Full-stack React framework with SSR and file-based routing
-- **TanStack Query** - Data fetching and caching for React (replaces Effect Atom)
-- **Generated API Client** - Typed fetch client generated from OpenAPI spec
+- **openapi-fetch** - Typed fetch client generated from Effect HttpApi's OpenAPI spec
 
 ## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                      FRONTEND (web)                         │
-│  React + TanStack Start + TanStack Query + Tailwind         │
-│  NO Effect code - pure React with generated fetch client    │
+│  React + TanStack Start + openapi-fetch + Tailwind          │
+│  NO Effect code - loaders for SSR, useState for UI          │
 └─────────────────────────────────────────────────────────────┘
                               │
-                              │ HTTP (generated fetch client)
+                              │ HTTP (openapi-fetch client)
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                       BACKEND (api)                          │
@@ -42,7 +41,7 @@ accountability/
 │   ├── core/           # Core accounting logic (Effect, 100% tested)
 │   ├── persistence/    # Database layer (@effect/sql + PostgreSQL)
 │   ├── api/            # Effect HttpApi server + OpenAPI export
-│   └── web/            # React UI (NO Effect - TanStack Query + generated client)
+│   └── web/            # React UI (NO Effect - loaders + openapi-fetch client)
 ├── specs/              # Detailed specifications (see below)
 └── repos/              # Reference repositories (git subtrees)
     ├── effect/         # Effect-TS source
@@ -59,11 +58,11 @@ accountability/
 | [specs/EFFECT_LAYERS.md](specs/EFFECT_LAYERS.md) | Layer composition, memoization, service patterns |
 | [specs/EFFECT_TESTING.md](specs/EFFECT_TESTING.md) | @effect/vitest, testcontainers, property testing |
 | [specs/TYPESCRIPT_CONVENTIONS.md](specs/TYPESCRIPT_CONVENTIONS.md) | Project refs, imports, module structure |
-| [specs/HTTP_API_TANSTACK.md](specs/HTTP_API_TANSTACK.md) | Effect HttpApi + OpenAPI export patterns |
+| [specs/HTTP_API_TANSTACK.md](specs/HTTP_API_TANSTACK.md) | Effect HttpApi + TanStack Start SSR + openapi-fetch |
 | [specs/API_BEST_PRACTICES.md](specs/API_BEST_PRACTICES.md) | API layer conventions |
 | [specs/AUTHENTICATION.md](specs/AUTHENTICATION.md) | Multi-provider auth system, session management |
 | [specs/E2E_TESTING.md](specs/E2E_TESTING.md) | Playwright E2E testing patterns |
-| [specs/REACT_BEST_PRACTICES.md](specs/REACT_BEST_PRACTICES.md) | React patterns, TanStack Query, Tailwind |
+| [specs/REACT_BEST_PRACTICES.md](specs/REACT_BEST_PRACTICES.md) | React patterns, loaders, mutations, Tailwind |
 | [specs/USABILITY_BEST_PRACTICES.md](specs/USABILITY_BEST_PRACTICES.md) | UX patterns, navigation, forms, states |
 
 ## Key Files
@@ -95,10 +94,10 @@ accountability/
 
 **NO Effect code in frontend.** Key patterns:
 
-1. **Use generated API client** - typed fetch client from OpenAPI spec
-2. **Use TanStack Query** - useQuery for fetching, useMutation for mutations
-3. **Use TanStack Start loaders** - SSR data prefetching in route loaders
-4. **Use React state** - useState/useReducer for local UI state
+1. **Use openapi-fetch client** - `api.GET()`, `api.POST()` for typed API calls
+2. **Use loaders for SSR** - `loader()` fetches data, `useLoaderData()` in component
+3. **Use `router.invalidate()`** - refetch data after mutations
+4. **Use `useState` for UI** - local form state, modals, toggles
 5. **Use Tailwind CSS** - no inline styles, use clsx for conditional classes
 
 ---
@@ -114,7 +113,7 @@ pnpm start              # Start production server
 
 # Code Generation
 pnpm generate-routes    # Regenerate TanStack Router routes (routeTree.gen.ts)
-pnpm generate:api-client # Generate typed API client from OpenAPI spec
+pnpm generate:api       # Generate typed API client from OpenAPI spec (run in packages/web)
 
 # Testing
 pnpm test               # Run unit/integration tests (vitest)
@@ -154,10 +153,10 @@ pnpm clean              # Clean build outputs
 
 ### Frontend (React)
 
-1. **Use generated API client** - never write fetch calls manually
-2. **Use TanStack Query hooks** - useQuery, useMutation with proper query keys
-3. **Prefetch in loaders** - use TanStack Start loaders for SSR
-4. **Handle all states** - loading, error, empty, success
+1. **Use openapi-fetch client** - `api.GET()`, `api.POST()` for type-safe calls
+2. **Fetch in loaders** - use `loader()` for SSR data, `useLoaderData()` in component
+3. **Invalidate after mutations** - call `router.invalidate()` to refetch data
+4. **Handle empty states** - show helpful messages when no data
 5. **Use Tailwind utilities** - consistent spacing, colors, typography
 
 ---
