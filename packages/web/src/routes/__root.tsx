@@ -3,18 +3,20 @@ import {
   Link,
   Outlet,
   Scripts,
-  createRootRoute
+  createRootRouteWithContext
 } from "@tanstack/react-router"
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools"
 import * as React from "react"
 // Import CSS as URL to include in head (prevents FOUC)
 import appCss from "../index.css?url"
+import { api } from "@/api/client"
+import type { RouterContext } from "@/types/router"
 
 // =============================================================================
 // Root Route
 // =============================================================================
 
-export const Route = createRootRoute({
+export const Route = createRootRouteWithContext<RouterContext>()({
   head: () => ({
     meta: [
       {
@@ -30,6 +32,26 @@ export const Route = createRootRoute({
     ],
     links: [{ rel: "stylesheet", href: appCss }]
   }),
+  beforeLoad: async ({ context }) => {
+    // beforeLoad runs on both server (SSR) and client
+    // The context is initialized with the default user: null from the router
+    // We need to check if we can access the session cookie and validate it
+
+    try {
+      // Attempt to call /api/auth/me to validate the session
+      // On the server, cookies are automatically included in the request
+      // On the client, they're also available
+      const { data, error } = await api.GET("/api/auth/me")
+
+      if (error || !data?.user) {
+        return context
+      }
+
+      return { user: data.user }
+    } catch {
+      return context
+    }
+  },
   component: RootComponent,
   notFoundComponent: NotFoundComponent
 })

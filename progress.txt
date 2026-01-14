@@ -814,3 +814,8 @@
 **Story**: 11.0.2 - API: Add httpOnly secure cookie authentication
 **Status**: complete
 ---
+
+## Iteration 8 - 2026-01-14 18:22
+**Story**: 11.0.3 - Root route with SSR auth check
+**Status**: complete
+---

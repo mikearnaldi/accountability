@@ -9,6 +9,7 @@
     "types": ["vite/client", "node"],
     "paths": {
       "~/*": ["./src/*"],
+      "@/*": ["./src/*"],
       "@accountability/core/*": ["../core/src/*"],
       "@accountability/api/*": ["../api/src/*"],
       "@accountability/persistence/*": ["../persistence/src/*"]
