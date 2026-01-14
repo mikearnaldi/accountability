@@ -66,7 +66,9 @@ export default defineConfig({
       "cpu-features",
       "pg",
       "pg-pool",
-      "pg-native"
+      "pg-native",
+      "@effect/sql",
+      "@effect/sql-pg"
     ]
   },
   plugins: [
@@ -91,7 +93,10 @@ export default defineConfig({
           // Externalize pg and related packages - native bindings don't bundle well
           "pg",
           "pg-pool",
-          "pg-native"
+          "pg-native",
+          // Externalize Effect SQL packages - only used on server
+          "@effect/sql",
+          "@effect/sql-pg"
         ]
       }
     })

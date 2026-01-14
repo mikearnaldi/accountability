@@ -809,3 +809,8 @@
 **Story**: 10.0.4a - SSR Auth: Add httpOnly session cookie
 **Status**: complete
 ---
+
+## Iteration 6 - 2026-01-14 18:13
+**Story**: 11.0.2 - API: Add httpOnly secure cookie authentication
+**Status**: complete
+---

@@ -415,6 +415,50 @@ layer(HttpLive, { timeout: "120 seconds" })("Auth API Integration Tests", (it) =
           expect(meResponse.status).toBe(200)
         })
       )
+
+      it.effect("sets httpOnly secure cookie on login response", () =>
+        Effect.gen(function* () {
+          const httpClient = yield* HttpClient.HttpClient
+          const email = generateTestEmail()
+          const password = generateTestPassword()
+
+          // Register first
+          yield* HttpClientRequest.post("/api/auth/register").pipe(
+            HttpClientRequest.bodyUnsafeJson({
+              email,
+              password,
+              displayName: "Cookie Test User"
+            }),
+            httpClient.execute,
+            Effect.scoped
+          )
+
+          // Login and check Set-Cookie header
+          const loginResponse = yield* HttpClientRequest.post("/api/auth/login").pipe(
+            HttpClientRequest.bodyUnsafeJson({
+              provider: "local",
+              credentials: { email, password }
+            }),
+            httpClient.execute,
+            Effect.scoped
+          )
+
+          expect(loginResponse.status).toBe(200)
+
+          // Check for Set-Cookie header (Node.js Response uses headers object directly)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/consistent-type-assertions
+          const responseAny = loginResponse as any
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+          const setCookieHeader = responseAny.headers?.["set-cookie"] as string | string[] | undefined
+          expect(setCookieHeader).toBeDefined()
+          const setCookieString = Array.isArray(setCookieHeader) ? setCookieHeader[0] : setCookieHeader ?? ""
+          expect(setCookieString).toContain("accountability_session=")
+          expect(setCookieString).toContain("HttpOnly")
+          expect(setCookieString).toContain("Secure")
+          expect(setCookieString).toContain("SameSite=Lax")
+          expect(setCookieString).toContain("Path=/")
+        })
+      )
     })
 
     describe("Wrong password handling", () => {
@@ -603,6 +647,62 @@ layer(HttpLive, { timeout: "120 seconds" })("Auth API Integration Tests", (it) =
           )
 
           expect(meResponse.status).toBe(401)
+        })
+      )
+
+      it.effect("clears httpOnly cookie on logout response", () =>
+        Effect.gen(function* () {
+          const httpClient = yield* HttpClient.HttpClient
+          const email = generateTestEmail()
+          const password = generateTestPassword()
+
+          // Register
+          yield* HttpClientRequest.post("/api/auth/register").pipe(
+            HttpClientRequest.bodyUnsafeJson({
+              email,
+              password,
+              displayName: "Logout Cookie Test"
+            }),
+            httpClient.execute,
+            Effect.scoped
+          )
+
+          // Login to get token
+          const loginResponse = yield* HttpClientRequest.post("/api/auth/login").pipe(
+            HttpClientRequest.bodyUnsafeJson({
+              provider: "local",
+              credentials: { email, password }
+            }),
+            httpClient.execute,
+            Effect.scoped
+          )
+
+          const loginJson = yield* loginResponse.json
+          const { token } = yield* decodeJsonResponse(LoginResponseSchema)(loginJson)
+
+          // Logout and check Set-Cookie header
+          const logoutResponse = yield* HttpClientRequest.post("/api/auth/logout").pipe(
+            HttpClientRequest.bearerToken(token),
+            httpClient.execute,
+            Effect.scoped
+          )
+
+          expect(logoutResponse.status).toBe(200)
+
+          // Check for Set-Cookie header with expiry in the past (Node.js Response uses headers object directly)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/consistent-type-assertions
+          const responseAny = logoutResponse as any
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+          const setCookieHeader = responseAny.headers?.["set-cookie"] as string | string[] | undefined
+          expect(setCookieHeader).toBeDefined()
+          const setCookieString = Array.isArray(setCookieHeader) ? setCookieHeader[0] : setCookieHeader ?? ""
+          expect(setCookieString).toContain("accountability_session=")
+          expect(setCookieString).toContain("HttpOnly")
+          expect(setCookieString).toContain("Secure")
+          expect(setCookieString).toContain("SameSite=Lax")
+          expect(setCookieString).toContain("Path=/")
+          // Should have expires date to clear the cookie (set to epoch 0)
+          expect(setCookieString.toLowerCase()).toContain("expires=")
         })
       )
     })

@@ -1,10 +1,13 @@
 import { HttpApiBuilder, HttpApiSwagger, HttpServer } from "@effect/platform"
 import * as Layer from "effect/Layer"
+import * as Config from "effect/Config"
+import * as Redacted from "effect/Redacted"
+import * as Effect from "effect/Effect"
+import { PgClient } from "@effect/sql-pg"
 import { AppApiLive } from "@accountability/api/Layers/AppApiLive"
 import { SessionTokenValidatorLive } from "@accountability/api/Layers/AuthApiLive"
 import { RepositoriesWithAuthLive } from "@accountability/persistence/Layers/RepositoriesLive"
 import { MigrationsLive } from "@accountability/persistence/Layers/MigrationsLive"
-import { PgClientLayer } from "./PgClientLayer.ts"
 
 // Logging utility that bypasses no-console lint rule
 // Uses process.stderr.write for debug logging during shutdown
@@ -17,6 +20,36 @@ const log = (message: string): void => {
 declare global {
   var __apiDispose: (() => Promise<void>) | undefined
 }
+
+// Create database layer from environment configuration
+const DatabaseLayer = Layer.unwrapEffect(
+  Effect.gen(function* () {
+    const url = yield* Config.redacted("DATABASE_URL").pipe(
+      Config.orElse(() =>
+        Config.all({
+          host: Config.string("PGHOST").pipe(Config.withDefault("localhost")),
+          port: Config.integer("PGPORT").pipe(Config.withDefault(5432)),
+          user: Config.string("PGUSER").pipe(Config.withDefault("postgres")),
+          password: Config.redacted("PGPASSWORD").pipe(Config.withDefault(Redacted.make("postgres"))),
+          database: Config.string("PGDATABASE").pipe(Config.withDefault("accountability"))
+        }).pipe(
+          Config.map(({ host, port, user, password, database }) =>
+            Redacted.make(
+              `postgresql://${user}:${Redacted.value(password)}@${host}:${port}/${database}`
+            )
+          )
+        )
+      )
+    )
+
+    return PgClient.layer({
+      url,
+      maxConnections: 10,
+      idleTimeout: "60 seconds",
+      connectTimeout: "10 seconds"
+    })
+  })
+)
 
 // Create web handler from the Effect HttpApi
 // This returns a standard web Request -> Response handler compatible with TanStack Start
@@ -44,8 +77,8 @@ const { handler, dispose } = HttpApiBuilder.toWebHandler(
     Layer.provide(RepositoriesWithAuthLive),
     // Run migrations on startup (ensures schema is up to date)
     Layer.provide(MigrationsLive),
-    // Use dev container (testcontainers) or production PgClient based on NODE_ENV
-    Layer.provide(PgClientLayer),
+    // Use database layer from environment configuration
+    Layer.provide(DatabaseLayer),
     Layer.provideMerge(HttpServer.layerContext)
   )
 )

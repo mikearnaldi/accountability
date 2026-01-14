@@ -55,7 +55,7 @@ async function runMigrations(dbUrl: string): Promise<void> {
   console.log("Running database migrations...")
 
   const { MigrationsLive, runMigrations } = await import(
-    "@accountability/persistence/Layers/MigrationsLive"
+    "../../persistence/src/Layers/MigrationsLive.ts"
   )
 
   await Effect.runPromise(
