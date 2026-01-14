@@ -152,6 +152,23 @@ export interface IdentityRepositoryService {
     provider: AuthProviderType,
     providerId: ProviderId
   ) => Effect.Effect<Option.Option<HashedPassword>, PersistenceError>
+
+  /**
+   * Update the password hash for a local provider identity
+   *
+   * Used to change a user's password. Only applicable for identities with provider='local'.
+   *
+   * @param provider - The authentication provider type
+   * @param providerId - The ID within the provider (email for local auth)
+   * @param newPasswordHash - The new hashed password
+   * @returns Effect containing void on success
+   * @throws EntityNotFoundError if identity doesn't exist
+   */
+  readonly updatePasswordHash: (
+    provider: AuthProviderType,
+    providerId: ProviderId,
+    newPasswordHash: HashedPassword
+  ) => Effect.Effect<void, EntityNotFoundError | PersistenceError>
 }
 
 /**

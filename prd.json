@@ -74,6 +74,15 @@
     "tanstack_start": "repos/tanstack-router/packages/react-start/src/",
     "tanstack_examples": "repos/tanstack-router/examples/react/start-basic/"
   },
+  "testing_policy": {
+    "mandatory": "EVERY story MUST include tests. A story is NOT complete without passing tests.",
+    "ui_changes": "E2E tests in packages/web/test-e2e/ that prove the UI works through user interactions.",
+    "api_changes": "Unit/integration tests in packages/api/test/ using @effect/vitest.",
+    "persistence_changes": "Integration tests in packages/persistence/test/ with testcontainers PostgreSQL.",
+    "core_changes": "Unit tests in packages/core/test/ with 100% coverage requirement.",
+    "verification": "Run 'pnpm test && pnpm test:e2e' before marking any story complete.",
+    "no_exceptions": "Do NOT mark a story as complete if tests are missing or failing."
+  },
   "ui_patterns": {
     "state_management": "All shared state must use Effect Atom. useState only for truly local ephemeral state (form drafts, hover states).",
     "styling": "Tailwind CSS classes only. No inline styles. Use clsx for conditional classes.",
@@ -102,7 +111,8 @@
         "Public routes: /login, /register, /auth/callback/:provider",
         "Navigation links: Organizations, Companies, Journal Entries, Reports",
         "Active route highlighting in navigation",
-        "Tailwind CSS styling throughout"
+        "Tailwind CSS styling throughout",
+        "TESTS: E2E smoke test verifies app shell renders correctly"
       ],
       "technical_details": {
         "files": [
@@ -137,7 +147,8 @@
         "authTokenAtom - persisted to localStorage",
         "currentUserAtom - async atom that fetches /api/auth/me when token exists",
         "isAuthenticatedAtom - derived from currentUserAtom",
-        "Runtime properly configured with layers"
+        "Runtime properly configured with layers",
+        "TESTS: Unit tests for auth atom logic (token storage, 401 handling)"
       ],
       "technical_details": {
         "files": [
@@ -170,9 +181,10 @@
         "Redirect to / or ?redirect param on success",
         "Redirect away if already authenticated",
         "data-testid attributes on all interactive elements",
-        "E2E test: successful login redirects to dashboard",
-        "E2E test: invalid credentials shows error",
-        "E2E test: redirect param works after login"
+        "TESTS (E2E): successful login redirects to dashboard",
+        "TESTS (E2E): invalid credentials shows error",
+        "TESTS (E2E): redirect param works after login",
+        "TESTS (API): packages/api/test/auth.test.ts covers login endpoint"
       ],
       "technical_details": {
         "files": [
@@ -182,7 +194,10 @@
         "mutations": [
           "loginMutation - calls /api/auth/login, stores token on success"
         ],
-        "e2e_file": "packages/web/test-e2e/auth/login.spec.ts"
+        "e2e_file": "packages/web/test-e2e/auth/login.spec.ts",
+        "unit_tests": [
+          "packages/api/test/auth.test.ts"
+        ]
       },
       "status": "complete",
       "estimated_complexity": "medium"
@@ -207,9 +222,11 @@
         "Link to login page",
         "Redirect away if already authenticated",
         "data-testid attributes for testing",
-        "E2E test: successful registration creates user and logs in",
-        "E2E test: duplicate email shows error",
-        "E2E test: weak password shows validation error"
+        "TESTS (E2E): successful registration creates user and logs in",
+        "TESTS (E2E): duplicate email shows error",
+        "TESTS (E2E): weak password shows validation error",
+        "TESTS (API): packages/api/test/auth.test.ts covers register endpoint",
+        "TESTS (Persistence): packages/persistence/test/UserRepository.test.ts"
       ],
       "technical_details": {
         "files": [
@@ -218,7 +235,11 @@
         "mutations": [
           "registerMutation - calls /api/auth/register"
         ],
-        "e2e_file": "packages/web/test-e2e/auth/register.spec.ts"
+        "e2e_file": "packages/web/test-e2e/auth/register.spec.ts",
+        "unit_tests": [
+          "packages/api/test/auth.test.ts",
+          "packages/persistence/test/UserRepository.test.ts"
+        ]
       },
       "status": "complete",
       "estimated_complexity": "medium"
@@ -301,7 +322,9 @@
         "Button to unlink provider (disabled if only one remains)",
         "Change password section (if local provider linked)",
         "Success/error notifications for all actions",
-        "E2E test: account settings displays user info correctly"
+        "TESTS (E2E): account settings displays user info correctly",
+        "TESTS (E2E): change password flow works",
+        "TESTS (API): packages/api/test/auth.test.ts covers password change endpoint"
       ],
       "technical_details": {
         "files": [
@@ -313,9 +336,13 @@
           "linkProviderMutation",
           "unlinkProviderMutation",
           "changePasswordMutation"
+        ],
+        "e2e_file": "packages/web/test-e2e/auth/account-settings.spec.ts",
+        "unit_tests": [
+          "packages/api/test/auth.test.ts"
         ]
       },
-      "status": "pending",
+      "status": "in_progress",
       "estimated_complexity": "medium"
     },
     {
@@ -339,9 +366,11 @@
         "Loading skeleton during initial fetch",
         "Error state with retry option",
         "data-testid attributes for testing",
-        "E2E test: list displays organizations",
-        "E2E test: create organization via UI works",
-        "E2E test: navigate to organization details"
+        "TESTS (E2E): list displays organizations",
+        "TESTS (E2E): create organization via UI works",
+        "TESTS (E2E): navigate to organization details",
+        "TESTS (API): packages/api/test/organizations.test.ts covers list/create endpoints",
+        "TESTS (Persistence): packages/persistence/test/OrganizationRepository.test.ts"
       ],
       "technical_details": {
         "files": [
@@ -353,7 +382,11 @@
           "organizationsAtom - ApiClient.query('organizations', 'list')",
           "createOrganizationMutation"
         ],
-        "e2e_file": "packages/web/test-e2e/organizations.spec.ts"
+        "e2e_file": "packages/web/test-e2e/organizations.spec.ts",
+        "unit_tests": [
+          "packages/api/test/organizations.test.ts",
+          "packages/persistence/test/OrganizationRepository.test.ts"
+        ]
       },
       "status": "pending",
       "estimated_complexity": "medium"
@@ -376,7 +409,9 @@
         "'Create Company' button",
         "Edit organization settings (name, currency)",
         "Breadcrumb navigation: Organizations > Org Name",
-        "E2E test: organization details page displays correctly"
+        "TESTS (E2E): organization details page displays correctly",
+        "TESTS (E2E): edit organization settings works",
+        "TESTS (API): packages/api/test/organizations.test.ts covers get/update endpoints"
       ],
       "technical_details": {
         "files": [
@@ -385,6 +420,10 @@
         "atoms": [
           "organizationFamily - Atom.family for single org",
           "companiesByOrgAtom - companies filtered by org"
+        ],
+        "e2e_file": "packages/web/test-e2e/organizations.spec.ts",
+        "unit_tests": [
+          "packages/api/test/organizations.test.ts"
         ]
       },
       "status": "pending",
@@ -408,8 +447,10 @@
         "'Create Company' button opens form/modal",
         "Empty state when no companies exist",
         "Loading and error states",
-        "E2E test: list displays companies in org",
-        "E2E test: create company via UI works"
+        "TESTS (E2E): list displays companies in org",
+        "TESTS (E2E): create company via UI works",
+        "TESTS (API): packages/api/test/companies.test.ts covers list/create endpoints",
+        "TESTS (Persistence): packages/persistence/test/CompanyRepository.test.ts"
       ],
       "technical_details": {
         "files": [
@@ -421,7 +462,11 @@
           "companiesByOrgFamily - Atom.family((orgId) => query)",
           "createCompanyMutation"
         ],
-        "e2e_file": "packages/web/test-e2e/companies.spec.ts"
+        "e2e_file": "packages/web/test-e2e/companies.spec.ts",
+        "unit_tests": [
+          "packages/api/test/companies.test.ts",
+          "packages/persistence/test/CompanyRepository.test.ts"
+        ]
       },
       "status": "pending",
       "estimated_complexity": "medium"
@@ -444,7 +489,9 @@
         "Edit company settings button",
         "Consolidation info if subsidiary (parent, ownership %, method)",
         "Breadcrumb: Organizations > Org > Companies > Company",
-        "E2E test: company details display correctly"
+        "TESTS (E2E): company details display correctly",
+        "TESTS (E2E): edit company settings works",
+        "TESTS (API): packages/api/test/companies.test.ts covers get/update endpoints"
       ],
       "technical_details": {
         "files": [
@@ -452,6 +499,10 @@
         ],
         "atoms": [
           "companyFamily - Atom.family for single company"
+        ],
+        "e2e_file": "packages/web/test-e2e/companies.spec.ts",
+        "unit_tests": [
+          "packages/api/test/companies.test.ts"
         ]
       },
       "status": "pending",
@@ -508,9 +559,11 @@
         "'Create Account' button opens form",
         "Click row opens account detail/edit view",
         "Empty state when no accounts",
-        "E2E test: list displays accounts with hierarchy",
-        "E2E test: filter by type works",
-        "E2E test: search by name works"
+        "TESTS (E2E): list displays accounts with hierarchy",
+        "TESTS (E2E): filter by type works",
+        "TESTS (E2E): search by name works",
+        "TESTS (API): packages/api/test/accounts.test.ts covers list endpoint",
+        "TESTS (Persistence): packages/persistence/test/AccountRepository.test.ts"
       ],
       "technical_details": {
         "files": [
@@ -524,7 +577,11 @@
           "accountSearchAtom",
           "filteredAccountsAtom - derived"
         ],
-        "e2e_file": "packages/web/test-e2e/accounts.spec.ts"
+        "e2e_file": "packages/web/test-e2e/accounts.spec.ts",
+        "unit_tests": [
+          "packages/api/test/accounts.test.ts",
+          "packages/persistence/test/AccountRepository.test.ts"
+        ]
       },
       "status": "pending",
       "estimated_complexity": "large"
@@ -551,8 +608,11 @@
         "Create mode: createAccountMutation",
         "Edit mode: updateAccountMutation with pre-filled values",
         "Success: close modal, refresh accounts list via reactivityKeys",
-        "E2E test: create account with all fields",
-        "E2E test: edit existing account"
+        "TESTS (E2E): create account with all fields",
+        "TESTS (E2E): edit existing account",
+        "TESTS (E2E): validation errors shown for invalid data",
+        "TESTS (API): packages/api/test/accounts.test.ts covers create/update endpoints",
+        "TESTS (Core): packages/core/test/Account.test.ts covers account validation"
       ],
       "technical_details": {
         "files": [
@@ -563,6 +623,11 @@
         "mutations": [
           "createAccountMutation",
           "updateAccountMutation"
+        ],
+        "e2e_file": "packages/web/test-e2e/accounts.spec.ts",
+        "unit_tests": [
+          "packages/api/test/accounts.test.ts",
+          "packages/core/test/Account.test.ts"
         ]
       },
       "status": "pending",
@@ -585,9 +650,12 @@
         "Color-coded status badges (Open, Soft Close, Closed, Locked)",
         "'Create Fiscal Year' button",
         "Actions per period: Open, Soft Close, Close (based on current status)",
-        "E2E test: list displays fiscal years and periods",
-        "E2E test: create fiscal year works",
-        "E2E test: open/close period works"
+        "TESTS (E2E): list displays fiscal years and periods",
+        "TESTS (E2E): create fiscal year works",
+        "TESTS (E2E): open/close period works",
+        "TESTS (API): packages/api/test/fiscal.test.ts covers fiscal year/period endpoints",
+        "TESTS (Persistence): packages/persistence/test/FiscalPeriodRepository.test.ts",
+        "TESTS (Core): packages/core/test/FiscalPeriod.test.ts covers period state transitions"
       ],
       "technical_details": {
         "files": [
@@ -601,7 +669,12 @@
           "openPeriodMutation",
           "closePeriodMutation"
         ],
-        "e2e_file": "packages/web/test-e2e/fiscal.spec.ts"
+        "e2e_file": "packages/web/test-e2e/fiscal.spec.ts",
+        "unit_tests": [
+          "packages/api/test/fiscal.test.ts",
+          "packages/persistence/test/FiscalPeriodRepository.test.ts",
+          "packages/core/test/FiscalPeriod.test.ts"
+        ]
       },
       "status": "pending",
       "estimated_complexity": "medium"
@@ -653,9 +726,11 @@
         "Click row opens entry detail",
         "'New Entry' button navigates to creation form",
         "Pagination or infinite scroll for large lists",
-        "E2E test: list displays entries with status",
-        "E2E test: filter by status works",
-        "E2E test: navigate to entry detail"
+        "TESTS (E2E): list displays entries with status",
+        "TESTS (E2E): filter by status works",
+        "TESTS (E2E): navigate to entry detail",
+        "TESTS (API): packages/api/test/journal-entries.test.ts covers list endpoint",
+        "TESTS (Persistence): packages/persistence/test/JournalEntryRepository.test.ts"
       ],
       "technical_details": {
         "files": [
@@ -670,7 +745,11 @@
           "entrySearchAtom",
           "filteredEntriesAtom - derived"
         ],
-        "e2e_file": "packages/web/test-e2e/journal-entries.spec.ts"
+        "e2e_file": "packages/web/test-e2e/journal-entries.spec.ts",
+        "unit_tests": [
+          "packages/api/test/journal-entries.test.ts",
+          "packages/persistence/test/JournalEntryRepository.test.ts"
+        ]
       },
       "status": "pending",
       "estimated_complexity": "large"
@@ -697,10 +776,12 @@
         "Account selector shows hierarchy, filters to postable accounts",
         "'Save as Draft' and 'Submit for Approval' buttons",
         "Multi-currency support: select currency per line, show exchange rate",
-        "E2E test: create entry with multiple lines",
-        "E2E test: validation prevents unbalanced entry",
-        "E2E test: save as draft works",
-        "E2E test: submit for approval works"
+        "TESTS (E2E): create entry with multiple lines",
+        "TESTS (E2E): validation prevents unbalanced entry",
+        "TESTS (E2E): save as draft works",
+        "TESTS (E2E): submit for approval works",
+        "TESTS (API): packages/api/test/journal-entries.test.ts covers create/submit endpoints",
+        "TESTS (Core): packages/core/test/JournalEntry.test.ts covers balance validation"
       ],
       "technical_details": {
         "files": [
@@ -713,6 +794,11 @@
         "atoms": [
           "createJournalEntryMutation",
           "submitForApprovalMutation"
+        ],
+        "e2e_file": "packages/web/test-e2e/journal-entries.spec.ts",
+        "unit_tests": [
+          "packages/api/test/journal-entries.test.ts",
+          "packages/core/test/JournalEntry.test.ts"
         ]
       },
       "status": "pending",
@@ -740,11 +826,13 @@
         "  - Posted: Reverse (creates reversing entry)",
         "Audit info: created by, created at, posted by, posted at",
         "Link to reversing/reversed entry if applicable",
-        "E2E test: view entry details",
-        "E2E test: approve entry workflow",
-        "E2E test: reject entry with reason",
-        "E2E test: post approved entry",
-        "E2E test: reverse posted entry"
+        "TESTS (E2E): view entry details",
+        "TESTS (E2E): approve entry workflow",
+        "TESTS (E2E): reject entry with reason",
+        "TESTS (E2E): post approved entry",
+        "TESTS (E2E): reverse posted entry",
+        "TESTS (API): packages/api/test/journal-entries.test.ts covers workflow endpoints",
+        "TESTS (Core): packages/core/test/JournalEntryWorkflow.test.ts covers state transitions"
       ],
       "technical_details": {
         "files": [
@@ -759,6 +847,11 @@
           "rejectEntryMutation",
           "postEntryMutation",
           "reverseEntryMutation"
+        ],
+        "e2e_file": "packages/web/test-e2e/journal-entries.spec.ts",
+        "unit_tests": [
+          "packages/api/test/journal-entries.test.ts",
+          "packages/core/test/JournalEntryWorkflow.test.ts"
         ]
       },
       "status": "pending",
@@ -780,7 +873,9 @@
         "Same form layout as create, reuse JournalEntryForm component",
         "Save updates existing entry",
         "Redirect to detail page on save",
-        "E2E test: edit draft entry"
+        "TESTS (E2E): edit draft entry",
+        "TESTS (E2E): cannot edit non-draft entries (shows error or redirects)",
+        "TESTS (API): packages/api/test/journal-entries.test.ts covers update endpoint"
       ],
       "technical_details": {
         "files": [
@@ -788,6 +883,10 @@
         ],
         "mutations": [
           "updateJournalEntryMutation"
+        ],
+        "e2e_file": "packages/web/test-e2e/journal-entries.spec.ts",
+        "unit_tests": [
+          "packages/api/test/journal-entries.test.ts"
         ]
       },
       "status": "pending",
@@ -814,8 +913,10 @@
         "Report output area below parameters",
         "Loading state during generation",
         "Export buttons: PDF, Excel, CSV (can be placeholder initially)",
-        "E2E test: generate Trial Balance report",
-        "E2E test: generate Balance Sheet report"
+        "TESTS (E2E): generate Trial Balance report",
+        "TESTS (E2E): generate Balance Sheet report",
+        "TESTS (API): packages/api/test/reports.test.ts covers report generation endpoints",
+        "TESTS (Core): packages/core/test/Reports.test.ts covers report calculations"
       ],
       "technical_details": {
         "files": [
@@ -829,7 +930,11 @@
           "reportParametersAtom",
           "reportDataAtom - async, depends on params"
         ],
-        "e2e_file": "packages/web/test-e2e/reports.spec.ts"
+        "e2e_file": "packages/web/test-e2e/reports.spec.ts",
+        "unit_tests": [
+          "packages/api/test/reports.test.ts",
+          "packages/core/test/Reports.test.ts"
+        ]
       },
       "status": "pending",
       "estimated_complexity": "large"
@@ -850,11 +955,15 @@
         "Validation row: Debits must equal Credits",
         "Click account row drills down to transactions (optional enhancement)",
         "Proper number formatting with thousand separators",
-        "Negative numbers in parentheses or red"
+        "Negative numbers in parentheses or red",
+        "TESTS (Core): packages/core/test/TrialBalance.test.ts covers trial balance generation"
       ],
       "technical_details": {
         "files": [
           "packages/web/src/components/reports/TrialBalanceReport.tsx"
+        ],
+        "unit_tests": [
+          "packages/core/test/TrialBalance.test.ts"
         ]
       },
       "status": "pending",
@@ -879,11 +988,15 @@
         "Validation: Total Assets = Total Liabilities + Equity",
         "Comparative period column if requested",
         "Variance from prior period",
-        "Indentation for sub-categories"
+        "Indentation for sub-categories",
+        "TESTS (Core): packages/core/test/BalanceSheet.test.ts covers balance sheet generation"
       ],
       "technical_details": {
         "files": [
           "packages/web/src/components/reports/BalanceSheetReport.tsx"
+        ],
+        "unit_tests": [
+          "packages/core/test/BalanceSheet.test.ts"
         ]
       },
       "status": "pending",
@@ -910,11 +1023,15 @@
         "Tax Expense",
         "Net Income",
         "Comparative period columns if requested",
-        "Variance and variance percentage"
+        "Variance and variance percentage",
+        "TESTS (Core): packages/core/test/IncomeStatement.test.ts covers income statement generation"
       ],
       "technical_details": {
         "files": [
           "packages/web/src/components/reports/IncomeStatementReport.tsx"
+        ],
+        "unit_tests": [
+          "packages/core/test/IncomeStatement.test.ts"
         ]
       },
       "status": "pending",
@@ -941,11 +1058,15 @@
         "Effect of exchange rate changes",
         "Net change in cash",
         "Ending cash balance",
-        "Validation: Beginning + Net Change = Ending"
+        "Validation: Beginning + Net Change = Ending",
+        "TESTS (Core): packages/core/test/CashFlowStatement.test.ts covers cash flow generation"
       ],
       "technical_details": {
         "files": [
           "packages/web/src/components/reports/CashFlowReport.tsx"
+        ],
+        "unit_tests": [
+          "packages/core/test/CashFlowStatement.test.ts"
         ]
       },
       "status": "pending",

@@ -511,6 +511,61 @@ const unlinkIdentity = HttpApiEndpoint.del("unlinkIdentity", "/identities/:ident
     description: "Remove a linked provider identity from the current user account. Users must maintain at least one linked identity."
   }))
 
+/**
+ * ChangePasswordRequest - Request body for changing password
+ */
+export class ChangePasswordRequest extends Schema.Class<ChangePasswordRequest>("ChangePasswordRequest")({
+  currentPassword: Schema.String.annotations({
+    description: "The user's current password for verification"
+  }),
+  newPassword: Schema.String.pipe(
+    Schema.minLength(8),
+    Schema.annotations({
+      description: "The new password (min 8 characters)"
+    })
+  )
+}) {}
+
+/**
+ * ChangePasswordError - Current password is incorrect (401)
+ */
+export class ChangePasswordError extends Schema.TaggedError<ChangePasswordError>()(
+  "ChangePasswordError",
+  {
+    message: Schema.propertySignature(Schema.String).pipe(
+      Schema.withConstructorDefault(() => "Current password is incorrect")
+    )
+  },
+  HttpApiSchema.annotations({ status: 401 })
+) {}
+
+/**
+ * NoLocalIdentityError - User has no local provider linked (400)
+ */
+export class NoLocalIdentityError extends Schema.TaggedError<NoLocalIdentityError>()(
+  "NoLocalIdentityError",
+  {
+    message: Schema.propertySignature(Schema.String).pipe(
+      Schema.withConstructorDefault(() => "No local identity linked. Password change is only available for accounts with local authentication.")
+    )
+  },
+  HttpApiSchema.annotations({ status: 400 })
+) {}
+
+/**
+ * POST /api/auth/change-password - Change user's password
+ */
+const changePassword = HttpApiEndpoint.post("changePassword", "/change-password")
+  .setPayload(ChangePasswordRequest)
+  .addSuccess(HttpApiSchema.NoContent)
+  .addError(ChangePasswordError)
+  .addError(NoLocalIdentityError)
+  .addError(PasswordWeakError)
+  .annotateContext(OpenApi.annotations({
+    summary: "Change password",
+    description: "Change the current user's password. Requires the current password for verification. Only available for users with local authentication."
+  }))
+
 // =============================================================================
 // API Groups
 // =============================================================================
@@ -581,6 +636,7 @@ export class AuthApi extends HttpApiGroup.make("auth")
  * - POST /link/:provider - Initiate provider linking
  * - GET /link/callback/:provider - Complete provider linking
  * - DELETE /identities/:identityId - Unlink provider
+ * - POST /change-password - Change password
  */
 export class AuthSessionApi extends HttpApiGroup.make("authSession")
   .add(logout)
@@ -589,6 +645,7 @@ export class AuthSessionApi extends HttpApiGroup.make("authSession")
   .add(linkProvider)
   .add(linkCallback)
   .add(unlinkIdentity)
+  .add(changePassword)
   .middleware(AuthMiddleware)
   .prefix("/auth")
   .annotateContext(OpenApi.annotations({

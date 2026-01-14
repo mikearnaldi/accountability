@@ -251,6 +251,27 @@ const make = Effect.gen(function* () {
       wrapSqlError("getPasswordHash")
     )
 
+  const updatePasswordHash: IdentityRepositoryService["updatePasswordHash"] = (provider, providerId, newPasswordHash) =>
+    Effect.gen(function* () {
+      // First check if identity exists
+      const maybeIdentity = yield* findByProvider(provider, providerId)
+      if (Option.isNone(maybeIdentity)) {
+        return yield* Effect.fail(
+          new EntityNotFoundError({
+            entityType: "UserIdentity",
+            entityId: `${provider}:${providerId}`
+          })
+        )
+      }
+
+      // Update the password hash
+      yield* sql`
+        UPDATE auth_identities
+        SET password_hash = ${newPasswordHash}
+        WHERE provider = ${provider} AND provider_id = ${providerId}
+      `.pipe(wrapSqlError("updatePasswordHash"))
+    })
+
   return {
     findById,
     findByUserId,
@@ -260,7 +281,8 @@ const make = Effect.gen(function* () {
     update,
     delete: deleteIdentity,
     deleteByUserId,
-    getPasswordHash
+    getPasswordHash,
+    updatePasswordHash
   } satisfies IdentityRepositoryService
 })
 

@@ -44,7 +44,9 @@ import {
   SessionInvalidError,
   IdentityLinkedError,
   CannotUnlinkLastIdentityError,
-  IdentityNotFoundError
+  IdentityNotFoundError,
+  ChangePasswordError,
+  NoLocalIdentityError
 } from "../Definitions/AuthApi.ts"
 import { UnauthorizedError } from "../Definitions/ApiErrors.ts"
 import { AuthService, type AuthServiceShape } from "@accountability/core/Auth/AuthService"
@@ -66,6 +68,8 @@ import {
 } from "@accountability/core/Auth/AuthErrors"
 import { IdentityRepository } from "@accountability/persistence/Services/IdentityRepository"
 import { UserRepository } from "@accountability/persistence/Services/UserRepository"
+import { PasswordHasher } from "@accountability/core/Auth/PasswordHasher"
+import { ProviderId } from "@accountability/core/Auth/ProviderId"
 
 // =============================================================================
 // Helper Functions
@@ -635,6 +639,71 @@ export const AuthSessionApiLive = HttpApiBuilder.group(AppApi, "authSession", (h
           // Delete the identity
           yield* identityRepo.delete(identityId).pipe(
             Effect.mapError(() => new IdentityNotFoundError({ identityId }))
+          )
+        })
+      )
+      .handle("changePassword", (_) =>
+        Effect.gen(function* () {
+          const { currentPassword, newPassword } = _.payload
+          const currentUser = yield* CurrentUser
+          const userId = AuthUserId.make(currentUser.userId)
+          const passwordHasher = yield* PasswordHasher
+
+          // Get the user to find their email
+          const maybeUser = yield* userRepo.findById(userId).pipe(
+            Effect.mapError(() => new NoLocalIdentityError({}))
+          )
+
+          if (Option.isNone(maybeUser)) {
+            return yield* Effect.fail(new NoLocalIdentityError({}))
+          }
+
+          const user = maybeUser.value
+
+          // Check if user has a local identity
+          const providerId = ProviderId.make(user.email)
+          const maybeLocalIdentity = yield* identityRepo.findByUserAndProvider(userId, "local").pipe(
+            Effect.mapError(() => new NoLocalIdentityError({}))
+          )
+
+          if (Option.isNone(maybeLocalIdentity)) {
+            return yield* Effect.fail(new NoLocalIdentityError({}))
+          }
+
+          // Get the current password hash to verify
+          const maybeHash = yield* identityRepo.getPasswordHash("local", providerId).pipe(
+            Effect.mapError(() => new NoLocalIdentityError({}))
+          )
+
+          if (Option.isNone(maybeHash)) {
+            return yield* Effect.fail(new NoLocalIdentityError({}))
+          }
+
+          // Verify current password
+          const isValid = yield* passwordHasher.verify(
+            Redacted.make(currentPassword),
+            maybeHash.value
+          )
+
+          if (!isValid) {
+            return yield* Effect.fail(new ChangePasswordError({}))
+          }
+
+          // Validate new password strength (minimum 8 characters from Schema)
+          if (newPassword.length < 8) {
+            return yield* Effect.fail(
+              new PasswordWeakError({
+                requirements: ["Password must be at least 8 characters"]
+              })
+            )
+          }
+
+          // Hash the new password
+          const newHash = yield* passwordHasher.hash(Redacted.make(newPassword))
+
+          // Update the password hash
+          yield* identityRepo.updatePasswordHash("local", providerId, newHash).pipe(
+            Effect.mapError(() => new NoLocalIdentityError({}))
           )
         })
       )

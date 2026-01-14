@@ -264,8 +264,14 @@ const AuthServiceWithDeps = AuthServiceLive.pipe(
  *
  * Includes all repository implementations plus the AuthService.
  * This is the layer to use when the application needs authentication.
+ *
+ * Provides:
+ * - All repositories
+ * - AuthService
+ * - PasswordHasher (for password verification/hashing in API handlers)
  */
 export const RepositoriesWithAuthLive = Layer.mergeAll(
   RepositoriesLive,
-  AuthServiceWithDeps
+  AuthServiceWithDeps,
+  PasswordHasherWithCrypto
 )

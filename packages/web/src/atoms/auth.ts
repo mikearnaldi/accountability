@@ -13,7 +13,7 @@ import * as Effect from "effect/Effect"
 import { unsafeCoerce } from "effect/Function"
 import { ApiClient } from "./ApiClient.ts"
 import { getStoredToken, setStoredToken, clearStoredToken } from "./tokenStorage.ts"
-import type { AuthUserResponse, LoginRequest, LoginResponse, LocalLoginCredentials, RegisterRequest } from "@accountability/api/Definitions/AuthApi"
+import type { AuthUserResponse, LoginRequest, LoginResponse, LocalLoginCredentials, RegisterRequest, LinkInitiateResponse } from "@accountability/api/Definitions/AuthApi"
 
 // Re-export for backwards compatibility and convenience
 export { setStoredToken, getStoredToken, clearStoredToken } from "./tokenStorage.ts"
@@ -363,5 +363,162 @@ export const handleOAuthLinkCallbackMutation = ApiClient.runtime.fn<OAuthCallbac
     })
 
     return response
+  })
+)
+
+// =============================================================================
+// Enabled Providers Atom
+// =============================================================================
+
+/**
+ * enabledProvidersAtom - Async atom that fetches the list of enabled auth providers
+ *
+ * Behavior:
+ * - Fetches /api/auth/providers on first access
+ * - Caches result for 10 minutes
+ *
+ * Used by the account settings page to show which providers can be linked.
+ */
+export const enabledProvidersAtom = Atom.readable((get) => {
+  return get(
+    ApiClient.query("auth", "getProviders", {
+      timeToLive: Duration.minutes(10)
+    })
+  )
+})
+
+// =============================================================================
+// Link Provider Mutation
+// =============================================================================
+
+/**
+ * Input type for link provider mutation
+ */
+export interface LinkProviderInput {
+  readonly provider: string
+}
+
+/**
+ * linkProviderMutation - Initiate linking a new provider to the account
+ *
+ * This mutation:
+ * 1. Calls the link provider API endpoint to get the OAuth redirect URL
+ * 2. Returns the redirect URL for the client to navigate to
+ *
+ * Usage:
+ * ```typescript
+ * const [result, linkProvider] = useAtom(linkProviderMutation, { mode: "promise" })
+ *
+ * try {
+ *   const { redirectUrl } = await linkProvider({ provider: "google" })
+ *   window.location.href = redirectUrl
+ * } catch {
+ *   // Error handling
+ * }
+ * ```
+ */
+export const linkProviderMutation = ApiClient.runtime.fn<LinkProviderInput>()(
+  Effect.fnUntraced(function* (input) {
+    const client = yield* ApiClient
+    const response: LinkInitiateResponse = yield* client.authSession.linkProvider({
+      path: { provider: unsafeCoerce(input.provider) }
+    })
+
+    return response
+  })
+)
+
+// =============================================================================
+// Unlink Provider Mutation
+// =============================================================================
+
+/**
+ * Input type for unlink provider mutation
+ */
+export interface UnlinkProviderInput {
+  readonly identityId: string
+}
+
+/**
+ * unlinkProviderMutation - Remove a linked provider from the account
+ *
+ * This mutation:
+ * 1. Calls the unlink identity API endpoint
+ * 2. On success, the identity is removed from the user's account
+ *
+ * Note: Users must maintain at least one linked identity - attempting to
+ * unlink the last one will fail with CannotUnlinkLastIdentityError.
+ *
+ * Usage:
+ * ```typescript
+ * const [result, unlinkProvider] = useAtom(unlinkProviderMutation, { mode: "promise" })
+ *
+ * try {
+ *   await unlinkProvider({ identityId: "identity-uuid" })
+ *   // Refresh user data
+ * } catch {
+ *   // Error handling
+ * }
+ * ```
+ */
+export const unlinkProviderMutation = ApiClient.runtime.fn<UnlinkProviderInput>()(
+  Effect.fnUntraced(function* (input) {
+    const client = yield* ApiClient
+    const registry = yield* AtomRegistry
+    yield* client.authSession.unlinkIdentity({
+      path: { identityId: unsafeCoerce(input.identityId) }
+    })
+
+    // Trigger currentUserAtom refresh by incrementing version
+    registry.update(authTokenVersionAtom, (v) => v + 1)
+
+    return undefined
+  })
+)
+
+// =============================================================================
+// Change Password Mutation
+// =============================================================================
+
+/**
+ * Input type for change password mutation
+ */
+export interface ChangePasswordInput {
+  readonly currentPassword: string
+  readonly newPassword: string
+}
+
+/**
+ * changePasswordMutation - Change the user's password
+ *
+ * This mutation:
+ * 1. Verifies the current password
+ * 2. Updates the password hash with the new password
+ *
+ * Only available for users with a linked local identity (email/password).
+ *
+ * Usage:
+ * ```typescript
+ * const [result, changePassword] = useAtom(changePasswordMutation, { mode: "promise" })
+ *
+ * try {
+ *   await changePassword({ currentPassword: "old", newPassword: "new" })
+ *   // Show success notification
+ * } catch {
+ *   // Error handling - wrong current password or no local identity
+ * }
+ * ```
+ */
+export const changePasswordMutation = ApiClient.runtime.fn<ChangePasswordInput>()(
+  Effect.fnUntraced(function* (input) {
+    const client = yield* ApiClient
+    yield* client.authSession.changePassword({
+      payload: {
+        currentPassword: input.currentPassword,
+        newPassword: input.newPassword
+      }
+    })
+
+    return undefined
   })
 )
