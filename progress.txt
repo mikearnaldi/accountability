@@ -729,3 +729,8 @@
 **Story**: 9.3.3 - Implement accounts E2E tests
 **Status**: complete
 ---
+
+## Iteration 1 - 2026-01-14 01:23
+**Story**: 10.0.1 - Set up base app shell and routing
+**Status**: complete
+---

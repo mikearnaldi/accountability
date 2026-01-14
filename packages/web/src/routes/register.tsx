@@ -11,14 +11,18 @@ import { hasTokenAtom } from "../atoms/auth.ts"
 import * as React from "react"
 
 // Search params interface for redirect handling
-interface RegisterSearch {
+export interface RegisterSearch {
   redirect?: string
 }
 
 export const Route = createFileRoute("/register")({
-  validateSearch: (search: Record<string, unknown>): RegisterSearch => ({
-    redirect: typeof search.redirect === "string" ? search.redirect : undefined
-  }),
+  validateSearch: (search: Record<string, unknown>): RegisterSearch => {
+    const result: RegisterSearch = {}
+    if (typeof search.redirect === "string") {
+      result.redirect = search.redirect
+    }
+    return result
+  },
   component: RegisterPage
 })
 
@@ -63,7 +67,7 @@ function RegisterPage() {
           Already have an account?{" "}
           <Link
             to="/login"
-            search={{ redirect: redirectTo !== "/" ? redirectTo : undefined }}
+            search={redirectTo !== "/" ? { redirect: redirectTo } : {}}
             className="font-medium text-blue-600 hover:text-blue-500"
           >
             Sign in
