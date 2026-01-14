@@ -874,3 +874,8 @@
 **Story**: 11.1.4 - Full dashboard with metrics and navigation
 **Status**: complete
 ---
+
+## Iteration 2 - 2026-01-15 00:39
+**Story**: 1.1 - Currency master data endpoint
+**Status**: complete
+---

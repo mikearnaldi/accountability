@@ -22,7 +22,11 @@
   "architecture": {
     "principle": "Effect on server only. Pure React + generated fetch client on frontend.",
     "backend": {
-      "packages": ["core", "persistence", "api"],
+      "packages": [
+        "core",
+        "persistence",
+        "api"
+      ],
       "stack": "Effect for type-safe business logic, @effect/sql for database, HttpApi for REST endpoints",
       "testing": "@effect/vitest for unit/integration tests"
     },
@@ -36,7 +40,10 @@
     "api_client": {
       "generation": "pnpm generate:api in packages/web",
       "tools": "openapi-typescript generates types, openapi-fetch provides typed client",
-      "output": ["src/api/schema.ts", "src/api/client.ts"],
+      "output": [
+        "src/api/schema.ts",
+        "src/api/client.ts"
+      ],
       "usage": "import { api } from '@/api/client'; await api.GET('/api/v1/organizations')",
       "cookie_auth": {
         "principle": "httpOnly cookies ONLY. localStorage is FORBIDDEN.",
@@ -153,7 +160,10 @@
       "epic": "API: Reference Data",
       "title": "Currency master data endpoint",
       "description": "Add API endpoint to list available currencies for UI dropdowns. The Currency domain entity already exists with COMMON_CURRENCIES predefined.",
-      "specs": ["DOMAIN_MODEL.md", "API_BEST_PRACTICES.md"],
+      "specs": [
+        "DOMAIN_MODEL.md",
+        "API_BEST_PRACTICES.md"
+      ],
       "acceptance_criteria": [
         "GET /api/v1/currencies returns list of currencies",
         "Response schema: { currencies: [{ code, name, symbol, decimalPlaces, isActive }] }",
@@ -165,7 +175,13 @@
         "endpoint": "GET /api/v1/currencies",
         "response": {
           "currencies": [
-            { "code": "USD", "name": "US Dollar", "symbol": "$", "decimalPlaces": 2, "isActive": true }
+            {
+              "code": "USD",
+              "name": "US Dollar",
+              "symbol": "$",
+              "decimalPlaces": 2,
+              "isActive": true
+            }
           ]
         }
       },
@@ -175,16 +191,21 @@
           "packages/api/src/Handlers/CurrencyApiHandler.ts",
           "packages/api/test/CurrencyApi.test.ts"
         ],
-        "reference": ["packages/core/src/Domains/Currency.ts"]
+        "reference": [
+          "packages/core/src/Domains/Currency.ts"
+        ]
       },
-      "status": "pending"
+      "status": "complete"
     },
     {
       "id": "1.2",
       "epic": "API: Reference Data",
       "title": "Jurisdiction master data endpoint",
       "description": "Add API endpoint to list available jurisdictions for UI dropdowns. The Jurisdiction domain entity already exists with PREDEFINED_JURISDICTIONS.",
-      "specs": ["DOMAIN_MODEL.md", "API_BEST_PRACTICES.md"],
+      "specs": [
+        "DOMAIN_MODEL.md",
+        "API_BEST_PRACTICES.md"
+      ],
       "acceptance_criteria": [
         "GET /api/v1/jurisdictions returns list of jurisdictions",
         "Response schema: { jurisdictions: [{ code, name, defaultCurrency }] }",
@@ -195,7 +216,11 @@
         "endpoint": "GET /api/v1/jurisdictions",
         "response": {
           "jurisdictions": [
-            { "code": "US", "name": "United States", "defaultCurrency": "USD" }
+            {
+              "code": "US",
+              "name": "United States",
+              "defaultCurrency": "USD"
+            }
           ]
         }
       },
@@ -205,7 +230,9 @@
           "packages/api/src/Handlers/JurisdictionApiHandler.ts",
           "packages/api/test/JurisdictionApi.test.ts"
         ],
-        "reference": ["packages/core/src/Domains/Jurisdiction.ts"]
+        "reference": [
+          "packages/core/src/Domains/Jurisdiction.ts"
+        ]
       },
       "status": "pending"
     },
@@ -214,7 +241,10 @@
       "epic": "API: Reference Data",
       "title": "Account templates endpoint",
       "description": "Add API endpoints to list and apply chart of accounts templates. The AccountTemplate domain entity already exists with templates for GeneralBusiness, Manufacturing, ServiceBusiness, and HoldingCompany.",
-      "specs": ["DOMAIN_MODEL.md", "API_BEST_PRACTICES.md"],
+      "specs": [
+        "DOMAIN_MODEL.md",
+        "API_BEST_PRACTICES.md"
+      ],
       "acceptance_criteria": [
         "GET /api/v1/account-templates returns list of available templates",
         "Response: { templates: [{ templateType, name, description, accountCount }] }",
@@ -232,7 +262,12 @@
           "GET /api/v1/account-templates/:type",
           "POST /api/v1/account-templates/:type/apply"
         ],
-        "template_types": ["GeneralBusiness", "Manufacturing", "ServiceBusiness", "HoldingCompany"]
+        "template_types": [
+          "GeneralBusiness",
+          "Manufacturing",
+          "ServiceBusiness",
+          "HoldingCompany"
+        ]
       },
       "files": {
         "create": [
@@ -240,7 +275,9 @@
           "packages/api/src/Handlers/AccountTemplateApiHandler.ts",
           "packages/api/test/AccountTemplateApi.test.ts"
         ],
-        "reference": ["packages/core/src/Domains/AccountTemplate.ts"]
+        "reference": [
+          "packages/core/src/Domains/AccountTemplate.ts"
+        ]
       },
       "status": "pending"
     },
@@ -249,7 +286,10 @@
       "epic": "API: Reference Data",
       "title": "Audit log query endpoint",
       "description": "Add API endpoint to query audit trail entries for compliance and SOX requirements. Tracks changes to all entities with user, timestamp, and before/after values.",
-      "specs": ["DOMAIN_MODEL.md", "API_BEST_PRACTICES.md"],
+      "specs": [
+        "DOMAIN_MODEL.md",
+        "API_BEST_PRACTICES.md"
+      ],
       "acceptance_criteria": [
         "GET /api/v1/audit-log returns paginated audit entries",
         "Query parameters: entityType, entityId, userId, action, fromDate, toDate, limit, offset",
@@ -262,7 +302,16 @@
       ],
       "api": {
         "endpoint": "GET /api/v1/audit-log",
-        "query_params": ["entityType", "entityId", "userId", "action", "fromDate", "toDate", "limit", "offset"],
+        "query_params": [
+          "entityType",
+          "entityId",
+          "userId",
+          "action",
+          "fromDate",
+          "toDate",
+          "limit",
+          "offset"
+        ],
         "response": {
           "entries": [
             {
@@ -272,7 +321,12 @@
               "action": "StatusChange",
               "userId": "uuid",
               "timestamp": "2026-01-15T10:30:00Z",
-              "changes": { "status": { "from": "Draft", "to": "Posted" } }
+              "changes": {
+                "status": {
+                  "from": "Draft",
+                  "to": "Posted"
+                }
+              }
             }
           ],
           "total": 100
@@ -293,7 +347,11 @@
       "epic": "UI: Design System",
       "title": "Layout with organization context selector",
       "description": "Create layout with Organization as global context. Organization is the tenant - all other entities (Companies, Accounts, Journal Entries, Reports, etc.) are scoped within the selected organization.",
-      "specs": ["DOMAIN_MODEL.md", "REACT_BEST_PRACTICES.md", "USABILITY_BEST_PRACTICES.md"],
+      "specs": [
+        "DOMAIN_MODEL.md",
+        "REACT_BEST_PRACTICES.md",
+        "USABILITY_BEST_PRACTICES.md"
+      ],
       "acceptance_criteria": [
         "Entity Hierarchy (critical to understand):",
         "  Organization (tenant) → Companies → Accounts, Journal Entries, Fiscal Periods",
@@ -350,7 +408,12 @@
       "epic": "UI: Design System",
       "title": "Organization-scoped dashboard",
       "description": "Dashboard showing overview of selected organization. All data is scoped to the current organization context.",
-      "specs": ["DOMAIN_MODEL.md", "REACT_BEST_PRACTICES.md", "USABILITY_BEST_PRACTICES.md", "E2E_TESTING.md"],
+      "specs": [
+        "DOMAIN_MODEL.md",
+        "REACT_BEST_PRACTICES.md",
+        "USABILITY_BEST_PRACTICES.md",
+        "E2E_TESTING.md"
+      ],
       "acceptance_criteria": [
         "Route: /organizations/:organizationId/dashboard",
         "Requires organization to be selected (redirect if not)",
@@ -379,8 +442,12 @@
         ]
       },
       "files": {
-        "create": ["packages/web/src/routes/organizations/$organizationId/dashboard.tsx"],
-        "modify": ["packages/web/src/routes/index.tsx"]
+        "create": [
+          "packages/web/src/routes/organizations/$organizationId/dashboard.tsx"
+        ],
+        "modify": [
+          "packages/web/src/routes/index.tsx"
+        ]
       },
       "status": "pending"
     },
@@ -389,7 +456,11 @@
       "epic": "UI: Organizations",
       "title": "Organization selection and list",
       "description": "Entry point for selecting an organization. This is the first screen after login - user must select an org to access org-scoped features.",
-      "specs": ["DOMAIN_MODEL.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
+      "specs": [
+        "DOMAIN_MODEL.md",
+        "REACT_BEST_PRACTICES.md",
+        "E2E_TESTING.md"
+      ],
       "acceptance_criteria": [
         "Route: /organizations (no org selected yet)",
         "Purpose: Select which organization to work with",
@@ -406,10 +477,14 @@
         "E2E test: Select organization flow"
       ],
       "api": {
-        "calls": ["GET /api/v1/organizations"]
+        "calls": [
+          "GET /api/v1/organizations"
+        ]
       },
       "files": {
-        "modify": ["packages/web/src/routes/organizations/index.tsx"]
+        "modify": [
+          "packages/web/src/routes/organizations/index.tsx"
+        ]
       },
       "status": "pending"
     },
@@ -418,7 +493,11 @@
       "epic": "UI: Organizations",
       "title": "Create organization form",
       "description": "Form to create new organization with all API-supported fields.",
-      "specs": ["DOMAIN_MODEL.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
+      "specs": [
+        "DOMAIN_MODEL.md",
+        "REACT_BEST_PRACTICES.md",
+        "E2E_TESTING.md"
+      ],
       "acceptance_criteria": [
         "Form fields:",
         "  - Name (required)",
@@ -464,7 +543,11 @@
       "epic": "UI: Organizations",
       "title": "Organization settings page",
       "description": "Settings page for the current organization. Accessible from sidebar within org context.",
-      "specs": ["DOMAIN_MODEL.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
+      "specs": [
+        "DOMAIN_MODEL.md",
+        "REACT_BEST_PRACTICES.md",
+        "E2E_TESTING.md"
+      ],
       "acceptance_criteria": [
         "Route: /organizations/:organizationId/settings",
         "Accessible from sidebar 'Settings' link",
@@ -491,7 +574,9 @@
         ]
       },
       "files": {
-        "create": ["packages/web/src/routes/organizations/$organizationId/settings.tsx"]
+        "create": [
+          "packages/web/src/routes/organizations/$organizationId/settings.tsx"
+        ]
       },
       "status": "pending"
     },
@@ -500,7 +585,11 @@
       "epic": "UI: Companies",
       "title": "Companies list with hierarchy",
       "description": "Display companies showing parent/child relationships for consolidation.",
-      "specs": ["DOMAIN_MODEL.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
+      "specs": [
+        "DOMAIN_MODEL.md",
+        "REACT_BEST_PRACTICES.md",
+        "E2E_TESTING.md"
+      ],
       "acceptance_criteria": [
         "SSR loader fetches companies for organization",
         "Tree view showing parent/subsidiary hierarchy",
@@ -512,11 +601,17 @@
         "E2E test: Hierarchy displays correctly"
       ],
       "api": {
-        "calls": ["GET /api/v1/companies?organizationId=:id"]
+        "calls": [
+          "GET /api/v1/companies?organizationId=:id"
+        ]
       },
       "files": {
-        "create": ["packages/web/src/components/company/CompanyHierarchyTree.tsx"],
-        "modify": ["packages/web/src/routes/organizations/$organizationId/companies/index.tsx"]
+        "create": [
+          "packages/web/src/components/company/CompanyHierarchyTree.tsx"
+        ],
+        "modify": [
+          "packages/web/src/routes/organizations/$organizationId/companies/index.tsx"
+        ]
       },
       "status": "pending"
     },
@@ -525,7 +620,12 @@
       "epic": "UI: Companies",
       "title": "Create company form with hierarchy",
       "description": "Form to create company with all API fields including parent/subsidiary setup.",
-      "specs": ["DOMAIN_MODEL.md", "ACCOUNTING_RESEARCH.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
+      "specs": [
+        "DOMAIN_MODEL.md",
+        "ACCOUNTING_RESEARCH.md",
+        "REACT_BEST_PRACTICES.md",
+        "E2E_TESTING.md"
+      ],
       "acceptance_criteria": [
         "Form sections:",
         "  Basic: Name, Legal Name, Jurisdiction (dropdown), Tax ID",
@@ -554,7 +654,10 @@
           "taxId": "string (optional)",
           "functionalCurrency": "CurrencyCode",
           "reportingCurrency": "CurrencyCode",
-          "fiscalYearEnd": { "month": "1-12", "day": "1-31" },
+          "fiscalYearEnd": {
+            "month": "1-12",
+            "day": "1-31"
+          },
           "parentCompanyId": "UUID (optional)",
           "ownershipPercentage": "0-100 (optional)",
           "consolidationMethod": "FullConsolidation|EquityMethod|CostMethod|VariableInterestEntity (optional)"
@@ -575,7 +678,11 @@
       "epic": "UI: Companies",
       "title": "Company detail and edit",
       "description": "View company details with edit and quick navigation to related features.",
-      "specs": ["DOMAIN_MODEL.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
+      "specs": [
+        "DOMAIN_MODEL.md",
+        "REACT_BEST_PRACTICES.md",
+        "E2E_TESTING.md"
+      ],
       "acceptance_criteria": [
         "Header: Name, status badge, jurisdiction",
         "Info cards: Currencies, Fiscal Year, Hierarchy position",
@@ -595,7 +702,9 @@
         ]
       },
       "files": {
-        "modify": ["packages/web/src/routes/organizations/$organizationId/companies/$companyId/index.tsx"]
+        "modify": [
+          "packages/web/src/routes/organizations/$organizationId/companies/$companyId/index.tsx"
+        ]
       },
       "status": "pending"
     },
@@ -604,7 +713,12 @@
       "epic": "UI: Chart of Accounts",
       "title": "Accounts list with hierarchy",
       "description": "Display company's chart of accounts with parent/child hierarchy.",
-      "specs": ["DOMAIN_MODEL.md", "ACCOUNTING_RESEARCH.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
+      "specs": [
+        "DOMAIN_MODEL.md",
+        "ACCOUNTING_RESEARCH.md",
+        "REACT_BEST_PRACTICES.md",
+        "E2E_TESTING.md"
+      ],
       "acceptance_criteria": [
         "SSR loader fetches accounts for company",
         "Tree view showing account hierarchy",
@@ -616,7 +730,9 @@
         "E2E test: Accounts tree displays correctly"
       ],
       "api": {
-        "calls": ["GET /api/v1/accounts?companyId=:id"]
+        "calls": [
+          "GET /api/v1/accounts?companyId=:id"
+        ]
       },
       "account_number_ranges": {
         "1000-1999": "Assets",
@@ -638,7 +754,12 @@
       "epic": "UI: Chart of Accounts",
       "title": "Create and edit account form",
       "description": "Form to create and edit GL accounts with all API fields.",
-      "specs": ["DOMAIN_MODEL.md", "ACCOUNTING_RESEARCH.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
+      "specs": [
+        "DOMAIN_MODEL.md",
+        "ACCOUNTING_RESEARCH.md",
+        "REACT_BEST_PRACTICES.md",
+        "E2E_TESTING.md"
+      ],
       "acceptance_criteria": [
         "Form fields:",
         "  - Account Number (4-digit, validated for type range)",
@@ -689,7 +810,12 @@
       "epic": "UI: Chart of Accounts",
       "title": "Apply account template",
       "description": "Allow users to bootstrap a company's chart of accounts from a predefined template. Useful for new companies.",
-      "specs": ["DOMAIN_MODEL.md", "ACCOUNTING_RESEARCH.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
+      "specs": [
+        "DOMAIN_MODEL.md",
+        "ACCOUNTING_RESEARCH.md",
+        "REACT_BEST_PRACTICES.md",
+        "E2E_TESTING.md"
+      ],
       "acceptance_criteria": [
         "Show 'Apply Template' button on empty accounts page",
         "Template selection modal with:",
@@ -723,7 +849,12 @@
       "epic": "UI: Journal Entries",
       "title": "Journal entries list with filters",
       "description": "List journal entries with status-based filtering and pagination.",
-      "specs": ["DOMAIN_MODEL.md", "ACCOUNTING_RESEARCH.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
+      "specs": [
+        "DOMAIN_MODEL.md",
+        "ACCOUNTING_RESEARCH.md",
+        "REACT_BEST_PRACTICES.md",
+        "E2E_TESTING.md"
+      ],
       "acceptance_criteria": [
         "SSR loader fetches entries with pagination",
         "Columns: Entry #, Date, Reference, Description, Total, Status",
@@ -734,10 +865,14 @@
         "E2E test: List with filters"
       ],
       "api": {
-        "calls": ["GET /api/v1/journal-entries?companyId=:id&status=:status&limit=:limit&offset=:offset"]
+        "calls": [
+          "GET /api/v1/journal-entries?companyId=:id&status=:status&limit=:limit&offset=:offset"
+        ]
       },
       "files": {
-        "create": ["packages/web/src/routes/organizations/$organizationId/companies/$companyId/journal-entries/index.tsx"]
+        "create": [
+          "packages/web/src/routes/organizations/$organizationId/companies/$companyId/journal-entries/index.tsx"
+        ]
       },
       "status": "pending"
     },
@@ -746,7 +881,12 @@
       "epic": "UI: Journal Entries",
       "title": "Create journal entry form",
       "description": "Multi-line journal entry creation with real-time balance validation.",
-      "specs": ["DOMAIN_MODEL.md", "ACCOUNTING_RESEARCH.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
+      "specs": [
+        "DOMAIN_MODEL.md",
+        "ACCOUNTING_RESEARCH.md",
+        "REACT_BEST_PRACTICES.md",
+        "E2E_TESTING.md"
+      ],
       "acceptance_criteria": [
         "Header fields: Date, Reference, Description, Entry Type",
         "Line items table: Account dropdown, Memo, Debit, Credit",
@@ -780,7 +920,12 @@
       "epic": "UI: Journal Entries",
       "title": "Journal entry detail and workflow",
       "description": "View entry details with approval workflow actions based on status.",
-      "specs": ["DOMAIN_MODEL.md", "ACCOUNTING_RESEARCH.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
+      "specs": [
+        "DOMAIN_MODEL.md",
+        "ACCOUNTING_RESEARCH.md",
+        "REACT_BEST_PRACTICES.md",
+        "E2E_TESTING.md"
+      ],
       "acceptance_criteria": [
         "Header: Entry #, Date, Reference, Type, Status badge",
         "Metadata: Created by, Created at, Posted by, Posted at",
@@ -806,7 +951,9 @@
         ]
       },
       "files": {
-        "create": ["packages/web/src/routes/organizations/$organizationId/companies/$companyId/journal-entries/$entryId/index.tsx"]
+        "create": [
+          "packages/web/src/routes/organizations/$organizationId/companies/$companyId/journal-entries/$entryId/index.tsx"
+        ]
       },
       "status": "pending"
     },
@@ -815,7 +962,11 @@
       "epic": "UI: Financial Reports",
       "title": "Reports dashboard",
       "description": "Landing page with cards for each available report type.",
-      "specs": ["DOMAIN_MODEL.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
+      "specs": [
+        "DOMAIN_MODEL.md",
+        "REACT_BEST_PRACTICES.md",
+        "E2E_TESTING.md"
+      ],
       "acceptance_criteria": [
         "Cards for each report:",
         "  - Trial Balance: Account balances verification",
@@ -837,7 +988,9 @@
         ]
       },
       "files": {
-        "create": ["packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/index.tsx"]
+        "create": [
+          "packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/index.tsx"
+        ]
       },
       "status": "pending"
     },
@@ -846,7 +999,12 @@
       "epic": "UI: Financial Reports",
       "title": "Trial Balance report",
       "description": "Generate and display trial balance with debit/credit columns.",
-      "specs": ["DOMAIN_MODEL.md", "ACCOUNTING_RESEARCH.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
+      "specs": [
+        "DOMAIN_MODEL.md",
+        "ACCOUNTING_RESEARCH.md",
+        "REACT_BEST_PRACTICES.md",
+        "E2E_TESTING.md"
+      ],
       "acceptance_criteria": [
         "Date picker: As-of date",
         "Generate button calls API",
@@ -872,7 +1030,12 @@
       "epic": "UI: Financial Reports",
       "title": "Balance Sheet report",
       "description": "Generate and display balance sheet per ASC 210.",
-      "specs": ["DOMAIN_MODEL.md", "ACCOUNTING_RESEARCH.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
+      "specs": [
+        "DOMAIN_MODEL.md",
+        "ACCOUNTING_RESEARCH.md",
+        "REACT_BEST_PRACTICES.md",
+        "E2E_TESTING.md"
+      ],
       "acceptance_criteria": [
         "Date picker: As-of date, optional comparative date",
         "Sections: Assets (Current/Non-Current), Liabilities (Current/Non-Current), Equity",
@@ -887,7 +1050,9 @@
         "call": "GET /api/v1/reports/balance-sheet?companyId=:id&asOfDate=:date&comparativeDate=:date"
       },
       "files": {
-        "create": ["packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/balance-sheet.tsx"]
+        "create": [
+          "packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/balance-sheet.tsx"
+        ]
       },
       "status": "pending"
     },
@@ -896,7 +1061,12 @@
       "epic": "UI: Financial Reports",
       "title": "Income Statement report",
       "description": "Generate and display income statement per ASC 220.",
-      "specs": ["DOMAIN_MODEL.md", "ACCOUNTING_RESEARCH.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
+      "specs": [
+        "DOMAIN_MODEL.md",
+        "ACCOUNTING_RESEARCH.md",
+        "REACT_BEST_PRACTICES.md",
+        "E2E_TESTING.md"
+      ],
       "acceptance_criteria": [
         "Date range picker: Period start and end",
         "Optional comparative period",
@@ -910,7 +1080,9 @@
         "call": "GET /api/v1/reports/income-statement?companyId=:id&periodStartDate=:date&periodEndDate=:date"
       },
       "files": {
-        "create": ["packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/income-statement.tsx"]
+        "create": [
+          "packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/income-statement.tsx"
+        ]
       },
       "status": "pending"
     },
@@ -919,7 +1091,12 @@
       "epic": "UI: Financial Reports",
       "title": "Cash Flow Statement report",
       "description": "Generate and display cash flow statement per ASC 230.",
-      "specs": ["DOMAIN_MODEL.md", "ACCOUNTING_RESEARCH.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
+      "specs": [
+        "DOMAIN_MODEL.md",
+        "ACCOUNTING_RESEARCH.md",
+        "REACT_BEST_PRACTICES.md",
+        "E2E_TESTING.md"
+      ],
       "acceptance_criteria": [
         "Date range picker",
         "Method selector: Direct or Indirect",
@@ -932,7 +1109,9 @@
         "call": "GET /api/v1/reports/cash-flow?companyId=:id&periodStartDate=:date&periodEndDate=:date&method=:method"
       },
       "files": {
-        "create": ["packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/cash-flow.tsx"]
+        "create": [
+          "packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/cash-flow.tsx"
+        ]
       },
       "status": "pending"
     },
@@ -941,7 +1120,12 @@
       "epic": "UI: Financial Reports",
       "title": "Statement of Changes in Equity report",
       "description": "Generate and display equity statement showing period movements.",
-      "specs": ["DOMAIN_MODEL.md", "ACCOUNTING_RESEARCH.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
+      "specs": [
+        "DOMAIN_MODEL.md",
+        "ACCOUNTING_RESEARCH.md",
+        "REACT_BEST_PRACTICES.md",
+        "E2E_TESTING.md"
+      ],
       "acceptance_criteria": [
         "Date range picker",
         "Columns: Common Stock, APIC, Retained Earnings, Treasury Stock, AOCI, Total",
@@ -953,7 +1137,9 @@
         "call": "GET /api/v1/reports/equity-statement?companyId=:id&periodStartDate=:date&periodEndDate=:date"
       },
       "files": {
-        "create": ["packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/equity-statement.tsx"]
+        "create": [
+          "packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/equity-statement.tsx"
+        ]
       },
       "status": "pending"
     },
@@ -962,7 +1148,12 @@
       "epic": "UI: Fiscal Periods",
       "title": "Fiscal years and periods management",
       "description": "Manage fiscal years and period lifecycle (open/close/reopen).",
-      "specs": ["DOMAIN_MODEL.md", "ACCOUNTING_RESEARCH.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
+      "specs": [
+        "DOMAIN_MODEL.md",
+        "ACCOUNTING_RESEARCH.md",
+        "REACT_BEST_PRACTICES.md",
+        "E2E_TESTING.md"
+      ],
       "acceptance_criteria": [
         "Fiscal years list with expandable periods (12 + adjustment period)",
         "Create fiscal year button (auto-generates periods)",
@@ -1002,7 +1193,12 @@
       "epic": "UI: Exchange Rates",
       "title": "Exchange rates management",
       "description": "Manage exchange rates with CRUD and bulk import.",
-      "specs": ["DOMAIN_MODEL.md", "ACCOUNTING_RESEARCH.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
+      "specs": [
+        "DOMAIN_MODEL.md",
+        "ACCOUNTING_RESEARCH.md",
+        "REACT_BEST_PRACTICES.md",
+        "E2E_TESTING.md"
+      ],
       "acceptance_criteria": [
         "Rates list: From Currency, To Currency, Rate, Type, Effective Date",
         "Filter by: Currency pair, Rate type (Spot/Average/Closing), Date range",
@@ -1035,7 +1231,12 @@
       "epic": "UI: Consolidation",
       "title": "Consolidation groups list",
       "description": "List consolidation groups with member count and status.",
-      "specs": ["DOMAIN_MODEL.md", "ACCOUNTING_RESEARCH.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
+      "specs": [
+        "DOMAIN_MODEL.md",
+        "ACCOUNTING_RESEARCH.md",
+        "REACT_BEST_PRACTICES.md",
+        "E2E_TESTING.md"
+      ],
       "acceptance_criteria": [
         "Groups list: Name, Parent Company, Reporting Currency, Member Count, Status",
         "Create consolidation group button",
@@ -1044,10 +1245,14 @@
         "E2E test: Groups list"
       ],
       "api": {
-        "calls": ["GET /api/v1/consolidation/groups?organizationId=:id"]
+        "calls": [
+          "GET /api/v1/consolidation/groups?organizationId=:id"
+        ]
       },
       "files": {
-        "create": ["packages/web/src/routes/organizations/$organizationId/consolidation/index.tsx"]
+        "create": [
+          "packages/web/src/routes/organizations/$organizationId/consolidation/index.tsx"
+        ]
       },
       "status": "pending"
     },
@@ -1056,7 +1261,12 @@
       "epic": "UI: Consolidation",
       "title": "Consolidation group detail and members",
       "description": "Manage consolidation group members with ownership and method.",
-      "specs": ["DOMAIN_MODEL.md", "ACCOUNTING_RESEARCH.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
+      "specs": [
+        "DOMAIN_MODEL.md",
+        "ACCOUNTING_RESEARCH.md",
+        "REACT_BEST_PRACTICES.md",
+        "E2E_TESTING.md"
+      ],
       "acceptance_criteria": [
         "Header: Group name, parent company, reporting currency, status",
         "Members list: Company, Ownership %, Consolidation Method, Acquisition Date",
@@ -1076,7 +1286,9 @@
         ]
       },
       "files": {
-        "create": ["packages/web/src/routes/organizations/$organizationId/consolidation/$groupId/index.tsx"]
+        "create": [
+          "packages/web/src/routes/organizations/$organizationId/consolidation/$groupId/index.tsx"
+        ]
       },
       "status": "pending"
     },
@@ -1085,7 +1297,12 @@
       "epic": "UI: Consolidation",
       "title": "Consolidation runs and results",
       "description": "Execute consolidation runs and view results.",
-      "specs": ["DOMAIN_MODEL.md", "ACCOUNTING_RESEARCH.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
+      "specs": [
+        "DOMAIN_MODEL.md",
+        "ACCOUNTING_RESEARCH.md",
+        "REACT_BEST_PRACTICES.md",
+        "E2E_TESTING.md"
+      ],
       "acceptance_criteria": [
         "Runs list: Date, Period, Status, Initiated By",
         "Initiate new run: Period picker, as-of date",
@@ -1115,7 +1332,12 @@
       "epic": "UI: Consolidation",
       "title": "Elimination rules editor",
       "description": "Create and manage elimination rules for consolidation.",
-      "specs": ["DOMAIN_MODEL.md", "ACCOUNTING_RESEARCH.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
+      "specs": [
+        "DOMAIN_MODEL.md",
+        "ACCOUNTING_RESEARCH.md",
+        "REACT_BEST_PRACTICES.md",
+        "E2E_TESTING.md"
+      ],
       "acceptance_criteria": [
         "Rules list: Name, Type, Debit Account, Credit Account, Status",
         "Filter by type and status",
@@ -1140,7 +1362,9 @@
         ]
       },
       "files": {
-        "create": ["packages/web/src/routes/organizations/$organizationId/consolidation/$groupId/elimination-rules/index.tsx"]
+        "create": [
+          "packages/web/src/routes/organizations/$organizationId/consolidation/$groupId/elimination-rules/index.tsx"
+        ]
       },
       "status": "pending"
     },
@@ -1149,7 +1373,12 @@
       "epic": "UI: Intercompany",
       "title": "Intercompany transactions reconciliation",
       "description": "Track and reconcile intercompany transactions between group companies.",
-      "specs": ["DOMAIN_MODEL.md", "ACCOUNTING_RESEARCH.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
+      "specs": [
+        "DOMAIN_MODEL.md",
+        "ACCOUNTING_RESEARCH.md",
+        "REACT_BEST_PRACTICES.md",
+        "E2E_TESTING.md"
+      ],
       "acceptance_criteria": [
         "Transactions list: Date, From Company, To Company, Type, Amount, Status",
         "Status: Matched, Unmatched, PartiallyMatched, VarianceApproved",
@@ -1187,7 +1416,11 @@
       "epic": "UI: Audit Log",
       "title": "Audit log viewer",
       "description": "View audit trail for compliance and SOX requirements. Shows history of all changes to entities.",
-      "specs": ["DOMAIN_MODEL.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
+      "specs": [
+        "DOMAIN_MODEL.md",
+        "REACT_BEST_PRACTICES.md",
+        "E2E_TESTING.md"
+      ],
       "acceptance_criteria": [
         "Audit log page accessible from organization settings",
         "Table columns: Timestamp, User, Entity Type, Entity ID, Action, Changes",
@@ -1201,7 +1434,9 @@
         "E2E test: Audit log displays and filters correctly"
       ],
       "api": {
-        "calls": ["GET /api/v1/audit-log?entityType=:type&userId=:id&action=:action&fromDate=:date&toDate=:date"]
+        "calls": [
+          "GET /api/v1/audit-log?entityType=:type&userId=:id&action=:action&fromDate=:date&toDate=:date"
+        ]
       },
       "files": {
         "create": [
