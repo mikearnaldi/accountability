@@ -63,15 +63,21 @@ export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
     // On client-side, check auth state
     if (typeof window !== "undefined") {
       if (!hasToken) {
+        // Don't redirect if we're already on login or going to login
+        // This prevents redirect loops during password change flow
+        if (location.pathname === "/login") {
+          return
+        }
         // Build redirect URL to return after login
-        const currentPath = location.pathname + location.search
+        // Use searchStr for the raw query string, not search (which is parsed object)
+        const currentPath = location.pathname + (location.searchStr || "")
         const redirectUrl = currentPath !== "/" ? `?redirect=${encodeURIComponent(currentPath)}` : ""
         navigate({ to: `/login${redirectUrl}` })
       } else {
         setIsChecking(false)
       }
     }
-  }, [hasToken, navigate, location.pathname, location.search])
+  }, [hasToken, navigate, location.pathname, location.searchStr])
 
   // During SSR or initial check, show fallback
   if (isChecking) {

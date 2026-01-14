@@ -14,9 +14,10 @@ import * as Option from "effect/Option"
 import { hasTokenAtom, loginMutation } from "../atoms/auth.ts"
 import * as React from "react"
 
-// Search params type for redirect handling
+// Search params type for redirect handling and status messages
 export interface LoginSearch {
   redirect?: string
+  message?: "password_changed" | "session_expired"
 }
 
 export const Route = createFileRoute("/login")({
@@ -25,10 +26,35 @@ export const Route = createFileRoute("/login")({
     if (typeof search.redirect === "string") {
       result.redirect = search.redirect
     }
+    if (search.message === "password_changed") {
+      result.message = "password_changed"
+    } else if (search.message === "session_expired") {
+      result.message = "session_expired"
+    }
     return result
   },
   component: LoginPage
 })
+
+/**
+ * Get display message based on search param
+ */
+function getStatusMessage(message?: LoginSearch["message"]): { type: "success" | "info"; text: string } | null {
+  switch (message) {
+    case "password_changed":
+      return {
+        type: "success",
+        text: "Password changed successfully. Please sign in with your new password."
+      }
+    case "session_expired":
+      return {
+        type: "info",
+        text: "Your session has expired. Please sign in again."
+      }
+    default:
+      return null
+  }
+}
 
 function LoginPage() {
   const hasToken = useAtomValue(hasTokenAtom)
@@ -50,12 +76,24 @@ function LoginPage() {
   // Track previous waiting state to detect success completion
   const prevWaiting = React.useRef(false)
 
-  // Redirect if already authenticated
+  // Track if form is being used (to prevent auto-redirect during form interaction)
+  const formInteractionRef = React.useRef(false)
+
+  // Redirect if already authenticated (unless showing a message like password_changed)
+  // This auto-redirects users who accidentally navigate to /login while logged in.
+  // A small delay allows tests and fast users to switch accounts by filling the form.
   React.useEffect(() => {
-    if (hasToken) {
-      navigate({ to: redirectTo })
+    if (hasToken && !search.message) {
+      const timer = setTimeout(() => {
+        // Only redirect if user hasn't started interacting with the form
+        if (!formInteractionRef.current) {
+          navigate({ to: redirectTo })
+        }
+      }, 100)
+      return () => clearTimeout(timer)
     }
-  }, [hasToken, navigate, redirectTo])
+    return undefined
+  }, [hasToken, navigate, redirectTo, search.message])
 
   // Detect successful login completion and redirect
   React.useEffect(() => {
@@ -163,11 +201,10 @@ function LoginPage() {
 
   const isLoading = Result.isWaiting(loginResult)
   const errorMessage = getErrorMessage()
+  const statusMessage = getStatusMessage(search.message)
 
-  // If authenticated, don't render the form
-  if (hasToken) {
-    return null
-  }
+  // Note: We always render the login form, even if authenticated.
+  // This allows users to switch accounts by navigating to /login directly.
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 p-8">
@@ -178,6 +215,20 @@ function LoginPage() {
             Sign in to your account to continue
           </p>
         </div>
+
+        {/* Status Message (e.g., after password change) */}
+        {statusMessage && (
+          <div
+            className={`rounded-md p-4 text-sm border ${
+              statusMessage.type === "success"
+                ? "bg-green-50 text-green-700 border-green-200"
+                : "bg-blue-50 text-blue-700 border-blue-200"
+            }`}
+            data-testid="login-status-message"
+          >
+            {statusMessage.text}
+          </div>
+        )}
 
         <form
           onSubmit={handleSubmit}
@@ -209,10 +260,12 @@ function LoginPage() {
               name="email"
               value={email}
               onChange={(e) => {
+                formInteractionRef.current = true
                 setEmail(e.target.value)
                 if (emailError) validateEmail(e.target.value)
               }}
               onBlur={() => validateEmail(email)}
+              onFocus={() => { formInteractionRef.current = true }}
               className={`
                 w-full rounded-md border px-3 py-2
                 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent

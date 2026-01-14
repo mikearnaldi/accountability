@@ -68,6 +68,7 @@ import {
 } from "@accountability/core/Auth/AuthErrors"
 import { IdentityRepository } from "@accountability/persistence/Services/IdentityRepository"
 import { UserRepository } from "@accountability/persistence/Services/UserRepository"
+import { SessionRepository } from "@accountability/persistence/Services/SessionRepository"
 import { PasswordHasher } from "@accountability/core/Auth/PasswordHasher"
 import { ProviderId } from "@accountability/core/Auth/ProviderId"
 
@@ -401,6 +402,7 @@ export const AuthSessionApiLive = HttpApiBuilder.group(AppApi, "authSession", (h
     const authService = yield* AuthService
     const userRepo = yield* UserRepository
     const identityRepo = yield* IdentityRepository
+    const sessionRepo = yield* SessionRepository
 
     return handlers
       .handle("logout", () =>
@@ -704,6 +706,12 @@ export const AuthSessionApiLive = HttpApiBuilder.group(AppApi, "authSession", (h
           // Update the password hash
           yield* identityRepo.updatePasswordHash("local", providerId, newHash).pipe(
             Effect.mapError(() => new NoLocalIdentityError({}))
+          )
+
+          // SECURITY: Invalidate all sessions after password change
+          // This ensures the user must re-login with the new password
+          yield* sessionRepo.deleteByUserId(userId).pipe(
+            Effect.catchAll(() => Effect.succeed(0)) // Don't fail if session cleanup fails
           )
         })
       )

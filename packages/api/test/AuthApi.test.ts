@@ -1176,6 +1176,89 @@ layer(HttpLive, { timeout: "120 seconds" })("Auth API Integration Tests", (it) =
           expect(oldPasswordLoginResponse.status).toBe(401)
         })
       )
+
+      it.effect("invalidates session after password change (SECURITY: requires re-login)", () =>
+        Effect.gen(function* () {
+          const httpClient = yield* HttpClient.HttpClient
+          const email = generateTestEmail()
+          const oldPassword = generateTestPassword()
+          const newPassword = generateTestPassword()
+
+          // Register
+          yield* HttpClientRequest.post("/api/auth/register").pipe(
+            HttpClientRequest.bodyUnsafeJson({
+              email,
+              password: oldPassword,
+              displayName: "Session Invalidation Test"
+            }),
+            httpClient.execute,
+            Effect.scoped
+          )
+
+          // Login
+          const loginResponse = yield* HttpClientRequest.post("/api/auth/login").pipe(
+            HttpClientRequest.bodyUnsafeJson({
+              provider: "local",
+              credentials: { email, password: oldPassword }
+            }),
+            httpClient.execute,
+            Effect.scoped
+          )
+
+          const loginJson = yield* loginResponse.json
+          const { token } = yield* decodeJsonResponse(LoginResponseSchema)(loginJson)
+
+          // Verify the token works before password change
+          const meBeforeResponse = yield* HttpClientRequest.get("/api/auth/me").pipe(
+            HttpClientRequest.bearerToken(token),
+            httpClient.execute,
+            Effect.scoped
+          )
+          expect(meBeforeResponse.status).toBe(200)
+
+          // Change password
+          const changePasswordResponse = yield* HttpClientRequest.post("/api/auth/change-password").pipe(
+            HttpClientRequest.bearerToken(token),
+            HttpClientRequest.bodyUnsafeJson({
+              currentPassword: oldPassword,
+              newPassword
+            }),
+            httpClient.execute,
+            Effect.scoped
+          )
+          expect(changePasswordResponse.status).toBe(204)
+
+          // SECURITY: The old token should no longer work (session was invalidated)
+          const meAfterResponse = yield* HttpClientRequest.get("/api/auth/me").pipe(
+            HttpClientRequest.bearerToken(token),
+            httpClient.execute,
+            Effect.scoped
+          )
+          expect(meAfterResponse.status).toBe(401)
+
+          // Login with new password to get a new valid token
+          const newLoginResponse = yield* HttpClientRequest.post("/api/auth/login").pipe(
+            HttpClientRequest.bodyUnsafeJson({
+              provider: "local",
+              credentials: { email, password: newPassword }
+            }),
+            httpClient.execute,
+            Effect.scoped
+          )
+          expect(newLoginResponse.status).toBe(200)
+
+          const newLoginJson = yield* newLoginResponse.json
+          const { token: newToken } = yield* decodeJsonResponse(LoginResponseSchema)(newLoginJson)
+
+          // New token should work
+          const meNewTokenResponse = yield* HttpClientRequest.get("/api/auth/me").pipe(
+            HttpClientRequest.bearerToken(newToken),
+            httpClient.execute,
+            Effect.scoped
+          )
+          expect(meNewTokenResponse.status).toBe(200)
+        })
+      )
     })
 
     describe("Wrong current password handling", () => {

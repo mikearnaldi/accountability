@@ -10,7 +10,7 @@
 
 import * as React from "react"
 import { useState, useCallback } from "react"
-import { createFileRoute } from "@tanstack/react-router"
+import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useAtom, useAtomValue } from "@effect-atom/atom-react"
 import * as Result from "@effect-atom/atom/Result"
 import { AppShell } from "../../components/AppShell.tsx"
@@ -181,13 +181,16 @@ function Notification({
 
 /**
  * Change Password Form Component
+ *
+ * SECURITY: After successful password change, the server invalidates all sessions.
+ * The user will be redirected to login with a message explaining they need to re-login.
  */
 function ChangePasswordForm({
-  onSuccess,
-  onError
+  onError,
+  onSuccess
 }: {
-  onSuccess: (message: string) => void
   onError: (message: string) => void
+  onSuccess: () => void
 }) {
   const [currentPassword, setCurrentPassword] = useState("")
   const [newPassword, setNewPassword] = useState("")
@@ -221,10 +224,9 @@ function ChangePasswordForm({
 
       try {
         await changePassword({ currentPassword, newPassword })
-        onSuccess("Password changed successfully")
-        setCurrentPassword("")
-        setNewPassword("")
-        setConfirmPassword("")
+        // SECURITY: Password changed successfully. Server has invalidated all sessions.
+        // Call onSuccess to trigger navigation to login with message.
+        onSuccess()
       } catch (error: unknown) {
         const tag = getErrorTag(error)
         if (tag === "ChangePasswordError") {
@@ -238,7 +240,7 @@ function ChangePasswordForm({
         }
       }
     },
-    [currentPassword, newPassword, confirmPassword, changePassword, onSuccess, onError]
+    [currentPassword, newPassword, confirmPassword, changePassword, onError, onSuccess]
   )
 
   return (
@@ -313,6 +315,7 @@ function ChangePasswordForm({
 }
 
 function AccountSettingsPage() {
+  const navigate = useNavigate()
   const userResult = useAtomValue(currentUserAtom)
   const providersResult = useAtomValue(enabledProvidersAtom)
   const [linkResult, linkProvider] = useAtom(linkProviderMutation)
@@ -349,12 +352,14 @@ function AccountSettingsPage() {
     [linkProvider]
   )
 
-  // Watch for successful link provider response and redirect
+  // Watch for successful link provider response and redirect to OAuth provider
   React.useEffect(() => {
     if (Result.isSuccess(linkResult) && !Result.isWaiting(linkResult)) {
       // Extract the redirect URL from the successful response
+      // This is an EXTERNAL OAuth provider URL (Google, WorkOS, etc.) - cannot use TanStack Router
       const response = linkResult.value
       if (response && "redirectUrl" in response) {
+        // eslint-disable-next-line local/no-location-href-redirect -- External OAuth URL requires full page navigation
         window.location.href = response.redirectUrl
       }
     } else if (Result.isFailure(linkResult)) {
@@ -395,6 +400,16 @@ function AccountSettingsPage() {
   const dismissNotification = useCallback(() => {
     setNotification(null)
   }, [])
+
+  // Handle successful password change - navigate to login with message
+  // Use replace: true to ensure we don't add to history stack and the navigation "wins"
+  const handlePasswordChangeSuccess = useCallback(() => {
+    navigate({
+      to: "/login",
+      search: { message: "password_changed" },
+      replace: true
+    })
+  }, [navigate])
 
   const isLinking = Result.isWaiting(linkResult)
   const isUnlinking = Result.isWaiting(unlinkResult)
@@ -535,11 +550,12 @@ function AccountSettingsPage() {
               <h2 className="text-lg font-semibold text-gray-900 mb-4">
                 Change Password
               </h2>
+              <p className="text-sm text-amber-600 mb-4" data-testid="password-change-warning">
+                Note: Changing your password will log you out of all devices for security.
+              </p>
               <ChangePasswordForm
-                onSuccess={(message) =>
-                  setNotification({ type: "success", message })
-                }
                 onError={(message) => setNotification({ type: "error", message })}
+                onSuccess={handlePasswordChangeSuccess}
               />
             </div>
           )}

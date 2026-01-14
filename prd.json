@@ -354,7 +354,7 @@
           "packages/persistence/test/UserRepository.test.ts - updatePassword NOT tested"
         ]
       },
-      "status": "in_progress",
+      "status": "complete",
       "estimated_complexity": "medium"
     },
     {

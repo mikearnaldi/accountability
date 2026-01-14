@@ -184,10 +184,16 @@ test.describe("Account Settings", () => {
     )
   })
 
-  test("should successfully change password", async ({ page }) => {
+  test("should successfully change password and redirect to login", async ({ page }) => {
     const newPassword = "NewSecureP@ss123!"
 
     await page.goto("/settings/account")
+
+    // Verify we see the password change warning
+    await expect(page.getByTestId("password-change-warning")).toBeVisible()
+    await expect(page.getByTestId("password-change-warning")).toContainText(
+      "log you out"
+    )
 
     // Fill the change password form
     await page.getByTestId("current-password-input").fill(testUser.password)
@@ -197,34 +203,78 @@ test.describe("Account Settings", () => {
     // Submit the form
     await page.getByTestId("change-password-submit").click()
 
-    // Should show success notification
-    await expect(page.getByTestId("notification-success")).toBeVisible({ timeout: 10000 })
-    await expect(page.getByTestId("notification-success")).toContainText(
+    // SECURITY: Should redirect to login page with password_changed message
+    // The server has invalidated the session, so the user must re-login
+    await page.waitForURL(/\/login.*message=password_changed/, { timeout: 15000 })
+
+    // Should show the success message on login page
+    await expect(page.getByTestId("login-status-message")).toBeVisible()
+    await expect(page.getByTestId("login-status-message")).toContainText(
       "Password changed successfully"
     )
+    await expect(page.getByTestId("login-status-message")).toContainText(
+      "sign in with your new password"
+    )
 
-    // Password fields should be cleared
-    await expect(page.getByTestId("current-password-input")).toHaveValue("")
-    await expect(page.getByTestId("new-password-input")).toHaveValue("")
-    await expect(page.getByTestId("confirm-password-input")).toHaveValue("")
+    // Verify we can login with the new password
+    await page.getByTestId("login-email").fill(testUser.email)
+    await page.getByTestId("login-password").fill(newPassword)
+    await page.getByTestId("login-submit").click()
 
-    // Verify we can login with the new password by making a direct API call
-    // This avoids the UI navigation issues during logout/login flow
-    const loginResponse = await page.request.post("/api/auth/login", {
-      data: {
-        provider: "local",
-        credentials: {
-          email: testUser.email,
-          password: newPassword
-        }
-      }
-    })
-
-    // Login with new password should succeed
-    expect(loginResponse.ok()).toBe(true)
+    // Should redirect to home after successful login
+    await page.waitForURL("/", { timeout: 10000 })
 
     // Update test user password for subsequent tests
     testUser.password = newPassword
+  })
+
+  test("should not be able to login with old password after change", async ({ page, request }) => {
+    // Create a new test user for this specific test to avoid interfering with other tests
+    const changeUser = generateTestCredentials()
+    const newPassword = "ChangedP@ssword789!"
+
+    // Register the new user
+    await request.post("/api/auth/register", {
+      data: {
+        email: changeUser.email,
+        password: changeUser.password,
+        displayName: changeUser.displayName
+      }
+    })
+
+    // Login the user
+    await page.goto("/login")
+    await page.getByTestId("login-email").fill(changeUser.email)
+    await page.getByTestId("login-password").fill(changeUser.password)
+    await page.getByTestId("login-submit").click()
+    await page.waitForURL("/")
+
+    // Go to settings and change password
+    await page.goto("/settings/account")
+    await page.getByTestId("current-password-input").fill(changeUser.password)
+    await page.getByTestId("new-password-input").fill(newPassword)
+    await page.getByTestId("confirm-password-input").fill(newPassword)
+    await page.getByTestId("change-password-submit").click()
+
+    // Wait for redirect to login
+    await page.waitForURL(/\/login.*message=password_changed/, { timeout: 15000 })
+
+    // Try to login with the OLD password - should fail
+    await page.getByTestId("login-email").fill(changeUser.email)
+    await page.getByTestId("login-password").fill(changeUser.password)
+    await page.getByTestId("login-submit").click()
+
+    // Should see an error
+    await expect(page.getByTestId("login-error")).toBeVisible({ timeout: 10000 })
+    await expect(page.getByTestId("login-error")).toContainText("Invalid email or password")
+
+    // Now try with new password - should succeed
+    await page.getByTestId("login-password").clear()
+    await page.getByTestId("login-password").fill(newPassword)
+    await page.getByTestId("login-submit").click()
+
+    // Should redirect to home
+    await page.waitForURL("/", { timeout: 10000 })
   })
 
   test("should redirect unauthenticated users to login", async ({ page }) => {

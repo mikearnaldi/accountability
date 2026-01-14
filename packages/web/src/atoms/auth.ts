@@ -491,9 +491,14 @@ export interface ChangePasswordInput {
 /**
  * changePasswordMutation - Change the user's password
  *
+ * SECURITY: This mutation invalidates all sessions after password change.
+ * The user will be logged out and must re-login with the new password.
+ *
  * This mutation:
  * 1. Verifies the current password
  * 2. Updates the password hash with the new password
+ * 3. Server invalidates all sessions for security
+ * 4. Clears the local token (user must re-login)
  *
  * Only available for users with a linked local identity (email/password).
  *
@@ -503,7 +508,8 @@ export interface ChangePasswordInput {
  *
  * try {
  *   await changePassword({ currentPassword: "old", newPassword: "new" })
- *   // Show success notification
+ *   // Session invalidated - redirect to login
+ *   window.location.href = "/auth/login?message=password_changed"
  * } catch {
  *   // Error handling - wrong current password or no local identity
  * }
@@ -512,12 +518,18 @@ export interface ChangePasswordInput {
 export const changePasswordMutation = ApiClient.runtime.fn<ChangePasswordInput>()(
   Effect.fnUntraced(function* (input) {
     const client = yield* ApiClient
+    const registry = yield* AtomRegistry
     yield* client.authSession.changePassword({
       payload: {
         currentPassword: input.currentPassword,
         newPassword: input.newPassword
       }
     })
+
+    // SECURITY: Server has invalidated all sessions, clear local token
+    // User must re-login with their new password
+    clearStoredToken()
+    registry.update(authTokenVersionAtom, (v) => v + 1)
 
     return undefined
   })
