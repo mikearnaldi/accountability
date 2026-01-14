@@ -48,6 +48,17 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+# Cleanup function - removes .ralph directory on exit
+cleanup() {
+    if [ -d "$OUTPUT_DIR" ]; then
+        rm -rf "$OUTPUT_DIR"
+        echo -e "${BLUE}[$(date '+%Y-%m-%d %H:%M:%S')]${NC} Cleaned up $OUTPUT_DIR"
+    fi
+}
+
+# Set trap to clean up on exit (normal exit, errors, or signals)
+trap cleanup EXIT
+
 # Create output directory for logs
 mkdir -p "$OUTPUT_DIR"
 
