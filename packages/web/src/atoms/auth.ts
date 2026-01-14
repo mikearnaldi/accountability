@@ -12,13 +12,13 @@ import * as Effect from "effect/Effect"
 import { unsafeCoerce } from "effect/Function"
 import { ApiClient } from "./ApiClient.ts"
 import { getStoredToken, setStoredToken, clearStoredToken } from "./tokenStorage.ts"
-import type { AuthUserResponse, LoginRequest, LoginResponse, LocalLoginCredentials } from "@accountability/api/Definitions/AuthApi"
+import type { AuthUserResponse, LoginRequest, LoginResponse, LocalLoginCredentials, RegisterRequest } from "@accountability/api/Definitions/AuthApi"
 
 // Re-export for backwards compatibility and convenience
 export { setStoredToken, getStoredToken, clearStoredToken } from "./tokenStorage.ts"
 
 // Re-export types for convenience
-export type { LoginRequest, LoginResponse }
+export type { LoginRequest, LoginResponse, RegisterRequest }
 
 // =============================================================================
 // Auth Token Atom
@@ -173,6 +173,70 @@ export const loginMutation = ApiClient.runtime.fn<LocalLoginInput>()(
     setStoredToken(response.token)
 
     return response
+  })
+)
+
+// =============================================================================
+// Register Mutation
+// =============================================================================
+
+/**
+ * Input type for local registration (form input)
+ * Uses plain strings since form data is untyped at runtime
+ */
+export interface LocalRegisterInput {
+  readonly email: string
+  readonly password: string
+  readonly displayName: string
+}
+
+/**
+ * registerMutation - Register a new user and auto-login on success
+ *
+ * This mutation:
+ * 1. Calls the register API endpoint with user details
+ * 2. On success, automatically logs in and stores the token
+ *
+ * Usage:
+ * ```typescript
+ * const [result, register] = useAtom(registerMutation)
+ *
+ * // Fire-and-forget (Result tracks loading/error)
+ * register({
+ *   email: "user@example.com",
+ *   password: "securepassword",
+ *   displayName: "John Doe"
+ * })
+ *
+ * // Or with promise mode for navigation after registration
+ * const [, register] = useAtom(registerMutation, { mode: "promise" })
+ * const response = await register({ email, password, displayName })
+ * navigate(redirectTo)
+ * ```
+ */
+export const registerMutation = ApiClient.runtime.fn<LocalRegisterInput>()(
+  Effect.fnUntraced(function* (input) {
+    const client = yield* ApiClient
+    // Register the user - use unsafeCoerce since server validates via Schema
+    const registerPayload: RegisterRequest = unsafeCoerce(input)
+    yield* client.auth.register({ payload: registerPayload })
+
+    // Auto-login after successful registration
+    const credentials: LocalLoginCredentials = unsafeCoerce({
+      email: input.email,
+      password: input.password
+    })
+    const loginResponse: LoginResponse = yield* client.auth.login({
+      payload: {
+        provider: "local",
+        credentials
+      }
+    })
+
+    // Store the token on successful login
+    setStoredToken(loginResponse.token)
+
+    return loginResponse
   })
 )
 

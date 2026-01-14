@@ -220,7 +220,7 @@
         ],
         "e2e_file": "packages/web/test-e2e/auth/register.spec.ts"
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "medium"
     },
     {
