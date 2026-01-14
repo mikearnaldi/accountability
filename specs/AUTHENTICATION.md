@@ -649,8 +649,8 @@ const state = btoa(String.fromCharCode(...stateBytes))
 **Session Tokens**:
 - Generated using cryptographically secure random bytes
 - Stored server-side in PostgreSQL
-- Transmitted via `Authorization: Bearer <token>` header
-- Never stored in cookies (prevents CSRF)
+- Transmitted via httpOnly secure cookies (never localStorage)
+- Protected from XSS via httpOnly flag, CSRF via sameSite strict
 
 **Session Expiration**:
 - Sessions have provider-specific durations
@@ -672,27 +672,38 @@ CREATE TABLE auth_sessions (
 
 ### Token Storage (Client-Side)
 
-The frontend stores session tokens in `localStorage`:
+**IMPORTANT: Session tokens MUST be stored in httpOnly secure cookies. localStorage usage is FORBIDDEN.**
+
+The session token is set by the server as an httpOnly cookie:
 
 ```typescript
-// packages/web/src/atoms/auth.ts
-const TOKEN_STORAGE_KEY = "@accountability/auth-token"
+// Server sets cookie on successful authentication
+HttpServerResponse.setCookie("session", token, {
+  httpOnly: true,      // Not accessible via JavaScript - prevents XSS theft
+  secure: true,        // Only sent over HTTPS
+  sameSite: "strict",  // CSRF protection
+  path: "/",           // Available for all routes
+  maxAge: "7 days"     // Session duration
+})
 
-// Stored on login
-localStorage.setItem(TOKEN_STORAGE_KEY, token)
-
-// Cleared on logout
-localStorage.removeItem(TOKEN_STORAGE_KEY)
+// Cookie automatically cleared on logout
+HttpServerResponse.setCookie("session", "", {
+  httpOnly: true,
+  secure: true,
+  maxAge: "0 seconds"  // Immediate expiration
+})
 ```
 
-**Trade-offs**:
-- Pros: Simple, persists across tabs, no CSRF risk
-- Cons: Vulnerable to XSS attacks
+**Why httpOnly cookies are required**:
+- **XSS Protection**: httpOnly cookies cannot be accessed by JavaScript, so even if an attacker injects malicious scripts, they cannot steal the session token
+- **Automatic transmission**: Browser automatically sends cookies with requests, no client-side token management needed
+- **CSRF protection**: Combined with `sameSite: "strict"`, cookies are not sent with cross-site requests
 
-**Mitigations**:
-- Content Security Policy (CSP) headers
-- Strict input sanitization
-- No `eval()` or inline scripts
+**Why localStorage is forbidden**:
+- **XSS vulnerability**: Any XSS attack can read localStorage and exfiltrate tokens
+- **No expiration control**: localStorage has no built-in expiration mechanism
+- **Cross-tab leakage**: Malicious scripts in any tab can access localStorage
+- **Persistence risk**: localStorage survives browser restarts, increasing exposure window
 
 ### Password Security
 

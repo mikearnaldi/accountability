@@ -829,3 +829,8 @@
 **Story**: 11.1.2 - Registration page
 **Status**: complete
 ---
+
+## Iteration 2 - 2026-01-14 20:00
+**Story**: 11.2.1 - Organizations list with SSR
+**Status**: complete
+---

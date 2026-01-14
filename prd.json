@@ -43,7 +43,53 @@
         "src/api/schema.ts - generated types",
         "src/api/client.ts - configured client"
       ],
-      "usage": "import { api } from '@/api/client'; await api.GET('/api/v1/organizations')"
+      "usage": "import { api } from '@/api/client'; await api.GET('/api/v1/organizations')",
+      "cookie_auth": {
+        "principle": "httpOnly cookies ONLY. localStorage is FORBIDDEN for token storage.",
+        "server_side": {
+          "description": "SSR loaders read cookie from request headers and pass to API",
+          "pattern": [
+            "// In loader or beforeLoad:",
+            "const cookie = request.headers.get('cookie')",
+            "const { data } = await api.GET('/api/auth/me', {",
+            "  headers: { cookie }",
+            "})"
+          ]
+        },
+        "client_side": {
+          "description": "Browser automatically sends cookies with credentials: include",
+          "pattern": [
+            "// Client-side - no manual token handling needed:",
+            "const api = createClient<paths>({",
+            "  baseUrl: window.location.origin,",
+            "  credentials: 'include'  // Browser sends cookies automatically",
+            "})",
+            "",
+            "// Just call the API - cookies sent automatically:",
+            "await api.POST('/api/v1/organizations', { body })"
+          ]
+        },
+        "forbidden": [
+          "localStorage.getItem/setItem for tokens",
+          "Manual Authorization header on client-side",
+          "Storing tokens in React state or context",
+          "Returning token in API response body - token MUST only be set via Set-Cookie header"
+        ],
+        "api_response": {
+          "principle": "Auth API MUST NOT return token in response body. Token is set via httpOnly cookie only.",
+          "login_response": {
+            "description": "Login returns user info, NOT the token",
+            "correct": "{ user: { id, email, displayName } }",
+            "wrong": "{ token: '...', user: { ... } }"
+          },
+          "register_response": {
+            "description": "Register returns user info, NOT the token",
+            "correct": "{ user: { id, email, displayName } }",
+            "wrong": "{ token: '...', user: { ... } }"
+          },
+          "rationale": "If token is in response body, JavaScript can read it, defeating httpOnly protection"
+        }
+      }
     }
   },
   "technology": {
@@ -79,9 +125,10 @@
       "mutations": "Call api client in handlers, then router.invalidate() to refetch"
     },
     "auth": {
-      "cookie": "httpOnly secure cookie stores session token",
-      "ssr_check": "beforeLoad() reads cookie, validates session, redirects if needed",
-      "client_check": "Check loader data for user presence"
+      "cookie": "httpOnly secure cookie stores session token. localStorage is FORBIDDEN.",
+      "ssr_check": "beforeLoad() reads cookie from request.headers.get('cookie'), passes to API via headers: { cookie }",
+      "client_check": "Check loader data for user presence",
+      "client_requests": "Browser sends cookies automatically with credentials: 'include'. No manual token handling."
     },
     "example_route": {
       "code": [
@@ -90,9 +137,12 @@
         "    // Auth check - redirect if not logged in",
         "    if (!context.user) throw redirect({ to: '/login' })",
         "  },",
-        "  loader: async () => {",
-        "    // SSR data fetch",
-        "    const { data } = await api.GET('/api/v1/organizations')",
+        "  loader: async ({ request }) => {",
+        "    // SSR: Forward cookie from request to API",
+        "    const cookie = request.headers.get('cookie')",
+        "    const { data } = await api.GET('/api/v1/organizations', {",
+        "      headers: { cookie }  // Server needs to forward cookie explicitly",
+        "    })",
         "    return { organizations: data ?? [] }",
         "  },",
         "  component: OrganizationsPage",
@@ -100,8 +150,12 @@
         "",
         "function OrganizationsPage() {",
         "  const { organizations } = Route.useLoaderData()",
-        "  // Data available immediately - no loading state needed for SSR",
-        "  return <OrganizationsList items={organizations} />",
+        "  const handleCreate = async (body) => {",
+        "    // Client-side: cookies sent automatically via credentials: 'include'",
+        "    await api.POST('/api/v1/organizations', { body })",
+        "    router.invalidate()",
+        "  }",
+        "  return <OrganizationsList items={organizations} onCreate={handleCreate} />",
         "}"
       ]
     }
@@ -284,7 +338,7 @@
           "packages/web/src/routes/organizations/index.tsx"
         ]
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "medium",
       "depends_on": [
         "11.1.1"

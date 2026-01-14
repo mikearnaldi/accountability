@@ -15,14 +15,54 @@ const log = (message: string): void => {
   process.stderr.write(`${message}\n`)
 }
 
-// Type declaration for the global dispose storage
+// Type declaration for the global storage
 // This persists across HMR module reloads
 declare global {
   var __apiDispose: (() => Promise<void>) | undefined
 }
 
-// Create database layer from environment configuration
-const DatabaseLayer = Layer.unwrapEffect(
+// Check if we're in development mode
+const isDev = process.env.NODE_ENV !== "production"
+
+// Dev database container layer with proper acquireRelease lifecycle
+// Container is started on acquire and stopped on release (when layer is disposed)
+const DevContainerLayer = Layer.unwrapScoped(
+  Effect.gen(function* () {
+    log("[API] Starting PostgreSQL container for development...")
+
+    const { PostgreSqlContainer } = yield* Effect.promise(() =>
+      import("@testcontainers/postgresql")
+    )
+
+    // acquireRelease: start container on acquire, stop on release
+    const container = yield* Effect.acquireRelease(
+      Effect.promise(() =>
+        new PostgreSqlContainer("postgres:alpine")
+          .withDatabase("accountability_dev")
+          .start()
+      ),
+      (container) =>
+        Effect.promise(async () => {
+          log("[API] Stopping dev database container...")
+          await container.stop()
+          log("[API] Dev container stopped")
+        })
+    )
+
+    const dbUrl = container.getConnectionUri()
+    log(`[API] PostgreSQL ready at ${dbUrl}`)
+
+    return PgClient.layer({
+      url: Redacted.make(dbUrl),
+      maxConnections: 10,
+      idleTimeout: "60 seconds",
+      connectTimeout: "10 seconds"
+    })
+  })
+)
+
+// Configured database layer (for production or when DATABASE_URL is set)
+const ConfiguredDatabaseLayer = Layer.unwrapEffect(
   Effect.gen(function* () {
     const url = yield* Config.redacted("DATABASE_URL").pipe(
       Config.orElse(() =>
@@ -51,13 +91,39 @@ const DatabaseLayer = Layer.unwrapEffect(
   })
 )
 
+// Create database layer from environment configuration
+// In dev mode without DATABASE_URL, automatically starts a testcontainers PostgreSQL
+const DatabaseLayer = Layer.unwrapEffect(
+  Effect.gen(function* () {
+    // Check if DATABASE_URL or PG* vars are set
+    const hasDbConfig = yield* Config.redacted("DATABASE_URL").pipe(
+      Config.map(() => true),
+      Config.orElse(() =>
+        Config.string("PGHOST").pipe(
+          Config.map(() => true),
+          Config.withDefault(false)
+        )
+      )
+    )
+
+    // In dev mode without config, use container layer
+    if (isDev && !hasDbConfig) {
+      return DevContainerLayer
+    }
+
+    // Otherwise use configured database
+    return ConfiguredDatabaseLayer
+  })
+)
+
 // Create web handler from the Effect HttpApi
 // This returns a standard web Request -> Response handler compatible with TanStack Start
 //
 // Uses real repository implementations with PostgreSQL database connection.
-// Database connection is configured via environment variables:
-//   - DATABASE_URL: Full PostgreSQL connection URL (preferred)
-//   - Or individual vars: PGHOST, PGPORT, PGUSER, PGPASSWORD, PGDATABASE
+//
+// Database configuration:
+//   - Dev mode (no DATABASE_URL): Automatically starts a PostgreSQL container via testcontainers
+//   - Production or with config: Uses DATABASE_URL or PGHOST/PGPORT/PGUSER/PGPASSWORD/PGDATABASE
 //
 // OpenAPI documentation:
 // - Swagger UI: /api/docs
@@ -89,6 +155,7 @@ const { handler, dispose } = HttpApiBuilder.toWebHandler(
 globalThis.__apiDispose = dispose
 
 // Graceful shutdown handler with logging
+// Container cleanup is handled by acquireRelease in DevContainerLayer
 const gracefulShutdown = async (signal: string): Promise<void> => {
   log(`[API] Received ${signal}, initiating graceful shutdown...`)
   try {
