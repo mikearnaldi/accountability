@@ -1,7 +1,8 @@
 /**
  * CreateOrganizationModal Component
  *
- * A modal form for creating a new organization with:
+ * A polished modal form for creating a new organization with:
+ * - Professional styling using UI components
  * - Name input (required)
  * - Reporting currency selector
  * - Form validation
@@ -13,99 +14,61 @@ import { useState, useCallback, useEffect, useRef } from "react"
 import { useAtom } from "@effect-atom/atom-react"
 import * as Result from "@effect-atom/atom/Result"
 import { createOrganizationMutation } from "../atoms/organizations.ts"
+import { Modal, ModalHeader, ModalTitle, ModalBody, ModalFooter } from "./ui/Modal.tsx"
+import { Button } from "./ui/Button.tsx"
+import { Input } from "./ui/Input.tsx"
+import { Select } from "./ui/Select.tsx"
+import { Alert } from "./ui/Alert.tsx"
 
-/**
- * Common currencies for the dropdown
- */
+// =============================================================================
+// Constants
+// =============================================================================
+
 const COMMON_CURRENCIES = [
-  { code: "USD", name: "US Dollar" },
-  { code: "EUR", name: "Euro" },
-  { code: "GBP", name: "British Pound" },
-  { code: "JPY", name: "Japanese Yen" },
-  { code: "CAD", name: "Canadian Dollar" },
-  { code: "AUD", name: "Australian Dollar" },
-  { code: "CHF", name: "Swiss Franc" },
-  { code: "CNY", name: "Chinese Yuan" }
+  { value: "USD", label: "USD - US Dollar" },
+  { value: "EUR", label: "EUR - Euro" },
+  { value: "GBP", label: "GBP - British Pound" },
+  { value: "JPY", label: "JPY - Japanese Yen" },
+  { value: "CAD", label: "CAD - Canadian Dollar" },
+  { value: "AUD", label: "AUD - Australian Dollar" },
+  { value: "CHF", label: "CHF - Swiss Franc" },
+  { value: "CNY", label: "CNY - Chinese Yuan" }
 ] as const
 
-interface CreateOrganizationModalProps {
-  /**
-   * Whether the modal is open
-   */
-  readonly isOpen: boolean
-  /**
-   * Called when the modal should close (cancel or after success)
-   */
-  readonly onClose: () => void
-  /**
-   * Called after a successful organization creation
-   */
-  readonly onSuccess?: (organizationId: string) => void
-}
+// =============================================================================
+// Helper Functions
+// =============================================================================
 
-/**
- * Type guard for objects with _tag property
- */
 function hasTag(error: unknown): error is { _tag: string } {
-  if (typeof error !== "object" || error === null) {
-    return false
-  }
-  if (!("_tag" in error)) {
-    return false
-  }
+  if (typeof error !== "object" || error === null) return false
+  if (!("_tag" in error)) return false
   const tagValue = Reflect.get(error, "_tag")
   return typeof tagValue === "string"
 }
 
-/**
- * Type guard for objects with message property
- */
 function hasMessage(error: unknown): error is { message: string } {
-  if (typeof error !== "object" || error === null) {
-    return false
-  }
-  if (!("message" in error)) {
-    return false
-  }
+  if (typeof error !== "object" || error === null) return false
+  if (!("message" in error)) return false
   const messageValue = Reflect.get(error, "message")
   return typeof messageValue === "string"
 }
 
-/**
- * Get error message from an error object
- */
 function getErrorMessage(error: unknown): string {
-  if (hasMessage(error)) {
-    return error.message
-  }
-  if (hasTag(error)) {
-    return error._tag
-  }
+  if (hasMessage(error)) return error.message
+  if (hasTag(error)) return error._tag
   return "An unexpected error occurred"
 }
 
-/**
- * CreateOrganizationModal - Modal form for creating organizations
- *
- * Features:
- * - Name input with validation
- * - Currency dropdown with common currencies
- * - Loading state during submission
- * - Error display
- * - Focus management (focuses name input on open)
- * - Keyboard support (Escape to close)
- *
- * Usage:
- * ```tsx
- * const [isOpen, setIsOpen] = useState(false)
- *
- * <CreateOrganizationModal
- *   isOpen={isOpen}
- *   onClose={() => setIsOpen(false)}
- *   onSuccess={(id) => navigate(`/organizations/${id}`)}
- * />
- * ```
- */
+// =============================================================================
+// Component
+// =============================================================================
+
+interface CreateOrganizationModalProps {
+  readonly isOpen: boolean
+  readonly onClose: () => void
+  readonly onSuccess?: (organizationId: string) => void
+}
+
 export function CreateOrganizationModal({
   isOpen,
   onClose,
@@ -120,14 +83,12 @@ export function CreateOrganizationModal({
   const [createResult, createOrganization] = useAtom(createOrganizationMutation, { mode: "promise" })
   const isLoading = Result.isWaiting(createResult)
 
-  // Refs for focus management
+  // Focus management
   const nameInputRef = useRef<HTMLInputElement>(null)
-  const modalRef = useRef<HTMLDivElement>(null)
 
   // Focus name input when modal opens
   useEffect(() => {
     if (isOpen) {
-      // Small delay to ensure modal is rendered
       const timer = setTimeout(() => {
         nameInputRef.current?.focus()
       }, 100)
@@ -144,24 +105,12 @@ export function CreateOrganizationModal({
     }
   }, [isOpen])
 
-  // Handle escape key
-  useEffect(() => {
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape" && isOpen && !isLoading) {
-        onClose()
-      }
-    }
-    document.addEventListener("keydown", handleKeyDown)
-    return () => document.removeEventListener("keydown", handleKeyDown)
-  }, [isOpen, isLoading, onClose])
-
   // Handle form submission
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault()
       setValidationError(null)
 
-      // Client-side validation
       const trimmedName = name.trim()
       if (!trimmedName) {
         setValidationError("Organization name is required")
@@ -181,15 +130,12 @@ export function CreateOrganizationModal({
           name: trimmedName,
           reportingCurrency: currency
         })
-        // Success! Call onSuccess if provided
         onSuccess?.(organization.id)
         onClose()
       } catch (error: unknown) {
         const tag = hasTag(error) ? error._tag : undefined
         if (tag === "ConflictError") {
           setValidationError("An organization with this name already exists")
-        } else if (tag === "ValidationError") {
-          setValidationError(getErrorMessage(error))
         } else {
           setValidationError(getErrorMessage(error))
         }
@@ -198,131 +144,77 @@ export function CreateOrganizationModal({
     [name, currency, createOrganization, onSuccess, onClose]
   )
 
-  // Handle backdrop click
-  const handleBackdropClick = useCallback(
-    (e: React.MouseEvent) => {
-      // Only close if clicking the backdrop (not the modal content)
-      if (e.target === e.currentTarget && !isLoading) {
-        onClose()
-      }
-    },
-    [isLoading, onClose]
-  )
-
-  if (!isOpen) {
-    return null
-  }
+  const handleClose = useCallback(() => {
+    if (!isLoading) {
+      onClose()
+    }
+  }, [isLoading, onClose])
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-      onClick={handleBackdropClick}
-      data-testid="create-organization-modal"
+    <Modal
+      isOpen={isOpen}
+      onClose={handleClose}
+      size="md"
+      closeOnEscape={!isLoading}
+      closeOnBackdrop={!isLoading}
     >
-      <div
-        ref={modalRef}
-        className="w-full max-w-md rounded-lg bg-white shadow-xl"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="modal-title"
-      >
-        {/* Header */}
-        <div className="border-b border-gray-200 px-6 py-4">
-          <h2
-            id="modal-title"
-            className="text-lg font-semibold text-gray-900"
+      <form onSubmit={handleSubmit} data-testid="create-organization-modal">
+        <ModalHeader onClose={handleClose}>
+          <ModalTitle description="Organizations group companies together for consolidated reporting.">
+            Create Organization
+          </ModalTitle>
+        </ModalHeader>
+
+        <ModalBody className="space-y-4">
+          {validationError && (
+            <Alert variant="error" data-testid="create-organization-error">
+              {validationError}
+            </Alert>
+          )}
+
+          <Input
+            ref={nameInputRef}
+            label="Organization Name"
+            id="organization-name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="My Organization"
+            disabled={isLoading}
+            data-testid="organization-name-input"
+          />
+
+          <Select
+            label="Reporting Currency"
+            id="reporting-currency"
+            value={currency}
+            onChange={(e) => setCurrency(e.target.value)}
+            options={COMMON_CURRENCIES}
+            disabled={isLoading}
+            helperText="This currency will be used for consolidated reports."
+            data-testid="organization-currency-select"
+          />
+        </ModalBody>
+
+        <ModalFooter>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={handleClose}
+            disabled={isLoading}
+            data-testid="create-organization-cancel"
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            variant="primary"
+            loading={isLoading}
+            data-testid="create-organization-submit"
           >
             Create Organization
-          </h2>
-          <p className="mt-1 text-sm text-gray-500">
-            Organizations group companies together for consolidated reporting.
-          </p>
-        </div>
-
-        {/* Form */}
-        <form onSubmit={handleSubmit}>
-          <div className="space-y-4 px-6 py-4">
-            {/* Error display */}
-            {validationError && (
-              <div
-                className="rounded-md bg-red-50 p-3 text-sm text-red-700"
-                data-testid="create-organization-error"
-              >
-                {validationError}
-              </div>
-            )}
-
-            {/* Name input */}
-            <div>
-              <label
-                htmlFor="organization-name"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Organization Name
-              </label>
-              <input
-                ref={nameInputRef}
-                id="organization-name"
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                placeholder="My Organization"
-                disabled={isLoading}
-                data-testid="organization-name-input"
-              />
-            </div>
-
-            {/* Currency select */}
-            <div>
-              <label
-                htmlFor="reporting-currency"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Reporting Currency
-              </label>
-              <select
-                id="reporting-currency"
-                value={currency}
-                onChange={(e) => setCurrency(e.target.value)}
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                disabled={isLoading}
-                data-testid="organization-currency-select"
-              >
-                {COMMON_CURRENCIES.map((curr) => (
-                  <option key={curr.code} value={curr.code}>
-                    {curr.code} - {curr.name}
-                  </option>
-                ))}
-              </select>
-              <p className="mt-1 text-xs text-gray-500">
-                This currency will be used for consolidated reports.
-              </p>
-            </div>
-          </div>
-
-          {/* Footer */}
-          <div className="flex justify-end gap-3 border-t border-gray-200 px-6 py-4">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={isLoading}
-              className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              data-testid="create-organization-cancel"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              data-testid="create-organization-submit"
-            >
-              {isLoading ? "Creating..." : "Create Organization"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+          </Button>
+        </ModalFooter>
+      </form>
+    </Modal>
   )
 }

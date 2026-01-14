@@ -10,6 +10,7 @@
  * - Responsive layout with collapsible sidebar
  * - Flexible header with user menu slot
  * - Full-height layout that fills the viewport
+ * - Beautiful gradient background for content area
  */
 
 import * as React from "react"
@@ -43,7 +44,10 @@ interface AppShellProps {
  */
 export function AppShell({ userMenu, children }: AppShellProps) {
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50" data-testid="app-shell">
+    <div
+      className="flex h-screen overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100"
+      data-testid="app-shell"
+    >
       {/* Sidebar - fixed left navigation */}
       <Sidebar />
 
@@ -54,10 +58,12 @@ export function AppShell({ userMenu, children }: AppShellProps) {
 
         {/* Main content area - scrollable */}
         <main
-          className="flex-1 overflow-auto p-6"
+          className="flex-1 overflow-auto p-6 lg:p-8"
           data-testid="main-content"
         >
-          {children}
+          <div className="mx-auto max-w-7xl">
+            {children}
+          </div>
         </main>
       </div>
     </div>

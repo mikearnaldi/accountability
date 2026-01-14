@@ -1,11 +1,11 @@
 /**
  * UserMenu Component
  *
- * Displays user information and provides account management options.
- * Features:
- * - Shows user avatar/initials and name when authenticated
- * - Dropdown menu with: user email, account settings link, logout button
- * - Shows Login button when not authenticated
+ * Professional user menu with:
+ * - User avatar with initials
+ * - Dropdown with account settings and logout
+ * - Smooth animations and transitions
+ * - Proper focus management
  */
 
 import { Link, useNavigate } from "@tanstack/react-router"
@@ -22,70 +22,35 @@ import * as React from "react"
 // Icons
 // =============================================================================
 
-const CogIcon = () => (
-  <svg
-    className="h-4 w-4"
-    fill="none"
-    stroke="currentColor"
-    viewBox="0 0 24 24"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2}
-      d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-    />
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2}
-      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-    />
-  </svg>
-)
+function CogIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 010 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 010-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+  )
+}
 
-const LogoutIcon = () => (
-  <svg
-    className="h-4 w-4"
-    fill="none"
-    stroke="currentColor"
-    viewBox="0 0 24 24"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2}
-      d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-    />
-  </svg>
-)
+function LogoutIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+    </svg>
+  )
+}
 
-const ChevronDownIcon = () => (
-  <svg
-    className="h-4 w-4"
-    fill="none"
-    stroke="currentColor"
-    viewBox="0 0 24 24"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2}
-      d="M19 9l-7 7-7-7"
-    />
-  </svg>
-)
+function ChevronDownIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+    </svg>
+  )
+}
 
 // =============================================================================
 // Helper Functions
 // =============================================================================
 
-/**
- * Get user initials from display name or email
- */
 function getInitials(displayName: string | null | undefined, email: string): string {
   if (displayName && displayName.trim()) {
     const parts = displayName.trim().split(/\s+/)
@@ -94,7 +59,6 @@ function getInitials(displayName: string | null | undefined, email: string): str
     }
     return parts[0].slice(0, 2).toUpperCase()
   }
-  // Fall back to email
   return email.slice(0, 2).toUpperCase()
 }
 
@@ -108,7 +72,6 @@ export function UserMenu() {
   const navigate = useNavigate()
   const [logoutResult, logout] = useAtom(logoutMutation, { mode: "promise" })
 
-  // Dropdown state - local state is fine for ephemeral UI
   const [isOpen, setIsOpen] = React.useState(false)
   const dropdownRef = React.useRef<HTMLDivElement>(null)
 
@@ -122,9 +85,7 @@ export function UserMenu() {
     }
 
     document.addEventListener("mousedown", handleClickOutside)
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside)
-    }
+    return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
 
   // Close dropdown on escape key
@@ -136,9 +97,7 @@ export function UserMenu() {
     }
 
     document.addEventListener("keydown", handleEscape)
-    return () => {
-      document.removeEventListener("keydown", handleEscape)
-    }
+    return () => document.removeEventListener("keydown", handleEscape)
   }, [])
 
   // Handle logout
@@ -148,7 +107,6 @@ export function UserMenu() {
       await logout(undefined)
       navigate({ to: "/login" })
     } catch {
-      // Error is captured in logoutResult - redirect anyway since token is cleared
       navigate({ to: "/login" })
     }
   }
@@ -160,18 +118,23 @@ export function UserMenu() {
     return (
       <Link
         to="/login"
-        className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+        className="
+          inline-flex items-center justify-center
+          rounded-lg px-4 py-2
+          bg-indigo-600 text-white text-sm font-medium
+          hover:bg-indigo-700 active:bg-indigo-800
+          transition-colors duration-200
+          focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2
+        "
         data-testid="user-menu-login"
       >
-        Login
+        Sign in
       </Link>
     )
   }
 
-  // Determine loading state - user data is being fetched
+  // Determine loading state
   const isLoading = Result.isWaiting(userResult) || Result.isInitial(userResult)
-
-  // Extract user info from result
   const user = Result.isSuccess(userResult) ? userResult.value.user : null
   const displayName = user?.displayName ?? null
   const email = user?.email ?? ""
@@ -182,23 +145,29 @@ export function UserMenu() {
       {/* Menu Trigger Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={[
-          "flex items-center gap-2 rounded-lg px-3 py-2",
-          "text-gray-700 hover:bg-gray-100",
-          "transition-colors duration-200",
-          "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-        ].join(" ")}
+        className={`
+          flex items-center gap-2.5 rounded-lg px-2 py-1.5
+          text-gray-700 hover:bg-gray-100
+          transition-all duration-200
+          focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2
+          ${isOpen ? "bg-gray-100" : ""}
+        `}
         aria-expanded={isOpen}
         aria-haspopup="true"
         data-testid="user-menu"
       >
-        {/* Avatar/Initials */}
-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-sm font-medium text-white">
+        {/* Avatar */}
+        <div className="
+          flex h-8 w-8 items-center justify-center rounded-full
+          bg-gradient-to-br from-indigo-500 to-indigo-700
+          text-sm font-medium text-white
+          shadow-sm
+        ">
           {initials}
         </div>
 
         {/* Name (hidden on small screens) */}
-        <span className="hidden md:block text-sm font-medium">
+        <span className="hidden md:block text-sm font-medium max-w-[120px] truncate">
           {displayName || email}
         </span>
 
@@ -209,12 +178,12 @@ export function UserMenu() {
       {/* Dropdown Menu */}
       {isOpen && (
         <div
-          className={[
-            "absolute right-0 mt-2 w-64",
-            "rounded-lg bg-white shadow-lg",
-            "border border-gray-200",
-            "py-1 z-50"
-          ].join(" ")}
+          className="
+            absolute right-0 mt-2 w-72
+            rounded-xl bg-white shadow-xl
+            border border-gray-200
+            py-1 z-50
+          "
           role="menu"
           aria-orientation="vertical"
           data-testid="user-menu-dropdown"
@@ -222,7 +191,12 @@ export function UserMenu() {
           {/* User Info Section */}
           <div className="px-4 py-3 border-b border-gray-100">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 text-sm font-medium text-white">
+              <div className="
+                flex h-10 w-10 items-center justify-center rounded-full
+                bg-gradient-to-br from-indigo-500 to-indigo-700
+                text-sm font-medium text-white
+                shadow-sm
+              ">
                 {initials}
               </div>
               <div className="flex-1 min-w-0">
@@ -243,36 +217,41 @@ export function UserMenu() {
             {/* Account Settings Link */}
             <Link
               to="/settings/account"
-              className={[
-                "flex items-center gap-3 px-4 py-2",
-                "text-sm text-gray-700",
-                "hover:bg-gray-100",
-                "transition-colors duration-200"
-              ].join(" ")}
+              className="
+                flex items-center gap-3 px-4 py-2.5
+                text-sm text-gray-700
+                hover:bg-gray-50 hover:text-gray-900
+                transition-colors duration-200
+              "
               onClick={() => setIsOpen(false)}
               role="menuitem"
               data-testid="user-menu-settings"
             >
-              <CogIcon />
+              <span className="text-gray-400">
+                <CogIcon />
+              </span>
               <span>Account Settings</span>
             </Link>
+
+            {/* Divider */}
+            <div className="my-1 border-t border-gray-100" />
 
             {/* Logout Button */}
             <button
               onClick={handleLogout}
               disabled={isLoggingOut}
-              className={[
-                "flex w-full items-center gap-3 px-4 py-2",
-                "text-sm text-red-600",
-                "hover:bg-red-50",
-                "transition-colors duration-200",
-                "disabled:opacity-50 disabled:cursor-not-allowed"
-              ].join(" ")}
+              className="
+                flex w-full items-center gap-3 px-4 py-2.5
+                text-sm text-red-600
+                hover:bg-red-50
+                transition-colors duration-200
+                disabled:opacity-50 disabled:cursor-not-allowed
+              "
               role="menuitem"
               data-testid="user-menu-logout"
             >
               <LogoutIcon />
-              <span>{isLoggingOut ? "Logging out..." : "Logout"}</span>
+              <span>{isLoggingOut ? "Signing out..." : "Sign out"}</span>
             </button>
           </div>
         </div>

@@ -1,8 +1,12 @@
 /**
  * Register Page Route
  *
- * Public route for user registration with local provider.
- * Redirects to home if already authenticated.
+ * Public route for user registration.
+ * Features:
+ * - Centered card layout with branded design
+ * - Professional input styling with error states
+ * - Password strength requirements
+ * - Loading spinner during registration
  */
 
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router"
@@ -12,12 +16,67 @@ import * as Cause from "effect/Cause"
 import * as Chunk from "effect/Chunk"
 import * as Option from "effect/Option"
 import { hasTokenAtom, registerMutation } from "../atoms/auth.ts"
+import { Button } from "../components/ui/Button.tsx"
+import { Input } from "../components/ui/Input.tsx"
+import { Alert } from "../components/ui/Alert.tsx"
 import * as React from "react"
 
-// Search params interface for redirect handling
+// =============================================================================
+// Icons
+// =============================================================================
+
+function LogoIcon() {
+  return (
+    <svg className="h-12 w-12" viewBox="0 0 32 32" fill="none">
+      <rect x="2" y="2" width="28" height="28" rx="6" className="fill-indigo-600" />
+      <path d="M9 22V10h4l3 8 3-8h4v12h-3v-8l-3 8h-2l-3-8v8H9z" className="fill-white" />
+    </svg>
+  )
+}
+
+function EnvelopeIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+    </svg>
+  )
+}
+
+function UserIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+    </svg>
+  )
+}
+
+function LockIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+    </svg>
+  )
+}
+
+function ShieldCheckIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+    </svg>
+  )
+}
+
+// =============================================================================
+// Types
+// =============================================================================
+
 export interface RegisterSearch {
   redirect?: string
 }
+
+// =============================================================================
+// Route Definition
+// =============================================================================
 
 export const Route = createFileRoute("/register")({
   validateSearch: (search: Record<string, unknown>): RegisterSearch => {
@@ -30,7 +89,10 @@ export const Route = createFileRoute("/register")({
   component: RegisterPage
 })
 
-// Password strength requirements
+// =============================================================================
+// Constants
+// =============================================================================
+
 const PASSWORD_MIN_LENGTH = 8
 const PASSWORD_REQUIREMENTS = [
   { test: (p: string) => p.length >= PASSWORD_MIN_LENGTH, message: `At least ${PASSWORD_MIN_LENGTH} characters` },
@@ -40,13 +102,39 @@ const PASSWORD_REQUIREMENTS = [
   { test: (p: string) => /[!@#$%^&*(),.?":{}|<>]/.test(p), message: "At least one special character" }
 ]
 
+// =============================================================================
+// Helper Functions
+// =============================================================================
+
+function isErrorWithTag(error: unknown, tag: string): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "_tag" in error &&
+    error._tag === tag
+  )
+}
+
+function isErrorWithMessage(error: unknown): error is { message: string } {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "message" in error &&
+    typeof error.message === "string"
+  )
+}
+
+// =============================================================================
+// RegisterPage Component
+// =============================================================================
+
 function RegisterPage() {
   const hasToken = useAtomValue(hasTokenAtom)
   const navigate = useNavigate()
   const search = useSearch({ from: "/register" })
   const redirectTo = search.redirect ?? "/"
 
-  // Form state - local state is fine for form input drafts
+  // Form state
   const [email, setEmail] = React.useState("")
   const [displayName, setDisplayName] = React.useState("")
   const [password, setPassword] = React.useState("")
@@ -58,10 +146,10 @@ function RegisterPage() {
   const [passwordError, setPasswordError] = React.useState<string | null>(null)
   const [confirmPasswordError, setConfirmPasswordError] = React.useState<string | null>(null)
 
-  // Register mutation with promise mode for navigation after success
+  // Register mutation with promise mode
   const [registerResult, register] = useAtom(registerMutation, { mode: "promise" })
 
-  // Track previous waiting state to detect success completion
+  // Track state transitions
   const prevWaiting = React.useRef(false)
 
   // Redirect if already authenticated
@@ -71,19 +159,18 @@ function RegisterPage() {
     }
   }, [hasToken, navigate, redirectTo])
 
-  // Detect successful registration completion and redirect
+  // Detect successful registration and redirect
   React.useEffect(() => {
     const wasWaiting = prevWaiting.current
     const isNowSuccess = Result.isSuccess(registerResult) && !Result.isWaiting(registerResult)
     prevWaiting.current = Result.isWaiting(registerResult)
 
     if (wasWaiting && isNowSuccess) {
-      // Registration and auto-login completed successfully, redirect
       navigate({ to: redirectTo })
     }
   }, [registerResult, navigate, redirectTo])
 
-  // Validate email
+  // Validation functions
   const validateEmail = (value: string): boolean => {
     if (!value.trim()) {
       setEmailError("Email is required")
@@ -97,7 +184,6 @@ function RegisterPage() {
     return true
   }
 
-  // Validate display name
   const validateDisplayName = (value: string): boolean => {
     if (!value.trim()) {
       setDisplayNameError("Display name is required")
@@ -111,7 +197,6 @@ function RegisterPage() {
     return true
   }
 
-  // Validate password strength
   const validatePassword = (value: string): boolean => {
     if (!value) {
       setPasswordError("Password is required")
@@ -131,7 +216,6 @@ function RegisterPage() {
     return true
   }
 
-  // Validate password confirmation
   const validateConfirmPassword = (value: string): boolean => {
     if (!value) {
       setConfirmPasswordError("Please confirm your password")
@@ -149,7 +233,6 @@ function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    // Validate all fields
     const emailValid = validateEmail(email)
     const displayNameValid = validateDisplayName(displayName)
     const passwordValid = validatePassword(password)
@@ -159,28 +242,24 @@ function RegisterPage() {
       return
     }
 
-    // Perform registration
     try {
       await register({ email, password, displayName })
-      // Navigation happens in the useEffect above after result updates
     } catch {
-      // Error is captured in registerResult - no need to handle here
+      // Error captured in registerResult
     }
   }
 
-  // Get error message from Result
+  // Extract error message from Result
   const getErrorMessage = (): string | null => {
     if (!Result.isFailure(registerResult)) {
       return null
     }
-    // Extract error message from Cause
     const cause = registerResult.cause
     const failures = Cause.failures(cause)
     const firstFailure = Chunk.head(failures)
 
     if (Option.isSome(firstFailure)) {
       const error = firstFailure.value
-      // Check for specific error types using type guard
       if (isErrorWithTag(error, "UserExistsError")) {
         return "An account with this email already exists"
       }
@@ -198,25 +277,6 @@ function RegisterPage() {
     return "Registration failed. Please try again."
   }
 
-  // Type guards for error handling
-  function isErrorWithTag(error: unknown, tag: string): boolean {
-    return (
-      typeof error === "object" &&
-      error !== null &&
-      "_tag" in error &&
-      error._tag === tag
-    )
-  }
-
-  function isErrorWithMessage(error: unknown): error is { message: string } {
-    return (
-      typeof error === "object" &&
-      error !== null &&
-      "message" in error &&
-      typeof error.message === "string"
-    )
-  }
-
   const isLoading = Result.isWaiting(registerResult)
   const errorMessage = getErrorMessage()
 
@@ -226,40 +286,40 @@ function RegisterPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 p-8">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-gray-50 via-gray-100 to-indigo-50 px-4 py-12 sm:px-6 lg:px-8">
+      {/* Background decoration */}
+      <div className="absolute inset-0 -z-10 overflow-hidden">
+        <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-indigo-100 opacity-50 blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-indigo-100 opacity-50 blur-3xl" />
+      </div>
+
       <div className="w-full max-w-md space-y-8">
+        {/* Logo and Title */}
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900">Create Account</h1>
-          <p className="mt-2 text-gray-600">
-            Register for a new account to get started
+          <div className="flex justify-center mb-6">
+            <LogoIcon />
+          </div>
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+            Create Account
+          </h1>
+          <p className="mt-2 text-sm text-gray-600">
+            Get started with your accounting journey
           </p>
         </div>
 
-        <form
-          onSubmit={handleSubmit}
-          className="rounded-lg bg-white p-8 shadow-sm space-y-6"
-          data-testid="register-form"
-        >
-          {/* Error Alert */}
-          {errorMessage && (
-            <div
-              role="alert"
-              className="rounded-md bg-red-50 p-4 text-sm text-red-700 border border-red-200"
-              data-testid="register-error"
-            >
-              {errorMessage}
-            </div>
-          )}
+        {/* Register Card */}
+        <div className="rounded-2xl bg-white p-8 shadow-xl shadow-gray-200/50 ring-1 ring-gray-100">
+          <form onSubmit={handleSubmit} className="space-y-5" data-testid="register-form">
+            {/* Error Alert */}
+            {errorMessage && (
+              <Alert variant="error" data-testid="register-error">
+                {errorMessage}
+              </Alert>
+            )}
 
-          {/* Email Field */}
-          <div>
-            <label
-              htmlFor="email"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Email
-            </label>
-            <input
+            {/* Email Field */}
+            <Input
+              label="Email address"
               type="email"
               id="email"
               name="email"
@@ -269,32 +329,18 @@ function RegisterPage() {
                 if (emailError) validateEmail(e.target.value)
               }}
               onBlur={() => validateEmail(email)}
-              className={`
-                w-full rounded-md border px-3 py-2
-                focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                ${emailError ? "border-red-500" : "border-gray-300"}
-              `}
+              error={emailError ?? undefined}
+              errorTestId="register-email-error"
               placeholder="you@example.com"
               autoComplete="email"
               disabled={isLoading}
+              leftIcon={<EnvelopeIcon />}
               data-testid="register-email"
             />
-            {emailError && (
-              <p className="mt-1 text-sm text-red-600" data-testid="register-email-error">
-                {emailError}
-              </p>
-            )}
-          </div>
 
-          {/* Display Name Field */}
-          <div>
-            <label
-              htmlFor="displayName"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Display Name
-            </label>
-            <input
+            {/* Display Name Field */}
+            <Input
+              label="Display name"
               type="text"
               id="displayName"
               name="displayName"
@@ -304,32 +350,18 @@ function RegisterPage() {
                 if (displayNameError) validateDisplayName(e.target.value)
               }}
               onBlur={() => validateDisplayName(displayName)}
-              className={`
-                w-full rounded-md border px-3 py-2
-                focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                ${displayNameError ? "border-red-500" : "border-gray-300"}
-              `}
+              error={displayNameError ?? undefined}
+              errorTestId="register-display-name-error"
               placeholder="John Doe"
               autoComplete="name"
               disabled={isLoading}
+              leftIcon={<UserIcon />}
               data-testid="register-display-name"
             />
-            {displayNameError && (
-              <p className="mt-1 text-sm text-red-600" data-testid="register-display-name-error">
-                {displayNameError}
-              </p>
-            )}
-          </div>
 
-          {/* Password Field */}
-          <div>
-            <label
-              htmlFor="password"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Password
-            </label>
-            <input
+            {/* Password Field */}
+            <Input
+              label="Password"
               type="password"
               id="password"
               name="password"
@@ -337,38 +369,23 @@ function RegisterPage() {
               onChange={(e) => {
                 setPassword(e.target.value)
                 if (passwordError) validatePassword(e.target.value)
-                // Also revalidate confirm password if it's filled
                 if (confirmPassword && confirmPasswordError) {
                   validateConfirmPassword(confirmPassword)
                 }
               }}
               onBlur={() => validatePassword(password)}
-              className={`
-                w-full rounded-md border px-3 py-2
-                focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                ${passwordError ? "border-red-500" : "border-gray-300"}
-              `}
+              error={passwordError ?? undefined}
+              errorTestId="register-password-error"
               placeholder="Create a strong password"
               autoComplete="new-password"
               disabled={isLoading}
+              leftIcon={<LockIcon />}
               data-testid="register-password"
             />
-            {passwordError && (
-              <p className="mt-1 text-sm text-red-600" data-testid="register-password-error">
-                {passwordError}
-              </p>
-            )}
-          </div>
 
-          {/* Confirm Password Field */}
-          <div>
-            <label
-              htmlFor="confirmPassword"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Confirm Password
-            </label>
-            <input
+            {/* Confirm Password Field */}
+            <Input
+              label="Confirm password"
               type="password"
               id="confirmPassword"
               name="confirmPassword"
@@ -378,73 +395,36 @@ function RegisterPage() {
                 if (confirmPasswordError) validateConfirmPassword(e.target.value)
               }}
               onBlur={() => validateConfirmPassword(confirmPassword)}
-              className={`
-                w-full rounded-md border px-3 py-2
-                focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                ${confirmPasswordError ? "border-red-500" : "border-gray-300"}
-              `}
+              error={confirmPasswordError ?? undefined}
+              errorTestId="register-confirm-password-error"
               placeholder="Confirm your password"
               autoComplete="new-password"
               disabled={isLoading}
+              leftIcon={<ShieldCheckIcon />}
               data-testid="register-confirm-password"
             />
-            {confirmPasswordError && (
-              <p className="mt-1 text-sm text-red-600" data-testid="register-confirm-password-error">
-                {confirmPasswordError}
-              </p>
-            )}
-          </div>
 
-          {/* Submit Button */}
-          <button
-            type="submit"
-            disabled={isLoading}
-            className={`
-              w-full rounded-md px-4 py-2 text-white font-medium
-              transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
-              ${isLoading
-                ? "bg-blue-400 cursor-not-allowed"
-                : "bg-blue-600 hover:bg-blue-700"
-              }
-            `}
-            data-testid="register-submit"
-          >
-            {isLoading ? (
-              <span className="flex items-center justify-center">
-                <svg
-                  className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  />
-                </svg>
-                Creating account...
-              </span>
-            ) : (
-              "Create Account"
-            )}
-          </button>
-        </form>
+            {/* Submit Button */}
+            <Button
+              type="submit"
+              variant="primary"
+              size="lg"
+              loading={isLoading}
+              className="w-full"
+              data-testid="register-submit"
+            >
+              Create account
+            </Button>
+          </form>
+        </div>
 
+        {/* Login Link */}
         <p className="text-center text-sm text-gray-600">
           Already have an account?{" "}
           <Link
             to="/login"
             search={redirectTo !== "/" ? { redirect: redirectTo } : {}}
-            className="font-medium text-blue-600 hover:text-blue-500"
+            className="font-semibold text-indigo-600 hover:text-indigo-500 transition-colors"
             data-testid="register-login-link"
           >
             Sign in

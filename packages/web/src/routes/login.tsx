@@ -2,7 +2,11 @@
  * Login Page Route
  *
  * Public route for user authentication.
- * Redirects to home if already authenticated.
+ * Features:
+ * - Centered card layout with branded design
+ * - Professional input styling with error states
+ * - Loading spinner during authentication
+ * - Status messages for password changes and session expiry
  */
 
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router"
@@ -12,13 +16,52 @@ import * as Cause from "effect/Cause"
 import * as Chunk from "effect/Chunk"
 import * as Option from "effect/Option"
 import { hasTokenAtom, loginMutation } from "../atoms/auth.ts"
+import { Button } from "../components/ui/Button.tsx"
+import { Input } from "../components/ui/Input.tsx"
+import { Alert } from "../components/ui/Alert.tsx"
 import * as React from "react"
 
-// Search params type for redirect handling and status messages
+// =============================================================================
+// Icons
+// =============================================================================
+
+function LogoIcon() {
+  return (
+    <svg className="h-12 w-12" viewBox="0 0 32 32" fill="none">
+      <rect x="2" y="2" width="28" height="28" rx="6" className="fill-indigo-600" />
+      <path d="M9 22V10h4l3 8 3-8h4v12h-3v-8l-3 8h-2l-3-8v8H9z" className="fill-white" />
+    </svg>
+  )
+}
+
+function EnvelopeIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+    </svg>
+  )
+}
+
+function LockIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+    </svg>
+  )
+}
+
+// =============================================================================
+// Types
+// =============================================================================
+
 export interface LoginSearch {
   redirect?: string
   message?: "password_changed" | "session_expired"
 }
+
+// =============================================================================
+// Route Definition
+// =============================================================================
 
 export const Route = createFileRoute("/login")({
   validateSearch: (search: Record<string, unknown>): LoginSearch => {
@@ -36,9 +79,10 @@ export const Route = createFileRoute("/login")({
   component: LoginPage
 })
 
-/**
- * Get display message based on search param
- */
+// =============================================================================
+// Helper Functions
+// =============================================================================
+
 function getStatusMessage(message?: LoginSearch["message"]): { type: "success" | "info"; text: string } | null {
   switch (message) {
     case "password_changed":
@@ -56,13 +100,35 @@ function getStatusMessage(message?: LoginSearch["message"]): { type: "success" |
   }
 }
 
+function isErrorWithTag(error: unknown, tag: string): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "_tag" in error &&
+    error._tag === tag
+  )
+}
+
+function isErrorWithMessage(error: unknown): error is { message: string } {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "message" in error &&
+    typeof error.message === "string"
+  )
+}
+
+// =============================================================================
+// LoginPage Component
+// =============================================================================
+
 function LoginPage() {
   const hasToken = useAtomValue(hasTokenAtom)
   const navigate = useNavigate()
   const search = useSearch({ from: "/login" })
   const redirectTo = search.redirect ?? "/"
 
-  // Form state - local state is fine for form input drafts
+  // Form state
   const [email, setEmail] = React.useState("")
   const [password, setPassword] = React.useState("")
 
@@ -70,22 +136,17 @@ function LoginPage() {
   const [emailError, setEmailError] = React.useState<string | null>(null)
   const [passwordError, setPasswordError] = React.useState<string | null>(null)
 
-  // Login mutation with promise mode for navigation after success
+  // Login mutation with promise mode
   const [loginResult, login] = useAtom(loginMutation, { mode: "promise" })
 
-  // Track previous waiting state to detect success completion
+  // Track state transitions
   const prevWaiting = React.useRef(false)
-
-  // Track if form is being used (to prevent auto-redirect during form interaction)
   const formInteractionRef = React.useRef(false)
 
-  // Redirect if already authenticated (unless showing a message like password_changed)
-  // This auto-redirects users who accidentally navigate to /login while logged in.
-  // A small delay allows tests and fast users to switch accounts by filling the form.
+  // Redirect if already authenticated
   React.useEffect(() => {
     if (hasToken && !search.message) {
       const timer = setTimeout(() => {
-        // Only redirect if user hasn't started interacting with the form
         if (!formInteractionRef.current) {
           navigate({ to: redirectTo })
         }
@@ -95,19 +156,18 @@ function LoginPage() {
     return undefined
   }, [hasToken, navigate, redirectTo, search.message])
 
-  // Detect successful login completion and redirect
+  // Detect successful login and redirect
   React.useEffect(() => {
     const wasWaiting = prevWaiting.current
     const isNowSuccess = Result.isSuccess(loginResult) && !Result.isWaiting(loginResult)
     prevWaiting.current = Result.isWaiting(loginResult)
 
     if (wasWaiting && isNowSuccess) {
-      // Login completed successfully, redirect
       navigate({ to: redirectTo })
     }
   }, [loginResult, navigate, redirectTo])
 
-  // Validate email
+  // Validation functions
   const validateEmail = (value: string): boolean => {
     if (!value.trim()) {
       setEmailError("Email is required")
@@ -121,7 +181,6 @@ function LoginPage() {
     return true
   }
 
-  // Validate password
   const validatePassword = (value: string): boolean => {
     if (!value) {
       setPasswordError("Password is required")
@@ -139,7 +198,6 @@ function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    // Validate fields
     const emailValid = validateEmail(email)
     const passwordValid = validatePassword(password)
 
@@ -147,28 +205,24 @@ function LoginPage() {
       return
     }
 
-    // Perform login
     try {
       await login({ email, password })
-      // Navigation happens in the useEffect above after result updates
     } catch {
-      // Error is captured in loginResult - no need to handle here
+      // Error captured in loginResult
     }
   }
 
-  // Get error message from Result
+  // Extract error message from Result
   const getErrorMessage = (): string | null => {
     if (!Result.isFailure(loginResult)) {
       return null
     }
-    // Extract error message from Cause
     const cause = loginResult.cause
     const failures = Cause.failures(cause)
     const firstFailure = Chunk.head(failures)
 
     if (Option.isSome(firstFailure)) {
       const error = firstFailure.value
-      // Check for specific error types using type guard
       if (isErrorWithTag(error, "AuthUnauthorizedError")) {
         return "Invalid email or password"
       }
@@ -180,81 +234,55 @@ function LoginPage() {
     return "Login failed. Please try again."
   }
 
-  // Type guards for error handling
-  function isErrorWithTag(error: unknown, tag: string): boolean {
-    return (
-      typeof error === "object" &&
-      error !== null &&
-      "_tag" in error &&
-      error._tag === tag
-    )
-  }
-
-  function isErrorWithMessage(error: unknown): error is { message: string } {
-    return (
-      typeof error === "object" &&
-      error !== null &&
-      "message" in error &&
-      typeof error.message === "string"
-    )
-  }
-
   const isLoading = Result.isWaiting(loginResult)
   const errorMessage = getErrorMessage()
   const statusMessage = getStatusMessage(search.message)
 
-  // Note: We always render the login form, even if authenticated.
-  // This allows users to switch accounts by navigating to /login directly.
-
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 p-8">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-gray-50 via-gray-100 to-indigo-50 px-4 py-12 sm:px-6 lg:px-8">
+      {/* Background decoration */}
+      <div className="absolute inset-0 -z-10 overflow-hidden">
+        <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-indigo-100 opacity-50 blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-indigo-100 opacity-50 blur-3xl" />
+      </div>
+
       <div className="w-full max-w-md space-y-8">
+        {/* Logo and Title */}
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900">Sign In</h1>
-          <p className="mt-2 text-gray-600">
+          <div className="flex justify-center mb-6">
+            <LogoIcon />
+          </div>
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+            Sign In
+          </h1>
+          <p className="mt-2 text-sm text-gray-600">
             Sign in to your account to continue
           </p>
         </div>
 
-        {/* Status Message (e.g., after password change) */}
+        {/* Status Message */}
         {statusMessage && (
-          <div
-            className={`rounded-md p-4 text-sm border ${
-              statusMessage.type === "success"
-                ? "bg-green-50 text-green-700 border-green-200"
-                : "bg-blue-50 text-blue-700 border-blue-200"
-            }`}
+          <Alert
+            variant={statusMessage.type === "success" ? "success" : "info"}
             data-testid="login-status-message"
           >
             {statusMessage.text}
-          </div>
+          </Alert>
         )}
 
-        <form
-          onSubmit={handleSubmit}
-          className="rounded-lg bg-white p-8 shadow-sm space-y-6"
-          data-testid="login-form"
-        >
-          {/* Error Alert */}
-          {errorMessage && (
-            <div
-              role="alert"
-              className="rounded-md bg-red-50 p-4 text-sm text-red-700 border border-red-200"
-              data-testid="login-error"
-            >
-              {errorMessage}
-            </div>
-          )}
+        {/* Login Card */}
+        <div className="rounded-2xl bg-white p-8 shadow-xl shadow-gray-200/50 ring-1 ring-gray-100">
+          <form onSubmit={handleSubmit} className="space-y-6" data-testid="login-form">
+            {/* Error Alert */}
+            {errorMessage && (
+              <Alert variant="error" data-testid="login-error">
+                {errorMessage}
+              </Alert>
+            )}
 
-          {/* Email Field */}
-          <div>
-            <label
-              htmlFor="email"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Email
-            </label>
-            <input
+            {/* Email Field */}
+            <Input
+              label="Email address"
               type="email"
               id="email"
               name="email"
@@ -266,32 +294,18 @@ function LoginPage() {
               }}
               onBlur={() => validateEmail(email)}
               onFocus={() => { formInteractionRef.current = true }}
-              className={`
-                w-full rounded-md border px-3 py-2
-                focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                ${emailError ? "border-red-500" : "border-gray-300"}
-              `}
+              error={emailError ?? undefined}
+              errorTestId="login-email-error"
               placeholder="you@example.com"
               autoComplete="email"
               disabled={isLoading}
+              leftIcon={<EnvelopeIcon />}
               data-testid="login-email"
             />
-            {emailError && (
-              <p className="mt-1 text-sm text-red-600" data-testid="login-email-error">
-                {emailError}
-              </p>
-            )}
-          </div>
 
-          {/* Password Field */}
-          <div>
-            <label
-              htmlFor="password"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Password
-            </label>
-            <input
+            {/* Password Field */}
+            <Input
+              label="Password"
               type="password"
               id="password"
               name="password"
@@ -301,73 +315,36 @@ function LoginPage() {
                 if (passwordError) validatePassword(e.target.value)
               }}
               onBlur={() => validatePassword(password)}
-              className={`
-                w-full rounded-md border px-3 py-2
-                focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                ${passwordError ? "border-red-500" : "border-gray-300"}
-              `}
-              placeholder="••••••••"
+              error={passwordError ?? undefined}
+              errorTestId="login-password-error"
+              placeholder="Enter your password"
               autoComplete="current-password"
               disabled={isLoading}
+              leftIcon={<LockIcon />}
               data-testid="login-password"
             />
-            {passwordError && (
-              <p className="mt-1 text-sm text-red-600" data-testid="login-password-error">
-                {passwordError}
-              </p>
-            )}
-          </div>
 
-          {/* Submit Button */}
-          <button
-            type="submit"
-            disabled={isLoading}
-            className={`
-              w-full rounded-md px-4 py-2 text-white font-medium
-              transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
-              ${isLoading
-                ? "bg-blue-400 cursor-not-allowed"
-                : "bg-blue-600 hover:bg-blue-700"
-              }
-            `}
-            data-testid="login-submit"
-          >
-            {isLoading ? (
-              <span className="flex items-center justify-center">
-                <svg
-                  className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  />
-                </svg>
-                Signing in...
-              </span>
-            ) : (
-              "Sign In"
-            )}
-          </button>
-        </form>
+            {/* Submit Button */}
+            <Button
+              type="submit"
+              variant="primary"
+              size="lg"
+              loading={isLoading}
+              className="w-full"
+              data-testid="login-submit"
+            >
+              Sign in
+            </Button>
+          </form>
+        </div>
 
+        {/* Register Link */}
         <p className="text-center text-sm text-gray-600">
           Don&apos;t have an account?{" "}
           <Link
             to="/register"
             search={redirectTo !== "/" ? { redirect: redirectTo } : {}}
-            className="font-medium text-blue-600 hover:text-blue-500"
+            className="font-semibold text-indigo-600 hover:text-indigo-500 transition-colors"
             data-testid="login-register-link"
           >
             Create one
