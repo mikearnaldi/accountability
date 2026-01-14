@@ -29,12 +29,12 @@ export default defineConfig({
   // Global teardown for cleanup (setup is done by webServer command)
   globalTeardown: "./test-e2e/global-teardown.ts",
 
-  // Timeout for each test
-  timeout: 30000,
+  // Timeout for each test (increased for CI)
+  timeout: process.env.CI ? 60000 : 30000,
 
-  // Timeout for expect assertions
+  // Timeout for expect assertions (increased for CI due to slower rendering)
   expect: {
-    timeout: 5000
+    timeout: process.env.CI ? 10000 : 5000
   },
 
   use: {
@@ -46,9 +46,12 @@ export default defineConfig({
     // Screenshot on failure
     screenshot: "only-on-failure",
 
-    // Default timeouts
-    actionTimeout: 10000,
-    navigationTimeout: 30000
+    // Video on failure for debugging CI issues
+    video: process.env.CI ? "on-first-retry" : "off",
+
+    // Default timeouts (increased for CI)
+    actionTimeout: process.env.CI ? 15000 : 10000,
+    navigationTimeout: process.env.CI ? 45000 : 30000
   },
 
   // Web server configuration - builds and runs preview server

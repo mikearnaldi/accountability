@@ -749,6 +749,170 @@
       "estimated_complexity": "large"
     },
     {
+      "id": "10.0.4",
+      "phase": "UI Rebuild",
+      "epic": "Infrastructure",
+      "title": "Eliminate SSR loading flash with server-side data prefetching",
+      "description": "CRITICAL UX: Fix the loading flash that occurs on ALL pages. Currently, 100% of data fetching happens client-side after hydration, causing 2-3 seconds of skeleton/loading states on every page load. The app has TanStack Start SSR infrastructure but isn't using it for data prefetching. This task implements server-side data loading via TanStack Start loaders/beforeLoad hooks so pages render with data immediately - no flash, no skeletons on initial load.",
+      "specs": [
+        "HTTP_API_TANSTACK.md",
+        "AUTHENTICATION.md",
+        "EFFECT_ATOM.md",
+        "REACT_BEST_PRACTICES.md"
+      ],
+      "acceptance_criteria": [
+        "PROBLEM STATEMENT:",
+        "All data fetching is 100% client-side (useAtomValue triggers fetch AFTER hydration)",
+        "Server sends HTML with loading skeletons, data arrives 2-3 seconds later",
+        "Every page shows flash: skeleton → real content",
+        "Auth state unknown on server (localStorage only), causes login page flash",
+        "TanStack Start SSR infrastructure exists but unused for data prefetching",
+        "PHASE 1 - Server-Side Authentication:",
+        "Store auth token in httpOnly cookie (in addition to localStorage)",
+        "Login API sets Set-Cookie header with session token",
+        "Logout API clears the cookie",
+        "Create getServerSession() to read/validate session from request cookies",
+        "Root route loader fetches session and passes via router context",
+        "Protected routes use beforeLoad to check auth, redirect to /login if missing",
+        "Public auth routes (login, register) redirect to dashboard if already authenticated",
+        "PHASE 2 - Server-Side Data Prefetching:",
+        "Add beforeLoad/loader to ALL data-driven routes",
+        "/organizations - prefetch organizations list on server",
+        "/organizations/$id - prefetch organization details + companies on server",
+        "/organizations/$id/companies - prefetch companies list on server",
+        "/organizations/$id/companies/$companyId - prefetch company details on server",
+        "/organizations/$id/companies/$companyId/accounts - prefetch accounts on server",
+        "Use Route.useLoaderData() in components to access prefetched data",
+        "PHASE 3 - Server Functions for Data Access:",
+        "Create server functions that call API endpoints from server context",
+        "getOrganizations() - fetches orgs for current user",
+        "getOrganization(id) - fetches single org with companies",
+        "getCompanies(orgId) - fetches companies for org",
+        "getCompany(id) - fetches single company details",
+        "getAccounts(companyId) - fetches accounts for company",
+        "Server functions run on server, return typed data to loaders",
+        "PHASE 4 - Hybrid Atom + Loader Pattern:",
+        "Components use loader data for initial render (no loading state)",
+        "Effect Atoms used for mutations and client-side updates",
+        "After mutation, atoms invalidate and refetch (reactivityKeys still work)",
+        "Loader data acts as initial hydration for atoms",
+        "Consider: pass loader data to atoms as initial value to avoid refetch",
+        "PHASE 5 - Remove Client-Side Loading States for Initial Render:",
+        "Remove skeleton loaders from initial page render",
+        "Keep loading states only for client-side navigation and mutations",
+        "Use Suspense boundaries for async client-side data that loads after initial render",
+        "Ensure no layout shift between server HTML and hydrated content",
+        "EXPECTED RESULTS:",
+        "Page loads with data immediately - no skeleton flash",
+        "Authenticated users see dashboard content on first paint",
+        "Unauthenticated users see login page on first paint",
+        "Direct URL navigation renders correct content immediately",
+        "Page reload shows same content without flash",
+        "Client-side navigation may show brief loading (acceptable)",
+        "TESTS (E2E): /organizations loads with data, no skeleton visible",
+        "TESTS (E2E): /organizations/$id loads with org details immediately",
+        "TESTS (E2E): Direct URL to protected route - data present, no flash",
+        "TESTS (E2E): Reload page - same content, no flash",
+        "TESTS (E2E): Unauthenticated access redirects without showing protected content"
+      ],
+      "technical_details": {
+        "root_cause_analysis": {
+          "issue_1_client_only_data_fetching": {
+            "description": "All data fetching happens via useAtomValue() which only runs after hydration",
+            "example": "organizationsAtom = ApiClient.query('companies', 'listOrganizations', {...})",
+            "impact": "Server sends empty HTML, data loads 2-3 seconds after page appears"
+          },
+          "issue_2_no_ssr_loaders": {
+            "description": "Routes don't use TanStack Start beforeLoad/loader for data prefetching",
+            "example": "createFileRoute('/organizations')({ component: Page }) - no loader!",
+            "impact": "SSR infrastructure exists but unused"
+          },
+          "issue_3_client_only_auth": {
+            "description": "Auth token in localStorage only, not accessible during SSR",
+            "example": "getStoredToken() returns null when window is undefined",
+            "impact": "Server can't know if user is authenticated, renders wrong UI"
+          },
+          "issue_4_loading_state_everywhere": {
+            "description": "Every page has manual loading skeleton logic",
+            "example": "if (Result.isInitial(result)) return <LoadingSkeleton />",
+            "impact": "Flash from skeleton to content on every page"
+          }
+        },
+        "implementation_patterns": {
+          "server_function_pattern": {
+            "description": "Create server functions using createServerFn from @tanstack/react-start",
+            "example": "export const getOrganizations = createServerFn({ method: 'GET' }).handler(async () => { /* fetch from API */ })"
+          },
+          "route_with_loader": {
+            "description": "Add beforeLoad to prefetch data",
+            "example": "createFileRoute('/organizations')({ beforeLoad: async ({ context }) => { const orgs = await getOrganizations(); return { organizations: orgs }; }, component: OrganizationsPage })"
+          },
+          "component_with_loader_data": {
+            "description": "Use Route.useLoaderData() instead of useAtomValue for initial data",
+            "example": "function OrganizationsPage() { const { organizations } = Route.useLoaderData(); /* render immediately */ }"
+          },
+          "auth_in_root_loader": {
+            "description": "Fetch session in root route, pass via context to all routes",
+            "example": "createRootRoute({ beforeLoad: async ({ context }) => { const user = await getServerSession(context.request); return { user }; } })"
+          },
+          "protected_route_pattern": {
+            "description": "Check auth in beforeLoad, redirect if not authenticated",
+            "example": "beforeLoad: async ({ context }) => { if (!context.user) throw redirect({ to: '/login' }); }"
+          }
+        },
+        "files_to_modify": [
+          "packages/web/src/routes/__root.tsx - Add root loader for session, pass to context",
+          "packages/web/src/routes/index.tsx - Use loader data, remove client auth check",
+          "packages/web/src/routes/login.tsx - Add beforeLoad redirect if authenticated",
+          "packages/web/src/routes/register.tsx - Add beforeLoad redirect if authenticated",
+          "packages/web/src/routes/organizations/index.tsx - Add loader for organizations",
+          "packages/web/src/routes/organizations/$organizationId/index.tsx - Add loader for org details",
+          "packages/web/src/routes/organizations/$organizationId/companies/index.tsx - Add loader for companies",
+          "packages/web/src/routes/organizations/$organizationId/companies/$companyId/index.tsx - Add loader for company",
+          "packages/web/src/routes/organizations/$organizationId/companies/$companyId/accounts/index.tsx - Add loader for accounts",
+          "packages/web/src/components/ProtectedRoute.tsx - Simplify or remove (auth handled in loaders)",
+          "packages/api/src/Definitions/AuthApi.ts - Add Set-Cookie header to login/logout responses"
+        ],
+        "files_to_create": [
+          "packages/web/src/server/session.ts - getServerSession() function",
+          "packages/web/src/server/organizations.ts - Server functions for org data",
+          "packages/web/src/server/companies.ts - Server functions for company data",
+          "packages/web/src/server/accounts.ts - Server functions for account data"
+        ],
+        "cookie_configuration": {
+          "name": "accountability_session",
+          "httpOnly": true,
+          "secure": "process.env.NODE_ENV === 'production'",
+          "sameSite": "lax",
+          "path": "/",
+          "maxAge": "30 * 24 * 60 * 60 (30 days)"
+        },
+        "data_flow_after_fix": {
+          "step_1": "Browser requests /organizations",
+          "step_2": "Server reads session cookie, validates token",
+          "step_3": "Server runs beforeLoad, calls getOrganizations() server function",
+          "step_4": "Server function fetches data from API (same process, fast)",
+          "step_5": "Server renders HTML with real data embedded",
+          "step_6": "Browser receives complete HTML with data",
+          "step_7": "React hydrates - no loading state needed, data already present",
+          "step_8": "User sees final content immediately"
+        },
+        "atoms_after_fix": {
+          "description": "Atoms still used for mutations and client-side refetching",
+          "pattern": "Initial render uses loader data, mutations use atoms with reactivityKeys",
+          "consideration": "May want to seed atoms with loader data to avoid double-fetch on client navigation"
+        },
+        "e2e_test_approach": [
+          "Test that pages render without skeleton flash",
+          "Use page.waitForLoadState('domcontentloaded') then assert content visible",
+          "Verify no network waterfall (data in initial HTML)",
+          "Test auth redirects happen server-side (no protected content flash)"
+        ]
+      },
+      "status": "pending",
+      "estimated_complexity": "large"
+    },
+    {
       "id": "10.4.2",
       "phase": "UI Rebuild",
       "epic": "Chart of Accounts",

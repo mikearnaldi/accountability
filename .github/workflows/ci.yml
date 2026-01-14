@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 env:
-  PLAYWRIGHT_BROWSERS_PATH: ~/.cache/ms-playwright
+  PLAYWRIGHT_BROWSERS_PATH: /home/runner/.cache/ms-playwright
 
 jobs:
   build:
@@ -80,5 +80,7 @@ jobs:
         if: failure()
         with:
           name: playwright-report
-          path: packages/web/playwright-report/
+          path: |
+            packages/web/playwright-report/
+            packages/web/test-results/
           retention-days: 7
