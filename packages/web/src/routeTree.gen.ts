@@ -17,6 +17,7 @@ import { Route as ApiSplatRouteImport } from './routes/api/$'
 import { Route as OrganizationsOrganizationIdIndexRouteImport } from './routes/organizations/$organizationId/index'
 import { Route as OrganizationsOrganizationIdCompaniesIndexRouteImport } from './routes/organizations/$organizationId/companies/index'
 import { Route as OrganizationsOrganizationIdCompaniesCompanyIdIndexRouteImport } from './routes/organizations/$organizationId/companies/$companyId/index'
+import { Route as OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesIndexRouteImport } from './routes/organizations/$organizationId/companies/$companyId/journal-entries/index'
 import { Route as OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRouteImport } from './routes/organizations/$organizationId/companies/$companyId/accounts/index'
 
 const RegisterRoute = RegisterRouteImport.update({
@@ -62,6 +63,14 @@ const OrganizationsOrganizationIdCompaniesCompanyIdIndexRoute =
     path: '/organizations/$organizationId/companies/$companyId/',
     getParentRoute: () => rootRouteImport,
   } as any)
+const OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesIndexRoute =
+  OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesIndexRouteImport.update(
+    {
+      id: '/organizations/$organizationId/companies/$companyId/journal-entries/',
+      path: '/organizations/$organizationId/companies/$companyId/journal-entries/',
+      getParentRoute: () => rootRouteImport,
+    } as any,
+  )
 const OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute =
   OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRouteImport.update({
     id: '/organizations/$organizationId/companies/$companyId/accounts/',
@@ -79,6 +88,7 @@ export interface FileRoutesByFullPath {
   '/organizations/$organizationId/companies': typeof OrganizationsOrganizationIdCompaniesIndexRoute
   '/organizations/$organizationId/companies/$companyId': typeof OrganizationsOrganizationIdCompaniesCompanyIdIndexRoute
   '/organizations/$organizationId/companies/$companyId/accounts': typeof OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute
+  '/organizations/$organizationId/companies/$companyId/journal-entries': typeof OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -90,6 +100,7 @@ export interface FileRoutesByTo {
   '/organizations/$organizationId/companies': typeof OrganizationsOrganizationIdCompaniesIndexRoute
   '/organizations/$organizationId/companies/$companyId': typeof OrganizationsOrganizationIdCompaniesCompanyIdIndexRoute
   '/organizations/$organizationId/companies/$companyId/accounts': typeof OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute
+  '/organizations/$organizationId/companies/$companyId/journal-entries': typeof OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -102,6 +113,7 @@ export interface FileRoutesById {
   '/organizations/$organizationId/companies/': typeof OrganizationsOrganizationIdCompaniesIndexRoute
   '/organizations/$organizationId/companies/$companyId/': typeof OrganizationsOrganizationIdCompaniesCompanyIdIndexRoute
   '/organizations/$organizationId/companies/$companyId/accounts/': typeof OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute
+  '/organizations/$organizationId/companies/$companyId/journal-entries/': typeof OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -115,6 +127,7 @@ export interface FileRouteTypes {
     | '/organizations/$organizationId/companies'
     | '/organizations/$organizationId/companies/$companyId'
     | '/organizations/$organizationId/companies/$companyId/accounts'
+    | '/organizations/$organizationId/companies/$companyId/journal-entries'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -126,6 +139,7 @@ export interface FileRouteTypes {
     | '/organizations/$organizationId/companies'
     | '/organizations/$organizationId/companies/$companyId'
     | '/organizations/$organizationId/companies/$companyId/accounts'
+    | '/organizations/$organizationId/companies/$companyId/journal-entries'
   id:
     | '__root__'
     | '/'
@@ -137,6 +151,7 @@ export interface FileRouteTypes {
     | '/organizations/$organizationId/companies/'
     | '/organizations/$organizationId/companies/$companyId/'
     | '/organizations/$organizationId/companies/$companyId/accounts/'
+    | '/organizations/$organizationId/companies/$companyId/journal-entries/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -149,6 +164,7 @@ export interface RootRouteChildren {
   OrganizationsOrganizationIdCompaniesIndexRoute: typeof OrganizationsOrganizationIdCompaniesIndexRoute
   OrganizationsOrganizationIdCompaniesCompanyIdIndexRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdIndexRoute
   OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute
+  OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesIndexRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -209,6 +225,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/organizations/$organizationId/companies/$companyId/journal-entries/': {
+      id: '/organizations/$organizationId/companies/$companyId/journal-entries/'
+      path: '/organizations/$organizationId/companies/$companyId/journal-entries'
+      fullPath: '/organizations/$organizationId/companies/$companyId/journal-entries'
+      preLoaderRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/organizations/$organizationId/companies/$companyId/accounts/': {
       id: '/organizations/$organizationId/companies/$companyId/accounts/'
       path: '/organizations/$organizationId/companies/$companyId/accounts'
@@ -232,6 +255,8 @@ const rootRouteChildren: RootRouteChildren = {
     OrganizationsOrganizationIdCompaniesCompanyIdIndexRoute,
   OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute:
     OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute,
+  OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesIndexRoute:
+    OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

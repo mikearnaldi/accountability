@@ -21,7 +21,7 @@ import { JournalEntryLine } from "@accountability/core/Domains/JournalEntryLine"
 import { AccountId } from "@accountability/core/Domains/Account"
 import { CompanyId } from "@accountability/core/Domains/Company"
 import { FiscalPeriodRef } from "@accountability/core/Domains/FiscalPeriodRef"
-import { LocalDate, LocalDateFromString } from "@accountability/core/Domains/LocalDate"
+import { LocalDateFromString } from "@accountability/core/Domains/LocalDate"
 import { MonetaryAmount } from "@accountability/core/Domains/MonetaryAmount"
 import {
   BusinessRuleError,
@@ -52,12 +52,13 @@ export class CreateJournalEntryLineRequest extends Schema.Class<CreateJournalEnt
 
 /**
  * CreateJournalEntryRequest - Request body for creating a new journal entry
+ * Uses LocalDateFromString to automatically parse ISO date strings (YYYY-MM-DD)
  */
 export class CreateJournalEntryRequest extends Schema.Class<CreateJournalEntryRequest>("CreateJournalEntryRequest")({
   companyId: CompanyId,
   description: Schema.NonEmptyTrimmedString,
-  transactionDate: LocalDate,
-  documentDate: Schema.OptionFromNullOr(LocalDate),
+  transactionDate: LocalDateFromString,
+  documentDate: Schema.OptionFromNullOr(LocalDateFromString),
   fiscalPeriod: FiscalPeriodRef,
   entryType: JournalEntryType,
   sourceModule: SourceModule,
@@ -70,11 +71,12 @@ export class CreateJournalEntryRequest extends Schema.Class<CreateJournalEntryRe
 
 /**
  * UpdateJournalEntryRequest - Request body for updating a draft journal entry
+ * Uses LocalDateFromString to automatically parse ISO date strings (YYYY-MM-DD)
  */
 export class UpdateJournalEntryRequest extends Schema.Class<UpdateJournalEntryRequest>("UpdateJournalEntryRequest")({
   description: Schema.OptionFromNullOr(Schema.NonEmptyTrimmedString),
-  transactionDate: Schema.OptionFromNullOr(LocalDate),
-  documentDate: Schema.OptionFromNullOr(LocalDate),
+  transactionDate: Schema.OptionFromNullOr(LocalDateFromString),
+  documentDate: Schema.OptionFromNullOr(LocalDateFromString),
   fiscalPeriod: Schema.OptionFromNullOr(FiscalPeriodRef),
   referenceNumber: Schema.OptionFromNullOr(Schema.NonEmptyTrimmedString),
   sourceDocumentRef: Schema.OptionFromNullOr(Schema.NonEmptyTrimmedString),
@@ -85,17 +87,19 @@ export class UpdateJournalEntryRequest extends Schema.Class<UpdateJournalEntryRe
 
 /**
  * PostJournalEntryRequest - Request to post a journal entry
+ * Uses LocalDateFromString to automatically parse ISO date strings (YYYY-MM-DD)
  */
 export class PostJournalEntryRequest extends Schema.Class<PostJournalEntryRequest>("PostJournalEntryRequest")({
   postedBy: UserId,
-  postingDate: Schema.OptionFromNullOr(LocalDate)
+  postingDate: Schema.OptionFromNullOr(LocalDateFromString)
 }) {}
 
 /**
  * ReverseJournalEntryRequest - Request to reverse a posted journal entry
+ * Uses LocalDateFromString to automatically parse ISO date strings (YYYY-MM-DD)
  */
 export class ReverseJournalEntryRequest extends Schema.Class<ReverseJournalEntryRequest>("ReverseJournalEntryRequest")({
-  reversalDate: LocalDate,
+  reversalDate: LocalDateFromString,
   reversalDescription: Schema.OptionFromNullOr(Schema.NonEmptyTrimmedString),
   reversedBy: UserId
 }) {}

@@ -319,6 +319,11 @@ function CompanyDetailsPage() {
 
               {/* Journal Entries */}
               <NavigationCard
+                to="/organizations/$organizationId/companies/$companyId/journal-entries"
+                params={{
+                  organizationId: params.organizationId,
+                  companyId: params.companyId
+                }}
                 title="Journal Entries"
                 description="Create and manage journal entries"
                 icon={

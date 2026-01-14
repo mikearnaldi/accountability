@@ -864,3 +864,8 @@
 **Story**: 11.1.3 - Home page / Dashboard
 **Status**: complete
 ---
+
+## Iteration 6 - 2026-01-14 23:14
+**Story**: 11.5.1 - Journal entries list with SSR
+**Status**: complete
+---

@@ -520,12 +520,13 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
         Effect.gen(function* () {
           const httpClient = yield* HttpClient.HttpClient
           // Send with invalid/empty lines which violates minimum items constraint
+          // Note: transactionDate is ISO string format (YYYY-MM-DD) per LocalDateFromString schema
           const response = yield* HttpClientRequest.post("/api/v1/journal-entries").pipe(
             HttpClientRequest.bearerToken("user_123_admin"),
             HttpClientRequest.bodyUnsafeJson({
               companyId: "550e8400-e29b-41d4-a716-446655440001",
               description: "Test entry",
-              transactionDate: { year: 2024, month: 1, day: 15 },
+              transactionDate: "2024-01-15",
               documentDate: null,
               fiscalPeriod: { year: 2024, period: 1 },
               entryType: "Manual",
@@ -606,9 +607,9 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
           const httpClient = yield* HttpClient.HttpClient
           const response = yield* HttpClientRequest.post("/api/v1/journal-entries/550e8400-e29b-41d4-a716-446655440010/reverse").pipe(
             HttpClientRequest.bearerToken("user_123_admin"),
-            // ReverseJournalEntryRequest schema - reversedBy is a UUID
+            // ReverseJournalEntryRequest schema - reversedBy is a UUID, reversalDate is ISO string (YYYY-MM-DD)
             HttpClientRequest.bodyUnsafeJson({
-              reversalDate: { year: 2024, month: 2, day: 1 },
+              reversalDate: "2024-02-01",
               reversalDescription: null,
               reversedBy: "550e8400-e29b-41d4-a716-446655440100"
             }),

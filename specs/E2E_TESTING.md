@@ -668,15 +668,88 @@ test("should display created account", async ({
 })
 ```
 
-### 3. Use data-testid for Stability
+### 3. ALWAYS Use data-testid for Element Selection
+
+**IMPORTANT**: All element selection in E2E tests MUST use `data-testid` attributes. This is mandatory, not optional.
+
+**Why data-testid is required:**
+- **Stability**: CSS classes and text content change frequently; data-testid is explicitly for testing
+- **Intent**: Makes it clear which elements are test targets
+- **Refactoring**: UI changes don't break tests as long as data-testid is preserved
+- **Uniqueness**: Guarantees single element selection
+
+**Naming conventions for data-testid:**
+- Use kebab-case: `data-testid="submit-button"`
+- Be descriptive: `data-testid="organization-list"`, `data-testid="create-account-modal"`
+- Include context: `data-testid="login-email-input"`, `data-testid="login-submit-button"`
+- For lists, use patterns: `data-testid="account-row-{id}"`, `data-testid="org-card-{id}"`
 
 ```typescript
-// GOOD: Stable selector
+// ✅ CORRECT: Always use data-testid
 await page.click('[data-testid="submit-button"]')
+await page.fill('[data-testid="login-email-input"]', email)
+await expect(page.locator('[data-testid="user-menu"]')).toBeVisible()
+await page.locator('[data-testid="account-row-123"]').click()
 
-// BAD: Fragile selectors
+// ❌ WRONG: CSS class selectors - fragile, break on styling changes
 await page.click('button.primary-btn.submit')
-await page.click('text=Submit')  // May match multiple elements
+await page.click('.btn-primary')
+
+// ❌ WRONG: Text selectors - break on copy changes, may match multiple elements
+await page.click('text=Submit')
+await page.click('button:has-text("Create")')
+
+// ❌ WRONG: Structural selectors - break on DOM structure changes
+await page.click('form > div:nth-child(2) > button')
+await page.click('div.modal button.close')
+
+// ❌ WRONG: Role selectors without data-testid - may match multiple elements
+await page.click('button[type="submit"]')
+await page.getByRole('button', { name: 'Submit' })
+```
+
+**Component implementation:**
+```tsx
+// Components MUST include data-testid on interactive elements
+function LoginForm() {
+  return (
+    <form data-testid="login-form">
+      <input
+        data-testid="login-email-input"
+        type="email"
+        name="email"
+      />
+      <input
+        data-testid="login-password-input"
+        type="password"
+        name="password"
+      />
+      <button
+        data-testid="login-submit-button"
+        type="submit"
+      >
+        Log In
+      </button>
+    </form>
+  )
+}
+
+// For lists, include the item ID in data-testid
+function OrganizationList({ organizations }) {
+  return (
+    <ul data-testid="organization-list">
+      {organizations.map(org => (
+        <li
+          key={org.id}
+          data-testid={`organization-item-${org.id}`}
+        >
+          <span data-testid={`organization-name-${org.id}`}>{org.name}</span>
+          <button data-testid={`organization-edit-${org.id}`}>Edit</button>
+        </li>
+      ))}
+    </ul>
+  )
+}
 ```
 
 ### 4. Wait for Network Idle
