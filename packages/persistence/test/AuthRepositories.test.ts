@@ -44,23 +44,28 @@ const uniqueId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 11)}
 
 describe("AuthRepositories", () => {
   // ============================================================================
-  // UserRepository Tests
+  // Single it.layer block to avoid migration race conditions
   // ============================================================================
-  it.layer(TestLayer, { timeout: "60 seconds" })("UserRepository", (it) => {
-    // Generate unique test IDs for this test suite
-    const testUserId = AuthUserId.make(`11111111-1111-1111-1111-${uniqueId().slice(0, 12).padEnd(12, "0")}`)
-    const testUserId2 = AuthUserId.make(`22222222-2222-2222-2222-${uniqueId().slice(0, 12).padEnd(12, "0")}`)
-    const testUserIdDelete = AuthUserId.make(`33333333-3333-3333-3333-${uniqueId().slice(0, 12).padEnd(12, "0")}`)
+  it.layer(TestLayer, { timeout: "60 seconds" })("Auth Repositories", (it) => {
+    // ============================================================================
+    // UserRepository Tests
+    // ============================================================================
+
+    // Generate unique test IDs for UserRepository tests
+    const userTestSuffix = uniqueId()
+    const testUserId = AuthUserId.make(`11111111-1111-1111-1111-${userTestSuffix.slice(0, 12).padEnd(12, "0")}`)
+    const testUserId2 = AuthUserId.make(`22222222-2222-2222-2222-${userTestSuffix.slice(0, 12).padEnd(12, "0")}`)
+    const testUserIdDelete = AuthUserId.make(`33333333-3333-3333-3333-${userTestSuffix.slice(0, 12).padEnd(12, "0")}`)
     const nonExistentUserId = AuthUserId.make(`99999999-9999-9999-9999-999999999999`)
-    const testEmail = Email.make(`user-${uniqueId()}@test.example.com`)
-    const testEmail2 = Email.make(`user2-${uniqueId()}@test.example.com`)
-    const testEmailDelete = Email.make(`user-delete-${uniqueId()}@test.example.com`)
+    const testEmail = Email.make(`user-${userTestSuffix}@test.example.com`)
+    const testEmail2 = Email.make(`user2-${userTestSuffix}@test.example.com`)
+    const testEmailDelete = Email.make(`user-delete-${userTestSuffix}@test.example.com`)
 
     // --------------------------------------------------
-    // CRUD Operations
+    // UserRepository CRUD Operations
     // --------------------------------------------------
 
-    it.effect("create: creates a new user", () =>
+    it.effect("UserRepository - create: creates a new user", () =>
       Effect.gen(function* () {
         const repo = yield* UserRepository
 
@@ -83,7 +88,7 @@ describe("AuthRepositories", () => {
       })
     )
 
-    it.effect("findById: returns Some for existing user", () =>
+    it.effect("UserRepository - findById: returns Some for existing user", () =>
       Effect.gen(function* () {
         const repo = yield* UserRepository
         const result = yield* repo.findById(testUserId)
@@ -95,7 +100,7 @@ describe("AuthRepositories", () => {
       })
     )
 
-    it.effect("findById: returns None for non-existing user", () =>
+    it.effect("UserRepository - findById: returns None for non-existing user", () =>
       Effect.gen(function* () {
         const repo = yield* UserRepository
         const result = yield* repo.findById(nonExistentUserId)
@@ -103,7 +108,7 @@ describe("AuthRepositories", () => {
       })
     )
 
-    it.effect("findByEmail: returns Some for existing user", () =>
+    it.effect("UserRepository - findByEmail: returns Some for existing user", () =>
       Effect.gen(function* () {
         const repo = yield* UserRepository
         const result = yield* repo.findByEmail(testEmail)
@@ -114,7 +119,7 @@ describe("AuthRepositories", () => {
       })
     )
 
-    it.effect("findByEmail: is case-insensitive", () =>
+    it.effect("UserRepository - findByEmail: is case-insensitive", () =>
       Effect.gen(function* () {
         const repo = yield* UserRepository
         const upperEmail = Email.make(testEmail.toUpperCase())
@@ -126,7 +131,7 @@ describe("AuthRepositories", () => {
       })
     )
 
-    it.effect("findByEmail: returns None for non-existing email", () =>
+    it.effect("UserRepository - findByEmail: returns None for non-existing email", () =>
       Effect.gen(function* () {
         const repo = yield* UserRepository
         const result = yield* repo.findByEmail(Email.make(`nonexistent-${uniqueId()}@test.example.com`))
@@ -134,7 +139,7 @@ describe("AuthRepositories", () => {
       })
     )
 
-    it.effect("update: updates user display name", () =>
+    it.effect("UserRepository - update: updates user display name", () =>
       Effect.gen(function* () {
         const repo = yield* UserRepository
 
@@ -151,7 +156,7 @@ describe("AuthRepositories", () => {
       })
     )
 
-    it.effect("update: updates user role", () =>
+    it.effect("UserRepository - update: updates user role", () =>
       Effect.gen(function* () {
         const repo = yield* UserRepository
 
@@ -164,7 +169,7 @@ describe("AuthRepositories", () => {
       })
     )
 
-    it.effect("update: updates multiple fields at once", () =>
+    it.effect("UserRepository - update: updates multiple fields at once", () =>
       Effect.gen(function* () {
         const repo = yield* UserRepository
         const newEmail = Email.make(`updated-${uniqueId()}@test.example.com`)
@@ -182,7 +187,7 @@ describe("AuthRepositories", () => {
       })
     )
 
-    it.effect("update: throws EntityNotFoundError for non-existing user", () =>
+    it.effect("UserRepository - update: throws EntityNotFoundError for non-existing user", () =>
       Effect.gen(function* () {
         const repo = yield* UserRepository
 
@@ -194,7 +199,7 @@ describe("AuthRepositories", () => {
       })
     )
 
-    it.effect("delete: deletes a user", () =>
+    it.effect("UserRepository - delete: deletes a user", () =>
       Effect.gen(function* () {
         const repo = yield* UserRepository
 
@@ -221,7 +226,7 @@ describe("AuthRepositories", () => {
       })
     )
 
-    it.effect("delete: throws EntityNotFoundError for non-existing user", () =>
+    it.effect("UserRepository - delete: throws EntityNotFoundError for non-existing user", () =>
       Effect.gen(function* () {
         const repo = yield* UserRepository
 
@@ -234,10 +239,10 @@ describe("AuthRepositories", () => {
     )
 
     // --------------------------------------------------
-    // Unique Constraints
+    // UserRepository Unique Constraints
     // --------------------------------------------------
 
-    it.effect("create: enforces unique email constraint", () =>
+    it.effect("UserRepository - create: enforces unique email constraint", () =>
       Effect.gen(function* () {
         const repo = yield* UserRepository
         const duplicateEmail = Email.make(`duplicate-${uniqueId()}@test.example.com`)
@@ -270,7 +275,7 @@ describe("AuthRepositories", () => {
       })
     )
 
-    it.effect("create: allows different users with different emails", () =>
+    it.effect("UserRepository - create: allows different users with different emails", () =>
       Effect.gen(function* () {
         const repo = yield* UserRepository
 
@@ -287,33 +292,32 @@ describe("AuthRepositories", () => {
         expect(created.email).toBe(testEmail2)
       })
     )
-  })
 
-  // ============================================================================
-  // SessionRepository Tests
-  // ============================================================================
-  it.layer(TestLayer, { timeout: "60 seconds" })("SessionRepository", (it) => {
-    // Generate unique test IDs for this test suite
+    // ============================================================================
+    // SessionRepository Tests
+    // ============================================================================
+
+    // Generate unique test IDs for SessionRepository tests
     const sessionSuffix = uniqueId()
-    const testUserId = AuthUserId.make(`aaaaaaaa-aaaa-aaaa-aaaa-${sessionSuffix.slice(0, 12).padEnd(12, "0")}`)
-    const testUserId2 = AuthUserId.make(`bbbbbbbb-bbbb-bbbb-bbbb-${sessionSuffix.slice(0, 12).padEnd(12, "0")}`)
+    const sessionTestUserId = AuthUserId.make(`aaaaaaaa-aaaa-aaaa-aaaa-${sessionSuffix.slice(0, 12).padEnd(12, "0")}`)
+    const sessionTestUserId2 = AuthUserId.make(`bbbbbbbb-bbbb-bbbb-bbbb-${sessionSuffix.slice(0, 12).padEnd(12, "0")}`)
     // Session IDs must be at least 32 chars
     const testSessionId = SessionId.make(`session_test_${sessionSuffix}_01234567890123`)
     const testSessionId2 = SessionId.make(`session_test_${sessionSuffix}_12345678901234`)
     const testSessionId3 = SessionId.make(`session_test_${sessionSuffix}_23456789012345`)
     const testSessionIdExpired = SessionId.make(`session_exp_${sessionSuffix}_012345678901234`)
     const nonExistentSessionId = SessionId.make(`session_nonexistent_${sessionSuffix}_0123`)
-    const testEmail = Email.make(`session-test-${sessionSuffix}@example.com`)
-    const testEmail2 = Email.make(`session-test2-${sessionSuffix}@example.com`)
+    const sessionTestEmail = Email.make(`session-test-${sessionSuffix}@example.com`)
+    const sessionTestEmail2 = Email.make(`session-test2-${sessionSuffix}@example.com`)
 
     // Setup: Create test users first (sessions need user references)
-    it.effect("setup: create test users for sessions", () =>
+    it.effect("SessionRepository - setup: create test users for sessions", () =>
       Effect.gen(function* () {
         const userRepo = yield* UserRepository
 
         const user1: AuthUserInsert = {
-          id: testUserId,
-          email: testEmail,
+          id: sessionTestUserId,
+          email: sessionTestEmail,
           displayName: "Session Test User",
           role: "member",
           primaryProvider: "local"
@@ -321,8 +325,8 @@ describe("AuthRepositories", () => {
         yield* userRepo.create(user1)
 
         const user2: AuthUserInsert = {
-          id: testUserId2,
-          email: testEmail2,
+          id: sessionTestUserId2,
+          email: sessionTestEmail2,
           displayName: "Session Test User 2",
           role: "member",
           primaryProvider: "local"
@@ -335,14 +339,14 @@ describe("AuthRepositories", () => {
     // CRUD Operations
     // --------------------------------------------------
 
-    it.effect("create: creates a new session", () =>
+    it.effect("SessionRepository - create: creates a new session", () =>
       Effect.gen(function* () {
         const repo = yield* SessionRepository
         const expiresAt = Timestamp.make({ epochMillis: Date.now() + 3600000 }) // 1 hour from now
 
         const session: SessionInsert = {
           id: testSessionId,
-          userId: testUserId,
+          userId: sessionTestUserId,
           provider: "local",
           expiresAt,
           userAgent: Option.some("TestBrowser/1.0")
@@ -350,7 +354,7 @@ describe("AuthRepositories", () => {
 
         const created = yield* repo.create(session)
         expect(created.id).toBe(testSessionId)
-        expect(created.userId).toBe(testUserId)
+        expect(created.userId).toBe(sessionTestUserId)
         expect(created.provider).toBe("local")
         expect(Option.isSome(created.userAgent)).toBe(true)
         if (Option.isSome(created.userAgent)) {
@@ -359,14 +363,14 @@ describe("AuthRepositories", () => {
       })
     )
 
-    it.effect("create: creates a session without user agent", () =>
+    it.effect("SessionRepository - create: creates a session without user agent", () =>
       Effect.gen(function* () {
         const repo = yield* SessionRepository
         const expiresAt = Timestamp.make({ epochMillis: Date.now() + 3600000 })
 
         const session: SessionInsert = {
           id: testSessionId2,
-          userId: testUserId,
+          userId: sessionTestUserId,
           provider: "google",
           expiresAt,
           userAgent: Option.none()
@@ -378,19 +382,19 @@ describe("AuthRepositories", () => {
       })
     )
 
-    it.effect("findById: returns Some for existing session", () =>
+    it.effect("SessionRepository - findById: returns Some for existing session", () =>
       Effect.gen(function* () {
         const repo = yield* SessionRepository
         const result = yield* repo.findById(testSessionId)
         expect(Option.isSome(result)).toBe(true)
         if (Option.isSome(result)) {
           expect(result.value.id).toBe(testSessionId)
-          expect(result.value.userId).toBe(testUserId)
+          expect(result.value.userId).toBe(sessionTestUserId)
         }
       })
     )
 
-    it.effect("findById: returns None for non-existing session", () =>
+    it.effect("SessionRepository - findById: returns None for non-existing session", () =>
       Effect.gen(function* () {
         const repo = yield* SessionRepository
         const result = yield* repo.findById(nonExistentSessionId)
@@ -398,27 +402,27 @@ describe("AuthRepositories", () => {
       })
     )
 
-    it.effect("findByUserId: returns all sessions for user", () =>
+    it.effect("SessionRepository - findByUserId: returns all sessions for user", () =>
       Effect.gen(function* () {
         const repo = yield* SessionRepository
-        const sessions = yield* repo.findByUserId(testUserId)
+        const sessions = yield* repo.findByUserId(sessionTestUserId)
         expect(Chunk.size(sessions)).toBeGreaterThanOrEqual(2)
         // All sessions should belong to the same user
         for (const session of sessions) {
-          expect(session.userId).toBe(testUserId)
+          expect(session.userId).toBe(sessionTestUserId)
         }
       })
     )
 
-    it.effect("findByUserId: returns empty chunk for user with no sessions", () =>
+    it.effect("SessionRepository - findByUserId: returns empty chunk for user with no sessions", () =>
       Effect.gen(function* () {
         const repo = yield* SessionRepository
-        const sessions = yield* repo.findByUserId(testUserId2)
+        const sessions = yield* repo.findByUserId(sessionTestUserId2)
         expect(Chunk.isEmpty(sessions)).toBe(true)
       })
     )
 
-    it.effect("updateExpiry: updates session expiration time", () =>
+    it.effect("SessionRepository - updateExpiry: updates session expiration time", () =>
       Effect.gen(function* () {
         const repo = yield* SessionRepository
         const newExpiresAt = Timestamp.make({ epochMillis: Date.now() + 7200000 }) // 2 hours from now
@@ -429,7 +433,7 @@ describe("AuthRepositories", () => {
       })
     )
 
-    it.effect("updateExpiry: throws EntityNotFoundError for non-existing session", () =>
+    it.effect("SessionRepository - updateExpiry: throws EntityNotFoundError for non-existing session", () =>
       Effect.gen(function* () {
         const repo = yield* SessionRepository
         const newExpiresAt = Timestamp.make({ epochMillis: Date.now() + 3600000 })
@@ -442,7 +446,7 @@ describe("AuthRepositories", () => {
       })
     )
 
-    it.effect("delete: deletes a session by ID", () =>
+    it.effect("SessionRepository - delete: deletes a session by ID", () =>
       Effect.gen(function* () {
         const repo = yield* SessionRepository
 
@@ -450,7 +454,7 @@ describe("AuthRepositories", () => {
         const expiresAt = Timestamp.make({ epochMillis: Date.now() + 3600000 })
         const session: SessionInsert = {
           id: testSessionId3,
-          userId: testUserId,
+          userId: sessionTestUserId,
           provider: "local",
           expiresAt,
           userAgent: Option.none()
@@ -474,15 +478,15 @@ describe("AuthRepositories", () => {
     // Foreign Key Constraints
     // --------------------------------------------------
 
-    it.effect("create: enforces foreign key constraint on userId", () =>
+    it.effect("SessionRepository - create: enforces foreign key constraint on userId", () =>
       Effect.gen(function* () {
         const repo = yield* SessionRepository
-        const nonExistentUserId = AuthUserId.make(`cccccccc-cccc-cccc-cccc-cccccccccccc`)
+        const fkNonExistentUserId = AuthUserId.make(`cccccccc-cccc-cccc-cccc-cccccccccccc`)
         const expiresAt = Timestamp.make({ epochMillis: Date.now() + 3600000 })
 
         const session: SessionInsert = {
           id: SessionId.make(`fk_test_session_${uniqueId()}_01234567890`),
-          userId: nonExistentUserId, // This user doesn't exist
+          userId: fkNonExistentUserId, // This user doesn't exist
           provider: "local",
           expiresAt,
           userAgent: Option.none()
@@ -501,7 +505,7 @@ describe("AuthRepositories", () => {
     // Session Expiry Queries
     // --------------------------------------------------
 
-    it.effect("deleteExpired: deletes expired sessions", () =>
+    it.effect("SessionRepository - deleteExpired: deletes expired sessions", () =>
       Effect.gen(function* () {
         const repo = yield* SessionRepository
         const sql = yield* SqlClient.SqlClient
@@ -510,7 +514,7 @@ describe("AuthRepositories", () => {
         const expiredDate = new Date(Date.now() - 3600000) // 1 hour ago
         yield* sql`
           INSERT INTO auth_sessions (id, user_id, provider, expires_at, created_at)
-          VALUES (${testSessionIdExpired}, ${testUserId}, 'local', ${expiredDate}, NOW())
+          VALUES (${testSessionIdExpired}, ${sessionTestUserId}, 'local', ${expiredDate}, NOW())
           ON CONFLICT (id) DO NOTHING
         `
 
@@ -528,19 +532,19 @@ describe("AuthRepositories", () => {
       })
     )
 
-    it.effect("deleteExpired: does not delete non-expired sessions", () =>
+    it.effect("SessionRepository - deleteExpired: does not delete non-expired sessions", () =>
       Effect.gen(function* () {
         const repo = yield* SessionRepository
 
-        // Get count of sessions for testUserId before cleanup
-        const sessionsBefore = yield* repo.findByUserId(testUserId)
+        // Get count of sessions for sessionTestUserId before cleanup
+        const sessionsBefore = yield* repo.findByUserId(sessionTestUserId)
         const countBefore = Chunk.size(sessionsBefore)
 
         // Run cleanup (should not delete active sessions)
         yield* repo.deleteExpired()
 
         // Verify active sessions are still there
-        const sessionsAfter = yield* repo.findByUserId(testUserId)
+        const sessionsAfter = yield* repo.findByUserId(sessionTestUserId)
         const countAfter = Chunk.size(sessionsAfter)
 
         // Count should be same or less only if we had expired ones
@@ -548,7 +552,7 @@ describe("AuthRepositories", () => {
       })
     )
 
-    it.effect("deleteByUserId: deletes all sessions for a user", () =>
+    it.effect("SessionRepository - deleteByUserId: deletes all sessions for a user", () =>
       Effect.gen(function* () {
         const repo = yield* SessionRepository
         const sql = yield* SqlClient.SqlClient
@@ -600,7 +604,7 @@ describe("AuthRepositories", () => {
     // Session Expiration Methods
     // --------------------------------------------------
 
-    it.effect("session expiration check: isExpired works correctly", () =>
+    it.effect("SessionRepository - session expiration check: isExpired works correctly", () =>
       Effect.gen(function* () {
         const repo = yield* SessionRepository
         const result = yield* repo.findById(testSessionId)
@@ -618,7 +622,7 @@ describe("AuthRepositories", () => {
       })
     )
 
-    it.effect("session expiration check: isExpired returns true for expired session", () =>
+    it.effect("SessionRepository - session expiration check: isExpired returns true for expired session", () =>
       Effect.gen(function* () {
         const repo = yield* SessionRepository
         const sql = yield* SqlClient.SqlClient
@@ -630,7 +634,7 @@ describe("AuthRepositories", () => {
 
         yield* sql`
           INSERT INTO auth_sessions (id, user_id, provider, expires_at, created_at)
-          VALUES (${expiredSessionId}, ${testUserId}, 'local', ${expiredDate}, NOW())
+          VALUES (${expiredSessionId}, ${sessionTestUserId}, 'local', ${expiredDate}, NOW())
         `
 
         const result = yield* repo.findById(expiredSessionId)
@@ -654,7 +658,7 @@ describe("AuthRepositories", () => {
     // Unique Constraints
     // --------------------------------------------------
 
-    it.effect("create: enforces unique session ID constraint", () =>
+    it.effect("SessionRepository - create: enforces unique session ID constraint", () =>
       Effect.gen(function* () {
         const repo = yield* SessionRepository
         const duplicateSessionId = SessionId.make(`duplicate_session_${uniqueId()}_01234567`)
@@ -663,7 +667,7 @@ describe("AuthRepositories", () => {
         // Create first session
         const session1: SessionInsert = {
           id: duplicateSessionId,
-          userId: testUserId,
+          userId: sessionTestUserId,
           provider: "local",
           expiresAt,
           userAgent: Option.none()
@@ -673,7 +677,7 @@ describe("AuthRepositories", () => {
         // Try to create second session with same ID
         const session2: SessionInsert = {
           id: duplicateSessionId,
-          userId: testUserId,
+          userId: sessionTestUserId,
           provider: "google",
           expiresAt,
           userAgent: Option.none()

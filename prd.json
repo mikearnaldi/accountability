@@ -249,7 +249,7 @@
           "handleOAuthCallbackMutation - calls /api/auth/callback/:provider"
         ]
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "small"
     },
     {

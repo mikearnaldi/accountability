@@ -262,3 +262,91 @@ export const logoutMutation = ApiClient.runtime.fn<void>()(
     return undefined
   })
 )
+
+// =============================================================================
+// OAuth Callback Mutation
+// =============================================================================
+
+/**
+ * Input type for OAuth callback handling
+ */
+export interface OAuthCallbackInput {
+  readonly provider: string
+  readonly code: string
+  readonly state: string
+}
+
+/**
+ * handleOAuthCallbackMutation - Handle OAuth provider callback
+ *
+ * This mutation:
+ * 1. Calls the OAuth callback API endpoint with the provider, code, and state
+ * 2. On success, stores the returned token in localStorage
+ *
+ * Usage:
+ * ```typescript
+ * const [result, handleCallback] = useAtom(handleOAuthCallbackMutation, { mode: "promise" })
+ *
+ * try {
+ *   await handleCallback({ provider, code, state })
+ *   // Navigation happens after token is stored
+ * } catch {
+ *   // Error handling
+ * }
+ * ```
+ */
+export const handleOAuthCallbackMutation = ApiClient.runtime.fn<OAuthCallbackInput>()(
+  Effect.fnUntraced(function* (input) {
+    const client = yield* ApiClient
+    const response: LoginResponse = yield* client.auth.callback({
+      path: { provider: unsafeCoerce(input.provider) },
+      urlParams: {
+        code: input.code,
+        state: input.state
+      }
+    })
+
+    // Store the token on successful callback
+    setStoredToken(response.token)
+
+    return response
+  })
+)
+
+// =============================================================================
+// OAuth Link Callback Mutation
+// =============================================================================
+
+/**
+ * handleOAuthLinkCallbackMutation - Handle OAuth provider link callback
+ *
+ * This mutation:
+ * 1. Calls the OAuth link callback API endpoint with the provider, code, and state
+ * 2. On success, returns the updated user with new identity (token already exists)
+ *
+ * Usage:
+ * ```typescript
+ * const [result, handleLinkCallback] = useAtom(handleOAuthLinkCallbackMutation, { mode: "promise" })
+ *
+ * try {
+ *   await handleLinkCallback({ provider, code, state })
+ *   // Navigate to account settings or refresh user
+ * } catch {
+ *   // Error handling
+ * }
+ * ```
+ */
+export const handleOAuthLinkCallbackMutation = ApiClient.runtime.fn<OAuthCallbackInput>()(
+  Effect.fnUntraced(function* (input) {
+    const client = yield* ApiClient
+    const response: AuthUserResponse = yield* client.authSession.linkCallback({
+      path: { provider: unsafeCoerce(input.provider) },
+      urlParams: {
+        code: input.code,
+        state: input.state
+      }
+    })
+
+    return response
+  })
+)
