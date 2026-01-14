@@ -784,3 +784,8 @@
 **Story**: 10.3.2 - Implement company details page
 **Status**: complete
 ---
+
+## Iteration 8 - 2026-01-14 04:30
+**Story**: 10.3.3 - Implement company selector component
+**Status**: complete
+---
