@@ -234,6 +234,7 @@ const make = Effect.gen(function* () {
 
   const update: AccountRepositoryService["update"] = (account) =>
     Effect.gen(function* () {
+      // Use RETURNING to verify the row was updated
       const result = yield* sql`
         UPDATE accounts SET
           name = ${account.name},
@@ -252,6 +253,7 @@ const make = Effect.gen(function* () {
           is_active = ${account.isActive},
           deactivated_at = ${Option.match(account.deactivatedAt, { onNone: () => null, onSome: (t) => t.toDate() })}
         WHERE id = ${account.id}
+        RETURNING id
       `.pipe(wrapSqlError("update"))
 
       if (result.length === 0) {

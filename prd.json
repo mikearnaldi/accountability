@@ -434,7 +434,7 @@
         "Edit account: modal form, api.PATCH, router.invalidate()",
         "TESTS (E2E): Accounts CRUD works"
       ],
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "large",
       "depends_on": [
         "11.3.2"

@@ -849,3 +849,8 @@
 **Story**: 11.3.2 - Company details with SSR
 **Status**: complete
 ---
+
+## Iteration 8 - 2026-01-14 21:43
+**Story**: 11.4.1 - Chart of Accounts with SSR
+**Status**: complete
+---

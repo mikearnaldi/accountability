@@ -296,6 +296,11 @@ function CompanyDetailsPage() {
             <div className="grid gap-4 sm:grid-cols-3">
               {/* Chart of Accounts */}
               <NavigationCard
+                to="/organizations/$organizationId/companies/$companyId/accounts"
+                params={{
+                  organizationId: params.organizationId,
+                  companyId: params.companyId
+                }}
                 title="Chart of Accounts"
                 description="Manage accounts and account hierarchy"
                 icon={
@@ -372,18 +377,22 @@ function CompanyDetailsPage() {
 // =============================================================================
 
 function NavigationCard({
+  to,
+  params,
   title,
   description,
   icon,
   linkText
 }: {
+  readonly to?: string
+  readonly params?: { readonly organizationId: string; readonly companyId: string }
   readonly title: string
   readonly description: string
   readonly icon: React.ReactNode
   readonly linkText: string
 }) {
-  return (
-    <div className="rounded-lg border border-gray-200 p-4 transition-shadow hover:shadow-md">
+  const content = (
+    <>
       <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-blue-600">
         {icon}
       </div>
@@ -392,6 +401,24 @@ function NavigationCard({
       <p className="mt-3 text-sm font-medium text-blue-600 hover:text-blue-700">
         {linkText} &rarr;
       </p>
+    </>
+  )
+
+  if (to && params) {
+    return (
+      <Link
+        to={to}
+        params={params}
+        className="block rounded-lg border border-gray-200 p-4 transition-shadow hover:shadow-md"
+      >
+        {content}
+      </Link>
+    )
+  }
+
+  return (
+    <div className="rounded-lg border border-gray-200 p-4 transition-shadow hover:shadow-md">
+      {content}
     </div>
   )
 }
