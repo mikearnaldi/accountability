@@ -1,11 +1,12 @@
 {
   "project": "Accountability",
   "description": "Multi-company, multi-currency accounting application built on US GAAP principles",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "created_at": "2026-01-10",
-  "updated_at": "2026-01-14",
+  "updated_at": "2026-01-15",
   "specs_dir": "specs/",
   "available_specs": [
+    "DOMAIN_MODEL.md",
     "ACCOUNTING_RESEARCH.md",
     "EFFECT_BEST_PRACTICES.md",
     "EFFECT_SQL.md",
@@ -21,11 +22,7 @@
   "architecture": {
     "principle": "Effect on server only. Pure React + generated fetch client on frontend.",
     "backend": {
-      "packages": [
-        "core",
-        "persistence",
-        "api"
-      ],
+      "packages": ["core", "persistence", "api"],
       "stack": "Effect for type-safe business logic, @effect/sql for database, HttpApi for REST endpoints",
       "testing": "@effect/vitest for unit/integration tests"
     },
@@ -39,186 +36,298 @@
     "api_client": {
       "generation": "pnpm generate:api in packages/web",
       "tools": "openapi-typescript generates types, openapi-fetch provides typed client",
-      "output": [
-        "src/api/schema.ts - generated types",
-        "src/api/client.ts - configured client"
-      ],
+      "output": ["src/api/schema.ts", "src/api/client.ts"],
       "usage": "import { api } from '@/api/client'; await api.GET('/api/v1/organizations')",
       "cookie_auth": {
-        "principle": "httpOnly cookies ONLY. localStorage is FORBIDDEN for token storage.",
-        "server_side": {
-          "description": "SSR loaders MUST use api client (not raw fetch), read cookie from request headers and pass to API",
-          "pattern": [
-            "// In loader - get cookie from request and pass to api client:",
-            "loader: async ({ request }) => {",
-            "  const cookie = request.headers.get('cookie')",
-            "  const { data } = await api.GET('/api/v1/organizations', {",
-            "    headers: cookie ? { cookie } : undefined",
-            "  })",
-            "  return { organizations: data?.organizations ?? [] }",
-            "}"
-          ],
-          "wrong": [
-            "// WRONG - never use createServerFn + raw fetch:",
-            "const fetchData = createServerFn({ method: 'GET' })",
-            "  .handler(async () => {",
-            "    const sessionToken = getCookie('session')",
-            "    const response = await fetch('/api/...', {",
-            "      headers: { Authorization: `Bearer ${sessionToken}` }",
-            "    })",
-            "    return response.json()",
-            "  })"
-          ]
-        },
-        "client_side": {
-          "description": "Browser automatically sends cookies with credentials: include. MUST use api client.",
-          "pattern": [
-            "// Client-side - ALWAYS use api client, cookies sent automatically:",
-            "await api.POST('/api/v1/organizations', { body })",
-            "await api.GET('/api/v1/companies')",
-            "",
-            "// api client is pre-configured with credentials: 'include'"
-          ],
-          "wrong": [
-            "// WRONG - never use raw fetch:",
-            "await fetch('/api/v1/organizations', { method: 'POST', body: JSON.stringify(data) })"
-          ]
-        },
-        "forbidden": [
-          "ALL localStorage usage - it is banned entirely due to XSS vulnerability",
-          "Manual Authorization header on client-side",
-          "Storing tokens in React state or context",
-          "Returning token in API response body - token MUST only be set via Set-Cookie header",
-          "Using raw fetch() - ALL API calls MUST use the openapi-fetch client (api.GET, api.POST, etc.)",
-          "Using createServerFn for API calls - use loader/beforeLoad with api client instead",
-          "Using getCookie() to manually read session tokens - pass cookie header to api client"
-        ],
-        "api_response": {
-          "principle": "Auth API MUST NOT return token in response body. Token is set via httpOnly cookie only.",
-          "login_response": {
-            "description": "Login returns user info, NOT the token",
-            "correct": "{ user: { id, email, displayName } }",
-            "wrong": "{ token: '...', user: { ... } }"
-          },
-          "register_response": {
-            "description": "Register returns user info, NOT the token",
-            "correct": "{ user: { id, email, displayName } }",
-            "wrong": "{ token: '...', user: { ... } }"
-          },
-          "rationale": "If token is in response body, JavaScript can read it, defeating httpOnly protection"
-        }
+        "principle": "httpOnly cookies ONLY. localStorage is FORBIDDEN.",
+        "ssr": "Forward cookie from request.headers.get('cookie') to api client",
+        "client": "Cookies sent automatically via credentials: 'include'"
       }
-    }
-  },
-  "technology": {
-    "effect": {
-      "version": "^3.19.0",
-      "scope": "Backend only (core, persistence, api packages)"
-    },
-    "tanstack_start": {
-      "package": "@tanstack/react-start",
-      "version": "^1.147.0",
-      "patterns": {
-        "ssr_data": "Use loader() to fetch data server-side, access via Route.useLoaderData()",
-        "ssr_auth": "Use beforeLoad() to check auth from cookie, redirect if needed",
-        "client_mutations": "Use api client directly in event handlers, revalidate with router.invalidate()"
-      }
-    },
-    "openapi_fetch": {
-      "package": "openapi-fetch",
-      "version": "^0.13.0",
-      "usage": "Type-safe fetch client generated from OpenAPI spec"
     }
   },
   "testing_policy": {
     "mandatory": "EVERY story MUST include tests. A story is NOT complete without passing tests.",
     "ui_changes": "E2E tests in packages/web/test-e2e/",
-    "api_changes": "Unit/integration tests in packages/api/test/ using @effect/vitest.",
+    "api_changes": "Unit/integration tests using @effect/vitest",
     "verification": "Run 'pnpm test && pnpm test:e2e' before marking any story complete."
   },
-  "ui_patterns": {
-    "data_fetching": {
-      "ssr": "loader() fetches data server-side using api client",
-      "access": "Route.useLoaderData() in component - data available immediately",
-      "mutations": "Call api client in handlers, then router.invalidate() to refetch"
-    },
-    "auth": {
-      "cookie": "httpOnly secure cookie stores session token. localStorage is FORBIDDEN.",
-      "ssr_check": "beforeLoad() reads cookie from request.headers.get('cookie'), passes to API via headers: { cookie }",
-      "client_check": "Check loader data for user presence",
-      "client_requests": "Browser sends cookies automatically with credentials: 'include'. No manual token handling."
-    },
-    "example_route": {
-      "code": [
-        "export const Route = createFileRoute('/organizations/')({",
-        "  beforeLoad: async ({ context }) => {",
-        "    // Auth check - redirect if not logged in",
-        "    if (!context.user) throw redirect({ to: '/login' })",
-        "  },",
-        "  loader: async ({ request }) => {",
-        "    // SSR: Forward cookie from request to API",
-        "    const cookie = request.headers.get('cookie')",
-        "    const { data } = await api.GET('/api/v1/organizations', {",
-        "      headers: { cookie }  // Server needs to forward cookie explicitly",
-        "    })",
-        "    return { organizations: data ?? [] }",
-        "  },",
-        "  component: OrganizationsPage",
-        "})",
-        "",
-        "function OrganizationsPage() {",
-        "  const { organizations } = Route.useLoaderData()",
-        "  const handleCreate = async (body) => {",
-        "    // Client-side: cookies sent automatically via credentials: 'include'",
-        "    await api.POST('/api/v1/organizations', { body })",
-        "    router.invalidate()",
-        "  }",
-        "  return <OrganizationsList items={organizations} onCreate={handleCreate} />",
-        "}"
+  "api_coverage": {
+    "implemented": {
+      "auth": [
+        "POST /api/auth/register",
+        "POST /api/auth/login",
+        "POST /api/auth/logout",
+        "GET /api/auth/me"
+      ],
+      "organizations": [
+        "GET /api/v1/organizations",
+        "GET /api/v1/organizations/:id",
+        "POST /api/v1/organizations",
+        "PUT /api/v1/organizations/:id",
+        "DELETE /api/v1/organizations/:id"
+      ],
+      "companies": [
+        "GET /api/v1/companies",
+        "GET /api/v1/companies/:id",
+        "POST /api/v1/companies",
+        "PUT /api/v1/companies/:id",
+        "DELETE /api/v1/companies/:id"
+      ],
+      "accounts": [
+        "GET /api/v1/accounts",
+        "GET /api/v1/accounts/:id",
+        "POST /api/v1/accounts",
+        "PUT /api/v1/accounts/:id",
+        "DELETE /api/v1/accounts/:id"
+      ],
+      "journal_entries": [
+        "GET /api/v1/journal-entries",
+        "GET /api/v1/journal-entries/:id",
+        "POST /api/v1/journal-entries",
+        "PUT /api/v1/journal-entries/:id",
+        "DELETE /api/v1/journal-entries/:id",
+        "POST /api/v1/journal-entries/:id/submit",
+        "POST /api/v1/journal-entries/:id/approve",
+        "POST /api/v1/journal-entries/:id/reject",
+        "POST /api/v1/journal-entries/:id/post",
+        "POST /api/v1/journal-entries/:id/reverse"
+      ],
+      "fiscal": [
+        "GET /api/v1/fiscal/fiscal-years",
+        "POST /api/v1/fiscal/fiscal-years",
+        "GET /api/v1/fiscal/fiscal-periods",
+        "POST /api/v1/fiscal/fiscal-periods/:id/open",
+        "POST /api/v1/fiscal/fiscal-periods/:id/close",
+        "POST /api/v1/fiscal/fiscal-periods/:id/soft-close",
+        "POST /api/v1/fiscal/fiscal-periods/:id/reopen"
+      ],
+      "exchange_rates": [
+        "GET /api/v1/exchange-rates",
+        "POST /api/v1/exchange-rates",
+        "POST /api/v1/exchange-rates/bulk",
+        "DELETE /api/v1/exchange-rates/:id",
+        "GET /api/v1/exchange-rates/by-date",
+        "GET /api/v1/exchange-rates/latest"
+      ],
+      "consolidation": [
+        "GET /api/v1/consolidation/groups",
+        "POST /api/v1/consolidation/groups",
+        "PUT /api/v1/consolidation/groups/:id",
+        "DELETE /api/v1/consolidation/groups/:id",
+        "POST /api/v1/consolidation/groups/:id/members",
+        "DELETE /api/v1/consolidation/groups/:id/members/:companyId",
+        "GET /api/v1/consolidation/runs",
+        "POST /api/v1/consolidation/runs",
+        "GET /api/v1/consolidation/runs/:id/trial-balance"
+      ],
+      "elimination_rules": [
+        "GET /api/v1/elimination-rules",
+        "POST /api/v1/elimination-rules",
+        "PUT /api/v1/elimination-rules/:id",
+        "DELETE /api/v1/elimination-rules/:id"
+      ],
+      "intercompany": [
+        "GET /api/v1/intercompany-transactions",
+        "POST /api/v1/intercompany-transactions",
+        "PUT /api/v1/intercompany-transactions/:id",
+        "DELETE /api/v1/intercompany-transactions/:id"
+      ],
+      "reports": [
+        "GET /api/v1/reports/trial-balance",
+        "GET /api/v1/reports/balance-sheet",
+        "GET /api/v1/reports/income-statement",
+        "GET /api/v1/reports/cash-flow",
+        "GET /api/v1/reports/equity-statement"
       ]
-    }
+    },
+    "not_implemented": [
+      "GET /api/v1/currencies - Currency master data",
+      "GET /api/v1/jurisdictions - Jurisdiction master data",
+      "GET /api/v1/account-templates - Chart of accounts templates",
+      "GET /api/v1/audit-log - Audit trail queries"
+    ]
   },
   "stories": [
     {
-      "id": "11.0.5",
-      "phase": "Frontend Rebuild",
-      "epic": "Infrastructure",
-      "title": "Consolidate UI: unified design system and consistent navigation",
-      "description": "The current UI is fragmented - dashboard shows non-existent features and clicking Organizations leads to a completely different interface. This task consolidates all UI into a cohesive, professional design that respects usability best practices.",
-      "specs": [
-        "REACT_BEST_PRACTICES.md",
-        "USABILITY_BEST_PRACTICES.md",
-        "E2E_TESTING.md"
-      ],
+      "id": "1.1",
+      "epic": "API: Reference Data",
+      "title": "Currency master data endpoint",
+      "description": "Add API endpoint to list available currencies for UI dropdowns. The Currency domain entity already exists with COMMON_CURRENCIES predefined.",
+      "specs": ["DOMAIN_MODEL.md", "API_BEST_PRACTICES.md"],
       "acceptance_criteria": [
-        "AUDIT: Remove all dashboard widgets/links that reference non-existent API endpoints",
-        "LAYOUT: Unified layout wrapper with consistent header, sidebar, and content area",
-        "NAVIGATION: Consistent navigation pattern across all pages (Organizations, Companies, etc.)",
-        "STYLING: Consistent color palette, typography, spacing across all components",
-        "FORMS: Unified form component styling (inputs, buttons, labels, validation)",
-        "TABLES: Consistent table/list styling with proper headers, rows, pagination",
-        "CARDS: Unified card component for dashboard widgets and detail views",
-        "STATES: Consistent loading, empty, and error states across all pages",
-        "BREADCRUMBS: Proper breadcrumb navigation showing current location",
-        "RESPONSIVE: All pages work on desktop, tablet, and mobile",
-        "TRANSITIONS: Smooth page transitions and hover states",
-        "Only show features that actually exist in the API",
-        "Add data-testid attributes to all interactive elements",
-        "TESTS (E2E): Navigation flows work correctly across all pages"
+        "GET /api/v1/currencies returns list of currencies",
+        "Response schema: { currencies: [{ code, name, symbol, decimalPlaces, isActive }] }",
+        "Filter by isActive query parameter (default: true)",
+        "Returns predefined COMMON_CURRENCIES from Currency.ts",
+        "Unit tests for endpoint"
       ],
-      "technical_details": {
-        "approach": [
-          "1. Audit existing pages and identify inconsistencies",
-          "2. Create shared layout components (AppLayout, Sidebar, Header)",
-          "3. Create shared UI components (Card, Table, Form elements)",
-          "4. Refactor all existing pages to use shared components",
-          "5. Remove widgets/links that don't have working API endpoints",
-          "6. Ensure all pages follow same visual hierarchy"
+      "api": {
+        "endpoint": "GET /api/v1/currencies",
+        "response": {
+          "currencies": [
+            { "code": "USD", "name": "US Dollar", "symbol": "$", "decimalPlaces": 2, "isActive": true }
+          ]
+        }
+      },
+      "files": {
+        "create": [
+          "packages/api/src/Api/CurrencyApi.ts",
+          "packages/api/src/Handlers/CurrencyApiHandler.ts",
+          "packages/api/test/CurrencyApi.test.ts"
         ],
-        "files_to_create": [
+        "reference": ["packages/core/src/Domains/Currency.ts"]
+      },
+      "status": "pending"
+    },
+    {
+      "id": "1.2",
+      "epic": "API: Reference Data",
+      "title": "Jurisdiction master data endpoint",
+      "description": "Add API endpoint to list available jurisdictions for UI dropdowns. The Jurisdiction domain entity already exists with PREDEFINED_JURISDICTIONS.",
+      "specs": ["DOMAIN_MODEL.md", "API_BEST_PRACTICES.md"],
+      "acceptance_criteria": [
+        "GET /api/v1/jurisdictions returns list of jurisdictions",
+        "Response schema: { jurisdictions: [{ code, name, defaultCurrency }] }",
+        "Returns predefined jurisdictions (US, GB, etc.)",
+        "Unit tests for endpoint"
+      ],
+      "api": {
+        "endpoint": "GET /api/v1/jurisdictions",
+        "response": {
+          "jurisdictions": [
+            { "code": "US", "name": "United States", "defaultCurrency": "USD" }
+          ]
+        }
+      },
+      "files": {
+        "create": [
+          "packages/api/src/Api/JurisdictionApi.ts",
+          "packages/api/src/Handlers/JurisdictionApiHandler.ts",
+          "packages/api/test/JurisdictionApi.test.ts"
+        ],
+        "reference": ["packages/core/src/Domains/Jurisdiction.ts"]
+      },
+      "status": "pending"
+    },
+    {
+      "id": "1.3",
+      "epic": "API: Reference Data",
+      "title": "Account templates endpoint",
+      "description": "Add API endpoints to list and apply chart of accounts templates. The AccountTemplate domain entity already exists with templates for GeneralBusiness, Manufacturing, ServiceBusiness, and HoldingCompany.",
+      "specs": ["DOMAIN_MODEL.md", "API_BEST_PRACTICES.md"],
+      "acceptance_criteria": [
+        "GET /api/v1/account-templates returns list of available templates",
+        "Response: { templates: [{ templateType, name, description, accountCount }] }",
+        "GET /api/v1/account-templates/:type returns template with all account definitions",
+        "Response: { template: { templateType, name, description, accounts: [...] } }",
+        "POST /api/v1/account-templates/:type/apply applies template to a company",
+        "Request: { companyId: UUID }",
+        "Creates all accounts from template for the specified company",
+        "Returns created accounts count",
+        "Unit tests for all endpoints"
+      ],
+      "api": {
+        "endpoints": [
+          "GET /api/v1/account-templates",
+          "GET /api/v1/account-templates/:type",
+          "POST /api/v1/account-templates/:type/apply"
+        ],
+        "template_types": ["GeneralBusiness", "Manufacturing", "ServiceBusiness", "HoldingCompany"]
+      },
+      "files": {
+        "create": [
+          "packages/api/src/Api/AccountTemplateApi.ts",
+          "packages/api/src/Handlers/AccountTemplateApiHandler.ts",
+          "packages/api/test/AccountTemplateApi.test.ts"
+        ],
+        "reference": ["packages/core/src/Domains/AccountTemplate.ts"]
+      },
+      "status": "pending"
+    },
+    {
+      "id": "1.4",
+      "epic": "API: Reference Data",
+      "title": "Audit log query endpoint",
+      "description": "Add API endpoint to query audit trail entries for compliance and SOX requirements. Tracks changes to all entities with user, timestamp, and before/after values.",
+      "specs": ["DOMAIN_MODEL.md", "API_BEST_PRACTICES.md"],
+      "acceptance_criteria": [
+        "GET /api/v1/audit-log returns paginated audit entries",
+        "Query parameters: entityType, entityId, userId, action, fromDate, toDate, limit, offset",
+        "Response: { entries: [{ id, entityType, entityId, action, userId, timestamp, changes }], total }",
+        "Actions: Create, Update, Delete, StatusChange",
+        "Entity types: Organization, Company, Account, JournalEntry, FiscalPeriod, etc.",
+        "Changes field shows before/after values for updates",
+        "Read-only endpoint (audit entries are system-generated)",
+        "Unit tests for endpoint"
+      ],
+      "api": {
+        "endpoint": "GET /api/v1/audit-log",
+        "query_params": ["entityType", "entityId", "userId", "action", "fromDate", "toDate", "limit", "offset"],
+        "response": {
+          "entries": [
+            {
+              "id": "uuid",
+              "entityType": "JournalEntry",
+              "entityId": "uuid",
+              "action": "StatusChange",
+              "userId": "uuid",
+              "timestamp": "2026-01-15T10:30:00Z",
+              "changes": { "status": { "from": "Draft", "to": "Posted" } }
+            }
+          ],
+          "total": 100
+        }
+      },
+      "files": {
+        "create": [
+          "packages/api/src/Api/AuditLogApi.ts",
+          "packages/api/src/Handlers/AuditLogApiHandler.ts",
+          "packages/persistence/src/Repositories/AuditLogRepository.ts",
+          "packages/api/test/AuditLogApi.test.ts"
+        ]
+      },
+      "status": "pending"
+    },
+    {
+      "id": "2.1",
+      "epic": "UI: Design System",
+      "title": "Layout with organization context selector",
+      "description": "Create layout with Organization as global context. Organization is the tenant - all other entities (Companies, Accounts, Journal Entries, Reports, etc.) are scoped within the selected organization.",
+      "specs": ["DOMAIN_MODEL.md", "REACT_BEST_PRACTICES.md", "USABILITY_BEST_PRACTICES.md"],
+      "acceptance_criteria": [
+        "Entity Hierarchy (critical to understand):",
+        "  Organization (tenant) → Companies → Accounts, Journal Entries, Fiscal Periods",
+        "  Organization → Exchange Rates, Consolidation Groups, Intercompany Transactions",
+        "Header:",
+        "  - Organization selector dropdown (switch between orgs user has access to)",
+        "  - Shows current org name prominently",
+        "  - User menu with logout",
+        "  - NO search/notifications (no API)",
+        "Sidebar (context-aware, scoped to selected organization):",
+        "  - Dashboard (org overview)",
+        "  - Companies (list companies in this org)",
+        "  - Exchange Rates (org-level)",
+        "  - Consolidation (org-level groups)",
+        "  - Intercompany (org-level transactions)",
+        "  - Audit Log (org-level)",
+        "  - Settings (org settings)",
+        "When no organization selected: Show organization list/selector",
+        "Store selected org in URL path: /organizations/:orgId/...",
+        "Breadcrumbs: Organization > [current section]",
+        "Shared UI components: Card, Table, Button, Input, Select",
+        "State components: LoadingState, EmptyState, ErrorState",
+        "Responsive: Desktop, tablet, mobile",
+        "All components have data-testid attributes"
+      ],
+      "navigation_structure": {
+        "no_org_selected": "/organizations → list to select",
+        "org_selected": "/organizations/:orgId/dashboard → scoped views",
+        "company_selected": "/organizations/:orgId/companies/:companyId/... → company-specific views"
+      },
+      "files": {
+        "create": [
           "packages/web/src/components/layout/AppLayout.tsx",
-          "packages/web/src/components/layout/Sidebar.tsx",
-          "packages/web/src/components/layout/Header.tsx",
+          "packages/web/src/components/layout/OrganizationSelector.tsx",
           "packages/web/src/components/layout/Breadcrumbs.tsx",
           "packages/web/src/components/ui/Card.tsx",
           "packages/web/src/components/ui/Table.tsx",
@@ -229,742 +338,879 @@
           "packages/web/src/components/ui/EmptyState.tsx",
           "packages/web/src/components/ui/ErrorState.tsx"
         ],
-        "files_to_modify": [
-          "packages/web/src/routes/__root.tsx - Use AppLayout",
-          "packages/web/src/routes/index.tsx - Dashboard with only real data",
-          "packages/web/src/routes/organizations/*.tsx - Use shared components",
-          "All other route files - Consistent styling"
-        ],
-        "design_principles": [
-          "Professional accounting software aesthetic (clean, data-focused)",
-          "Muted color palette with clear visual hierarchy",
-          "Generous whitespace and consistent spacing (Tailwind scale)",
-          "Clear typography hierarchy (headings, body, labels)",
-          "Accessible contrast ratios (WCAG AA minimum)",
-          "Consistent icon usage (single icon library)",
-          "Form validation with inline error messages"
+        "modify": [
+          "packages/web/src/components/layout/Sidebar.tsx",
+          "packages/web/src/components/layout/Header.tsx"
         ]
       },
-      "status": "pending",
-      "estimated_complexity": "large",
-      "priority": "critical"
+      "status": "pending"
     },
     {
-      "id": "11.0.4",
-      "phase": "Frontend Rebuild",
-      "epic": "Infrastructure",
-      "title": "Fix ESLint violations: remove localStorage and direct fetch usage",
-      "description": "Refactor existing code to comply with security and architecture rules. Remove all localStorage usage and replace direct fetch calls with the openapi-fetch api client.",
-      "specs": [
-        "HTTP_API_TANSTACK.md",
-        "AUTHENTICATION.md"
-      ],
+      "id": "2.2",
+      "epic": "UI: Design System",
+      "title": "Organization-scoped dashboard",
+      "description": "Dashboard showing overview of selected organization. All data is scoped to the current organization context.",
+      "specs": ["DOMAIN_MODEL.md", "REACT_BEST_PRACTICES.md", "USABILITY_BEST_PRACTICES.md", "E2E_TESTING.md"],
       "acceptance_criteria": [
-        "Remove all localStorage usage from login.tsx and register.tsx",
-        "Remove all localStorage usage from interceptor.ts",
-        "Replace all direct fetch() calls with api client (api.GET, api.POST, etc.)",
-        "Update SSR loaders to forward cookie header: headers: { cookie }",
-        "Remove all eslint-disable comments for no-direct-fetch rule",
-        "ESLint passes with zero errors: pnpm lint",
-        "All E2E tests pass after refactoring"
+        "Route: /organizations/:organizationId/dashboard",
+        "Requires organization to be selected (redirect if not)",
+        "Organization header: Name, reporting currency, settings summary",
+        "Summary cards (all scoped to current org):",
+        "  - Companies count in this org",
+        "  - Total accounts across all companies",
+        "  - Journal entries pending approval",
+        "  - Open fiscal periods",
+        "Quick actions:",
+        "  - Create Company",
+        "  - View Companies",
+        "  - View Exchange Rates",
+        "  - Run Consolidation",
+        "Recent activity section (placeholder until audit log API ready)",
+        "NO search bar (no search API)",
+        "NO notifications (no notifications API)",
+        "E2E test: Dashboard loads with org-scoped data"
       ],
-      "technical_details": {
-        "files_to_fix": [
-          "packages/web/src/routes/login.tsx - remove localStorage, cookies handled by server",
-          "packages/web/src/routes/register.tsx - remove localStorage, cookies handled by server",
-          "packages/web/src/api/interceptor.ts - remove localStorage token handling",
-          "packages/web/src/routes/__root.tsx - use api client instead of fetch",
-          "packages/web/src/routes/organizations/*.tsx - use api client with cookie header",
-          "packages/web/src/routes/organizations/$organizationId/*.tsx - use api client with cookie header"
+      "api": {
+        "calls": [
+          "GET /api/v1/organizations/:id",
+          "GET /api/v1/companies?organizationId=:id",
+          "GET /api/v1/journal-entries?organizationId=:id&status=PendingApproval",
+          "GET /api/v1/fiscal/fiscal-periods?organizationId=:id&status=Open"
+        ]
+      },
+      "files": {
+        "create": ["packages/web/src/routes/organizations/$organizationId/dashboard.tsx"],
+        "modify": ["packages/web/src/routes/index.tsx"]
+      },
+      "status": "pending"
+    },
+    {
+      "id": "3.1",
+      "epic": "UI: Organizations",
+      "title": "Organization selection and list",
+      "description": "Entry point for selecting an organization. This is the first screen after login - user must select an org to access org-scoped features.",
+      "specs": ["DOMAIN_MODEL.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
+      "acceptance_criteria": [
+        "Route: /organizations (no org selected yet)",
+        "Purpose: Select which organization to work with",
+        "Card-based layout showing user's organizations:",
+        "  - Organization name (prominent)",
+        "  - Reporting currency",
+        "  - Companies count",
+        "  - Last accessed date",
+        "Click card → navigate to /organizations/:id/dashboard",
+        "Create new organization button",
+        "If user has only 1 org: Auto-redirect to that org's dashboard",
+        "If user has 0 orgs: Show create organization prompt",
+        "Search/filter orgs (client-side for small lists)",
+        "E2E test: Select organization flow"
+      ],
+      "api": {
+        "calls": ["GET /api/v1/organizations"]
+      },
+      "files": {
+        "modify": ["packages/web/src/routes/organizations/index.tsx"]
+      },
+      "status": "pending"
+    },
+    {
+      "id": "3.2",
+      "epic": "UI: Organizations",
+      "title": "Create organization form",
+      "description": "Form to create new organization with all API-supported fields.",
+      "specs": ["DOMAIN_MODEL.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
+      "acceptance_criteria": [
+        "Form fields:",
+        "  - Name (required)",
+        "  - Reporting Currency (dropdown from /api/v1/currencies)",
+        "  - Settings (collapsible):",
+        "    - Default Locale",
+        "    - Default Timezone",
+        "    - Use Fiscal Year (checkbox)",
+        "    - Default Decimal Places (0-4)",
+        "Client-side validation",
+        "Submit via api.POST('/api/v1/organizations')",
+        "Success: Navigate to organization detail",
+        "Error: Show inline validation errors",
+        "E2E test: Create organization flow"
+      ],
+      "api": {
+        "calls": [
+          "GET /api/v1/currencies",
+          "POST /api/v1/organizations"
         ],
-        "pattern": {
-          "ssr_loader": [
-            "loader: async ({ request }) => {",
-            "  const cookie = request.headers.get('cookie')",
-            "  const { data } = await api.GET('/api/v1/...', {",
-            "    headers: cookie ? { cookie } : undefined",
-            "  })",
-            "  return { ... }",
-            "}"
-          ],
-          "client_mutation": [
-            "// No token handling needed - cookies sent automatically",
-            "const { data, error } = await api.POST('/api/v1/...', { body })",
-            "await router.invalidate()"
-          ]
+        "request": {
+          "name": "string",
+          "reportingCurrency": "CurrencyCode",
+          "settings": {
+            "defaultLocale": "string",
+            "defaultTimezone": "string",
+            "useFiscalYear": "boolean",
+            "defaultDecimalPlaces": "number"
+          }
         }
       },
-      "status": "complete",
-      "estimated_complexity": "medium",
-      "priority": "critical"
-    },
-    {
-      "id": "11.1.3",
-      "phase": "Frontend Rebuild",
-      "epic": "Authentication",
-      "title": "Home page / Dashboard",
-      "description": "Build authenticated home page with navigation to key features.",
-      "specs": [
-        "REACT_BEST_PRACTICES.md",
-        "USABILITY_BEST_PRACTICES.md",
-        "E2E_TESTING.md"
-      ],
-      "acceptance_criteria": [
-        "Unauthenticated: show welcome message with login/register links",
-        "Authenticated: show user greeting and quick navigation",
-        "Link to organizations list",
-        "Recent activity or quick stats (if available)",
-        "Logout button in header/nav",
-        "Clean, professional design matching accounting application",
-        "Add data-testid attributes to all interactive elements",
-        "TESTS (E2E): Home page renders correctly for auth/unauth users"
-      ],
-      "technical_details": {
-        "files_to_modify": [
-          "packages/web/src/routes/index.tsx"
-        ]
-      },
-      "status": "complete",
-      "estimated_complexity": "small",
-      "depends_on": [
-        "11.1.2"
-      ]
-    },
-    {
-      "id": "11.1.4",
-      "phase": "Frontend Rebuild",
-      "epic": "Dashboard",
-      "title": "Full dashboard with metrics and navigation",
-      "description": "Transform the basic home page into a full-featured accounting dashboard with key metrics, quick actions, and professional design.",
-      "specs": [
-        "REACT_BEST_PRACTICES.md",
-        "USABILITY_BEST_PRACTICES.md",
-        "E2E_TESTING.md"
-      ],
-      "acceptance_criteria": [
-        "Professional sidebar navigation with collapsible menu",
-        "Top header with user profile, notifications, and search",
-        "Dashboard widgets showing key metrics:",
-        "  - Total organizations and companies count",
-        "  - Pending journal entries awaiting approval",
-        "  - Recent activity feed (last 10 actions)",
-        "  - Upcoming period close deadlines",
-        "  - Quick balance summary per company",
-        "Quick action buttons: New Journal Entry, Run Report, Create Company",
-        "Breadcrumb navigation throughout the app",
-        "Responsive design for tablet and mobile",
-        "Consistent color scheme and typography (accounting professional look)",
-        "Loading skeletons for async data",
-        "Add data-testid attributes to all interactive elements",
-        "TESTS (E2E): Dashboard metrics display correctly"
-      ],
-      "technical_details": {
-        "files_to_create": [
-          "packages/web/src/components/layout/Sidebar.tsx",
-          "packages/web/src/components/layout/Header.tsx",
-          "packages/web/src/components/layout/Breadcrumbs.tsx",
-          "packages/web/src/components/dashboard/MetricsCard.tsx",
-          "packages/web/src/components/dashboard/ActivityFeed.tsx",
-          "packages/web/src/components/dashboard/QuickActions.tsx"
-        ],
-        "files_to_modify": [
-          "packages/web/src/routes/__root.tsx - Add layout wrapper",
-          "packages/web/src/routes/index.tsx - Dashboard content"
-        ],
-        "design_notes": [
-          "Use Tailwind CSS for consistent styling",
-          "Consider a dark/light mode toggle",
-          "Use icons from a consistent icon library (e.g., Lucide)",
-          "Follow accounting software conventions (clean, data-focused)"
-        ]
-      },
-      "status": "complete",
-      "estimated_complexity": "large",
-      "depends_on": [
-        "11.0.5"
-      ]
-    },
-    {
-      "id": "11.2.3",
-      "phase": "Frontend Rebuild",
-      "epic": "Organizations",
-      "title": "Complete organization setup and management",
-      "description": "Enhance organization creation and editing to include all organization details, not just name and currency.",
-      "specs": [
-        "REACT_BEST_PRACTICES.md",
-        "USABILITY_BEST_PRACTICES.md",
-        "E2E_TESTING.md"
-      ],
-      "acceptance_criteria": [
-        "Organization create form includes all fields:",
-        "  - Name (required)",
-        "  - Legal name",
-        "  - Reporting currency (required)",
-        "  - Tax ID / Registration number",
-        "  - Address (street, city, state/province, postal code, country)",
-        "  - Contact email and phone",
-        "  - Industry/sector classification",
-        "  - Fiscal year end (month/day)",
-        "  - Logo upload (optional)",
-        "Organization edit page with same fields",
-        "Organization settings page with:",
-        "  - Default currency settings",
-        "  - User/role management link",
-        "  - Audit log access",
-        "  - Data export options",
-        "Form validation with helpful error messages",
-        "Success/error toast notifications",
-        "Add data-testid attributes to all interactive elements",
-        "TESTS (E2E): Full organization CRUD with all fields"
-      ],
-      "technical_details": {
-        "files_to_modify": [
-          "packages/web/src/routes/organizations/index.tsx - Enhanced create form",
-          "packages/web/src/routes/organizations/$organizationId/index.tsx - Enhanced edit/view"
-        ],
-        "files_to_create": [
-          "packages/web/src/routes/organizations/$organizationId/settings.tsx",
+      "files": {
+        "create": [
+          "packages/web/src/routes/organizations/new.tsx",
           "packages/web/src/components/forms/OrganizationForm.tsx",
-          "packages/web/src/components/forms/AddressForm.tsx"
-        ],
-        "api_changes": "May require API updates to support additional organization fields"
-      },
-      "status": "pending",
-      "estimated_complexity": "medium",
-      "depends_on": [
-        "11.1.4"
-      ]
-    },
-    {
-      "id": "11.3.3",
-      "phase": "Frontend Rebuild",
-      "epic": "Companies",
-      "title": "Complete company setup and management",
-      "description": "Enhance company creation and editing to include all company details and settings.",
-      "specs": [
-        "REACT_BEST_PRACTICES.md",
-        "USABILITY_BEST_PRACTICES.md",
-        "E2E_TESTING.md"
-      ],
-      "acceptance_criteria": [
-        "Company create wizard with steps:",
-        "  1. Basic info: name, legal name, tax ID",
-        "  2. Currency: functional currency, reporting currency",
-        "  3. Fiscal: fiscal year end, first fiscal year start",
-        "  4. Address: registered address, business address",
-        "  5. Settings: consolidation method, parent company (if subsidiary)",
-        "Company edit page with tabbed sections",
-        "Company settings page with:",
-        "  - Chart of accounts template selection",
-        "  - Default accounts configuration",
-        "  - Period lock settings",
-        "  - Multi-currency settings",
-        "Company dashboard showing:",
-        "  - Key financial metrics",
-        "  - Recent journal entries",
-        "  - Period status",
-        "  - Quick links to reports",
-        "Add data-testid attributes to all interactive elements",
-        "TESTS (E2E): Full company setup wizard"
-      ],
-      "technical_details": {
-        "files_to_modify": [
-          "packages/web/src/routes/organizations/$organizationId/companies/index.tsx",
-          "packages/web/src/routes/organizations/$organizationId/companies/$companyId/index.tsx"
-        ],
-        "files_to_create": [
-          "packages/web/src/routes/organizations/$organizationId/companies/new.tsx - Setup wizard",
-          "packages/web/src/routes/organizations/$organizationId/companies/$companyId/settings.tsx",
-          "packages/web/src/components/forms/CompanyWizard.tsx"
+          "packages/web/src/components/ui/CurrencySelect.tsx"
         ]
       },
-      "status": "pending",
-      "estimated_complexity": "large",
-      "depends_on": [
-        "11.2.3"
-      ]
+      "status": "pending"
     },
     {
-      "id": "11.5.1",
-      "phase": "Frontend Rebuild",
-      "epic": "Journal Entries",
-      "title": "Journal entries list with SSR",
-      "description": "Build journal entries list page with filtering and status display.",
-      "specs": [
-        "REACT_BEST_PRACTICES.md",
-        "ACCOUNTING_RESEARCH.md",
-        "E2E_TESTING.md"
-      ],
+      "id": "3.3",
+      "epic": "UI: Organizations",
+      "title": "Organization settings page",
+      "description": "Settings page for the current organization. Accessible from sidebar within org context.",
+      "specs": ["DOMAIN_MODEL.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
       "acceptance_criteria": [
-        "loader fetches journal entries for company with pagination",
-        "Display entry list: date, reference, description, total amount, status",
-        "Filter by status (Draft, Pending, Approved, Posted, Rejected)",
-        "Filter by entry type (Standard, Adjusting, Closing, Opening, Reversing)",
-        "Filter by date range",
-        "Filter by fiscal period",
-        "Link to create new entry",
-        "Link to view entry details",
-        "Add data-testid attributes to all interactive elements",
-        "TESTS (E2E): Journal entries list renders with filters"
+        "Route: /organizations/:organizationId/settings",
+        "Accessible from sidebar 'Settings' link",
+        "General Settings section:",
+        "  - Organization name (editable)",
+        "  - Reporting currency (read-only after creation)",
+        "  - Created date (read-only)",
+        "Defaults section:",
+        "  - Default locale",
+        "  - Default timezone",
+        "  - Use fiscal year",
+        "  - Default decimal places",
+        "Save changes button",
+        "Danger zone:",
+        "  - Delete organization (with confirmation, requires typing org name)",
+        "  - Warning: Deletes all companies, accounts, entries, etc.",
+        "E2E test: Edit organization settings"
       ],
-      "technical_details": {
-        "files_to_create": [
-          "packages/web/src/routes/organizations/$organizationId/companies/$companyId/journal-entries/index.tsx"
+      "api": {
+        "calls": [
+          "GET /api/v1/organizations/:id",
+          "PUT /api/v1/organizations/:id",
+          "DELETE /api/v1/organizations/:id"
         ]
       },
-      "status": "complete",
-      "estimated_complexity": "medium",
-      "depends_on": [
-        "11.4.1"
-      ]
+      "files": {
+        "create": ["packages/web/src/routes/organizations/$organizationId/settings.tsx"]
+      },
+      "status": "pending"
     },
     {
-      "id": "11.5.2",
-      "phase": "Frontend Rebuild",
-      "epic": "Journal Entries",
+      "id": "4.1",
+      "epic": "UI: Companies",
+      "title": "Companies list with hierarchy",
+      "description": "Display companies showing parent/child relationships for consolidation.",
+      "specs": ["DOMAIN_MODEL.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
+      "acceptance_criteria": [
+        "SSR loader fetches companies for organization",
+        "Tree view showing parent/subsidiary hierarchy",
+        "Columns: Name, Legal Name, Jurisdiction, Functional Currency, Status",
+        "Subsidiaries indented under parent companies",
+        "Show ownership % and consolidation method for subsidiaries",
+        "Filter: Active/Inactive",
+        "Create company button",
+        "E2E test: Hierarchy displays correctly"
+      ],
+      "api": {
+        "calls": ["GET /api/v1/companies?organizationId=:id"]
+      },
+      "files": {
+        "create": ["packages/web/src/components/company/CompanyHierarchyTree.tsx"],
+        "modify": ["packages/web/src/routes/organizations/$organizationId/companies/index.tsx"]
+      },
+      "status": "pending"
+    },
+    {
+      "id": "4.2",
+      "epic": "UI: Companies",
+      "title": "Create company form with hierarchy",
+      "description": "Form to create company with all API fields including parent/subsidiary setup.",
+      "specs": ["DOMAIN_MODEL.md", "ACCOUNTING_RESEARCH.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
+      "acceptance_criteria": [
+        "Form sections:",
+        "  Basic: Name, Legal Name, Jurisdiction (dropdown), Tax ID",
+        "  Currency: Functional Currency, Reporting Currency",
+        "  Fiscal Year: Month/Day pickers with presets (Dec 31, Mar 31)",
+        "  Hierarchy (optional):",
+        "    - Parent Company dropdown",
+        "    - Ownership % (required if parent selected)",
+        "    - Consolidation Method (Full/Equity/Cost/VIE)",
+        "Validation: Ownership requires parent, method requires ownership",
+        "Cannot set company as own parent",
+        "E2E test: Create top-level and subsidiary company"
+      ],
+      "api": {
+        "calls": [
+          "GET /api/v1/jurisdictions",
+          "GET /api/v1/currencies",
+          "GET /api/v1/companies?organizationId=:id",
+          "POST /api/v1/companies"
+        ],
+        "request": {
+          "organizationId": "UUID",
+          "name": "string",
+          "legalName": "string",
+          "jurisdiction": "JurisdictionCode",
+          "taxId": "string (optional)",
+          "functionalCurrency": "CurrencyCode",
+          "reportingCurrency": "CurrencyCode",
+          "fiscalYearEnd": { "month": "1-12", "day": "1-31" },
+          "parentCompanyId": "UUID (optional)",
+          "ownershipPercentage": "0-100 (optional)",
+          "consolidationMethod": "FullConsolidation|EquityMethod|CostMethod|VariableInterestEntity (optional)"
+        }
+      },
+      "files": {
+        "create": [
+          "packages/web/src/components/forms/CompanyForm.tsx",
+          "packages/web/src/components/ui/JurisdictionSelect.tsx",
+          "packages/web/src/components/ui/FiscalYearEndPicker.tsx",
+          "packages/web/src/components/ui/ConsolidationMethodSelect.tsx"
+        ]
+      },
+      "status": "pending"
+    },
+    {
+      "id": "4.3",
+      "epic": "UI: Companies",
+      "title": "Company detail and edit",
+      "description": "View company details with edit and quick navigation to related features.",
+      "specs": ["DOMAIN_MODEL.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
+      "acceptance_criteria": [
+        "Header: Name, status badge, jurisdiction",
+        "Info cards: Currencies, Fiscal Year, Hierarchy position",
+        "If parent: Show subsidiaries list with ownership %",
+        "If subsidiary: Show parent with ownership info",
+        "Edit form (cannot change functionalCurrency - ASC 830)",
+        "Deactivate/Activate button",
+        "Quick links: Chart of Accounts, Journal Entries, Reports, Fiscal Periods",
+        "E2E test: View and edit company"
+      ],
+      "api": {
+        "calls": [
+          "GET /api/v1/companies/:id",
+          "GET /api/v1/companies?parentCompanyId=:id",
+          "PUT /api/v1/companies/:id",
+          "DELETE /api/v1/companies/:id"
+        ]
+      },
+      "files": {
+        "modify": ["packages/web/src/routes/organizations/$organizationId/companies/$companyId/index.tsx"]
+      },
+      "status": "pending"
+    },
+    {
+      "id": "5.1",
+      "epic": "UI: Chart of Accounts",
+      "title": "Accounts list with hierarchy",
+      "description": "Display company's chart of accounts with parent/child hierarchy.",
+      "specs": ["DOMAIN_MODEL.md", "ACCOUNTING_RESEARCH.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
+      "acceptance_criteria": [
+        "SSR loader fetches accounts for company",
+        "Tree view showing account hierarchy",
+        "Columns: Number, Name, Type, Category, Normal Balance, Status",
+        "Account type color coding (Asset=blue, Liability=red, etc.)",
+        "Filter by: Account Type, Active/Inactive, Postable only",
+        "Search by account number or name",
+        "Create account button",
+        "E2E test: Accounts tree displays correctly"
+      ],
+      "api": {
+        "calls": ["GET /api/v1/accounts?companyId=:id"]
+      },
+      "account_number_ranges": {
+        "1000-1999": "Assets",
+        "2000-2999": "Liabilities",
+        "3000-3999": "Equity",
+        "4000-4999": "Revenue",
+        "5000-7999": "Expenses"
+      },
+      "files": {
+        "create": [
+          "packages/web/src/routes/organizations/$organizationId/companies/$companyId/accounts/index.tsx",
+          "packages/web/src/components/accounts/AccountTree.tsx"
+        ]
+      },
+      "status": "pending"
+    },
+    {
+      "id": "5.2",
+      "epic": "UI: Chart of Accounts",
+      "title": "Create and edit account form",
+      "description": "Form to create and edit GL accounts with all API fields.",
+      "specs": ["DOMAIN_MODEL.md", "ACCOUNTING_RESEARCH.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
+      "acceptance_criteria": [
+        "Form fields:",
+        "  - Account Number (4-digit, validated for type range)",
+        "  - Name",
+        "  - Description (optional)",
+        "  - Account Type (Asset/Liability/Equity/Revenue/Expense)",
+        "  - Account Category (subcategory for type)",
+        "  - Normal Balance (auto-set, can override for contra accounts)",
+        "  - Parent Account (optional, for sub-accounts)",
+        "  - Is Postable (checkbox)",
+        "  - Is Cash Flow Relevant (checkbox)",
+        "  - Cash Flow Category (if relevant)",
+        "  - Is Intercompany (checkbox)",
+        "Account number validation: 1xxx=Asset, 2xxx=Liability, etc.",
+        "E2E test: Create account in hierarchy"
+      ],
+      "api": {
+        "calls": [
+          "GET /api/v1/accounts?companyId=:id",
+          "POST /api/v1/accounts",
+          "PUT /api/v1/accounts/:id"
+        ],
+        "request": {
+          "companyId": "UUID",
+          "accountNumber": "string (4-digit)",
+          "name": "string",
+          "description": "string (optional)",
+          "accountType": "Asset|Liability|Equity|Revenue|Expense",
+          "accountCategory": "enum",
+          "normalBalance": "Debit|Credit",
+          "parentAccountId": "UUID (optional)",
+          "isPostable": "boolean",
+          "isCashFlowRelevant": "boolean",
+          "cashFlowCategory": "Operating|Investing|Financing (optional)",
+          "isIntercompany": "boolean"
+        }
+      },
+      "files": {
+        "create": [
+          "packages/web/src/routes/organizations/$organizationId/companies/$companyId/accounts/new.tsx",
+          "packages/web/src/components/forms/AccountForm.tsx"
+        ]
+      },
+      "status": "pending"
+    },
+    {
+      "id": "5.3",
+      "epic": "UI: Chart of Accounts",
+      "title": "Apply account template",
+      "description": "Allow users to bootstrap a company's chart of accounts from a predefined template. Useful for new companies.",
+      "specs": ["DOMAIN_MODEL.md", "ACCOUNTING_RESEARCH.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
+      "acceptance_criteria": [
+        "Show 'Apply Template' button on empty accounts page",
+        "Template selection modal with:",
+        "  - List of available templates with descriptions",
+        "  - Preview of account count per template",
+        "  - Template types: General Business, Manufacturing, Service Business, Holding Company",
+        "Confirmation before applying (warns this creates many accounts)",
+        "Apply template via POST /api/v1/account-templates/:type/apply",
+        "Show success with count of created accounts",
+        "Refresh accounts list after apply",
+        "E2E test: Apply template to new company"
+      ],
+      "api": {
+        "calls": [
+          "GET /api/v1/account-templates",
+          "POST /api/v1/account-templates/:type/apply"
+        ]
+      },
+      "files": {
+        "create": [
+          "packages/web/src/components/accounts/ApplyTemplateModal.tsx"
+        ],
+        "modify": [
+          "packages/web/src/routes/organizations/$organizationId/companies/$companyId/accounts/index.tsx"
+        ]
+      },
+      "status": "pending"
+    },
+    {
+      "id": "6.1",
+      "epic": "UI: Journal Entries",
+      "title": "Journal entries list with filters",
+      "description": "List journal entries with status-based filtering and pagination.",
+      "specs": ["DOMAIN_MODEL.md", "ACCOUNTING_RESEARCH.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
+      "acceptance_criteria": [
+        "SSR loader fetches entries with pagination",
+        "Columns: Entry #, Date, Reference, Description, Total, Status",
+        "Status badges: Draft (gray), PendingApproval (yellow), Approved (blue), Posted (green), Reversed (red)",
+        "Filter by: Status, Entry Type, Date Range",
+        "Create entry button",
+        "Click row to view detail",
+        "E2E test: List with filters"
+      ],
+      "api": {
+        "calls": ["GET /api/v1/journal-entries?companyId=:id&status=:status&limit=:limit&offset=:offset"]
+      },
+      "files": {
+        "create": ["packages/web/src/routes/organizations/$organizationId/companies/$companyId/journal-entries/index.tsx"]
+      },
+      "status": "pending"
+    },
+    {
+      "id": "6.2",
+      "epic": "UI: Journal Entries",
       "title": "Create journal entry form",
-      "description": "Build multi-line journal entry creation form with debit/credit validation.",
-      "specs": [
-        "REACT_BEST_PRACTICES.md",
-        "ACCOUNTING_RESEARCH.md",
-        "E2E_TESTING.md"
-      ],
+      "description": "Multi-line journal entry creation with real-time balance validation.",
+      "specs": ["DOMAIN_MODEL.md", "ACCOUNTING_RESEARCH.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
       "acceptance_criteria": [
-        "Multi-line entry form with account selector, debit, credit columns",
-        "Add/remove line items dynamically",
-        "Running totals for debits and credits",
-        "Balance validation (debits must equal credits)",
-        "Entry date picker with fiscal period validation",
-        "Entry type selector",
-        "Reference number and description fields",
-        "Currency selector for multi-currency entries",
-        "Save as draft or submit for approval",
-        "TESTS (E2E): Create balanced journal entry"
+        "Header fields: Date, Reference, Description, Entry Type",
+        "Line items table: Account dropdown, Memo, Debit, Credit",
+        "Account dropdown searches postable accounts",
+        "Add/remove lines dynamically (minimum 2)",
+        "Running totals row",
+        "Balance indicator: green=balanced, red=unbalanced",
+        "Cannot submit if unbalanced (debits ≠ credits)",
+        "Multi-currency: Currency selector, exchange rate field",
+        "Save as Draft button",
+        "Submit for Approval button (only if balanced)",
+        "E2E test: Create balanced entry"
       ],
-      "technical_details": {
-        "files_to_create": [
-          "packages/web/src/routes/organizations/$organizationId/companies/$companyId/journal-entries/new.tsx"
+      "api": {
+        "calls": [
+          "GET /api/v1/accounts?companyId=:id&isPostable=true",
+          "POST /api/v1/journal-entries"
         ]
       },
-      "status": "pending",
-      "estimated_complexity": "large",
-      "depends_on": [
-        "11.5.1"
-      ]
+      "files": {
+        "create": [
+          "packages/web/src/routes/organizations/$organizationId/companies/$companyId/journal-entries/new.tsx",
+          "packages/web/src/components/forms/JournalEntryForm.tsx",
+          "packages/web/src/components/journal/JournalEntryLineEditor.tsx"
+        ]
+      },
+      "status": "pending"
     },
     {
-      "id": "11.5.3",
-      "phase": "Frontend Rebuild",
-      "epic": "Journal Entries",
+      "id": "6.3",
+      "epic": "UI: Journal Entries",
       "title": "Journal entry detail and workflow",
-      "description": "Build journal entry detail page with approval/posting workflow.",
-      "specs": [
-        "REACT_BEST_PRACTICES.md",
-        "ACCOUNTING_RESEARCH.md",
-        "E2E_TESTING.md"
-      ],
+      "description": "View entry details with approval workflow actions based on status.",
+      "specs": ["DOMAIN_MODEL.md", "ACCOUNTING_RESEARCH.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
       "acceptance_criteria": [
-        "Display entry header: date, reference, type, status, created by",
-        "Display all line items with account, description, debit, credit",
-        "Edit button for draft entries",
-        "Submit for approval button (draft → pending)",
-        "Approve/Reject buttons with comment field (for approvers)",
-        "Post button (approved → posted)",
-        "Reverse button for posted entries (creates reversing entry)",
-        "Delete button for draft entries only",
-        "Audit trail showing status changes",
-        "TESTS (E2E): Full approval workflow"
+        "Header: Entry #, Date, Reference, Type, Status badge",
+        "Metadata: Created by, Created at, Posted by, Posted at",
+        "Line items table (read-only for non-draft)",
+        "Workflow buttons by status:",
+        "  - Draft: Edit, Submit for Approval, Delete",
+        "  - PendingApproval: Approve, Reject (with reason)",
+        "  - Approved: Post",
+        "  - Posted: Reverse (creates reversing entry)",
+        "  - Reversed: View only, link to reversing entry",
+        "E2E test: Complete approval workflow (draft → posted)"
       ],
-      "technical_details": {
-        "files_to_create": [
-          "packages/web/src/routes/organizations/$organizationId/companies/$companyId/journal-entries/$entryId/index.tsx"
+      "api": {
+        "calls": [
+          "GET /api/v1/journal-entries/:id",
+          "PUT /api/v1/journal-entries/:id",
+          "DELETE /api/v1/journal-entries/:id",
+          "POST /api/v1/journal-entries/:id/submit",
+          "POST /api/v1/journal-entries/:id/approve",
+          "POST /api/v1/journal-entries/:id/reject",
+          "POST /api/v1/journal-entries/:id/post",
+          "POST /api/v1/journal-entries/:id/reverse"
         ]
       },
-      "status": "pending",
-      "estimated_complexity": "large",
-      "depends_on": [
-        "11.5.2"
-      ]
+      "files": {
+        "create": ["packages/web/src/routes/organizations/$organizationId/companies/$companyId/journal-entries/$entryId/index.tsx"]
+      },
+      "status": "pending"
     },
     {
-      "id": "11.6.1",
-      "phase": "Frontend Rebuild",
-      "epic": "Reports",
+      "id": "7.1",
+      "epic": "UI: Financial Reports",
       "title": "Reports dashboard",
-      "description": "Build reports landing page with links to all financial reports.",
-      "specs": [
-        "REACT_BEST_PRACTICES.md",
-        "ACCOUNTING_RESEARCH.md",
-        "E2E_TESTING.md"
-      ],
+      "description": "Landing page with cards for each available report type.",
+      "specs": ["DOMAIN_MODEL.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
       "acceptance_criteria": [
-        "Reports menu with cards for each report type",
-        "Trial Balance, Balance Sheet, Income Statement, Cash Flow, Equity Statement",
-        "Quick date picker for report period",
-        "Last generated date for each report",
-        "TESTS (E2E): Reports dashboard renders"
+        "Cards for each report:",
+        "  - Trial Balance: Account balances verification",
+        "  - Balance Sheet: Assets = Liabilities + Equity (ASC 210)",
+        "  - Income Statement: Revenue - Expenses = Net Income (ASC 220)",
+        "  - Cash Flow Statement: Operating/Investing/Financing (ASC 230)",
+        "  - Statement of Changes in Equity",
+        "Quick date picker for common periods",
+        "Click card navigates to report with date pre-filled",
+        "E2E test: Reports dashboard"
       ],
-      "technical_details": {
-        "files_to_create": [
-          "packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/index.tsx"
+      "api": {
+        "available_reports": [
+          "GET /api/v1/reports/trial-balance",
+          "GET /api/v1/reports/balance-sheet",
+          "GET /api/v1/reports/income-statement",
+          "GET /api/v1/reports/cash-flow",
+          "GET /api/v1/reports/equity-statement"
         ]
       },
-      "status": "pending",
-      "estimated_complexity": "small",
-      "depends_on": [
-        "11.5.3"
-      ]
+      "files": {
+        "create": ["packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/index.tsx"]
+      },
+      "status": "pending"
     },
     {
-      "id": "11.6.2",
-      "phase": "Frontend Rebuild",
-      "epic": "Reports",
+      "id": "7.2",
+      "epic": "UI: Financial Reports",
       "title": "Trial Balance report",
-      "description": "Build trial balance report viewer with period selection.",
-      "specs": [
-        "REACT_BEST_PRACTICES.md",
-        "ACCOUNTING_RESEARCH.md",
-        "E2E_TESTING.md"
-      ],
+      "description": "Generate and display trial balance with debit/credit columns.",
+      "specs": ["DOMAIN_MODEL.md", "ACCOUNTING_RESEARCH.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
       "acceptance_criteria": [
-        "Period/as-of date picker",
-        "Display accounts with debit and credit balances",
-        "Total row showing balanced debits/credits",
-        "Filter by account type",
-        "Toggle zero-balance accounts",
-        "Export to CSV/PDF",
-        "TESTS (E2E): Trial balance displays correct totals"
+        "Date picker: As-of date",
+        "Generate button calls API",
+        "Table: Account Number, Name, Type, Debit Balance, Credit Balance",
+        "Total row showing sum (must balance)",
+        "Filter: By account type, hide zero balances",
+        "Export: PDF, Excel, CSV",
+        "E2E test: Trial balance totals balance"
       ],
-      "technical_details": {
-        "files_to_create": [
-          "packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/trial-balance.tsx"
+      "api": {
+        "call": "GET /api/v1/reports/trial-balance?companyId=:id&asOfDate=:date"
+      },
+      "files": {
+        "create": [
+          "packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/trial-balance.tsx",
+          "packages/web/src/components/reports/TrialBalanceTable.tsx"
         ]
       },
-      "status": "pending",
-      "estimated_complexity": "medium",
-      "depends_on": [
-        "11.6.1"
-      ]
+      "status": "pending"
     },
     {
-      "id": "11.6.3",
-      "phase": "Frontend Rebuild",
-      "epic": "Reports",
+      "id": "7.3",
+      "epic": "UI: Financial Reports",
       "title": "Balance Sheet report",
-      "description": "Build balance sheet (ASC 210) report viewer.",
-      "specs": [
-        "REACT_BEST_PRACTICES.md",
-        "ACCOUNTING_RESEARCH.md",
-        "E2E_TESTING.md"
-      ],
+      "description": "Generate and display balance sheet per ASC 210.",
+      "specs": ["DOMAIN_MODEL.md", "ACCOUNTING_RESEARCH.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
       "acceptance_criteria": [
-        "As-of date picker",
-        "Comparative period selector",
-        "Assets section with current/non-current breakdown",
-        "Liabilities section with current/non-current breakdown",
-        "Equity section",
-        "Totals: Assets = Liabilities + Equity validation",
-        "Variance column (current vs comparative)",
-        "Export to CSV/PDF",
-        "TESTS (E2E): Balance sheet balances"
+        "Date picker: As-of date, optional comparative date",
+        "Sections: Assets (Current/Non-Current), Liabilities (Current/Non-Current), Equity",
+        "Subtotals for each section",
+        "Total Assets = Total Liabilities + Equity (must balance)",
+        "Comparative columns if second date selected",
+        "Variance column (amount and %)",
+        "Export: PDF, Excel, CSV",
+        "E2E test: Balance sheet balances"
       ],
-      "technical_details": {
-        "files_to_create": [
-          "packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/balance-sheet.tsx"
-        ]
+      "api": {
+        "call": "GET /api/v1/reports/balance-sheet?companyId=:id&asOfDate=:date&comparativeDate=:date"
       },
-      "status": "pending",
-      "estimated_complexity": "medium",
-      "depends_on": [
-        "11.6.2"
-      ]
+      "files": {
+        "create": ["packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/balance-sheet.tsx"]
+      },
+      "status": "pending"
     },
     {
-      "id": "11.6.4",
-      "phase": "Frontend Rebuild",
-      "epic": "Reports",
+      "id": "7.4",
+      "epic": "UI: Financial Reports",
       "title": "Income Statement report",
-      "description": "Build income statement (ASC 220) report viewer.",
-      "specs": [
-        "REACT_BEST_PRACTICES.md",
-        "ACCOUNTING_RESEARCH.md",
-        "E2E_TESTING.md"
-      ],
+      "description": "Generate and display income statement per ASC 220.",
+      "specs": ["DOMAIN_MODEL.md", "ACCOUNTING_RESEARCH.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
       "acceptance_criteria": [
-        "Period range picker (from/to dates)",
-        "Comparative period selector",
-        "Revenue section",
-        "Cost of goods sold section",
-        "Gross profit calculation",
-        "Operating expenses section",
-        "Operating income calculation",
-        "Other income/expenses section",
-        "Net income calculation",
-        "Variance column",
-        "Export to CSV/PDF",
-        "TESTS (E2E): Income statement calculations correct"
+        "Date range picker: Period start and end",
+        "Optional comparative period",
+        "Sections: Revenue, Cost of Sales, Operating Expenses, Other Income/Expense",
+        "Calculated lines: Gross Profit, Operating Income, Net Income",
+        "Comparative columns, variance column",
+        "Export: PDF, Excel, CSV",
+        "E2E test: Income statement calculations"
       ],
-      "technical_details": {
-        "files_to_create": [
-          "packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/income-statement.tsx"
-        ]
+      "api": {
+        "call": "GET /api/v1/reports/income-statement?companyId=:id&periodStartDate=:date&periodEndDate=:date"
       },
-      "status": "pending",
-      "estimated_complexity": "medium",
-      "depends_on": [
-        "11.6.3"
-      ]
+      "files": {
+        "create": ["packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/income-statement.tsx"]
+      },
+      "status": "pending"
     },
     {
-      "id": "11.7.1",
-      "phase": "Frontend Rebuild",
-      "epic": "Fiscal Periods",
-      "title": "Fiscal calendar view",
-      "description": "Build fiscal year/period management interface.",
-      "specs": [
-        "REACT_BEST_PRACTICES.md",
-        "ACCOUNTING_RESEARCH.md",
-        "E2E_TESTING.md"
-      ],
+      "id": "7.5",
+      "epic": "UI: Financial Reports",
+      "title": "Cash Flow Statement report",
+      "description": "Generate and display cash flow statement per ASC 230.",
+      "specs": ["DOMAIN_MODEL.md", "ACCOUNTING_RESEARCH.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
       "acceptance_criteria": [
-        "Display fiscal years with expandable periods (12 months + adjustment)",
-        "Period status indicators (Future, Open, Soft Close, Closed, Locked)",
+        "Date range picker",
+        "Method selector: Direct or Indirect",
+        "Sections: Operating, Investing, Financing Activities",
+        "Beginning cash + Net change = Ending cash reconciliation",
+        "Export: PDF, Excel, CSV",
+        "E2E test: Cash flow reconciles"
+      ],
+      "api": {
+        "call": "GET /api/v1/reports/cash-flow?companyId=:id&periodStartDate=:date&periodEndDate=:date&method=:method"
+      },
+      "files": {
+        "create": ["packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/cash-flow.tsx"]
+      },
+      "status": "pending"
+    },
+    {
+      "id": "7.6",
+      "epic": "UI: Financial Reports",
+      "title": "Statement of Changes in Equity report",
+      "description": "Generate and display equity statement showing period movements.",
+      "specs": ["DOMAIN_MODEL.md", "ACCOUNTING_RESEARCH.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
+      "acceptance_criteria": [
+        "Date range picker",
+        "Columns: Common Stock, APIC, Retained Earnings, Treasury Stock, AOCI, Total",
+        "Rows: Opening Balance, Net Income, Dividends, Stock transactions, Closing Balance",
+        "Export: PDF, Excel, CSV",
+        "E2E test: Equity statement balances"
+      ],
+      "api": {
+        "call": "GET /api/v1/reports/equity-statement?companyId=:id&periodStartDate=:date&periodEndDate=:date"
+      },
+      "files": {
+        "create": ["packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/equity-statement.tsx"]
+      },
+      "status": "pending"
+    },
+    {
+      "id": "8.1",
+      "epic": "UI: Fiscal Periods",
+      "title": "Fiscal years and periods management",
+      "description": "Manage fiscal years and period lifecycle (open/close/reopen).",
+      "specs": ["DOMAIN_MODEL.md", "ACCOUNTING_RESEARCH.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
+      "acceptance_criteria": [
+        "Fiscal years list with expandable periods (12 + adjustment period)",
+        "Create fiscal year button (auto-generates periods)",
+        "Period status indicators: Future, Open, SoftClose, Closed, Locked",
         "Current period highlighted",
-        "Create new fiscal year button",
-        "Open/Close/Soft Close period actions",
-        "Reopen period with reason capture",
-        "TESTS (E2E): Fiscal period status changes work"
+        "Period actions by status:",
+        "  - Future: Open",
+        "  - Open: Soft Close",
+        "  - SoftClose: Close or Reopen",
+        "  - Closed: Lock or Reopen (with reason)",
+        "  - Locked: View only",
+        "Reopen modal with required reason field",
+        "E2E test: Period lifecycle"
       ],
-      "technical_details": {
-        "files_to_create": [
-          "packages/web/src/routes/organizations/$organizationId/companies/$companyId/fiscal-periods/index.tsx"
+      "api": {
+        "calls": [
+          "GET /api/v1/fiscal/fiscal-years?companyId=:id",
+          "POST /api/v1/fiscal/fiscal-years",
+          "GET /api/v1/fiscal/fiscal-periods?fiscalYearId=:id",
+          "POST /api/v1/fiscal/fiscal-periods/:id/open",
+          "POST /api/v1/fiscal/fiscal-periods/:id/soft-close",
+          "POST /api/v1/fiscal/fiscal-periods/:id/close",
+          "POST /api/v1/fiscal/fiscal-periods/:id/reopen"
         ]
       },
-      "status": "pending",
-      "estimated_complexity": "medium",
-      "depends_on": [
-        "11.6.4"
-      ]
+      "files": {
+        "create": [
+          "packages/web/src/routes/organizations/$organizationId/companies/$companyId/fiscal/index.tsx",
+          "packages/web/src/components/fiscal/FiscalYearList.tsx",
+          "packages/web/src/components/fiscal/PeriodStatusBadge.tsx"
+        ]
+      },
+      "status": "pending"
     },
     {
-      "id": "11.7.2",
-      "phase": "Frontend Rebuild",
-      "epic": "Fiscal Periods",
-      "title": "Period close checklist",
-      "description": "Build period-end close workflow with task checklist.",
-      "specs": [
-        "REACT_BEST_PRACTICES.md",
-        "ACCOUNTING_RESEARCH.md",
-        "E2E_TESTING.md"
-      ],
+      "id": "9.1",
+      "epic": "UI: Exchange Rates",
+      "title": "Exchange rates management",
+      "description": "Manage exchange rates with CRUD and bulk import.",
+      "specs": ["DOMAIN_MODEL.md", "ACCOUNTING_RESEARCH.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
       "acceptance_criteria": [
-        "Checklist of close tasks (reconciliations, accruals, depreciation, etc.)",
-        "Task completion status tracking",
-        "Sign-off capture for each task",
-        "Block close until required tasks complete",
-        "Close period button when ready",
-        "Year-end specific tasks (closing entries, retained earnings)",
-        "TESTS (E2E): Period close workflow"
+        "Rates list: From Currency, To Currency, Rate, Type, Effective Date",
+        "Filter by: Currency pair, Rate type (Spot/Average/Closing), Date range",
+        "Create single rate form",
+        "Bulk import from CSV",
+        "Delete rate",
+        "Rate lookup tool: Get rate by date, latest, closest",
+        "E2E test: Exchange rates CRUD"
       ],
-      "technical_details": {
-        "files_to_create": [
-          "packages/web/src/routes/organizations/$organizationId/companies/$companyId/period-close/index.tsx"
+      "api": {
+        "calls": [
+          "GET /api/v1/exchange-rates?organizationId=:id",
+          "POST /api/v1/exchange-rates",
+          "POST /api/v1/exchange-rates/bulk",
+          "DELETE /api/v1/exchange-rates/:id",
+          "GET /api/v1/exchange-rates/by-date",
+          "GET /api/v1/exchange-rates/latest"
         ]
       },
-      "status": "pending",
-      "estimated_complexity": "large",
-      "depends_on": [
-        "11.7.1"
-      ]
+      "files": {
+        "create": [
+          "packages/web/src/routes/organizations/$organizationId/exchange-rates/index.tsx",
+          "packages/web/src/components/forms/ExchangeRateForm.tsx"
+        ]
+      },
+      "status": "pending"
     },
     {
-      "id": "11.8.1",
-      "phase": "Frontend Rebuild",
-      "epic": "Consolidation",
+      "id": "10.1",
+      "epic": "UI: Consolidation",
       "title": "Consolidation groups list",
-      "description": "Build consolidation groups management interface.",
-      "specs": [
-        "REACT_BEST_PRACTICES.md",
-        "ACCOUNTING_RESEARCH.md",
-        "E2E_TESTING.md"
-      ],
+      "description": "List consolidation groups with member count and status.",
+      "specs": ["DOMAIN_MODEL.md", "ACCOUNTING_RESEARCH.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
       "acceptance_criteria": [
-        "List consolidation groups with parent company and member count",
-        "Group status (Active/Inactive)",
-        "Create new consolidation group",
-        "Link to group details",
-        "TESTS (E2E): Consolidation groups list"
+        "Groups list: Name, Parent Company, Reporting Currency, Member Count, Status",
+        "Create consolidation group button",
+        "Click row to view group detail",
+        "Activate/deactivate toggle",
+        "E2E test: Groups list"
       ],
-      "technical_details": {
-        "files_to_create": [
-          "packages/web/src/routes/organizations/$organizationId/consolidation/index.tsx"
-        ]
+      "api": {
+        "calls": ["GET /api/v1/consolidation/groups?organizationId=:id"]
       },
-      "status": "pending",
-      "estimated_complexity": "medium",
-      "depends_on": [
-        "11.7.2"
-      ]
+      "files": {
+        "create": ["packages/web/src/routes/organizations/$organizationId/consolidation/index.tsx"]
+      },
+      "status": "pending"
     },
     {
-      "id": "11.8.2",
-      "phase": "Frontend Rebuild",
-      "epic": "Consolidation",
+      "id": "10.2",
+      "epic": "UI: Consolidation",
       "title": "Consolidation group detail and members",
-      "description": "Build consolidation group detail with member management.",
-      "specs": [
-        "REACT_BEST_PRACTICES.md",
-        "ACCOUNTING_RESEARCH.md",
-        "E2E_TESTING.md"
-      ],
+      "description": "Manage consolidation group members with ownership and method.",
+      "specs": ["DOMAIN_MODEL.md", "ACCOUNTING_RESEARCH.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
       "acceptance_criteria": [
-        "Display group info: parent company, reporting currency, status",
-        "List member companies with ownership % and consolidation method",
-        "Add member company with ownership % and method selector",
+        "Header: Group name, parent company, reporting currency, status",
+        "Members list: Company, Ownership %, Consolidation Method, Acquisition Date",
+        "Add member: Company dropdown, ownership %, method",
         "Edit member ownership and method",
-        "Remove member from group",
-        "Activate/deactivate group",
+        "Remove member",
+        "Link to elimination rules",
         "Link to consolidation runs",
-        "TESTS (E2E): Member management works"
+        "E2E test: Member management"
       ],
-      "technical_details": {
-        "files_to_create": [
-          "packages/web/src/routes/organizations/$organizationId/consolidation/$groupId/index.tsx"
+      "api": {
+        "calls": [
+          "GET /api/v1/consolidation/groups/:id",
+          "PUT /api/v1/consolidation/groups/:id",
+          "POST /api/v1/consolidation/groups/:id/members",
+          "DELETE /api/v1/consolidation/groups/:id/members/:companyId"
         ]
       },
-      "status": "pending",
-      "estimated_complexity": "large",
-      "depends_on": [
-        "11.8.1"
-      ]
+      "files": {
+        "create": ["packages/web/src/routes/organizations/$organizationId/consolidation/$groupId/index.tsx"]
+      },
+      "status": "pending"
     },
     {
-      "id": "11.8.3",
-      "phase": "Frontend Rebuild",
-      "epic": "Consolidation",
-      "title": "Consolidation run and results",
-      "description": "Build consolidation run interface with progress and results.",
-      "specs": [
-        "REACT_BEST_PRACTICES.md",
-        "ACCOUNTING_RESEARCH.md",
-        "E2E_TESTING.md"
-      ],
+      "id": "10.3",
+      "epic": "UI: Consolidation",
+      "title": "Consolidation runs and results",
+      "description": "Execute consolidation runs and view results.",
+      "specs": ["DOMAIN_MODEL.md", "ACCOUNTING_RESEARCH.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
       "acceptance_criteria": [
-        "List previous consolidation runs with status and date",
-        "Initiate new consolidation run with period/date selection",
-        "Progress tracking (translation, aggregation, eliminations, minority interest)",
-        "View run results: consolidated trial balance",
-        "View elimination entries generated",
+        "Runs list: Date, Period, Status, Initiated By",
+        "Initiate new run: Period picker, as-of date",
+        "Progress indicator during run",
         "Cancel in-progress run",
-        "TESTS (E2E): Consolidation run workflow"
+        "View completed run: Consolidated trial balance",
+        "View elimination entries generated",
+        "E2E test: Consolidation run workflow"
       ],
-      "technical_details": {
-        "files_to_create": [
+      "api": {
+        "calls": [
+          "GET /api/v1/consolidation/runs?groupId=:id",
+          "POST /api/v1/consolidation/runs",
+          "GET /api/v1/consolidation/runs/:id/trial-balance"
+        ]
+      },
+      "files": {
+        "create": [
           "packages/web/src/routes/organizations/$organizationId/consolidation/$groupId/runs/index.tsx",
           "packages/web/src/routes/organizations/$organizationId/consolidation/$groupId/runs/$runId.tsx"
         ]
       },
-      "status": "pending",
-      "estimated_complexity": "large",
-      "depends_on": [
-        "11.8.2"
-      ]
+      "status": "pending"
     },
     {
-      "id": "11.8.4",
-      "phase": "Frontend Rebuild",
-      "epic": "Consolidation",
+      "id": "10.4",
+      "epic": "UI: Consolidation",
       "title": "Elimination rules editor",
-      "description": "Build elimination rules management interface.",
-      "specs": [
-        "REACT_BEST_PRACTICES.md",
-        "ACCOUNTING_RESEARCH.md",
-        "E2E_TESTING.md"
-      ],
+      "description": "Create and manage elimination rules for consolidation.",
+      "specs": ["DOMAIN_MODEL.md", "ACCOUNTING_RESEARCH.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
       "acceptance_criteria": [
-        "List elimination rules with type, accounts, and status",
-        "Filter by elimination type and status",
-        "Create rule: type, account selectors, debit/credit accounts",
-        "Edit existing rule",
+        "Rules list: Name, Type, Debit Account, Credit Account, Status",
+        "Filter by type and status",
+        "Create rule form: Name, type, account selectors",
+        "Edit rule",
         "Activate/deactivate rule",
-        "Priority ordering (drag or numeric)",
         "Delete rule",
-        "TESTS (E2E): Elimination rules CRUD"
+        "E2E test: Elimination rules CRUD"
       ],
-      "technical_details": {
-        "files_to_create": [
-          "packages/web/src/routes/organizations/$organizationId/consolidation/$groupId/elimination-rules/index.tsx"
+      "elimination_types": [
+        "IntercompanyReceivablePayable",
+        "IntercompanyRevenueExpense",
+        "IntercompanyDividend",
+        "IntercompanyInvestment"
+      ],
+      "api": {
+        "calls": [
+          "GET /api/v1/elimination-rules?groupId=:id",
+          "POST /api/v1/elimination-rules",
+          "PUT /api/v1/elimination-rules/:id",
+          "DELETE /api/v1/elimination-rules/:id"
         ]
       },
-      "status": "pending",
-      "estimated_complexity": "medium",
-      "depends_on": [
-        "11.8.3"
-      ]
-    },
-    {
-      "id": "11.9.1",
-      "phase": "Frontend Rebuild",
-      "epic": "Currency",
-      "title": "Exchange rates manager",
-      "description": "Build exchange rates management interface.",
-      "specs": [
-        "REACT_BEST_PRACTICES.md",
-        "ACCOUNTING_RESEARCH.md",
-        "E2E_TESTING.md"
-      ],
-      "acceptance_criteria": [
-        "List exchange rates with currency pair, rate, type, date",
-        "Filter by currency pair and rate type (Spot, Average, Closing)",
-        "Filter by date range",
-        "Create single exchange rate entry",
-        "Bulk import rates from CSV",
-        "Delete rate",
-        "Rate lookup tool (by date, latest, period average)",
-        "TESTS (E2E): Exchange rates CRUD"
-      ],
-      "technical_details": {
-        "files_to_create": [
-          "packages/web/src/routes/organizations/$organizationId/exchange-rates/index.tsx"
-        ]
+      "files": {
+        "create": ["packages/web/src/routes/organizations/$organizationId/consolidation/$groupId/elimination-rules/index.tsx"]
       },
-      "status": "pending",
-      "estimated_complexity": "medium",
-      "depends_on": [
-        "11.8.4"
-      ]
+      "status": "pending"
     },
     {
-      "id": "11.10.1",
-      "phase": "Frontend Rebuild",
-      "epic": "Intercompany",
+      "id": "11.1",
+      "epic": "UI: Intercompany",
       "title": "Intercompany transactions reconciliation",
-      "description": "Build intercompany transaction tracking and reconciliation interface.",
-      "specs": [
-        "REACT_BEST_PRACTICES.md",
-        "ACCOUNTING_RESEARCH.md",
-        "E2E_TESTING.md"
-      ],
+      "description": "Track and reconcile intercompany transactions between group companies.",
+      "specs": ["DOMAIN_MODEL.md", "ACCOUNTING_RESEARCH.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
       "acceptance_criteria": [
-        "List intercompany transactions with from/to company, amount, status",
-        "Filter by company pair and transaction type",
-        "Filter by matching status (Matched, Unmatched, Variance Approved)",
-        "Create new intercompany transaction",
-        "Update matching status",
-        "Link to journal entries (from and to sides)",
-        "Dashboard showing unmatched count and variance totals",
-        "TESTS (E2E): Intercompany reconciliation workflow"
+        "Transactions list: Date, From Company, To Company, Type, Amount, Status",
+        "Status: Matched, Unmatched, PartiallyMatched, VarianceApproved",
+        "Filter by: Company pair, Transaction type, Matching status, Date range",
+        "Summary cards: Total transactions, Unmatched count, Variance total",
+        "Create transaction: From/To companies, type, amount, date",
+        "Update matching status (approve variance with explanation)",
+        "E2E test: Intercompany reconciliation"
       ],
-      "technical_details": {
-        "files_to_create": [
-          "packages/web/src/routes/organizations/$organizationId/intercompany-transactions/index.tsx"
+      "transaction_types": [
+        "SalePurchase",
+        "Loan",
+        "ManagementFee",
+        "Dividend",
+        "CapitalContribution"
+      ],
+      "api": {
+        "calls": [
+          "GET /api/v1/intercompany-transactions?organizationId=:id",
+          "POST /api/v1/intercompany-transactions",
+          "PUT /api/v1/intercompany-transactions/:id",
+          "DELETE /api/v1/intercompany-transactions/:id"
         ]
       },
-      "status": "pending",
-      "estimated_complexity": "large",
-      "depends_on": [
-        "11.9.1"
-      ]
+      "files": {
+        "create": [
+          "packages/web/src/routes/organizations/$organizationId/intercompany/index.tsx",
+          "packages/web/src/components/intercompany/IntercompanyTransactionForm.tsx"
+        ]
+      },
+      "status": "pending"
+    },
+    {
+      "id": "12.1",
+      "epic": "UI: Audit Log",
+      "title": "Audit log viewer",
+      "description": "View audit trail for compliance and SOX requirements. Shows history of all changes to entities.",
+      "specs": ["DOMAIN_MODEL.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
+      "acceptance_criteria": [
+        "Audit log page accessible from organization settings",
+        "Table columns: Timestamp, User, Entity Type, Entity ID, Action, Changes",
+        "Filter by: Entity type, User, Action type, Date range",
+        "Entity types: Organization, Company, Account, JournalEntry, FiscalPeriod, etc.",
+        "Action types: Create, Update, Delete, StatusChange",
+        "Expandable row shows before/after values for changes",
+        "Click entity ID links to entity detail page",
+        "Pagination for large result sets",
+        "Export to CSV for compliance reports",
+        "E2E test: Audit log displays and filters correctly"
+      ],
+      "api": {
+        "calls": ["GET /api/v1/audit-log?entityType=:type&userId=:id&action=:action&fromDate=:date&toDate=:date"]
+      },
+      "files": {
+        "create": [
+          "packages/web/src/routes/organizations/$organizationId/audit-log/index.tsx",
+          "packages/web/src/components/audit/AuditLogTable.tsx",
+          "packages/web/src/components/audit/AuditEntryDetail.tsx"
+        ]
+      },
+      "status": "pending"
     }
   ]
 }
