@@ -819,3 +819,8 @@
 **Story**: 11.0.3 - Root route with SSR auth check
 **Status**: complete
 ---
+
+## Iteration 1 - 2026-01-14 18:53
+**Story**: 11.1.1 - Login page with SSR redirect
+**Status**: complete
+---

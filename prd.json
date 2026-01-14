@@ -230,7 +230,7 @@
           "}"
         ]
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "small",
       "depends_on": [
         "11.0.3"

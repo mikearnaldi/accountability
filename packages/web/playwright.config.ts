@@ -54,10 +54,9 @@ export default defineConfig({
     navigationTimeout: process.env.CI ? 45000 : 30000
   },
 
-  // Web server configuration - builds and runs preview server
-  // The start-server script handles both setup (container/migrations) and server start
+  // Web server configuration - global-setup handles container, migrations, build, and server
   webServer: {
-    command: `npx tsx test-e2e/start-server-with-db.ts`,
+    command: `npx tsx test-e2e/global-setup.ts`,
     url: baseURL,
     reuseExistingServer: false,
     timeout: 300000, // 5 minutes for container + build + server start

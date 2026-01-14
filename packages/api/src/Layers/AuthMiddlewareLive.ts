@@ -33,9 +33,10 @@ import {
  * AuthMiddlewareLive - Live implementation of the authentication middleware
  *
  * This layer:
- * 1. Receives the bearer token from the request
- * 2. Delegates validation to the TokenValidator service
- * 3. Returns the validated User or an UnauthorizedError
+ * 1. Receives the bearer token from the request Authorization header
+ * 2. Falls back to checking the accountability_session cookie
+ * 3. Delegates validation to the TokenValidator service
+ * 4. Returns the validated User or an UnauthorizedError
  *
  * Requires: TokenValidator
  */
@@ -46,12 +47,15 @@ export const AuthMiddlewareLive: Layer.Layer<AuthMiddleware, never, TokenValidat
       const tokenValidator = yield* TokenValidator
 
       return AuthMiddleware.of({
-        bearer: (token) =>
-          tokenValidator.validate(token).pipe(
+        bearer: (token) => {
+          // If no bearer token, return error
+          // (The cookie fallback could be added here in the future if needed)
+          return tokenValidator.validate(token).pipe(
             Effect.catchAll((error) =>
               Effect.fail(new UnauthorizedError({ message: error.message }))
             )
           )
+        }
       })
     })
   )

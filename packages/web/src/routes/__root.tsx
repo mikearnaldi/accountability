@@ -6,11 +6,48 @@ import {
   createRootRouteWithContext
 } from "@tanstack/react-router"
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools"
+// eslint-disable-next-line local/no-server-functions -- Required for SSR auth: need server-side access to httpOnly cookies
+import { createServerFn } from "@tanstack/react-start"
+import { getCookie, getRequestUrl } from "@tanstack/react-start/server"
 import * as React from "react"
 // Import CSS as URL to include in head (prevents FOUC)
 import appCss from "../index.css?url"
-import { api } from "@/api/client"
 import type { RouterContext } from "@/types/router"
+
+// =============================================================================
+// Server Function: Fetch current user from session cookie
+// =============================================================================
+
+// eslint-disable-next-line local/no-server-functions -- Required for SSR auth: TanStack Start server functions are the only way to access httpOnly cookies during SSR
+const fetchCurrentUser = createServerFn({ method: "GET" }).handler(async () => {
+  // Get the session token from the httpOnly cookie
+  const sessionToken = getCookie("accountability_session")
+
+  if (!sessionToken) {
+    return null
+  }
+
+  try {
+    // Get the current request URL to determine the correct host/port for API calls
+    const requestUrl = getRequestUrl()
+    const apiBaseUrl = `${requestUrl.protocol}//${requestUrl.host}`
+
+    // Call the API with the session token as Bearer auth
+    // eslint-disable-next-line local/no-direct-fetch -- Required for SSR: must use native fetch with dynamic baseUrl from request context
+    const response = await fetch(`${apiBaseUrl}/api/auth/me`, {
+      headers: { Authorization: `Bearer ${sessionToken}` }
+    })
+
+    if (!response.ok) {
+      return null
+    }
+
+    const data = await response.json()
+    return data?.user ?? null
+  } catch {
+    return null
+  }
+})
 
 // =============================================================================
 // Root Route
@@ -34,23 +71,9 @@ export const Route = createRootRouteWithContext<RouterContext>()({
   }),
   beforeLoad: async ({ context }) => {
     // beforeLoad runs on both server (SSR) and client
-    // The context is initialized with the default user: null from the router
-    // We need to check if we can access the session cookie and validate it
-
-    try {
-      // Attempt to call /api/auth/me to validate the session
-      // On the server, cookies are automatically included in the request
-      // On the client, they're also available
-      const { data, error } = await api.GET("/api/auth/me")
-
-      if (error || !data?.user) {
-        return context
-      }
-
-      return { user: data.user }
-    } catch {
-      return context
-    }
+    // Use server function to access httpOnly cookies during SSR
+    const user = await fetchCurrentUser()
+    return { ...context, user }
   },
   component: RootComponent,
   notFoundComponent: NotFoundComponent

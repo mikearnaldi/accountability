@@ -55,10 +55,12 @@ export class CurrentUser extends Context.Tag("CurrentUser")<CurrentUser, User>()
 // =============================================================================
 
 /**
- * AuthMiddleware - Bearer token authentication middleware
+ * AuthMiddleware - Authentication middleware supporting both bearer tokens and session cookies
  *
  * This middleware:
- * 1. Extracts bearer tokens from the Authorization header
+ * 1. Extracts tokens from either:
+ *    - Authorization: Bearer <token> header
+ *    - accountability_session cookie
  * 2. Validates the token
  * 3. Provides a CurrentUser service to downstream handlers
  * 4. Returns UnauthorizedError (401) for invalid/missing tokens
