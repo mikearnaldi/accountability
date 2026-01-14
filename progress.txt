@@ -824,3 +824,8 @@
 **Story**: 11.1.1 - Login page with SSR redirect
 **Status**: complete
 ---
+
+## Iteration 3 - 2026-01-14 19:11
+**Story**: 11.1.2 - Registration page
+**Status**: complete
+---

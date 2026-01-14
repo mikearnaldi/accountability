@@ -216,13 +216,13 @@ function LoginPage() {
             </button>
           </form>
 
-          {/* Register Link - disabled until register page exists */}
-          {/* <p className="mt-6 text-center text-sm text-gray-600">
+          {/* Register Link */}
+          <p className="mt-6 text-center text-sm text-gray-600">
             Don't have an account?{" "}
             <Link to="/register" className="font-medium text-blue-600 hover:text-blue-700">
               Register
             </Link>
-          </p> */}
+          </p>
         </div>
       </div>
     </div>
