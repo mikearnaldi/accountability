@@ -136,20 +136,23 @@ test.describe("Home Page - Authenticated", () => {
     await expect(header).toBeVisible()
   })
 
-  test("should have logout button in header", async ({ page }) => {
+  test("should have logout button in user menu", async ({ page }) => {
     await page.goto("/")
 
-    // Find Sign Out button
-    const signOutButton = page.getByRole("button", { name: "Sign Out" })
+    // Open user menu
+    await page.locator('[data-testid="user-menu-button"]').click()
+
+    // Find Sign Out button in dropdown
+    const signOutButton = page.locator('[data-testid="user-menu-logout"]')
     await expect(signOutButton).toBeVisible()
   })
 
   test("should logout when clicking sign out button", async ({ page }) => {
     await page.goto("/")
 
-    // Click Sign Out button
-    const signOutButton = page.getByRole("button", { name: "Sign Out" })
-    await signOutButton.click()
+    // Open user menu and click Sign Out
+    await page.locator('[data-testid="user-menu-button"]').click()
+    await page.locator('[data-testid="user-menu-logout"]').click()
 
     // Wait for logout to complete - user should be redirected or see unauthenticated state
     // After logout, the home page should show login/register links
@@ -168,9 +171,9 @@ test.describe("Home Page - Authenticated", () => {
       await route.continue()
     })
 
-    // Click Sign Out button
-    const signOutButton = page.getByRole("button", { name: "Sign Out" })
-    await signOutButton.click()
+    // Open user menu and click Sign Out
+    await page.locator('[data-testid="user-menu-button"]').click()
+    await page.locator('[data-testid="user-menu-logout"]').click()
 
     // Button should show loading state (text changes to "Signing out...")
     // Use a locator that matches the loading text since button name changes
@@ -195,25 +198,35 @@ test.describe("Home Page - Authenticated", () => {
     expect(page.url()).toContain("/organizations")
   })
 
-  test("should display quick navigation cards", async ({ page }) => {
+  test("should display quick action cards", async ({ page }) => {
     await page.goto("/")
 
-    // Verify navigation cards are displayed
-    await expect(
-      page.getByRole("heading", { name: "Organizations" })
-    ).toBeVisible()
-    await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible()
-    await expect(page.getByRole("heading", { name: "Reports" })).toBeVisible()
+    // Verify quick action cards are displayed (now shown as quick actions)
+    await expect(page.locator('[data-testid="quick-actions"]')).toBeVisible()
+    await expect(page.locator('[data-testid="quick-action-new-journal"]')).toBeVisible()
+    await expect(page.locator('[data-testid="quick-action-run-report"]')).toBeVisible()
+    await expect(page.locator('[data-testid="quick-action-create-company"]')).toBeVisible()
   })
 
   test("should display getting started guide", async ({ page }) => {
     await page.goto("/")
 
-    // Verify getting started section
-    await expect(page.getByText("Getting Started")).toBeVisible()
-    await expect(
-      page.getByText("Create an organization to group related companies")
-    ).toBeVisible()
+    // Getting started section is only shown when user has no organizations
+    // Since database is shared between tests, we check for conditional visibility
+    const gettingStarted = page.locator('[data-testid="getting-started"]')
+    const orgsValue = await page.locator('[data-testid="metric-organizations-value"]').textContent()
+
+    if (orgsValue === "0") {
+      // User has no organizations, should see getting started guide
+      await expect(gettingStarted).toBeVisible()
+      await expect(page.getByText("Getting Started")).toBeVisible()
+      await expect(
+        page.getByText("Create an organization to group related companies")
+      ).toBeVisible()
+    } else {
+      // User has organizations (from shared database), getting started is hidden
+      await expect(gettingStarted).not.toBeVisible()
+    }
   })
 
   test("should navigate home when clicking logo", async ({ page }) => {
@@ -282,16 +295,18 @@ test.describe("Home Page - Professional Design", () => {
 
     await page.goto("/")
 
+    // App layout should be present
+    await expect(page.locator('[data-testid="app-layout"]')).toBeVisible()
+
     // Header should have border
-    const header = page.locator("header.border-b")
+    const header = page.locator('[data-testid="header"]')
     await expect(header).toBeVisible()
 
-    // Main content should have proper max-width
-    const main = page.locator("main.max-w-7xl")
+    // Main content area should be visible
+    const main = page.locator('[data-testid="app-main-content"]')
     await expect(main).toBeVisible()
 
-    // Navigation cards should be in a grid
-    const navGrid = page.locator(".grid.gap-6")
-    await expect(navGrid).toBeVisible()
+    // Dashboard should be visible with metrics grid
+    await expect(page.locator('[data-testid="metrics-grid"]')).toBeVisible()
   })
 })

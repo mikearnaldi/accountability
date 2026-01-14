@@ -1,68 +1,92 @@
 import { HttpApiBuilder, HttpApiSwagger, HttpServer } from "@effect/platform"
-import * as Layer from "effect/Layer"
-import * as Config from "effect/Config"
-import * as Redacted from "effect/Redacted"
-import * as Effect from "effect/Effect"
 import { PgClient } from "@effect/sql-pg"
+import type { SqlClient, SqlError } from "@effect/sql"
+import type { ConfigError } from "effect/ConfigError"
+import * as Config from "effect/Config"
+import * as Data from "effect/Data"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import * as Redacted from "effect/Redacted"
+import * as fs from "node:fs"
+import * as path from "node:path"
 import { AppApiLive } from "@accountability/api/Layers/AppApiLive"
 import { SessionTokenValidatorLive } from "@accountability/api/Layers/AuthApiLive"
 import { RepositoriesWithAuthLive } from "@accountability/persistence/Layers/RepositoriesLive"
 import { MigrationsLive } from "@accountability/persistence/Layers/MigrationsLive"
 
 // Logging utility that bypasses no-console lint rule
-// Uses process.stderr.write for debug logging during shutdown
 const log = (message: string): void => {
   process.stderr.write(`${message}\n`)
 }
 
-// Type declaration for the global storage
-// This persists across HMR module reloads
+// Type declaration for the global storage (persists across HMR module reloads)
 declare global {
   var __apiDispose: (() => Promise<void>) | undefined
 }
 
-// Check if we're in development mode
+// Error for dev container failures
+class DevContainerError extends Data.TaggedError("DevContainerError")<{
+  message: string
+  cause?: unknown
+}> {}
+
 const isDev = process.env.NODE_ENV !== "production"
+const DB_DIR = path.resolve(process.cwd(), ".db")
 
-// Dev database container layer with proper acquireRelease lifecycle
-// Container is started on acquire and stopped on release (when layer is disposed)
-const DevContainerLayer = Layer.unwrapScoped(
+// Development layer using testcontainers with persistent storage
+const DevPgClientLayer = Layer.unwrapScoped(
   Effect.gen(function* () {
-    log("[API] Starting PostgreSQL container for development...")
+    if (!fs.existsSync(DB_DIR)) {
+      fs.mkdirSync(DB_DIR, { recursive: true })
+    }
 
-    const { PostgreSqlContainer } = yield* Effect.promise(() =>
-      import("@testcontainers/postgresql")
-    )
+    yield* Effect.log(`Starting PostgreSQL container with data in ${DB_DIR}`)
 
-    // acquireRelease: start container on acquire, stop on release
+    const { PostgreSqlContainer } = yield* Effect.tryPromise({
+      try: () => import("@testcontainers/postgresql"),
+      catch: (cause) => new DevContainerError({ message: "Failed to load testcontainers", cause })
+    })
+
     const container = yield* Effect.acquireRelease(
-      Effect.promise(() =>
-        new PostgreSqlContainer("postgres:alpine")
-          .withDatabase("accountability_dev")
-          .start()
-      ),
+      Effect.tryPromise({
+        try: async () => {
+          const started = await new PostgreSqlContainer("postgres:16-alpine")
+            .withDatabase("accountability_dev")
+            .withUsername("dev")
+            .withPassword("dev")
+            .withBindMounts([{
+              source: DB_DIR,
+              target: "/var/lib/postgresql/data"
+            }])
+            .start()
+          return started
+        },
+        catch: (cause) => new DevContainerError({ message: "Failed to start PostgreSQL container", cause })
+      }),
       (container) =>
-        Effect.promise(async () => {
-          log("[API] Stopping dev database container...")
-          await container.stop()
-          log("[API] Dev container stopped")
+        Effect.gen(function* () {
+          yield* Effect.log("Stopping PostgreSQL container...")
+          yield* Effect.promise(() => container.stop().catch(() => {}))
+          yield* Effect.log("PostgreSQL container stopped")
         })
     )
 
-    const dbUrl = container.getConnectionUri()
-    log(`[API] PostgreSQL ready at ${dbUrl}`)
+    yield* Effect.log(`Container started: ${container.getHost()}:${container.getMappedPort(5432)}`)
+
+    const connectionUri = container.getConnectionUri()
+    yield* Effect.log(`Connecting to: ${connectionUri.replace(/:[^:@]+@/, ":***@")}`)
 
     return PgClient.layer({
-      url: Redacted.make(dbUrl),
-      maxConnections: 10,
+      url: Redacted.make(connectionUri),
+      maxConnections: 5,
       idleTimeout: "60 seconds",
       connectTimeout: "10 seconds"
     })
   })
 )
 
-// Configured database layer (for production or when DATABASE_URL is set)
-const ConfiguredDatabaseLayer = Layer.unwrapEffect(
+// Production layer using environment variables
+const ProdPgClientLayer = Layer.unwrapEffect(
   Effect.gen(function* () {
     const url = yield* Config.redacted("DATABASE_URL").pipe(
       Config.orElse(() =>
@@ -82,6 +106,8 @@ const ConfiguredDatabaseLayer = Layer.unwrapEffect(
       )
     )
 
+    yield* Effect.log("Connecting to production database")
+
     return PgClient.layer({
       url,
       maxConnections: 10,
@@ -91,71 +117,42 @@ const ConfiguredDatabaseLayer = Layer.unwrapEffect(
   })
 )
 
-// Create database layer from environment configuration
-// In dev mode without DATABASE_URL, automatically starts a testcontainers PostgreSQL
-const DatabaseLayer = Layer.unwrapEffect(
-  Effect.gen(function* () {
-    // Check if DATABASE_URL or PG* vars are set
-    const hasDbConfig = yield* Config.redacted("DATABASE_URL").pipe(
-      Config.map(() => true),
-      Config.orElse(() =>
-        Config.string("PGHOST").pipe(
-          Config.map(() => true),
-          Config.withDefault(false)
-        )
-      )
-    )
+// Select the appropriate database layer based on environment
+// The type annotation ensures TypeScript unifies both Layer types correctly
+function getPgClientLayer(): Layer.Layer<
+  SqlClient.SqlClient | PgClient.PgClient,
+  SqlError.SqlError | DevContainerError | ConfigError
+> {
+  if (isDev) {
+    return DevPgClientLayer
+  }
+  return ProdPgClientLayer
+}
 
-    // In dev mode without config, use container layer
-    if (isDev && !hasDbConfig) {
-      return DevContainerLayer
-    }
-
-    // Otherwise use configured database
-    return ConfiguredDatabaseLayer
-  })
-)
+const PgClientLayer = getPgClientLayer()
 
 // Create web handler from the Effect HttpApi
-// This returns a standard web Request -> Response handler compatible with TanStack Start
-//
-// Uses real repository implementations with PostgreSQL database connection.
-//
 // Database configuration:
-//   - Dev mode (no DATABASE_URL): Automatically starts a PostgreSQL container via testcontainers
-//   - Production or with config: Uses DATABASE_URL or PGHOST/PGPORT/PGUSER/PGPASSWORD/PGDATABASE
-//
-// OpenAPI documentation:
-// - Swagger UI: /api/docs
-// - OpenAPI JSON: /api/openapi.json
+//   - Dev mode: Automatically starts a PostgreSQL container via testcontainers, data persists in .db/
+//   - Production: Uses DATABASE_URL or PGHOST/PGPORT/PGUSER/PGPASSWORD/PGDATABASE
+// OpenAPI: Swagger UI at /api/docs, OpenAPI JSON at /api/openapi.json
 const { handler, dispose } = HttpApiBuilder.toWebHandler(
   Layer.mergeAll(
-    // Swagger UI at /api/docs
     HttpApiSwagger.layer({ path: "/api/docs" }),
-    // OpenAPI JSON at /api/openapi.json
     HttpApiBuilder.middlewareOpenApi({ path: "/api/openapi.json" })
   ).pipe(
     Layer.provideMerge(AppApiLive),
-    // Use session-based token validation (validates against database)
-    // SessionTokenValidatorLive requires AuthService from RepositoriesWithAuthLive
     Layer.provide(SessionTokenValidatorLive),
-    // Use real repositories with PostgreSQL and AuthService
     Layer.provide(RepositoriesWithAuthLive),
-    // Run migrations on startup (ensures schema is up to date)
     Layer.provide(MigrationsLive),
-    // Use database layer from environment configuration
-    Layer.provide(DatabaseLayer),
+    Layer.provide(PgClientLayer),
     Layer.provideMerge(HttpServer.layerContext)
   )
 )
 
 // Store dispose in global so HMR can access the OLD handler's dispose
-// When HMR reloads, it first runs the old module's dispose callback,
-// which needs to call the old dispose, not the new one
 globalThis.__apiDispose = dispose
 
-// Graceful shutdown handler with logging
-// Container cleanup is handled by acquireRelease in DevContainerLayer
 const gracefulShutdown = async (signal: string): Promise<void> => {
   log(`[API] Received ${signal}, initiating graceful shutdown...`)
   try {
@@ -166,8 +163,6 @@ const gracefulShutdown = async (signal: string): Promise<void> => {
   }
 }
 
-// Register process signal handlers for graceful shutdown
-// These ensure resources are cleaned up when the server is terminated
 process.on("SIGTERM", () => {
   void gracefulShutdown("SIGTERM")
 })
@@ -176,14 +171,10 @@ process.on("SIGINT", () => {
   void gracefulShutdown("SIGINT")
 })
 
-// Vite HMR support - clean up resources when module is hot-reloaded during development
-// This prevents resource leaks when code changes trigger a hot reload
+// Vite HMR support - clean up resources when module is hot-reloaded
 if (import.meta.hot) {
   import.meta.hot.dispose(() => {
     log("[API] HMR dispose - cleaning up handler resources...")
-    // Call the OLD handler's dispose stored in global
-    // At this point, globalThis.__apiDispose still points to the old handler's dispose
-    // because the new module hasn't executed yet
     const oldDispose = globalThis.__apiDispose
     if (oldDispose) {
       void oldDispose()

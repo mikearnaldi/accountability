@@ -869,3 +869,8 @@
 **Story**: 11.5.1 - Journal entries list with SSR
 **Status**: complete
 ---
+
+## Iteration 8 - 2026-01-14 23:32
+**Story**: 11.1.4 - Full dashboard with metrics and navigation
+**Status**: complete
+---

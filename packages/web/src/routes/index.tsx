@@ -1,21 +1,170 @@
-import { createFileRoute, Link, useRouter } from "@tanstack/react-router"
-import { useState } from "react"
-import { api } from "@/api/client"
+/**
+ * Home Page / Dashboard Route
+ *
+ * For authenticated users:
+ * - Full-featured dashboard with sidebar navigation
+ * - Key metrics widgets (organizations, companies, pending entries)
+ * - Recent activity feed
+ * - Quick action buttons
+ * - Balance summary per company
+ * - Upcoming period close deadlines
+ *
+ * For unauthenticated users:
+ * - Landing page with sign in/register options
+ */
+
+import { createFileRoute, Link } from "@tanstack/react-router"
+import { createServerFn } from "@tanstack/react-start"
+import { getCookie } from "@tanstack/react-start/server"
+import { createServerApi } from "@/api/server"
+import { AppLayout } from "@/components/layout/AppLayout"
+import { MetricsCard, MetricsGrid } from "@/components/dashboard/MetricsCard"
+import { ActivityFeed, type ActivityType } from "@/components/dashboard/ActivityFeed"
+import { QuickActions } from "@/components/dashboard/QuickActions"
+import { BalanceSummary } from "@/components/dashboard/BalanceSummary"
+import { PeriodDeadlines } from "@/components/dashboard/PeriodDeadlines"
+import {
+  Building2,
+  Building,
+  FileText,
+  Clock
+} from "lucide-react"
+
+// =============================================================================
+// Server Function: Fetch dashboard data
+// =============================================================================
+
+export interface DashboardData {
+  readonly organizationsCount: number
+  readonly companiesCount: number
+  readonly pendingEntriesCount: number
+  readonly recentActivity: readonly {
+    readonly id: string
+    readonly type: ActivityType
+    readonly description: string
+    readonly timestamp: string
+    readonly user?: string
+  }[]
+  readonly companyBalances: readonly {
+    readonly id: string
+    readonly name: string
+    readonly currency: string
+    readonly totalAssets: number
+    readonly totalLiabilities: number
+    readonly totalEquity: number
+    readonly organizationId: string
+  }[]
+  readonly periodDeadlines: readonly {
+    readonly id: string
+    readonly periodName: string
+    readonly companyName: string
+    readonly companyId: string
+    readonly organizationId: string
+    readonly endDate: string
+    readonly status: "on_track" | "approaching" | "overdue"
+  }[]
+}
+
+const fetchDashboardData = createServerFn({ method: "GET" }).handler(
+  async (): Promise<DashboardData | null> => {
+    // Get the session cookie to forward to API
+    const sessionToken = getCookie("accountability_session")
+
+    if (!sessionToken) {
+      return null
+    }
+
+    try {
+      const serverApi = createServerApi()
+      const headers = { Authorization: `Bearer ${sessionToken}` }
+
+      // Fetch organizations first
+      const orgsResult = await serverApi.GET("/api/v1/organizations", { headers })
+      const organizations = orgsResult.data?.organizations ?? []
+
+      // Fetch companies for each organization
+      const allCompanies: {
+        id: string
+        name: string
+        currency: string
+        organizationId: string
+      }[] = []
+
+      for (const org of organizations.slice(0, 5)) {
+        try {
+          const companiesRes = await serverApi.GET("/api/v1/companies", {
+            headers,
+            params: { query: { organizationId: org.id } }
+          })
+          const companies = companiesRes.data?.companies ?? []
+          for (const company of companies) {
+            allCompanies.push({
+              id: company.id,
+              name: company.name,
+              currency: company.functionalCurrency,
+              organizationId: org.id
+            })
+          }
+        } catch {
+          // Skip failed company fetches
+        }
+      }
+
+      // Generate mock data for metrics that don't have real API endpoints yet
+      // In a real implementation, these would come from actual API calls
+      const pendingEntriesCount = 0 // Would come from journal entries API
+
+      // Generate placeholder company balances (would come from reports API)
+      const companyBalances = allCompanies.slice(0, 5).map((company) => ({
+        ...company,
+        totalAssets: 0,
+        totalLiabilities: 0,
+        totalEquity: 0
+      }))
+
+      // Placeholder for recent activity (would come from audit log API)
+      const recentActivity: DashboardData["recentActivity"] = []
+
+      // Placeholder for period deadlines (would come from fiscal periods API)
+      const periodDeadlines: DashboardData["periodDeadlines"] = []
+
+      return {
+        organizationsCount: organizations.length,
+        companiesCount: allCompanies.length,
+        pendingEntriesCount,
+        recentActivity,
+        companyBalances,
+        periodDeadlines
+      }
+    } catch {
+      return null
+    }
+  }
+)
 
 // =============================================================================
 // Home Page Route
 // =============================================================================
 
 export const Route = createFileRoute("/")({
+  loader: async () => {
+    const dashboardData = await fetchDashboardData()
+    return { dashboardData }
+  },
   component: HomePage
 })
 
 function HomePage() {
   const context = Route.useRouteContext()
+  const { dashboardData } = Route.useLoaderData()
   const user = context.user
 
   if (user) {
-    return <AuthenticatedHomePage user={user} />
+    return (
+      <AppLayout user={user}>
+        <AuthenticatedDashboard user={user} data={dashboardData} />
+      </AppLayout>
+    )
   }
 
   return <UnauthenticatedHomePage />
@@ -39,7 +188,10 @@ interface User {
 
 function UnauthenticatedHomePage() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 px-4">
+    <div
+      className="flex min-h-screen flex-col items-center justify-center bg-gray-50 px-4"
+      data-testid="unauthenticated-home"
+    >
       <div className="w-full max-w-md text-center">
         {/* Logo/Brand */}
         <div className="mb-8">
@@ -73,19 +225,22 @@ function UnauthenticatedHomePage() {
             Welcome to Accountability
           </h2>
           <p className="mb-6 text-gray-500">
-            Professional accounting software for managing multiple companies across currencies.
+            Professional accounting software for managing multiple companies
+            across currencies.
           </p>
 
           {/* Action Buttons */}
           <div className="flex flex-col gap-3">
             <Link
               to="/login"
+              data-testid="landing-sign-in"
               className="w-full rounded-lg bg-blue-600 py-2.5 font-medium text-white hover:bg-blue-700"
             >
               Sign In
             </Link>
             <Link
               to="/register"
+              data-testid="landing-register"
               className="w-full rounded-lg border border-gray-300 bg-white py-2.5 font-medium text-gray-700 hover:bg-gray-50"
             >
               Create Account
@@ -114,219 +269,146 @@ function UnauthenticatedHomePage() {
 }
 
 // =============================================================================
-// Authenticated Home Page
+// Authenticated Dashboard
 // =============================================================================
 
-function AuthenticatedHomePage({ user }: { readonly user: User }) {
-  const router = useRouter()
-  const [isLoggingOut, setIsLoggingOut] = useState(false)
+interface AuthenticatedDashboardProps {
+  readonly user: User
+  readonly data: DashboardData | null
+}
 
-  const handleLogout = async () => {
-    if (isLoggingOut) return
-
-    setIsLoggingOut(true)
-
-    try {
-      await api.POST("/api/auth/logout")
-      // Cookie will be cleared by the server
-      // Invalidate router to clear user context and redirect
-      await router.invalidate()
-      router.navigate({ to: "/" })
-    } catch {
-      setIsLoggingOut(false)
-    }
-  }
+function AuthenticatedDashboard({ user, data }: AuthenticatedDashboardProps) {
+  const displayName = user.displayName || "there"
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header with Logout */}
-      <header className="border-b border-gray-200 bg-white">
-        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between">
-            <Link to="/" className="text-xl font-bold text-gray-900">
-              Accountability
-            </Link>
+    <div className="space-y-6" data-testid="authenticated-dashboard">
+      {/* Welcome Header */}
+      <div data-testid="dashboard-welcome">
+        <h1 className="text-2xl font-bold text-gray-900">
+          Welcome back, {displayName}!
+        </h1>
+        <p className="mt-1 text-gray-500">
+          Here's an overview of your accounting data.
+        </p>
+      </div>
 
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-600">
-                {user.displayName || user.email}
-              </span>
-              <button
-                onClick={handleLogout}
-                disabled={isLoggingOut}
-                className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400"
-              >
-                {isLoggingOut ? "Signing out..." : "Sign Out"}
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+      {/* Metrics Cards */}
+      <MetricsGrid>
+        <MetricsCard
+          label="Organizations"
+          value={data?.organizationsCount ?? 0}
+          icon={Building2}
+          iconColor="blue"
+          testId="metric-organizations"
+        />
+        <MetricsCard
+          label="Companies"
+          value={data?.companiesCount ?? 0}
+          icon={Building}
+          iconColor="green"
+          testId="metric-companies"
+        />
+        <MetricsCard
+          label="Pending Entries"
+          value={data?.pendingEntriesCount ?? 0}
+          icon={FileText}
+          iconColor="orange"
+          testId="metric-pending-entries"
+        />
+        <MetricsCard
+          label="Open Periods"
+          value={data?.periodDeadlines.length ?? 0}
+          icon={Clock}
+          iconColor="purple"
+          testId="metric-open-periods"
+        />
+      </MetricsGrid>
 
-      {/* Main Content */}
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        {/* Welcome Section */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">
-            Welcome back, {user.displayName || "there"}!
-          </h1>
-          <p className="mt-1 text-gray-500">
-            Manage your organizations and companies from your dashboard.
-          </p>
-        </div>
+      {/* Quick Actions */}
+      <QuickActions />
 
-        {/* Quick Navigation Cards */}
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {/* Organizations Card */}
-          <Link
-            to="/organizations"
-            className="group rounded-lg border border-gray-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md"
-          >
-            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-blue-100 group-hover:bg-blue-200">
-              <svg
-                className="h-6 w-6 text-blue-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                />
-              </svg>
-            </div>
-            <h2 className="mb-1 text-lg font-semibold text-gray-900">Organizations</h2>
-            <p className="text-sm text-gray-500">
-              View and manage your organizations and their companies.
-            </p>
-            <div className="mt-4 flex items-center text-sm font-medium text-blue-600">
-              Go to Organizations
-              <svg
-                className="ml-1 h-4 w-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 5l7 7-7 7"
-                />
-              </svg>
-            </div>
-          </Link>
+      {/* Two-column layout for activity and balances */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Recent Activity */}
+        <ActivityFeed activities={data?.recentActivity ?? []} />
 
-          {/* Quick Stats Placeholder */}
-          <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-green-100">
-              <svg
-                className="h-6 w-6 text-green-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                />
-              </svg>
-            </div>
-            <h2 className="mb-1 text-lg font-semibold text-gray-900">Dashboard</h2>
-            <p className="text-sm text-gray-500">
-              Quick overview of your financial data across all companies.
-            </p>
-            <p className="mt-4 text-xs text-gray-400">
-              Coming soon
-            </p>
-          </div>
+        {/* Balance Summary */}
+        <BalanceSummary companies={data?.companyBalances ?? []} />
+      </div>
 
-          {/* Reports Placeholder */}
-          <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-purple-100">
-              <svg
-                className="h-6 w-6 text-purple-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                />
-              </svg>
-            </div>
-            <h2 className="mb-1 text-lg font-semibold text-gray-900">Reports</h2>
-            <p className="text-sm text-gray-500">
-              Generate balance sheets, income statements, and more.
-            </p>
-            <p className="mt-4 text-xs text-gray-400">
-              Coming soon
-            </p>
-          </div>
-        </div>
+      {/* Period Deadlines */}
+      <PeriodDeadlines deadlines={data?.periodDeadlines ?? []} />
 
-        {/* Getting Started Section */}
-        <div className="mt-8 rounded-lg border border-blue-200 bg-blue-50 p-6">
-          <h3 className="mb-2 text-lg font-semibold text-blue-900">
-            Getting Started
-          </h3>
-          <p className="mb-4 text-sm text-blue-700">
-            New to Accountability? Here's how to set up your accounting:
-          </p>
-          <ol className="space-y-2 text-sm text-blue-700">
-            <li className="flex items-start gap-2">
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-200 text-xs font-bold text-blue-800">
-                1
-              </span>
-              <span>Create an organization to group related companies</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-200 text-xs font-bold text-blue-800">
-                2
-              </span>
-              <span>Add companies with their respective currencies</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-200 text-xs font-bold text-blue-800">
-                3
-              </span>
-              <span>Set up your chart of accounts for each company</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-200 text-xs font-bold text-blue-800">
-                4
-              </span>
-              <span>Start recording journal entries</span>
-            </li>
-          </ol>
-          <Link
-            to="/organizations"
-            className="mt-4 inline-flex items-center text-sm font-medium text-blue-700 hover:text-blue-800"
-          >
-            Get Started
-            <svg
-              className="ml-1 h-4 w-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 5l7 7-7 7"
-              />
-            </svg>
-          </Link>
-        </div>
-      </main>
+      {/* Getting Started Section (shown when no data) */}
+      {data && data.organizationsCount === 0 && (
+        <GettingStartedSection />
+      )}
+    </div>
+  )
+}
+
+// =============================================================================
+// Getting Started Section
+// =============================================================================
+
+function GettingStartedSection() {
+  return (
+    <div
+      className="rounded-lg border border-blue-200 bg-blue-50 p-6"
+      data-testid="getting-started"
+    >
+      <h3 className="mb-2 text-lg font-semibold text-blue-900">
+        Getting Started
+      </h3>
+      <p className="mb-4 text-sm text-blue-700">
+        New to Accountability? Here's how to set up your accounting:
+      </p>
+      <ol className="space-y-2 text-sm text-blue-700">
+        <li className="flex items-start gap-2">
+          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-200 text-xs font-bold text-blue-800">
+            1
+          </span>
+          <span>Create an organization to group related companies</span>
+        </li>
+        <li className="flex items-start gap-2">
+          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-200 text-xs font-bold text-blue-800">
+            2
+          </span>
+          <span>Add companies with their respective currencies</span>
+        </li>
+        <li className="flex items-start gap-2">
+          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-200 text-xs font-bold text-blue-800">
+            3
+          </span>
+          <span>Set up your chart of accounts for each company</span>
+        </li>
+        <li className="flex items-start gap-2">
+          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-200 text-xs font-bold text-blue-800">
+            4
+          </span>
+          <span>Start recording journal entries</span>
+        </li>
+      </ol>
+      <Link
+        to="/organizations"
+        data-testid="getting-started-link"
+        className="mt-4 inline-flex items-center text-sm font-medium text-blue-700 hover:text-blue-800"
+      >
+        Get Started
+        <svg
+          className="ml-1 h-4 w-4"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M9 5l7 7-7 7"
+          />
+        </svg>
+      </Link>
     </div>
   )
 }

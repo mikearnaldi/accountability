@@ -180,6 +180,76 @@
   },
   "stories": [
     {
+      "id": "11.0.5",
+      "phase": "Frontend Rebuild",
+      "epic": "Infrastructure",
+      "title": "Consolidate UI: unified design system and consistent navigation",
+      "description": "The current UI is fragmented - dashboard shows non-existent features and clicking Organizations leads to a completely different interface. This task consolidates all UI into a cohesive, professional design that respects usability best practices.",
+      "specs": [
+        "REACT_BEST_PRACTICES.md",
+        "USABILITY_BEST_PRACTICES.md",
+        "E2E_TESTING.md"
+      ],
+      "acceptance_criteria": [
+        "AUDIT: Remove all dashboard widgets/links that reference non-existent API endpoints",
+        "LAYOUT: Unified layout wrapper with consistent header, sidebar, and content area",
+        "NAVIGATION: Consistent navigation pattern across all pages (Organizations, Companies, etc.)",
+        "STYLING: Consistent color palette, typography, spacing across all components",
+        "FORMS: Unified form component styling (inputs, buttons, labels, validation)",
+        "TABLES: Consistent table/list styling with proper headers, rows, pagination",
+        "CARDS: Unified card component for dashboard widgets and detail views",
+        "STATES: Consistent loading, empty, and error states across all pages",
+        "BREADCRUMBS: Proper breadcrumb navigation showing current location",
+        "RESPONSIVE: All pages work on desktop, tablet, and mobile",
+        "TRANSITIONS: Smooth page transitions and hover states",
+        "Only show features that actually exist in the API",
+        "Add data-testid attributes to all interactive elements",
+        "TESTS (E2E): Navigation flows work correctly across all pages"
+      ],
+      "technical_details": {
+        "approach": [
+          "1. Audit existing pages and identify inconsistencies",
+          "2. Create shared layout components (AppLayout, Sidebar, Header)",
+          "3. Create shared UI components (Card, Table, Form elements)",
+          "4. Refactor all existing pages to use shared components",
+          "5. Remove widgets/links that don't have working API endpoints",
+          "6. Ensure all pages follow same visual hierarchy"
+        ],
+        "files_to_create": [
+          "packages/web/src/components/layout/AppLayout.tsx",
+          "packages/web/src/components/layout/Sidebar.tsx",
+          "packages/web/src/components/layout/Header.tsx",
+          "packages/web/src/components/layout/Breadcrumbs.tsx",
+          "packages/web/src/components/ui/Card.tsx",
+          "packages/web/src/components/ui/Table.tsx",
+          "packages/web/src/components/ui/Button.tsx",
+          "packages/web/src/components/ui/Input.tsx",
+          "packages/web/src/components/ui/Select.tsx",
+          "packages/web/src/components/ui/LoadingState.tsx",
+          "packages/web/src/components/ui/EmptyState.tsx",
+          "packages/web/src/components/ui/ErrorState.tsx"
+        ],
+        "files_to_modify": [
+          "packages/web/src/routes/__root.tsx - Use AppLayout",
+          "packages/web/src/routes/index.tsx - Dashboard with only real data",
+          "packages/web/src/routes/organizations/*.tsx - Use shared components",
+          "All other route files - Consistent styling"
+        ],
+        "design_principles": [
+          "Professional accounting software aesthetic (clean, data-focused)",
+          "Muted color palette with clear visual hierarchy",
+          "Generous whitespace and consistent spacing (Tailwind scale)",
+          "Clear typography hierarchy (headings, body, labels)",
+          "Accessible contrast ratios (WCAG AA minimum)",
+          "Consistent icon usage (single icon library)",
+          "Form validation with inline error messages"
+        ]
+      },
+      "status": "pending",
+      "estimated_complexity": "large",
+      "priority": "critical"
+    },
+    {
       "id": "11.0.4",
       "phase": "Frontend Rebuild",
       "epic": "Infrastructure",
@@ -308,10 +378,10 @@
           "Follow accounting software conventions (clean, data-focused)"
         ]
       },
-      "status": "pending",
+      "status": "complete",
       "estimated_complexity": "large",
       "depends_on": [
-        "11.1.3"
+        "11.0.5"
       ]
     },
     {

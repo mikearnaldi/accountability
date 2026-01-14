@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: accountability
       POSTGRES_DB: accountability
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - ./packages/web/.db:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     healthcheck:
@@ -29,6 +29,3 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-
-volumes:
-  postgres_data:
