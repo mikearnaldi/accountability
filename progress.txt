@@ -879,3 +879,8 @@
 **Story**: 1.1 - Currency master data endpoint
 **Status**: complete
 ---
+
+## Iteration 3 - 2026-01-15 00:44
+**Story**: 1.2 - Jurisdiction master data endpoint
+**Status**: complete
+---

@@ -15,6 +15,7 @@ import { CompaniesApi } from "./CompaniesApi.ts"
 import { ConsolidationApi } from "./ConsolidationApi.ts"
 import { CurrenciesApi } from "./CurrenciesApi.ts"
 import { CurrencyApi } from "./CurrencyApi.ts"
+import { JurisdictionsApi } from "./JurisdictionsApi.ts"
 import { EliminationRulesApi } from "./EliminationRulesApi.ts"
 import { FiscalPeriodsApi } from "./FiscalPeriodsApi.ts"
 import { IntercompanyTransactionsApi } from "./IntercompanyTransactionsApi.ts"
@@ -78,6 +79,7 @@ export class HealthApi extends HttpApiGroup.make("health")
  * - /api/v1/journal-entries - Journal entry management (protected)
  * - /api/v1/reports - Financial report generation (protected)
  * - /api/v1/currencies - Currency master data (protected)
+ * - /api/v1/jurisdictions - Jurisdiction master data (protected)
  * - /api/v1/exchange-rates - Currency and exchange rate management (protected)
  * - /api/v1/fiscal - Fiscal year and period management (protected)
  * - /api/v1/intercompany-transactions - Intercompany transaction management (protected)
@@ -93,6 +95,7 @@ export class AppApi extends HttpApi.make("AppApi")
   .add(JournalEntriesApi)
   .add(ReportsApi)
   .add(CurrenciesApi)
+  .add(JurisdictionsApi)
   .add(CurrencyApi)
   .add(FiscalPeriodsApi)
   .add(IntercompanyTransactionsApi)
