@@ -46,3 +46,8 @@
 **Task**: Updated journal-entries/new.tsx and accounts/new.tsx to use AppLayout with sidebar, header, and proper breadcrumbs instead of custom headers, per UI_ARCHITECTURE.md spec requirement that all form pages must use the standard layout.
 **Status**: complete
 ---
+
+## Iteration 13 - 2026-01-15 15:27
+**Task**: Updated journal entry detail page ($entryId/index.tsx) to use AppLayout with sidebar, header, and proper breadcrumbs instead of a custom header. Added companies data to the loader for sidebar navigation.
+**Status**: complete
+---

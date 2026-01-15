@@ -16,10 +16,11 @@
 import { createFileRoute, redirect, Link, useRouter, useNavigate } from "@tanstack/react-router"
 import { createServerFn } from "@tanstack/react-start"
 import { getCookie } from "@tanstack/react-start/server"
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { createServerApi } from "@/api/server"
 import { api } from "@/api/client"
 import { clsx } from "clsx"
+import { AppLayout } from "@/components/layout/AppLayout"
 
 // =============================================================================
 // Types (extracted from API response schema)
@@ -126,6 +127,7 @@ const fetchJournalEntryData = createServerFn({ method: "GET" })
         company: null,
         organization: null,
         accounts: [],
+        companies: [],
         error: "unauthorized" as const
       }
     }
@@ -134,8 +136,8 @@ const fetchJournalEntryData = createServerFn({ method: "GET" })
       const serverApi = createServerApi()
       const Authorization = `Bearer ${sessionToken}`
 
-      // Fetch journal entry, company, organization in parallel
-      const [entryResult, companyResult, orgResult, accountsResult] = await Promise.all([
+      // Fetch journal entry, company, organization, accounts, and companies in parallel
+      const [entryResult, companyResult, orgResult, accountsResult, companiesResult] = await Promise.all([
         serverApi.GET("/api/v1/journal-entries/{id}", {
           params: { path: { id: data.entryId } },
           headers: { Authorization }
@@ -151,6 +153,10 @@ const fetchJournalEntryData = createServerFn({ method: "GET" })
         serverApi.GET("/api/v1/accounts", {
           params: { query: { companyId: data.companyId, limit: "1000" } },
           headers: { Authorization }
+        }),
+        serverApi.GET("/api/v1/companies", {
+          params: { query: { organizationId: data.organizationId } },
+          headers: { Authorization }
         })
       ])
 
@@ -162,6 +168,7 @@ const fetchJournalEntryData = createServerFn({ method: "GET" })
             company: null,
             organization: null,
             accounts: [],
+            companies: [],
             error: "not_found" as const
           }
         }
@@ -171,6 +178,7 @@ const fetchJournalEntryData = createServerFn({ method: "GET" })
           company: null,
           organization: null,
           accounts: [],
+          companies: [],
           error: "failed" as const
         }
       }
@@ -182,6 +190,7 @@ const fetchJournalEntryData = createServerFn({ method: "GET" })
           company: null,
           organization: null,
           accounts: [],
+          companies: [],
           error: "failed" as const
         }
       }
@@ -192,6 +201,7 @@ const fetchJournalEntryData = createServerFn({ method: "GET" })
         company: companyResult.data,
         organization: orgResult.data,
         accounts: accountsResult.data?.accounts ?? [],
+        companies: companiesResult.data?.companies ?? [],
         error: null
       }
     } catch {
@@ -201,6 +211,7 @@ const fetchJournalEntryData = createServerFn({ method: "GET" })
         company: null,
         organization: null,
         accounts: [],
+        companies: [],
         error: "failed" as const
       }
     }
@@ -241,7 +252,8 @@ export const Route = createFileRoute(
       lines: result.lines,
       company: result.company,
       organization: result.organization,
-      accounts: result.accounts
+      accounts: result.accounts,
+      companies: result.companies
     }
   },
   errorComponent: ({ error }) => (
@@ -280,10 +292,20 @@ export const Route = createFileRoute(
 })
 
 // =============================================================================
+// Types for sidebar
+// =============================================================================
+
+interface CompanyForSidebar {
+  readonly id: string
+  readonly name: string
+}
+
+// =============================================================================
 // Page Component
 // =============================================================================
 
 function JournalEntryDetailPage() {
+  const context = Route.useRouteContext()
   const loaderData = Route.useLoaderData()
   /* eslint-disable @typescript-eslint/consistent-type-assertions -- Type assertions needed for loader data typing */
   const entry = loaderData.entry as JournalEntry | null
@@ -291,8 +313,10 @@ function JournalEntryDetailPage() {
   const company = loaderData.company as Company | null
   const organization = loaderData.organization as Organization | null
   const accounts = loaderData.accounts as readonly Account[]
+  const companies = loaderData.companies as readonly CompanyForSidebar[]
   /* eslint-enable @typescript-eslint/consistent-type-assertions */
   const params = Route.useParams()
+  const user = context.user
 
   // Build account lookup map
   const accountMap = new Map<string, Account>()
@@ -300,74 +324,45 @@ function JournalEntryDetailPage() {
     accountMap.set(account.id, account)
   }
 
+  // Companies list for sidebar
+  const companiesForSidebar = useMemo(
+    () => companies.map((c) => ({ id: c.id, name: c.name })),
+    [companies]
+  )
+
   if (!entry || !company || !organization) {
     return null
   }
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="border-b border-gray-200 bg-white">
-        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-4">
-            <Link to="/" className="text-xl font-bold text-gray-900">
-              Accountability
-            </Link>
-            <span className="text-gray-400">/</span>
-            <Link
-              to="/organizations"
-              className="text-xl text-gray-600 hover:text-gray-900"
-            >
-              Organizations
-            </Link>
-            <span className="text-gray-400">/</span>
-            <Link
-              to="/organizations/$organizationId"
-              params={{ organizationId: params.organizationId }}
-              className="text-xl text-gray-600 hover:text-gray-900"
-            >
-              {organization.name}
-            </Link>
-            <span className="text-gray-400">/</span>
-            <Link
-              to="/organizations/$organizationId/companies"
-              params={{ organizationId: params.organizationId }}
-              className="text-xl text-gray-600 hover:text-gray-900"
-            >
-              Companies
-            </Link>
-            <span className="text-gray-400">/</span>
-            <Link
-              to="/organizations/$organizationId/companies/$companyId"
-              params={{
-                organizationId: params.organizationId,
-                companyId: params.companyId
-              }}
-              className="text-xl text-gray-600 hover:text-gray-900"
-            >
-              {company.name}
-            </Link>
-            <span className="text-gray-400">/</span>
-            <Link
-              to="/organizations/$organizationId/companies/$companyId/journal-entries"
-              params={{
-                organizationId: params.organizationId,
-                companyId: params.companyId
-              }}
-              className="text-xl text-gray-600 hover:text-gray-900"
-            >
-              Journal Entries
-            </Link>
-            <span className="text-gray-400">/</span>
-            <h1 className="text-xl font-semibold text-gray-900" data-testid="journal-entry-title">
-              {entry.referenceNumber ?? entry.entryNumber ?? "Entry"}
-            </h1>
-          </div>
-        </div>
-      </header>
+  // Breadcrumb items for journal entry detail page
+  const breadcrumbItems = [
+    {
+      label: "Companies",
+      href: `/organizations/${params.organizationId}/companies`
+    },
+    {
+      label: company.name,
+      href: `/organizations/${params.organizationId}/companies/${params.companyId}`
+    },
+    {
+      label: "Journal Entries",
+      href: `/organizations/${params.organizationId}/companies/${params.companyId}/journal-entries`
+    },
+    {
+      label: entry.referenceNumber ?? entry.entryNumber ?? "Entry",
+      href: `/organizations/${params.organizationId}/companies/${params.companyId}/journal-entries/${params.entryId}`
+    }
+  ]
 
-      {/* Main Content */}
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+  return (
+    <AppLayout
+      user={user}
+      currentOrganization={organization}
+      breadcrumbItems={breadcrumbItems}
+      companies={companiesForSidebar}
+      currentCompany={{ id: company.id, name: company.name }}
+    >
+      <div data-testid="journal-entry-detail-page">
         {/* Entry Header */}
         <div className="mb-6 rounded-lg border border-gray-200 bg-white p-6" data-testid="journal-entry-header">
           <div className="flex items-start justify-between">
@@ -529,8 +524,8 @@ function JournalEntryDetailPage() {
           </div>
           <LineItemsTable lines={lines} accountMap={accountMap} currency={company.functionalCurrency} />
         </div>
-      </main>
-    </div>
+      </div>
+    </AppLayout>
   )
 }
 
