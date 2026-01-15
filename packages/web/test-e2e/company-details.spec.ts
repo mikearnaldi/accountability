@@ -84,8 +84,7 @@ test.describe("Company Details Page", () => {
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: "12-3456789",
         parentCompanyId: null,
-        ownershipPercentage: null,
-        consolidationMethod: null
+        ownershipPercentage: null
       }
     })
     expect(createCompanyRes.ok()).toBeTruthy()
@@ -199,8 +198,7 @@ test.describe("Company Details Page", () => {
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
         parentCompanyId: null,
-        ownershipPercentage: null,
-        consolidationMethod: null
+        ownershipPercentage: null
       }
     })
     expect(createCompanyRes.ok()).toBeTruthy()
@@ -294,8 +292,7 @@ test.describe("Company Details Page", () => {
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
         parentCompanyId: null,
-        ownershipPercentage: null,
-        consolidationMethod: null
+        ownershipPercentage: null
       }
     })
     expect(createCompanyRes.ok()).toBeTruthy()
@@ -420,8 +417,7 @@ test.describe("Company Details Page", () => {
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
         parentCompanyId: null,
-        ownershipPercentage: null,
-        consolidationMethod: null
+        ownershipPercentage: null
       }
     })
     expect(createCompanyRes.ok()).toBeTruthy()
@@ -522,8 +518,7 @@ test.describe("Company Details Page", () => {
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
         parentCompanyId: null,
-        ownershipPercentage: null,
-        consolidationMethod: null
+        ownershipPercentage: null
       }
     })
     expect(createCompanyRes.ok()).toBeTruthy()
@@ -612,8 +607,7 @@ test.describe("Company Details Page", () => {
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
         parentCompanyId: null,
-        ownershipPercentage: null,
-        consolidationMethod: null
+        ownershipPercentage: null
       }
     })
     expect(createCompanyRes.ok()).toBeTruthy()
@@ -774,8 +768,7 @@ test.describe("Company Details Page", () => {
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
         parentCompanyId: null,
-        ownershipPercentage: null,
-        consolidationMethod: null
+        ownershipPercentage: null
       }
     })
     expect(createCompanyRes.ok()).toBeTruthy()
@@ -860,8 +853,7 @@ test.describe("Company Details Page", () => {
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
         parentCompanyId: null,
-        ownershipPercentage: null,
-        consolidationMethod: null
+        ownershipPercentage: null
       }
     })
     expect(createCompanyRes.ok()).toBeTruthy()
@@ -952,8 +944,7 @@ test.describe("Company Details Page", () => {
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
         parentCompanyId: null,
-        ownershipPercentage: null,
-        consolidationMethod: null
+        ownershipPercentage: null
       }
     })
     expect(createCompanyRes.ok()).toBeTruthy()
@@ -1047,8 +1038,7 @@ test.describe("Company Details Page", () => {
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
         parentCompanyId: null,
-        ownershipPercentage: null,
-        consolidationMethod: null
+        ownershipPercentage: null
       }
     })
     expect(createParentRes.ok()).toBeTruthy()
@@ -1068,8 +1058,7 @@ test.describe("Company Details Page", () => {
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
         parentCompanyId: parentData.id,
-        ownershipPercentage: 80,
-        consolidationMethod: "FullConsolidation"
+        ownershipPercentage: 80
       }
     })
     expect(createSubsidiaryRes.ok()).toBeTruthy()
@@ -1160,8 +1149,7 @@ test.describe("Company Details Page", () => {
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
         parentCompanyId: null,
-        ownershipPercentage: null,
-        consolidationMethod: null
+        ownershipPercentage: null
       }
     })
     expect(createParentRes.ok()).toBeTruthy()
@@ -1181,8 +1169,7 @@ test.describe("Company Details Page", () => {
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
         parentCompanyId: parentData.id,
-        ownershipPercentage: 100,
-        consolidationMethod: "FullConsolidation"
+        ownershipPercentage: 100
       }
     })
     expect(sub1Res.ok()).toBeTruthy()
@@ -1201,8 +1188,7 @@ test.describe("Company Details Page", () => {
         fiscalYearEnd: { month: 3, day: 31 },
         taxId: null,
         parentCompanyId: parentData.id,
-        ownershipPercentage: 60,
-        consolidationMethod: "FullConsolidation"
+        ownershipPercentage: 60
       }
     })
     expect(sub2Res.ok()).toBeTruthy()

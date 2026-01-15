@@ -65,8 +65,7 @@ test.describe("Journal Entry Detail and Workflow", () => {
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
         parentCompanyId: null,
-        ownershipPercentage: null,
-        consolidationMethod: null
+        ownershipPercentage: null
       }
     })
     expect(createCompanyRes.ok()).toBeTruthy()
@@ -260,8 +259,7 @@ test.describe("Journal Entry Detail and Workflow", () => {
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
         parentCompanyId: null,
-        ownershipPercentage: null,
-        consolidationMethod: null
+        ownershipPercentage: null
       }
     })
     expect(createCompanyRes.ok()).toBeTruthy()
@@ -460,8 +458,7 @@ test.describe("Journal Entry Detail and Workflow", () => {
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
         parentCompanyId: null,
-        ownershipPercentage: null,
-        consolidationMethod: null
+        ownershipPercentage: null
       }
     })
     expect(createCompanyRes.ok()).toBeTruthy()
@@ -666,8 +663,7 @@ test.describe("Journal Entry Detail and Workflow", () => {
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
         parentCompanyId: null,
-        ownershipPercentage: null,
-        consolidationMethod: null
+        ownershipPercentage: null
       }
     })
     expect(createCompanyRes.ok()).toBeTruthy()
@@ -854,8 +850,7 @@ test.describe("Journal Entry Detail and Workflow", () => {
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
         parentCompanyId: null,
-        ownershipPercentage: null,
-        consolidationMethod: null
+        ownershipPercentage: null
       }
     })
     expect(createCompanyRes.ok()).toBeTruthy()

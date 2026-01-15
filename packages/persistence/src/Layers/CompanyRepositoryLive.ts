@@ -12,7 +12,7 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
-import { Company, CompanyId, ConsolidationMethod, FiscalYearEnd } from "@accountability/core/Domains/Company"
+import { Company, CompanyId, FiscalYearEnd } from "@accountability/core/Domains/Company"
 import { CurrencyCode } from "@accountability/core/Domains/CurrencyCode"
 import { JurisdictionCode } from "@accountability/core/Domains/JurisdictionCode"
 import { OrganizationId } from "@accountability/core/Domains/Organization"
@@ -38,7 +38,6 @@ const CompanyRow = Schema.Struct({
   fiscal_year_end_day: Schema.Number,
   parent_company_id: Schema.NullOr(Schema.String),
   ownership_percentage: Schema.NullOr(Schema.String),
-  consolidation_method: Schema.NullOr(ConsolidationMethod),
   is_active: Schema.Boolean,
   created_at: Schema.DateFromSelf
 })
@@ -75,7 +74,6 @@ const rowToCompany = (row: CompanyRow): Company =>
     ownershipPercentage: Option.fromNullable(row.ownership_percentage).pipe(
       Option.map((s) => Percentage.make(parseFloat(s)))
     ),
-    consolidationMethod: Option.fromNullable(row.consolidation_method),
     isActive: row.is_active,
     createdAt: Timestamp.make({ epochMillis: row.created_at.getTime() })
   })
@@ -145,7 +143,7 @@ const make = Effect.gen(function* () {
         INSERT INTO companies (
           id, organization_id, name, legal_name, jurisdiction, tax_id,
           functional_currency, reporting_currency, fiscal_year_end_month, fiscal_year_end_day,
-          parent_company_id, ownership_percentage, consolidation_method, is_active, created_at
+          parent_company_id, ownership_percentage, is_active, created_at
         ) VALUES (
           ${company.id},
           ${company.organizationId},
@@ -159,7 +157,6 @@ const make = Effect.gen(function* () {
           ${company.fiscalYearEnd.day},
           ${Option.getOrNull(company.parentCompanyId)},
           ${Option.getOrNull(company.ownershipPercentage)},
-          ${Option.getOrNull(company.consolidationMethod)},
           ${company.isActive},
           ${company.createdAt.toDate()}
         )
@@ -190,7 +187,6 @@ const make = Effect.gen(function* () {
           fiscal_year_end_day = ${company.fiscalYearEnd.day},
           parent_company_id = ${Option.getOrNull(company.parentCompanyId)},
           ownership_percentage = ${Option.getOrNull(company.ownershipPercentage)},
-          consolidation_method = ${Option.getOrNull(company.consolidationMethod)},
           is_active = ${company.isActive}
         WHERE id = ${company.id}
       `.pipe(wrapSqlError("update"))

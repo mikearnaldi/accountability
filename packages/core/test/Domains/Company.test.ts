@@ -332,7 +332,6 @@ describe("Company", () => {
       fiscalYearEnd: CALENDAR_YEAR_END,
       parentCompanyId: Option.none(),
       ownershipPercentage: Option.none(),
-      consolidationMethod: Option.none(),
       isActive: true,
       createdAt: Timestamp.make({ epochMillis: 1718409600000 })
     })
@@ -351,7 +350,6 @@ describe("Company", () => {
       fiscalYearEnd: FISCAL_YEAR_END_MARCH,
       parentCompanyId: Option.some(CompanyId.make(parentCompanyUUID)),
       ownershipPercentage: Option.some(Percentage.make(80)),
-      consolidationMethod: Option.some<ConsolidationMethod>("FullConsolidation"),
       isActive: true,
       createdAt: Timestamp.make({ epochMillis: 1718409600000 })
     })
@@ -372,7 +370,6 @@ describe("Company", () => {
         expect(company.fiscalYearEnd.day).toBe(31)
         expect(Option.isNone(company.parentCompanyId)).toBe(true)
         expect(Option.isNone(company.ownershipPercentage)).toBe(true)
-        expect(Option.isNone(company.consolidationMethod)).toBe(true)
         expect(company.isActive).toBe(true)
       })
     )
@@ -387,7 +384,6 @@ describe("Company", () => {
         expect(company.reportingCurrency).toBe(USD)
         expect(Option.getOrNull(company.parentCompanyId)).toBe(parentCompanyUUID)
         expect(Option.getOrNull(company.ownershipPercentage)).toBe(80)
-        expect(Option.getOrNull(company.consolidationMethod)).toBe("FullConsolidation")
       })
     )
 
@@ -405,8 +401,7 @@ describe("Company", () => {
           fiscalYearEnd: CALENDAR_YEAR_END,
           parentCompanyId: Option.none(),
           ownershipPercentage: Option.none(),
-          consolidationMethod: Option.none(),
-          isActive: true,
+              isActive: true,
           createdAt: Timestamp.make({ epochMillis: 1718409600000 })
         })
         expect(Option.isNone(company.taxId)).toBe(true)
@@ -427,8 +422,7 @@ describe("Company", () => {
           fiscalYearEnd: CALENDAR_YEAR_END,
           parentCompanyId: Option.none(),
           ownershipPercentage: Option.none(),
-          consolidationMethod: Option.none(),
-          isActive: true,
+              isActive: true,
           createdAt: Timestamp.make({ epochMillis: 1718409600000 })
         })
         expect(company.functionalCurrency).toBe(EUR)
@@ -450,42 +444,10 @@ describe("Company", () => {
           fiscalYearEnd: CALENDAR_YEAR_END,
           parentCompanyId: Option.none(),
           ownershipPercentage: Option.none(),
-          consolidationMethod: Option.none(),
-          isActive: false,
+              isActive: false,
           createdAt: Timestamp.make({ epochMillis: 1718409600000 })
         })
         expect(company.isActive).toBe(false)
-      })
-    )
-
-    it.effect("accepts all consolidation methods", () =>
-      Effect.gen(function* () {
-        const methods: ConsolidationMethod[] = [
-          "FullConsolidation",
-          "EquityMethod",
-          "CostMethod",
-          "VariableInterestEntity"
-        ]
-
-        for (const method of methods) {
-          const company = Company.make({
-            id: CompanyId.make(companyUUID),
-            organizationId: OrganizationId.make(orgUUID),
-            name: `${method} Corp`,
-            legalName: `${method} Corporation`,
-            jurisdiction: US,
-            taxId: Option.none(),
-            functionalCurrency: USD,
-            reportingCurrency: USD,
-            fiscalYearEnd: CALENDAR_YEAR_END,
-            parentCompanyId: Option.some(CompanyId.make(parentCompanyUUID)),
-            ownershipPercentage: Option.some(Percentage.make(50)),
-            consolidationMethod: Option.some(method),
-            isActive: true,
-            createdAt: Timestamp.make({ epochMillis: 1718409600000 })
-          })
-          expect(Option.getOrNull(company.consolidationMethod)).toBe(method)
-        }
       })
     )
 
@@ -504,7 +466,6 @@ describe("Company", () => {
           fiscalYearEnd: { month: 12, day: 31 },
           parentCompanyId: null,
           ownershipPercentage: null,
-          consolidationMethod: null,
           isActive: true,
           createdAt: { epochMillis: 1718409600000 }
         }))
@@ -527,7 +488,6 @@ describe("Company", () => {
           fiscalYearEnd: { month: 12, day: 31 },
           parentCompanyId: null,
           ownershipPercentage: null,
-          consolidationMethod: null,
           isActive: true,
           createdAt: { epochMillis: 1718409600000 }
         }))
@@ -550,7 +510,6 @@ describe("Company", () => {
           fiscalYearEnd: { month: 12, day: 31 },
           parentCompanyId: null,
           ownershipPercentage: null,
-          consolidationMethod: null,
           isActive: true,
           createdAt: { epochMillis: 1718409600000 }
         }))
@@ -573,7 +532,6 @@ describe("Company", () => {
           fiscalYearEnd: { month: 12, day: 31 },
           parentCompanyId: null,
           ownershipPercentage: null,
-          consolidationMethod: null,
           isActive: true,
           createdAt: { epochMillis: 1718409600000 }
         }))
@@ -596,7 +554,6 @@ describe("Company", () => {
           fiscalYearEnd: { month: 12, day: 31 },
           parentCompanyId: null,
           ownershipPercentage: null,
-          consolidationMethod: null,
           isActive: true,
           createdAt: { epochMillis: 1718409600000 }
         }))
@@ -619,30 +576,6 @@ describe("Company", () => {
           fiscalYearEnd: { month: 12, day: 31 },
           parentCompanyId: parentCompanyUUID,
           ownershipPercentage: 150, // Invalid - > 100
-          consolidationMethod: "FullConsolidation",
-          isActive: true,
-          createdAt: { epochMillis: 1718409600000 }
-        }))
-        expect(Exit.isFailure(result)).toBe(true)
-      })
-    )
-
-    it.effect("rejects invalid consolidation method", () =>
-      Effect.gen(function* () {
-        const decode = Schema.decodeUnknown(Company)
-        const result = yield* Effect.exit(decode({
-          id: companyUUID,
-          organizationId: orgUUID,
-          name: "Company Name",
-          legalName: "Legal Name",
-          jurisdiction: "US",
-          taxId: null,
-          functionalCurrency: "USD",
-          reportingCurrency: "USD",
-          fiscalYearEnd: { month: 12, day: 31 },
-          parentCompanyId: parentCompanyUUID,
-          ownershipPercentage: 80,
-          consolidationMethod: "InvalidMethod",
           isActive: true,
           createdAt: { epochMillis: 1718409600000 }
         }))
@@ -665,7 +598,6 @@ describe("Company", () => {
           fiscalYearEnd: { month: 12, day: 31 },
           parentCompanyId: null,
           ownershipPercentage: null,
-          consolidationMethod: null,
           isActive: true,
           createdAt: { epochMillis: 1718409600000 }
         }))
@@ -688,7 +620,6 @@ describe("Company", () => {
           fiscalYearEnd: { month: 12, day: 31 },
           parentCompanyId: null,
           ownershipPercentage: null,
-          consolidationMethod: null,
           isActive: true,
           createdAt: { epochMillis: 1718409600000 }
         }))
@@ -753,8 +684,7 @@ describe("Company", () => {
         fiscalYearEnd: CALENDAR_YEAR_END,
         parentCompanyId: Option.some(CompanyId.make(parentCompanyUUID)),
         ownershipPercentage: Option.some(Percentage.make(100)),
-        consolidationMethod: Option.some<ConsolidationMethod>("FullConsolidation"),
-        isActive: true,
+          isActive: true,
         createdAt: Timestamp.make({ epochMillis: 1718409600000 })
       })
       const nci = company.nonControllingInterestPercentage
@@ -782,7 +712,6 @@ describe("Company", () => {
         fiscalYearEnd: { month: 12, day: 31 },
         parentCompanyId: null,
         ownershipPercentage: null,
-        consolidationMethod: null,
         isActive: true,
         createdAt: { epochMillis: 1718409600000 }
       })).toBe(false)
@@ -810,8 +739,7 @@ describe("Company", () => {
         fiscalYearEnd: CALENDAR_YEAR_END,
         parentCompanyId: Option.none(),
         ownershipPercentage: Option.none(),
-        consolidationMethod: Option.none(),
-        isActive: true,
+          isActive: true,
         createdAt: Timestamp.make({ epochMillis: 1718409600000 })
       })
       const company3 = createSubsidiaryCompany()
@@ -834,8 +762,7 @@ describe("Company", () => {
         fiscalYearEnd: CALENDAR_YEAR_END,
         parentCompanyId: Option.none(),
         ownershipPercentage: Option.none(),
-        consolidationMethod: Option.none(),
-        isActive: true,
+          isActive: true,
         createdAt: Timestamp.make({ epochMillis: 1718409600001 })
       })
 
@@ -856,8 +783,7 @@ describe("Company", () => {
         fiscalYearEnd: FISCAL_YEAR_END_MARCH,
         parentCompanyId: Option.none(),
         ownershipPercentage: Option.none(),
-        consolidationMethod: Option.none(),
-        isActive: true,
+          isActive: true,
         createdAt: Timestamp.make({ epochMillis: 1718409600000 })
       })
 
@@ -902,7 +828,6 @@ describe("Company", () => {
         expect(encoded).toHaveProperty("fiscalYearEnd")
         expect(encoded).toHaveProperty("parentCompanyId", null)
         expect(encoded).toHaveProperty("ownershipPercentage", null)
-        expect(encoded).toHaveProperty("consolidationMethod", null)
         expect(encoded).toHaveProperty("isActive", true)
         expect(encoded).toHaveProperty("createdAt")
       })
@@ -915,7 +840,6 @@ describe("Company", () => {
 
         expect(encoded).toHaveProperty("parentCompanyId", parentCompanyUUID)
         expect(encoded).toHaveProperty("ownershipPercentage", 80)
-        expect(encoded).toHaveProperty("consolidationMethod", "FullConsolidation")
       })
     )
   })

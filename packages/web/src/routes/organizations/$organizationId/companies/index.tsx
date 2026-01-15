@@ -271,8 +271,7 @@ function CompaniesListPage() {
           reportingCurrency: formData.reportingCurrency,
           fiscalYearEnd: formData.fiscalYearEnd,
           parentCompanyId: formData.parentCompanyId,
-          ownershipPercentage: formData.ownershipPercentage,
-          consolidationMethod: formData.consolidationMethod
+          ownershipPercentage: formData.ownershipPercentage
         }
       })
 
@@ -344,15 +343,13 @@ function CompaniesListPage() {
               </p>
             </div>
 
-            {companies.length > 0 && (
-              <Button
-                onClick={() => setShowCreateForm(true)}
-                icon={<Plus className="h-4 w-4" />}
-                data-testid="create-company-button"
-              >
-                New Company
-              </Button>
-            )}
+            <Button
+              onClick={() => setShowCreateForm(true)}
+              icon={<Plus className="h-4 w-4" />}
+              data-testid="create-company-button"
+            >
+              New Company
+            </Button>
           </div>
 
           {/* Status Filter */}

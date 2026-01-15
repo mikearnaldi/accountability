@@ -2196,11 +2196,6 @@ export interface components {
              */
             ownershipPercentage: components["schemas"]["Percentage"] | null;
             /**
-             * Consolidation Method
-             * @description Method used to consolidate this company per ASC 810
-             */
-            consolidationMethod: components["schemas"]["ConsolidationMethod"] | null;
-            /**
              * Is Active
              * @description Whether the company is currently active
              */
@@ -2229,12 +2224,6 @@ export interface components {
          * @description A percentage value between 0 and 100 (inclusive)
          */
         Percentage: number;
-        /**
-         * Consolidation Method
-         * @description The method used to consolidate a subsidiary per ASC 810
-         * @enum {string}
-         */
-        ConsolidationMethod: "FullConsolidation" | "EquityMethod" | "CostMethod" | "VariableInterestEntity";
         CreateCompanyRequest: {
             organizationId: components["schemas"]["OrganizationId"];
             name: components["schemas"]["NonEmptyTrimmedString"];
@@ -2246,7 +2235,6 @@ export interface components {
             fiscalYearEnd: components["schemas"]["FiscalYearEnd"];
             parentCompanyId: components["schemas"]["CompanyId"] | null;
             ownershipPercentage: components["schemas"]["Percentage"] | null;
-            consolidationMethod: components["schemas"]["ConsolidationMethod"] | null;
         };
         UpdateCompanyRequest: {
             name: components["schemas"]["NonEmptyTrimmedString"] | null;
@@ -2256,7 +2244,6 @@ export interface components {
             fiscalYearEnd: components["schemas"]["FiscalYearEnd"] | null;
             parentCompanyId: components["schemas"]["CompanyId"] | null;
             ownershipPercentage: components["schemas"]["Percentage"] | null;
-            consolidationMethod: components["schemas"]["ConsolidationMethod"] | null;
             isActive: boolean | null;
         };
         /**
@@ -2961,6 +2948,12 @@ export interface components {
          * @description A unique identifier for a consolidation group (UUID format)
          */
         ConsolidationGroupId: string;
+        /**
+         * Consolidation Method
+         * @description The method used to consolidate a subsidiary per ASC 810
+         * @enum {string}
+         */
+        ConsolidationMethod: "FullConsolidation" | "EquityMethod" | "CostMethod" | "VariableInterestEntity";
         ConsolidationMember: {
             companyId: components["schemas"]["CompanyId"];
             ownershipPercentage: components["schemas"]["Percentage"];

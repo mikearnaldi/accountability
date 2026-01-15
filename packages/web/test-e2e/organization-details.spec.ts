@@ -157,8 +157,7 @@ test.describe("Organization Details Page", () => {
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
         parentCompanyId: null,
-        ownershipPercentage: null,
-        consolidationMethod: null
+        ownershipPercentage: null
       }
     })
     expect(createCompanyRes.ok()).toBeTruthy()

@@ -210,15 +210,6 @@ export class Company extends Schema.Class<Company>("Company")({
   }),
 
   /**
-   * Consolidation method
-   * How this company is consolidated into the parent's financial statements
-   */
-  consolidationMethod: Schema.OptionFromNullOr(ConsolidationMethod).annotations({
-    title: "Consolidation Method",
-    description: "Method used to consolidate this company per ASC 810"
-  }),
-
-  /**
    * Whether the company is active
    */
   isActive: Schema.Boolean.annotations({

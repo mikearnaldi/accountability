@@ -12,8 +12,7 @@ import * as Ref from "effect/Ref"
 import {
   Company,
   CompanyId,
-  FiscalYearEnd,
-  type ConsolidationMethod
+  FiscalYearEnd
 } from "@accountability/core/Domains/Company"
 import { CurrencyCode } from "@accountability/core/Domains/CurrencyCode"
 import { JurisdictionCode } from "@accountability/core/Domains/JurisdictionCode"
@@ -66,7 +65,6 @@ const createTestCompany = (overrides: Partial<{
   fiscalYearEnd: { month: number; day: number }
   parentCompanyId: Option.Option<typeof testCompanyId>
   ownershipPercentage: Option.Option<number>
-  consolidationMethod: Option.Option<ConsolidationMethod>
   isActive: boolean
 }> = {}): Company => {
   const id = overrides.id ?? testCompanyId
@@ -79,7 +77,6 @@ const createTestCompany = (overrides: Partial<{
   const fiscalYearEnd = overrides.fiscalYearEnd ?? { month: 12, day: 31 }
   const parentCompanyId = overrides.parentCompanyId ?? Option.none()
   const ownershipPercentage = overrides.ownershipPercentage ?? Option.none()
-  const consolidationMethod = overrides.consolidationMethod ?? Option.none()
   const isActive = overrides.isActive ?? true
 
   return Company.make({
@@ -96,7 +93,6 @@ const createTestCompany = (overrides: Partial<{
     ownershipPercentage: Option.isSome(ownershipPercentage)
       ? Option.some(Percentage.make(ownershipPercentage.value))
       : Option.none(),
-    consolidationMethod,
     isActive,
     createdAt: timestampNow()
   })
@@ -454,8 +450,7 @@ describe("CompaniesApiLive", () => {
           id: testSubsidiaryId,
           name: "Subsidiary",
           parentCompanyId: Option.some(testParentCompanyId),
-          ownershipPercentage: Option.some(80),
-          consolidationMethod: Option.some<ConsolidationMethod>("FullConsolidation")
+          ownershipPercentage: Option.some(80)
         })
         const testLayer = createTestLayer([org], [parent, subsidiary])
 
@@ -530,8 +525,7 @@ describe("CompaniesApiLive", () => {
           id: testSubsidiaryId,
           name: "Subsidiary",
           parentCompanyId: Option.some(testParentCompanyId),
-          ownershipPercentage: Option.some(75),
-          consolidationMethod: Option.some<ConsolidationMethod>("FullConsolidation")
+          ownershipPercentage: Option.some(75)
         })
         const created = yield* companyRepo.create(subsidiary)
 
@@ -631,8 +625,7 @@ describe("CompaniesApiLive", () => {
           id: testSubsidiaryId,
           name: "Subsidiary",
           parentCompanyId: Option.some(testParentCompanyId),
-          ownershipPercentage: Option.some(80),
-          consolidationMethod: Option.some<ConsolidationMethod>("FullConsolidation")
+          ownershipPercentage: Option.some(80)
         })
         const testLayer = createTestLayer([org], [parent1, parent2, subsidiary])
 
@@ -688,7 +681,6 @@ describe("CompaniesApiLive", () => {
           name: "Subsidiary",
           parentCompanyId: Option.some(testParentCompanyId),
           ownershipPercentage: Option.some(100),
-          consolidationMethod: Option.some<ConsolidationMethod>("FullConsolidation"),
           isActive: true
         })
         const testLayer = createTestLayer([org], [parent, subsidiary])
@@ -713,7 +705,6 @@ describe("CompaniesApiLive", () => {
           name: "Inactive Subsidiary",
           parentCompanyId: Option.some(testParentCompanyId),
           ownershipPercentage: Option.some(100),
-          consolidationMethod: Option.some<ConsolidationMethod>("FullConsolidation"),
           isActive: false
         })
         const testLayer = createTestLayer([org], [parent, inactiveSubsidiary])
@@ -794,8 +785,7 @@ describe("CompaniesApiLive", () => {
         const subsidiary = createTestCompany({
           id: testSubsidiaryId,
           parentCompanyId: Option.some(testParentCompanyId),
-          ownershipPercentage: Option.some(75),
-          consolidationMethod: Option.some<ConsolidationMethod>("FullConsolidation")
+          ownershipPercentage: Option.some(75)
         })
         const testLayer = createTestLayer([org], [parent, subsidiary])
 

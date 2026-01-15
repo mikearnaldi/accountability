@@ -306,20 +306,13 @@ export const CompaniesApiLive = HttpApiBuilder.group(AppApi, "companies", (handl
             }
           }
 
-          // Validate consolidation method consistency
+          // Validate ownership percentage for subsidiaries
           if (Option.isSome(req.parentCompanyId)) {
-            // Subsidiaries must have ownership percentage and consolidation method
+            // Subsidiaries must have ownership percentage
             if (Option.isNone(req.ownershipPercentage)) {
               return yield* Effect.fail(new ValidationError({
                 message: "Ownership percentage is required for subsidiaries",
                 field: Option.some("ownershipPercentage"),
-                details: Option.none()
-              }))
-            }
-            if (Option.isNone(req.consolidationMethod)) {
-              return yield* Effect.fail(new ValidationError({
-                message: "Consolidation method is required for subsidiaries",
-                field: Option.some("consolidationMethod"),
                 details: Option.none()
               }))
             }
@@ -338,7 +331,6 @@ export const CompaniesApiLive = HttpApiBuilder.group(AppApi, "companies", (handl
             fiscalYearEnd: req.fiscalYearEnd,
             parentCompanyId: req.parentCompanyId,
             ownershipPercentage: req.ownershipPercentage,
-            consolidationMethod: req.consolidationMethod,
             isActive: true,
             createdAt: timestampNow()
           })
@@ -428,9 +420,6 @@ export const CompaniesApiLive = HttpApiBuilder.group(AppApi, "companies", (handl
             ownershipPercentage: Option.isSome(req.ownershipPercentage)
               ? req.ownershipPercentage
               : existing.ownershipPercentage,
-            consolidationMethod: Option.isSome(req.consolidationMethod)
-              ? req.consolidationMethod
-              : existing.consolidationMethod,
             isActive: Option.isSome(req.isActive) ? req.isActive.value : existing.isActive
           })
 

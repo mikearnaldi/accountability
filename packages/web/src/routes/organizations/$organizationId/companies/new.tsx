@@ -220,8 +220,7 @@ function NewCompanyPage() {
           reportingCurrency: formData.reportingCurrency,
           fiscalYearEnd: formData.fiscalYearEnd,
           parentCompanyId: formData.parentCompanyId,
-          ownershipPercentage: formData.ownershipPercentage,
-          consolidationMethod: formData.consolidationMethod
+          ownershipPercentage: formData.ownershipPercentage
         }
       })
 

@@ -348,15 +348,13 @@ function ChartOfAccountsPage() {
               </p>
             </div>
 
-            {accounts.length > 0 && (
-              <Button
-                onClick={() => setShowCreateForm(true)}
-                icon={<Plus className="h-4 w-4" />}
-                data-testid="create-account-button"
-              >
-                New Account
-              </Button>
-            )}
+            <Button
+              onClick={() => setShowCreateForm(true)}
+              icon={<Plus className="h-4 w-4" />}
+              data-testid="create-account-button"
+            >
+              New Account
+            </Button>
           </div>
         </div>
 

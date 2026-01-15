@@ -9,7 +9,7 @@
 
 import { describe, expect, it } from "@effect/vitest"
 import { Effect, Layer, Option } from "effect"
-import { Company, CompanyId, FiscalYearEnd, type ConsolidationMethod } from "@accountability/core/Domains/Company"
+import { Company, CompanyId, FiscalYearEnd } from "@accountability/core/Domains/Company"
 import { CurrencyCode } from "@accountability/core/Domains/CurrencyCode"
 import { JurisdictionCode } from "@accountability/core/Domains/JurisdictionCode"
 import { Organization, OrganizationId, OrganizationSettings } from "@accountability/core/Domains/Organization"
@@ -75,7 +75,6 @@ describe("CompanyRepository", () => {
           fiscalYearEnd: FiscalYearEnd.make({ month: 12, day: 31 }),
           parentCompanyId: Option.none(),
           ownershipPercentage: Option.none(),
-          consolidationMethod: Option.none(),
           isActive: true,
           createdAt: Timestamp.make({ epochMillis: Date.now() })
         })
@@ -105,7 +104,6 @@ describe("CompanyRepository", () => {
           fiscalYearEnd: FiscalYearEnd.make({ month: 12, day: 31 }),
           parentCompanyId: Option.none(),
           ownershipPercentage: Option.none(),
-          consolidationMethod: Option.none(),
           isActive: true,
           createdAt: Timestamp.make({ epochMillis: Date.now() })
         })
@@ -132,7 +130,6 @@ describe("CompanyRepository", () => {
           fiscalYearEnd: FiscalYearEnd.make({ month: 3, day: 31 }),
           parentCompanyId: Option.none(),
           ownershipPercentage: Option.none(),
-          consolidationMethod: Option.none(),
           isActive: true,
           createdAt: Timestamp.make({ epochMillis: Date.now() })
         })
@@ -143,7 +140,7 @@ describe("CompanyRepository", () => {
       })
     )
 
-    it.effect("create: creates subsidiary company with consolidation info", () =>
+    it.effect("create: creates subsidiary company with ownership info", () =>
       Effect.gen(function* () {
         const repo = yield* CompanyRepository
         const company = Company.make({
@@ -158,7 +155,6 @@ describe("CompanyRepository", () => {
           fiscalYearEnd: FiscalYearEnd.make({ month: 12, day: 31 }),
           parentCompanyId: Option.some(testCompanyId),
           ownershipPercentage: Option.some(Percentage.make(80)),
-          consolidationMethod: Option.some<ConsolidationMethod>("FullConsolidation"),
           isActive: true,
           createdAt: Timestamp.make({ epochMillis: Date.now() })
         })
@@ -167,9 +163,6 @@ describe("CompanyRepository", () => {
         expect(Option.isSome(created.parentCompanyId)).toBe(true)
         if (Option.isSome(created.ownershipPercentage)) {
           expect(created.ownershipPercentage.value).toBe(80)
-        }
-        if (Option.isSome(created.consolidationMethod)) {
-          expect(created.consolidationMethod.value).toBe("FullConsolidation")
         }
       })
     )
@@ -371,7 +364,6 @@ describe("CompanyRepository", () => {
           fiscalYearEnd: FiscalYearEnd.make({ month: 12, day: 31 }),
           parentCompanyId: Option.none(),
           ownershipPercentage: Option.none(),
-          consolidationMethod: Option.none(),
           isActive: true,
           createdAt: Timestamp.make({ epochMillis: Date.now() })
         })

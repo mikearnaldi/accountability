@@ -844,8 +844,7 @@ test.describe("Organization Selection Flow", () => {
         reportingCurrency: "EUR",
         fiscalYearEnd: { month: 12, day: 31 },
         parentCompanyId: null,
-        ownershipPercentage: null,
-        consolidationMethod: null
+        ownershipPercentage: null
       }
     })
     expect(createCompanyRes.ok()).toBeTruthy()

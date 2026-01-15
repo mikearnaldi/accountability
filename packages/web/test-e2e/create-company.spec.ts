@@ -162,8 +162,7 @@ test.describe("Create Company Form", () => {
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
         parentCompanyId: null,
-        ownershipPercentage: null,
-        consolidationMethod: null
+        ownershipPercentage: null
       }
     })
     expect(createParentRes.ok()).toBeTruthy()
@@ -207,16 +206,11 @@ test.describe("Create Company Form", () => {
     // 9. Select parent company - should show subsidiary fields
     await page.selectOption("#company-parent", parentData.id)
 
-    // 10. Ownership and consolidation fields should appear
+    // 10. Ownership field should appear (consolidation method is now in ConsolidationGroups)
     await expect(page.locator("#company-ownership")).toBeVisible()
-    await expect(page.locator("#company-consolidation")).toBeVisible()
 
-    // 11. Enter ownership percentage (80%) - should auto-suggest Full Consolidation
+    // 11. Enter ownership percentage (80%)
     await page.fill("#company-ownership", "80")
-
-    // Wait for the auto-suggest to apply
-    await page.waitForTimeout(100)
-    await expect(page.locator("#company-consolidation")).toHaveValue("FullConsolidation")
 
     // 12. Submit form
     await page.click('button[type="submit"]')
@@ -292,8 +286,7 @@ test.describe("Create Company Form", () => {
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
         parentCompanyId: null,
-        ownershipPercentage: null,
-        consolidationMethod: null
+        ownershipPercentage: null
       }
     })
     expect(createParentRes.ok()).toBeTruthy()
@@ -337,106 +330,8 @@ test.describe("Create Company Form", () => {
     await expect(page.getByTestId("company-form")).toBeVisible()
   })
 
-  test("should auto-suggest consolidation method based on ownership percentage", async ({
-    page,
-    request
-  }) => {
-    // 1. Register a test user
-    const testUser = {
-      email: `test-auto-suggest-${Date.now()}@example.com`,
-      password: "TestPassword123",
-      displayName: "Auto Suggest Test User"
-    }
-
-    const registerRes = await request.post("/api/auth/register", {
-      data: testUser
-    })
-    expect(registerRes.ok()).toBeTruthy()
-
-    // 2. Login to get session token
-    const loginRes = await request.post("/api/auth/login", {
-      data: {
-        provider: "local",
-        credentials: {
-          email: testUser.email,
-          password: testUser.password
-        }
-      }
-    })
-    expect(loginRes.ok()).toBeTruthy()
-    const loginData = await loginRes.json()
-    const sessionToken = loginData.token
-
-    // 3. Create an organization via API
-    const createOrgRes = await request.post("/api/v1/organizations", {
-      headers: { Authorization: `Bearer ${sessionToken}` },
-      data: {
-        name: `Auto Suggest Test Org ${Date.now()}`,
-        reportingCurrency: "USD",
-        settings: null
-      }
-    })
-    expect(createOrgRes.ok()).toBeTruthy()
-    const orgData = await createOrgRes.json()
-
-    // 4. Create a parent company via API
-    const parentCompanyName = `Parent Corp ${Date.now()}`
-    const createParentRes = await request.post("/api/v1/companies", {
-      headers: { Authorization: `Bearer ${sessionToken}` },
-      data: {
-        organizationId: orgData.id,
-        name: parentCompanyName,
-        legalName: `${parentCompanyName} Inc.`,
-        jurisdiction: "US",
-        functionalCurrency: "USD",
-        reportingCurrency: "USD",
-        fiscalYearEnd: { month: 12, day: 31 },
-        taxId: null,
-        parentCompanyId: null,
-        ownershipPercentage: null,
-        consolidationMethod: null
-      }
-    })
-    expect(createParentRes.ok()).toBeTruthy()
-    const parentData = await createParentRes.json()
-
-    // 5. Set session cookie
-    await page.context().addCookies([
-      {
-        name: "accountability_session",
-        value: sessionToken,
-        domain: "localhost",
-        path: "/",
-        httpOnly: true,
-        secure: false,
-        sameSite: "Lax"
-      }
-    ])
-
-    // 6. Navigate to companies list page
-    await page.goto(`/organizations/${orgData.id}/companies`)
-
-    // 7. Click "New Company" button
-    await page.getByRole("button", { name: /New Company/i }).click()
-
-    // 8. Select parent company
-    await page.selectOption("#company-parent", parentData.id)
-
-    // 9. Test >50% -> Full Consolidation
-    await page.fill("#company-ownership", "75")
-    await page.waitForTimeout(100)
-    await expect(page.locator("#company-consolidation")).toHaveValue("FullConsolidation")
-
-    // 10. Test 20-50% -> Equity Method
-    await page.fill("#company-ownership", "35")
-    await page.waitForTimeout(100)
-    await expect(page.locator("#company-consolidation")).toHaveValue("EquityMethod")
-
-    // 11. Test <20% -> Cost Method
-    await page.fill("#company-ownership", "15")
-    await page.waitForTimeout(100)
-    await expect(page.locator("#company-consolidation")).toHaveValue("CostMethod")
-  })
+  // Note: Consolidation method auto-suggest test removed - consolidationMethod is now
+  // configured in ConsolidationGroups, not on Company entities
 
   test("should use fiscal year end presets", async ({ page, request }) => {
     // 1. Register a test user
@@ -572,8 +467,7 @@ test.describe("Create Company Form", () => {
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
         parentCompanyId: null,
-        ownershipPercentage: null,
-        consolidationMethod: null
+        ownershipPercentage: null
       }
     })
     expect(createParentRes.ok()).toBeTruthy()
@@ -601,17 +495,14 @@ test.describe("Create Company Form", () => {
     // 8. Select parent company
     await page.selectOption("#company-parent", parentData.id)
 
-    // 9. Fill in ownership and consolidation
+    // 9. Fill in ownership percentage
     await page.fill("#company-ownership", "100")
-    await page.waitForTimeout(100)
-    await expect(page.locator("#company-consolidation")).toHaveValue("FullConsolidation")
 
     // 10. Unselect parent company
     await page.selectOption("#company-parent", "")
 
     // 11. Subsidiary fields should be hidden
     await expect(page.locator("#company-ownership")).not.toBeVisible()
-    await expect(page.locator("#company-consolidation")).not.toBeVisible()
   })
 
   test("should set functional currency from jurisdiction default", async ({

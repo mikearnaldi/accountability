@@ -176,7 +176,6 @@ interface Company {
   }
   readonly parentCompanyId: string | null
   readonly ownershipPercentage: number | null
-  readonly consolidationMethod: string | null
   readonly isActive: boolean
   readonly createdAt: {
     readonly epochMillis: number
@@ -275,8 +274,7 @@ function CompanyDetailsPage() {
             reportingCurrency: null,
             fiscalYearEnd: null,
             parentCompanyId: null,
-            ownershipPercentage: null,
-            consolidationMethod: null
+            ownershipPercentage: null
           }
         })
 
@@ -422,11 +420,6 @@ function CompanyDetailsPage() {
                 {!isParentCompany && !isSubsidiary && (
                   <p className="text-sm text-gray-600">Standalone company</p>
                 )}
-                {company.consolidationMethod && (
-                  <p className="mt-1 text-xs text-gray-500" data-testid="consolidation-method">
-                    {formatConsolidationMethod(company.consolidationMethod)}
-                  </p>
-                )}
               </div>
             </div>
 
@@ -460,11 +453,6 @@ function CompanyDetailsPage() {
                   <p className="text-sm font-medium text-gray-900" data-testid="parent-ownership">
                     {company.ownershipPercentage}% ownership
                   </p>
-                  {company.consolidationMethod && (
-                    <p className="text-xs text-gray-500">
-                      {formatConsolidationMethod(company.consolidationMethod)}
-                    </p>
-                  )}
                 </div>
               </Link>
             </div>
@@ -507,11 +495,6 @@ function CompanyDetailsPage() {
                       <p className="text-sm font-medium text-gray-900">
                         {subsidiary.ownershipPercentage}%
                       </p>
-                      {subsidiary.consolidationMethod && (
-                        <p className="text-xs text-gray-500">
-                          {formatConsolidationMethod(subsidiary.consolidationMethod)}
-                        </p>
-                      )}
                     </div>
                   </Link>
                 ))}
@@ -736,7 +719,6 @@ function EditCompanyModal({
           },
           parentCompanyId: null,
           ownershipPercentage: null,
-          consolidationMethod: null,
           isActive: null
         }
       })
@@ -991,14 +973,4 @@ const jurisdictionNames: Record<string, string> = {
 
 function formatJurisdiction(code: string): string {
   return jurisdictionNames[code] ?? code
-}
-
-const consolidationMethodNames: Record<string, string> = {
-  Full: "Full Consolidation",
-  Proportional: "Proportional Consolidation",
-  Equity: "Equity Method"
-}
-
-function formatConsolidationMethod(method: string): string {
-  return consolidationMethodNames[method] ?? method
 }

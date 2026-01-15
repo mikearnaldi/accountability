@@ -236,3 +236,8 @@
 **Task**: Fixed 3 lint errors by replacing type assertions with type-safe patterns. In dashboard.tsx, replaced `as ActivityType` string concatenation with a type-safe lookup table for all entity type + action combinations. In profile.tsx, replaced `as UserProfile` and `as Identity[]` type assertions with explicit object construction that maps API response fields to the expected interface shapes.
 **Status**: complete
 ---
+
+## Iteration 2 - 2026-01-16 00:06
+**Task**: Fixed 12 failing E2E tests by making action buttons always visible in page headers (New Account, New Company, New Entry, View all link) regardless of whether records exist, and updated companies-list test to remove obsolete consolidation column references. All 178 E2E tests and 3587 unit tests now pass.
+**Status**: complete
+---

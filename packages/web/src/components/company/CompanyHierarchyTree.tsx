@@ -34,7 +34,6 @@ export interface Company {
   }
   readonly parentCompanyId: string | null
   readonly ownershipPercentage: number | null
-  readonly consolidationMethod: string | null
   readonly isActive: boolean
   readonly createdAt: {
     readonly epochMillis: number
@@ -123,24 +122,6 @@ function flattenTree(nodes: CompanyNode[]): CompanyNode[] {
   return result
 }
 
-/**
- * Format consolidation method for display
- */
-function formatConsolidationMethod(method: string | null): string {
-  if (!method) return "—"
-  switch (method) {
-    case "FullConsolidation":
-      return "Full Consolidation"
-    case "EquityMethod":
-      return "Equity Method"
-    case "CostMethod":
-      return "Cost Method"
-    case "VariableInterestEntity":
-      return "VIE"
-    default:
-      return method
-  }
-}
 
 // =============================================================================
 // CompanyHierarchyTree Component
@@ -254,12 +235,6 @@ export function CompanyHierarchyTree({
               tooltip="Percentage of the subsidiary owned by its parent company"
             >
               Ownership
-            </TableHeaderCell>
-            <TableHeaderCell
-              data-testid="header-consolidation"
-              tooltip="Method used to consolidate subsidiary financial statements: Full Consolidation, Equity Method, Cost Method, or VIE"
-            >
-              Consolidation Method
             </TableHeaderCell>
           </TableRow>
         </TableHeader>
@@ -403,17 +378,6 @@ function CompanyRow({
       <TableCell data-testid={`company-ownership-${company.id}`}>
         {isSubsidiary && company.ownershipPercentage !== null ? (
           <span className="text-gray-900">{company.ownershipPercentage}%</span>
-        ) : (
-          <span className="text-gray-400">—</span>
-        )}
-      </TableCell>
-
-      {/* Consolidation Method (only for subsidiaries) */}
-      <TableCell data-testid={`company-consolidation-${company.id}`}>
-        {isSubsidiary ? (
-          <span className="text-gray-600">
-            {formatConsolidationMethod(company.consolidationMethod)}
-          </span>
         ) : (
           <span className="text-gray-400">—</span>
         )}

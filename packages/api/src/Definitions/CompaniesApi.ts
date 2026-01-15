@@ -11,7 +11,6 @@ import * as Schema from "effect/Schema"
 import {
   Company,
   CompanyId,
-  ConsolidationMethod,
   FiscalYearEnd
 } from "@accountability/core/Domains/Company"
 import { Organization, OrganizationId, OrganizationSettings } from "@accountability/core/Domains/Organization"
@@ -73,8 +72,7 @@ export class CreateCompanyRequest extends Schema.Class<CreateCompanyRequest>("Cr
   reportingCurrency: CurrencyCode,
   fiscalYearEnd: FiscalYearEnd,
   parentCompanyId: Schema.OptionFromNullOr(CompanyId),
-  ownershipPercentage: Schema.OptionFromNullOr(Percentage),
-  consolidationMethod: Schema.OptionFromNullOr(ConsolidationMethod)
+  ownershipPercentage: Schema.OptionFromNullOr(Percentage)
 }) {}
 
 /**
@@ -88,7 +86,6 @@ export class UpdateCompanyRequest extends Schema.Class<UpdateCompanyRequest>("Up
   fiscalYearEnd: Schema.OptionFromNullOr(FiscalYearEnd),
   parentCompanyId: Schema.OptionFromNullOr(CompanyId),
   ownershipPercentage: Schema.OptionFromNullOr(Percentage),
-  consolidationMethod: Schema.OptionFromNullOr(ConsolidationMethod),
   isActive: Schema.OptionFromNullOr(Schema.Boolean)
 }) {}
 

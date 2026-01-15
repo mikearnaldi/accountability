@@ -84,8 +84,7 @@ test.describe("Companies List Page", () => {
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
         parentCompanyId: null,
-        ownershipPercentage: null,
-        consolidationMethod: null
+        ownershipPercentage: null
       }
     })
     expect(createCompanyRes1.ok()).toBeTruthy()
@@ -103,8 +102,7 @@ test.describe("Companies List Page", () => {
         fiscalYearEnd: { month: 3, day: 31 },
         taxId: null,
         parentCompanyId: null,
-        ownershipPercentage: null,
-        consolidationMethod: null
+        ownershipPercentage: null
       }
     })
     expect(createCompanyRes2.ok()).toBeTruthy()
@@ -546,8 +544,7 @@ test.describe("Companies List Page", () => {
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
         parentCompanyId: null,
-        ownershipPercentage: null,
-        consolidationMethod: null
+        ownershipPercentage: null
       }
     })
     expect(createCompanyRes.ok()).toBeTruthy()
@@ -788,8 +785,7 @@ test.describe("Companies List Page", () => {
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
         parentCompanyId: null,
-        ownershipPercentage: null,
-        consolidationMethod: null
+        ownershipPercentage: null
       }
     })
     expect(createParentRes.ok()).toBeTruthy()
@@ -809,8 +805,7 @@ test.describe("Companies List Page", () => {
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
         parentCompanyId: parentData.id,
-        ownershipPercentage: 80,
-        consolidationMethod: "FullConsolidation"
+        ownershipPercentage: 80
       }
     })
     expect(createSubRes.ok()).toBeTruthy()
@@ -842,7 +837,6 @@ test.describe("Companies List Page", () => {
     await expect(page.locator('[data-testid="header-currency"]')).toBeVisible()
     await expect(page.locator('[data-testid="header-status"]')).toBeVisible()
     await expect(page.locator('[data-testid="header-ownership"]')).toBeVisible()
-    await expect(page.locator('[data-testid="header-consolidation"]')).toBeVisible()
 
     // 10. Should show parent company row
     await expect(page.locator(`[data-testid="company-row-${parentData.id}"]`)).toBeVisible()
@@ -850,19 +844,17 @@ test.describe("Companies List Page", () => {
     await expect(page.locator(`[data-testid="company-jurisdiction-${parentData.id}"]`)).toContainText("US")
     await expect(page.locator(`[data-testid="company-currency-${parentData.id}"]`)).toContainText("USD")
     await expect(page.locator(`[data-testid="company-status-${parentData.id}"]`)).toContainText("Active")
-    // Parent should not have ownership or consolidation method
+    // Parent should not have ownership percentage
     await expect(page.locator(`[data-testid="company-ownership-${parentData.id}"]`)).toContainText("—")
-    await expect(page.locator(`[data-testid="company-consolidation-${parentData.id}"]`)).toContainText("—")
 
-    // 11. Should show subsidiary company row with ownership and consolidation method
+    // 11. Should show subsidiary company row with ownership percentage
     await expect(page.locator(`[data-testid="company-row-${subData.id}"]`)).toBeVisible()
     await expect(page.locator(`[data-testid="company-name-${subData.id}"]`)).toContainText(subsidiaryName)
     await expect(page.locator(`[data-testid="company-jurisdiction-${subData.id}"]`)).toContainText("DE")
     await expect(page.locator(`[data-testid="company-currency-${subData.id}"]`)).toContainText("EUR")
     await expect(page.locator(`[data-testid="company-status-${subData.id}"]`)).toContainText("Active")
-    // Subsidiary should show ownership and consolidation method
+    // Subsidiary should show ownership percentage
     await expect(page.locator(`[data-testid="company-ownership-${subData.id}"]`)).toContainText("80%")
-    await expect(page.locator(`[data-testid="company-consolidation-${subData.id}"]`)).toContainText("Full Consolidation")
 
     // 12. Parent company should have expand/collapse button (since it has children)
     await expect(page.locator(`[data-testid="company-expand-${parentData.id}"]`)).toBeVisible()
@@ -924,8 +916,7 @@ test.describe("Companies List Page", () => {
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
         parentCompanyId: null,
-        ownershipPercentage: null,
-        consolidationMethod: null
+        ownershipPercentage: null
       }
     })
 
@@ -1024,8 +1015,7 @@ test.describe("Companies List Page", () => {
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
         parentCompanyId: null,
-        ownershipPercentage: null,
-        consolidationMethod: null
+        ownershipPercentage: null
       }
     })
     expect(createParentRes.ok()).toBeTruthy()
@@ -1045,8 +1035,7 @@ test.describe("Companies List Page", () => {
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
         parentCompanyId: parentData.id,
-        ownershipPercentage: 100,
-        consolidationMethod: "FullConsolidation"
+        ownershipPercentage: 100
       }
     })
     expect(createSubRes.ok()).toBeTruthy()

@@ -453,20 +453,18 @@ function JournalEntriesPage() {
               </p>
             </div>
 
-            {entries.length > 0 && (
-              <Button
-                icon={<Plus className="h-4 w-4" />}
-                data-testid="create-journal-entry-button"
-                onClick={() => {
-                  navigate({
-                    to: "/organizations/$organizationId/companies/$companyId/journal-entries/new",
-                    params: { organizationId: params.organizationId, companyId: params.companyId }
-                  })
-                }}
-              >
-                New Entry
-              </Button>
-            )}
+            <Button
+              icon={<Plus className="h-4 w-4" />}
+              data-testid="create-journal-entry-button"
+              onClick={() => {
+                navigate({
+                  to: "/organizations/$organizationId/companies/$companyId/journal-entries/new",
+                  params: { organizationId: params.organizationId, companyId: params.companyId }
+                })
+              }}
+            >
+              New Entry
+            </Button>
           </div>
         </div>
 

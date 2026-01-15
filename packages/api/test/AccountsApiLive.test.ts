@@ -95,7 +95,6 @@ const createTestCompany = (): Company => {
     fiscalYearEnd: FiscalYearEnd.make({ month: 12, day: 31 }),
     parentCompanyId: Option.none(),
     ownershipPercentage: Option.none(),
-    consolidationMethod: Option.none(),
     isActive: true,
     createdAt: timestampNow()
   })

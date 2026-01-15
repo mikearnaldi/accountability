@@ -10,11 +10,11 @@
  * - Hierarchy (optional):
  *   - Parent Company dropdown
  *   - Ownership % (required if parent selected)
- *   - Consolidation Method (Full/Equity/Cost/VIE)
+ *
+ * Note: Consolidation method is configured in Consolidation Groups, not on companies.
  *
  * Validation:
  * - Ownership requires parent
- * - Method requires ownership
  * - Cannot set company as own parent
  */
 
@@ -24,11 +24,6 @@ import { Input } from "@/components/ui/Input"
 import { CurrencySelect } from "@/components/ui/CurrencySelect"
 import { JurisdictionSelect, type JurisdictionOption } from "@/components/ui/JurisdictionSelect"
 import { FiscalYearEndPicker } from "@/components/ui/FiscalYearEndPicker"
-import {
-  ConsolidationMethodSelect,
-  getSuggestedMethod,
-  type ConsolidationMethodType
-} from "@/components/ui/ConsolidationMethodSelect"
 import { Button } from "@/components/ui/Button"
 
 // =============================================================================
@@ -61,7 +56,6 @@ export interface CompanyFormData {
   }
   readonly parentCompanyId: string | null
   readonly ownershipPercentage: number | null
-  readonly consolidationMethod: ConsolidationMethodType | null
 }
 
 interface FieldErrors {
@@ -71,7 +65,6 @@ interface FieldErrors {
   functionalCurrency?: string
   reportingCurrency?: string
   ownershipPercentage?: string
-  consolidationMethod?: string
 }
 
 interface CompanyFormProps {
@@ -134,7 +127,6 @@ export function CompanyForm({
   // Hierarchy section
   const [parentCompanyId, setParentCompanyId] = useState<string | null>(null)
   const [ownershipPercentage, setOwnershipPercentage] = useState<number | null>(null)
-  const [consolidationMethod, setConsolidationMethod] = useState<ConsolidationMethodType | null>(null)
 
   // Validation state
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
@@ -218,14 +210,6 @@ export function CompanyForm({
         }
         return undefined
 
-      case "consolidationMethod":
-        if (parentCompanyId !== null && ownershipPercentage !== null && ownershipPercentage > 0) {
-          if (!value) {
-            return "Consolidation method is required for subsidiaries"
-          }
-        }
-        return undefined
-
       default:
         return undefined
     }
@@ -252,9 +236,6 @@ export function CompanyForm({
     const ownershipError = validateField("ownershipPercentage", ownershipPercentage)
     if (ownershipError) errors.ownershipPercentage = ownershipError
 
-    const consolidationError = validateField("consolidationMethod", consolidationMethod)
-    if (consolidationError) errors.consolidationMethod = consolidationError
-
     setFieldErrors(errors)
     return Object.keys(errors).length === 0
   }
@@ -271,13 +252,6 @@ export function CompanyForm({
 
   const handleOwnershipChange = (value: number | null) => {
     setOwnershipPercentage(value)
-    // Auto-suggest consolidation method based on ownership
-    if (value !== null && value > 0) {
-      const suggested = getSuggestedMethod(value)
-      if (suggested) {
-        setConsolidationMethod(suggested)
-      }
-    }
   }
 
   const handleParentChange = (value: string | null) => {
@@ -285,10 +259,9 @@ export function CompanyForm({
     if (value === null) {
       // Clear subsidiary fields when parent is unselected
       setOwnershipPercentage(null)
-      setConsolidationMethod(null)
       // Clear related errors
       setFieldErrors((prev) => {
-        const { ownershipPercentage: _, consolidationMethod: __, ...rest } = prev
+        const { ownershipPercentage: _, ...rest } = prev
         return rest
       })
     }
@@ -313,8 +286,7 @@ export function CompanyForm({
       jurisdiction: true,
       functionalCurrency: true,
       reportingCurrency: true,
-      ownershipPercentage: true,
-      consolidationMethod: true
+      ownershipPercentage: true
     })
 
     if (!validateForm()) {
@@ -333,8 +305,7 @@ export function CompanyForm({
         day: fiscalYearEndDay
       },
       parentCompanyId,
-      ownershipPercentage,
-      consolidationMethod
+      ownershipPercentage
     }
 
     await onSubmit(formData)
@@ -544,81 +515,57 @@ export function CompanyForm({
                 Subsidiary Configuration
               </p>
 
-              <div className="grid grid-cols-2 gap-4">
-                {/* Ownership Percentage */}
-                <div>
-                  <label
-                    htmlFor="company-ownership"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    Ownership %
-                  </label>
-                  <input
-                    id="company-ownership"
-                    type="number"
-                    min="0.01"
-                    max="100"
-                    step="0.01"
-                    required
-                    value={ownershipPercentage ?? ""}
-                    onChange={(e) => {
-                      const value = e.target.value
-                      handleOwnershipChange(value === "" ? null : Number(value))
-                    }}
-                    onBlur={() => handleFieldBlur("ownershipPercentage", ownershipPercentage)}
-                    disabled={isSubmitting}
-                    placeholder="e.g. 100"
-                    className={clsx(
-                      "w-full rounded-lg border px-3 py-2 text-gray-900 placeholder-gray-500",
-                      "focus:outline-none focus:ring-2 focus:ring-offset-0",
-                      "disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed",
-                      touched.ownershipPercentage && fieldErrors.ownershipPercentage
-                        ? "border-red-300 focus:border-red-500 focus:ring-red-500"
-                        : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                    )}
-                    aria-describedby={
-                      touched.ownershipPercentage && fieldErrors.ownershipPercentage
-                        ? "company-ownership-error"
-                        : undefined
-                    }
-                    aria-invalid={touched.ownershipPercentage && Boolean(fieldErrors.ownershipPercentage)}
-                    data-testid="company-ownership-input"
-                  />
-                  {touched.ownershipPercentage && fieldErrors.ownershipPercentage && (
-                    <p
-                      id="company-ownership-error"
-                      className="mt-1 text-sm text-red-600"
-                      data-testid="company-ownership-error"
-                    >
-                      {fieldErrors.ownershipPercentage}
-                    </p>
-                  )}
-                </div>
-
-                {/* Consolidation Method */}
-                <ConsolidationMethodSelect
-                  id="company-consolidation"
-                  label="Consolidation Method"
+              {/* Ownership Percentage */}
+              <div>
+                <label
+                  htmlFor="company-ownership"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Ownership %
+                </label>
+                <input
+                  id="company-ownership"
+                  type="number"
+                  min="0.01"
+                  max="100"
+                  step="0.01"
                   required
-                  value={consolidationMethod ?? ""}
+                  value={ownershipPercentage ?? ""}
                   onChange={(e) => {
                     const value = e.target.value
-                    if (
-                      value === "" ||
-                      value === "FullConsolidation" ||
-                      value === "EquityMethod" ||
-                      value === "CostMethod" ||
-                      value === "VariableInterestEntity"
-                    ) {
-                      setConsolidationMethod(value === "" ? null : value)
-                    }
+                    handleOwnershipChange(value === "" ? null : Number(value))
                   }}
-                  onBlur={() => handleFieldBlur("consolidationMethod", consolidationMethod)}
+                  onBlur={() => handleFieldBlur("ownershipPercentage", ownershipPercentage)}
                   disabled={isSubmitting}
-                  ownershipPercentage={ownershipPercentage}
-                  data-testid="company-consolidation-select"
-                  {...(touched.consolidationMethod && fieldErrors.consolidationMethod ? { error: fieldErrors.consolidationMethod } : {})}
+                  placeholder="e.g. 100"
+                  className={clsx(
+                    "w-full rounded-lg border px-3 py-2 text-gray-900 placeholder-gray-500",
+                    "focus:outline-none focus:ring-2 focus:ring-offset-0",
+                    "disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed",
+                    touched.ownershipPercentage && fieldErrors.ownershipPercentage
+                      ? "border-red-300 focus:border-red-500 focus:ring-red-500"
+                      : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                  )}
+                  aria-describedby={
+                    touched.ownershipPercentage && fieldErrors.ownershipPercentage
+                      ? "company-ownership-error"
+                      : undefined
+                  }
+                  aria-invalid={touched.ownershipPercentage && Boolean(fieldErrors.ownershipPercentage)}
+                  data-testid="company-ownership-input"
                 />
+                {touched.ownershipPercentage && fieldErrors.ownershipPercentage && (
+                  <p
+                    id="company-ownership-error"
+                    className="mt-1 text-sm text-red-600"
+                    data-testid="company-ownership-error"
+                  >
+                    {fieldErrors.ownershipPercentage}
+                  </p>
+                )}
+                <p className="mt-1 text-sm text-gray-500">
+                  Consolidation method is configured in Consolidation Groups
+                </p>
               </div>
             </div>
           )}
