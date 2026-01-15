@@ -15,6 +15,7 @@
 # Each completed story = one atomic commit for easy rollback.
 
 set -e
+set -o pipefail  # Propagate exit status through pipelines (important for tee)
 
 # Parse arguments
 RUN_E2E=false

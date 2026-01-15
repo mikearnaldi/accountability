@@ -18,6 +18,7 @@
 # COMMITS ARE HANDLED BY THIS SCRIPT, NOT THE AGENT.
 
 set -e
+set -o pipefail  # Propagate exit status through pipelines (important for tee)
 
 # Parse arguments
 RUN_E2E=false
