@@ -652,16 +652,16 @@ function AccountTreeRow({
         <td className="px-4 py-3" data-testid={`account-name-${account.accountNumber}`}>
           <div
             className="flex items-center"
-            style={{ paddingLeft: `${depth * 24}px` }}
+            style={{ paddingLeft: `${depth * 20}px` }}
           >
             {hasChildren ? (
               <button
                 onClick={() => onToggleExpand(account.id)}
                 data-testid={`account-expand-${account.accountNumber}`}
-                className="mr-2 flex h-5 w-5 items-center justify-center rounded text-gray-400 hover:bg-gray-200 hover:text-gray-600"
+                className="mr-1 flex h-4 w-4 items-center justify-center rounded text-gray-400 hover:bg-gray-200 hover:text-gray-600"
               >
                 <svg
-                  className={`h-4 w-4 transition-transform ${isExpanded ? "rotate-90" : ""}`}
+                  className={`h-3 w-3 transition-transform ${isExpanded ? "rotate-90" : ""}`}
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -674,9 +674,9 @@ function AccountTreeRow({
                   />
                 </svg>
               </button>
-            ) : (
-              <span className="mr-2 w-5" />
-            )}
+            ) : depth === 0 ? (
+              <span className="mr-1 w-4" />
+            ) : null}
             <span className="mr-2 font-mono text-sm text-gray-500" data-testid={`account-number-${account.accountNumber}`}>
               {account.accountNumber}
             </span>
