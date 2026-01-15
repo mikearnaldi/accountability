@@ -1,9 +1,10 @@
 import { createFileRoute, redirect, useRouter, Link } from "@tanstack/react-router"
 import { createServerFn } from "@tanstack/react-start"
 import { getCookie } from "@tanstack/react-start/server"
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { api } from "@/api/client"
 import { createServerApi } from "@/api/server"
+import { AppLayout } from "@/components/layout/AppLayout"
 
 // =============================================================================
 // Server Functions: Fetch company from API with cookie auth
@@ -16,15 +17,15 @@ const fetchCompanyData = createServerFn({ method: "GET" })
     const sessionToken = getCookie("accountability_session")
 
     if (!sessionToken) {
-      return { company: null, organization: null, subsidiaries: [], parentCompany: null, error: "unauthorized" as const }
+      return { company: null, organization: null, subsidiaries: [], parentCompany: null, allCompanies: [], error: "unauthorized" as const }
     }
 
     try {
       // Create server API client with dynamic base URL from request context
       const serverApi = createServerApi()
       const Authorization = `Bearer ${sessionToken}`
-      // Fetch company and organization in parallel using api client with Bearer auth
-      const [companyResult, orgResult] = await Promise.all([
+      // Fetch company, organization, and all companies in parallel
+      const [companyResult, orgResult, allCompaniesResult] = await Promise.all([
         serverApi.GET("/api/v1/companies/{id}", {
           params: { path: { id: data.companyId } },
           headers: { Authorization }
@@ -32,19 +33,23 @@ const fetchCompanyData = createServerFn({ method: "GET" })
         serverApi.GET("/api/v1/organizations/{id}", {
           params: { path: { id: data.organizationId } },
           headers: { Authorization }
+        }),
+        serverApi.GET("/api/v1/companies", {
+          params: { query: { organizationId: data.organizationId } },
+          headers: { Authorization }
         })
       ])
 
       if (companyResult.error) {
         // Check for NotFoundError using _tag (from Effect Schema TaggedError)
         if (typeof companyResult.error === "object" && "_tag" in companyResult.error && companyResult.error._tag === "NotFoundError") {
-          return { company: null, organization: null, subsidiaries: [], parentCompany: null, error: "not_found" as const }
+          return { company: null, organization: null, subsidiaries: [], parentCompany: null, allCompanies: [], error: "not_found" as const }
         }
-        return { company: null, organization: null, subsidiaries: [], parentCompany: null, error: "failed" as const }
+        return { company: null, organization: null, subsidiaries: [], parentCompany: null, allCompanies: [], error: "failed" as const }
       }
 
       if (orgResult.error) {
-        return { company: null, organization: null, subsidiaries: [], parentCompany: null, error: "failed" as const }
+        return { company: null, organization: null, subsidiaries: [], parentCompany: null, allCompanies: [], error: "failed" as const }
       }
 
       // Fetch subsidiaries (companies with this company as parent)
@@ -76,10 +81,11 @@ const fetchCompanyData = createServerFn({ method: "GET" })
         organization: orgResult.data,
         subsidiaries: subsidiariesResult.data?.companies ?? [],
         parentCompany,
+        allCompanies: allCompaniesResult.data?.companies ?? [],
         error: null
       }
     } catch {
-      return { company: null, organization: null, subsidiaries: [], parentCompany: null, error: "failed" as const }
+      return { company: null, organization: null, subsidiaries: [], parentCompany: null, allCompanies: [], error: "failed" as const }
     }
   })
 
@@ -115,7 +121,8 @@ export const Route = createFileRoute("/organizations/$organizationId/companies/$
       company: result.company,
       organization: result.organization,
       subsidiaries: result.subsidiaries,
-      parentCompany: result.parentCompany
+      parentCompany: result.parentCompany,
+      allCompanies: result.allCompanies
     }
   },
   errorComponent: ({ error }) => (
@@ -181,20 +188,30 @@ interface Company {
 // =============================================================================
 
 function CompanyDetailsPage() {
+  const context = Route.useRouteContext()
   const loaderData = Route.useLoaderData()
   /* eslint-disable @typescript-eslint/consistent-type-assertions -- Type assertions needed for loader data typing */
   const company = loaderData.company as Company | null
   const organization = loaderData.organization as {
     readonly id: string
     readonly name: string
+    readonly reportingCurrency: string
   } | null
   const subsidiaries = loaderData.subsidiaries as readonly Company[]
   const parentCompany = loaderData.parentCompany as Company | null
+  const allCompanies = loaderData.allCompanies as readonly Company[]
   /* eslint-enable @typescript-eslint/consistent-type-assertions */
   const params = Route.useParams()
   const router = useRouter()
+  const user = context.user
   const [isEditing, setIsEditing] = useState(false)
   const [isToggling, setIsToggling] = useState(false)
+
+  // Map companies for sidebar
+  const companiesForSidebar = useMemo(
+    () => allCompanies.map((c) => ({ id: c.id, name: c.name })),
+    [allCompanies]
+  )
 
   if (!company || !organization) {
     return null
@@ -210,6 +227,18 @@ function CompanyDetailsPage() {
   // Determine hierarchy position
   const isParentCompany = subsidiaries.length > 0
   const isSubsidiary = !!company.parentCompanyId
+
+  // Breadcrumb items
+  const breadcrumbItems = [
+    {
+      label: "Companies",
+      href: `/organizations/${params.organizationId}/companies`
+    },
+    {
+      label: company.name,
+      href: `/organizations/${params.organizationId}/companies/${params.companyId}`
+    }
+  ]
 
   // Handle activate/deactivate
   const handleToggleActive = async () => {
@@ -269,43 +298,13 @@ function CompanyDetailsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50" data-testid="company-details-page">
-      {/* Header */}
-      <header className="border-b border-gray-200 bg-white">
-        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-4">
-            <Link to="/" className="text-xl font-bold text-gray-900">
-              Accountability
-            </Link>
-            <span className="text-gray-400">/</span>
-            <Link to="/organizations" className="text-xl text-gray-600 hover:text-gray-900">
-              Organizations
-            </Link>
-            <span className="text-gray-400">/</span>
-            <Link
-              to="/organizations/$organizationId"
-              params={{ organizationId: params.organizationId }}
-              className="text-xl text-gray-600 hover:text-gray-900"
-            >
-              {organization.name}
-            </Link>
-            <span className="text-gray-400">/</span>
-            <Link
-              to="/organizations/$organizationId/companies"
-              params={{ organizationId: params.organizationId }}
-              className="text-xl text-gray-600 hover:text-gray-900"
-            >
-              Companies
-            </Link>
-            <span className="text-gray-400">/</span>
-            <h1 className="text-xl font-semibold text-gray-900">{company.name}</h1>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="space-y-6">
+    <AppLayout
+      user={user}
+      currentOrganization={organization}
+      breadcrumbItems={breadcrumbItems}
+      companies={companiesForSidebar}
+    >
+      <div className="space-y-6" data-testid="company-details-page">
           {/* Company Header Card with Name, Status Badge, and Jurisdiction */}
           <div className="rounded-lg border border-gray-200 bg-white p-6" data-testid="company-header-card">
             <div className="flex items-start justify-between">
@@ -587,6 +586,11 @@ function CompanyDetailsPage() {
 
               {/* Reports */}
               <NavigationCard
+                to="/organizations/$organizationId/companies/$companyId/reports"
+                params={{
+                  organizationId: params.organizationId,
+                  companyId: params.companyId
+                }}
                 title="Reports"
                 description="Financial statements and reports"
                 testId="nav-reports"
@@ -633,8 +637,7 @@ function CompanyDetailsPage() {
             </div>
           </div>
         </div>
-      </main>
-    </div>
+    </AppLayout>
   )
 }
 
@@ -938,6 +941,7 @@ function EditCompanyModal({
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
+              data-testid="company-form-cancel-button"
               className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 font-medium text-gray-700 hover:bg-gray-50 disabled:bg-gray-50 disabled:text-gray-400"
             >
               Cancel

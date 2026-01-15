@@ -11,3 +11,8 @@
 **Task**: 
 **Status**: complete
 ---
+
+## Iteration 3 - 2026-01-15 14:03
+**Task**: Fixed flaky E2E tests by adding explicit modal/form waits after button clicks and enabling test retries. The key changes were:
+**Status**: complete
+---

@@ -324,7 +324,7 @@ test.describe("Company Details Page", () => {
     await page.goto(`/organizations/${orgData.id}/companies/${companyData.id}`)
 
     // 8. Click Edit button
-    await page.getByRole("button", { name: /Edit/i }).click()
+    await page.getByTestId("edit-company-button").click()
 
     // 9. Should show edit form modal
     await expect(page.getByRole("heading", { name: "Edit Company" })).toBeVisible()
@@ -444,13 +444,16 @@ test.describe("Company Details Page", () => {
     await page.goto(`/organizations/${orgData.id}/companies/${companyData.id}`)
 
     // 7. Click Edit button
-    await page.getByRole("button", { name: /Edit/i }).click()
+    await page.getByTestId("edit-company-button").click()
 
-    // 8. Clear the name field and submit (whitespace only)
+    // 8. Wait for modal to appear
+    await expect(page.getByRole("heading", { name: "Edit Company" })).toBeVisible()
+
+    // 9. Clear the name field and submit (whitespace only)
     await page.fill("#edit-company-name", "   ")
     await page.click('button[type="submit"]')
 
-    // 9. Should show validation error
+    // 10. Should show validation error
     await expect(page.getByRole("alert")).toBeVisible()
     await expect(page.getByText(/Company name is required/i)).toBeVisible()
   })
@@ -531,13 +534,13 @@ test.describe("Company Details Page", () => {
     await page.goto(`/organizations/${orgData.id}/companies/${companyData.id}`)
 
     // 7. Click Edit button
-    await page.getByRole("button", { name: /Edit/i }).click()
+    await page.getByTestId("edit-company-button").click()
 
     // 8. Modal should be visible
     await expect(page.getByRole("heading", { name: "Edit Company" })).toBeVisible()
 
     // 9. Click cancel
-    await page.getByRole("button", { name: /Cancel/i }).click()
+    await page.getByTestId("company-form-cancel-button").click()
 
     // 10. Modal should be hidden
     await expect(page.getByRole("heading", { name: "Edit Company" })).not.toBeVisible()
@@ -630,13 +633,13 @@ test.describe("Company Details Page", () => {
     await expect(page.getByRole("link", { name: orgName })).toBeVisible()
 
     // 10. Should show Companies link in breadcrumb
-    await expect(page.getByRole("link", { name: "Companies" })).toBeVisible()
+    await expect(page.getByTestId("breadcrumbs").getByRole("link", { name: "Companies" })).toBeVisible()
 
     // 11. Should show company name in main content
     await expect(page.getByRole("main").getByRole("heading", { name: companyName })).toBeVisible()
 
-    // 12. Click Companies link to navigate back to companies list
-    await page.getByRole("link", { name: "Companies" }).click()
+    // 12. Click Companies link in breadcrumb to navigate back to companies list
+    await page.getByTestId("breadcrumbs").getByRole("link", { name: "Companies" }).click()
 
     // 13. Should be on companies list page
     await page.waitForURL(`/organizations/${orgData.id}/companies`)

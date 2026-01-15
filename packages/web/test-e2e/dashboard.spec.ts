@@ -276,20 +276,23 @@ test.describe("Dashboard - Sidebar Navigation", () => {
     await page.goto("/")
 
     // Wait for sidebar to load
-    await expect(page.locator('[data-testid="sidebar"]')).toBeVisible()
+    const sidebar = page.locator('[data-testid="sidebar"]')
+    await expect(sidebar).toBeVisible()
+
+    // Verify sidebar is initially expanded
+    await expect(sidebar).toHaveClass(/w-64/)
 
     // Click collapse toggle
     await page.locator('[data-testid="sidebar-collapse-toggle"]').click()
 
-    // Sidebar should be collapsed (narrower width)
-    const sidebar = page.locator('[data-testid="sidebar"]')
-    await expect(sidebar).toHaveClass(/w-16/)
+    // Sidebar should be collapsed (narrower width) - wait for state update
+    await expect(sidebar).toHaveClass(/w-16/, { timeout: 10000 })
 
     // Click again to expand
     await page.locator('[data-testid="sidebar-collapse-toggle"]').click()
 
-    // Sidebar should be expanded
-    await expect(sidebar).toHaveClass(/w-64/)
+    // Sidebar should be expanded - wait for state update
+    await expect(sidebar).toHaveClass(/w-64/, { timeout: 10000 })
   })
 
   test("should show sidebar logo that links to home", async ({ page }) => {

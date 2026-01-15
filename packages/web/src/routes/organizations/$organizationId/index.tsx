@@ -230,6 +230,7 @@ function OrganizationDetailsPage() {
               </div>
               <button
                 onClick={() => setIsEditing(true)}
+                data-testid="edit-organization-button"
                 className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
               >
                 Edit
@@ -443,6 +444,7 @@ function EditOrganizationModal({
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
+              data-testid="org-form-cancel-button"
               className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 font-medium text-gray-700 hover:bg-gray-50 disabled:bg-gray-50 disabled:text-gray-400"
             >
               Cancel

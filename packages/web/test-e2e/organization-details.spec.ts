@@ -324,8 +324,8 @@ test.describe("Organization Details Page", () => {
     // 6. Navigate to organization details page
     await page.goto(`/organizations/${orgData.id}`)
 
-    // 7. Click Edit button
-    await page.getByRole("button", { name: /Edit/i }).click()
+    // 7. Click Edit button (use testId to avoid ambiguity)
+    await page.getByTestId("edit-organization-button").click()
 
     // 8. Should show edit form modal
     await expect(page.getByRole("heading", { name: "Edit Organization" })).toBeVisible()
@@ -405,14 +405,17 @@ test.describe("Organization Details Page", () => {
     // 5. Navigate to organization details page
     await page.goto(`/organizations/${orgData.id}`)
 
-    // 6. Click Edit button
-    await page.getByRole("button", { name: /Edit/i }).click()
+    // 6. Click Edit button (use testId to avoid ambiguity)
+    await page.getByTestId("edit-organization-button").click()
 
-    // 7. Clear the name field and submit
+    // 7. Wait for modal to appear
+    await expect(page.getByRole("heading", { name: "Edit Organization" })).toBeVisible()
+
+    // 8. Clear the name field and submit
     await page.fill("#edit-org-name", "   ") // Just whitespace
     await page.click('button[type="submit"]')
 
-    // 8. Should show validation error
+    // 9. Should show validation error
     await expect(page.getByRole("alert")).toBeVisible()
     await expect(page.getByText(/Organization name is required/i)).toBeVisible()
   })
@@ -473,13 +476,13 @@ test.describe("Organization Details Page", () => {
     await page.goto(`/organizations/${orgData.id}`)
 
     // 6. Click Edit button
-    await page.getByRole("button", { name: /Edit/i }).click()
+    await page.getByTestId("edit-organization-button").click()
 
     // 7. Modal should be visible
     await expect(page.getByRole("heading", { name: "Edit Organization" })).toBeVisible()
 
     // 8. Click cancel
-    await page.getByRole("button", { name: /Cancel/i }).click()
+    await page.getByTestId("org-form-cancel-button").click()
 
     // 9. Modal should be hidden
     await expect(page.getByRole("heading", { name: "Edit Organization" })).not.toBeVisible()

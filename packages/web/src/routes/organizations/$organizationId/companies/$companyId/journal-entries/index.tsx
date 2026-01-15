@@ -421,6 +421,12 @@ function JournalEntriesPage() {
     return null
   }
 
+  // Pass current company to sidebar for quick actions
+  const companiesForSidebar = useMemo(
+    () => [{ id: company.id, name: company.name }],
+    [company.id, company.name]
+  )
+
   // Breadcrumb items for Journal Entries page
   const breadcrumbItems = [
     {
@@ -442,6 +448,7 @@ function JournalEntriesPage() {
       user={user}
       currentOrganization={organization}
       breadcrumbItems={breadcrumbItems}
+      companies={companiesForSidebar}
     >
       <div data-testid="journal-entries-page">
         {/* Page Header */}

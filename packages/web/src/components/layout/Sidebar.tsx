@@ -13,7 +13,7 @@
 
 import { Link, useLocation, useNavigate } from "@tanstack/react-router"
 import { clsx } from "clsx"
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import {
   LayoutDashboard,
   Building2,
@@ -27,7 +27,14 @@ import {
   Menu,
   X,
   Building,
-  Check
+  Check,
+  Plus,
+  FileText,
+  CreditCard,
+  ChevronDown,
+  BarChart3,
+  PieChart,
+  DollarSign
 } from "lucide-react"
 import type { Organization } from "./OrganizationSelector.tsx"
 
@@ -35,11 +42,21 @@ import type { Organization } from "./OrganizationSelector.tsx"
 // Types
 // =============================================================================
 
+interface NavSubItem {
+  readonly label: string
+  readonly href: string
+  readonly icon: React.ComponentType<{ readonly className?: string }>
+  readonly testId: string
+  readonly available?: boolean
+}
+
 interface NavItem {
   readonly label: string
   readonly href: string
   readonly icon: React.ComponentType<{ readonly className?: string }>
   readonly testId: string
+  /** Optional submenu items for collapsible sections */
+  readonly subItems?: readonly NavSubItem[]
 }
 
 interface SidebarProps {
@@ -47,6 +64,15 @@ interface SidebarProps {
   readonly onToggleCollapse: () => void
   /** Currently selected organization (for org-scoped navigation) */
   readonly currentOrganization?: Organization | null
+  /** Companies in the current organization (for creating journal entries, accounts) */
+  readonly companies?: readonly { readonly id: string; readonly name: string }[]
+}
+
+interface QuickActionItem {
+  readonly label: string
+  readonly href: string
+  readonly icon: React.ComponentType<{ readonly className?: string }>
+  readonly testId: string
 }
 
 // =============================================================================
@@ -90,6 +116,49 @@ function getNavItems(organizationId?: string): readonly NavItem[] {
       testId: "nav-companies"
     },
     {
+      label: "Reports",
+      href: `/organizations/${organizationId}/reports`,
+      icon: BarChart3,
+      testId: "nav-reports",
+      subItems: [
+        {
+          label: "Trial Balance",
+          href: `/organizations/${organizationId}/reports`,
+          icon: FileText,
+          testId: "nav-reports-trial-balance",
+          available: true
+        },
+        {
+          label: "Balance Sheet",
+          href: `/organizations/${organizationId}/reports`,
+          icon: BarChart3,
+          testId: "nav-reports-balance-sheet",
+          available: false
+        },
+        {
+          label: "Income Statement",
+          href: `/organizations/${organizationId}/reports`,
+          icon: TrendingUp,
+          testId: "nav-reports-income-statement",
+          available: false
+        },
+        {
+          label: "Cash Flow",
+          href: `/organizations/${organizationId}/reports`,
+          icon: DollarSign,
+          testId: "nav-reports-cash-flow",
+          available: false
+        },
+        {
+          label: "Equity Statement",
+          href: `/organizations/${organizationId}/reports`,
+          icon: PieChart,
+          testId: "nav-reports-equity-statement",
+          available: false
+        }
+      ]
+    },
+    {
       label: "Exchange Rates",
       href: `/organizations/${organizationId}/exchange-rates`,
       icon: TrendingUp,
@@ -123,11 +192,260 @@ function getNavItems(organizationId?: string): readonly NavItem[] {
 }
 
 // =============================================================================
+// Quick Action Menu Component
+// =============================================================================
+
+interface QuickActionMenuProps {
+  readonly organizationId: string | undefined
+  readonly companies?: readonly { readonly id: string; readonly name: string }[]
+  readonly isCollapsed: boolean
+}
+
+function QuickActionMenu({ organizationId, companies = [], isCollapsed }: QuickActionMenuProps) {
+  const [isOpen, setIsOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && event.target instanceof Node && !menuRef.current.contains(event.target)) {
+        setIsOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
+
+  // Can't show actions without an organization
+  if (!organizationId) return null
+
+  // Get the first company for journal entry and account actions
+  const firstCompany = companies[0]
+
+  const actions: QuickActionItem[] = [
+    // Journal Entry - needs a company
+    ...(firstCompany
+      ? [
+          {
+            label: "Journal Entry",
+            href: `/organizations/${organizationId}/companies/${firstCompany.id}/journal-entries/new`,
+            icon: FileText,
+            testId: "quick-action-journal-entry"
+          }
+        ]
+      : []),
+    {
+      label: "Company",
+      href: `/organizations/${organizationId}/companies`,
+      icon: Building,
+      testId: "quick-action-company"
+    },
+    // Account - needs a company
+    ...(firstCompany
+      ? [
+          {
+            label: "Account",
+            href: `/organizations/${organizationId}/companies/${firstCompany.id}/accounts/new`,
+            icon: CreditCard,
+            testId: "quick-action-account"
+          }
+        ]
+      : []),
+    {
+      label: "Exchange Rate",
+      href: `/organizations/${organizationId}/exchange-rates`,
+      icon: TrendingUp,
+      testId: "quick-action-exchange-rate"
+    }
+  ]
+
+  return (
+    <div ref={menuRef} className="relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        data-testid="quick-action-button"
+        className={clsx(
+          "flex items-center gap-2 w-full px-3 py-2.5 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors",
+          isCollapsed && "justify-center"
+        )}
+        title={isCollapsed ? "+ New" : undefined}
+      >
+        <Plus className="h-5 w-5 flex-shrink-0" />
+        {!isCollapsed && (
+          <>
+            <span className="flex-1 text-left">New</span>
+            <ChevronDown
+              className={clsx("h-4 w-4 transition-transform", isOpen && "rotate-180")}
+            />
+          </>
+        )}
+      </button>
+
+      {/* Dropdown Menu */}
+      {isOpen && (
+        <div
+          className={clsx(
+            "absolute z-50 mt-1 bg-white rounded-lg border border-gray-200 shadow-lg py-1",
+            isCollapsed ? "left-full ml-2 top-0 w-48" : "left-0 right-0"
+          )}
+          data-testid="quick-action-menu"
+        >
+          {actions.map((action) => (
+            <Link
+              key={action.testId}
+              to={action.href}
+              data-testid={action.testId}
+              onClick={() => setIsOpen(false)}
+              className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
+            >
+              <action.icon className="h-4 w-4 text-gray-500" />
+              <span>{action.label}</span>
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// =============================================================================
+// Nav Item Component (supports submenus)
+// =============================================================================
+
+interface NavItemComponentProps {
+  readonly item: NavItem
+  readonly isCollapsed: boolean
+  readonly currentOrganization?: Organization | null | undefined
+  readonly isMobile?: boolean
+  readonly onNavigate?: () => void
+}
+
+function NavItemComponent({ item, isCollapsed, currentOrganization, isMobile, onNavigate }: NavItemComponentProps) {
+  const location = useLocation()
+  const [isExpanded, setIsExpanded] = useState(false)
+
+  // Determine if this item or any subitem is active
+  let isActive = false
+  if (item.href === "/" || item.href === `/organizations/${currentOrganization?.id}/dashboard`) {
+    isActive = location.pathname === item.href
+  } else {
+    isActive = location.pathname.startsWith(item.href)
+  }
+
+  // Auto-expand if any subitem is active
+  const hasSubItems = item.subItems && item.subItems.length > 0
+  const isSubItemActive = hasSubItems && location.pathname.startsWith(item.href)
+
+  // Auto-expand the section when on a subitem page
+  useEffect(() => {
+    if (isSubItemActive && !isCollapsed) {
+      setIsExpanded(true)
+    }
+  }, [isSubItemActive, isCollapsed])
+
+  // If no subitems, render a simple link
+  if (!hasSubItems) {
+    return (
+      <Link
+        to={item.href}
+        data-testid={isMobile ? `mobile-${item.testId}` : item.testId}
+        onClick={onNavigate}
+        className={clsx(
+          "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors",
+          isActive
+            ? "bg-blue-50 text-blue-700 font-medium"
+            : "text-gray-600 hover:bg-gray-100 hover:text-gray-900",
+          isCollapsed && "justify-center"
+        )}
+        title={isCollapsed ? item.label : undefined}
+      >
+        <item.icon className="h-5 w-5 flex-shrink-0" />
+        {!isCollapsed && <span>{item.label}</span>}
+      </Link>
+    )
+  }
+
+  // Render expandable section with subitems
+  return (
+    <div>
+      {/* Parent item (clickable to expand/collapse) */}
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        data-testid={isMobile ? `mobile-${item.testId}` : item.testId}
+        className={clsx(
+          "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors w-full",
+          isActive
+            ? "bg-blue-50 text-blue-700 font-medium"
+            : "text-gray-600 hover:bg-gray-100 hover:text-gray-900",
+          isCollapsed && "justify-center"
+        )}
+        title={isCollapsed ? item.label : undefined}
+      >
+        <item.icon className="h-5 w-5 flex-shrink-0" />
+        {!isCollapsed && (
+          <>
+            <span className="flex-1 text-left">{item.label}</span>
+            <ChevronDown
+              className={clsx(
+                "h-4 w-4 transition-transform",
+                isExpanded && "rotate-180"
+              )}
+            />
+          </>
+        )}
+      </button>
+
+      {/* Subitems (expandable) */}
+      {isExpanded && !isCollapsed && (
+        <div className="ml-4 mt-1 space-y-1 border-l border-gray-200 pl-3">
+          {item.subItems?.map((subItem) => {
+            const subIsActive = location.pathname.includes(subItem.testId.replace("nav-reports-", ""))
+
+            // If not available, show as disabled
+            if (subItem.available === false) {
+              return (
+                <div
+                  key={subItem.testId}
+                  data-testid={isMobile ? `mobile-${subItem.testId}` : subItem.testId}
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-gray-400 cursor-not-allowed"
+                  title="Coming soon"
+                >
+                  <subItem.icon className="h-4 w-4 flex-shrink-0" />
+                  <span>{subItem.label}</span>
+                  <span className="ml-auto text-xs bg-gray-100 px-1.5 py-0.5 rounded text-gray-500">Soon</span>
+                </div>
+              )
+            }
+
+            return (
+              <Link
+                key={subItem.testId}
+                to={subItem.href}
+                data-testid={isMobile ? `mobile-${subItem.testId}` : subItem.testId}
+                onClick={onNavigate}
+                className={clsx(
+                  "flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors",
+                  subIsActive
+                    ? "text-blue-700 font-medium"
+                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                )}
+              >
+                <subItem.icon className="h-4 w-4 flex-shrink-0" />
+                <span>{subItem.label}</span>
+              </Link>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// =============================================================================
 // Sidebar Component
 // =============================================================================
 
-export function Sidebar({ isCollapsed, onToggleCollapse, currentOrganization }: SidebarProps) {
-  const location = useLocation()
+export function Sidebar({ isCollapsed, onToggleCollapse, currentOrganization, companies = [] }: SidebarProps) {
   const navItems = getNavItems(currentOrganization?.id)
 
   return (
@@ -179,38 +497,27 @@ export function Sidebar({ isCollapsed, onToggleCollapse, currentOrganization }: 
           </div>
         )}
 
+        {/* Quick Action Menu */}
+        {currentOrganization && (
+          <div className="px-3 py-3 border-b border-gray-100">
+            <QuickActionMenu
+              organizationId={currentOrganization.id}
+              companies={companies}
+              isCollapsed={isCollapsed}
+            />
+          </div>
+        )}
+
         {/* Navigation */}
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {navItems.map((item) => {
-            // Determine if this item is active
-            let isActive = false
-            if (item.href === "/" || item.href === `/organizations/${currentOrganization?.id}/dashboard`) {
-              // Dashboard: exact match
-              isActive = location.pathname === item.href
-            } else {
-              // Other items: prefix match
-              isActive = location.pathname.startsWith(item.href)
-            }
-
-            return (
-              <Link
-                key={item.href}
-                to={item.href}
-                data-testid={item.testId}
-                className={clsx(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors",
-                  isActive
-                    ? "bg-blue-50 text-blue-700 font-medium"
-                    : "text-gray-600 hover:bg-gray-100 hover:text-gray-900",
-                  isCollapsed && "justify-center"
-                )}
-                title={isCollapsed ? item.label : undefined}
-              >
-                <item.icon className="h-5 w-5 flex-shrink-0" />
-                {!isCollapsed && <span>{item.label}</span>}
-              </Link>
-            )
-          })}
+          {navItems.map((item) => (
+            <NavItemComponent
+              key={item.href}
+              item={item}
+              isCollapsed={isCollapsed}
+              currentOrganization={currentOrganization}
+            />
+          ))}
         </nav>
 
         {/* Collapse Toggle */}
@@ -247,11 +554,12 @@ interface MobileSidebarProps {
   readonly organizations?: readonly Organization[]
   /** Currently selected organization */
   readonly currentOrganization?: Organization | null
+  /** Companies in the current organization */
+  readonly companies?: readonly { readonly id: string; readonly name: string }[]
 }
 
-export function MobileSidebar({ organizations = [], currentOrganization }: MobileSidebarProps) {
+export function MobileSidebar({ organizations = [], currentOrganization, companies = [] }: MobileSidebarProps) {
   const [isOpen, setIsOpen] = useState(false)
-  const location = useLocation()
   const navigate = useNavigate()
   const navItems = getNavItems(currentOrganization?.id)
 
@@ -357,34 +665,29 @@ export function MobileSidebar({ organizations = [], currentOrganization }: Mobil
               </div>
             )}
 
+            {/* Quick Action Menu (Mobile) */}
+            {currentOrganization && (
+              <div className="px-3 py-3 border-b border-gray-200">
+                <QuickActionMenu
+                  organizationId={currentOrganization.id}
+                  companies={companies}
+                  isCollapsed={false}
+                />
+              </div>
+            )}
+
             {/* Navigation */}
             <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-              {navItems.map((item) => {
-                let isActive = false
-                if (item.href === "/" || item.href === `/organizations/${currentOrganization?.id}/dashboard`) {
-                  isActive = location.pathname === item.href
-                } else {
-                  isActive = location.pathname.startsWith(item.href)
-                }
-
-                return (
-                  <Link
-                    key={item.href}
-                    to={item.href}
-                    data-testid={`mobile-${item.testId}`}
-                    onClick={() => setIsOpen(false)}
-                    className={clsx(
-                      "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors",
-                      isActive
-                        ? "bg-blue-50 text-blue-700 font-medium"
-                        : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                    )}
-                  >
-                    <item.icon className="h-5 w-5 flex-shrink-0" />
-                    <span>{item.label}</span>
-                  </Link>
-                )
-              })}
+              {navItems.map((item) => (
+                <NavItemComponent
+                  key={item.href}
+                  item={item}
+                  isCollapsed={false}
+                  currentOrganization={currentOrganization}
+                  isMobile={true}
+                  onNavigate={() => setIsOpen(false)}
+                />
+              ))}
             </nav>
           </aside>
         </div>

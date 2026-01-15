@@ -158,9 +158,17 @@ export function Breadcrumbs({ items, showHome = true, organization }: Breadcrumb
         </>
       )}
 
-      {/* Organization (if in org context) */}
+      {/* Organizations link (if in org context) */}
       {organization && (
         <>
+          <Link
+            to="/organizations"
+            data-testid="breadcrumb-organizations"
+            className="text-gray-500 hover:text-gray-700 transition-colors"
+          >
+            Organizations
+          </Link>
+          <ChevronRight className="h-4 w-4 text-gray-400" />
           <Link
             to="/organizations/$organizationId"
             params={{ organizationId: organization.id }}

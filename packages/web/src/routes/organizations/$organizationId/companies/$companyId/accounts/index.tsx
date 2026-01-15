@@ -300,6 +300,12 @@ function ChartOfAccountsPage() {
     return null
   }
 
+  // Pass current company to sidebar for quick actions
+  const companiesForSidebar = useMemo(
+    () => [{ id: company.id, name: company.name }],
+    [company.id, company.name]
+  )
+
   // Breadcrumb items for Chart of Accounts page
   const breadcrumbItems = [
     {
@@ -321,6 +327,7 @@ function ChartOfAccountsPage() {
       user={user}
       currentOrganization={organization}
       breadcrumbItems={breadcrumbItems}
+      companies={companiesForSidebar}
     >
       <div data-testid="accounts-page">
         {/* Page Header */}

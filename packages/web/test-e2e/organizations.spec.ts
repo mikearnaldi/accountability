@@ -280,11 +280,14 @@ test.describe("Organizations Page", () => {
     // 4. Navigate to create organization page directly
     await page.goto("/organizations/new")
 
-    // 5. Clear the name field and submit
+    // 5. Wait for form to load
+    await expect(page.locator("#org-name")).toBeVisible()
+
+    // 6. Clear the name field and submit
     await page.fill("#org-name", "   ") // Just whitespace
     await page.getByTestId("org-form-submit-button").click()
 
-    // 6. Should show validation error
+    // 7. Should show validation error
     await expect(page.getByText(/Organization name is required/i)).toBeVisible()
   })
 

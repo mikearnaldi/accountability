@@ -163,6 +163,9 @@ test.describe("Organization Settings Page", () => {
     // Navigate to organization settings page
     await page.goto(`/organizations/${orgData.id}/settings`)
 
+    // Wait for settings page to load
+    await expect(page.getByTestId("org-settings-name-input")).toBeVisible()
+
     // Update organization name
     const newOrgName = `Updated Org Name ${Date.now()}`
     await page.getByTestId("org-settings-name-input").fill(newOrgName)
@@ -627,8 +630,14 @@ test.describe("Organization Settings Page", () => {
     // Navigate to organization settings page
     await page.goto(`/organizations/${orgData.id}/settings`)
 
+    // Wait for settings page to load
+    await expect(page.getByTestId("org-settings-danger-zone")).toBeVisible()
+
     // Click delete button
     await page.getByTestId("org-settings-delete-button").click()
+
+    // Wait for delete confirmation UI to appear (increase timeout for React state update)
+    await expect(page.getByTestId("org-delete-confirm-input")).toBeVisible({ timeout: 10000 })
 
     // Type correct organization name
     await page.getByTestId("org-delete-confirm-input").fill(orgName)

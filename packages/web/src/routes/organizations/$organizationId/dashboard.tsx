@@ -33,8 +33,8 @@ import {
   Plus,
   ArrowRight,
   TrendingUp,
-  Globe2,
-  Settings
+  Settings,
+  BarChart3
 } from "lucide-react"
 
 // =============================================================================
@@ -69,6 +69,7 @@ export interface DashboardData {
     readonly timestamp: string
     readonly user?: string
   }[]
+  readonly companies: readonly { readonly id: string; readonly name: string }[]
 }
 
 // =============================================================================
@@ -87,7 +88,8 @@ const fetchOrganizationDashboard = createServerFn({ method: "GET" })
         accountsCount: 0,
         pendingEntriesCount: 0,
         openPeriodsCount: 0,
-        recentActivity: []
+        recentActivity: [],
+        companies: []
       }
     }
 
@@ -108,7 +110,8 @@ const fetchOrganizationDashboard = createServerFn({ method: "GET" })
           accountsCount: 0,
           pendingEntriesCount: 0,
           openPeriodsCount: 0,
-          recentActivity: []
+          recentActivity: [],
+          companies: []
         }
       }
 
@@ -167,13 +170,17 @@ const fetchOrganizationDashboard = createServerFn({ method: "GET" })
       // Recent activity placeholder (until audit log API is ready)
       const recentActivity: DashboardData["recentActivity"] = []
 
+      // Map companies to minimal structure for sidebar
+      const companiesForSidebar = companies.map((c) => ({ id: c.id, name: c.name }))
+
       return {
         organization,
         companiesCount,
         accountsCount,
         pendingEntriesCount,
         openPeriodsCount,
-        recentActivity
+        recentActivity,
+        companies: companiesForSidebar
       }
     } catch {
       return {
@@ -182,7 +189,8 @@ const fetchOrganizationDashboard = createServerFn({ method: "GET" })
         accountsCount: 0,
         pendingEntriesCount: 0,
         openPeriodsCount: 0,
-        recentActivity: []
+        recentActivity: [],
+        companies: []
       }
     }
   })
@@ -287,6 +295,7 @@ function OrganizationDashboardPage() {
     <AppLayout
       user={user}
       currentOrganization={organization}
+      companies={dashboardData.companies}
     >
       <div className="space-y-6" data-testid="org-dashboard">
         {/* Organization Header */}
@@ -447,7 +456,7 @@ function QuickActionCard({
 function OrgQuickActions({ organizationId }: { readonly organizationId: string }) {
   const actions: QuickActionProps[] = [
     {
-      label: "Create Company",
+      label: "New Company",
       description: "Add a new company to this organization",
       icon: Plus,
       href: `/organizations/${organizationId}/companies`,
@@ -455,12 +464,12 @@ function OrgQuickActions({ organizationId }: { readonly organizationId: string }
       testId: "org-quick-action-create-company"
     },
     {
-      label: "View Companies",
-      description: "Manage companies in this organization",
-      icon: Building,
-      href: `/organizations/${organizationId}/companies`,
+      label: "Reports",
+      description: "Generate and view financial reports",
+      icon: BarChart3,
+      href: `/organizations/${organizationId}/reports`,
       iconColor: "green",
-      testId: "org-quick-action-view-companies"
+      testId: "org-quick-action-reports"
     },
     {
       label: "Exchange Rates",
@@ -471,12 +480,12 @@ function OrgQuickActions({ organizationId }: { readonly organizationId: string }
       testId: "org-quick-action-exchange-rates"
     },
     {
-      label: "Run Consolidation",
-      description: "Consolidate financial statements",
-      icon: Globe2,
-      href: `/organizations/${organizationId}/consolidation`,
+      label: "Settings",
+      description: "Organization settings and preferences",
+      icon: Settings,
+      href: `/organizations/${organizationId}/settings`,
       iconColor: "purple",
-      testId: "org-quick-action-consolidation"
+      testId: "org-quick-action-settings"
     }
   ]
 

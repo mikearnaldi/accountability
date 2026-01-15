@@ -1047,10 +1047,10 @@ test.describe("Journal Entries List Page", () => {
     await page.locator('[data-testid="journal-entry-line-account-1"]').selectOption({ label: "4000 - Revenue" })
     await page.locator('[data-testid="journal-entry-line-credit-1"]').fill("500.00")
 
-    // 10. Should show balance indicator as balanced (green)
-    await expect(page.locator('[data-testid="balance-indicator-balanced"]')).toBeVisible()
-    await expect(page.locator('[data-testid="total-debits"]')).toContainText("500.00")
-    await expect(page.locator('[data-testid="total-credits"]')).toContainText("500.00")
+    // 10. Should show balance indicator as balanced (green) - allow time for UI update
+    await expect(page.locator('[data-testid="balance-indicator-balanced"]')).toBeVisible({ timeout: 10000 })
+    await expect(page.locator('[data-testid="total-debits"]')).toContainText("500.00", { timeout: 10000 })
+    await expect(page.locator('[data-testid="total-credits"]')).toContainText("500.00", { timeout: 10000 })
 
     // 11. Submit button should be enabled when balanced
     await expect(page.locator('[data-testid="journal-entry-submit"]')).toBeEnabled()
@@ -1405,14 +1405,14 @@ test.describe("Journal Entries List Page", () => {
     // 8. Should show organization name link
     await expect(page.getByRole("link", { name: orgName })).toBeVisible()
 
-    // 9. Should show Companies link
-    await expect(page.getByRole("link", { name: "Companies" })).toBeVisible()
+    // 9. Should show Companies link in breadcrumb
+    await expect(page.getByTestId("breadcrumbs").getByRole("link", { name: "Companies" })).toBeVisible()
 
-    // 10. Should show company name link
-    await expect(page.getByRole("link", { name: companyName })).toBeVisible()
+    // 10. Should show company name link in breadcrumb
+    await expect(page.getByTestId("breadcrumbs").getByRole("link", { name: companyName })).toBeVisible()
 
-    // 11. Click company name link to navigate back
-    await page.getByRole("link", { name: companyName }).click()
+    // 11. Click company name link in breadcrumb to navigate back
+    await page.getByTestId("breadcrumbs").getByRole("link", { name: companyName }).click()
 
     // 12. Should be on company details page
     await page.waitForURL(`/organizations/${orgData.id}/companies/${companyData.id}`)

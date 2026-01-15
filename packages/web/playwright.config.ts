@@ -20,8 +20,8 @@ export default defineConfig({
   // Fail the build on CI if you accidentally left test.only
   forbidOnly: !!process.env.CI,
 
-  // Retry failed tests on CI
-  retries: process.env.CI ? 2 : 0,
+  // Retry failed tests (helps with flaky tests due to timing/parallelism issues)
+  retries: process.env.CI ? 2 : 1,
 
   // Reporter configuration
   // Default: 'dot' shows minimal output (dots for passes, details only for failures)

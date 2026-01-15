@@ -200,9 +200,9 @@ test.describe("Organization Dashboard", () => {
 
     // 6. Verify individual quick action cards
     await expect(page.locator('[data-testid="org-quick-action-create-company"]')).toBeVisible()
-    await expect(page.locator('[data-testid="org-quick-action-view-companies"]')).toBeVisible()
+    await expect(page.locator('[data-testid="org-quick-action-reports"]')).toBeVisible()
     await expect(page.locator('[data-testid="org-quick-action-exchange-rates"]')).toBeVisible()
-    await expect(page.locator('[data-testid="org-quick-action-consolidation"]')).toBeVisible()
+    await expect(page.locator('[data-testid="org-quick-action-settings"]')).toBeVisible()
   })
 
   test("should navigate to companies from quick action", async ({ page, request }) => {
@@ -250,8 +250,8 @@ test.describe("Organization Dashboard", () => {
     // 4. Navigate to dashboard
     await page.goto(`/organizations/${organization.id}/dashboard`)
 
-    // 5. Click on view companies quick action
-    await page.locator('[data-testid="org-quick-action-view-companies"]').click()
+    // 5. Click on create company quick action (which links to companies page)
+    await page.locator('[data-testid="org-quick-action-create-company"]').click()
 
     // 6. Should navigate to companies page
     await page.waitForURL(`/organizations/${organization.id}/companies`)

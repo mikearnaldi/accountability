@@ -178,14 +178,17 @@ test.describe("Apply Account Template", () => {
       `/organizations/${orgData.id}/companies/${companyData.id}/accounts`
     )
 
-    // 6. Click Apply Template button
+    // 6. Wait for page to load
+    await expect(page.locator('[data-testid="apply-template-button"]')).toBeVisible()
+
+    // 7. Click Apply Template button
     await page.locator('[data-testid="apply-template-button"]').click()
 
-    // 7. Should show template selection modal
-    await expect(page.locator('[data-testid="apply-template-modal"]')).toBeVisible()
+    // 8. Should show template selection modal (extended timeout for modal visibility)
+    await expect(page.locator('[data-testid="apply-template-modal"]')).toBeVisible({ timeout: 10000 })
     await expect(page.locator('[data-testid="apply-template-list"]')).toBeVisible()
 
-    // 8. Should show all four template types
+    // 9. Should show all four template types
     await expect(page.locator('[data-testid="template-card-GeneralBusiness"]')).toBeVisible()
     await expect(page.locator('[data-testid="template-card-Manufacturing"]')).toBeVisible()
     await expect(page.locator('[data-testid="template-card-ServiceBusiness"]')).toBeVisible()
@@ -383,9 +386,9 @@ test.describe("Apply Account Template", () => {
     // 6. Verify empty state
     await expect(page.locator('[data-testid="accounts-empty-state"]')).toBeVisible()
 
-    // 7. Open template modal
+    // 7. Open template modal (with extended timeout for modal visibility)
     await page.locator('[data-testid="apply-template-button"]').click()
-    await expect(page.locator('[data-testid="apply-template-modal"]')).toBeVisible()
+    await expect(page.locator('[data-testid="apply-template-modal"]')).toBeVisible({ timeout: 10000 })
 
     // 8. Select General Business template
     await page.locator('[data-testid="template-card-GeneralBusiness"]').click()

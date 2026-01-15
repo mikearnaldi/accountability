@@ -314,11 +314,18 @@ function CompaniesListPage() {
     }
   ]
 
+  // Map companies for AppLayout sidebar quick actions
+  const companiesForSidebar = useMemo(
+    () => companies.map((c) => ({ id: c.id, name: c.name })),
+    [companies]
+  )
+
   return (
     <AppLayout
       user={user}
       currentOrganization={organization}
       breadcrumbItems={breadcrumbItems}
+      companies={companiesForSidebar}
     >
       <div data-testid="companies-list-page">
         {/* Page Header */}

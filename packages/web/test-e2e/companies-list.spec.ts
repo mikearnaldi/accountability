@@ -442,7 +442,7 @@ test.describe("Companies List Page", () => {
     await expect(page.getByRole("heading", { name: "Create Company" })).toBeVisible()
 
     // 8. Click cancel
-    await page.getByRole("button", { name: /Cancel/i }).click()
+    await page.getByTestId("company-form-cancel-button").click()
 
     // 9. Modal should be hidden
     await expect(page.getByRole("heading", { name: "Create Company" })).not.toBeVisible()

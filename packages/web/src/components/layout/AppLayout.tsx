@@ -45,6 +45,8 @@ interface AppLayoutProps {
   readonly showBreadcrumbs?: boolean
   /** Custom breadcrumb items (optional) */
   readonly breadcrumbItems?: readonly BreadcrumbItem[]
+  /** Companies in the current organization (for sidebar quick actions) */
+  readonly companies?: readonly { readonly id: string; readonly name: string }[]
 }
 
 // =============================================================================
@@ -58,7 +60,8 @@ export function AppLayout({
   currentOrganization = null,
   organizationsLoading = false,
   showBreadcrumbs = true,
-  breadcrumbItems
+  breadcrumbItems,
+  companies = []
 }: AppLayoutProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
@@ -75,6 +78,7 @@ export function AppLayout({
         isCollapsed={sidebarCollapsed}
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
         currentOrganization={normalizedOrg}
+        companies={companies}
       />
 
       {/* Main Content Area */}

@@ -156,9 +156,9 @@ test.describe("Chart of Accounts Page", () => {
       `/organizations/${orgData.id}/companies/${companyData.id}/accounts`
     )
 
-    // 9. Should show "Accounts" heading in breadcrumb
+    // 9. Should show "Chart of Accounts" heading on page
     await expect(
-      page.getByRole("heading", { name: "Accounts", exact: true })
+      page.getByRole("heading", { name: "Chart of Accounts", exact: true })
     ).toBeVisible()
 
     // 10. Should show account count
@@ -915,14 +915,19 @@ test.describe("Chart of Accounts Page", () => {
     // 6. Click "New Account" button
     await page.getByRole("button", { name: /New Account/i }).click()
 
-    // 7. Fill only account number, leave name empty (whitespace)
+    // 7. Wait for modal to appear
+    await expect(
+      page.getByRole("heading", { name: "Create Account" })
+    ).toBeVisible()
+
+    // 8. Fill only account number, leave name empty (whitespace)
     await page.fill("#account-number", "1000")
     await page.fill("#account-name", "   ")
 
-    // 8. Submit form
+    // 9. Submit form
     await page.click('button[type="submit"]')
 
-    // 9. Should show validation error
+    // 10. Should show validation error
     await expect(page.getByRole("alert")).toBeVisible()
     await expect(page.getByText(/Account name is required/i)).toBeVisible()
   })
@@ -1015,7 +1020,7 @@ test.describe("Chart of Accounts Page", () => {
     ).toBeVisible()
 
     // 8. Click cancel
-    await page.getByRole("button", { name: /Cancel/i }).click()
+    await page.getByTestId("account-form-cancel-button").click()
 
     // 9. Modal should be hidden
     await expect(
@@ -1112,9 +1117,9 @@ test.describe("Chart of Accounts Page", () => {
       `/organizations/${orgData.id}/companies/${companyData.id}/accounts`
     )
 
-    // 9. Should show Accounts heading
+    // 9. Should show Chart of Accounts heading
     await expect(
-      page.getByRole("heading", { name: "Accounts", exact: true })
+      page.getByRole("heading", { name: "Chart of Accounts", exact: true })
     ).toBeVisible()
   })
 
@@ -1413,23 +1418,26 @@ test.describe("Chart of Accounts Page", () => {
       `/organizations/${orgData.id}/companies/${companyData.id}/accounts`
     )
 
-    // 8. Should show both accounts initially
+    // 8. Wait for accounts tree to load
+    await expect(page.locator('[data-testid="accounts-tree"]')).toBeVisible()
+
+    // 9. Should show both accounts initially
     await expect(page.locator('[data-testid="accounts-count"]')).toContainText("2 of 2 accounts")
     await expect(page.getByText("Active Cash Account")).toBeVisible()
     await expect(page.getByText("Active Payables")).toBeVisible()
 
-    // 9. Verify status filter dropdown exists
+    // 10. Verify status filter dropdown exists
     await expect(page.locator('[data-testid="accounts-filter-status"]')).toBeVisible()
 
-    // 10. Filter by Active - should show both
+    // 11. Filter by Active - should show both
     await page.locator('[data-testid="accounts-filter-status"]').selectOption("Active")
     await expect(page.locator('[data-testid="accounts-count"]')).toContainText("2 of 2 accounts")
 
-    // 11. Filter by Inactive - should show none
+    // 12. Filter by Inactive - should show none
     await page.locator('[data-testid="accounts-filter-status"]').selectOption("Inactive")
     await expect(page.locator('[data-testid="accounts-count"]')).toContainText("0 of 2 accounts")
 
-    // 12. Reset filter
+    // 13. Reset filter
     await page.locator('[data-testid="accounts-filter-status"]').selectOption("All")
     await expect(page.locator('[data-testid="accounts-count"]')).toContainText("2 of 2 accounts")
   })
@@ -1663,14 +1671,14 @@ test.describe("Chart of Accounts Page", () => {
     // 8. Should show organization name link
     await expect(page.getByRole("link", { name: orgName })).toBeVisible()
 
-    // 9. Should show Companies link
-    await expect(page.getByRole("link", { name: "Companies" })).toBeVisible()
+    // 9. Should show Companies link in breadcrumb
+    await expect(page.getByTestId("breadcrumbs").getByRole("link", { name: "Companies" })).toBeVisible()
 
-    // 10. Should show company name link
-    await expect(page.getByRole("link", { name: companyName })).toBeVisible()
+    // 10. Should show company name link in breadcrumb
+    await expect(page.getByTestId("breadcrumbs").getByRole("link", { name: companyName })).toBeVisible()
 
-    // 11. Click company name link to navigate back
-    await page.getByRole("link", { name: companyName }).click()
+    // 11. Click company name link in breadcrumb to navigate back
+    await page.getByTestId("breadcrumbs").getByRole("link", { name: companyName }).click()
 
     // 12. Should be on company details page
     await page.waitForURL(`/organizations/${orgData.id}/companies/${companyData.id}`)
