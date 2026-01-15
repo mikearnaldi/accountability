@@ -287,8 +287,8 @@ test.describe("Companies List Page", () => {
     await page.selectOption("#company-jurisdiction", "GB")
     await page.selectOption("#company-functional-currency", "GBP")
     await page.selectOption("#company-reporting-currency", "GBP")
-    await page.selectOption("#company-fy-month", "3")
-    await page.selectOption("#company-fy-day", "31")
+    // Use fiscal year end preset for Mar 31
+    await page.getByTestId("company-fiscal-year-end-preset-3-31").click()
 
     // 10. Submit form
     await page.click('button[type="submit"]')
@@ -372,7 +372,8 @@ test.describe("Companies List Page", () => {
     await page.click('button[type="submit"]')
 
     // 9. Should show validation error (our custom validation catches whitespace-only input)
-    await expect(page.getByRole("alert")).toBeVisible()
+    // The validation error appears as a field-level error, not a role="alert"
+    await expect(page.getByTestId("company-name-error")).toBeVisible()
     await expect(page.getByText(/Company name is required/i)).toBeVisible()
   })
 

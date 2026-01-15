@@ -924,3 +924,8 @@
 **Story**: 4.1 - Companies list with hierarchy
 **Status**: complete
 ---
+
+## Iteration 56 - 2026-01-15 09:15
+**Story**: 4.2 - Create company form with hierarchy
+**Status**: complete
+---
