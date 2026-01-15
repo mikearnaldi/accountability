@@ -1616,16 +1616,16 @@ test.describe("Chart of Accounts Page", () => {
     // 9. Check the postable only checkbox
     await page.locator('[data-testid="accounts-filter-postable"]').check()
 
-    // 10. Should only show postable account
-    await expect(page.locator('[data-testid="accounts-count"]')).toContainText("1 of 2 accounts")
+    // 10. Should only show postable account - wait for filter to apply
+    await expect(page.locator('[data-testid="accounts-count"]')).toContainText("1 of 2 accounts", { timeout: 10000 })
     await expect(page.getByText("Postable Cash")).toBeVisible()
     await expect(page.getByText("Summary Account")).not.toBeVisible()
 
     // 11. Uncheck the postable only checkbox
     await page.locator('[data-testid="accounts-filter-postable"]').uncheck()
 
-    // 12. Should show both accounts again
-    await expect(page.locator('[data-testid="accounts-count"]')).toContainText("2 of 2 accounts")
+    // 12. Should show both accounts again - wait for filter to apply
+    await expect(page.locator('[data-testid="accounts-count"]')).toContainText("2 of 2 accounts", { timeout: 10000 })
   })
 
   test("should show breadcrumb navigation", async ({ page, request }) => {

@@ -615,6 +615,8 @@ test.describe("Apply Account Template", () => {
 
     // 6. Open template modal and select Service Business
     await page.locator('[data-testid="apply-template-button"]').click()
+    // Wait for modal to be visible before clicking template card
+    await expect(page.locator('[data-testid="apply-template-modal"]')).toBeVisible({ timeout: 10000 })
     await page.locator('[data-testid="template-card-ServiceBusiness"]').click()
 
     // 7. Confirm and apply

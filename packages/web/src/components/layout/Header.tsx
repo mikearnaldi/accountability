@@ -173,26 +173,30 @@ export function Header({
                   <div className="py-1">
                     <button
                       data-testid="user-menu-profile"
-                      className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                      onClick={() => {
-                        setShowUserMenu(false)
-                        router.navigate({ to: "/" })
-                      }}
+                      className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-400 cursor-not-allowed"
+                      disabled
+                      title="Profile page coming soon"
                     >
                       <User className="h-4 w-4" />
                       Profile
+                      <span className="ml-auto text-xs text-gray-400">Soon</span>
                     </button>
-                    <button
-                      data-testid="user-menu-settings"
-                      className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                      onClick={() => {
-                        setShowUserMenu(false)
-                        router.navigate({ to: "/" })
-                      }}
-                    >
-                      <Settings className="h-4 w-4" />
-                      Settings
-                    </button>
+                    {normalizedOrg && (
+                      <button
+                        data-testid="user-menu-settings"
+                        className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                        onClick={() => {
+                          setShowUserMenu(false)
+                          router.navigate({
+                            to: "/organizations/$organizationId/settings",
+                            params: { organizationId: normalizedOrg.id }
+                          })
+                        }}
+                      >
+                        <Settings className="h-4 w-4" />
+                        Organization Settings
+                      </button>
+                    )}
                   </div>
 
                   {/* Logout */}

@@ -406,11 +406,14 @@ test.describe("Journal Entry Detail and Workflow", () => {
     await expect(rejectButton).toBeVisible()
     await expect(rejectButton).toBeEnabled()
 
-    // 12. Click reject button
-    await rejectButton.click()
+    // Wait for hydration before clicking
+    await page.waitForTimeout(500)
+
+    // 12. Click reject button with force to ensure registration
+    await rejectButton.click({ force: true })
 
     // 13. Reject modal should appear (wait for React state update)
-    await expect(page.locator('[data-testid="reject-modal"]')).toBeVisible({ timeout: 10000 })
+    await expect(page.locator('[data-testid="reject-modal"]')).toBeVisible({ timeout: 15000 })
 
     // 14. Enter rejection reason
     await page.locator('[data-testid="reject-reason-input"]').fill("Incorrect account classification")

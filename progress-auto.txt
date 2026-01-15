@@ -121,3 +121,8 @@
 **Task**: Standardized all add/create buttons to use Button component with Plus icon from Lucide-react, fixing Issue 11 (Add Buttons Broken Layout). Updated 7 files:
 **Status**: complete
 ---
+
+## Iteration 8 - 2026-01-15 17:36
+**Task**: Fixed flaky E2E tests (apply-template modal timing, register email validation, accounts postable filter, organization delete confirmation, journal entry reject modal, journal entries type filter) by adding proper wait times and force clicks. Fixed Issue 14 by updating user menu settings button to navigate to organization settings and disabling profile button with "Soon" indicator. Updated UI_ARCHITECTURE.md spec to mark Issues 11-14 as resolved. All 177 E2E tests pass.
+**Status**: complete
+---

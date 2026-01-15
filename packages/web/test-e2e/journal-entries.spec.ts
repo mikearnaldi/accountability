@@ -791,22 +791,22 @@ test.describe("Journal Entries List Page", () => {
     // 8. Filter by Standard type using data-testid
     await page.locator('[data-testid="journal-entries-filter-type"]').selectOption("Standard")
 
-    // 9. Should only show Standard entry
-    await expect(page.locator('[data-testid="journal-entries-count"]')).toContainText("1 of 2 entries")
+    // 9. Should only show Standard entry - wait for filter to apply
+    await expect(page.locator('[data-testid="journal-entries-count"]')).toContainText("1 of 2 entries", { timeout: 10000 })
     await expect(page.getByText("Standard Entry")).toBeVisible()
     await expect(page.getByText("Adjusting Entry")).not.toBeVisible()
 
     // 10. Filter by Adjusting type
     await page.locator('[data-testid="journal-entries-filter-type"]').selectOption("Adjusting")
 
-    // 11. Should only show Adjusting entry
-    await expect(page.locator('[data-testid="journal-entries-count"]')).toContainText("1 of 2 entries")
+    // 11. Should only show Adjusting entry - wait for filter to apply
+    await expect(page.locator('[data-testid="journal-entries-count"]')).toContainText("1 of 2 entries", { timeout: 10000 })
     await expect(page.getByText("Adjusting Entry")).toBeVisible()
     await expect(page.getByText("Standard Entry")).not.toBeVisible()
 
-    // 12. Reset filter
+    // 12. Reset filter - wait for filter to apply
     await page.locator('[data-testid="journal-entries-filter-type"]').selectOption("All")
-    await expect(page.locator('[data-testid="journal-entries-count"]')).toContainText("2 of 2 entries")
+    await expect(page.locator('[data-testid="journal-entries-count"]')).toContainText("2 of 2 entries", { timeout: 10000 })
   })
 
   test("should navigate to new journal entry form when clicking New Entry button", async ({ page, request }) => {

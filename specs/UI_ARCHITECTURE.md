@@ -10,13 +10,22 @@ This section tracks known issues, implementation status, and priorities.
 
 ## Known Issues
 
-### Issue 12: "Create New Organization" Link Still Broken (HIGH PRIORITY)
-- **Status**: Open
-- **Priority**: HIGH - Fix this first
-- **Problem**: The "+ Create New Organization" link in the header's Organization Selector dropdown is still not navigating to `/organizations/new` correctly
-- **File**: `packages/web/src/components/layout/OrganizationSelector.tsx`
-- **Expected**: Clicking "+ Create New Organization" navigates to `/organizations/new` to show the organization creation form
-- **Fix**: Verify the Link component in OrganizationSelector.tsx points to `/organizations/new` and not to dashboard or organizations list
+### Issue 12: "Create New Organization" Routing Conflict
+- **Status**: Open (Reopened)
+- **Problem**: Clicking "Create New Organization" in the OrganizationSelector dropdown redirects to the current organization's dashboard instead of `/organizations/new`
+- **Expected**: Should navigate to `/organizations/new` and display the Create Organization form
+- **Root Cause**: Likely a TanStack Router route matching conflict where `/organizations/new` is being matched as `/organizations/$organizationId` with `organizationId="new"`, then the organization detail page loader fails to find org "new" and redirects elsewhere
+- **Investigation Notes**:
+  - The Link component in OrganizationSelector.tsx correctly uses `to="/organizations/new"`
+  - Route definitions in routeTree.gen.ts show both routes exist:
+    - `/organizations/new` (OrganizationsNewRoute)
+    - `/organizations/$organizationId/` (OrganizationsOrganizationIdIndexRoute)
+  - TanStack Router should match static segments before dynamic, but something is causing incorrect routing
+- **Fix**: Investigate and resolve the route matching conflict:
+  1. Check if the route tree generation order is correct
+  2. Consider using a route prefix or suffix to avoid ambiguity (e.g., `/organizations/create` instead of `/organizations/new`)
+  3. Or add explicit route matching constraints to ensure "new" is not treated as an organizationId
+  4. Test in browser dev tools Network tab to see which route is actually being hit
 
 ### Issue 8: Tooltip Positioning/Overflow
 - **Status**: Open
@@ -86,9 +95,24 @@ This section tracks known issues, implementation status, and priorities.
 ### Issue 11: Add Buttons Broken Layout - RESOLVED
 - **Status**: Completed
 - Standardized all add/create buttons to use the Button component with Lucide Plus icon
-- Updated pages: Companies list, Accounts page, Journal Entries list, Journal Entry form, Organization detail, Journal Entry new page
-- All buttons now use consistent `icon={<Plus />}` prop with the Button component
-- Replaced inline SVGs with Lucide icons throughout
+- Updated pages: Companies list, Accounts page, Journal Entries list, Journal Entry form, Organization detail, Journal Entry new page, Exchange Rates page
+
+### Issue 12: "Create New Organization" Link - REOPENED
+- **Status**: Reopened - moved back to Known Issues
+- Originally marked complete because the Link component code is correct (`to="/organizations/new"`)
+- **Actual Problem**: Route matching conflict causes redirect to current org dashboard instead of create form
+- See Known Issues section for full details and investigation plan
+
+### Issue 13: Exchange Rates "Add Rate" Button - RESOLVED
+- **Status**: Completed
+- The "Add Rate" button on Exchange Rates page uses Button component with inline Plus icon
+- Button works correctly: `<Button onClick={...}><Plus className="mr-2 h-4 w-4" />Add Rate</Button>`
+
+### Issue 14: User Menu "Settings" & "Profile" Links - RESOLVED
+- **Status**: Completed
+- Settings button now correctly navigates to `/organizations/:orgId/settings` when an org is selected
+- Profile button is disabled with "Soon" indicator since profile page doesn't exist yet
+- Updated in `packages/web/src/components/layout/Header.tsx`
 
 ---
 

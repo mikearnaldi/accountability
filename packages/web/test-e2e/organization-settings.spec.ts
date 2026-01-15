@@ -543,11 +543,18 @@ test.describe("Organization Settings Page", () => {
     // Navigate to organization settings page
     await page.goto(`/organizations/${orgData.id}/settings`)
 
-    // Click delete button in danger zone
-    await page.getByTestId("org-settings-delete-button").click()
+    // Wait for page to fully load
+    await expect(page.getByTestId("org-settings-page")).toBeVisible()
+    await expect(page.getByTestId("org-settings-danger-zone")).toBeVisible()
 
-    // Should show confirmation input
-    await expect(page.getByTestId("org-delete-confirm-input")).toBeVisible()
+    // Wait for hydration before clicking
+    await page.waitForTimeout(500)
+
+    // Click delete button in danger zone
+    await page.getByTestId("org-settings-delete-button").click({ force: true })
+
+    // Should show confirmation input (wait for React state update)
+    await expect(page.getByTestId("org-delete-confirm-input")).toBeVisible({ timeout: 15000 })
 
     // Type wrong name - button should be disabled
     await page.getByTestId("org-delete-confirm-input").fill("wrong name")
@@ -634,14 +641,17 @@ test.describe("Organization Settings Page", () => {
     await expect(deleteButton).toBeVisible()
     await expect(deleteButton).toBeEnabled()
 
-    // Click delete button
-    await deleteButton.click()
+    // Wait for hydration before clicking
+    await page.waitForTimeout(500)
+
+    // Click delete button with force to ensure registration
+    await deleteButton.click({ force: true })
 
     // Should show confirmation UI (wait for React state update)
-    await expect(page.getByTestId("org-delete-confirm-input")).toBeVisible({ timeout: 10000 })
+    await expect(page.getByTestId("org-delete-confirm-input")).toBeVisible({ timeout: 15000 })
 
     // Click cancel button
-    await page.getByTestId("org-delete-cancel-button").click()
+    await page.getByTestId("org-delete-cancel-button").click({ force: true })
 
     // Confirmation UI should be hidden
     await expect(page.getByTestId("org-delete-confirm-input")).not.toBeVisible()

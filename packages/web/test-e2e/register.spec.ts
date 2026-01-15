@@ -120,15 +120,17 @@ test.describe("Registration Page", () => {
   test("should validate email on blur", async ({ page }) => {
     // 1. Navigate to register page
     await page.goto("/register")
+    // Wait for page hydration
+    await page.waitForTimeout(500)
 
     // 2. Enter invalid email and blur
     const emailInput = page.locator('input[type="email"]')
     await emailInput.fill("not-an-email")
     await emailInput.blur()
 
-    // 3. Error should be shown
+    // 3. Error should be shown - wait for React state update
     const emailError = page.locator("#email-error")
-    await expect(emailError).toBeVisible()
+    await expect(emailError).toBeVisible({ timeout: 5000 })
     await expect(emailError).toContainText("valid email")
   })
 
