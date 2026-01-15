@@ -80,11 +80,23 @@ The following issues are currently broken and MUST be fixed as highest priority:
   - `packages/web/src/routes/organizations/new.tsx` - Check if uses AppLayout
 - **Fix**: Every authenticated route MUST use AppLayout wrapper
 
+### 6. Sidebar Has Company Sub-Navigation (WRONG)
+- **Expected**: Sidebar "Companies" item is a flat link to `/organizations/:orgId/companies`. NO expanding sub-menus.
+- **Actual**: Sidebar has `CompaniesNavSection` component that expands to show company list with nested sub-navigation (Chart of Accounts, Journal Entries, Reports, Fiscal Periods)
+- **File**: `packages/web/src/components/layout/Sidebar.tsx`
+- **Why it's wrong**: Sub-navigation in sidebar is confusing. Users should navigate to company-specific pages through the main content area (click company in list → see company detail with tabs/links to accounts, journal entries, etc.)
+- **Fix**:
+  1. Remove `CompaniesNavSection` component entirely
+  2. Replace with simple `NavItemComponent` link to `/organizations/:orgId/companies`
+  3. Remove `currentCompany` prop from Sidebar (no longer needed)
+  4. Company-specific navigation happens on the company detail page, not in sidebar
+
 ### Priority Order
 1. Fix #2 first (redirect `/` to `/organizations` when logged in)
 2. Fix #1 (post-login redirect)
 3. Fix #3 (organization detail page layout)
 4. Audit and fix #5 (all other pages)
+5. Fix #6 (remove sidebar company sub-navigation)
 
 ---
 
@@ -590,6 +602,10 @@ Consistent colors across all status types:
 - Row hover highlight
 - Action menu (three dots) for row actions
 - Checkbox for bulk selection when needed
+- **Column header tooltips**: Every column header MUST show an explanatory tooltip on hover describing what the column contains. Examples:
+  - "Normal" → "The normal balance side for this account type. Dr (Debit) for assets/expenses, Cr (Credit) for liabilities/equity/revenue."
+  - "Status" → "Current state of this record (Draft, Posted, Reversed, etc.)"
+  - "Balance" → "Current account balance in the account's currency"
 
 ## Accessibility
 

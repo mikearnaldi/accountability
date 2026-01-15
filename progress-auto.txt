@@ -81,3 +81,8 @@
 **Task**: Added companies data to consolidation, intercompany, audit-log, and settings pages so the Sidebar's Companies section can show the company list with sub-navigation on all organization-level pages. Previously these pages did not pass the `companies` prop to AppLayout, which meant the sidebar couldn't display the expandable company navigation when users were on those pages.
 **Status**: complete
 ---
+
+## Iteration 21 - 2026-01-15 16:23
+**Task**: Fixed 2 flaky E2E tests by adding proper React hydration waits before button clicks (500ms waitForTimeout), using force: true on click events, and waiting for modal visibility with correct data-testid attributes (account-form-modal instead of create-account-modal, create-company-modal). Tests fixed: accounts.spec.ts "should show validation error for empty account name" and create-company.spec.ts "should create subsidiary company with ownership and consolidation method". All 177 E2E tests now pass consistently.
+**Status**: complete
+---

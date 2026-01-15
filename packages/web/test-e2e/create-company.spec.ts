@@ -185,8 +185,18 @@ test.describe("Create Company Form", () => {
     // 6. Navigate to companies list page
     await page.goto(`/organizations/${orgData.id}/companies`)
 
-    // 7. Click "New Company" button
-    await page.getByRole("button", { name: /New Company/i }).click()
+    // Wait for page to fully load (React hydration)
+    await page.waitForTimeout(500)
+    await expect(page.getByTestId("companies-list-page")).toBeVisible()
+
+    // 7. Click "New Company" button - wait for it to be visible and enabled
+    const newCompanyButton = page.getByRole("button", { name: /New Company/i })
+    await expect(newCompanyButton).toBeVisible()
+    await expect(newCompanyButton).toBeEnabled()
+    await newCompanyButton.click({ force: true })
+
+    // Wait for modal to appear
+    await expect(page.getByTestId("create-company-modal")).toBeVisible({ timeout: 10000 })
 
     // 8. Fill in subsidiary company details
     const subsidiaryName = `Subsidiary GmbH ${Date.now()}`

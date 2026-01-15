@@ -939,6 +939,7 @@ test.describe("Chart of Accounts Page", () => {
     )
 
     // Wait for page to fully load (React hydration)
+    await page.waitForTimeout(500)
     await expect(page.getByTestId("accounts-page")).toBeVisible()
 
     // Wait for "New Account" button to be visible and enabled
@@ -947,9 +948,10 @@ test.describe("Chart of Accounts Page", () => {
     await expect(newAccountButton).toBeEnabled()
 
     // 6. Click "New Account" button
-    await newAccountButton.click()
+    await newAccountButton.click({ force: true })
 
     // 7. Wait for modal to appear (wait for React state update)
+    await expect(page.getByTestId("account-form-modal")).toBeVisible({ timeout: 10000 })
     await expect(
       page.getByRole("heading", { name: "Create Account" })
     ).toBeVisible({ timeout: 10000 })
