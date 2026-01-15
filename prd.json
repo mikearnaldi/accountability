@@ -1,7 +1,7 @@
 {
   "project": "Accountability",
   "description": "Multi-company, multi-currency accounting application built on US GAAP principles",
-  "version": "4.0.0",
+  "version": "5.0.0",
   "created_at": "2026-01-10",
   "updated_at": "2026-01-15",
   "specs_dir": "specs/",
@@ -17,16 +17,13 @@
     "AUTHENTICATION.md",
     "E2E_TESTING.md",
     "REACT_BEST_PRACTICES.md",
-    "USABILITY_BEST_PRACTICES.md"
+    "USABILITY_BEST_PRACTICES.md",
+    "UI_ARCHITECTURE.md"
   ],
   "architecture": {
     "principle": "Effect on server only. Pure React + generated fetch client on frontend.",
     "backend": {
-      "packages": [
-        "core",
-        "persistence",
-        "api"
-      ],
+      "packages": ["core", "persistence", "api"],
       "stack": "Effect for type-safe business logic, @effect/sql for database, HttpApi for REST endpoints",
       "testing": "@effect/vitest for unit/integration tests"
     },
@@ -40,10 +37,7 @@
     "api_client": {
       "generation": "pnpm generate:api in packages/web",
       "tools": "openapi-typescript generates types, openapi-fetch provides typed client",
-      "output": [
-        "src/api/schema.ts",
-        "src/api/client.ts"
-      ],
+      "output": ["src/api/schema.ts", "src/api/client.ts"],
       "usage": "import { api } from '@/api/client'; await api.GET('/api/v1/organizations')",
       "cookie_auth": {
         "principle": "httpOnly cookies ONLY. localStorage is FORBIDDEN.",
@@ -57,6 +51,25 @@
     "ui_changes": "E2E tests in packages/web/test-e2e/",
     "api_changes": "Unit/integration tests using @effect/vitest",
     "verification": "Run 'pnpm test && pnpm test:e2e' before marking any story complete."
+  },
+  "ui_requirements": {
+    "mandatory_spec": "ALL UI work MUST follow specs/UI_ARCHITECTURE.md",
+    "layout_rule": "EVERY authenticated page MUST use AppLayout with sidebar and header",
+    "no_exceptions": [
+      "NO pages without sidebar (except /organizations selector)",
+      "NO manual breadcrumb HTML - use Breadcrumbs component",
+      "NO page-specific headers - use shared Header component",
+      "NO creating new layout patterns - follow existing patterns"
+    ],
+    "required_elements": [
+      "Organization selector accessible from every page",
+      "User menu accessible from every page",
+      "Breadcrumbs showing current location",
+      "Empty states with clear CTAs",
+      "Loading states (skeleton loaders)",
+      "Error states with retry options",
+      "data-testid attributes on all interactive elements"
+    ]
   },
   "api_coverage": {
     "implemented": {
@@ -145,13 +158,61 @@
         "GET /api/v1/reports/income-statement",
         "GET /api/v1/reports/cash-flow",
         "GET /api/v1/reports/equity-statement"
+      ],
+      "reference_data": [
+        "GET /api/v1/currencies",
+        "GET /api/v1/jurisdictions",
+        "GET /api/v1/account-templates",
+        "GET /api/v1/account-templates/:type",
+        "POST /api/v1/account-templates/:type/apply",
+        "GET /api/v1/audit-log"
       ]
     },
-    "not_implemented": [
-      "GET /api/v1/currencies - Currency master data",
-      "GET /api/v1/jurisdictions - Jurisdiction master data",
-      "GET /api/v1/account-templates - Chart of accounts templates",
-      "GET /api/v1/audit-log - Audit trail queries"
+    "not_implemented": []
+  },
+  "roadmap": {
+    "description": "Execution order based on dependencies and priority",
+    "phases": [
+      {
+        "phase": 1,
+        "name": "Critical UI Foundation Fixes",
+        "priority": "P0",
+        "stories": ["2.3", "2.4"],
+        "description": "Fix broken UI architecture. These MUST be done first before any other UI work.",
+        "blockers": "All other UI stories are blocked until these are complete"
+      },
+      {
+        "phase": 2,
+        "name": "Navigation & Layout Polish",
+        "priority": "P1",
+        "stories": ["2.5", "2.6", "2.7", "2.8"],
+        "description": "Complete the navigation system with company context, quick actions, breadcrumbs, and mobile support",
+        "depends_on": ["2.3", "2.4"]
+      },
+      {
+        "phase": 3,
+        "name": "Core Feature UI Fixes",
+        "priority": "P1",
+        "stories": ["4.1-fix", "4.2-fix", "4.3-fix", "5.1-fix", "5.2-fix", "6.1-fix", "6.2-fix", "6.3-fix"],
+        "description": "Update existing 'complete' UI pages to use proper layout (they currently have no sidebar)",
+        "depends_on": ["2.3"]
+      },
+      {
+        "phase": 4,
+        "name": "Reports UI",
+        "priority": "P2",
+        "stories": ["7.1", "7.2", "7.3", "7.4", "7.5", "7.6"],
+        "description": "Financial reports dashboard and individual report pages",
+        "depends_on": ["2.3", "2.5"]
+      },
+      {
+        "phase": 5,
+        "name": "Advanced Features UI",
+        "priority": "P2",
+        "stories": ["8.1", "9.1", "10.1", "10.2", "10.3", "10.4", "11.1", "12.1"],
+        "description": "Fiscal periods, exchange rates, consolidation, intercompany, audit log",
+        "depends_on": ["2.3", "2.5"]
+      }
     ]
   },
   "stories": [
@@ -159,857 +220,701 @@
       "id": "1.1",
       "epic": "API: Reference Data",
       "title": "Currency master data endpoint",
-      "description": "Add API endpoint to list available currencies for UI dropdowns. The Currency domain entity already exists with COMMON_CURRENCIES predefined.",
-      "specs": [
-        "DOMAIN_MODEL.md",
-        "API_BEST_PRACTICES.md"
-      ],
+      "priority": "P2",
+      "status": "complete",
+      "description": "API endpoint to list available currencies for UI dropdowns.",
+      "specs": ["DOMAIN_MODEL.md", "API_BEST_PRACTICES.md"],
       "acceptance_criteria": [
         "GET /api/v1/currencies returns list of currencies",
         "Response schema: { currencies: [{ code, name, symbol, decimalPlaces, isActive }] }",
         "Filter by isActive query parameter (default: true)",
-        "Returns predefined COMMON_CURRENCIES from Currency.ts",
         "Unit tests for endpoint"
       ],
       "api": {
         "endpoint": "GET /api/v1/currencies",
         "response": {
-          "currencies": [
-            {
-              "code": "USD",
-              "name": "US Dollar",
-              "symbol": "$",
-              "decimalPlaces": 2,
-              "isActive": true
-            }
-          ]
+          "currencies": [{ "code": "USD", "name": "US Dollar", "symbol": "$", "decimalPlaces": 2, "isActive": true }]
         }
       },
       "files": {
-        "create": [
-          "packages/api/src/Api/CurrencyApi.ts",
-          "packages/api/src/Handlers/CurrencyApiHandler.ts",
-          "packages/api/test/CurrencyApi.test.ts"
-        ],
-        "reference": [
-          "packages/core/src/Domains/Currency.ts"
-        ]
-      },
-      "status": "complete"
+        "create": ["packages/api/src/Api/CurrencyApi.ts", "packages/api/src/Handlers/CurrencyApiHandler.ts", "packages/api/test/CurrencyApi.test.ts"],
+        "reference": ["packages/core/src/Domains/Currency.ts"]
+      }
     },
     {
       "id": "1.2",
       "epic": "API: Reference Data",
       "title": "Jurisdiction master data endpoint",
-      "description": "Add API endpoint to list available jurisdictions for UI dropdowns. The Jurisdiction domain entity already exists with PREDEFINED_JURISDICTIONS.",
-      "specs": [
-        "DOMAIN_MODEL.md",
-        "API_BEST_PRACTICES.md"
-      ],
+      "priority": "P2",
+      "status": "complete",
+      "description": "API endpoint to list available jurisdictions for UI dropdowns.",
+      "specs": ["DOMAIN_MODEL.md", "API_BEST_PRACTICES.md"],
       "acceptance_criteria": [
         "GET /api/v1/jurisdictions returns list of jurisdictions",
         "Response schema: { jurisdictions: [{ code, name, defaultCurrency }] }",
-        "Returns predefined jurisdictions (US, GB, etc.)",
         "Unit tests for endpoint"
       ],
       "api": {
         "endpoint": "GET /api/v1/jurisdictions",
         "response": {
-          "jurisdictions": [
-            {
-              "code": "US",
-              "name": "United States",
-              "defaultCurrency": "USD"
-            }
-          ]
+          "jurisdictions": [{ "code": "US", "name": "United States", "defaultCurrency": "USD" }]
         }
       },
       "files": {
-        "create": [
-          "packages/api/src/Api/JurisdictionApi.ts",
-          "packages/api/src/Handlers/JurisdictionApiHandler.ts",
-          "packages/api/test/JurisdictionApi.test.ts"
-        ],
-        "reference": [
-          "packages/core/src/Domains/Jurisdiction.ts"
-        ]
-      },
-      "status": "complete"
+        "create": ["packages/api/src/Api/JurisdictionApi.ts", "packages/api/src/Handlers/JurisdictionApiHandler.ts", "packages/api/test/JurisdictionApi.test.ts"],
+        "reference": ["packages/core/src/Domains/Jurisdiction.ts"]
+      }
     },
     {
       "id": "1.3",
       "epic": "API: Reference Data",
       "title": "Account templates endpoint",
-      "description": "Add API endpoints to list and apply chart of accounts templates. The AccountTemplate domain entity already exists with templates for GeneralBusiness, Manufacturing, ServiceBusiness, and HoldingCompany.",
-      "specs": [
-        "DOMAIN_MODEL.md",
-        "API_BEST_PRACTICES.md"
-      ],
+      "priority": "P2",
+      "status": "complete",
+      "description": "API endpoints to list and apply chart of accounts templates.",
+      "specs": ["DOMAIN_MODEL.md", "API_BEST_PRACTICES.md"],
       "acceptance_criteria": [
         "GET /api/v1/account-templates returns list of available templates",
-        "Response: { templates: [{ templateType, name, description, accountCount }] }",
         "GET /api/v1/account-templates/:type returns template with all account definitions",
-        "Response: { template: { templateType, name, description, accounts: [...] } }",
         "POST /api/v1/account-templates/:type/apply applies template to a company",
-        "Request: { companyId: UUID }",
-        "Creates all accounts from template for the specified company",
-        "Returns created accounts count",
         "Unit tests for all endpoints"
       ],
       "api": {
-        "endpoints": [
-          "GET /api/v1/account-templates",
-          "GET /api/v1/account-templates/:type",
-          "POST /api/v1/account-templates/:type/apply"
-        ],
-        "template_types": [
-          "GeneralBusiness",
-          "Manufacturing",
-          "ServiceBusiness",
-          "HoldingCompany"
-        ]
+        "endpoints": ["GET /api/v1/account-templates", "GET /api/v1/account-templates/:type", "POST /api/v1/account-templates/:type/apply"],
+        "template_types": ["GeneralBusiness", "Manufacturing", "ServiceBusiness", "HoldingCompany"]
       },
       "files": {
-        "create": [
-          "packages/api/src/Api/AccountTemplateApi.ts",
-          "packages/api/src/Handlers/AccountTemplateApiHandler.ts",
-          "packages/api/test/AccountTemplateApi.test.ts"
-        ],
-        "reference": [
-          "packages/core/src/Domains/AccountTemplate.ts"
-        ]
-      },
-      "status": "complete"
+        "create": ["packages/api/src/Api/AccountTemplateApi.ts", "packages/api/src/Handlers/AccountTemplateApiHandler.ts", "packages/api/test/AccountTemplateApi.test.ts"],
+        "reference": ["packages/core/src/Domains/AccountTemplate.ts"]
+      }
     },
     {
       "id": "1.4",
       "epic": "API: Reference Data",
       "title": "Audit log query endpoint",
-      "description": "Add API endpoint to query audit trail entries for compliance and SOX requirements. Tracks changes to all entities with user, timestamp, and before/after values.",
-      "specs": [
-        "DOMAIN_MODEL.md",
-        "API_BEST_PRACTICES.md"
-      ],
+      "priority": "P2",
+      "status": "complete",
+      "description": "API endpoint to query audit trail entries for compliance and SOX requirements.",
+      "specs": ["DOMAIN_MODEL.md", "API_BEST_PRACTICES.md"],
       "acceptance_criteria": [
         "GET /api/v1/audit-log returns paginated audit entries",
         "Query parameters: entityType, entityId, userId, action, fromDate, toDate, limit, offset",
-        "Response: { entries: [{ id, entityType, entityId, action, userId, timestamp, changes }], total }",
-        "Actions: Create, Update, Delete, StatusChange",
-        "Entity types: Organization, Company, Account, JournalEntry, FiscalPeriod, etc.",
-        "Changes field shows before/after values for updates",
-        "Read-only endpoint (audit entries are system-generated)",
         "Unit tests for endpoint"
       ],
       "api": {
         "endpoint": "GET /api/v1/audit-log",
-        "query_params": [
-          "entityType",
-          "entityId",
-          "userId",
-          "action",
-          "fromDate",
-          "toDate",
-          "limit",
-          "offset"
-        ],
-        "response": {
-          "entries": [
-            {
-              "id": "uuid",
-              "entityType": "JournalEntry",
-              "entityId": "uuid",
-              "action": "StatusChange",
-              "userId": "uuid",
-              "timestamp": "2026-01-15T10:30:00Z",
-              "changes": {
-                "status": {
-                  "from": "Draft",
-                  "to": "Posted"
-                }
-              }
-            }
-          ],
-          "total": 100
-        }
+        "query_params": ["entityType", "entityId", "userId", "action", "fromDate", "toDate", "limit", "offset"]
       },
       "files": {
-        "create": [
-          "packages/api/src/Api/AuditLogApi.ts",
-          "packages/api/src/Handlers/AuditLogApiHandler.ts",
-          "packages/persistence/src/Repositories/AuditLogRepository.ts",
-          "packages/api/test/AuditLogApi.test.ts"
-        ]
-      },
-      "status": "complete"
+        "create": ["packages/api/src/Api/AuditLogApi.ts", "packages/api/src/Handlers/AuditLogApiHandler.ts", "packages/persistence/src/Repositories/AuditLogRepository.ts", "packages/api/test/AuditLogApi.test.ts"]
+      }
     },
     {
       "id": "2.1",
-      "epic": "UI: Design System",
-      "title": "Layout with organization context selector",
-      "description": "Create layout with Organization as global context. Organization is the tenant - all other entities (Companies, Accounts, Journal Entries, Reports, etc.) are scoped within the selected organization.",
-      "specs": [
-        "DOMAIN_MODEL.md",
-        "REACT_BEST_PRACTICES.md",
-        "USABILITY_BEST_PRACTICES.md"
-      ],
+      "epic": "UI: Core Layout",
+      "title": "Base layout components",
+      "priority": "P0",
+      "status": "complete",
+      "issues": "CRITICAL: Layout not applied consistently. Stories 2.3-2.8 fix this.",
+      "description": "Base layout components: AppLayout, Sidebar, Header, OrganizationSelector.",
+      "specs": ["UI_ARCHITECTURE.md", "REACT_BEST_PRACTICES.md", "USABILITY_BEST_PRACTICES.md"],
       "acceptance_criteria": [
-        "Entity Hierarchy (critical to understand):",
-        "  Organization (tenant) → Companies → Accounts, Journal Entries, Fiscal Periods",
-        "  Organization → Exchange Rates, Consolidation Groups, Intercompany Transactions",
-        "Header:",
-        "  - Organization selector dropdown (switch between orgs user has access to)",
-        "  - Shows current org name prominently",
-        "  - User menu with logout",
-        "  - NO search/notifications (no API)",
-        "Sidebar (context-aware, scoped to selected organization):",
-        "  - Dashboard (org overview)",
-        "  - Companies (list companies in this org)",
-        "  - Exchange Rates (org-level)",
-        "  - Consolidation (org-level groups)",
-        "  - Intercompany (org-level transactions)",
-        "  - Audit Log (org-level)",
-        "  - Settings (org settings)",
-        "When no organization selected: Show organization list/selector",
-        "Store selected org in URL path: /organizations/:orgId/...",
-        "Breadcrumbs: Organization > [current section]",
-        "Shared UI components: Card, Table, Button, Input, Select",
-        "State components: LoadingState, EmptyState, ErrorState",
-        "Responsive: Desktop, tablet, mobile",
+        "AppLayout component with sidebar, header, main content area",
+        "Sidebar with navigation items scoped to organization",
+        "Header with organization selector and user menu",
+        "Responsive design: desktop, tablet, mobile",
         "All components have data-testid attributes"
       ],
-      "navigation_structure": {
-        "no_org_selected": "/organizations → list to select",
-        "org_selected": "/organizations/:orgId/dashboard → scoped views",
-        "company_selected": "/organizations/:orgId/companies/:companyId/... → company-specific views"
-      },
       "files": {
-        "create": [
+        "created": [
           "packages/web/src/components/layout/AppLayout.tsx",
-          "packages/web/src/components/layout/OrganizationSelector.tsx",
-          "packages/web/src/components/layout/Breadcrumbs.tsx",
-          "packages/web/src/components/ui/Card.tsx",
-          "packages/web/src/components/ui/Table.tsx",
-          "packages/web/src/components/ui/Button.tsx",
-          "packages/web/src/components/ui/Input.tsx",
-          "packages/web/src/components/ui/Select.tsx",
-          "packages/web/src/components/ui/LoadingState.tsx",
-          "packages/web/src/components/ui/EmptyState.tsx",
-          "packages/web/src/components/ui/ErrorState.tsx"
-        ],
-        "modify": [
           "packages/web/src/components/layout/Sidebar.tsx",
-          "packages/web/src/components/layout/Header.tsx"
+          "packages/web/src/components/layout/Header.tsx",
+          "packages/web/src/components/layout/OrganizationSelector.tsx",
+          "packages/web/src/components/layout/MobileSidebar.tsx",
+          "packages/web/src/components/layout/Breadcrumbs.tsx"
         ]
-      },
-      "status": "complete"
+      }
     },
     {
       "id": "2.2",
-      "epic": "UI: Design System",
-      "title": "Organization-scoped dashboard",
-      "description": "Dashboard showing overview of selected organization. All data is scoped to the current organization context.",
-      "specs": [
-        "DOMAIN_MODEL.md",
-        "REACT_BEST_PRACTICES.md",
-        "USABILITY_BEST_PRACTICES.md",
-        "E2E_TESTING.md"
-      ],
+      "epic": "UI: Core Layout",
+      "title": "Organization dashboard",
+      "priority": "P1",
+      "status": "complete",
+      "description": "Dashboard showing organization overview with summary cards and quick actions.",
+      "specs": ["UI_ARCHITECTURE.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
       "acceptance_criteria": [
         "Route: /organizations/:organizationId/dashboard",
-        "Requires organization to be selected (redirect if not)",
-        "Organization header: Name, reporting currency, settings summary",
-        "Summary cards (all scoped to current org):",
-        "  - Companies count in this org",
-        "  - Total accounts across all companies",
-        "  - Journal entries pending approval",
-        "  - Open fiscal periods",
-        "Quick actions:",
-        "  - Create Company",
-        "  - View Companies",
-        "  - View Exchange Rates",
-        "  - Run Consolidation",
-        "Recent activity section (placeholder until audit log API ready)",
-        "NO search bar (no search API)",
-        "NO notifications (no notifications API)",
+        "Summary cards: Companies count, Total accounts, Pending approvals, Open periods",
+        "Quick actions: Create Company, View Companies, View Exchange Rates",
+        "Uses AppLayout with sidebar",
         "E2E test: Dashboard loads with org-scoped data"
       ],
       "api": {
         "calls": [
           "GET /api/v1/organizations/:id",
           "GET /api/v1/companies?organizationId=:id",
-          "GET /api/v1/journal-entries?organizationId=:id&status=PendingApproval",
-          "GET /api/v1/fiscal/fiscal-periods?organizationId=:id&status=Open"
+          "GET /api/v1/journal-entries?organizationId=:id&status=PendingApproval"
         ]
       },
       "files": {
-        "create": [
-          "packages/web/src/routes/organizations/$organizationId/dashboard.tsx"
-        ],
-        "modify": [
-          "packages/web/src/routes/index.tsx"
+        "created": ["packages/web/src/routes/organizations/$organizationId/dashboard.tsx"]
+      }
+    },
+    {
+      "id": "2.3",
+      "epic": "UI: Core Layout",
+      "title": "Consistent layout across ALL pages",
+      "priority": "P0",
+      "status": "pending",
+      "blocking": true,
+      "blocks": ["4.1-fix", "4.2-fix", "4.3-fix", "5.1-fix", "5.2-fix", "6.1-fix", "6.2-fix", "6.3-fix", "7.1", "7.2", "7.3", "7.4", "7.5", "7.6", "8.1", "9.1", "10.1", "10.2", "10.3", "10.4", "11.1", "12.1"],
+      "description": "CRITICAL: Fix inconsistent layouts. Currently sidebar only appears on dashboard/settings. All other pages (companies, accounts, journal entries) have NO sidebar, NO header, NO organization selector. This is unacceptable for a professional application.",
+      "specs": ["UI_ARCHITECTURE.md", "REACT_BEST_PRACTICES.md"],
+      "acceptance_criteria": [
+        "Create layout route at /organizations/$organizationId that wraps ALL child routes",
+        "ALL pages under /organizations/:id/* MUST have:",
+        "  - Left sidebar with navigation",
+        "  - Header with organization selector and user menu",
+        "  - Breadcrumbs showing current location",
+        "Pages that currently LACK sidebar (must be fixed):",
+        "  - /organizations/:id/companies",
+        "  - /organizations/:id/companies/new",
+        "  - /organizations/:id/companies/:companyId",
+        "  - /organizations/:id/companies/:companyId/accounts",
+        "  - /organizations/:id/companies/:companyId/accounts/new",
+        "  - /organizations/:id/companies/:companyId/journal-entries",
+        "  - /organizations/:id/companies/:companyId/journal-entries/new",
+        "  - /organizations/:id/companies/:companyId/journal-entries/:id",
+        "Remove ALL manual breadcrumb HTML from individual route files",
+        "Remove /organizations/:id/index.tsx (redirect to dashboard instead)",
+        "User can switch organizations from ANY page",
+        "User can access profile/logout from ANY page",
+        "Mobile hamburger menu works on ALL pages",
+        "E2E test: Verify sidebar visible on every authenticated page"
+      ],
+      "implementation": {
+        "approach": "Use TanStack Router layout routes",
+        "steps": [
+          "1. Create _layout.tsx in routes/organizations/$organizationId/",
+          "2. Layout fetches org data and provides to children via context",
+          "3. Layout renders AppLayout with sidebar, header, breadcrumbs",
+          "4. Remove AppLayout wrapper from individual child routes",
+          "5. Remove manual breadcrumb HTML from all child routes",
+          "6. Delete index.tsx, add redirect from /:orgId to /:orgId/dashboard"
         ]
       },
-      "status": "complete"
+      "files": {
+        "create": ["packages/web/src/routes/organizations/$organizationId/_layout.tsx"],
+        "modify": [
+          "packages/web/src/routes/organizations/$organizationId/companies/index.tsx",
+          "packages/web/src/routes/organizations/$organizationId/companies/new.tsx",
+          "packages/web/src/routes/organizations/$organizationId/companies/$companyId/index.tsx",
+          "packages/web/src/routes/organizations/$organizationId/companies/$companyId/accounts/index.tsx",
+          "packages/web/src/routes/organizations/$organizationId/companies/$companyId/accounts/new.tsx",
+          "packages/web/src/routes/organizations/$organizationId/companies/$companyId/journal-entries/index.tsx",
+          "packages/web/src/routes/organizations/$organizationId/companies/$companyId/journal-entries/new.tsx",
+          "packages/web/src/routes/organizations/$organizationId/companies/$companyId/journal-entries/$entryId/index.tsx",
+          "packages/web/src/routes/organizations/$organizationId/dashboard.tsx",
+          "packages/web/src/routes/organizations/$organizationId/settings.tsx"
+        ],
+        "delete": ["packages/web/src/routes/organizations/$organizationId/index.tsx"]
+      },
+      "testing": {
+        "e2e": [
+          "Navigate to /organizations/:id/companies - verify sidebar visible",
+          "Navigate to /organizations/:id/companies/:id/accounts - verify sidebar visible",
+          "Navigate to /organizations/:id/companies/:id/journal-entries - verify sidebar visible",
+          "On any page, click organization selector - verify can switch orgs",
+          "On any page, click user menu - verify logout option present",
+          "On mobile, verify hamburger menu opens sidebar on all pages"
+        ]
+      }
+    },
+    {
+      "id": "2.4",
+      "epic": "UI: Core Layout",
+      "title": "Post-login flow and home page",
+      "priority": "P0",
+      "status": "pending",
+      "description": "Fix confusing post-login experience. Currently shows stale dashboard at '/' before user selects an organization. Professional apps go directly to org selector or auto-select single org.",
+      "specs": ["UI_ARCHITECTURE.md", "REACT_BEST_PRACTICES.md"],
+      "acceptance_criteria": [
+        "Post-login behavior:",
+        "  - 0 organizations: Redirect to /organizations/new with welcome message",
+        "  - 1 organization: Auto-redirect to /organizations/:id/dashboard",
+        "  - 2+ organizations: Show /organizations selector page",
+        "The '/' route behavior:",
+        "  - Unauthenticated: Show landing page (marketing)",
+        "  - Authenticated: Redirect to /organizations (which handles the above logic)",
+        "Remove the 'authenticated dashboard' from '/' route entirely",
+        "Login success redirects based on org count (not to '/')",
+        "E2E test: Verify correct flow for 0, 1, and 2+ org scenarios"
+      ],
+      "files": {
+        "modify": [
+          "packages/web/src/routes/index.tsx",
+          "packages/web/src/routes/login.tsx",
+          "packages/web/src/routes/organizations/index.tsx"
+        ]
+      },
+      "testing": {
+        "e2e": [
+          "New user with 0 orgs: login → redirected to /organizations/new",
+          "User with 1 org: login → redirected to /organizations/:id/dashboard",
+          "User with 2+ orgs: login → shown /organizations selector",
+          "Authenticated user visits '/' → redirected to /organizations"
+        ]
+      }
+    },
+    {
+      "id": "2.5",
+      "epic": "UI: Core Layout",
+      "title": "Sidebar with company context",
+      "priority": "P1",
+      "status": "pending",
+      "depends_on": ["2.3"],
+      "description": "Enhance sidebar to show hierarchical navigation with company sub-menu when viewing company-scoped pages. Like QuickBooks/Xero.",
+      "specs": ["UI_ARCHITECTURE.md", "REACT_BEST_PRACTICES.md"],
+      "acceptance_criteria": [
+        "Sidebar navigation structure:",
+        "  + New (quick actions dropdown)",
+        "  Dashboard",
+        "  Companies",
+        "    └─ [Company 1] (expandable when selected)",
+        "        └─ Chart of Accounts",
+        "        └─ Journal Entries",
+        "        └─ Reports",
+        "        └─ Fiscal Periods",
+        "    └─ [Company 2]",
+        "    └─ + Add Company",
+        "  Exchange Rates",
+        "  Consolidation",
+        "  Intercompany",
+        "  Audit Log",
+        "  ───────────",
+        "  Settings",
+        "When on company page, that company is expanded and highlighted",
+        "Current page is highlighted in sidebar",
+        "Sidebar collapsed/expanded state persisted to localStorage",
+        "E2E test: Navigate via sidebar, verify correct highlighting"
+      ],
+      "files": {
+        "modify": ["packages/web/src/components/layout/Sidebar.tsx"]
+      }
+    },
+    {
+      "id": "2.6",
+      "epic": "UI: Core Layout",
+      "title": "+ New quick actions button",
+      "priority": "P1",
+      "status": "pending",
+      "depends_on": ["2.3"],
+      "description": "Add '+New' quick action button at top of sidebar for fast access to common creation actions. Standard pattern in QuickBooks, Xero, etc.",
+      "specs": ["UI_ARCHITECTURE.md", "REACT_BEST_PRACTICES.md"],
+      "acceptance_criteria": [
+        "+ New button prominently displayed at top of sidebar",
+        "Clicking opens dropdown menu with:",
+        "  - New Journal Entry (if company context available)",
+        "  - New Company",
+        "  - New Account (if company context available)",
+        "  - New Exchange Rate",
+        "If action requires company context and none selected:",
+        "  - Show company selector modal first, OR",
+        "  - Navigate to company list with prompt",
+        "Keyboard shortcut: Press 'n' to open quick actions",
+        "E2E test: Create journal entry via quick actions"
+      ],
+      "files": {
+        "create": ["packages/web/src/components/layout/QuickActionsMenu.tsx"],
+        "modify": ["packages/web/src/components/layout/Sidebar.tsx"]
+      }
+    },
+    {
+      "id": "2.7",
+      "epic": "UI: Core Layout",
+      "title": "Dynamic breadcrumbs",
+      "priority": "P1",
+      "status": "pending",
+      "depends_on": ["2.3"],
+      "description": "Replace manual breadcrumb HTML with automatic breadcrumbs from route params. Consistent format: Org > Section > Company > Page.",
+      "specs": ["UI_ARCHITECTURE.md", "REACT_BEST_PRACTICES.md"],
+      "acceptance_criteria": [
+        "Breadcrumbs auto-generated from current route",
+        "Format: Organization Name > Section > [Company Name] > [Page]",
+        "Examples:",
+        "  - Acme Holdings > Dashboard",
+        "  - Acme Holdings > Companies",
+        "  - Acme Holdings > Companies > Acme Corp",
+        "  - Acme Holdings > Companies > Acme Corp > Chart of Accounts",
+        "  - Acme Holdings > Companies > Acme Corp > Journal Entries",
+        "  - Acme Holdings > Companies > Acme Corp > Journal Entries > JE-2024-0001",
+        "Each segment clickable (except current page)",
+        "Org/company names fetched and cached (don't show UUIDs)",
+        "E2E test: Verify breadcrumbs on 5+ different pages"
+      ],
+      "files": {
+        "modify": [
+          "packages/web/src/components/layout/Breadcrumbs.tsx",
+          "packages/web/src/components/layout/AppLayout.tsx"
+        ]
+      }
+    },
+    {
+      "id": "2.8",
+      "epic": "UI: Core Layout",
+      "title": "Responsive mobile navigation",
+      "priority": "P1",
+      "status": "pending",
+      "depends_on": ["2.3"],
+      "description": "Ensure mobile navigation works on ALL pages. Currently only dashboard has working mobile menu.",
+      "specs": ["UI_ARCHITECTURE.md", "REACT_BEST_PRACTICES.md"],
+      "acceptance_criteria": [
+        "Mobile breakpoint: < 768px",
+        "On mobile, ALL pages show:",
+        "  - Hamburger menu icon in header",
+        "  - Clicking opens full-screen sidebar drawer",
+        "  - Organization selector accessible in drawer",
+        "  - User menu accessible via avatar",
+        "Drawer closes on:",
+        "  - Navigation to new page",
+        "  - Tap outside drawer",
+        "  - Press Escape key",
+        "E2E test (mobile viewport): Navigate entire app via mobile menu"
+      ],
+      "files": {
+        "modify": [
+          "packages/web/src/components/layout/AppLayout.tsx",
+          "packages/web/src/components/layout/Header.tsx",
+          "packages/web/src/components/layout/MobileSidebar.tsx"
+        ]
+      }
     },
     {
       "id": "3.1",
       "epic": "UI: Organizations",
-      "title": "Organization selection and list",
-      "description": "Entry point for selecting an organization. This is the first screen after login - user must select an org to access org-scoped features.",
-      "specs": [
-        "DOMAIN_MODEL.md",
-        "REACT_BEST_PRACTICES.md",
-        "E2E_TESTING.md"
-      ],
+      "title": "Organization selector page",
+      "priority": "P1",
+      "status": "complete",
+      "description": "Entry point for selecting which organization to work with. Shows after login for users with multiple orgs.",
+      "specs": ["UI_ARCHITECTURE.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
       "acceptance_criteria": [
-        "Route: /organizations (no org selected yet)",
-        "Purpose: Select which organization to work with",
-        "Card-based layout showing user's organizations:",
-        "  - Organization name (prominent)",
-        "  - Reporting currency",
-        "  - Companies count",
-        "  - Last accessed date",
+        "Route: /organizations",
+        "Card-based layout showing user's organizations",
+        "Each card shows: Name, Currency, Companies count",
         "Click card → navigate to /organizations/:id/dashboard",
         "Create new organization button",
-        "If user has only 1 org: Auto-redirect to that org's dashboard",
-        "If user has 0 orgs: Show create organization prompt",
-        "Search/filter orgs (client-side for small lists)",
+        "Auto-redirect if user has only 1 org",
+        "Empty state with create prompt if 0 orgs",
         "E2E test: Select organization flow"
       ],
       "api": {
-        "calls": [
-          "GET /api/v1/organizations"
-        ]
+        "calls": ["GET /api/v1/organizations"]
       },
       "files": {
-        "modify": [
-          "packages/web/src/routes/organizations/index.tsx"
-        ]
-      },
-      "status": "complete"
+        "created": ["packages/web/src/routes/organizations/index.tsx"]
+      }
     },
     {
       "id": "3.2",
       "epic": "UI: Organizations",
       "title": "Create organization form",
-      "description": "Form to create new organization with all API-supported fields.",
-      "specs": [
-        "DOMAIN_MODEL.md",
-        "REACT_BEST_PRACTICES.md",
-        "E2E_TESTING.md"
-      ],
+      "priority": "P1",
+      "status": "complete",
+      "description": "Form to create new organization.",
+      "specs": ["UI_ARCHITECTURE.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
       "acceptance_criteria": [
-        "Form fields:",
-        "  - Name (required)",
-        "  - Reporting Currency (dropdown from /api/v1/currencies)",
-        "  - Settings (collapsible):",
-        "    - Default Locale",
-        "    - Default Timezone",
-        "    - Use Fiscal Year (checkbox)",
-        "    - Default Decimal Places (0-4)",
+        "Route: /organizations/new",
+        "Form fields: Name, Reporting Currency, Settings",
         "Client-side validation",
-        "Submit via api.POST('/api/v1/organizations')",
-        "Success: Navigate to organization detail",
-        "Error: Show inline validation errors",
-        "E2E test: Create organization flow"
+        "Success: Navigate to new org's dashboard",
+        "E2E test: Create organization"
       ],
-      "api": {
-        "calls": [
-          "GET /api/v1/currencies",
-          "POST /api/v1/organizations"
-        ],
-        "request": {
-          "name": "string",
-          "reportingCurrency": "CurrencyCode",
-          "settings": {
-            "defaultLocale": "string",
-            "defaultTimezone": "string",
-            "useFiscalYear": "boolean",
-            "defaultDecimalPlaces": "number"
-          }
-        }
-      },
       "files": {
-        "create": [
+        "created": [
           "packages/web/src/routes/organizations/new.tsx",
-          "packages/web/src/components/forms/OrganizationForm.tsx",
-          "packages/web/src/components/ui/CurrencySelect.tsx"
+          "packages/web/src/components/forms/OrganizationForm.tsx"
         ]
-      },
-      "status": "complete"
+      }
     },
     {
       "id": "3.3",
       "epic": "UI: Organizations",
       "title": "Organization settings page",
-      "description": "Settings page for the current organization. Accessible from sidebar within org context.",
-      "specs": [
-        "DOMAIN_MODEL.md",
-        "REACT_BEST_PRACTICES.md",
-        "E2E_TESTING.md"
-      ],
+      "priority": "P1",
+      "status": "complete",
+      "description": "Settings page for organization. Edit name, defaults, danger zone for delete.",
+      "specs": ["UI_ARCHITECTURE.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
       "acceptance_criteria": [
-        "Route: /organizations/:organizationId/settings",
+        "Route: /organizations/:id/settings",
         "Accessible from sidebar 'Settings' link",
-        "General Settings section:",
-        "  - Organization name (editable)",
-        "  - Reporting currency (read-only after creation)",
-        "  - Created date (read-only)",
-        "Defaults section:",
-        "  - Default locale",
-        "  - Default timezone",
-        "  - Use fiscal year",
-        "  - Default decimal places",
-        "Save changes button",
-        "Danger zone:",
-        "  - Delete organization (with confirmation, requires typing org name)",
-        "  - Warning: Deletes all companies, accounts, entries, etc.",
+        "Edit name, locale, timezone, fiscal year settings",
+        "Danger zone: Delete org with confirmation",
         "E2E test: Edit organization settings"
       ],
-      "api": {
-        "calls": [
-          "GET /api/v1/organizations/:id",
-          "PUT /api/v1/organizations/:id",
-          "DELETE /api/v1/organizations/:id"
-        ]
-      },
       "files": {
-        "create": [
-          "packages/web/src/routes/organizations/$organizationId/settings.tsx"
-        ]
-      },
-      "status": "complete"
+        "created": ["packages/web/src/routes/organizations/$organizationId/settings.tsx"]
+      }
     },
     {
       "id": "4.1",
       "epic": "UI: Companies",
       "title": "Companies list with hierarchy",
-      "description": "Display companies showing parent/child relationships for consolidation.",
-      "specs": [
-        "DOMAIN_MODEL.md",
-        "REACT_BEST_PRACTICES.md",
-        "E2E_TESTING.md"
-      ],
+      "priority": "P1",
+      "status": "needs_rework",
+      "issues": "Page has NO SIDEBAR. Completely broken layout. Must wait for story 2.3.",
+      "depends_on": ["2.3"],
+      "description": "Display companies with parent/child hierarchy for consolidation.",
+      "specs": ["UI_ARCHITECTURE.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
       "acceptance_criteria": [
-        "SSR loader fetches companies for organization",
+        "MUST use AppLayout via layout route (story 2.3)",
         "Tree view showing parent/subsidiary hierarchy",
         "Columns: Name, Legal Name, Jurisdiction, Functional Currency, Status",
-        "Subsidiaries indented under parent companies",
+        "Subsidiaries indented under parent",
         "Show ownership % and consolidation method for subsidiaries",
         "Filter: Active/Inactive",
-        "Create company button",
+        "Create company button (prominent, not crappy)",
+        "Empty state with helpful message and CTA",
         "E2E test: Hierarchy displays correctly"
       ],
       "api": {
-        "calls": [
-          "GET /api/v1/companies?organizationId=:id"
-        ]
+        "calls": ["GET /api/v1/companies?organizationId=:id"]
       },
       "files": {
-        "create": [
+        "created": [
+          "packages/web/src/routes/organizations/$organizationId/companies/index.tsx",
           "packages/web/src/components/company/CompanyHierarchyTree.tsx"
-        ],
-        "modify": [
-          "packages/web/src/routes/organizations/$organizationId/companies/index.tsx"
         ]
-      },
-      "status": "complete"
+      }
     },
     {
       "id": "4.2",
       "epic": "UI: Companies",
-      "title": "Create company form with hierarchy",
-      "description": "Form to create company with all API fields including parent/subsidiary setup.",
-      "specs": [
-        "DOMAIN_MODEL.md",
-        "ACCOUNTING_RESEARCH.md",
-        "REACT_BEST_PRACTICES.md",
-        "E2E_TESTING.md"
-      ],
+      "title": "Create company form",
+      "priority": "P1",
+      "status": "needs_rework",
+      "issues": "Page has NO SIDEBAR. Must wait for story 2.3.",
+      "depends_on": ["2.3"],
+      "description": "Form to create company with hierarchy setup.",
+      "specs": ["UI_ARCHITECTURE.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
       "acceptance_criteria": [
-        "Form sections:",
-        "  Basic: Name, Legal Name, Jurisdiction (dropdown), Tax ID",
-        "  Currency: Functional Currency, Reporting Currency",
-        "  Fiscal Year: Month/Day pickers with presets (Dec 31, Mar 31)",
-        "  Hierarchy (optional):",
-        "    - Parent Company dropdown",
-        "    - Ownership % (required if parent selected)",
-        "    - Consolidation Method (Full/Equity/Cost/VIE)",
-        "Validation: Ownership requires parent, method requires ownership",
-        "Cannot set company as own parent",
+        "MUST use AppLayout via layout route (story 2.3)",
+        "Form sections: Basic, Currency, Fiscal Year, Hierarchy",
+        "Parent company dropdown with ownership % and consolidation method",
+        "Client-side validation",
         "E2E test: Create top-level and subsidiary company"
       ],
-      "api": {
-        "calls": [
-          "GET /api/v1/jurisdictions",
-          "GET /api/v1/currencies",
-          "GET /api/v1/companies?organizationId=:id",
-          "POST /api/v1/companies"
-        ],
-        "request": {
-          "organizationId": "UUID",
-          "name": "string",
-          "legalName": "string",
-          "jurisdiction": "JurisdictionCode",
-          "taxId": "string (optional)",
-          "functionalCurrency": "CurrencyCode",
-          "reportingCurrency": "CurrencyCode",
-          "fiscalYearEnd": {
-            "month": "1-12",
-            "day": "1-31"
-          },
-          "parentCompanyId": "UUID (optional)",
-          "ownershipPercentage": "0-100 (optional)",
-          "consolidationMethod": "FullConsolidation|EquityMethod|CostMethod|VariableInterestEntity (optional)"
-        }
-      },
       "files": {
-        "create": [
-          "packages/web/src/components/forms/CompanyForm.tsx",
-          "packages/web/src/components/ui/JurisdictionSelect.tsx",
-          "packages/web/src/components/ui/FiscalYearEndPicker.tsx",
-          "packages/web/src/components/ui/ConsolidationMethodSelect.tsx"
+        "created": [
+          "packages/web/src/routes/organizations/$organizationId/companies/new.tsx",
+          "packages/web/src/components/forms/CompanyForm.tsx"
         ]
-      },
-      "status": "complete"
+      }
     },
     {
       "id": "4.3",
       "epic": "UI: Companies",
       "title": "Company detail and edit",
-      "description": "View company details with edit and quick navigation to related features.",
-      "specs": [
-        "DOMAIN_MODEL.md",
-        "REACT_BEST_PRACTICES.md",
-        "E2E_TESTING.md"
-      ],
+      "priority": "P1",
+      "status": "needs_rework",
+      "issues": "Page has NO SIDEBAR. Must wait for story 2.3.",
+      "depends_on": ["2.3"],
+      "description": "View and edit company details. Quick links to related pages.",
+      "specs": ["UI_ARCHITECTURE.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
       "acceptance_criteria": [
+        "MUST use AppLayout via layout route (story 2.3)",
         "Header: Name, status badge, jurisdiction",
-        "Info cards: Currencies, Fiscal Year, Hierarchy position",
-        "If parent: Show subsidiaries list with ownership %",
-        "If subsidiary: Show parent with ownership info",
-        "Edit form (cannot change functionalCurrency - ASC 830)",
-        "Deactivate/Activate button",
+        "Info cards: Currencies, Fiscal Year, Hierarchy",
         "Quick links: Chart of Accounts, Journal Entries, Reports, Fiscal Periods",
+        "Edit form, deactivate button",
         "E2E test: View and edit company"
       ],
-      "api": {
-        "calls": [
-          "GET /api/v1/companies/:id",
-          "GET /api/v1/companies?parentCompanyId=:id",
-          "PUT /api/v1/companies/:id",
-          "DELETE /api/v1/companies/:id"
-        ]
-      },
       "files": {
-        "modify": [
-          "packages/web/src/routes/organizations/$organizationId/companies/$companyId/index.tsx"
-        ]
-      },
-      "status": "complete"
+        "created": ["packages/web/src/routes/organizations/$organizationId/companies/$companyId/index.tsx"]
+      }
     },
     {
       "id": "5.1",
       "epic": "UI: Chart of Accounts",
       "title": "Accounts list with hierarchy",
-      "description": "Display company's chart of accounts with parent/child hierarchy.",
-      "specs": [
-        "DOMAIN_MODEL.md",
-        "ACCOUNTING_RESEARCH.md",
-        "REACT_BEST_PRACTICES.md",
-        "E2E_TESTING.md"
-      ],
+      "priority": "P1",
+      "status": "needs_rework",
+      "issues": "Page has NO SIDEBAR. Must wait for story 2.3.",
+      "depends_on": ["2.3"],
+      "description": "Display company's chart of accounts with hierarchy.",
+      "specs": ["UI_ARCHITECTURE.md", "ACCOUNTING_RESEARCH.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
       "acceptance_criteria": [
-        "SSR loader fetches accounts for company",
+        "MUST use AppLayout via layout route (story 2.3)",
         "Tree view showing account hierarchy",
         "Columns: Number, Name, Type, Category, Normal Balance, Status",
-        "Account type color coding (Asset=blue, Liability=red, etc.)",
+        "Account type color coding",
         "Filter by: Account Type, Active/Inactive, Postable only",
         "Search by account number or name",
         "Create account button",
+        "Empty state with Apply Template option",
         "E2E test: Accounts tree displays correctly"
       ],
       "api": {
-        "calls": [
-          "GET /api/v1/accounts?companyId=:id"
-        ]
-      },
-      "account_number_ranges": {
-        "1000-1999": "Assets",
-        "2000-2999": "Liabilities",
-        "3000-3999": "Equity",
-        "4000-4999": "Revenue",
-        "5000-7999": "Expenses"
+        "calls": ["GET /api/v1/accounts?companyId=:id"]
       },
       "files": {
-        "create": [
+        "created": [
           "packages/web/src/routes/organizations/$organizationId/companies/$companyId/accounts/index.tsx",
           "packages/web/src/components/accounts/AccountTree.tsx"
         ]
-      },
-      "status": "complete"
+      }
     },
     {
       "id": "5.2",
       "epic": "UI: Chart of Accounts",
       "title": "Create and edit account form",
-      "description": "Form to create and edit GL accounts with all API fields.",
-      "specs": [
-        "DOMAIN_MODEL.md",
-        "ACCOUNTING_RESEARCH.md",
-        "REACT_BEST_PRACTICES.md",
-        "E2E_TESTING.md"
-      ],
+      "priority": "P1",
+      "status": "needs_rework",
+      "issues": "Page has NO SIDEBAR. Must wait for story 2.3.",
+      "depends_on": ["2.3"],
+      "description": "Form to create and edit GL accounts.",
+      "specs": ["UI_ARCHITECTURE.md", "ACCOUNTING_RESEARCH.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
       "acceptance_criteria": [
-        "Form fields:",
-        "  - Account Number (4-digit, validated for type range)",
-        "  - Name",
-        "  - Description (optional)",
-        "  - Account Type (Asset/Liability/Equity/Revenue/Expense)",
-        "  - Account Category (subcategory for type)",
-        "  - Normal Balance (auto-set, can override for contra accounts)",
-        "  - Parent Account (optional, for sub-accounts)",
-        "  - Is Postable (checkbox)",
-        "  - Is Cash Flow Relevant (checkbox)",
-        "  - Cash Flow Category (if relevant)",
-        "  - Is Intercompany (checkbox)",
-        "Account number validation: 1xxx=Asset, 2xxx=Liability, etc.",
+        "MUST use AppLayout via layout route (story 2.3)",
+        "Form fields: Number, Name, Type, Category, Normal Balance, Parent, flags",
+        "Account number validation (1xxx=Asset, 2xxx=Liability, etc.)",
         "E2E test: Create account in hierarchy"
       ],
-      "api": {
-        "calls": [
-          "GET /api/v1/accounts?companyId=:id",
-          "POST /api/v1/accounts",
-          "PUT /api/v1/accounts/:id"
-        ],
-        "request": {
-          "companyId": "UUID",
-          "accountNumber": "string (4-digit)",
-          "name": "string",
-          "description": "string (optional)",
-          "accountType": "Asset|Liability|Equity|Revenue|Expense",
-          "accountCategory": "enum",
-          "normalBalance": "Debit|Credit",
-          "parentAccountId": "UUID (optional)",
-          "isPostable": "boolean",
-          "isCashFlowRelevant": "boolean",
-          "cashFlowCategory": "Operating|Investing|Financing (optional)",
-          "isIntercompany": "boolean"
-        }
-      },
       "files": {
-        "create": [
+        "created": [
           "packages/web/src/routes/organizations/$organizationId/companies/$companyId/accounts/new.tsx",
           "packages/web/src/components/forms/AccountForm.tsx"
         ]
-      },
-      "status": "complete"
+      }
     },
     {
       "id": "5.3",
       "epic": "UI: Chart of Accounts",
       "title": "Apply account template",
-      "description": "Allow users to bootstrap a company's chart of accounts from a predefined template. Useful for new companies.",
-      "specs": [
-        "DOMAIN_MODEL.md",
-        "ACCOUNTING_RESEARCH.md",
-        "REACT_BEST_PRACTICES.md",
-        "E2E_TESTING.md"
-      ],
+      "priority": "P2",
+      "status": "complete",
+      "description": "Bootstrap chart of accounts from predefined template.",
+      "specs": ["UI_ARCHITECTURE.md", "ACCOUNTING_RESEARCH.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
       "acceptance_criteria": [
-        "Show 'Apply Template' button on empty accounts page",
-        "Template selection modal with:",
-        "  - List of available templates with descriptions",
-        "  - Preview of account count per template",
-        "  - Template types: General Business, Manufacturing, Service Business, Holding Company",
-        "Confirmation before applying (warns this creates many accounts)",
-        "Apply template via POST /api/v1/account-templates/:type/apply",
-        "Show success with count of created accounts",
-        "Refresh accounts list after apply",
-        "E2E test: Apply template to new company"
+        "Apply Template button on empty accounts page",
+        "Template selection modal",
+        "Confirmation before applying",
+        "E2E test: Apply template"
       ],
-      "api": {
-        "calls": [
-          "GET /api/v1/account-templates",
-          "POST /api/v1/account-templates/:type/apply"
-        ]
-      },
       "files": {
-        "create": [
-          "packages/web/src/components/accounts/ApplyTemplateModal.tsx"
-        ],
-        "modify": [
-          "packages/web/src/routes/organizations/$organizationId/companies/$companyId/accounts/index.tsx"
-        ]
-      },
-      "status": "complete"
+        "created": ["packages/web/src/components/accounts/ApplyTemplateModal.tsx"]
+      }
     },
     {
       "id": "6.1",
       "epic": "UI: Journal Entries",
-      "title": "Journal entries list with filters",
-      "description": "List journal entries with status-based filtering and pagination.",
-      "specs": [
-        "DOMAIN_MODEL.md",
-        "ACCOUNTING_RESEARCH.md",
-        "REACT_BEST_PRACTICES.md",
-        "E2E_TESTING.md"
-      ],
+      "title": "Journal entries list",
+      "priority": "P1",
+      "status": "needs_rework",
+      "issues": "Page has NO SIDEBAR. Must wait for story 2.3.",
+      "depends_on": ["2.3"],
+      "description": "List journal entries with filters and pagination.",
+      "specs": ["UI_ARCHITECTURE.md", "ACCOUNTING_RESEARCH.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
       "acceptance_criteria": [
-        "SSR loader fetches entries with pagination",
+        "MUST use AppLayout via layout route (story 2.3)",
         "Columns: Entry #, Date, Reference, Description, Total, Status",
-        "Status badges: Draft (gray), PendingApproval (yellow), Approved (blue), Posted (green), Reversed (red)",
+        "Status badges with appropriate colors",
         "Filter by: Status, Entry Type, Date Range",
+        "Pagination",
         "Create entry button",
-        "Click row to view detail",
+        "Empty state",
         "E2E test: List with filters"
       ],
       "api": {
-        "calls": [
-          "GET /api/v1/journal-entries?companyId=:id&status=:status&limit=:limit&offset=:offset"
-        ]
+        "calls": ["GET /api/v1/journal-entries?companyId=:id&status=:status&limit=:limit&offset=:offset"]
       },
       "files": {
-        "create": [
-          "packages/web/src/routes/organizations/$organizationId/companies/$companyId/journal-entries/index.tsx"
-        ]
-      },
-      "status": "complete"
+        "created": ["packages/web/src/routes/organizations/$organizationId/companies/$companyId/journal-entries/index.tsx"]
+      }
     },
     {
       "id": "6.2",
       "epic": "UI: Journal Entries",
       "title": "Create journal entry form",
+      "priority": "P1",
+      "status": "needs_rework",
+      "issues": "Page has NO SIDEBAR. Must wait for story 2.3.",
+      "depends_on": ["2.3"],
       "description": "Multi-line journal entry creation with real-time balance validation.",
-      "specs": [
-        "DOMAIN_MODEL.md",
-        "ACCOUNTING_RESEARCH.md",
-        "REACT_BEST_PRACTICES.md",
-        "E2E_TESTING.md"
-      ],
+      "specs": ["UI_ARCHITECTURE.md", "ACCOUNTING_RESEARCH.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
       "acceptance_criteria": [
+        "MUST use AppLayout via layout route (story 2.3)",
         "Header fields: Date, Reference, Description, Entry Type",
-        "Line items table: Account dropdown, Memo, Debit, Credit",
-        "Account dropdown searches postable accounts",
-        "Add/remove lines dynamically (minimum 2)",
-        "Running totals row",
-        "Balance indicator: green=balanced, red=unbalanced",
-        "Cannot submit if unbalanced (debits ≠ credits)",
-        "Multi-currency: Currency selector, exchange rate field",
-        "Save as Draft button",
-        "Submit for Approval button (only if balanced)",
+        "Line items table with add/remove",
+        "Running totals, balance indicator",
+        "Cannot submit if unbalanced",
+        "Save as Draft, Submit for Approval buttons",
         "E2E test: Create balanced entry"
       ],
-      "api": {
-        "calls": [
-          "GET /api/v1/accounts?companyId=:id&isPostable=true",
-          "POST /api/v1/journal-entries"
-        ]
-      },
       "files": {
-        "create": [
+        "created": [
           "packages/web/src/routes/organizations/$organizationId/companies/$companyId/journal-entries/new.tsx",
-          "packages/web/src/components/forms/JournalEntryForm.tsx",
-          "packages/web/src/components/journal/JournalEntryLineEditor.tsx"
+          "packages/web/src/components/forms/JournalEntryForm.tsx"
         ]
-      },
-      "status": "complete"
+      }
     },
     {
       "id": "6.3",
       "epic": "UI: Journal Entries",
       "title": "Journal entry detail and workflow",
-      "description": "View entry details with approval workflow actions based on status.",
-      "specs": [
-        "DOMAIN_MODEL.md",
-        "ACCOUNTING_RESEARCH.md",
-        "REACT_BEST_PRACTICES.md",
-        "E2E_TESTING.md"
-      ],
+      "priority": "P1",
+      "status": "needs_rework",
+      "issues": "Page has NO SIDEBAR. Must wait for story 2.3.",
+      "depends_on": ["2.3"],
+      "description": "View entry details with approval workflow actions.",
+      "specs": ["UI_ARCHITECTURE.md", "ACCOUNTING_RESEARCH.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
       "acceptance_criteria": [
+        "MUST use AppLayout via layout route (story 2.3)",
         "Header: Entry #, Date, Reference, Type, Status badge",
         "Metadata: Created by, Created at, Posted by, Posted at",
         "Line items table (read-only for non-draft)",
-        "Workflow buttons by status:",
-        "  - Draft: Edit, Submit for Approval, Delete",
-        "  - PendingApproval: Approve, Reject (with reason)",
-        "  - Approved: Post",
-        "  - Posted: Reverse (creates reversing entry)",
-        "  - Reversed: View only, link to reversing entry",
-        "E2E test: Complete approval workflow (draft → posted)"
+        "Workflow buttons based on status",
+        "E2E test: Complete approval workflow"
       ],
-      "api": {
-        "calls": [
-          "GET /api/v1/journal-entries/:id",
-          "PUT /api/v1/journal-entries/:id",
-          "DELETE /api/v1/journal-entries/:id",
-          "POST /api/v1/journal-entries/:id/submit",
-          "POST /api/v1/journal-entries/:id/approve",
-          "POST /api/v1/journal-entries/:id/reject",
-          "POST /api/v1/journal-entries/:id/post",
-          "POST /api/v1/journal-entries/:id/reverse"
-        ]
-      },
       "files": {
-        "create": [
-          "packages/web/src/routes/organizations/$organizationId/companies/$companyId/journal-entries/$entryId/index.tsx"
-        ]
-      },
-      "status": "complete"
+        "created": ["packages/web/src/routes/organizations/$organizationId/companies/$companyId/journal-entries/$entryId/index.tsx"]
+      }
     },
     {
       "id": "7.1",
       "epic": "UI: Financial Reports",
       "title": "Reports dashboard",
-      "description": "Landing page with cards for each available report type.",
-      "specs": [
-        "DOMAIN_MODEL.md",
-        "REACT_BEST_PRACTICES.md",
-        "E2E_TESTING.md"
-      ],
+      "priority": "P2",
+      "status": "pending",
+      "depends_on": ["2.3"],
+      "description": "Landing page with cards for each report type.",
+      "specs": ["UI_ARCHITECTURE.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
       "acceptance_criteria": [
-        "Cards for each report:",
-        "  - Trial Balance: Account balances verification",
-        "  - Balance Sheet: Assets = Liabilities + Equity (ASC 210)",
-        "  - Income Statement: Revenue - Expenses = Net Income (ASC 220)",
-        "  - Cash Flow Statement: Operating/Investing/Financing (ASC 230)",
-        "  - Statement of Changes in Equity",
+        "MUST use AppLayout via layout route",
+        "Cards for: Trial Balance, Balance Sheet, Income Statement, Cash Flow, Equity Statement",
         "Quick date picker for common periods",
-        "Click card navigates to report with date pre-filled",
+        "Click card → navigate to report with date pre-filled",
         "E2E test: Reports dashboard"
       ],
-      "api": {
-        "available_reports": [
-          "GET /api/v1/reports/trial-balance",
-          "GET /api/v1/reports/balance-sheet",
-          "GET /api/v1/reports/income-statement",
-          "GET /api/v1/reports/cash-flow",
-          "GET /api/v1/reports/equity-statement"
-        ]
-      },
       "files": {
-        "create": [
-          "packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/index.tsx"
-        ]
-      },
-      "status": "pending"
+        "create": ["packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/index.tsx"]
+      }
     },
     {
       "id": "7.2",
       "epic": "UI: Financial Reports",
       "title": "Trial Balance report",
-      "description": "Generate and display trial balance with debit/credit columns.",
-      "specs": [
-        "DOMAIN_MODEL.md",
-        "ACCOUNTING_RESEARCH.md",
-        "REACT_BEST_PRACTICES.md",
-        "E2E_TESTING.md"
-      ],
+      "priority": "P2",
+      "status": "pending",
+      "depends_on": ["2.3", "7.1"],
+      "description": "Generate trial balance with debit/credit columns.",
+      "specs": ["UI_ARCHITECTURE.md", "ACCOUNTING_RESEARCH.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
       "acceptance_criteria": [
-        "Date picker: As-of date",
-        "Generate button calls API",
+        "MUST use AppLayout via layout route",
+        "Date picker, Generate button",
         "Table: Account Number, Name, Type, Debit Balance, Credit Balance",
-        "Total row showing sum (must balance)",
+        "Total row (must balance)",
         "Filter: By account type, hide zero balances",
         "Export: PDF, Excel, CSV",
         "E2E test: Trial balance totals balance"
@@ -1022,57 +927,47 @@
           "packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/trial-balance.tsx",
           "packages/web/src/components/reports/TrialBalanceTable.tsx"
         ]
-      },
-      "status": "pending"
+      }
     },
     {
       "id": "7.3",
       "epic": "UI: Financial Reports",
       "title": "Balance Sheet report",
-      "description": "Generate and display balance sheet per ASC 210.",
-      "specs": [
-        "DOMAIN_MODEL.md",
-        "ACCOUNTING_RESEARCH.md",
-        "REACT_BEST_PRACTICES.md",
-        "E2E_TESTING.md"
-      ],
+      "priority": "P2",
+      "status": "pending",
+      "depends_on": ["2.3", "7.1"],
+      "description": "Generate balance sheet per ASC 210.",
+      "specs": ["UI_ARCHITECTURE.md", "ACCOUNTING_RESEARCH.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
       "acceptance_criteria": [
-        "Date picker: As-of date, optional comparative date",
-        "Sections: Assets (Current/Non-Current), Liabilities (Current/Non-Current), Equity",
-        "Subtotals for each section",
-        "Total Assets = Total Liabilities + Equity (must balance)",
-        "Comparative columns if second date selected",
-        "Variance column (amount and %)",
+        "MUST use AppLayout via layout route",
+        "Date picker with optional comparative date",
+        "Sections: Assets, Liabilities, Equity with subtotals",
+        "Total Assets = Total Liabilities + Equity",
+        "Variance column if comparative selected",
         "Export: PDF, Excel, CSV",
         "E2E test: Balance sheet balances"
       ],
       "api": {
-        "call": "GET /api/v1/reports/balance-sheet?companyId=:id&asOfDate=:date&comparativeDate=:date"
+        "call": "GET /api/v1/reports/balance-sheet?companyId=:id&asOfDate=:date"
       },
       "files": {
-        "create": [
-          "packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/balance-sheet.tsx"
-        ]
-      },
-      "status": "pending"
+        "create": ["packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/balance-sheet.tsx"]
+      }
     },
     {
       "id": "7.4",
       "epic": "UI: Financial Reports",
       "title": "Income Statement report",
-      "description": "Generate and display income statement per ASC 220.",
-      "specs": [
-        "DOMAIN_MODEL.md",
-        "ACCOUNTING_RESEARCH.md",
-        "REACT_BEST_PRACTICES.md",
-        "E2E_TESTING.md"
-      ],
+      "priority": "P2",
+      "status": "pending",
+      "depends_on": ["2.3", "7.1"],
+      "description": "Generate income statement per ASC 220.",
+      "specs": ["UI_ARCHITECTURE.md", "ACCOUNTING_RESEARCH.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
       "acceptance_criteria": [
-        "Date range picker: Period start and end",
-        "Optional comparative period",
-        "Sections: Revenue, Cost of Sales, Operating Expenses, Other Income/Expense",
-        "Calculated lines: Gross Profit, Operating Income, Net Income",
-        "Comparative columns, variance column",
+        "MUST use AppLayout via layout route",
+        "Date range picker with optional comparative period",
+        "Sections: Revenue, Cost of Sales, Operating Expenses, Other",
+        "Calculated: Gross Profit, Operating Income, Net Income",
         "Export: PDF, Excel, CSV",
         "E2E test: Income statement calculations"
       ],
@@ -1080,28 +975,24 @@
         "call": "GET /api/v1/reports/income-statement?companyId=:id&periodStartDate=:date&periodEndDate=:date"
       },
       "files": {
-        "create": [
-          "packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/income-statement.tsx"
-        ]
-      },
-      "status": "pending"
+        "create": ["packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/income-statement.tsx"]
+      }
     },
     {
       "id": "7.5",
       "epic": "UI: Financial Reports",
       "title": "Cash Flow Statement report",
-      "description": "Generate and display cash flow statement per ASC 230.",
-      "specs": [
-        "DOMAIN_MODEL.md",
-        "ACCOUNTING_RESEARCH.md",
-        "REACT_BEST_PRACTICES.md",
-        "E2E_TESTING.md"
-      ],
+      "priority": "P2",
+      "status": "pending",
+      "depends_on": ["2.3", "7.1"],
+      "description": "Generate cash flow statement per ASC 230.",
+      "specs": ["UI_ARCHITECTURE.md", "ACCOUNTING_RESEARCH.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
       "acceptance_criteria": [
+        "MUST use AppLayout via layout route",
         "Date range picker",
         "Method selector: Direct or Indirect",
         "Sections: Operating, Investing, Financing Activities",
-        "Beginning cash + Net change = Ending cash reconciliation",
+        "Beginning cash + Net change = Ending cash",
         "Export: PDF, Excel, CSV",
         "E2E test: Cash flow reconciles"
       ],
@@ -1109,24 +1000,20 @@
         "call": "GET /api/v1/reports/cash-flow?companyId=:id&periodStartDate=:date&periodEndDate=:date&method=:method"
       },
       "files": {
-        "create": [
-          "packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/cash-flow.tsx"
-        ]
-      },
-      "status": "pending"
+        "create": ["packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/cash-flow.tsx"]
+      }
     },
     {
       "id": "7.6",
       "epic": "UI: Financial Reports",
       "title": "Statement of Changes in Equity report",
-      "description": "Generate and display equity statement showing period movements.",
-      "specs": [
-        "DOMAIN_MODEL.md",
-        "ACCOUNTING_RESEARCH.md",
-        "REACT_BEST_PRACTICES.md",
-        "E2E_TESTING.md"
-      ],
+      "priority": "P2",
+      "status": "pending",
+      "depends_on": ["2.3", "7.1"],
+      "description": "Generate equity statement showing period movements.",
+      "specs": ["UI_ARCHITECTURE.md", "ACCOUNTING_RESEARCH.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
       "acceptance_criteria": [
+        "MUST use AppLayout via layout route",
         "Date range picker",
         "Columns: Common Stock, APIC, Retained Earnings, Treasury Stock, AOCI, Total",
         "Rows: Opening Balance, Net Income, Dividends, Stock transactions, Closing Balance",
@@ -1137,35 +1024,24 @@
         "call": "GET /api/v1/reports/equity-statement?companyId=:id&periodStartDate=:date&periodEndDate=:date"
       },
       "files": {
-        "create": [
-          "packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/equity-statement.tsx"
-        ]
-      },
-      "status": "pending"
+        "create": ["packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/equity-statement.tsx"]
+      }
     },
     {
       "id": "8.1",
       "epic": "UI: Fiscal Periods",
       "title": "Fiscal years and periods management",
-      "description": "Manage fiscal years and period lifecycle (open/close/reopen).",
-      "specs": [
-        "DOMAIN_MODEL.md",
-        "ACCOUNTING_RESEARCH.md",
-        "REACT_BEST_PRACTICES.md",
-        "E2E_TESTING.md"
-      ],
+      "priority": "P2",
+      "status": "pending",
+      "depends_on": ["2.3"],
+      "description": "Manage fiscal years and period lifecycle.",
+      "specs": ["UI_ARCHITECTURE.md", "ACCOUNTING_RESEARCH.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
       "acceptance_criteria": [
-        "Fiscal years list with expandable periods (12 + adjustment period)",
-        "Create fiscal year button (auto-generates periods)",
-        "Period status indicators: Future, Open, SoftClose, Closed, Locked",
-        "Current period highlighted",
-        "Period actions by status:",
-        "  - Future: Open",
-        "  - Open: Soft Close",
-        "  - SoftClose: Close or Reopen",
-        "  - Closed: Lock or Reopen (with reason)",
-        "  - Locked: View only",
-        "Reopen modal with required reason field",
+        "MUST use AppLayout via layout route",
+        "Fiscal years list with expandable periods",
+        "Create fiscal year button",
+        "Period status indicators",
+        "Period actions by status",
         "E2E test: Period lifecycle"
       ],
       "api": {
@@ -1185,27 +1061,24 @@
           "packages/web/src/components/fiscal/FiscalYearList.tsx",
           "packages/web/src/components/fiscal/PeriodStatusBadge.tsx"
         ]
-      },
-      "status": "pending"
+      }
     },
     {
       "id": "9.1",
       "epic": "UI: Exchange Rates",
       "title": "Exchange rates management",
+      "priority": "P2",
+      "status": "pending",
+      "depends_on": ["2.3"],
       "description": "Manage exchange rates with CRUD and bulk import.",
-      "specs": [
-        "DOMAIN_MODEL.md",
-        "ACCOUNTING_RESEARCH.md",
-        "REACT_BEST_PRACTICES.md",
-        "E2E_TESTING.md"
-      ],
+      "specs": ["UI_ARCHITECTURE.md", "ACCOUNTING_RESEARCH.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
       "acceptance_criteria": [
-        "Rates list: From Currency, To Currency, Rate, Type, Effective Date",
-        "Filter by: Currency pair, Rate type (Spot/Average/Closing), Date range",
+        "MUST use AppLayout via layout route",
+        "Rates list with filters",
         "Create single rate form",
         "Bulk import from CSV",
         "Delete rate",
-        "Rate lookup tool: Get rate by date, latest, closest",
+        "Rate lookup tool",
         "E2E test: Exchange rates CRUD"
       ],
       "api": {
@@ -1213,9 +1086,7 @@
           "GET /api/v1/exchange-rates?organizationId=:id",
           "POST /api/v1/exchange-rates",
           "POST /api/v1/exchange-rates/bulk",
-          "DELETE /api/v1/exchange-rates/:id",
-          "GET /api/v1/exchange-rates/by-date",
-          "GET /api/v1/exchange-rates/latest"
+          "DELETE /api/v1/exchange-rates/:id"
         ]
       },
       "files": {
@@ -1223,58 +1094,45 @@
           "packages/web/src/routes/organizations/$organizationId/exchange-rates/index.tsx",
           "packages/web/src/components/forms/ExchangeRateForm.tsx"
         ]
-      },
-      "status": "pending"
+      }
     },
     {
       "id": "10.1",
       "epic": "UI: Consolidation",
       "title": "Consolidation groups list",
-      "description": "List consolidation groups with member count and status.",
-      "specs": [
-        "DOMAIN_MODEL.md",
-        "ACCOUNTING_RESEARCH.md",
-        "REACT_BEST_PRACTICES.md",
-        "E2E_TESTING.md"
-      ],
+      "priority": "P2",
+      "status": "pending",
+      "depends_on": ["2.3"],
+      "description": "List consolidation groups.",
+      "specs": ["UI_ARCHITECTURE.md", "ACCOUNTING_RESEARCH.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
       "acceptance_criteria": [
-        "Groups list: Name, Parent Company, Reporting Currency, Member Count, Status",
-        "Create consolidation group button",
-        "Click row to view group detail",
-        "Activate/deactivate toggle",
+        "MUST use AppLayout via layout route",
+        "Groups list with member count",
+        "Create group button",
+        "Click row → group detail",
         "E2E test: Groups list"
       ],
       "api": {
-        "calls": [
-          "GET /api/v1/consolidation/groups?organizationId=:id"
-        ]
+        "calls": ["GET /api/v1/consolidation/groups?organizationId=:id"]
       },
       "files": {
-        "create": [
-          "packages/web/src/routes/organizations/$organizationId/consolidation/index.tsx"
-        ]
-      },
-      "status": "pending"
+        "create": ["packages/web/src/routes/organizations/$organizationId/consolidation/index.tsx"]
+      }
     },
     {
       "id": "10.2",
       "epic": "UI: Consolidation",
-      "title": "Consolidation group detail and members",
-      "description": "Manage consolidation group members with ownership and method.",
-      "specs": [
-        "DOMAIN_MODEL.md",
-        "ACCOUNTING_RESEARCH.md",
-        "REACT_BEST_PRACTICES.md",
-        "E2E_TESTING.md"
-      ],
+      "title": "Consolidation group detail",
+      "priority": "P2",
+      "status": "pending",
+      "depends_on": ["2.3", "10.1"],
+      "description": "Manage consolidation group members.",
+      "specs": ["UI_ARCHITECTURE.md", "ACCOUNTING_RESEARCH.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
       "acceptance_criteria": [
-        "Header: Group name, parent company, reporting currency, status",
-        "Members list: Company, Ownership %, Consolidation Method, Acquisition Date",
-        "Add member: Company dropdown, ownership %, method",
-        "Edit member ownership and method",
-        "Remove member",
-        "Link to elimination rules",
-        "Link to consolidation runs",
+        "MUST use AppLayout via layout route",
+        "Members list with ownership %",
+        "Add/edit/remove members",
+        "Links to elimination rules and runs",
         "E2E test: Member management"
       ],
       "api": {
@@ -1286,30 +1144,23 @@
         ]
       },
       "files": {
-        "create": [
-          "packages/web/src/routes/organizations/$organizationId/consolidation/$groupId/index.tsx"
-        ]
-      },
-      "status": "pending"
+        "create": ["packages/web/src/routes/organizations/$organizationId/consolidation/$groupId/index.tsx"]
+      }
     },
     {
       "id": "10.3",
       "epic": "UI: Consolidation",
-      "title": "Consolidation runs and results",
+      "title": "Consolidation runs",
+      "priority": "P2",
+      "status": "pending",
+      "depends_on": ["2.3", "10.2"],
       "description": "Execute consolidation runs and view results.",
-      "specs": [
-        "DOMAIN_MODEL.md",
-        "ACCOUNTING_RESEARCH.md",
-        "REACT_BEST_PRACTICES.md",
-        "E2E_TESTING.md"
-      ],
+      "specs": ["UI_ARCHITECTURE.md", "ACCOUNTING_RESEARCH.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
       "acceptance_criteria": [
-        "Runs list: Date, Period, Status, Initiated By",
-        "Initiate new run: Period picker, as-of date",
-        "Progress indicator during run",
-        "Cancel in-progress run",
-        "View completed run: Consolidated trial balance",
-        "View elimination entries generated",
+        "MUST use AppLayout via layout route",
+        "Runs list",
+        "Initiate new run",
+        "View completed run results",
         "E2E test: Consolidation run workflow"
       ],
       "api": {
@@ -1324,34 +1175,22 @@
           "packages/web/src/routes/organizations/$organizationId/consolidation/$groupId/runs/index.tsx",
           "packages/web/src/routes/organizations/$organizationId/consolidation/$groupId/runs/$runId.tsx"
         ]
-      },
-      "status": "pending"
+      }
     },
     {
       "id": "10.4",
       "epic": "UI: Consolidation",
       "title": "Elimination rules editor",
-      "description": "Create and manage elimination rules for consolidation.",
-      "specs": [
-        "DOMAIN_MODEL.md",
-        "ACCOUNTING_RESEARCH.md",
-        "REACT_BEST_PRACTICES.md",
-        "E2E_TESTING.md"
-      ],
+      "priority": "P2",
+      "status": "pending",
+      "depends_on": ["2.3", "10.2"],
+      "description": "Create and manage elimination rules.",
+      "specs": ["UI_ARCHITECTURE.md", "ACCOUNTING_RESEARCH.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
       "acceptance_criteria": [
-        "Rules list: Name, Type, Debit Account, Credit Account, Status",
-        "Filter by type and status",
-        "Create rule form: Name, type, account selectors",
-        "Edit rule",
-        "Activate/deactivate rule",
-        "Delete rule",
+        "MUST use AppLayout via layout route",
+        "Rules list with filters",
+        "Create/edit/delete rules",
         "E2E test: Elimination rules CRUD"
-      ],
-      "elimination_types": [
-        "IntercompanyReceivablePayable",
-        "IntercompanyRevenueExpense",
-        "IntercompanyDividend",
-        "IntercompanyInvestment"
       ],
       "api": {
         "calls": [
@@ -1362,45 +1201,30 @@
         ]
       },
       "files": {
-        "create": [
-          "packages/web/src/routes/organizations/$organizationId/consolidation/$groupId/elimination-rules/index.tsx"
-        ]
-      },
-      "status": "pending"
+        "create": ["packages/web/src/routes/organizations/$organizationId/consolidation/$groupId/elimination-rules/index.tsx"]
+      }
     },
     {
       "id": "11.1",
       "epic": "UI: Intercompany",
-      "title": "Intercompany transactions reconciliation",
-      "description": "Track and reconcile intercompany transactions between group companies.",
-      "specs": [
-        "DOMAIN_MODEL.md",
-        "ACCOUNTING_RESEARCH.md",
-        "REACT_BEST_PRACTICES.md",
-        "E2E_TESTING.md"
-      ],
+      "title": "Intercompany transactions",
+      "priority": "P2",
+      "status": "pending",
+      "depends_on": ["2.3"],
+      "description": "Track and reconcile intercompany transactions.",
+      "specs": ["UI_ARCHITECTURE.md", "ACCOUNTING_RESEARCH.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
       "acceptance_criteria": [
-        "Transactions list: Date, From Company, To Company, Type, Amount, Status",
-        "Status: Matched, Unmatched, PartiallyMatched, VarianceApproved",
-        "Filter by: Company pair, Transaction type, Matching status, Date range",
-        "Summary cards: Total transactions, Unmatched count, Variance total",
-        "Create transaction: From/To companies, type, amount, date",
-        "Update matching status (approve variance with explanation)",
+        "MUST use AppLayout via layout route",
+        "Transactions list with filters",
+        "Summary cards",
+        "Create/update transactions",
         "E2E test: Intercompany reconciliation"
-      ],
-      "transaction_types": [
-        "SalePurchase",
-        "Loan",
-        "ManagementFee",
-        "Dividend",
-        "CapitalContribution"
       ],
       "api": {
         "calls": [
           "GET /api/v1/intercompany-transactions?organizationId=:id",
           "POST /api/v1/intercompany-transactions",
-          "PUT /api/v1/intercompany-transactions/:id",
-          "DELETE /api/v1/intercompany-transactions/:id"
+          "PUT /api/v1/intercompany-transactions/:id"
         ]
       },
       "files": {
@@ -1408,35 +1232,28 @@
           "packages/web/src/routes/organizations/$organizationId/intercompany/index.tsx",
           "packages/web/src/components/intercompany/IntercompanyTransactionForm.tsx"
         ]
-      },
-      "status": "pending"
+      }
     },
     {
       "id": "12.1",
       "epic": "UI: Audit Log",
       "title": "Audit log viewer",
-      "description": "View audit trail for compliance and SOX requirements. Shows history of all changes to entities.",
-      "specs": [
-        "DOMAIN_MODEL.md",
-        "REACT_BEST_PRACTICES.md",
-        "E2E_TESTING.md"
-      ],
+      "priority": "P2",
+      "status": "pending",
+      "depends_on": ["2.3"],
+      "description": "View audit trail for compliance.",
+      "specs": ["UI_ARCHITECTURE.md", "REACT_BEST_PRACTICES.md", "E2E_TESTING.md"],
       "acceptance_criteria": [
-        "Audit log page accessible from organization settings",
-        "Table columns: Timestamp, User, Entity Type, Entity ID, Action, Changes",
-        "Filter by: Entity type, User, Action type, Date range",
-        "Entity types: Organization, Company, Account, JournalEntry, FiscalPeriod, etc.",
-        "Action types: Create, Update, Delete, StatusChange",
-        "Expandable row shows before/after values for changes",
-        "Click entity ID links to entity detail page",
-        "Pagination for large result sets",
-        "Export to CSV for compliance reports",
-        "E2E test: Audit log displays and filters correctly"
+        "MUST use AppLayout via layout route",
+        "Table: Timestamp, User, Entity Type, Entity ID, Action, Changes",
+        "Filters by entity type, user, action, date range",
+        "Expandable rows for change details",
+        "Pagination",
+        "Export to CSV",
+        "E2E test: Audit log filters"
       ],
       "api": {
-        "calls": [
-          "GET /api/v1/audit-log?entityType=:type&userId=:id&action=:action&fromDate=:date&toDate=:date"
-        ]
+        "calls": ["GET /api/v1/audit-log?entityType=:type&userId=:id&action=:action&fromDate=:date&toDate=:date"]
       },
       "files": {
         "create": [
@@ -1444,8 +1261,7 @@
           "packages/web/src/components/audit/AuditLogTable.tsx",
           "packages/web/src/components/audit/AuditEntryDetail.tsx"
         ]
-      },
-      "status": "pending"
+      }
     }
   ]
 }
