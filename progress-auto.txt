@@ -71,3 +71,8 @@
 **Task**: Fixed multiple flaky E2E tests by adding proper React hydration waits before button clicks (waitForTimeout 500ms), using force: true on click events to ensure they register, waiting for modal visibility before checking for inner elements, increasing timeouts for state updates (from 5000ms to 10000-15000ms), and using pressSequentially instead of fill for inputs that need proper event triggering. Fixed tests in: dashboard.spec.ts (sidebar collapse), organization-settings.spec.ts (delete confirmation, edit organization), organizations.spec.ts (form validation), companies-list.spec.ts (create company modal), company-details.spec.ts (edit company modal), journal-entry-workflow.spec.ts (reverse entry dialog), accounts.spec.ts (create account modal, filter by type), apply-template.spec.ts (template modal), and register.spec.ts (form validation). All 177 E2E tests now pass consistently.
 **Status**: complete
 ---
+
+## Iteration 19 - 2026-01-15 16:11
+**Task**: Simplified Sidebar Reports navigation by removing sub-items per UI_ARCHITECTURE.md spec requirement that Reports should not have expandable sub-menu but instead link directly to the reports hub page
+**Status**: complete
+---

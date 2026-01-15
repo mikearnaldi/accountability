@@ -33,8 +33,6 @@ import {
   CreditCard,
   ChevronDown,
   BarChart3,
-  PieChart,
-  DollarSign,
   Calendar
 } from "lucide-react"
 import type { Organization } from "./OrganizationSelector.tsx"
@@ -122,44 +120,7 @@ function getNavItems(organizationId?: string): readonly NavItem[] {
       label: "Reports",
       href: `/organizations/${organizationId}/reports`,
       icon: BarChart3,
-      testId: "nav-reports",
-      subItems: [
-        {
-          label: "Trial Balance",
-          href: `/organizations/${organizationId}/reports`,
-          icon: FileText,
-          testId: "nav-reports-trial-balance",
-          available: true
-        },
-        {
-          label: "Balance Sheet",
-          href: `/organizations/${organizationId}/reports`,
-          icon: BarChart3,
-          testId: "nav-reports-balance-sheet",
-          available: false
-        },
-        {
-          label: "Income Statement",
-          href: `/organizations/${organizationId}/reports`,
-          icon: TrendingUp,
-          testId: "nav-reports-income-statement",
-          available: false
-        },
-        {
-          label: "Cash Flow",
-          href: `/organizations/${organizationId}/reports`,
-          icon: DollarSign,
-          testId: "nav-reports-cash-flow",
-          available: false
-        },
-        {
-          label: "Equity Statement",
-          href: `/organizations/${organizationId}/reports`,
-          icon: PieChart,
-          testId: "nav-reports-equity-statement",
-          available: false
-        }
-      ]
+      testId: "nav-reports"
     },
     {
       label: "Exchange Rates",
