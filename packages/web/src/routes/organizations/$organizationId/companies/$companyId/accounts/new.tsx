@@ -8,8 +8,10 @@
 import { createFileRoute, redirect, Link, useRouter } from "@tanstack/react-router"
 import { createServerFn } from "@tanstack/react-start"
 import { getCookie } from "@tanstack/react-start/server"
+import { useMemo } from "react"
 import { createServerApi } from "@/api/server"
 import { AccountForm, type Account } from "@/components/forms/AccountForm"
+import { AppLayout } from "@/components/layout/AppLayout"
 
 // =============================================================================
 // Types
@@ -186,15 +188,49 @@ export const Route = createFileRoute(
 // =============================================================================
 
 function NewAccountPage() {
+  const context = Route.useRouteContext()
   const loaderData = Route.useLoaderData()
   const router = useRouter()
   const params = Route.useParams()
+  const user = context.user
 
   /* eslint-disable @typescript-eslint/consistent-type-assertions -- Type assertions needed for loader data typing */
   const accounts = loaderData.accounts as readonly Account[]
   const company = loaderData.company as Company | null
   const organization = loaderData.organization as Organization | null
   /* eslint-enable @typescript-eslint/consistent-type-assertions */
+
+  // Pass current company to sidebar for quick actions
+  const companiesForSidebar = useMemo(
+    () => company ? [{ id: company.id, name: company.name }] : [],
+    [company?.id, company?.name]
+  )
+
+  // Breadcrumb items for New Account page
+  const breadcrumbItems = useMemo(
+    () =>
+      company
+        ? [
+            {
+              label: "Companies",
+              href: `/organizations/${params.organizationId}/companies`
+            },
+            {
+              label: company.name,
+              href: `/organizations/${params.organizationId}/companies/${params.companyId}`
+            },
+            {
+              label: "Chart of Accounts",
+              href: `/organizations/${params.organizationId}/companies/${params.companyId}/accounts`
+            },
+            {
+              label: "New Account",
+              href: `/organizations/${params.organizationId}/companies/${params.companyId}/accounts/new`
+            }
+          ]
+        : [],
+    [company?.name, params.organizationId, params.companyId]
+  )
 
   if (!company || !organization) {
     return null
@@ -221,71 +257,26 @@ function NewAccountPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="border-b border-gray-200 bg-white">
-        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-4">
-            <Link to="/" className="text-xl font-bold text-gray-900">
-              Accountability
-            </Link>
-            <span className="text-gray-400">/</span>
-            <Link
-              to="/organizations"
-              className="text-xl text-gray-600 hover:text-gray-900"
-            >
-              Organizations
-            </Link>
-            <span className="text-gray-400">/</span>
-            <Link
-              to="/organizations/$organizationId"
-              params={{ organizationId: params.organizationId }}
-              className="text-xl text-gray-600 hover:text-gray-900"
-            >
-              {organization.name}
-            </Link>
-            <span className="text-gray-400">/</span>
-            <Link
-              to="/organizations/$organizationId/companies"
-              params={{ organizationId: params.organizationId }}
-              className="text-xl text-gray-600 hover:text-gray-900"
-            >
-              Companies
-            </Link>
-            <span className="text-gray-400">/</span>
-            <Link
-              to="/organizations/$organizationId/companies/$companyId"
-              params={{
-                organizationId: params.organizationId,
-                companyId: params.companyId
-              }}
-              className="text-xl text-gray-600 hover:text-gray-900"
-            >
-              {company.name}
-            </Link>
-            <span className="text-gray-400">/</span>
-            <Link
-              to="/organizations/$organizationId/companies/$companyId/accounts"
-              params={{
-                organizationId: params.organizationId,
-                companyId: params.companyId
-              }}
-              className="text-xl text-gray-600 hover:text-gray-900"
-            >
-              Accounts
-            </Link>
-            <span className="text-gray-400">/</span>
-            <h1 className="text-xl font-semibold text-gray-900">New Account</h1>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-          <h2 className="mb-6 text-lg font-semibold text-gray-900">
+    <AppLayout
+      user={user}
+      currentOrganization={organization}
+      breadcrumbItems={breadcrumbItems}
+      companies={companiesForSidebar}
+      currentCompany={{ id: company.id, name: company.name }}
+    >
+      <div data-testid="new-account-page">
+        {/* Page Title */}
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-900" data-testid="page-title">
             Create New Account
-          </h2>
+          </h1>
+          <p className="mt-1 text-sm text-gray-500">
+            Add a new account to the {company.name} chart of accounts
+          </p>
+        </div>
+
+        {/* Form */}
+        <div className="max-w-3xl rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
           <AccountForm
             mode="create"
             companyId={params.companyId}
@@ -294,7 +285,7 @@ function NewAccountPage() {
             onCancel={handleCancel}
           />
         </div>
-      </main>
-    </div>
+      </div>
+    </AppLayout>
   )
 }

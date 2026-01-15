@@ -11,8 +11,10 @@
 import { createFileRoute, redirect, Link, useNavigate } from "@tanstack/react-router"
 import { createServerFn } from "@tanstack/react-start"
 import { getCookie } from "@tanstack/react-start/server"
+import { useMemo } from "react"
 import { createServerApi } from "@/api/server"
 import { JournalEntryForm } from "@/components/forms/JournalEntryForm"
+import { AppLayout } from "@/components/layout/AppLayout"
 
 // =============================================================================
 // Types
@@ -255,6 +257,7 @@ export const Route = createFileRoute(
 // =============================================================================
 
 function NewJournalEntryPage() {
+  const context = Route.useRouteContext()
   const loaderData = Route.useLoaderData()
   /* eslint-disable @typescript-eslint/consistent-type-assertions -- Type assertions needed for loader data typing */
   const company = loaderData.company as Company | null
@@ -266,6 +269,7 @@ function NewJournalEntryPage() {
   /* eslint-enable @typescript-eslint/consistent-type-assertions */
   const params = Route.useParams()
   const navigate = useNavigate()
+  const user = context.user
 
   // Build a map of fiscal year ID to fiscal year for lookup
   const fiscalYearMap = new Map<string, FiscalYear>()
@@ -320,73 +324,46 @@ function NewJournalEntryPage() {
   // Check if company has any accounts
   const hasAccounts = accounts.length > 0
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="border-b border-gray-200 bg-white">
-        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-4">
-            <Link to="/" className="text-xl font-bold text-gray-900">
-              Accountability
-            </Link>
-            <span className="text-gray-400">/</span>
-            <Link
-              to="/organizations"
-              className="text-xl text-gray-600 hover:text-gray-900"
-            >
-              Organizations
-            </Link>
-            <span className="text-gray-400">/</span>
-            <Link
-              to="/organizations/$organizationId"
-              params={{ organizationId: params.organizationId }}
-              className="text-xl text-gray-600 hover:text-gray-900"
-            >
-              {organization.name}
-            </Link>
-            <span className="text-gray-400">/</span>
-            <Link
-              to="/organizations/$organizationId/companies"
-              params={{ organizationId: params.organizationId }}
-              className="text-xl text-gray-600 hover:text-gray-900"
-            >
-              Companies
-            </Link>
-            <span className="text-gray-400">/</span>
-            <Link
-              to="/organizations/$organizationId/companies/$companyId"
-              params={{
-                organizationId: params.organizationId,
-                companyId: params.companyId
-              }}
-              className="text-xl text-gray-600 hover:text-gray-900"
-            >
-              {company.name}
-            </Link>
-            <span className="text-gray-400">/</span>
-            <Link
-              to="/organizations/$organizationId/companies/$companyId/journal-entries"
-              params={{
-                organizationId: params.organizationId,
-                companyId: params.companyId
-              }}
-              className="text-xl text-gray-600 hover:text-gray-900"
-            >
-              Journal Entries
-            </Link>
-            <span className="text-gray-400">/</span>
-            <h1 className="text-xl font-semibold text-gray-900">New Entry</h1>
-          </div>
-        </div>
-      </header>
+  // Pass current company to sidebar for quick actions
+  const companiesForSidebar = useMemo(
+    () => [{ id: company.id, name: company.name }],
+    [company.id, company.name]
+  )
 
-      {/* Main Content */}
-      <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+  // Breadcrumb items for New Journal Entry page
+  const breadcrumbItems = [
+    {
+      label: "Companies",
+      href: `/organizations/${params.organizationId}/companies`
+    },
+    {
+      label: company.name,
+      href: `/organizations/${params.organizationId}/companies/${params.companyId}`
+    },
+    {
+      label: "Journal Entries",
+      href: `/organizations/${params.organizationId}/companies/${params.companyId}/journal-entries`
+    },
+    {
+      label: "New Entry",
+      href: `/organizations/${params.organizationId}/companies/${params.companyId}/journal-entries/new`
+    }
+  ]
+
+  return (
+    <AppLayout
+      user={user}
+      currentOrganization={organization}
+      breadcrumbItems={breadcrumbItems}
+      companies={companiesForSidebar}
+      currentCompany={{ id: company.id, name: company.name }}
+    >
+      <div data-testid="new-journal-entry-page">
         {/* Page Title */}
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-gray-900" data-testid="page-title">
             Create Journal Entry
-          </h2>
+          </h1>
           <p className="mt-1 text-sm text-gray-500">
             Record a new journal entry for {company.name} ({company.functionalCurrency})
           </p>
@@ -476,7 +453,7 @@ function NewJournalEntryPage() {
             </Link>
           </div>
         )}
-      </main>
-    </div>
+      </div>
+    </AppLayout>
   )
 }
