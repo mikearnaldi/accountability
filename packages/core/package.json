@@ -24,6 +24,7 @@
     "./Auth/SessionTokenGenerator": "./src/Auth/SessionTokenGenerator.ts",
     "./Auth/UserIdentity": "./src/Auth/UserIdentity.ts",
     "./Domains/Account": "./src/Domains/Account.ts",
+    "./Domains/AuditLog": "./src/Domains/AuditLog.ts",
     "./Domains/AccountBalance": "./src/Domains/AccountBalance.ts",
     "./Domains/AccountHierarchy": "./src/Domains/AccountHierarchy.ts",
     "./Domains/AccountNumber": "./src/Domains/AccountNumber.ts",

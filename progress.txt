@@ -889,3 +889,8 @@
 **Story**: 1.3 - Account templates endpoint
 **Status**: complete
 ---
+
+## Iteration 43 - 2026-01-15 06:54
+**Story**: 1.4 - Audit log query endpoint
+**Status**: complete
+---

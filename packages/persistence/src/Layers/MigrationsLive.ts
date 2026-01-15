@@ -26,6 +26,7 @@ import Migration0009 from "../Migrations/Migration0009_CreateConsolidationRuns.t
 import Migration0010 from "../Migrations/Migration0010_CreateAuthUsers.ts"
 import Migration0011 from "../Migrations/Migration0011_CreateAuthIdentities.ts"
 import Migration0012 from "../Migrations/Migration0012_CreateAuthSessions.ts"
+import Migration0013 from "../Migrations/Migration0013_CreateAuditLog.ts"
 
 /**
  * Migration loader with all migrations defined inline.
@@ -49,7 +50,8 @@ const loader = Migrator.fromRecord({
   "9_CreateConsolidationRuns": Migration0009,
   "10_CreateAuthUsers": Migration0010,
   "11_CreateAuthIdentities": Migration0011,
-  "12_CreateAuthSessions": Migration0012
+  "12_CreateAuthSessions": Migration0012,
+  "13_CreateAuditLog": Migration0013
 })
 
 /**

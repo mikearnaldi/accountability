@@ -1,0 +1,270 @@
+/**
+ * AuditLogRepositoryLive - PostgreSQL implementation of AuditLogRepository
+ *
+ * Uses @effect/sql-pg for database operations with proper error handling
+ * and Schema decoding for type-safe query results.
+ *
+ * @module AuditLogRepositoryLive
+ */
+
+import { SqlClient, SqlSchema } from "@effect/sql"
+import * as Chunk from "effect/Chunk"
+import * as DateTime from "effect/DateTime"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import * as Option from "effect/Option"
+import * as Schema from "effect/Schema"
+import {
+  AuditLogEntryId,
+  AuditAction,
+  AuditEntityType,
+  AuditChanges
+} from "@accountability/core/Domains/AuditLog"
+import {
+  AuditLogRepository,
+  type AuditLogRepositoryService,
+  type AuditLogEntry
+} from "../Services/AuditLogRepository.ts"
+import { wrapSqlError } from "../Errors/RepositoryError.ts"
+
+/**
+ * Schema for database row from audit_log table
+ */
+const AuditLogRow = Schema.Struct({
+  id: Schema.String,
+  entity_type: AuditEntityType,
+  entity_id: Schema.String,
+  action: AuditAction,
+  user_id: Schema.NullOr(Schema.String),
+  timestamp: Schema.DateFromSelf,
+  changes: Schema.NullOr(Schema.Unknown)
+})
+type AuditLogRow = typeof AuditLogRow.Type
+
+/**
+ * Schema for count query result
+ */
+const CountRow = Schema.Struct({
+  count: Schema.String
+})
+
+/**
+ * Schema for parsing JSONB changes field to AuditChanges
+ */
+const AuditChangesFromUnknown = Schema.decodeUnknown(AuditChanges)
+
+/**
+ * Convert database row to AuditLogEntry domain entity
+ */
+const rowToAuditLogEntry = (row: AuditLogRow): Effect.Effect<AuditLogEntry, never, never> =>
+  Effect.gen(function* () {
+    // Parse changes from JSON - decode using schema for type safety
+    const changesOption: Option.Option<AuditChanges> = row.changes !== null
+      ? yield* AuditChangesFromUnknown(row.changes).pipe(
+          Effect.map((c): Option.Option<AuditChanges> => Option.some(c)),
+          Effect.catchAll(() => Effect.succeed(Option.none<AuditChanges>()))
+        )
+      : Option.none<AuditChanges>()
+
+    return {
+      id: AuditLogEntryId.make(row.id),
+      entityType: row.entity_type,
+      entityId: row.entity_id,
+      action: row.action,
+      userId: Option.fromNullable(row.user_id),
+      timestamp: DateTime.unsafeMake(row.timestamp.getTime()),
+      changes: changesOption
+    }
+  })
+
+/**
+ * Implementation of AuditLogRepositoryService using PostgreSQL
+ */
+const make = Effect.gen(function* () {
+  const sql = yield* SqlClient.SqlClient
+
+  const findAll: AuditLogRepositoryService["findAll"] = (filter, pagination) =>
+    Effect.gen(function* () {
+      // Build dynamic WHERE conditions
+      const conditions: string[] = []
+      const values: unknown[] = []
+      let paramIndex = 1
+
+      if (Option.isSome(filter.entityType)) {
+        conditions.push(`entity_type = $${paramIndex}`)
+        values.push(filter.entityType.value)
+        paramIndex++
+      }
+
+      if (Option.isSome(filter.entityId)) {
+        conditions.push(`entity_id = $${paramIndex}`)
+        values.push(filter.entityId.value)
+        paramIndex++
+      }
+
+      if (Option.isSome(filter.userId)) {
+        conditions.push(`user_id = $${paramIndex}`)
+        values.push(filter.userId.value)
+        paramIndex++
+      }
+
+      if (Option.isSome(filter.action)) {
+        conditions.push(`action = $${paramIndex}`)
+        values.push(filter.action.value)
+        paramIndex++
+      }
+
+      if (Option.isSome(filter.fromDate)) {
+        conditions.push(`timestamp >= $${paramIndex}`)
+        values.push(new Date(filter.fromDate.value.epochMillis))
+        paramIndex++
+      }
+
+      if (Option.isSome(filter.toDate)) {
+        conditions.push(`timestamp <= $${paramIndex}`)
+        values.push(new Date(filter.toDate.value.epochMillis))
+        paramIndex++
+      }
+
+      const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : ""
+
+      // Use raw SQL with parameter substitution
+      const query = sql.unsafe(
+        `SELECT * FROM audit_log ${whereClause} ORDER BY timestamp DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
+        [...values, pagination.limit, pagination.offset]
+      )
+
+      const rows = yield* query.pipe(wrapSqlError("findAll"))
+      const decoded = yield* Schema.decodeUnknown(Schema.Array(AuditLogRow))(rows).pipe(
+        wrapSqlError("findAll")
+      )
+
+      const entries = yield* Effect.all(decoded.map(rowToAuditLogEntry))
+      return Chunk.fromIterable(entries)
+    })
+
+  const count: AuditLogRepositoryService["count"] = (filter) =>
+    Effect.gen(function* () {
+      // Build dynamic WHERE conditions
+      const conditions: string[] = []
+      const values: unknown[] = []
+      let paramIndex = 1
+
+      if (Option.isSome(filter.entityType)) {
+        conditions.push(`entity_type = $${paramIndex}`)
+        values.push(filter.entityType.value)
+        paramIndex++
+      }
+
+      if (Option.isSome(filter.entityId)) {
+        conditions.push(`entity_id = $${paramIndex}`)
+        values.push(filter.entityId.value)
+        paramIndex++
+      }
+
+      if (Option.isSome(filter.userId)) {
+        conditions.push(`user_id = $${paramIndex}`)
+        values.push(filter.userId.value)
+        paramIndex++
+      }
+
+      if (Option.isSome(filter.action)) {
+        conditions.push(`action = $${paramIndex}`)
+        values.push(filter.action.value)
+        paramIndex++
+      }
+
+      if (Option.isSome(filter.fromDate)) {
+        conditions.push(`timestamp >= $${paramIndex}`)
+        values.push(new Date(filter.fromDate.value.epochMillis))
+        paramIndex++
+      }
+
+      if (Option.isSome(filter.toDate)) {
+        conditions.push(`timestamp <= $${paramIndex}`)
+        values.push(new Date(filter.toDate.value.epochMillis))
+        paramIndex++
+      }
+
+      const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : ""
+
+      const query = sql.unsafe(
+        `SELECT COUNT(*) as count FROM audit_log ${whereClause}`,
+        values
+      )
+
+      const result = yield* query.pipe(wrapSqlError("count"))
+      const decoded = yield* Schema.decodeUnknown(Schema.Array(CountRow))(result).pipe(
+        wrapSqlError("count")
+      )
+
+      return decoded.length > 0 ? parseInt(decoded[0].count, 10) : 0
+    })
+
+  // SqlSchema query builder for entity-specific queries
+  const findByEntityQuery = SqlSchema.findAll({
+    Request: Schema.Struct({ entityType: AuditEntityType, entityId: Schema.String }),
+    Result: AuditLogRow,
+    execute: (params) => sql`
+      SELECT * FROM audit_log
+      WHERE entity_type = ${params.entityType}
+        AND entity_id = ${params.entityId}
+      ORDER BY timestamp DESC
+    `
+  })
+
+  const findByEntity: AuditLogRepositoryService["findByEntity"] = (entityType, entityId) =>
+    findByEntityQuery({ entityType, entityId }).pipe(
+      Effect.flatMap((rows) => Effect.all(rows.map(rowToAuditLogEntry))),
+      Effect.map((entries) => Chunk.fromIterable(entries)),
+      wrapSqlError("findByEntity")
+    )
+
+  const create: AuditLogRepositoryService["create"] = (entry) =>
+    Effect.gen(function* () {
+      const now = new Date()
+      const userIdValue = Option.getOrNull(entry.userId)
+      const changesValue = Option.match(entry.changes, {
+        onNone: () => null,
+        onSome: (c) => JSON.stringify(c)
+      })
+
+      const result = yield* sql`
+        INSERT INTO audit_log (
+          entity_type, entity_id, action, user_id, timestamp, changes
+        ) VALUES (
+          ${entry.entityType},
+          ${entry.entityId},
+          ${entry.action},
+          ${userIdValue},
+          ${now},
+          ${changesValue}::jsonb
+        )
+        RETURNING *
+      `.pipe(wrapSqlError("create"))
+
+      const decoded = yield* Schema.decodeUnknown(Schema.Array(AuditLogRow))(result).pipe(
+        wrapSqlError("create")
+      )
+
+      if (decoded.length === 0) {
+        return yield* Effect.die(new Error("Failed to create audit log entry"))
+      }
+
+      return yield* rowToAuditLogEntry(decoded[0])
+    })
+
+  return {
+    findAll,
+    count,
+    findByEntity,
+    create
+  } satisfies AuditLogRepositoryService
+})
+
+/**
+ * AuditLogRepositoryLive - Layer providing AuditLogRepository implementation
+ *
+ * Requires SqlClient.SqlClient in context.
+ */
+export const AuditLogRepositoryLive = Layer.effect(AuditLogRepository, make)

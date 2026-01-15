@@ -6,6 +6,7 @@
   "exports": {
     "./Errors/RepositoryError": "./src/Errors/RepositoryError.ts",
     "./Services/AccountRepository": "./src/Services/AccountRepository.ts",
+    "./Services/AuditLogRepository": "./src/Services/AuditLogRepository.ts",
     "./Services/AuthService": "./src/Services/AuthService.ts",
     "./Services/AuthServiceConfig": "./src/Services/AuthServiceConfig.ts",
     "./Services/CompanyRepository": "./src/Services/CompanyRepository.ts",
@@ -26,6 +27,7 @@
     "./Services/WorkOSAuthProvider": "./src/Services/WorkOSAuthProvider.ts",
     "./Services/WorkOSConfig": "./src/Services/WorkOSConfig.ts",
     "./Layers/AccountRepositoryLive": "./src/Layers/AccountRepositoryLive.ts",
+    "./Layers/AuditLogRepositoryLive": "./src/Layers/AuditLogRepositoryLive.ts",
     "./Layers/AuthServiceLive": "./src/Layers/AuthServiceLive.ts",
     "./Layers/CompanyRepositoryLive": "./src/Layers/CompanyRepositoryLive.ts",
     "./Layers/ConsolidationRepositoryLive": "./src/Layers/ConsolidationRepositoryLive.ts",
@@ -56,7 +58,8 @@
     "./Migrations/Migration0009_CreateConsolidationRuns": "./src/Migrations/Migration0009_CreateConsolidationRuns.ts",
     "./Migrations/Migration0010_CreateAuthUsers": "./src/Migrations/Migration0010_CreateAuthUsers.ts",
     "./Migrations/Migration0011_CreateAuthIdentities": "./src/Migrations/Migration0011_CreateAuthIdentities.ts",
-    "./Migrations/Migration0012_CreateAuthSessions": "./src/Migrations/Migration0012_CreateAuthSessions.ts"
+    "./Migrations/Migration0012_CreateAuthSessions": "./src/Migrations/Migration0012_CreateAuthSessions.ts",
+    "./Migrations/Migration0013_CreateAuditLog": "./src/Migrations/Migration0013_CreateAuditLog.ts"
   },
   "scripts": {
     "clean": "rm -rf dist",

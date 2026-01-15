@@ -15,6 +15,7 @@ import { AppApi, HealthCheckResponse } from "../Definitions/AppApi.ts"
 import { AuthMiddlewareLive } from "./AuthMiddlewareLive.ts"
 import { AccountsApiLive } from "./AccountsApiLive.ts"
 import { AccountTemplatesApiLive } from "./AccountTemplatesApiLive.ts"
+import { AuditLogApiLive } from "./AuditLogApiLive.ts"
 import { AuthApiLive, AuthSessionApiLive } from "./AuthApiLive.ts"
 import { CompaniesApiLive } from "./CompaniesApiLive.ts"
 import { ConsolidationApiLive } from "./ConsolidationApiLive.ts"
@@ -72,6 +73,7 @@ const HealthApiLive = HttpApiBuilder.group(AppApi, "health", (handlers) =>
  * - Intercompany transactions API (protected)
  * - Consolidation API (protected)
  * - Elimination rules API (protected)
+ * - Audit log API (protected)
  *
  * Dependencies (required from consumer):
  * - AccountRepository
@@ -84,6 +86,7 @@ const HealthApiLive = HttpApiBuilder.group(AppApi, "health", (handlers) =>
  * - IntercompanyTransactionRepository
  * - ConsolidationRepository
  * - EliminationRuleRepository
+ * - AuditLogRepository
  */
 export const AppApiLive = HttpApiBuilder.api(AppApi).pipe(
   Layer.provide(HealthApiLive),
@@ -91,6 +94,7 @@ export const AppApiLive = HttpApiBuilder.api(AppApi).pipe(
   Layer.provide(AuthSessionApiLive),
   Layer.provide(AccountsApiLive),
   Layer.provide(AccountTemplatesApiLive),
+  Layer.provide(AuditLogApiLive),
   Layer.provide(CompaniesApiLive),
   Layer.provide(JournalEntriesApiLive),
   Layer.provide(ReportsApiLive),

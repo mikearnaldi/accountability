@@ -29,6 +29,7 @@ import { SharedPgClientLive } from "./PgTestUtils.ts"
 import { AuthMiddlewareWithSessionValidation } from "@accountability/api/Layers/AuthMiddlewareLive"
 import { AccountsApiLive } from "@accountability/api/Layers/AccountsApiLive"
 import { AccountTemplatesApiLive } from "@accountability/api/Layers/AccountTemplatesApiLive"
+import { AuditLogApiLive } from "@accountability/api/Layers/AuditLogApiLive"
 import { AuthApiLive, AuthSessionApiLive } from "@accountability/api/Layers/AuthApiLive"
 import { CompaniesApiLive } from "@accountability/api/Layers/CompaniesApiLive"
 import { ConsolidationApiLive } from "@accountability/api/Layers/ConsolidationApiLive"
@@ -86,6 +87,7 @@ const AppApiLiveWithSessionAuth = HttpApiBuilder.api(AppApi).pipe(
   Layer.provide(AuthSessionApiLive),
   Layer.provide(AccountsApiLive),
   Layer.provide(AccountTemplatesApiLive),
+  Layer.provide(AuditLogApiLive),
   Layer.provide(CompaniesApiLive),
   Layer.provide(JournalEntriesApiLive),
   Layer.provide(ReportsApiLive),

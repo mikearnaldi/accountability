@@ -340,7 +340,7 @@
           "packages/api/test/AuditLogApi.test.ts"
         ]
       },
-      "status": "pending"
+      "status": "complete"
     },
     {
       "id": "2.1",

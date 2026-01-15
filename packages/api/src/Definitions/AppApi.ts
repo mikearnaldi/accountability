@@ -11,6 +11,7 @@ import { HttpApi, HttpApiEndpoint, HttpApiGroup, OpenApi } from "@effect/platfor
 import * as Schema from "effect/Schema"
 import { AccountsApi } from "./AccountsApi.ts"
 import { AccountTemplatesApi } from "./AccountTemplatesApi.ts"
+import { AuditLogApi } from "./AuditLogApi.ts"
 import { AuthApi, AuthSessionApi } from "./AuthApi.ts"
 import { CompaniesApi } from "./CompaniesApi.ts"
 import { ConsolidationApi } from "./ConsolidationApi.ts"
@@ -87,6 +88,7 @@ export class HealthApi extends HttpApiGroup.make("health")
  * - /api/v1/intercompany-transactions - Intercompany transaction management (protected)
  * - /api/v1/consolidation - Consolidation group and run management (protected)
  * - /api/v1/elimination-rules - Elimination rule management (protected)
+ * - /api/v1/audit-log - Audit log queries (protected)
  */
 export class AppApi extends HttpApi.make("AppApi")
   .add(HealthApi)
@@ -94,6 +96,7 @@ export class AppApi extends HttpApi.make("AppApi")
   .add(AuthSessionApi)
   .add(AccountsApi)
   .add(AccountTemplatesApi)
+  .add(AuditLogApi)
   .add(CompaniesApi)
   .add(JournalEntriesApi)
   .add(ReportsApi)
