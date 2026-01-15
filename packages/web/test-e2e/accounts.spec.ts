@@ -360,7 +360,7 @@ test.describe("Chart of Accounts Page", () => {
     )
     await page.selectOption("#account-type", "Asset")
     await page.selectOption("#account-category", "CurrentAsset")
-    await page.selectOption("#normal-balance", "Debit")
+    await page.selectOption("#account-normal-balance", "Debit")
 
     // 10. Submit form
     await page.click('button[type="submit"]')
@@ -489,8 +489,8 @@ test.describe("Chart of Accounts Page", () => {
     ).toBeVisible()
 
     // 11. Update the account name
-    await page.fill("#edit-account-name", "Updated Name")
-    await page.fill("#edit-account-description", "Updated description")
+    await page.fill("#account-name", "Updated Name")
+    await page.fill("#account-description", "Updated description")
 
     // 12. Submit form
     await page.click('button[type="submit"]')
@@ -1678,5 +1678,168 @@ test.describe("Chart of Accounts Page", () => {
       `/organizations/${orgData.id}/companies/${companyData.id}`
     )
     expect(page.url()).not.toContain("/accounts")
+  })
+
+  test("should create account in hierarchy via form", async ({
+    page,
+    request
+  }) => {
+    // 1. Register a test user
+    const testUser = {
+      email: `test-create-hierarchy-${Date.now()}@example.com`,
+      password: "TestPassword123",
+      displayName: "Create Hierarchy Test User"
+    }
+
+    const registerRes = await request.post("/api/auth/register", {
+      data: testUser
+    })
+    expect(registerRes.ok()).toBeTruthy()
+
+    // 2. Login
+    const loginRes = await request.post("/api/auth/login", {
+      data: {
+        provider: "local",
+        credentials: {
+          email: testUser.email,
+          password: testUser.password
+        }
+      }
+    })
+    expect(loginRes.ok()).toBeTruthy()
+    const loginData = await loginRes.json()
+    const sessionToken = loginData.token
+
+    // 3. Create org and company
+    const createOrgRes = await request.post("/api/v1/organizations", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        name: `Hierarchy Test Org ${Date.now()}`,
+        reportingCurrency: "USD",
+        settings: null
+      }
+    })
+    expect(createOrgRes.ok()).toBeTruthy()
+    const orgData = await createOrgRes.json()
+
+    const createCompanyRes = await request.post("/api/v1/companies", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        organizationId: orgData.id,
+        name: `Hierarchy Test Company ${Date.now()}`,
+        legalName: "Hierarchy Test Company Inc.",
+        jurisdiction: "US",
+        functionalCurrency: "USD",
+        reportingCurrency: "USD",
+        fiscalYearEnd: { month: 12, day: 31 },
+        taxId: null,
+        parentCompanyId: null,
+        ownershipPercentage: null,
+        consolidationMethod: null
+      }
+    })
+    expect(createCompanyRes.ok()).toBeTruthy()
+    const companyData = await createCompanyRes.json()
+
+    // 4. Create a parent account via API
+    const parentAccountRes = await request.post("/api/v1/accounts", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        companyId: companyData.id,
+        accountNumber: "1000",
+        name: "Current Assets",
+        description: "Parent account for current assets",
+        accountType: "Asset",
+        accountCategory: "CurrentAsset",
+        normalBalance: "Debit",
+        parentAccountId: null,
+        isPostable: false,
+        isCashFlowRelevant: false,
+        cashFlowCategory: null,
+        isIntercompany: false,
+        intercompanyPartnerId: null,
+        currencyRestriction: null
+      }
+    })
+    expect(parentAccountRes.ok()).toBeTruthy()
+    const parentAccount = await parentAccountRes.json()
+
+    // 5. Set session cookie
+    await page.context().addCookies([
+      {
+        name: "accountability_session",
+        value: sessionToken,
+        domain: "localhost",
+        path: "/",
+        httpOnly: true,
+        secure: false,
+        sameSite: "Lax"
+      }
+    ])
+
+    // 6. Set localStorage token (needed for client-side API calls)
+    await page.goto("/login")
+    await page.evaluate((token) => {
+      localStorage.setItem("accountabilitySessionToken", token)
+    }, sessionToken)
+
+    // 7. Navigate to accounts page
+    await page.goto(
+      `/organizations/${orgData.id}/companies/${companyData.id}/accounts`
+    )
+
+    // 8. Should show the parent account
+    await expect(page.getByText("Current Assets")).toBeVisible()
+
+    // 9. Click "New Account" button
+    await page.getByRole("button", { name: /New Account/i }).click()
+
+    // 10. Should show create account form modal
+    await expect(
+      page.getByRole("heading", { name: "Create Account" })
+    ).toBeVisible()
+
+    // 11. Fill in child account details
+    await page.fill("#account-number", "1100")
+    await page.fill("#account-name", "Cash and Cash Equivalents")
+    await page.fill("#account-description", "Cash in bank accounts")
+    await page.selectOption("#account-type", "Asset")
+    await page.selectOption("#account-category", "CurrentAsset")
+    await page.selectOption("#account-normal-balance", "Debit")
+
+    // 12. Select parent account - use the parent account ID
+    await page.selectOption("#account-parent", parentAccount.id)
+
+    // 13. Mark as postable and cash flow relevant
+    await page.check("#account-is-postable")
+    await page.check("#account-is-cash-flow-relevant")
+    await page.selectOption("#account-cash-flow-category", "Operating")
+
+    // 14. Submit form
+    await page.click('button[type="submit"]')
+
+    // 15. Should show updated account count (2 accounts) - wait for data refresh
+    await expect(page.getByText(/2 of 2 accounts/i)).toBeVisible({
+      timeout: 10000
+    })
+
+    // 16. Expand parent account to verify hierarchy (child is not visible until expanded)
+    await page.locator('[data-testid="account-expand-1000"]').click()
+
+    // 17. Should show new child account after expanding parent
+    await expect(page.getByText("Cash and Cash Equivalents")).toBeVisible({
+      timeout: 5000
+    })
+
+    // 18. Verify child account is nested under parent
+    await expect(page.locator('[data-testid="account-row-1100"]')).toBeVisible()
+    await expect(
+      page.locator('[data-testid="account-number-1100"]')
+    ).toContainText("1100")
+
+    // 19. Verify the child account shows as a child (indented in tree)
+    // The child row should exist and have the parent relationship
+    const childRow = page.locator('[data-testid="account-row-1100"]')
+    await expect(childRow).toBeVisible()
   })
 })
