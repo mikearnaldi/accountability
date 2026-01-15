@@ -9,7 +9,7 @@
  * - Save as Draft and Submit for Approval buttons
  */
 
-import { useState, useMemo, useCallback } from "react"
+import { useState, useMemo, useCallback, useEffect } from "react"
 import { useRouter } from "@tanstack/react-router"
 import { Plus } from "lucide-react"
 import { api } from "@/api/client"
@@ -63,6 +63,8 @@ interface FiscalPeriodOption {
   readonly year: number
   readonly period: number
   readonly label: string
+  readonly startDate?: { year: number; month: number; day: number }
+  readonly endDate?: { year: number; month: number; day: number }
 }
 
 interface JournalEntryFormProps {
@@ -72,6 +74,7 @@ interface JournalEntryFormProps {
   readonly currencies: readonly CurrencyInfo[]
   readonly fiscalPeriods: readonly FiscalPeriodOption[]
   readonly defaultFiscalPeriod?: FiscalPeriodOption
+  readonly fiscalPeriodsConfigUrl?: string
   readonly onSuccess: () => void
   readonly onCancel: () => void
 }
@@ -104,6 +107,47 @@ function parseAmount(value: string): number {
 function formatAmount(value: number): string {
   if (value === 0) return "0.00"
   return value.toFixed(2)
+}
+
+/**
+ * Find the fiscal period that contains a given date.
+ * Returns the matching period option, or undefined if no match found.
+ */
+function findPeriodForDate(
+  dateStr: string,
+  periods: readonly FiscalPeriodOption[]
+): FiscalPeriodOption | undefined {
+  if (!dateStr || periods.length === 0) return undefined
+
+  const [yearStr, monthStr, dayStr] = dateStr.split("-")
+  const targetDate = new Date(
+    parseInt(yearStr, 10),
+    parseInt(monthStr, 10) - 1,
+    parseInt(dayStr, 10)
+  )
+
+  for (const period of periods) {
+    if (!period.startDate || !period.endDate) continue
+
+    const start = new Date(
+      period.startDate.year,
+      period.startDate.month - 1,
+      period.startDate.day
+    )
+    const end = new Date(
+      period.endDate.year,
+      period.endDate.month - 1,
+      period.endDate.day
+    )
+    // Set end to end of day for inclusive comparison
+    end.setHours(23, 59, 59, 999)
+
+    if (targetDate >= start && targetDate <= end) {
+      return period
+    }
+  }
+
+  return undefined
 }
 
 // =============================================================================
@@ -216,6 +260,7 @@ export function JournalEntryForm({
   currencies,
   fiscalPeriods,
   defaultFiscalPeriod,
+  fiscalPeriodsConfigUrl,
   onSuccess,
   onCancel
 }: JournalEntryFormProps) {
@@ -251,6 +296,8 @@ export function JournalEntryForm({
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitAction, setSubmitAction] = useState<"draft" | "submit" | null>(null)
+  const [periodAutoDetected, setPeriodAutoDetected] = useState(false)
+  const [periodMismatchWarning, setPeriodMismatchWarning] = useState(false)
 
   // Calculate totals
   const { totalDebits, totalCredits, isBalanced } = useMemo(() => {
@@ -280,6 +327,25 @@ export function JournalEntryForm({
     return fiscalPeriods.filter((p) => p.year === fiscalYear)
   }, [fiscalPeriods, fiscalYear])
 
+  // Auto-detect fiscal period when transaction date changes
+  useEffect(() => {
+    if (!transactionDate || fiscalPeriods.length === 0) return
+
+    const matchingPeriod = findPeriodForDate(transactionDate, fiscalPeriods)
+
+    if (matchingPeriod) {
+      // Auto-update to matching period
+      setFiscalYear(matchingPeriod.year)
+      setFiscalPeriod(matchingPeriod.period)
+      setPeriodAutoDetected(true)
+      setPeriodMismatchWarning(false)
+    } else {
+      // Date doesn't fall within any configured period
+      setPeriodAutoDetected(false)
+      setPeriodMismatchWarning(true)
+    }
+  }, [transactionDate, fiscalPeriods])
+
   // Update line handler
   const handleUpdateLine = useCallback(
     (lineId: string, field: keyof JournalEntryLine, value: string) => {
@@ -304,6 +370,12 @@ export function JournalEntryForm({
 
   // Validate form
   const validateForm = (): boolean => {
+    // Check fiscal periods are configured
+    if (fiscalPeriods.length === 0) {
+      setError("Cannot create journal entry: No fiscal periods configured for this company")
+      return false
+    }
+
     // Check description
     if (!description.trim()) {
       setError("Description is required")
@@ -462,6 +534,60 @@ export function JournalEntryForm({
         </div>
       )}
 
+      {/* No Fiscal Periods Warning */}
+      {fiscalPeriods.length === 0 && (
+        <div
+          data-testid="no-fiscal-periods-warning"
+          className="rounded-lg border border-amber-200 bg-amber-50 p-4"
+        >
+          <div className="flex items-start gap-3">
+            <svg
+              className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+              />
+            </svg>
+            <div>
+              <h3 className="font-medium text-amber-800">
+                No Fiscal Periods Configured
+              </h3>
+              <p className="mt-1 text-sm text-amber-700">
+                You need to configure fiscal periods for this company before creating journal entries.
+                Journal entries must be assigned to a fiscal period for proper accounting.
+              </p>
+              {fiscalPeriodsConfigUrl && (
+                <a
+                  href={fiscalPeriodsConfigUrl}
+                  className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-amber-800 underline hover:text-amber-900"
+                >
+                  Configure Fiscal Periods
+                  <svg
+                    className="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M14 5l7 7m0 0l-7 7m7-7H3"
+                    />
+                  </svg>
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header Fields */}
       <div className="rounded-lg border border-gray-200 bg-white p-4">
         <h3 className="mb-4 text-sm font-medium text-gray-700">Entry Details</h3>
@@ -546,12 +672,20 @@ export function JournalEntryForm({
               className="block text-sm font-medium text-gray-700"
             >
               Period *
+              {periodAutoDetected && (
+                <span className="ml-2 text-xs font-normal text-green-600">
+                  (Auto-detected from date)
+                </span>
+              )}
             </label>
             <div className="mt-1 flex gap-2">
               <select
                 id="fiscal-year"
                 value={fiscalYear}
-                onChange={(e) => setFiscalYear(parseInt(e.target.value, 10))}
+                onChange={(e) => {
+                  setFiscalYear(parseInt(e.target.value, 10))
+                  setPeriodAutoDetected(false)
+                }}
                 disabled={isSubmitting}
                 data-testid="journal-entry-fiscal-year"
                 className="w-24 rounded-lg border border-gray-300 px-2 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100"
@@ -565,7 +699,10 @@ export function JournalEntryForm({
               <select
                 id="fiscal-period"
                 value={fiscalPeriod}
-                onChange={(e) => setFiscalPeriod(parseInt(e.target.value, 10))}
+                onChange={(e) => {
+                  setFiscalPeriod(parseInt(e.target.value, 10))
+                  setPeriodAutoDetected(false)
+                }}
                 disabled={isSubmitting}
                 data-testid="journal-entry-fiscal-period"
                 className="flex-1 rounded-lg border border-gray-300 px-2 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100"
@@ -580,6 +717,11 @@ export function JournalEntryForm({
                 )}
               </select>
             </div>
+            {periodMismatchWarning && fiscalPeriods.length > 0 && (
+              <p className="mt-1 text-xs text-amber-600">
+                Transaction date falls outside configured fiscal periods
+              </p>
+            )}
           </div>
         </div>
 
@@ -604,74 +746,108 @@ export function JournalEntryForm({
           />
         </div>
 
-        {/* Multi-Currency Toggle */}
-        <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-4">
-          <div className="flex items-center gap-2">
-            <input
-              id="multi-currency-toggle"
-              type="checkbox"
-              checked={showMultiCurrency}
-              onChange={handleToggleMultiCurrency}
-              disabled={isSubmitting}
-              data-testid="journal-entry-multi-currency-toggle"
-              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-            />
-            <label
-              htmlFor="multi-currency-toggle"
-              className="text-sm text-gray-700"
-            >
-              Multi-currency entry
-            </label>
-          </div>
+        {/* Foreign Currency Toggle */}
+        <div className="mt-4 border-t border-gray-100 pt-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <input
+                id="multi-currency-toggle"
+                type="checkbox"
+                checked={showMultiCurrency}
+                onChange={handleToggleMultiCurrency}
+                disabled={isSubmitting}
+                data-testid="journal-entry-multi-currency-toggle"
+                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <label
+                htmlFor="multi-currency-toggle"
+                className="text-sm text-gray-700"
+              >
+                Foreign currency entry
+              </label>
+            </div>
 
-          {showMultiCurrency && (
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <label
-                  htmlFor="currency-select"
-                  className="text-sm text-gray-500"
-                >
-                  Currency:
-                </label>
-                <select
-                  id="currency-select"
-                  value={currency}
-                  onChange={(e) => handleCurrencyChange(e.target.value)}
-                  disabled={isSubmitting}
-                  data-testid="journal-entry-currency"
-                  className="rounded-lg border border-gray-300 px-2 py-1 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100"
-                >
-                  {currencies.map((c) => (
-                    <option key={c.code} value={c.code}>
-                      {c.code} - {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {currency !== functionalCurrency && (
+            {showMultiCurrency && (
+              <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
                   <label
-                    htmlFor="exchange-rate"
+                    htmlFor="currency-select"
                     className="text-sm text-gray-500"
                   >
-                    Rate:
+                    Currency:
                   </label>
-                  <input
-                    id="exchange-rate"
-                    type="text"
-                    inputMode="decimal"
-                    value={exchangeRate}
-                    onChange={(e) => setExchangeRate(e.target.value)}
+                  <select
+                    id="currency-select"
+                    value={currency}
+                    onChange={(e) => handleCurrencyChange(e.target.value)}
                     disabled={isSubmitting}
-                    data-testid="journal-entry-exchange-rate"
-                    className="w-24 rounded-lg border border-gray-300 px-2 py-1 text-right text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100"
-                  />
-                  <span className="text-xs text-gray-500">
-                    1 {currency} = {exchangeRate} {functionalCurrency}
-                  </span>
+                    data-testid="journal-entry-currency"
+                    className="rounded-lg border border-gray-300 px-2 py-1 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100"
+                  >
+                    {currencies.map((c) => (
+                      <option key={c.code} value={c.code}>
+                        {c.code} - {c.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              )}
+
+                {currency !== functionalCurrency && (
+                  <div className="flex items-center gap-2">
+                    <label
+                      htmlFor="exchange-rate"
+                      className="text-sm text-gray-500"
+                    >
+                      Rate:
+                    </label>
+                    <input
+                      id="exchange-rate"
+                      type="text"
+                      inputMode="decimal"
+                      value={exchangeRate}
+                      onChange={(e) => setExchangeRate(e.target.value)}
+                      disabled={isSubmitting}
+                      data-testid="journal-entry-exchange-rate"
+                      className="w-24 rounded-lg border border-gray-300 px-2 py-1 text-right text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100"
+                    />
+                    <span className="text-xs text-gray-500">
+                      1 {currency} = {exchangeRate} {functionalCurrency}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Helper text always visible */}
+          <p className="mt-2 text-xs text-gray-500">
+            Enable to record this entry in a foreign currency. All line items will use the selected currency and be converted to {functionalCurrency} at the exchange rate.
+          </p>
+
+          {/* Info banner when foreign currency is enabled and different from functional */}
+          {showMultiCurrency && currency !== functionalCurrency && (
+            <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 p-3">
+              <div className="flex items-start gap-2">
+                <svg
+                  className="mt-0.5 h-4 w-4 flex-shrink-0 text-blue-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <div className="text-xs text-blue-700">
+                  <p className="font-medium">Recording in {currency}</p>
+                  <p className="mt-0.5">
+                    All amounts will be entered in {currency} and converted to the functional currency ({functionalCurrency}) using the exchange rate above.
+                  </p>
+                </div>
+              </div>
             </div>
           )}
         </div>

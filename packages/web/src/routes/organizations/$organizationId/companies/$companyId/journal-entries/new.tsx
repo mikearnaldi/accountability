@@ -74,6 +74,8 @@ interface FiscalPeriodOption {
   readonly year: number
   readonly period: number
   readonly label: string
+  readonly startDate?: { year: number; month: number; day: number }
+  readonly endDate?: { year: number; month: number; day: number }
 }
 
 // =============================================================================
@@ -289,7 +291,9 @@ function NewJournalEntryPage() {
       fiscalPeriodOptions.push({
         year: fy.year,
         period: period.periodNumber,
-        label: `${fy.name} - ${period.name}`
+        label: `${fy.name} - ${period.name}`,
+        startDate: period.startDate,
+        endDate: period.endDate
       })
     }
   }
@@ -424,6 +428,7 @@ function NewJournalEntryPage() {
             currencies={currencies}
             fiscalPeriods={fiscalPeriodOptions}
             defaultFiscalPeriod={defaultFiscalPeriod}
+            fiscalPeriodsConfigUrl={`/organizations/${params.organizationId}/companies/${params.companyId}/fiscal`}
             onSuccess={handleSuccess}
             onCancel={handleCancel}
           />
