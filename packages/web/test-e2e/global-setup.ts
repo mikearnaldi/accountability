@@ -99,7 +99,8 @@ function startServer(dbUrl: string): Promise<never> {
 
     const server = spawn("node", [serverPath], {
       cwd: path.join(import.meta.dirname, ".."),
-      stdio: VERBOSE ? "inherit" : "pipe",
+      // Always show stderr for errors, only show stdout in verbose mode
+      stdio: VERBOSE ? "inherit" : ["pipe", "pipe", "inherit"],
       env: {
         ...process.env,
         DATABASE_URL: dbUrl,
