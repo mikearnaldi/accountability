@@ -265,6 +265,9 @@ test.describe("Organization Settings Page", () => {
     // Wait for button to be enabled again (save complete)
     await expect(page.getByTestId("org-settings-save-defaults")).toBeEnabled()
 
+    // Wait a moment for the backend to fully persist the data
+    await page.waitForTimeout(500)
+
     // Verify via API that settings were updated
     const getOrgRes = await request.get(`/api/v1/organizations/${orgData.id}`, {
       headers: { Authorization: `Bearer ${sessionToken}` }

@@ -811,25 +811,31 @@ test.describe("Chart of Accounts Page", () => {
     // 7. Should show all 3 accounts initially
     await expect(page.getByText(/3 of 3 accounts/i)).toBeVisible()
 
-    // 8. Search by name
-    await page.fill('input[placeholder="Search accounts..."]', "Bank")
+    // 8. Search by name - wait for search input to be ready first
+    const searchInput = page.locator('input[placeholder="Search accounts..."]')
+    await expect(searchInput).toBeVisible()
 
-    // 9. Should only show matching account
+    // Clear and type to trigger onChange events properly
+    await searchInput.clear()
+    await searchInput.pressSequentially("Bank", { delay: 50 })
+
+    // 9. Should only show matching account (wait for filter to apply)
     await expect(page.getByText(/1 of 3 accounts/i)).toBeVisible()
     await expect(page.getByText("Bank Account - Checking")).toBeVisible()
     await expect(page.getByText("Accounts Receivable")).not.toBeVisible()
     await expect(page.getByText("Accounts Payable")).not.toBeVisible()
 
     // 10. Search by account number
-    await page.fill('input[placeholder="Search accounts..."]', "21")
+    await searchInput.clear()
+    await searchInput.pressSequentially("21", { delay: 50 })
 
-    // 11. Should only show matching account
+    // 11. Should only show matching account (wait for filter to apply)
     await expect(page.getByText(/1 of 3 accounts/i)).toBeVisible()
     await expect(page.getByText("Accounts Payable")).toBeVisible()
     await expect(page.getByText("Bank Account - Checking")).not.toBeVisible()
 
     // 12. Clear search
-    await page.fill('input[placeholder="Search accounts..."]', "")
+    await searchInput.clear()
     await expect(page.getByText(/3 of 3 accounts/i)).toBeVisible()
   })
 

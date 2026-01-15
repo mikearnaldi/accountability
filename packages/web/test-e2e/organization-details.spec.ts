@@ -324,11 +324,14 @@ test.describe("Organization Details Page", () => {
     // 6. Navigate to organization details page
     await page.goto(`/organizations/${orgData.id}`)
 
-    // 7. Click Edit button (use testId to avoid ambiguity)
-    await page.getByTestId("edit-organization-button").click()
+    // 7. Wait for page to fully load (hydration) and click Edit button
+    const editButton = page.getByTestId("edit-organization-button")
+    await expect(editButton).toBeVisible()
+    await page.waitForTimeout(100)
+    await editButton.click()
 
     // 8. Should show edit form modal
-    await expect(page.getByRole("heading", { name: "Edit Organization" })).toBeVisible()
+    await expect(page.getByRole("heading", { name: "Edit Organization" })).toBeVisible({ timeout: 10000 })
 
     // 9. Update organization name
     const newOrgName = `Updated Org ${Date.now()}`
@@ -405,11 +408,16 @@ test.describe("Organization Details Page", () => {
     // 5. Navigate to organization details page
     await page.goto(`/organizations/${orgData.id}`)
 
-    // 6. Click Edit button (use testId to avoid ambiguity)
-    await page.getByTestId("edit-organization-button").click()
+    // 6. Wait for page to fully load (hydration) and click Edit button
+    const editButton = page.getByTestId("edit-organization-button")
+    await expect(editButton).toBeVisible()
+    // Wait for hydration to complete
+    await page.waitForTimeout(100)
+    await editButton.click()
 
     // 7. Wait for modal to appear
-    await expect(page.getByRole("heading", { name: "Edit Organization" })).toBeVisible()
+    const modalHeading = page.getByRole("heading", { name: "Edit Organization" })
+    await expect(modalHeading).toBeVisible({ timeout: 10000 })
 
     // 8. Clear the name field and submit
     await page.fill("#edit-org-name", "   ") // Just whitespace
@@ -475,17 +483,22 @@ test.describe("Organization Details Page", () => {
     // 5. Navigate to organization details page
     await page.goto(`/organizations/${orgData.id}`)
 
-    // 6. Click Edit button
-    await page.getByTestId("edit-organization-button").click()
+    // 6. Wait for page to fully load (hydration) and click Edit button
+    const editButton = page.getByTestId("edit-organization-button")
+    await expect(editButton).toBeVisible()
+    // Wait for hydration to complete
+    await page.waitForTimeout(100)
+    await editButton.click()
 
     // 7. Modal should be visible
-    await expect(page.getByRole("heading", { name: "Edit Organization" })).toBeVisible()
+    const modalHeading = page.getByRole("heading", { name: "Edit Organization" })
+    await expect(modalHeading).toBeVisible({ timeout: 10000 })
 
     // 8. Click cancel
     await page.getByTestId("org-form-cancel-button").click()
 
     // 9. Modal should be hidden
-    await expect(page.getByRole("heading", { name: "Edit Organization" })).not.toBeVisible()
+    await expect(modalHeading).not.toBeVisible()
   })
 
   test("should navigate from organizations list to details", async ({

@@ -31,3 +31,8 @@
 **Task**: Fixed 31 failing E2E tests by updating dashboard tests to test organization-scoped dashboard at /organizations/:id/dashboard, updating login/register redirect tests to work with Post-Login Flow redirects, updating home page tests to work with shared database (globally visible organizations), and correcting data-testid references for organization-scoped navigation items (nav-org-dashboard instead of nav-dashboard).
 **Status**: complete
 ---
+
+## Iteration 9 - 2026-01-15 14:54
+**Task**: Fixed flaky E2E tests by adding explicit waits after button clicks for modals (waiting for edit buttons to be visible before clicking, adding hydration waits, increasing timeouts for modal visibility), using `pressSequentially` instead of `fill` for search inputs to ensure proper event triggering, and adding a delay before API verification calls in settings tests.
+**Status**: complete
+---
