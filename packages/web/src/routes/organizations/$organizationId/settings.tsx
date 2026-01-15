@@ -3,7 +3,7 @@
  *
  * Settings page for the current organization with:
  * - General Settings: name (editable), reporting currency (read-only), created date (read-only)
- * - Defaults: locale, timezone, fiscal year, decimal places
+ * - Defaults: locale, timezone, decimal places
  * - Save changes button
  * - Danger zone: Delete organization with confirmation (requires typing org name)
  *
@@ -33,7 +33,6 @@ interface Organization {
   readonly settings: {
     readonly defaultLocale: string
     readonly defaultTimezone: string
-    readonly useFiscalYear: boolean
     readonly defaultDecimalPlaces: number
   }
   readonly createdAt: {
@@ -414,9 +413,6 @@ function DefaultsSection({ organization }: SectionProps) {
   const [defaultTimezone, setDefaultTimezone] = useState(
     organization.settings?.defaultTimezone ?? "UTC"
   )
-  const [useFiscalYear, setUseFiscalYear] = useState(
-    organization.settings?.useFiscalYear ?? true
-  )
   const [defaultDecimalPlaces, setDefaultDecimalPlaces] = useState(
     String(organization.settings?.defaultDecimalPlaces ?? 2)
   )
@@ -438,7 +434,6 @@ function DefaultsSection({ organization }: SectionProps) {
           settings: {
             defaultLocale,
             defaultTimezone,
-            useFiscalYear,
             defaultDecimalPlaces: parseInt(defaultDecimalPlaces, 10)
           }
         }
@@ -523,30 +518,6 @@ function DefaultsSection({ organization }: SectionProps) {
           helperText="Used for date/time display"
           data-testid="org-settings-timezone-select"
         />
-
-        {/* Use Fiscal Year */}
-        <div className="flex items-start gap-3">
-          <input
-            type="checkbox"
-            id="org-settings-fiscal-year"
-            checked={useFiscalYear}
-            onChange={(e) => setUseFiscalYear(e.target.checked)}
-            disabled={isSubmitting}
-            className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-            data-testid="org-settings-fiscal-year-checkbox"
-          />
-          <div>
-            <label
-              htmlFor="org-settings-fiscal-year"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Use Fiscal Year
-            </label>
-            <p className="text-sm text-gray-500">
-              Enable fiscal year periods instead of calendar year
-            </p>
-          </div>
-        </div>
 
         {/* Default Decimal Places */}
         <Select

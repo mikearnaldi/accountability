@@ -154,7 +154,6 @@ interface Organization {
   readonly settings: {
     readonly defaultLocale: string
     readonly defaultTimezone: string
-    readonly useFiscalYear: boolean
     readonly defaultDecimalPlaces: number
   }
   readonly createdAt: {

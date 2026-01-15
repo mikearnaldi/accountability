@@ -27,7 +27,6 @@ export default Effect.gen(function* () {
       settings JSONB NOT NULL DEFAULT '{
         "defaultLocale": "en-US",
         "defaultTimezone": "UTC",
-        "useFiscalYear": true,
         "defaultDecimalPlaces": 2
       }'::jsonb
     )

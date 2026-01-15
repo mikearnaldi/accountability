@@ -203,7 +203,6 @@ test.describe("Create Organization Page (/organizations/new)", () => {
     // 8. Verify settings fields exist
     await expect(page.locator("#org-locale")).toBeVisible()
     await expect(page.locator("#org-timezone")).toBeVisible()
-    await expect(page.locator("#org-fiscal-year")).toBeVisible()
     await expect(page.locator("#org-decimal-places")).toBeVisible()
   })
 
@@ -462,7 +461,6 @@ test.describe("Create Organization Page (/organizations/new)", () => {
     // 6. Change settings
     await page.selectOption("#org-locale", "en-GB")
     await page.selectOption("#org-timezone", "Europe/London")
-    await page.locator("#org-fiscal-year").uncheck() // Disable fiscal year
     await page.selectOption("#org-decimal-places", "3")
 
     // 7. Submit form

@@ -33,7 +33,6 @@ const OrganizationRow = Schema.Struct({
   settings: Schema.Struct({
     defaultLocale: Schema.optional(Schema.String),
     defaultTimezone: Schema.optional(Schema.String),
-    useFiscalYear: Schema.optional(Schema.Boolean),
     defaultDecimalPlaces: Schema.optional(Schema.Number)
   })
 })
@@ -55,7 +54,6 @@ const rowToOrganization = (row: OrganizationRow): Organization => {
   const settingsInput: {
     defaultLocale?: string
     defaultTimezone?: string
-    useFiscalYear?: boolean
     defaultDecimalPlaces?: number
   } = {}
 
@@ -64,9 +62,6 @@ const rowToOrganization = (row: OrganizationRow): Organization => {
   }
   if (row.settings.defaultTimezone !== undefined) {
     settingsInput.defaultTimezone = row.settings.defaultTimezone
-  }
-  if (row.settings.useFiscalYear !== undefined) {
-    settingsInput.useFiscalYear = row.settings.useFiscalYear
   }
   if (row.settings.defaultDecimalPlaces !== undefined) {
     settingsInput.defaultDecimalPlaces = row.settings.defaultDecimalPlaces
@@ -123,7 +118,6 @@ const make = Effect.gen(function* () {
       const settingsJson = JSON.stringify({
         defaultLocale: organization.settings.defaultLocale,
         defaultTimezone: organization.settings.defaultTimezone,
-        useFiscalYear: organization.settings.useFiscalYear,
         defaultDecimalPlaces: organization.settings.defaultDecimalPlaces
       })
 
@@ -154,7 +148,6 @@ const make = Effect.gen(function* () {
       const settingsJson = JSON.stringify({
         defaultLocale: organization.settings.defaultLocale,
         defaultTimezone: organization.settings.defaultTimezone,
-        useFiscalYear: organization.settings.useFiscalYear,
         defaultDecimalPlaces: organization.settings.defaultDecimalPlaces
       })
 

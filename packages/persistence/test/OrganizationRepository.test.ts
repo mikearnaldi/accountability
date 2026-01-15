@@ -82,13 +82,11 @@ describe("OrganizationRepository", () => {
           settings: OrganizationSettings.make({
             defaultLocale: "en-GB",
             defaultTimezone: "Europe/London",
-            useFiscalYear: true,
             defaultDecimalPlaces: 4
           })
         })
         const created = yield* repo.create(organization)
         expect(created.settings.defaultDecimalPlaces).toBe(4)
-        expect(created.settings.useFiscalYear).toBe(true)
       })
     )
 

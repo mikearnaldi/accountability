@@ -258,7 +258,6 @@ describe("Organizations API", () => {
           settings: OrganizationSettings.make({
             defaultLocale: "en-GB",
             defaultTimezone: "Europe/London",
-            useFiscalYear: true,
             defaultDecimalPlaces: 2
           })
         })
@@ -266,7 +265,6 @@ describe("Organizations API", () => {
 
         expect(created.settings.defaultLocale).toBe("en-GB")
         expect(created.settings.defaultTimezone).toBe("Europe/London")
-        expect(created.settings.useFiscalYear).toBe(true)
         expect(created.settings.defaultDecimalPlaces).toBe(2)
       })
     )

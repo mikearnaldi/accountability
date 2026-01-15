@@ -87,7 +87,6 @@ The top-level container for all accounting data.
 |-------|------|---------|-------------|
 | defaultLocale | string | "en-US" | Locale for formatting |
 | defaultTimezone | string | "UTC" | IANA timezone |
-| useFiscalYear | boolean | true | Use fiscal vs calendar year |
 | defaultDecimalPlaces | number | 2 | Decimal places (0-4) |
 
 **Relationships:**

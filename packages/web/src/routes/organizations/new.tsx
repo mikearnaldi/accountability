@@ -154,7 +154,6 @@ function CreateOrganizationPage() {
     settings: {
       defaultLocale: string
       defaultTimezone: string
-      useFiscalYear: boolean
       defaultDecimalPlaces: number
     }
   }) => {

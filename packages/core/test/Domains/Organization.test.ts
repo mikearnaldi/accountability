@@ -92,12 +92,10 @@ describe("OrganizationSettings", () => {
         const settings = OrganizationSettings.make({
           defaultLocale: "en-GB",
           defaultTimezone: "Europe/London",
-          useFiscalYear: false,
           defaultDecimalPlaces: 3
         })
         expect(settings.defaultLocale).toBe("en-GB")
         expect(settings.defaultTimezone).toBe("Europe/London")
-        expect(settings.useFiscalYear).toBe(false)
         expect(settings.defaultDecimalPlaces).toBe(3)
       })
     )
@@ -107,7 +105,6 @@ describe("OrganizationSettings", () => {
         const settings = OrganizationSettings.make({})
         expect(settings.defaultLocale).toBe("en-US")
         expect(settings.defaultTimezone).toBe("UTC")
-        expect(settings.useFiscalYear).toBe(true)
         expect(settings.defaultDecimalPlaces).toBe(2)
       })
     )
@@ -147,7 +144,6 @@ describe("OrganizationSettings", () => {
       expect(isOrganizationSettings({
         defaultLocale: "en-US",
         defaultTimezone: "UTC",
-        useFiscalYear: true,
         defaultDecimalPlaces: 2
       })).toBe(false)
     })
@@ -238,13 +234,11 @@ describe("Organization", () => {
           settings: OrganizationSettings.make({
             defaultLocale: "en-GB",
             defaultTimezone: "Europe/London",
-            useFiscalYear: false,
             defaultDecimalPlaces: 4
           })
         })
         expect(org.settings.defaultLocale).toBe("en-GB")
         expect(org.settings.defaultTimezone).toBe("Europe/London")
-        expect(org.settings.useFiscalYear).toBe(false)
         expect(org.settings.defaultDecimalPlaces).toBe(4)
       })
     )

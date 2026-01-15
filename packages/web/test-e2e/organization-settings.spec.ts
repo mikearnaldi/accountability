@@ -5,7 +5,7 @@
  * - Route: /organizations/:organizationId/settings
  * - Accessible from sidebar Settings link
  * - General Settings section (name, currency, created)
- * - Defaults section (locale, timezone, fiscal year, decimal places)
+ * - Defaults section (locale, timezone, decimal places)
  * - Save changes functionality
  * - Danger zone: Delete organization with confirmation
  */
@@ -60,7 +60,6 @@ test.describe("Organization Settings Page", () => {
         settings: {
           defaultLocale: "en-US",
           defaultTimezone: "UTC",
-          useFiscalYear: true,
           defaultDecimalPlaces: 2
         }
       }
@@ -234,7 +233,6 @@ test.describe("Organization Settings Page", () => {
         settings: {
           defaultLocale: "en-US",
           defaultTimezone: "UTC",
-          useFiscalYear: true,
           defaultDecimalPlaces: 2
         }
       }
@@ -288,19 +286,9 @@ test.describe("Organization Settings Page", () => {
     // Wait for React state to stabilize
     await page.waitForTimeout(200)
 
-    // Toggle fiscal year - re-verify previous values
-    await expect(localeSelect).toHaveValue("de-DE")
-    await expect(timezoneSelect).toHaveValue("Europe/Berlin")
-    const fiscalCheckbox = page.getByTestId("org-settings-fiscal-year-checkbox")
-    await fiscalCheckbox.uncheck({ force: true })
-    await expect(fiscalCheckbox).not.toBeChecked({ timeout: 5000 })
-    // Wait for React state to stabilize
-    await page.waitForTimeout(200)
-
     // Update decimal places - re-verify previous values
     await expect(localeSelect).toHaveValue("de-DE")
     await expect(timezoneSelect).toHaveValue("Europe/Berlin")
-    await expect(fiscalCheckbox).not.toBeChecked()
     const decimalSelect = page.getByTestId("org-settings-decimal-places-select")
     await decimalSelect.click({ force: true })
     await decimalSelect.selectOption("4")
@@ -311,7 +299,6 @@ test.describe("Organization Settings Page", () => {
     // Final verification of all values before saving
     await expect(localeSelect).toHaveValue("de-DE")
     await expect(timezoneSelect).toHaveValue("Europe/Berlin")
-    await expect(fiscalCheckbox).not.toBeChecked()
     await expect(decimalSelect).toHaveValue("4")
 
     // Click save defaults button
@@ -324,7 +311,7 @@ test.describe("Organization Settings Page", () => {
     await expect(page.getByTestId("org-settings-save-defaults")).toBeEnabled()
 
     // Poll the API to verify settings were updated (retry up to 20 times with 300ms delay = 6 seconds)
-    let updatedOrg: { settings: { defaultLocale: string; defaultTimezone: string; useFiscalYear: boolean; defaultDecimalPlaces: number } } | null = null
+    let updatedOrg: { settings: { defaultLocale: string; defaultTimezone: string; defaultDecimalPlaces: number } } | null = null
     for (let i = 0; i < 20; i++) {
       await page.waitForTimeout(300)
       const getOrgRes = await request.get(`/api/v1/organizations/${orgData.id}`, {
@@ -342,7 +329,6 @@ test.describe("Organization Settings Page", () => {
     expect(updatedOrg).not.toBeNull()
     expect(updatedOrg!.settings.defaultLocale).toBe("de-DE")
     expect(updatedOrg!.settings.defaultTimezone).toBe("Europe/Berlin")
-    expect(updatedOrg!.settings.useFiscalYear).toBe(false)
     expect(updatedOrg!.settings.defaultDecimalPlaces).toBe(4)
   })
 

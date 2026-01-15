@@ -2129,7 +2129,6 @@ export interface components {
         OrganizationSettings: {
             defaultLocale: string;
             defaultTimezone: string;
-            useFiscalYear: boolean;
             /**
              * between(0, 4)
              * @description a number between 0 and 4

@@ -57,13 +57,6 @@ export class OrganizationSettings extends Schema.Class<OrganizationSettings>("Or
   ),
 
   /**
-   * Whether to use fiscal year for reporting (vs calendar year)
-   */
-  useFiscalYear: Schema.propertySignature(Schema.Boolean).pipe(
-    Schema.withConstructorDefault(() => true)
-  ),
-
-  /**
    * Default decimal places for monetary display
    */
   defaultDecimalPlaces: Schema.propertySignature(Schema.Number.pipe(Schema.int(), Schema.between(0, 4))).pipe(
