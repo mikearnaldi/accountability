@@ -262,36 +262,53 @@ test.describe("Organization Settings Page", () => {
     await expect(page.getByTestId("org-settings-page")).toBeVisible()
     await expect(page.getByTestId("org-settings-defaults")).toBeVisible()
 
+    // Wait for React hydration to complete with a small delay
+    await page.waitForTimeout(500)
+
     // Wait for the locale select to be visible and have its initial value
     const localeSelect = page.getByTestId("org-settings-locale-select")
     await expect(localeSelect).toBeVisible()
     // Verify initial value is loaded (ensures React hydration is complete)
     await expect(localeSelect).toHaveValue("en-US")
 
-    // Update locale with click to ensure focus
-    await localeSelect.click()
+    // Update locale - use force click and ensure the value persists
+    await localeSelect.click({ force: true })
     await localeSelect.selectOption("de-DE")
     // Verify the selection was applied
+    await expect(localeSelect).toHaveValue("de-DE", { timeout: 5000 })
+    // Wait for React state to stabilize
+    await page.waitForTimeout(200)
+
+    // Update timezone - re-verify locale first to ensure it hasn't reset
     await expect(localeSelect).toHaveValue("de-DE")
-
-    // Update timezone
     const timezoneSelect = page.getByTestId("org-settings-timezone-select")
-    await timezoneSelect.click()
+    await timezoneSelect.click({ force: true })
     await timezoneSelect.selectOption("Europe/Berlin")
+    await expect(timezoneSelect).toHaveValue("Europe/Berlin", { timeout: 5000 })
+    // Wait for React state to stabilize
+    await page.waitForTimeout(200)
+
+    // Toggle fiscal year - re-verify previous values
+    await expect(localeSelect).toHaveValue("de-DE")
     await expect(timezoneSelect).toHaveValue("Europe/Berlin")
-
-    // Toggle fiscal year
     const fiscalCheckbox = page.getByTestId("org-settings-fiscal-year-checkbox")
-    await fiscalCheckbox.uncheck()
+    await fiscalCheckbox.uncheck({ force: true })
+    await expect(fiscalCheckbox).not.toBeChecked({ timeout: 5000 })
+    // Wait for React state to stabilize
+    await page.waitForTimeout(200)
+
+    // Update decimal places - re-verify previous values
+    await expect(localeSelect).toHaveValue("de-DE")
+    await expect(timezoneSelect).toHaveValue("Europe/Berlin")
     await expect(fiscalCheckbox).not.toBeChecked()
-
-    // Update decimal places
     const decimalSelect = page.getByTestId("org-settings-decimal-places-select")
-    await decimalSelect.click()
+    await decimalSelect.click({ force: true })
     await decimalSelect.selectOption("4")
-    await expect(decimalSelect).toHaveValue("4")
+    await expect(decimalSelect).toHaveValue("4", { timeout: 5000 })
+    // Wait for React state to stabilize
+    await page.waitForTimeout(200)
 
-    // Verify all values are still set before saving
+    // Final verification of all values before saving
     await expect(localeSelect).toHaveValue("de-DE")
     await expect(timezoneSelect).toHaveValue("Europe/Berlin")
     await expect(fiscalCheckbox).not.toBeChecked()

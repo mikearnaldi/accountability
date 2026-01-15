@@ -96,3 +96,8 @@
 **Task**: Added "+ Create New Organization" link to OrganizationSelector dropdown per UI_ARCHITECTURE.md spec (issue #7). The dropdown now shows "Create New Organization" with a plus icon that navigates to /organizations/new, followed by "View All Organizations". Also removed the entire "Known Issues" section from UI_ARCHITECTURE.md since all 7 issues are now resolved. All type checks pass.
 **Status**: complete
 ---
+
+## Iteration 2 - 2026-01-15 17:00
+**Task**: Fixed flaky E2E test "should update organization defaults" by adding React hydration waits (500ms initial, 200ms between interactions), force clicks for form elements, and incremental verification between each field change to ensure state persistence. All 177 E2E tests now pass consistently.
+**Status**: complete
+---

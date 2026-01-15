@@ -1,6 +1,77 @@
 # UI Architecture & Navigation Specification
 
-This document defines the UI architecture, navigation patterns, and design standards for the Accountability application. All UI implementations MUST follow these specifications.
+This document defines the UI architecture, navigation patterns, and design standards for the Accountability application.
+
+---
+
+# Part 1: Implementation Plan & Progress
+
+This section tracks known issues, implementation status, and priorities.
+
+## Known Issues (MUST FIX)
+
+### Issue 1: Post-Login Redirect is Wrong
+- **Status**: Open
+- **Expected**: After login, follow Post-Login Flow:
+  - No organizations → `/organizations/new`
+  - Single organization → `/organizations/:id/dashboard`
+  - Multiple organizations → `/organizations`
+- **Actual**: User goes to `/` (home page) which shows a generic dashboard
+- **File**: `packages/web/src/routes/login.tsx`
+
+### Issue 2: Home Route (`/`) Should Redirect When Logged In
+- **Status**: Open
+- **Expected**: When authenticated user visits `/`, redirect following Post-Login Flow
+- **Actual**: `/` shows a generic "main dashboard" that is NOT scoped to any organization
+- **File**: `packages/web/src/routes/index.tsx`
+
+### Issue 3: Organization Detail Page Missing AppLayout
+- **Status**: Open
+- **Expected**: `/organizations/:id` should use AppLayout with sidebar and header
+- **Actual**: Organization detail page has its own custom header, NO sidebar
+- **File**: `packages/web/src/routes/organizations/$organizationId/index.tsx`
+
+### Issue 4: Dashboard Breadcrumb Flickers/Unstable
+- **Status**: Open
+- **Expected**: Breadcrumbs should be stable
+- **Root Cause**: Will resolve once issues #1 and #2 are fixed
+
+### Issue 5: Inconsistent Page Layouts Across Routes
+- **Status**: Open
+- **Problem**: Multiple pages don't use AppLayout consistently
+- **Files to audit**: All routes under `/organizations`
+
+### Issue 6: Sidebar Has Company Sub-Navigation (WRONG)
+- **Status**: Open
+- **Expected**: Sidebar "Companies" is a flat link. NO expanding sub-menus.
+- **Actual**: `CompaniesNavSection` expands with nested sub-navigation
+- **File**: `packages/web/src/components/layout/Sidebar.tsx`
+- **Fix**: Remove `CompaniesNavSection`, use simple link
+
+### Issue 7: "Create New Organization" in Header Opens Wrong Destination
+- **Status**: Open
+- **Expected**: "+ Create New Organization" in header's Organization Selector dropdown navigates to `/organizations/new`
+- **Actual**: Button navigates to dashboard or organizations list instead
+- **File**: `packages/web/src/components/layout/OrganizationSelector.tsx`
+
+## Priority Order
+
+1. Fix Issue #2 (redirect `/` when logged in)
+2. Fix Issue #1 (post-login redirect)
+3. Fix Issue #3 (organization detail page layout)
+4. Fix Issue #5 (audit all pages for AppLayout)
+5. Fix Issue #6 (remove sidebar company sub-navigation)
+6. Fix Issue #7 (Create New Organization button)
+
+## Completed Items
+
+_Update this section as issues are resolved._
+
+---
+
+# Part 2: Design & Specification
+
+This section defines the UI architecture that MUST be implemented.
 
 ## Design Philosophy
 
@@ -189,6 +260,8 @@ When clicked, shows:
 │ + Create New Organization               │
 └─────────────────────────────────────────┘
 ```
+
+**IMPORTANT:** "+ Create New Organization" MUST link to `/organizations/new`.
 
 ## Breadcrumbs
 
