@@ -9,6 +9,7 @@ import {
   type Account,
   type AccountType
 } from "@/components/forms/AccountForm"
+import { ApplyTemplateModal } from "@/components/accounts/ApplyTemplateModal"
 
 // =============================================================================
 // Types
@@ -220,6 +221,7 @@ function ChartOfAccountsPage() {
 
   // UI State
   const [showCreateForm, setShowCreateForm] = useState(false)
+  const [showApplyTemplate, setShowApplyTemplate] = useState(false)
   const [editingAccount, setEditingAccount] = useState<Account | null>(null)
   const [filterType, setFilterType] = useState<AccountType | "All">("All")
   const [filterStatus, setFilterStatus] = useState<"All" | "Active" | "Inactive">("All")
@@ -490,9 +492,20 @@ function ChartOfAccountsPage() {
           />
         )}
 
+        {/* Apply Template Modal */}
+        {showApplyTemplate && (
+          <ApplyTemplateModal
+            companyId={params.companyId}
+            onClose={() => setShowApplyTemplate(false)}
+          />
+        )}
+
         {/* Accounts Tree */}
         {accounts.length === 0 ? (
-          <AccountsEmptyState onCreateClick={() => setShowCreateForm(true)} />
+          <AccountsEmptyState
+            onCreateClick={() => setShowCreateForm(true)}
+            onApplyTemplateClick={() => setShowApplyTemplate(true)}
+          />
         ) : filteredAccounts.length === 0 ? (
           <div className="rounded-lg border border-gray-200 bg-white p-8 text-center">
             <p className="text-gray-500">No accounts match your search criteria.</p>
@@ -777,12 +790,14 @@ function AccountTreeRow({
 // =============================================================================
 
 function AccountsEmptyState({
-  onCreateClick
+  onCreateClick,
+  onApplyTemplateClick
 }: {
   readonly onCreateClick: () => void
+  readonly onApplyTemplateClick: () => void
 }) {
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-8 text-center">
+    <div className="rounded-lg border border-gray-200 bg-white p-8 text-center" data-testid="accounts-empty-state">
       <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
         <svg
           className="h-6 w-6 text-blue-600"
@@ -802,27 +817,50 @@ function AccountsEmptyState({
         No accounts yet
       </h3>
       <p className="mb-6 text-gray-500">
-        Get started by creating your first account in the chart of accounts.
+        Get started by applying a template or creating your first account manually.
       </p>
-      <button
-        onClick={onCreateClick}
-        className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700"
-      >
-        <svg
-          className="h-5 w-5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
+      <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+        <button
+          onClick={onApplyTemplateClick}
+          data-testid="apply-template-button"
+          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700"
         >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M12 4v16m8-8H4"
-          />
-        </svg>
-        Create Account
-      </button>
+          <svg
+            className="h-5 w-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"
+            />
+          </svg>
+          Apply Template
+        </button>
+        <button
+          onClick={onCreateClick}
+          data-testid="create-account-empty-button"
+          className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 font-medium text-gray-700 hover:bg-gray-50"
+        >
+          <svg
+            className="h-5 w-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 4v16m8-8H4"
+            />
+          </svg>
+          Create Account
+        </button>
+      </div>
     </div>
   )
 }

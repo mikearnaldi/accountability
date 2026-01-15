@@ -842,7 +842,7 @@
           "packages/web/src/routes/organizations/$organizationId/companies/$companyId/accounts/index.tsx"
         ]
       },
-      "status": "pending"
+      "status": "complete"
     },
     {
       "id": "6.1",
