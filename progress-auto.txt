@@ -56,3 +56,8 @@
 **Task**: Created dedicated /organizations/$organizationId/companies/new.tsx page for company creation form with AppLayout, breadcrumbs, and proper form handling. Updated Sidebar quick actions and "Add Company" link to navigate to /companies/new instead of /companies (list page), per UI_ARCHITECTURE.md spec requirement that "New Company" MUST open the creation form, not the list page.
 **Status**: complete
 ---
+
+## Iteration 15 - 2026-01-15 15:36
+**Task**: Created dedicated /organizations/$organizationId/exchange-rates/new.tsx page for exchange rate creation form with AppLayout, breadcrumbs, and proper form handling. Updated Sidebar quick actions to navigate to /exchange-rates/new instead of the list page, per UI_ARCHITECTURE.md spec requirement that "Exchange Rate" quick action MUST open the creation form, not the list page.
+**Status**: complete
+---

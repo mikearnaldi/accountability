@@ -256,7 +256,7 @@ function QuickActionMenu({ organizationId, companies = [], isCollapsed }: QuickA
       : []),
     {
       label: "Exchange Rate",
-      href: `/organizations/${organizationId}/exchange-rates`,
+      href: `/organizations/${organizationId}/exchange-rates/new`,
       icon: TrendingUp,
       testId: "quick-action-exchange-rate"
     }
