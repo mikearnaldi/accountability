@@ -1,73 +1,27 @@
 /**
- * Home Page / Dashboard Route
+ * Home Page Route
  *
  * For authenticated users:
- * - Full-featured dashboard with sidebar navigation
- * - Key metrics widgets (organizations, companies, pending entries)
- * - Recent activity feed
- * - Quick action buttons
- * - Balance summary per company
- * - Upcoming period close deadlines
+ * - Redirects to the appropriate page based on organization count:
+ *   - No organizations -> /organizations/new
+ *   - Single organization -> /organizations/:id/dashboard
+ *   - Multiple organizations -> /organizations
  *
  * For unauthenticated users:
  * - Landing page with sign in/register options
  */
 
-import { createFileRoute, Link } from "@tanstack/react-router"
+import { createFileRoute, Link, redirect } from "@tanstack/react-router"
 import { createServerFn } from "@tanstack/react-start"
 import { getCookie } from "@tanstack/react-start/server"
 import { createServerApi } from "@/api/server"
-import { AppLayout } from "@/components/layout/AppLayout"
-import { MetricsCard, MetricsGrid } from "@/components/dashboard/MetricsCard"
-import { ActivityFeed, type ActivityType } from "@/components/dashboard/ActivityFeed"
-import { QuickActions } from "@/components/dashboard/QuickActions"
-import { BalanceSummary } from "@/components/dashboard/BalanceSummary"
-import { PeriodDeadlines } from "@/components/dashboard/PeriodDeadlines"
-import {
-  Building2,
-  Building,
-  FileText,
-  Clock
-} from "lucide-react"
 
 // =============================================================================
-// Server Function: Fetch dashboard data
+// Server Function: Fetch organizations for redirect logic
 // =============================================================================
 
-export interface DashboardData {
-  readonly organizationsCount: number
-  readonly companiesCount: number
-  readonly pendingEntriesCount: number
-  readonly recentActivity: readonly {
-    readonly id: string
-    readonly type: ActivityType
-    readonly description: string
-    readonly timestamp: string
-    readonly user?: string
-  }[]
-  readonly companyBalances: readonly {
-    readonly id: string
-    readonly name: string
-    readonly currency: string
-    readonly totalAssets: number
-    readonly totalLiabilities: number
-    readonly totalEquity: number
-    readonly organizationId: string
-  }[]
-  readonly periodDeadlines: readonly {
-    readonly id: string
-    readonly periodName: string
-    readonly companyName: string
-    readonly companyId: string
-    readonly organizationId: string
-    readonly endDate: string
-    readonly status: "on_track" | "approaching" | "overdue"
-  }[]
-}
-
-const fetchDashboardData = createServerFn({ method: "GET" }).handler(
-  async (): Promise<DashboardData | null> => {
-    // Get the session cookie to forward to API
+const fetchOrganizationsForRedirect = createServerFn({ method: "GET" }).handler(
+  async (): Promise<{ organizations: readonly { id: string }[] } | null> => {
     const sessionToken = getCookie("accountability_session")
 
     if (!sessionToken) {
@@ -77,65 +31,8 @@ const fetchDashboardData = createServerFn({ method: "GET" }).handler(
     try {
       const serverApi = createServerApi()
       const headers = { Authorization: `Bearer ${sessionToken}` }
-
-      // Fetch organizations first
       const orgsResult = await serverApi.GET("/api/v1/organizations", { headers })
-      const organizations = orgsResult.data?.organizations ?? []
-
-      // Fetch companies for each organization
-      const allCompanies: {
-        id: string
-        name: string
-        currency: string
-        organizationId: string
-      }[] = []
-
-      for (const org of organizations.slice(0, 5)) {
-        try {
-          const companiesRes = await serverApi.GET("/api/v1/companies", {
-            headers,
-            params: { query: { organizationId: org.id } }
-          })
-          const companies = companiesRes.data?.companies ?? []
-          for (const company of companies) {
-            allCompanies.push({
-              id: company.id,
-              name: company.name,
-              currency: company.functionalCurrency,
-              organizationId: org.id
-            })
-          }
-        } catch {
-          // Skip failed company fetches
-        }
-      }
-
-      // Generate mock data for metrics that don't have real API endpoints yet
-      // In a real implementation, these would come from actual API calls
-      const pendingEntriesCount = 0 // Would come from journal entries API
-
-      // Generate placeholder company balances (would come from reports API)
-      const companyBalances = allCompanies.slice(0, 5).map((company) => ({
-        ...company,
-        totalAssets: 0,
-        totalLiabilities: 0,
-        totalEquity: 0
-      }))
-
-      // Placeholder for recent activity (would come from audit log API)
-      const recentActivity: DashboardData["recentActivity"] = []
-
-      // Placeholder for period deadlines (would come from fiscal periods API)
-      const periodDeadlines: DashboardData["periodDeadlines"] = []
-
-      return {
-        organizationsCount: organizations.length,
-        companiesCount: allCompanies.length,
-        pendingEntriesCount,
-        recentActivity,
-        companyBalances,
-        periodDeadlines
-      }
+      return { organizations: orgsResult.data?.organizations ?? [] }
     } catch {
       return null
     }
@@ -147,43 +44,42 @@ const fetchDashboardData = createServerFn({ method: "GET" }).handler(
 // =============================================================================
 
 export const Route = createFileRoute("/")({
-  loader: async () => {
-    const dashboardData = await fetchDashboardData()
-    return { dashboardData }
+  beforeLoad: async ({ context }) => {
+    // If user is authenticated, redirect based on organization count
+    if (context.user) {
+      const result = await fetchOrganizationsForRedirect()
+      const orgs = result?.organizations ?? []
+
+      if (orgs.length === 0) {
+        // No organizations - go to create first org
+        throw redirect({ to: "/organizations/new" })
+      } else if (orgs.length === 1) {
+        // Single organization - go directly to its dashboard
+        throw redirect({
+          to: "/organizations/$organizationId/dashboard",
+          params: { organizationId: orgs[0].id }
+        })
+      } else {
+        // Multiple organizations - go to org selector
+        throw redirect({ to: "/organizations" })
+      }
+    }
   },
   component: HomePage
 })
 
+// =============================================================================
+// Home Page Component (Landing page for unauthenticated users)
+// =============================================================================
+
 function HomePage() {
-  const context = Route.useRouteContext()
-  const { dashboardData } = Route.useLoaderData()
-  const user = context.user
-
-  if (user) {
-    return (
-      <AppLayout user={user}>
-        <AuthenticatedDashboard user={user} data={dashboardData} />
-      </AppLayout>
-    )
-  }
-
+  // Authenticated users are redirected in beforeLoad, so this only renders
+  // for unauthenticated users
   return <UnauthenticatedHomePage />
 }
 
 // =============================================================================
-// User Type (from route context)
-// =============================================================================
-
-interface User {
-  readonly id: string
-  readonly email: string
-  readonly displayName: string
-  readonly role: string
-  readonly primaryProvider: string
-}
-
-// =============================================================================
-// Unauthenticated Home Page
+// Unauthenticated Home Page (Landing Page)
 // =============================================================================
 
 function UnauthenticatedHomePage() {
@@ -264,151 +160,6 @@ function UnauthenticatedHomePage() {
           </div>
         </div>
       </div>
-    </div>
-  )
-}
-
-// =============================================================================
-// Authenticated Dashboard
-// =============================================================================
-
-interface AuthenticatedDashboardProps {
-  readonly user: User
-  readonly data: DashboardData | null
-}
-
-function AuthenticatedDashboard({ user, data }: AuthenticatedDashboardProps) {
-  const displayName = user.displayName || "there"
-
-  return (
-    <div className="space-y-6" data-testid="authenticated-dashboard">
-      {/* Welcome Header */}
-      <div data-testid="dashboard-welcome">
-        <h1 className="text-2xl font-bold text-gray-900">
-          Welcome back, {displayName}!
-        </h1>
-        <p className="mt-1 text-gray-500">
-          Here's an overview of your accounting data.
-        </p>
-      </div>
-
-      {/* Metrics Cards */}
-      <MetricsGrid>
-        <MetricsCard
-          label="Organizations"
-          value={data?.organizationsCount ?? 0}
-          icon={Building2}
-          iconColor="blue"
-          testId="metric-organizations"
-        />
-        <MetricsCard
-          label="Companies"
-          value={data?.companiesCount ?? 0}
-          icon={Building}
-          iconColor="green"
-          testId="metric-companies"
-        />
-        <MetricsCard
-          label="Pending Entries"
-          value={data?.pendingEntriesCount ?? 0}
-          icon={FileText}
-          iconColor="orange"
-          testId="metric-pending-entries"
-        />
-        <MetricsCard
-          label="Open Periods"
-          value={data?.periodDeadlines.length ?? 0}
-          icon={Clock}
-          iconColor="purple"
-          testId="metric-open-periods"
-        />
-      </MetricsGrid>
-
-      {/* Quick Actions */}
-      <QuickActions />
-
-      {/* Two-column layout for activity and balances */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Recent Activity */}
-        <ActivityFeed activities={data?.recentActivity ?? []} />
-
-        {/* Balance Summary */}
-        <BalanceSummary companies={data?.companyBalances ?? []} />
-      </div>
-
-      {/* Period Deadlines */}
-      <PeriodDeadlines deadlines={data?.periodDeadlines ?? []} />
-
-      {/* Getting Started Section (shown when no data) */}
-      {data && data.organizationsCount === 0 && (
-        <GettingStartedSection />
-      )}
-    </div>
-  )
-}
-
-// =============================================================================
-// Getting Started Section
-// =============================================================================
-
-function GettingStartedSection() {
-  return (
-    <div
-      className="rounded-lg border border-blue-200 bg-blue-50 p-6"
-      data-testid="getting-started"
-    >
-      <h3 className="mb-2 text-lg font-semibold text-blue-900">
-        Getting Started
-      </h3>
-      <p className="mb-4 text-sm text-blue-700">
-        New to Accountability? Here's how to set up your accounting:
-      </p>
-      <ol className="space-y-2 text-sm text-blue-700">
-        <li className="flex items-start gap-2">
-          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-200 text-xs font-bold text-blue-800">
-            1
-          </span>
-          <span>Create an organization to group related companies</span>
-        </li>
-        <li className="flex items-start gap-2">
-          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-200 text-xs font-bold text-blue-800">
-            2
-          </span>
-          <span>Add companies with their respective currencies</span>
-        </li>
-        <li className="flex items-start gap-2">
-          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-200 text-xs font-bold text-blue-800">
-            3
-          </span>
-          <span>Set up your chart of accounts for each company</span>
-        </li>
-        <li className="flex items-start gap-2">
-          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-200 text-xs font-bold text-blue-800">
-            4
-          </span>
-          <span>Start recording journal entries</span>
-        </li>
-      </ol>
-      <Link
-        to="/organizations"
-        data-testid="getting-started-link"
-        className="mt-4 inline-flex items-center text-sm font-medium text-blue-700 hover:text-blue-800"
-      >
-        Get Started
-        <svg
-          className="ml-1 h-4 w-4"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M9 5l7 7-7 7"
-          />
-        </svg>
-      </Link>
     </div>
   )
 }

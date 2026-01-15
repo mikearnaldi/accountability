@@ -4,6 +4,7 @@ import { getCookie } from "@tanstack/react-start/server"
 import { useState } from "react"
 import { api } from "@/api/client"
 import { createServerApi } from "@/api/server"
+import { AppLayout } from "@/components/layout/AppLayout"
 
 // =============================================================================
 // Server Functions: Fetch organization and companies from API with cookie auth
@@ -186,8 +187,10 @@ interface Company {
 // =============================================================================
 
 function OrganizationDetailsPage() {
+  const context = Route.useRouteContext()
   const { organization, companies, companiesTotal } = Route.useLoaderData()
   const [isEditing, setIsEditing] = useState(false)
+  const user = context.user
 
   if (!organization) {
     return null
@@ -199,123 +202,110 @@ function OrganizationDetailsPage() {
     day: "numeric"
   })
 
+  // Map companies to the minimal structure for sidebar
+  const companiesForSidebar = companies.map((c) => ({ id: c.id, name: c.name }))
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="border-b border-gray-200 bg-white">
-        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-4">
-            <Link to="/" className="text-xl font-bold text-gray-900">
-              Accountability
-            </Link>
-            <span className="text-gray-400">/</span>
-            <Link to="/organizations" className="text-xl text-gray-600 hover:text-gray-900">
-              Organizations
-            </Link>
-            <span className="text-gray-400">/</span>
-            <span className="text-xl font-semibold text-gray-900">{organization.name}</span>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="space-y-8">
-          {/* Organization Details Card */}
-          <div className="rounded-lg border border-gray-200 bg-white p-6">
-            <div className="mb-6 flex items-start justify-between">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">{organization.name}</h1>
-                <p className="mt-1 text-sm text-gray-500">Created {createdDate}</p>
-              </div>
-              <button
-                onClick={() => setIsEditing(true)}
-                data-testid="edit-organization-button"
-                className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
-                Edit
-              </button>
+    <AppLayout
+      user={user}
+      currentOrganization={organization}
+      companies={companiesForSidebar}
+    >
+      <div className="space-y-8">
+        {/* Organization Details Card */}
+        <div className="rounded-lg border border-gray-200 bg-white p-6">
+          <div className="mb-6 flex items-start justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">{organization.name}</h1>
+              <p className="mt-1 text-sm text-gray-500">Created {createdDate}</p>
             </div>
+            <button
+              onClick={() => setIsEditing(true)}
+              data-testid="edit-organization-button"
+              className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              Edit
+            </button>
+          </div>
 
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div>
+              <dt className="text-sm font-medium text-gray-500">Reporting Currency</dt>
+              <dd className="mt-1 text-lg font-medium text-gray-900">
+                {organization.reportingCurrency}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-sm font-medium text-gray-500">Organization ID</dt>
+              <dd className="mt-1 font-mono text-sm text-gray-600">{organization.id}</dd>
+            </div>
+            {organization.settings && (
               <div>
-                <dt className="text-sm font-medium text-gray-500">Reporting Currency</dt>
+                <dt className="text-sm font-medium text-gray-500">Default Timezone</dt>
                 <dd className="mt-1 text-lg font-medium text-gray-900">
-                  {organization.reportingCurrency}
+                  {organization.settings.defaultTimezone}
                 </dd>
               </div>
-              <div>
-                <dt className="text-sm font-medium text-gray-500">Organization ID</dt>
-                <dd className="mt-1 font-mono text-sm text-gray-600">{organization.id}</dd>
-              </div>
-              {organization.settings && (
-                <div>
-                  <dt className="text-sm font-medium text-gray-500">Default Timezone</dt>
-                  <dd className="mt-1 text-lg font-medium text-gray-900">
-                    {organization.settings.defaultTimezone}
-                  </dd>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Edit Organization Modal */}
-          {isEditing && (
-            <EditOrganizationModal
-              organization={organization}
-              onClose={() => setIsEditing(false)}
-            />
-          )}
-
-          {/* Companies Section */}
-          <div className="rounded-lg border border-gray-200 bg-white p-6">
-            <div className="mb-6 flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">Companies</h3>
-                <p className="text-sm text-gray-500">
-                  {companiesTotal} compan{companiesTotal !== 1 ? "ies" : "y"} in this organization
-                </p>
-              </div>
-              <div className="flex items-center gap-3">
-                <Link
-                  to="/organizations/$organizationId/companies"
-                  params={{ organizationId: organization.id }}
-                  className="text-sm font-medium text-blue-600 hover:text-blue-700"
-                >
-                  View all
-                </Link>
-                <Link
-                  to="/organizations/$organizationId/companies"
-                  params={{ organizationId: organization.id }}
-                  className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-                >
-                  <svg
-                    className="h-4 w-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 4v16m8-8H4"
-                    />
-                  </svg>
-                  New Company
-                </Link>
-              </div>
-            </div>
-
-            {companies.length === 0 ? (
-              <CompaniesEmptyState organizationId={organization.id} />
-            ) : (
-              <CompaniesList companies={companies} organizationId={organization.id} />
             )}
           </div>
         </div>
-      </main>
-    </div>
+
+        {/* Edit Organization Modal */}
+        {isEditing && (
+          <EditOrganizationModal
+            organization={organization}
+            onClose={() => setIsEditing(false)}
+          />
+        )}
+
+        {/* Companies Section */}
+        <div className="rounded-lg border border-gray-200 bg-white p-6" data-testid="subsidiaries-section">
+          <div className="mb-6 flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Companies</h3>
+              <p className="text-sm text-gray-500">
+                {companiesTotal} compan{companiesTotal !== 1 ? "ies" : "y"} in this organization
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <Link
+                to="/organizations/$organizationId/companies"
+                params={{ organizationId: organization.id }}
+                className="text-sm font-medium text-blue-600 hover:text-blue-700"
+              >
+                View all
+              </Link>
+              <Link
+                to="/organizations/$organizationId/companies"
+                params={{ organizationId: organization.id }}
+                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+              >
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 4v16m8-8H4"
+                  />
+                </svg>
+                New Company
+              </Link>
+            </div>
+          </div>
+
+          {companies.length === 0 ? (
+            <CompaniesEmptyState organizationId={organization.id} />
+          ) : (
+            <CompaniesList companies={companies} organizationId={organization.id} />
+          )}
+        </div>
+      </div>
+    </AppLayout>
   )
 }
 

@@ -1,11 +1,9 @@
 /**
  * Home Page E2E Tests
  *
- * Tests for home page / dashboard:
+ * Tests for home page behavior:
  * - Unauthenticated: shows welcome message with login/register links
- * - Authenticated: shows user greeting and quick navigation
- * - Link to organizations list
- * - Logout button in header
+ * - Authenticated: redirects to appropriate page based on organization count
  * - Clean, professional design matching accounting application
  */
 
@@ -78,18 +76,23 @@ test.describe("Home Page - Unauthenticated", () => {
   })
 })
 
-test.describe("Home Page - Authenticated", () => {
-  test.beforeEach(async ({ page, request }) => {
-    // Register and login a test user
+test.describe("Home Page - Authenticated Redirect", () => {
+  // Note: Organizations are globally visible in this app (not user-scoped),
+  // so the redirect behavior depends on the total count of all organizations
+  // in the shared test database.
+
+  test("should redirect authenticated user to an authenticated page", async ({
+    page,
+    request
+  }) => {
+    // Register and login a user
     const testUser = {
-      email: `test-home-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`,
+      email: `test-home-redirect-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`,
       password: "TestPassword123",
       displayName: "Test User"
     }
 
-    await request.post("/api/auth/register", {
-      data: testUser
-    })
+    await request.post("/api/auth/register", { data: testUser })
 
     const loginRes = await request.post("/api/auth/login", {
       data: {
@@ -115,131 +118,73 @@ test.describe("Home Page - Authenticated", () => {
         sameSite: "Lax"
       }
     ])
-  })
 
-  test("should display user greeting", async ({ page }) => {
+    // Navigate to home page - should redirect based on organization count
     await page.goto("/")
 
-    // Verify welcome message with user greeting
-    await expect(page.getByText(/Welcome back/)).toBeVisible()
+    // Wait for redirect
+    await page.waitForFunction(() => window.location.pathname !== "/")
+
+    // Should be redirected to either:
+    // - /organizations/new (if no orgs exist)
+    // - /organizations/:id/dashboard (if 1 org exists)
+    // - /organizations (if multiple orgs exist)
+    const url = page.url()
+    const validRedirects =
+      url.includes("/organizations/new") ||
+      url.includes("/dashboard") ||
+      (url.includes("/organizations") && !url.includes("/new") && !url.includes("/dashboard"))
+
+    expect(validRedirects).toBeTruthy()
   })
 
-  test("should display header with logo and user info", async ({ page }) => {
-    await page.goto("/")
-
-    // Verify header elements
-    const logo = page.getByRole("link", { name: "Accountability" }).first()
-    await expect(logo).toBeVisible()
-
-    // Verify user display name or email is shown
-    const header = page.locator("header")
-    await expect(header).toBeVisible()
-  })
-
-  test("should have logout button in user menu", async ({ page }) => {
-    await page.goto("/")
-
-    // Open user menu
-    await page.locator('[data-testid="user-menu-button"]').click()
-
-    // Find Sign Out button in dropdown
-    const signOutButton = page.locator('[data-testid="user-menu-logout"]')
-    await expect(signOutButton).toBeVisible()
-  })
-
-  test("should logout when clicking sign out button", async ({ page }) => {
-    await page.goto("/")
-
-    // Open user menu and click Sign Out
-    await page.locator('[data-testid="user-menu-button"]').click()
-    await page.locator('[data-testid="user-menu-logout"]').click()
-
-    // Wait for logout to complete - user should be redirected or see unauthenticated state
-    // After logout, the home page should show login/register links
-    await expect(page.getByRole("link", { name: "Sign In" })).toBeVisible({
-      timeout: 10000
-    })
-  })
-
-  test("should show loading state during logout", async ({ page }) => {
-    await page.goto("/")
-
-    // Slow down the network for the logout request so we can observe loading state
-    await page.route("**/api/auth/logout", async (route) => {
-      // Add a delay to observe loading state
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-      await route.continue()
-    })
-
-    // Open user menu and click Sign Out
-    await page.locator('[data-testid="user-menu-button"]').click()
-    await page.locator('[data-testid="user-menu-logout"]').click()
-
-    // Button should show loading state (text changes to "Signing out...")
-    // Use a locator that matches the loading text since button name changes
-    await expect(page.getByText("Signing out...")).toBeVisible()
-
-    // Wait for logout to complete
-    await expect(page.getByRole("link", { name: "Sign In" })).toBeVisible({
-      timeout: 10000
-    })
-  })
-
-  test("should have link to organizations page", async ({ page }) => {
-    await page.goto("/")
-
-    // Find Organizations card/link
-    const orgsLink = page.getByRole("link", { name: /Organizations/i })
-    await expect(orgsLink).toBeVisible()
-
-    // Click and verify navigation
-    await orgsLink.click()
-    await page.waitForURL("/organizations")
-    expect(page.url()).toContain("/organizations")
-  })
-
-  test("should display quick action cards", async ({ page }) => {
-    await page.goto("/")
-
-    // Verify quick action cards are displayed (now shown as quick actions)
-    await expect(page.locator('[data-testid="quick-actions"]')).toBeVisible()
-    await expect(page.locator('[data-testid="quick-action-new-journal"]')).toBeVisible()
-    await expect(page.locator('[data-testid="quick-action-run-report"]')).toBeVisible()
-    await expect(page.locator('[data-testid="quick-action-create-company"]')).toBeVisible()
-  })
-
-  test("should display getting started guide", async ({ page }) => {
-    await page.goto("/")
-
-    // Getting started section is only shown when user has no organizations
-    // Since database is shared between tests, we check for conditional visibility
-    const gettingStarted = page.locator('[data-testid="getting-started"]')
-    const orgsValue = await page.locator('[data-testid="metric-organizations-value"]').textContent()
-
-    if (orgsValue === "0") {
-      // User has no organizations, should see getting started guide
-      await expect(gettingStarted).toBeVisible()
-      await expect(page.getByText("Getting Started")).toBeVisible()
-      await expect(
-        page.getByText("Create an organization to group related companies")
-      ).toBeVisible()
-    } else {
-      // User has organizations (from shared database), getting started is hidden
-      await expect(gettingStarted).not.toBeVisible()
+  test("should not stay on home page for authenticated user", async ({
+    page,
+    request
+  }) => {
+    // Register and login a user
+    const testUser = {
+      email: `test-home-no-stay-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`,
+      password: "TestPassword123",
+      displayName: "Test User"
     }
-  })
 
-  test("should navigate home when clicking logo", async ({ page }) => {
-    // First navigate to a different page
-    await page.goto("/organizations")
+    await request.post("/api/auth/register", { data: testUser })
 
-    // Click logo to go home
-    const logo = page.getByRole("link", { name: "Accountability" }).first()
-    await logo.click()
+    const loginRes = await request.post("/api/auth/login", {
+      data: {
+        provider: "local",
+        credentials: {
+          email: testUser.email,
+          password: testUser.password
+        }
+      }
+    })
 
-    // Should be on home page
-    await page.waitForURL("/")
-    expect(page.url().endsWith("/") || page.url().endsWith("localhost:3000")).toBeTruthy()
+    const loginData = await loginRes.json()
+
+    // Set session cookie
+    await page.context().addCookies([
+      {
+        name: "accountability_session",
+        value: loginData.token,
+        domain: "localhost",
+        path: "/",
+        httpOnly: true,
+        secure: false,
+        sameSite: "Lax"
+      }
+    ])
+
+    // Navigate to home page
+    await page.goto("/")
+
+    // Wait for redirect to complete
+    await page.waitForFunction(() => window.location.pathname !== "/")
+
+    // URL should not be just "/" (the landing page)
+    const pathname = new URL(page.url()).pathname
+    expect(pathname).not.toBe("/")
   })
 })
 
@@ -258,55 +203,15 @@ test.describe("Home Page - Professional Design", () => {
     await expect(welcomeCard).toBeVisible()
   })
 
-  test("should have professional layout for authenticated users", async ({
-    page,
-    request
-  }) => {
-    // Register and login
-    const testUser = {
-      email: `test-design-${Date.now()}@example.com`,
-      password: "TestPassword123",
-      displayName: "Test User"
-    }
-
-    await request.post("/api/auth/register", { data: testUser })
-    const loginRes = await request.post("/api/auth/login", {
-      data: {
-        provider: "local",
-        credentials: {
-          email: testUser.email,
-          password: testUser.password
-        }
-      }
-    })
-    const loginData = await loginRes.json()
-
-    await page.context().addCookies([
-      {
-        name: "accountability_session",
-        value: loginData.token,
-        domain: "localhost",
-        path: "/",
-        httpOnly: true,
-        secure: false,
-        sameSite: "Lax"
-      }
-    ])
-
+  test("should have proper navigation links styling", async ({ page }) => {
     await page.goto("/")
 
-    // App layout should be present
-    await expect(page.locator('[data-testid="app-layout"]')).toBeVisible()
+    // Sign In link should have blue styling
+    const signInLink = page.getByRole("link", { name: "Sign In" })
+    await expect(signInLink).toHaveClass(/bg-blue-600/)
 
-    // Header should have border
-    const header = page.locator('[data-testid="header"]')
-    await expect(header).toBeVisible()
-
-    // Main content area should be visible
-    const main = page.locator('[data-testid="app-main-content"]')
-    await expect(main).toBeVisible()
-
-    // Dashboard should be visible with metrics grid
-    await expect(page.locator('[data-testid="metrics-grid"]')).toBeVisible()
+    // Create Account link should have proper styling
+    const createAccountLink = page.getByRole("link", { name: "Create Account" })
+    await expect(createAccountLink).toBeVisible()
   })
 })

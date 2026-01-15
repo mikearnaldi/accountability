@@ -56,14 +56,14 @@ test.describe("Registration Page", () => {
       }
     ])
 
-    // 4. Navigate to register page - should redirect to home
+    // 4. Navigate to register page - should redirect based on Post-Login Flow
     await page.goto("/register")
 
-    // 5. Wait for redirect to complete (beforeLoad redirect happens during navigation)
-    await page.waitForURL("/")
+    // 5. Wait for redirect to complete - user will be redirected to an authenticated page
+    // (either /organizations/new, /organizations/:id/dashboard, or /organizations)
+    await page.waitForFunction(() => !window.location.pathname.includes("/register"))
 
-    // 6. Should be on home page, not register
-    expect(page.url()).toContain("/")
+    // 6. Should NOT be on register page
     expect(page.url()).not.toContain("/register")
   })
 

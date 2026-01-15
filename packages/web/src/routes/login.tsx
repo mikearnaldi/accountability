@@ -9,7 +9,8 @@ import { api } from "@/api/client"
 
 export const Route = createFileRoute("/login")({
   beforeLoad: async ({ context }) => {
-    // If user is already authenticated, redirect to home
+    // If user is already authenticated, redirect following Post-Login Flow
+    // The home route (/) handles this redirect logic, so just redirect there
     if (context.user) {
       throw redirect({ to: "/" })
     }
@@ -72,9 +73,24 @@ function LoginPage() {
       // Cookie is set by the server via Set-Cookie header
       // No token storage needed - httpOnly cookies are sent automatically
 
-      // Check for redirect query parameter
+      // Check for explicit redirect query parameter
       const searchParams = new URLSearchParams(window.location.search)
-      const redirectTo = searchParams.get("redirect") || "/"
+      let redirectTo = searchParams.get("redirect")
+
+      // If no explicit redirect, determine destination based on org count
+      if (!redirectTo) {
+        // Fetch organizations to determine redirect
+        const orgsResult = await api.GET("/api/v1/organizations")
+        const orgs = orgsResult.data?.organizations ?? []
+
+        if (orgs.length === 0) {
+          redirectTo = "/organizations/new"
+        } else if (orgs.length === 1) {
+          redirectTo = `/organizations/${orgs[0].id}/dashboard`
+        } else {
+          redirectTo = "/organizations"
+        }
+      }
 
       // Invalidate to refresh user context
       await router.invalidate()

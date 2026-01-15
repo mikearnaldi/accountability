@@ -1,7 +1,7 @@
 /**
  * Dashboard E2E Tests
  *
- * Tests for the full-featured dashboard:
+ * Tests for the organization-scoped dashboard at /organizations/:id/dashboard
  * - Dashboard metrics display correctly
  * - Sidebar navigation works
  * - Quick actions navigate correctly
@@ -11,224 +11,175 @@
 
 import { test, expect } from "@playwright/test"
 
-test.describe("Dashboard - Authenticated User", () => {
-  test.beforeEach(async ({ page, request }) => {
-    // Register and login a test user
-    const testUser = {
-      email: `test-dashboard-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`,
-      password: "TestPassword123",
-      displayName: "Dashboard Test User"
+import type { Page, APIRequestContext } from "@playwright/test"
+
+/**
+ * Helper to setup authenticated user with an organization
+ */
+async function setupUserWithOrganization(
+  page: Page,
+  request: APIRequestContext
+): Promise<{ token: string; organizationId: string }> {
+  // Register user
+  const testUser = {
+    email: `test-dashboard-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`,
+    password: "TestPassword123",
+    displayName: "Dashboard Test User"
+  }
+
+  await request.post("/api/auth/register", { data: testUser })
+
+  // Login to get session
+  const loginRes = await request.post("/api/auth/login", {
+    data: {
+      provider: "local",
+      credentials: {
+        email: testUser.email,
+        password: testUser.password
+      }
     }
-
-    await request.post("/api/auth/register", {
-      data: testUser
-    })
-
-    const loginRes = await request.post("/api/auth/login", {
-      data: {
-        provider: "local",
-        credentials: {
-          email: testUser.email,
-          password: testUser.password
-        }
-      }
-    })
-
-    const loginData = await loginRes.json()
-
-    // Set session cookie
-    await page.context().addCookies([
-      {
-        name: "accountability_session",
-        value: loginData.token,
-        domain: "localhost",
-        path: "/",
-        httpOnly: true,
-        secure: false,
-        sameSite: "Lax"
-      }
-    ])
   })
 
-  test("should display dashboard with metrics", async ({ page }) => {
-    await page.goto("/")
+  const loginData = await loginRes.json()
+  const token = loginData.token
 
-    // Verify we're on the authenticated dashboard
-    await expect(page.locator('[data-testid="authenticated-dashboard"]')).toBeVisible()
+  // Set session cookie
+  await page.context().addCookies([
+    {
+      name: "accountability_session",
+      value: token,
+      domain: "localhost",
+      path: "/",
+      httpOnly: true,
+      secure: false,
+      sameSite: "Lax"
+    }
+  ])
 
-    // Verify welcome message
-    await expect(page.locator('[data-testid="dashboard-welcome"]')).toBeVisible()
-    await expect(page.getByText(/Welcome back/)).toBeVisible()
+  // Create an organization
+  const orgRes = await request.post("/api/v1/organizations", {
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    data: {
+      name: `Test Org ${Date.now()}`,
+      reportingCurrency: "USD",
+      settings: null
+    }
   })
 
-  test("should display metrics cards", async ({ page }) => {
-    await page.goto("/")
+  if (!orgRes.ok()) {
+    const errorText = await orgRes.text()
+    throw new Error(`Failed to create organization: ${orgRes.status()} - ${errorText}`)
+  }
+
+  const orgData = await orgRes.json()
+
+  if (!orgData.id) {
+    throw new Error(`Organization response missing id: ${JSON.stringify(orgData)}`)
+  }
+
+  return { token, organizationId: orgData.id }
+}
+
+test.describe("Dashboard - Organization Scoped", () => {
+  let organizationId: string
+
+  test.beforeEach(async ({ page, request }) => {
+    const result = await setupUserWithOrganization(page, request)
+    organizationId = result.organizationId
+  })
+
+  test("should display organization dashboard with header", async ({ page }) => {
+    await page.goto(`/organizations/${organizationId}/dashboard`)
+
+    // Verify we're on the organization dashboard
+    await expect(page.locator('[data-testid="org-dashboard"]')).toBeVisible()
+
+    // Verify organization header is displayed
+    await expect(page.locator('[data-testid="org-dashboard-header"]')).toBeVisible()
+    await expect(page.locator('[data-testid="org-dashboard-name"]')).toBeVisible()
+  })
+
+  test("should display metrics cards for organization", async ({ page }) => {
+    await page.goto(`/organizations/${organizationId}/dashboard`)
 
     // Wait for dashboard to load
-    await expect(page.locator('[data-testid="authenticated-dashboard"]')).toBeVisible()
+    await expect(page.locator('[data-testid="org-dashboard"]')).toBeVisible()
 
-    // Verify metrics grid is displayed
-    await expect(page.locator('[data-testid="metrics-grid"]')).toBeVisible()
-
-    // Verify individual metric cards
-    await expect(page.locator('[data-testid="metric-organizations"]')).toBeVisible()
-    await expect(page.locator('[data-testid="metric-companies"]')).toBeVisible()
-    await expect(page.locator('[data-testid="metric-pending-entries"]')).toBeVisible()
-    await expect(page.locator('[data-testid="metric-open-periods"]')).toBeVisible()
+    // Verify organization-specific metric cards
+    await expect(page.locator('[data-testid="metric-org-companies"]')).toBeVisible()
+    await expect(page.locator('[data-testid="metric-org-accounts"]')).toBeVisible()
+    await expect(page.locator('[data-testid="metric-org-pending-entries"]')).toBeVisible()
+    await expect(page.locator('[data-testid="metric-org-open-periods"]')).toBeVisible()
   })
 
-  test("should display correct metric values", async ({ page }) => {
-    await page.goto("/")
+  test("should display quick actions for organization", async ({ page }) => {
+    await page.goto(`/organizations/${organizationId}/dashboard`)
 
     // Wait for dashboard to load
-    await expect(page.locator('[data-testid="authenticated-dashboard"]')).toBeVisible()
-
-    // Verify metric values are displayed (should be numbers - could be any count since database is shared)
-    const orgsValue = page.locator('[data-testid="metric-organizations-value"]')
-    await expect(orgsValue).toBeVisible()
-    const orgsText = await orgsValue.textContent()
-    expect(orgsText).toMatch(/^\d+$/) // Should be a number
-
-    const companiesValue = page.locator('[data-testid="metric-companies-value"]')
-    await expect(companiesValue).toBeVisible()
-    const companiesText = await companiesValue.textContent()
-    expect(companiesText).toMatch(/^\d+$/) // Should be a number
-  })
-
-  test("should display quick actions", async ({ page }) => {
-    await page.goto("/")
-
-    // Wait for dashboard to load
-    await expect(page.locator('[data-testid="authenticated-dashboard"]')).toBeVisible()
+    await expect(page.locator('[data-testid="org-dashboard"]')).toBeVisible()
 
     // Verify quick actions section
-    await expect(page.locator('[data-testid="quick-actions"]')).toBeVisible()
+    await expect(page.locator('[data-testid="org-quick-actions"]')).toBeVisible()
 
     // Verify individual quick action cards
-    await expect(page.locator('[data-testid="quick-action-new-journal"]')).toBeVisible()
-    await expect(page.locator('[data-testid="quick-action-run-report"]')).toBeVisible()
-    await expect(page.locator('[data-testid="quick-action-create-company"]')).toBeVisible()
+    await expect(page.locator('[data-testid="org-quick-action-create-company"]')).toBeVisible()
+    await expect(page.locator('[data-testid="org-quick-action-reports"]')).toBeVisible()
+    await expect(page.locator('[data-testid="org-quick-action-exchange-rates"]')).toBeVisible()
+    await expect(page.locator('[data-testid="org-quick-action-settings"]')).toBeVisible()
   })
 
-  test("should navigate from quick action to organizations", async ({ page }) => {
-    await page.goto("/")
+  test("should navigate from quick action to companies", async ({ page }) => {
+    await page.goto(`/organizations/${organizationId}/dashboard`)
 
     // Wait for dashboard to load
-    await expect(page.locator('[data-testid="authenticated-dashboard"]')).toBeVisible()
+    await expect(page.locator('[data-testid="org-dashboard"]')).toBeVisible()
 
     // Click on create company quick action
-    await page.locator('[data-testid="quick-action-create-company"]').click()
+    await page.locator('[data-testid="org-quick-action-create-company"]').click()
 
-    // Should navigate to organizations page
-    await page.waitForURL("/organizations")
-    expect(page.url()).toContain("/organizations")
+    // Should navigate to companies page
+    await page.waitForURL(new RegExp(`/organizations/${organizationId}/companies`))
+    expect(page.url()).toContain("/companies")
   })
 
-  test("should display activity feed", async ({ page }) => {
-    await page.goto("/")
+  test("should display reporting currency", async ({ page }) => {
+    await page.goto(`/organizations/${organizationId}/dashboard`)
 
     // Wait for dashboard to load
-    await expect(page.locator('[data-testid="authenticated-dashboard"]')).toBeVisible()
+    await expect(page.locator('[data-testid="org-dashboard"]')).toBeVisible()
 
-    // Verify activity feed is displayed (empty state for new user)
-    await expect(page.locator('[data-testid="activity-feed-empty"]')).toBeVisible()
+    // Verify currency is displayed
+    await expect(page.locator('[data-testid="org-dashboard-currency"]')).toBeVisible()
+    await expect(page.locator('[data-testid="org-dashboard-currency"]')).toHaveText("USD")
   })
 
-  test("should display balance summary", async ({ page }) => {
-    await page.goto("/")
+  test("should show activity feed section", async ({ page }) => {
+    await page.goto(`/organizations/${organizationId}/dashboard`)
 
     // Wait for dashboard to load
-    await expect(page.locator('[data-testid="authenticated-dashboard"]')).toBeVisible()
+    await expect(page.locator('[data-testid="org-dashboard"]')).toBeVisible()
 
-    // Verify balance summary section is displayed (either with data or empty state)
-    // Note: Database is shared, so we check for either state
-    const balanceSummary = page.locator('[data-testid="balance-summary"]')
-    const balanceSummaryEmpty = page.locator('[data-testid="balance-summary-empty"]')
-
-    // Wait for one of the two states to be visible
-    await expect(balanceSummary.or(balanceSummaryEmpty)).toBeVisible()
-  })
-
-  test("should display period deadlines", async ({ page }) => {
-    await page.goto("/")
-
-    // Wait for dashboard to load
-    await expect(page.locator('[data-testid="authenticated-dashboard"]')).toBeVisible()
-
-    // Verify period deadlines is displayed (empty state for new user)
-    await expect(page.locator('[data-testid="period-deadlines-empty"]')).toBeVisible()
-  })
-
-  test("should display getting started section for new user", async ({ page }) => {
-    await page.goto("/")
-
-    // Wait for dashboard to load
-    await expect(page.locator('[data-testid="authenticated-dashboard"]')).toBeVisible()
-
-    // Getting started section is only shown when user has no organizations
-    // Since database is shared, we check that either getting started is shown
-    // OR the metrics show data (meaning user has organizations)
-    const gettingStarted = page.locator('[data-testid="getting-started"]')
-    const metricsGrid = page.locator('[data-testid="metrics-grid"]')
-
-    // Dashboard should show either getting started OR metrics with data
-    await expect(metricsGrid).toBeVisible()
-
-    // If organizations count is 0, getting started should be visible
-    const orgsValue = await page.locator('[data-testid="metric-organizations-value"]').textContent()
-    if (orgsValue === "0") {
-      await expect(gettingStarted).toBeVisible()
-      await expect(page.getByText("Getting Started")).toBeVisible()
-    } else {
-      // Getting started is hidden when user has organizations
-      await expect(gettingStarted).not.toBeVisible()
-    }
+    // Verify activity feed section exists (either with data or empty state)
+    const activityFeed = page.locator('[data-testid="activity-feed"]')
+    const activityFeedEmpty = page.locator('[data-testid="activity-feed-empty"]')
+    await expect(activityFeed.or(activityFeedEmpty)).toBeVisible()
   })
 })
 
 test.describe("Dashboard - Sidebar Navigation", () => {
+  let organizationId: string
+
   test.beforeEach(async ({ page, request }) => {
-    // Register and login a test user
-    const testUser = {
-      email: `test-sidebar-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`,
-      password: "TestPassword123",
-      displayName: "Sidebar Test User"
-    }
-
-    await request.post("/api/auth/register", {
-      data: testUser
-    })
-
-    const loginRes = await request.post("/api/auth/login", {
-      data: {
-        provider: "local",
-        credentials: {
-          email: testUser.email,
-          password: testUser.password
-        }
-      }
-    })
-
-    const loginData = await loginRes.json()
-
-    // Set session cookie
-    await page.context().addCookies([
-      {
-        name: "accountability_session",
-        value: loginData.token,
-        domain: "localhost",
-        path: "/",
-        httpOnly: true,
-        secure: false,
-        sameSite: "Lax"
-      }
-    ])
+    const result = await setupUserWithOrganization(page, request)
+    organizationId = result.organizationId
   })
 
   test("should display sidebar with navigation items", async ({ page }) => {
     // Set viewport to desktop size
     await page.setViewportSize({ width: 1280, height: 720 })
-    await page.goto("/")
+    await page.goto(`/organizations/${organizationId}/dashboard`)
 
     // Wait for app layout to load
     await expect(page.locator('[data-testid="app-layout"]')).toBeVisible()
@@ -236,44 +187,44 @@ test.describe("Dashboard - Sidebar Navigation", () => {
     // Verify sidebar is displayed
     await expect(page.locator('[data-testid="sidebar"]')).toBeVisible()
 
-    // Verify navigation items
-    await expect(page.locator('[data-testid="nav-dashboard"]')).toBeVisible()
-    await expect(page.locator('[data-testid="nav-organizations"]')).toBeVisible()
+    // Verify organization-scoped navigation items
+    await expect(page.locator('[data-testid="nav-org-dashboard"]')).toBeVisible()
+    await expect(page.locator('[data-testid="nav-companies"]')).toBeVisible()
   })
 
-  test("should navigate to organizations from sidebar", async ({ page }) => {
+  test("should navigate to exchange rates from sidebar", async ({ page }) => {
     // Set viewport to desktop size
     await page.setViewportSize({ width: 1280, height: 720 })
-    await page.goto("/")
+    await page.goto(`/organizations/${organizationId}/dashboard`)
 
     // Wait for sidebar to load
     await expect(page.locator('[data-testid="sidebar"]')).toBeVisible()
 
-    // Click on organizations link
-    await page.locator('[data-testid="nav-organizations"]').click()
+    // Click on exchange rates link (this is a direct link, not an expandable menu)
+    await page.locator('[data-testid="nav-exchange-rates"]').click()
 
-    // Should navigate to organizations page
-    await page.waitForURL("/organizations")
-    expect(page.url()).toContain("/organizations")
+    // Should navigate to exchange rates page
+    await page.waitForURL(new RegExp(`/organizations/${organizationId}/exchange-rates`))
+    expect(page.url()).toContain("/exchange-rates")
   })
 
   test("should highlight active route in sidebar", async ({ page }) => {
     // Set viewport to desktop size
     await page.setViewportSize({ width: 1280, height: 720 })
-    await page.goto("/")
+    await page.goto(`/organizations/${organizationId}/dashboard`)
 
     // Wait for sidebar to load
     await expect(page.locator('[data-testid="sidebar"]')).toBeVisible()
 
     // Dashboard link should be highlighted (has bg-blue-50 class)
-    const dashboardLink = page.locator('[data-testid="nav-dashboard"]')
+    const dashboardLink = page.locator('[data-testid="nav-org-dashboard"]')
     await expect(dashboardLink).toHaveClass(/bg-blue-50/)
   })
 
   test("should collapse and expand sidebar", async ({ page }) => {
     // Set viewport to desktop size
     await page.setViewportSize({ width: 1280, height: 720 })
-    await page.goto("/")
+    await page.goto(`/organizations/${organizationId}/dashboard`)
 
     // Wait for sidebar to load
     const sidebar = page.locator('[data-testid="sidebar"]')
@@ -299,8 +250,7 @@ test.describe("Dashboard - Sidebar Navigation", () => {
     // Set viewport to desktop size
     await page.setViewportSize({ width: 1280, height: 720 })
 
-    // Start from home page (AppLayout with sidebar is only on home dashboard)
-    await page.goto("/")
+    await page.goto(`/organizations/${organizationId}/dashboard`)
 
     // Wait for app layout to load
     await expect(page.locator('[data-testid="app-layout"]')).toBeVisible()
@@ -321,58 +271,25 @@ test.describe("Dashboard - Sidebar Navigation", () => {
 })
 
 test.describe("Dashboard - Header", () => {
+  let organizationId: string
+
   test.beforeEach(async ({ page, request }) => {
-    // Register and login a test user
-    const testUser = {
-      email: `test-header-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`,
-      password: "TestPassword123",
-      displayName: "Header Test User"
-    }
-
-    await request.post("/api/auth/register", {
-      data: testUser
-    })
-
-    const loginRes = await request.post("/api/auth/login", {
-      data: {
-        provider: "local",
-        credentials: {
-          email: testUser.email,
-          password: testUser.password
-        }
-      }
-    })
-
-    const loginData = await loginRes.json()
-
-    // Set session cookie
-    await page.context().addCookies([
-      {
-        name: "accountability_session",
-        value: loginData.token,
-        domain: "localhost",
-        path: "/",
-        httpOnly: true,
-        secure: false,
-        sameSite: "Lax"
-      }
-    ])
+    const result = await setupUserWithOrganization(page, request)
+    organizationId = result.organizationId
   })
 
   test("should display header with user menu", async ({ page }) => {
-    await page.goto("/")
+    await page.goto(`/organizations/${organizationId}/dashboard`)
 
     // Verify header is displayed
     await expect(page.locator('[data-testid="header"]')).toBeVisible()
 
     // Verify user menu button
     await expect(page.locator('[data-testid="user-menu-button"]')).toBeVisible()
-
-    // Note: NO search/notifications per requirements - "NO search/notifications (no API)"
   })
 
   test("should open user menu dropdown", async ({ page }) => {
-    await page.goto("/")
+    await page.goto(`/organizations/${organizationId}/dashboard`)
 
     // Click user menu button
     await page.locator('[data-testid="user-menu-button"]').click()
@@ -387,7 +304,7 @@ test.describe("Dashboard - Header", () => {
   })
 
   test("should logout from user menu", async ({ page }) => {
-    await page.goto("/")
+    await page.goto(`/organizations/${organizationId}/dashboard`)
 
     // Click user menu button
     await page.locator('[data-testid="user-menu-button"]').click()
@@ -403,53 +320,20 @@ test.describe("Dashboard - Header", () => {
       timeout: 10000
     })
   })
-
-  // Note: Search input test removed - per requirements "NO search/notifications (no API)"
 })
 
 test.describe("Dashboard - Responsive Design", () => {
+  let organizationId: string
+
   test.beforeEach(async ({ page, request }) => {
-    // Register and login a test user
-    const testUser = {
-      email: `test-responsive-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`,
-      password: "TestPassword123",
-      displayName: "Responsive Test User"
-    }
-
-    await request.post("/api/auth/register", {
-      data: testUser
-    })
-
-    const loginRes = await request.post("/api/auth/login", {
-      data: {
-        provider: "local",
-        credentials: {
-          email: testUser.email,
-          password: testUser.password
-        }
-      }
-    })
-
-    const loginData = await loginRes.json()
-
-    // Set session cookie
-    await page.context().addCookies([
-      {
-        name: "accountability_session",
-        value: loginData.token,
-        domain: "localhost",
-        path: "/",
-        httpOnly: true,
-        secure: false,
-        sameSite: "Lax"
-      }
-    ])
+    const result = await setupUserWithOrganization(page, request)
+    organizationId = result.organizationId
   })
 
   test("should show mobile menu toggle on small screens", async ({ page }) => {
     // Set viewport to mobile size
     await page.setViewportSize({ width: 375, height: 667 })
-    await page.goto("/")
+    await page.goto(`/organizations/${organizationId}/dashboard`)
 
     // Verify mobile menu toggle is displayed
     await expect(page.locator('[data-testid="mobile-menu-toggle"]')).toBeVisible()
@@ -461,7 +345,7 @@ test.describe("Dashboard - Responsive Design", () => {
   test("should open mobile sidebar when clicking menu toggle", async ({ page }) => {
     // Set viewport to mobile size
     await page.setViewportSize({ width: 375, height: 667 })
-    await page.goto("/")
+    await page.goto(`/organizations/${organizationId}/dashboard`)
 
     // Click mobile menu toggle
     await page.locator('[data-testid="mobile-menu-toggle"]').click()
@@ -469,15 +353,15 @@ test.describe("Dashboard - Responsive Design", () => {
     // Verify mobile sidebar is displayed
     await expect(page.locator('[data-testid="mobile-sidebar"]')).toBeVisible()
 
-    // Verify navigation items
-    await expect(page.locator('[data-testid="mobile-nav-dashboard"]')).toBeVisible()
-    await expect(page.locator('[data-testid="mobile-nav-organizations"]')).toBeVisible()
+    // Verify organization-scoped navigation items (mobile versions)
+    await expect(page.locator('[data-testid="mobile-nav-org-dashboard"]')).toBeVisible()
+    await expect(page.locator('[data-testid="mobile-nav-companies"]')).toBeVisible()
   })
 
   test("should close mobile sidebar when clicking close button", async ({ page }) => {
     // Set viewport to mobile size
     await page.setViewportSize({ width: 375, height: 667 })
-    await page.goto("/")
+    await page.goto(`/organizations/${organizationId}/dashboard`)
 
     // Open mobile sidebar
     await page.locator('[data-testid="mobile-menu-toggle"]').click()
@@ -490,19 +374,16 @@ test.describe("Dashboard - Responsive Design", () => {
     await expect(page.locator('[data-testid="mobile-sidebar"]')).not.toBeVisible()
   })
 
-  test("should display metrics in responsive grid", async ({ page }) => {
+  test("should display dashboard in responsive layout", async ({ page }) => {
     // Set viewport to tablet size
     await page.setViewportSize({ width: 768, height: 1024 })
-    await page.goto("/")
+    await page.goto(`/organizations/${organizationId}/dashboard`)
 
     // Wait for dashboard to load
-    await expect(page.locator('[data-testid="authenticated-dashboard"]')).toBeVisible()
-
-    // Verify metrics grid is displayed
-    await expect(page.locator('[data-testid="metrics-grid"]')).toBeVisible()
+    await expect(page.locator('[data-testid="org-dashboard"]')).toBeVisible()
 
     // All metric cards should be visible
-    await expect(page.locator('[data-testid="metric-organizations"]')).toBeVisible()
-    await expect(page.locator('[data-testid="metric-companies"]')).toBeVisible()
+    await expect(page.locator('[data-testid="metric-org-companies"]')).toBeVisible()
+    await expect(page.locator('[data-testid="metric-org-accounts"]')).toBeVisible()
   })
 })
