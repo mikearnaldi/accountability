@@ -10,6 +10,10 @@ import * as fs from "node:fs"
 import * as path from "node:path"
 import { execSync } from "node:child_process"
 
+// Quiet mode by default - use VERBOSE=1 to see full output
+const VERBOSE = process.env.VERBOSE === "1"
+const log = VERBOSE ? console.log.bind(console) : () => {}
+
 // File where container info was persisted
 const CONTAINER_INFO_FILE = path.join(process.cwd(), "test-e2e", ".container-info.json")
 const ENV_FILE = path.join(process.cwd(), "test-e2e", ".env.test")
@@ -23,11 +27,11 @@ interface ContainerInfo {
 }
 
 export default async function globalTeardown() {
-  console.log("Cleaning up E2E test infrastructure...")
+  log("Cleaning up E2E test infrastructure...")
 
   // Read container info from file
   if (!fs.existsSync(CONTAINER_INFO_FILE)) {
-    console.log("No container info file found, skipping cleanup")
+    log("No container info file found, skipping cleanup")
     return
   }
 
@@ -36,7 +40,7 @@ export default async function globalTeardown() {
       fs.readFileSync(CONTAINER_INFO_FILE, "utf-8")
     )
 
-    console.log(`Stopping container ${containerInfo.containerId}...`)
+    log(`Stopping container ${containerInfo.containerId}...`)
 
     // Stop the container using docker CLI
     // This is more reliable than keeping a container reference across processes
@@ -45,10 +49,10 @@ export default async function globalTeardown() {
       timeout: 30000
     })
 
-    console.log("Container stopped.")
+    log("Container stopped.")
   } catch {
     // Container may already be stopped or removed
-    console.log("Container cleanup completed (may have already been stopped)")
+    log("Container cleanup completed (may have already been stopped)")
   }
 
   // Clean up temp files
@@ -59,10 +63,10 @@ export default async function globalTeardown() {
     if (fs.existsSync(ENV_FILE)) {
       fs.unlinkSync(ENV_FILE)
     }
-    console.log("Temp files cleaned up.")
+    log("Temp files cleaned up.")
   } catch {
     // Ignore cleanup errors
   }
 
-  console.log("E2E test teardown complete!")
+  log("E2E test teardown complete!")
 }

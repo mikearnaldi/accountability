@@ -20,6 +20,10 @@ import { spawn, execSync } from "node:child_process"
 import * as fs from "node:fs"
 import * as path from "node:path"
 
+// Quiet mode by default - use VERBOSE=1 to see full output
+const VERBOSE = process.env.VERBOSE === "1"
+const log = VERBOSE ? console.log.bind(console) : () => {}
+
 // File to persist container ID for cleanup
 const CONTAINER_INFO_FILE = path.join(import.meta.dirname, ".container-info.json")
 
@@ -32,14 +36,14 @@ interface ContainerInfo {
 let container: StartedPostgreSqlContainer | null = null
 
 async function startDatabase(): Promise<string> {
-  console.log("Starting PostgreSQL container for E2E tests...")
+  log("Starting PostgreSQL container for E2E tests...")
 
   container = await new PostgreSqlContainer("postgres:alpine")
     .withDatabase("accountability_e2e")
     .start()
 
   const dbUrl = container.getConnectionUri()
-  console.log(`PostgreSQL ready at ${dbUrl}`)
+  log(`PostgreSQL ready at ${dbUrl}`)
 
   // Persist container info for teardown
   const containerInfo: ContainerInfo = {
@@ -52,7 +56,7 @@ async function startDatabase(): Promise<string> {
 }
 
 async function runMigrations(dbUrl: string): Promise<void> {
-  console.log("Running database migrations...")
+  log("Running database migrations...")
 
   const { MigrationsLive, runMigrations } = await import(
     "../../persistence/src/Layers/MigrationsLive.ts"
@@ -69,33 +73,33 @@ async function runMigrations(dbUrl: string): Promise<void> {
     )
   )
 
-  console.log("Migrations complete!")
+  log("Migrations complete!")
 }
 
 function buildApp(): void {
-  console.log("Building application...")
+  log("Building application...")
   execSync("pnpm build", {
     cwd: path.join(import.meta.dirname, ".."),
-    stdio: "inherit",
+    stdio: VERBOSE ? "inherit" : "pipe",
     env: process.env
   })
-  console.log("Build complete!")
+  log("Build complete!")
 }
 
 function startServer(dbUrl: string): Promise<never> {
   return new Promise((resolve, reject) => {
     const port = process.env.TEST_PORT || "3333"
 
-    console.log("")
-    console.log(`Starting E2E server on port ${port}...`)
-    console.log(`  DATABASE_URL: ${dbUrl}`)
-    console.log("")
+    log("")
+    log(`Starting E2E server on port ${port}...`)
+    log(`  DATABASE_URL: ${dbUrl}`)
+    log("")
 
     const serverPath = path.join(import.meta.dirname, "..", ".output", "server", "index.mjs")
 
     const server = spawn("node", [serverPath], {
       cwd: path.join(import.meta.dirname, ".."),
-      stdio: "inherit",
+      stdio: VERBOSE ? "inherit" : "pipe",
       env: {
         ...process.env,
         DATABASE_URL: dbUrl,
@@ -110,16 +114,16 @@ function startServer(dbUrl: string): Promise<never> {
     })
 
     server.on("exit", (code) => {
-      console.log(`Server exited with code ${code}`)
+      log(`Server exited with code ${code}`)
       // Don't reject on exit - server might be killed by cleanup
     })
 
     // Handle cleanup signals
     const cleanup = async () => {
-      console.log("Received shutdown signal, cleaning up...")
+      log("Received shutdown signal, cleaning up...")
       server.kill()
       if (container) {
-        console.log("Stopping PostgreSQL container...")
+        log("Stopping PostgreSQL container...")
         await container.stop()
       }
       // Clean up info file

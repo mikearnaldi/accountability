@@ -9,6 +9,7 @@ import { CompanyForm, type CompanyFormData, type CurrencyOption } from "@/compon
 import type { JurisdictionOption } from "@/components/ui/JurisdictionSelect"
 import { NoCompaniesEmptyState } from "@/components/ui/EmptyState"
 import { Button } from "@/components/ui/Button"
+import { AppLayout } from "@/components/layout/AppLayout"
 
 // =============================================================================
 // Server Functions: Fetch organization and companies from API with cookie auth
@@ -205,6 +206,7 @@ type StatusFilter = "all" | "active" | "inactive"
 // =============================================================================
 
 function CompaniesListPage() {
+  const context = Route.useRouteContext()
   const loaderData = Route.useLoaderData()
   /* eslint-disable @typescript-eslint/consistent-type-assertions -- Type assertions needed for loader data typing */
   const organization = loaderData.organization as {
@@ -219,6 +221,7 @@ function CompaniesListPage() {
   /* eslint-enable @typescript-eslint/consistent-type-assertions */
   const params = Route.useParams()
   const router = useRouter()
+  const user = context.user
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all")
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -303,89 +306,80 @@ function CompaniesListPage() {
     return null
   }
 
+  // Breadcrumb items for Companies page
+  const breadcrumbItems = [
+    {
+      label: "Companies",
+      href: `/organizations/${params.organizationId}/companies`
+    }
+  ]
+
   return (
-    <div className="min-h-screen bg-gray-50" data-testid="companies-list-page">
-      {/* Header */}
-      <header className="border-b border-gray-200 bg-white">
-        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-4">
-            <Link to="/" className="text-xl font-bold text-gray-900">
-              Accountability
-            </Link>
-            <span className="text-gray-400">/</span>
-            <Link to="/organizations" className="text-xl text-gray-600 hover:text-gray-900">
-              Organizations
-            </Link>
-            <span className="text-gray-400">/</span>
-            <Link
-              to="/organizations/$organizationId"
-              params={{ organizationId: params.organizationId }}
-              className="text-xl text-gray-600 hover:text-gray-900"
+    <AppLayout
+      user={user}
+      currentOrganization={organization}
+      breadcrumbItems={breadcrumbItems}
+    >
+      <div data-testid="companies-list-page">
+        {/* Page Header */}
+        <div className="mb-6">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900" data-testid="page-title">
+                Companies
+              </h1>
+              <p className="mt-1 text-sm text-gray-500" data-testid="companies-count">
+                {companiesTotal} compan{companiesTotal !== 1 ? "ies" : "y"} in {organization.name}
+              </p>
+            </div>
+
+            <Button
+              onClick={() => setShowCreateForm(true)}
+              data-testid="create-company-button"
             >
-              {organization.name}
-            </Link>
-            <span className="text-gray-400">/</span>
-            <h1 className="text-xl font-semibold text-gray-900">Companies</h1>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        {/* Actions Bar */}
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <p className="text-sm text-gray-500" data-testid="companies-count">
-              {companiesTotal} compan{companiesTotal !== 1 ? "ies" : "y"} in {organization.name}
-            </p>
-
-            {/* Status Filter */}
-            {companies.length > 0 && (
-              <div className="flex items-center gap-2" data-testid="status-filter">
-                <StatusFilterButton
-                  label="All"
-                  count={companies.length}
-                  isActive={statusFilter === "all"}
-                  onClick={() => setStatusFilter("all")}
-                  data-testid="filter-all"
+              <svg
+                className="mr-2 h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 4v16m8-8H4"
                 />
-                <StatusFilterButton
-                  label="Active"
-                  count={activeCount}
-                  isActive={statusFilter === "active"}
-                  onClick={() => setStatusFilter("active")}
-                  data-testid="filter-active"
-                />
-                <StatusFilterButton
-                  label="Inactive"
-                  count={inactiveCount}
-                  isActive={statusFilter === "inactive"}
-                  onClick={() => setStatusFilter("inactive")}
-                  data-testid="filter-inactive"
-                />
-              </div>
-            )}
+              </svg>
+              New Company
+            </Button>
           </div>
 
-          <Button
-            onClick={() => setShowCreateForm(true)}
-            data-testid="create-company-button"
-          >
-            <svg
-              className="mr-2 h-4 w-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 4v16m8-8H4"
+          {/* Status Filter */}
+          {companies.length > 0 && (
+            <div className="mt-4 flex items-center gap-2" data-testid="status-filter">
+              <StatusFilterButton
+                label="All"
+                count={companies.length}
+                isActive={statusFilter === "all"}
+                onClick={() => setStatusFilter("all")}
+                data-testid="filter-all"
               />
-            </svg>
-            New Company
-          </Button>
+              <StatusFilterButton
+                label="Active"
+                count={activeCount}
+                isActive={statusFilter === "active"}
+                onClick={() => setStatusFilter("active")}
+                data-testid="filter-active"
+              />
+              <StatusFilterButton
+                label="Inactive"
+                count={inactiveCount}
+                isActive={statusFilter === "inactive"}
+                onClick={() => setStatusFilter("inactive")}
+                data-testid="filter-inactive"
+              />
+            </div>
+          )}
         </div>
 
         {/* Create Company Modal */}
@@ -457,8 +451,8 @@ function CompaniesListPage() {
             />
           </div>
         )}
-      </main>
-    </div>
+      </div>
+    </AppLayout>
   )
 }
 

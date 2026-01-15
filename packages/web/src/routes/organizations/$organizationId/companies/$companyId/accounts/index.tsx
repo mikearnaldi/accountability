@@ -10,6 +10,7 @@ import {
   type AccountType
 } from "@/components/forms/AccountForm"
 import { ApplyTemplateModal } from "@/components/accounts/ApplyTemplateModal"
+import { AppLayout } from "@/components/layout/AppLayout"
 
 // =============================================================================
 // Types
@@ -210,6 +211,7 @@ export const Route = createFileRoute(
 // =============================================================================
 
 function ChartOfAccountsPage() {
+  const context = Route.useRouteContext()
   const loaderData = Route.useLoaderData()
   /* eslint-disable @typescript-eslint/consistent-type-assertions -- Type assertions needed for loader data typing */
   const accounts = loaderData.accounts as readonly Account[]
@@ -218,6 +220,7 @@ function ChartOfAccountsPage() {
   const organization = loaderData.organization as Organization | null
   /* eslint-enable @typescript-eslint/consistent-type-assertions */
   const params = Route.useParams()
+  const user = context.user
 
   // UI State
   const [showCreateForm, setShowCreateForm] = useState(false)
@@ -297,57 +300,64 @@ function ChartOfAccountsPage() {
     return null
   }
 
+  // Breadcrumb items for Chart of Accounts page
+  const breadcrumbItems = [
+    {
+      label: "Companies",
+      href: `/organizations/${params.organizationId}/companies`
+    },
+    {
+      label: company.name,
+      href: `/organizations/${params.organizationId}/companies/${params.companyId}`
+    },
+    {
+      label: "Chart of Accounts",
+      href: `/organizations/${params.organizationId}/companies/${params.companyId}/accounts`
+    }
+  ]
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="border-b border-gray-200 bg-white">
-        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-4">
-            <Link to="/" className="text-xl font-bold text-gray-900">
-              Accountability
-            </Link>
-            <span className="text-gray-400">/</span>
-            <Link
-              to="/organizations"
-              className="text-xl text-gray-600 hover:text-gray-900"
+    <AppLayout
+      user={user}
+      currentOrganization={organization}
+      breadcrumbItems={breadcrumbItems}
+    >
+      <div data-testid="accounts-page">
+        {/* Page Header */}
+        <div className="mb-6">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900" data-testid="page-title">
+                Chart of Accounts
+              </h1>
+              <p className="mt-1 text-sm text-gray-500">
+                {company.name} - {company.functionalCurrency}
+              </p>
+            </div>
+
+            <button
+              onClick={() => setShowCreateForm(true)}
+              data-testid="create-account-button"
+              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
             >
-              Organizations
-            </Link>
-            <span className="text-gray-400">/</span>
-            <Link
-              to="/organizations/$organizationId"
-              params={{ organizationId: params.organizationId }}
-              className="text-xl text-gray-600 hover:text-gray-900"
-            >
-              {organization.name}
-            </Link>
-            <span className="text-gray-400">/</span>
-            <Link
-              to="/organizations/$organizationId/companies"
-              params={{ organizationId: params.organizationId }}
-              className="text-xl text-gray-600 hover:text-gray-900"
-            >
-              Companies
-            </Link>
-            <span className="text-gray-400">/</span>
-            <Link
-              to="/organizations/$organizationId/companies/$companyId"
-              params={{
-                organizationId: params.organizationId,
-                companyId: params.companyId
-              }}
-              className="text-xl text-gray-600 hover:text-gray-900"
-            >
-              {company.name}
-            </Link>
-            <span className="text-gray-400">/</span>
-            <h1 className="text-xl font-semibold text-gray-900">Accounts</h1>
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 4v16m8-8H4"
+                />
+              </svg>
+              New Account
+            </button>
           </div>
         </div>
-      </header>
 
-      {/* Main Content */}
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Toolbar */}
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4" data-testid="accounts-toolbar">
           <div className="flex flex-wrap items-center gap-4">
@@ -444,31 +454,9 @@ function ChartOfAccountsPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-500" data-testid="accounts-count">
-              {filteredAccounts.length} of {total} accounts
-            </span>
-            <button
-              onClick={() => setShowCreateForm(true)}
-              data-testid="create-account-button"
-              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-            >
-              <svg
-                className="h-4 w-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 4v16m8-8H4"
-                />
-              </svg>
-              New Account
-            </button>
-          </div>
+          <span className="text-sm text-gray-500" data-testid="accounts-count">
+            {filteredAccounts.length} of {total} accounts
+          </span>
         </div>
 
         {/* Create Account Modal */}
@@ -530,8 +518,8 @@ function ChartOfAccountsPage() {
             onEditAccount={setEditingAccount}
           />
         )}
-      </main>
-    </div>
+      </div>
+    </AppLayout>
   )
 }
 

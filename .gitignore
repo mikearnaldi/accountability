@@ -42,3 +42,4 @@ pnpm-debug.log*
 
 # Raplh
 .ralph
+.ralph-auto

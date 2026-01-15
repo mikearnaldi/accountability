@@ -3,6 +3,7 @@ import { createServerFn } from "@tanstack/react-start"
 import { getCookie } from "@tanstack/react-start/server"
 import { useState, useMemo } from "react"
 import { createServerApi } from "@/api/server"
+import { AppLayout } from "@/components/layout/AppLayout"
 
 // =============================================================================
 // Types (extracted from API response schema)
@@ -299,6 +300,7 @@ export const Route = createFileRoute(
 // =============================================================================
 
 function JournalEntriesPage() {
+  const context = Route.useRouteContext()
   const loaderData = Route.useLoaderData()
   /* eslint-disable @typescript-eslint/consistent-type-assertions -- Type assertions needed for loader data typing */
   const entries = loaderData.entries as readonly JournalEntry[]
@@ -308,6 +310,7 @@ function JournalEntriesPage() {
   const fiscalYears = loaderData.fiscalYears as readonly FiscalYear[]
   /* eslint-enable @typescript-eslint/consistent-type-assertions */
   const params = Route.useParams()
+  const user = context.user
 
   // UI State - Filters
   const [filterStatus, setFilterStatus] = useState<JournalEntryStatus | "All">("All")
@@ -418,117 +421,100 @@ function JournalEntriesPage() {
     return null
   }
 
+  // Breadcrumb items for Journal Entries page
+  const breadcrumbItems = [
+    {
+      label: "Companies",
+      href: `/organizations/${params.organizationId}/companies`
+    },
+    {
+      label: company.name,
+      href: `/organizations/${params.organizationId}/companies/${params.companyId}`
+    },
+    {
+      label: "Journal Entries",
+      href: `/organizations/${params.organizationId}/companies/${params.companyId}/journal-entries`
+    }
+  ]
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="border-b border-gray-200 bg-white">
-        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-4">
-            <Link to="/" className="text-xl font-bold text-gray-900">
-              Accountability
-            </Link>
-            <span className="text-gray-400">/</span>
+    <AppLayout
+      user={user}
+      currentOrganization={organization}
+      breadcrumbItems={breadcrumbItems}
+    >
+      <div data-testid="journal-entries-page">
+        {/* Page Header */}
+        <div className="mb-6">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900" data-testid="page-title">
+                Journal Entries
+              </h1>
+              <p className="mt-1 text-sm text-gray-500">
+                {company.name} - {company.functionalCurrency}
+              </p>
+            </div>
+
             <Link
-              to="/organizations"
-              className="text-xl text-gray-600 hover:text-gray-900"
-            >
-              Organizations
-            </Link>
-            <span className="text-gray-400">/</span>
-            <Link
-              to="/organizations/$organizationId"
-              params={{ organizationId: params.organizationId }}
-              className="text-xl text-gray-600 hover:text-gray-900"
-            >
-              {organization.name}
-            </Link>
-            <span className="text-gray-400">/</span>
-            <Link
-              to="/organizations/$organizationId/companies"
-              params={{ organizationId: params.organizationId }}
-              className="text-xl text-gray-600 hover:text-gray-900"
-            >
-              Companies
-            </Link>
-            <span className="text-gray-400">/</span>
-            <Link
-              to="/organizations/$organizationId/companies/$companyId"
+              to="/organizations/$organizationId/companies/$companyId/journal-entries/new"
               params={{
                 organizationId: params.organizationId,
                 companyId: params.companyId
               }}
-              className="text-xl text-gray-600 hover:text-gray-900"
+              data-testid="create-journal-entry-button"
+              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
             >
-              {company.name}
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 4v16m8-8H4"
+                />
+              </svg>
+              New Entry
             </Link>
-            <span className="text-gray-400">/</span>
-            <h1 className="text-xl font-semibold text-gray-900">Journal Entries</h1>
           </div>
         </div>
-      </header>
 
-      {/* Main Content */}
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Toolbar */}
         <div className="mb-6 space-y-4" data-testid="journal-entries-toolbar">
-          {/* Top Row: Search and Create */}
+          {/* Search and Count Row */}
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex flex-wrap items-center gap-4">
-              {/* Search */}
-              <div className="relative">
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search entries..."
-                  data-testid="journal-entries-search-input"
-                  className="w-64 rounded-lg border border-gray-300 py-2 pl-10 pr-4 text-sm text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            {/* Search */}
+            <div className="relative">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search entries..."
+                data-testid="journal-entries-search-input"
+                className="w-64 rounded-lg border border-gray-300 py-2 pl-10 pr-4 text-sm text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+              <svg
+                className="absolute left-3 top-2.5 h-4 w-4 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                 />
-                <svg
-                  className="absolute left-3 top-2.5 h-4 w-4 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
-              </div>
+              </svg>
             </div>
 
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-500" data-testid="journal-entries-count">
-                {filteredEntries.length} of {total} entries
-              </span>
-              <Link
-                to="/organizations/$organizationId/companies/$companyId/journal-entries/new"
-                params={{
-                  organizationId: params.organizationId,
-                  companyId: params.companyId
-                }}
-                data-testid="create-journal-entry-button"
-                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-              >
-                <svg
-                  className="h-4 w-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 4v16m8-8H4"
-                  />
-                </svg>
-                New Entry
-              </Link>
-            </div>
+            <span className="text-sm text-gray-500" data-testid="journal-entries-count">
+              {filteredEntries.length} of {total} entries
+            </span>
           </div>
 
           {/* Filter Row */}
@@ -671,8 +657,8 @@ function JournalEntriesPage() {
             companyId={params.companyId}
           />
         )}
-      </main>
-    </div>
+      </div>
+    </AppLayout>
   )
 }
 
