@@ -91,3 +91,8 @@
 **Task**: Removed CompaniesNavSection component from Sidebar per UI_ARCHITECTURE.md spec. The sidebar Companies item is now a flat link to /organizations/:orgId/companies instead of an expandable sub-menu with company-specific navigation (Chart of Accounts, Journal Entries, Reports). Also removed the unused currentCompany prop from Sidebar, MobileSidebar, and AppLayout components. All 177 E2E tests pass.
 **Status**: complete
 ---
+
+## Iteration 1 - 2026-01-15 16:56
+**Task**: Added "+ Create New Organization" link to OrganizationSelector dropdown per UI_ARCHITECTURE.md spec (issue #7). The dropdown now shows "Create New Organization" with a plus icon that navigates to /organizations/new, followed by "View All Organizations". Also removed the entire "Known Issues" section from UI_ARCHITECTURE.md since all 7 issues are now resolved. All type checks pass.
+**Status**: complete
+---

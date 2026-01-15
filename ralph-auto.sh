@@ -398,8 +398,9 @@ Look for tasks in this priority order:
 3. **Compare** what exists vs what the spec requires
 4. **Pick** the highest priority gap you find
 5. **Implement** it following the spec patterns
-6. **Test** - run `pnpm typecheck` to verify no type errors
-7. **Signal** - output `TASK_COMPLETE: <what you did>`
+6. **Update spec** - if you fix a known issue from `specs/UI_ARCHITECTURE.md`, remove or mark it as resolved in the spec
+7. **Test** - run `pnpm typecheck` to verify no type errors
+8. **Signal** - output `TASK_COMPLETE: <what you did>`
 
 ## Signaling
 
@@ -429,6 +430,7 @@ NOTHING_LEFT_TO_DO
 - All pages must use AppLayout with Sidebar and Header
 - Use the Breadcrumbs component - never write manual breadcrumb HTML
 - Every list page needs an empty state with CTA
+- **UPDATE SPECS WITH PROGRESS**: When you fix a known issue from `specs/UI_ARCHITECTURE.md`, update the spec to remove or mark it as resolved. Keep specs in sync with implementation.
 - DO NOT run git commands - the script handles commits
 
 PROMPT_EOF
