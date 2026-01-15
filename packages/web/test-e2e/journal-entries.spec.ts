@@ -249,15 +249,18 @@ test.describe("Journal Entries List Page", () => {
     ).toBeVisible()
 
     // 12. Should show entry count
-    await expect(page.getByText(/2 of 2 entries/i)).toBeVisible()
+    await expect(page.locator('[data-testid="journal-entries-count"]')).toContainText("2 of 2 entries")
 
-    // 13. Should show first journal entry
-    await expect(page.getByText("Cash sale to customer")).toBeVisible()
-    await expect(page.getByText("INV-001")).toBeVisible()
+    // 13. Should show journal entries table
+    await expect(page.locator('[data-testid="journal-entries-table"]')).toBeVisible()
 
-    // 14. Should show second journal entry
-    await expect(page.getByText("Adjusting entry")).toBeVisible()
-    await expect(page.getByText("ADJ-001")).toBeVisible()
+    // 14. Should show first journal entry by reference number
+    await expect(page.locator('[data-testid="journal-entry-row-INV-001"]')).toBeVisible()
+    await expect(page.locator('[data-testid="journal-entry-description-INV-001"]')).toContainText("Cash sale to customer")
+
+    // 15. Should show second journal entry
+    await expect(page.locator('[data-testid="journal-entry-row-ADJ-001"]')).toBeVisible()
+    await expect(page.locator('[data-testid="journal-entry-description-ADJ-001"]')).toContainText("Adjusting entry")
   })
 
   test("should display empty state when no journal entries", async ({
@@ -340,15 +343,12 @@ test.describe("Journal Entries List Page", () => {
     )
 
     // 6. Should show empty state
-    await expect(page.getByText(/No journal entries yet/i)).toBeVisible()
+    await expect(page.locator('[data-testid="journal-entries-empty-state"]')).toBeVisible()
+    await expect(page.locator('[data-testid="journal-entries-empty-state"]')).toContainText("No journal entries yet")
 
     // 7. Should show disabled create button (feature coming soon)
-    await expect(
-      page.getByRole("button", { name: /Create Journal Entry/i })
-    ).toBeVisible()
-    await expect(
-      page.getByRole("button", { name: /Create Journal Entry/i })
-    ).toBeDisabled()
+    await expect(page.locator('[data-testid="create-journal-entry-empty-button"]')).toBeVisible()
+    await expect(page.locator('[data-testid="create-journal-entry-empty-button"]')).toBeDisabled()
   })
 
   test("should filter journal entries by status", async ({ page, request }) => {
@@ -553,27 +553,28 @@ test.describe("Journal Entries List Page", () => {
     )
 
     // 7. Should show all entries initially
-    await expect(page.getByText(/2 of 2 entries/i)).toBeVisible()
+    await expect(page.locator('[data-testid="journal-entries-count"]')).toContainText("2 of 2 entries")
     await expect(page.getByText("Draft Entry 1")).toBeVisible()
     await expect(page.getByText("Draft Entry 2")).toBeVisible()
 
     // 8. Filter by Draft status
-    await page.locator("select").first().selectOption("Draft")
+    await page.locator('[data-testid="journal-entries-filter-status"]').selectOption("Draft")
 
     // 9. Should still show both entries (both are Draft)
-    await expect(page.getByText(/2 of 2 entries/i)).toBeVisible()
+    await expect(page.locator('[data-testid="journal-entries-count"]')).toContainText("2 of 2 entries")
 
     // 10. Filter by Posted status (no entries should match)
-    await page.locator("select").first().selectOption("Posted")
+    await page.locator('[data-testid="journal-entries-filter-status"]').selectOption("Posted")
 
     // 11. Should show no entries message
-    await expect(page.getByText(/No journal entries match/i)).toBeVisible()
+    await expect(page.locator('[data-testid="journal-entries-no-results"]')).toBeVisible()
+    await expect(page.locator('[data-testid="journal-entries-no-results"]')).toContainText("No journal entries match")
 
     // 12. Clear filters (use exact match to get toolbar button)
-    await page.getByRole("button", { name: "Clear Filters", exact: true }).click()
+    await page.locator('[data-testid="journal-entries-clear-filters"]').click()
 
     // 13. Should show all entries again
-    await expect(page.getByText(/2 of 2 entries/i)).toBeVisible()
+    await expect(page.locator('[data-testid="journal-entries-count"]')).toContainText("2 of 2 entries")
   })
 
   test("should filter journal entries by type", async ({ page, request }) => {
@@ -777,29 +778,29 @@ test.describe("Journal Entries List Page", () => {
     )
 
     // 7. Should show all entries initially
-    await expect(page.getByText(/2 of 2 entries/i)).toBeVisible()
+    await expect(page.locator('[data-testid="journal-entries-count"]')).toContainText("2 of 2 entries")
     await expect(page.getByText("Standard Entry")).toBeVisible()
     await expect(page.getByText("Adjusting Entry")).toBeVisible()
 
-    // 8. Filter by Standard type (second select is for type)
-    await page.locator("select").nth(1).selectOption("Standard")
+    // 8. Filter by Standard type using data-testid
+    await page.locator('[data-testid="journal-entries-filter-type"]').selectOption("Standard")
 
     // 9. Should only show Standard entry
-    await expect(page.getByText(/1 of 2 entries/i)).toBeVisible()
+    await expect(page.locator('[data-testid="journal-entries-count"]')).toContainText("1 of 2 entries")
     await expect(page.getByText("Standard Entry")).toBeVisible()
     await expect(page.getByText("Adjusting Entry")).not.toBeVisible()
 
     // 10. Filter by Adjusting type
-    await page.locator("select").nth(1).selectOption("Adjusting")
+    await page.locator('[data-testid="journal-entries-filter-type"]').selectOption("Adjusting")
 
     // 11. Should only show Adjusting entry
-    await expect(page.getByText(/1 of 2 entries/i)).toBeVisible()
+    await expect(page.locator('[data-testid="journal-entries-count"]')).toContainText("1 of 2 entries")
     await expect(page.getByText("Adjusting Entry")).toBeVisible()
     await expect(page.getByText("Standard Entry")).not.toBeVisible()
 
     // 12. Reset filter
-    await page.locator("select").nth(1).selectOption("All")
-    await expect(page.getByText(/2 of 2 entries/i)).toBeVisible()
+    await page.locator('[data-testid="journal-entries-filter-type"]').selectOption("All")
+    await expect(page.locator('[data-testid="journal-entries-count"]')).toContainText("2 of 2 entries")
   })
 
   test("should show New Entry button (disabled - coming soon)", async ({ page, request }) => {
@@ -879,7 +880,7 @@ test.describe("Journal Entries List Page", () => {
     )
 
     // 6. Should show disabled New Entry button (feature coming soon)
-    const newEntryButton = page.getByRole("button", { name: /New Entry/i })
+    const newEntryButton = page.locator('[data-testid="create-journal-entry-button"]')
     await expect(newEntryButton).toBeVisible()
     await expect(newEntryButton).toBeDisabled()
   })
@@ -1291,18 +1292,18 @@ test.describe("Journal Entries List Page", () => {
     )
 
     // 7. Should show all entries initially
-    await expect(page.getByText(/2 of 2 entries/i)).toBeVisible()
+    await expect(page.locator('[data-testid="journal-entries-count"]')).toContainText("2 of 2 entries")
 
-    // 8. Search by description
-    await page.fill('input[placeholder="Search entries..."]', "Office")
+    // 8. Search by description using data-testid
+    await page.locator('[data-testid="journal-entries-search-input"]').fill("Office")
 
     // 9. Should only show matching entry
-    await expect(page.getByText(/1 of 2 entries/i)).toBeVisible()
+    await expect(page.locator('[data-testid="journal-entries-count"]')).toContainText("1 of 2 entries")
     await expect(page.getByText("Office supplies purchase")).toBeVisible()
     await expect(page.getByText("Customer payment received")).not.toBeVisible()
 
     // 10. Clear search
-    await page.fill('input[placeholder="Search entries..."]', "")
-    await expect(page.getByText(/2 of 2 entries/i)).toBeVisible()
+    await page.locator('[data-testid="journal-entries-search-input"]').fill("")
+    await expect(page.locator('[data-testid="journal-entries-count"]')).toContainText("2 of 2 entries")
   })
 })

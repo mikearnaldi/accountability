@@ -470,7 +470,7 @@ function JournalEntriesPage() {
       {/* Main Content */}
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Toolbar */}
-        <div className="mb-6 space-y-4">
+        <div className="mb-6 space-y-4" data-testid="journal-entries-toolbar">
           {/* Top Row: Search and Create */}
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex flex-wrap items-center gap-4">
@@ -481,6 +481,7 @@ function JournalEntriesPage() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search entries..."
+                  data-testid="journal-entries-search-input"
                   className="w-64 rounded-lg border border-gray-300 py-2 pl-10 pr-4 text-sm text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
                 <svg
@@ -500,12 +501,13 @@ function JournalEntriesPage() {
             </div>
 
             <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-500">
+              <span className="text-sm text-gray-500" data-testid="journal-entries-count">
                 {filteredEntries.length} of {total} entries
               </span>
               <button
                 type="button"
                 disabled
+                data-testid="create-journal-entry-button"
                 className="inline-flex cursor-not-allowed items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white opacity-50"
                 title="Create journal entry (coming soon)"
               >
@@ -528,7 +530,7 @@ function JournalEntriesPage() {
           </div>
 
           {/* Filter Row */}
-          <div className="flex flex-wrap items-center gap-4">
+          <div className="flex flex-wrap items-center gap-4" data-testid="journal-entries-filters">
             {/* Filter by Status */}
             <select
               value={filterStatus}
@@ -538,6 +540,7 @@ function JournalEntriesPage() {
                   setFilterStatus(value)
                 }
               }}
+              data-testid="journal-entries-filter-status"
               className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
               <option value="All">All Statuses</option>
@@ -557,6 +560,7 @@ function JournalEntriesPage() {
                   setFilterType(value)
                 }
               }}
+              data-testid="journal-entries-filter-type"
               className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
               <option value="All">All Types</option>
@@ -579,6 +583,7 @@ function JournalEntriesPage() {
                 setFilterFiscalYear(e.target.value)
                 setFilterFiscalPeriod("All") // Reset period when year changes
               }}
+              data-testid="journal-entries-filter-fiscal-year"
               className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
               <option value="All">All Fiscal Years</option>
@@ -594,6 +599,7 @@ function JournalEntriesPage() {
               value={filterFiscalPeriod}
               onChange={(e) => setFilterFiscalPeriod(e.target.value)}
               disabled={filterFiscalYear === "All"}
+              data-testid="journal-entries-filter-fiscal-period"
               className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-400"
             >
               <option value="All">All Periods</option>
@@ -611,6 +617,7 @@ function JournalEntriesPage() {
                 type="date"
                 value={filterFromDate}
                 onChange={(e) => setFilterFromDate(e.target.value)}
+                data-testid="journal-entries-filter-from-date"
                 className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
             </div>
@@ -620,6 +627,7 @@ function JournalEntriesPage() {
                 type="date"
                 value={filterToDate}
                 onChange={(e) => setFilterToDate(e.target.value)}
+                data-testid="journal-entries-filter-to-date"
                 className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
             </div>
@@ -628,6 +636,7 @@ function JournalEntriesPage() {
             {hasActiveFilters && (
               <button
                 onClick={clearFilters}
+                data-testid="journal-entries-clear-filters"
                 className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
               >
                 Clear Filters
@@ -640,10 +649,11 @@ function JournalEntriesPage() {
         {entries.length === 0 ? (
           <JournalEntriesEmptyState />
         ) : filteredEntries.length === 0 ? (
-          <div className="rounded-lg border border-gray-200 bg-white p-8 text-center">
+          <div className="rounded-lg border border-gray-200 bg-white p-8 text-center" data-testid="journal-entries-no-results">
             <p className="text-gray-500">No journal entries match your filter criteria.</p>
             <button
               onClick={clearFilters}
+              data-testid="journal-entries-clear-filters-inline"
               className="mt-4 text-blue-600 hover:text-blue-700"
             >
               Clear filters
@@ -669,15 +679,15 @@ function JournalEntriesTable({
   readonly entries: readonly JournalEntry[]
 }) {
   return (
-    <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+    <div className="rounded-lg border border-gray-200 bg-white overflow-hidden" data-testid="journal-entries-table">
       {/* Header */}
-      <div className="grid grid-cols-12 gap-4 border-b border-gray-200 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-500">
-        <div className="col-span-2">Date</div>
-        <div className="col-span-2">Reference</div>
-        <div className="col-span-3">Description</div>
-        <div className="col-span-1">Type</div>
-        <div className="col-span-2">Period</div>
-        <div className="col-span-1">Status</div>
+      <div className="grid grid-cols-12 gap-4 border-b border-gray-200 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-500" data-testid="journal-entries-table-header">
+        <div className="col-span-2" data-testid="header-date">Date</div>
+        <div className="col-span-2" data-testid="header-reference">Reference</div>
+        <div className="col-span-3" data-testid="header-description">Description</div>
+        <div className="col-span-1" data-testid="header-type">Type</div>
+        <div className="col-span-2" data-testid="header-period">Period</div>
+        <div className="col-span-1" data-testid="header-status">Status</div>
         <div className="col-span-1"></div>
       </div>
 
@@ -701,16 +711,17 @@ function JournalEntryRow({
   const primaryRef = entry.referenceNumber ?? (entry.entryNumber ? `#${entry.entryNumber}` : "—")
   // If both exist, show entry number as secondary
   const secondaryRef = entry.referenceNumber && entry.entryNumber ? `#${entry.entryNumber}` : null
+  const entryIdentifier = entry.referenceNumber ?? (entry.entryNumber ? String(entry.entryNumber) : entry.id)
 
   return (
-    <div className="grid grid-cols-12 items-center gap-4 px-4 py-3 hover:bg-gray-50">
+    <div className="grid grid-cols-12 items-center gap-4 px-4 py-3 hover:bg-gray-50" data-testid={`journal-entry-row-${entryIdentifier}`}>
       {/* Date */}
-      <div className="col-span-2 text-sm text-gray-900">
+      <div className="col-span-2 text-sm text-gray-900" data-testid={`journal-entry-date-${entryIdentifier}`}>
         {formattedDate}
       </div>
 
       {/* Reference */}
-      <div className="col-span-2">
+      <div className="col-span-2" data-testid={`journal-entry-reference-${entryIdentifier}`}>
         <span className="font-mono text-sm text-gray-700">{primaryRef}</span>
         {secondaryRef && (
           <span className="ml-1 text-xs text-gray-500">({secondaryRef})</span>
@@ -721,12 +732,12 @@ function JournalEntryRow({
       </div>
 
       {/* Description */}
-      <div className="col-span-3 truncate text-sm text-gray-900">
+      <div className="col-span-3 truncate text-sm text-gray-900" data-testid={`journal-entry-description-${entryIdentifier}`}>
         {entry.description}
       </div>
 
       {/* Type */}
-      <div className="col-span-1">
+      <div className="col-span-1" data-testid={`journal-entry-type-${entryIdentifier}`}>
         <span
           className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${getEntryTypeColor(entry.entryType)}`}
         >
@@ -735,12 +746,12 @@ function JournalEntryRow({
       </div>
 
       {/* Period */}
-      <div className="col-span-2 text-sm text-gray-600">
+      <div className="col-span-2 text-sm text-gray-600" data-testid={`journal-entry-period-${entryIdentifier}`}>
         {entry.fiscalPeriod.year} P{entry.fiscalPeriod.period}
       </div>
 
       {/* Status */}
-      <div className="col-span-1">
+      <div className="col-span-1" data-testid={`journal-entry-status-${entryIdentifier}`}>
         <span
           className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${getStatusColor(entry.status)}`}
         >
@@ -750,7 +761,7 @@ function JournalEntryRow({
 
       {/* View indicator (detail page coming soon) */}
       <div className="col-span-1 text-right">
-        <span className="text-gray-400">
+        <span className="text-gray-400" data-testid={`journal-entry-view-${entryIdentifier}`}>
           <svg
             className="h-4 w-4"
             fill="none"
@@ -776,7 +787,7 @@ function JournalEntryRow({
 
 function JournalEntriesEmptyState() {
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-8 text-center">
+    <div className="rounded-lg border border-gray-200 bg-white p-8 text-center" data-testid="journal-entries-empty-state">
       <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
         <svg
           className="h-6 w-6 text-blue-600"
@@ -801,6 +812,7 @@ function JournalEntriesEmptyState() {
       <button
         type="button"
         disabled
+        data-testid="create-journal-entry-empty-button"
         className="inline-flex cursor-not-allowed items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white opacity-50"
         title="Create journal entry (coming soon)"
       >
