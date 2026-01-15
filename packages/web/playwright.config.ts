@@ -24,7 +24,11 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
 
   // Reporter configuration
-  reporter: [["html", { open: "never" }], ["list"]],
+  // Default: 'dot' shows minimal output (dots for passes, details only for failures)
+  // Use --reporter=list for verbose output showing all tests
+  reporter: process.env.VERBOSE
+    ? [["html", { open: "never" }], ["list"]]
+    : [["html", { open: "never" }], ["dot"]],
 
   // Global teardown for cleanup (setup is done by webServer command)
   globalTeardown: "./test-e2e/global-teardown.ts",

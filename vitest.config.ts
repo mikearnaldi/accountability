@@ -18,6 +18,9 @@ export default defineConfig({
       "**/node_modules/**"
     ],
     passWithNoTests: true,
+    // Default: 'dot' shows minimal output (dots for passes, details only for failures)
+    // Use pnpm test:verbose for full output showing all tests
+    reporters: process.env.VERBOSE ? ["verbose"] : ["dot"],
     hookTimeout: 120000, // 2 minutes for testcontainer setup hooks
     // Run tests sequentially within each file to avoid migration race conditions
     // when multiple test files try to create the same PostgreSQL types

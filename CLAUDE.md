@@ -64,6 +64,7 @@ accountability/
 | [specs/E2E_TESTING.md](specs/E2E_TESTING.md) | Playwright E2E testing patterns |
 | [specs/REACT_BEST_PRACTICES.md](specs/REACT_BEST_PRACTICES.md) | React patterns, loaders, mutations, Tailwind |
 | [specs/USABILITY_BEST_PRACTICES.md](specs/USABILITY_BEST_PRACTICES.md) | UX patterns, navigation, forms, states |
+| [specs/UI_ARCHITECTURE.md](specs/UI_ARCHITECTURE.md) | **Critical** - Layout, navigation, page templates |
 
 ## Key Files
 
@@ -100,6 +101,17 @@ accountability/
 4. **Use `useState` for UI** - local form state, modals, toggles
 5. **Use Tailwind CSS** - no inline styles, use clsx for conditional classes
 
+### UI Architecture (CRITICAL)
+
+**Read [specs/UI_ARCHITECTURE.md](specs/UI_ARCHITECTURE.md) for all UI work.** Key rules:
+
+1. **ALL pages use AppLayout** - sidebar + header on EVERY authenticated page
+2. **NO manual breadcrumb HTML** - use the Breadcrumbs component
+3. **NO page-specific headers** - use the shared Header component
+4. **Organization selector always accessible** - users can switch orgs from any page
+5. **Consistent page templates** - use List, Detail, Form page patterns from spec
+6. **Empty states required** - every list page needs an empty state with CTA
+
 ---
 
 ## Quick Reference Commands
@@ -115,10 +127,12 @@ pnpm start              # Start production server
 pnpm generate-routes    # Regenerate TanStack Router routes (routeTree.gen.ts)
 pnpm generate:api       # Generate typed API client from OpenAPI spec (run in packages/web)
 
-# Testing
-pnpm test               # Run unit/integration tests (vitest)
+# Testing (minimal output by default - shows dots for passes, details for failures)
+pnpm test               # Run unit/integration tests (vitest) - minimal output
+pnpm test:verbose       # Run tests with full output (all test names)
 pnpm test:coverage      # Run tests with coverage
-pnpm test:e2e           # Run Playwright E2E tests
+pnpm test:e2e           # Run Playwright E2E tests - minimal output
+pnpm test:e2e:verbose   # Run E2E tests with full output (all test names)
 pnpm test:e2e:ui        # Run E2E tests with interactive UI
 pnpm test:e2e:report    # View E2E test report
 
@@ -168,6 +182,7 @@ When working on stories:
 1. **Read [specs/ACCOUNTING_RESEARCH.md](specs/ACCOUNTING_RESEARCH.md)** for domain requirements
 2. **Read [specs/EFFECT_BEST_PRACTICES.md](specs/EFFECT_BEST_PRACTICES.md)** for backend coding rules
 3. **Read [specs/REACT_BEST_PRACTICES.md](specs/REACT_BEST_PRACTICES.md)** for frontend patterns
-4. **Search repos/** for implementation patterns
-5. **Signal STORY_COMPLETE** when done (don't commit, script handles it)
-6. **Run tests** before signaling completion: `pnpm test && pnpm typecheck`
+4. **Read [specs/UI_ARCHITECTURE.md](specs/UI_ARCHITECTURE.md)** for UI layout and navigation rules
+5. **Search repos/** for implementation patterns
+6. **Signal STORY_COMPLETE** when done (don't commit, script handles it)
+7. **Run tests** before signaling completion: `pnpm test && pnpm typecheck`

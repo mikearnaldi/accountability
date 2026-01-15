@@ -5,7 +5,6 @@ import {
   Scripts,
   createRootRouteWithContext
 } from "@tanstack/react-router"
-import { TanStackRouterDevtools } from "@tanstack/react-router-devtools"
 import { createServerFn } from "@tanstack/react-start"
 import { getCookie } from "@tanstack/react-start/server"
 import * as React from "react"
@@ -88,11 +87,40 @@ function NotFoundComponent() {
   )
 }
 
+// Lazy load devtools to avoid SSR issues (window is not defined)
+// Only load in development and after client-side hydration
+const TanStackRouterDevtools =
+  process.env.NODE_ENV === "production"
+    ? () => null
+    : React.lazy(() =>
+        import("@tanstack/react-router-devtools").then((mod) => ({
+          default: mod.TanStackRouterDevtools
+        }))
+      )
+
+function RouterDevtools() {
+  const [isMounted, setIsMounted] = React.useState(false)
+
+  React.useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
+  if (!isMounted) {
+    return null
+  }
+
+  return (
+    <React.Suspense>
+      <TanStackRouterDevtools position="bottom-right" />
+    </React.Suspense>
+  )
+}
+
 function RootComponent() {
   return (
     <RootDocument>
       <Outlet />
-      <TanStackRouterDevtools position="bottom-right" />
+      <RouterDevtools />
     </RootDocument>
   )
 }

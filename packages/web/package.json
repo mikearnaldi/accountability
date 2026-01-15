@@ -15,6 +15,7 @@
     "clean": "rm -rf dist .output",
     "test": "cd ../.. && vitest run packages/web/test",
     "test:e2e": "playwright test",
+    "test:e2e:verbose": "VERBOSE=1 playwright test",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:report": "playwright show-report"
