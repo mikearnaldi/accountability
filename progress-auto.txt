@@ -201,3 +201,8 @@
 **Task**: Implemented Issue 29 - All 4 remaining financial report pages (Balance Sheet, Income Statement, Cash Flow Statement, Statement of Changes in Equity) are now fully functional. Each page has parameter selection forms, API integration using openapi-fetch, professional report display with column header tooltips, and export buttons. Updated the Reports hub page to enable all 5 report cards with dynamic routing. Updated UI_ARCHITECTURE.md spec to mark Issue 29 as resolved.
 **Status**: complete
 ---
+
+## Iteration 2 - 2026-01-15 21:04
+**Task**: Fixed 4 lint errors in intercompany routes by replacing type assertions with object lookup patterns for TransactionType and MatchingStatus filter selects.
+**Status**: complete
+---

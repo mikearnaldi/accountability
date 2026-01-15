@@ -18,7 +18,8 @@ This section tracks known issues, implementation status, and priorities.
 |-------|--------|-------------|----------|
 | **Issue 28** | ✅ DONE | Consolidation Page Full Implementation | 8 subtasks (28.1-28.8), 10+ new files |
 | **Issue 29** | ✅ DONE | Reports - Complete All Financial Report Views | 6 subtasks (29.1-29.6), 8 new files |
-| **Issue 30** | ❌ OPEN | Intercompany Transactions Full Implementation | 8 subtasks (30.1-30.8), 8 new files |
+| **Issue 30** | ✅ DONE | Intercompany Transactions Full Implementation | 8 subtasks (30.1-30.8), 8 new files |
+| **Issue 31** | ❌ OPEN | Reports Parameter Selection UI Improvement | 5 files to update |
 
 **⚠️ You MUST complete ALL issues marked ❌ OPEN before signaling completion.**
 
@@ -39,7 +40,7 @@ The automation agent MUST implement the FULL design specification in Part 2 of t
 | Page | Route | Status | Notes |
 |------|-------|--------|-------|
 | **Consolidation** | `/organizations/:orgId/consolidation` | ✅ IMPLEMENTED | All 8 subtasks complete: list page, create/edit forms, group detail, member management, run initiation, run detail with progress stepper and trial balance. |
-| **Intercompany** | `/organizations/:orgId/intercompany` | ❌ NEEDS WORK | See **Issue 30** for detailed tasks (8 subtasks, 8 new files). Backend has 8 endpoints for transactions, matching, JE linking. |
+| **Intercompany** | `/organizations/:orgId/intercompany` | ✅ IMPLEMENTED | All 8 subtasks complete: list page with filters, create/edit forms, transaction detail, matching status modal, JE linking modal, transaction type badges. |
 | **Reports** | `/organizations/:orgId/reports` | ✅ IMPLEMENTED | All 5 financial reports implemented: Trial Balance, Balance Sheet, Income Statement, Cash Flow Statement, Statement of Changes in Equity. |
 | **Audit Log** | `/organizations/:orgId/audit-log` | ✅ IMPLEMENTED | Backend API wired up. Issue 27 (filter UX) resolved. |
 
@@ -459,10 +460,18 @@ The automation agent MUST implement the FULL design specification in Part 2 of t
 **Modify:**
 - `packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/index.tsx` - Enable all report cards
 
-### Issue 30: Intercompany Transactions Full Implementation
-- **Status**: Open
+### Issue 30: Intercompany Transactions Full Implementation - RESOLVED
+- **Status**: Completed
 - **Priority**: HIGH
-- **Problem**: The Intercompany page is currently a stub with disabled button and "Coming soon" message. The backend API has 8 fully implemented endpoints that need to be wired up to a functional frontend.
+- **Resolution**: Fully implemented all 8 subtasks. The Intercompany page now has a working transactions list with filters (company, type, status, unmatched), create/edit forms, transaction detail page with matching status updates and journal entry linking, and proper badge components. Files created:
+  - `packages/web/src/routes/organizations/$organizationId/intercompany/index.tsx` - List page with filters and table
+  - `packages/web/src/routes/organizations/$organizationId/intercompany/new.tsx` - Create transaction form
+  - `packages/web/src/routes/organizations/$organizationId/intercompany/$transactionId/index.tsx` - Transaction detail with matching status and JE linking
+  - `packages/web/src/routes/organizations/$organizationId/intercompany/$transactionId/edit.tsx` - Edit transaction form
+  - `packages/web/src/components/intercompany/MatchingStatusModal.tsx` - Modal for updating matching status
+  - `packages/web/src/components/intercompany/LinkJournalEntryModal.tsx` - Modal for linking journal entries
+  - `packages/web/src/components/intercompany/TransactionTypeBadge.tsx` - Transaction type badges with icons
+  - `packages/web/src/components/intercompany/MatchingStatusBadge.tsx` - Matching status badges
 
 #### Backend API Available (IntercompanyTransactionsApi - 8 endpoints)
 
@@ -677,6 +686,81 @@ The automation agent MUST implement the FULL design specification in Part 2 of t
 
 **Modify:**
 - `packages/web/src/routes/organizations/$organizationId/intercompany/index.tsx` - Replace stub with real implementation
+
+### Issue 31: Reports Parameter Selection UI Improvement
+- **Status**: Open
+- **Priority**: MEDIUM
+- **Problem**: The parameter selection forms on all 5 financial report pages look unprofessional. Form fields are misaligned, spacing is inconsistent, and the overall layout doesn't match the polished feel of the rest of the application.
+
+#### Current Issues
+
+1. **Inconsistent field alignment**: Date pickers and checkboxes don't align properly in rows
+2. **Poor spacing**: Gaps between fields are inconsistent
+3. **Lack of visual grouping**: Related fields (like period start/end dates) should be visually grouped
+4. **No clear hierarchy**: The "Generate Report" button doesn't stand out enough
+5. **Mobile responsiveness**: Forms don't adapt well to smaller screens
+
+#### Requirements
+
+1. **Consistent grid layout**: Use a proper grid system for form fields
+   - 2-column layout on desktop for related fields (e.g., Start Date / End Date side by side)
+   - Single column on mobile
+   - Consistent gap spacing (e.g., `gap-4` between rows, `gap-6` between sections)
+
+2. **Visual grouping with sections**:
+   - Group related fields in labeled sections (e.g., "Report Period", "Options")
+   - Use subtle borders or background colors to distinguish sections
+   - Add section headers with appropriate typography
+
+3. **Proper form field sizing**:
+   - Date inputs should have consistent width
+   - Checkboxes should align with their labels properly
+   - Labels above inputs (consistent with rest of app)
+
+4. **Clear action area**:
+   - "Generate Report" button prominently placed
+   - Consider adding "Reset" or "Clear" option
+   - Button should be full-width on mobile, right-aligned on desktop
+
+5. **Professional card wrapper**:
+   - Wrap the entire parameter form in a card component
+   - Add a header like "Report Parameters" or "Configure Report"
+   - Consistent with other form pages in the app
+
+#### Files to Update
+
+- `packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/trial-balance.tsx`
+- `packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/balance-sheet.tsx`
+- `packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/income-statement.tsx`
+- `packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/cash-flow.tsx`
+- `packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/equity-statement.tsx`
+
+#### Design Reference
+
+The parameter form should follow this structure:
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│ Report Parameters                                                    │
+├─────────────────────────────────────────────────────────────────────┤
+│ Report Period                                                        │
+│ ┌──────────────────────────┐  ┌──────────────────────────┐          │
+│ │ Start Date *             │  │ End Date *               │          │
+│ │ [    2024-01-01    📅]   │  │ [    2024-12-31    📅]   │          │
+│ └──────────────────────────┘  └──────────────────────────┘          │
+│                                                                      │
+│ Comparison Period (Optional)                                         │
+│ ┌──────────────────────────┐  ┌──────────────────────────┐          │
+│ │ Comparative Start        │  │ Comparative End          │          │
+│ │ [                  📅]   │  │ [                  📅]   │          │
+│ └──────────────────────────┘  └──────────────────────────┘          │
+│                                                                      │
+│ Options                                                              │
+│ ☐ Include zero balance accounts                                      │
+│ ☐ Show account numbers                                               │
+│                                                                      │
+│                                              [Generate Report →]     │
+└─────────────────────────────────────────────────────────────────────┘
+```
 
 ### Issue 15: UI Structure - Organization Selector & New Dropdown - RESOLVED
 - **Status**: Completed
@@ -999,13 +1083,29 @@ The `/organizations` page uses the standard AppLayout (with sidebar and header) 
 - "New Organization" button in the page header
 - Each card shows: Name, Currency, Companies count
 - Click card → navigate to org dashboard
-- Sidebar shows limited navigation since no org is selected yet
+- **Sidebar shows ONLY "Organizations"** - no Dashboard, Companies, Reports, etc. since no org is selected
 
 ## Sidebar Navigation
 
 ### Navigation Structure
 
-When organization is selected, sidebar shows:
+**When on `/organizations` (no organization selected):**
+
+The sidebar shows minimal navigation:
+```
++ New ▾
+  └─ Organization     (ALWAYS visible)
+
+Organizations        → /organizations
+```
+
+Only the "Organizations" link and the "+ New > Organization" action are shown. All organization-specific items (Dashboard, Companies, Reports, etc.) are hidden.
+
+---
+
+**When organization is selected (`/organizations/:orgId/*`):**
+
+Sidebar shows:
 
 ```
 + New ▾

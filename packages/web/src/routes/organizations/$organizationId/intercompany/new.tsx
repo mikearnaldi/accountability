@@ -1,0 +1,584 @@
+/**
+ * Create Intercompany Transaction Route
+ *
+ * Form for creating a new intercompany transaction.
+ *
+ * Route: /organizations/:organizationId/intercompany/new
+ */
+
+import { createFileRoute, redirect, Link, useRouter } from "@tanstack/react-router"
+import { createServerFn } from "@tanstack/react-start"
+import { getCookie } from "@tanstack/react-start/server"
+import { useState, useMemo } from "react"
+import { createServerApi } from "@/api/server"
+import { api } from "@/api/client"
+import { AppLayout } from "@/components/layout/AppLayout"
+import { Button } from "@/components/ui/Button"
+import { Input } from "@/components/ui/Input"
+import { Select } from "@/components/ui/Select"
+import { ArrowLeft } from "lucide-react"
+
+// =============================================================================
+// Types
+// =============================================================================
+
+interface Organization {
+  readonly id: string
+  readonly name: string
+  readonly reportingCurrency: string
+}
+
+interface Company {
+  readonly id: string
+  readonly name: string
+  readonly functionalCurrency: string
+  readonly isActive: boolean
+}
+
+type TransactionType = "SalePurchase" | "Loan" | "ManagementFee" | "Dividend" | "CapitalContribution" | "CostAllocation" | "Royalty"
+
+// Transaction type options
+const TRANSACTION_TYPES: Array<{ value: TransactionType; label: string; description: string }> = [
+  { value: "SalePurchase", label: "Sale/Purchase", description: "Sale or purchase of goods/services" },
+  { value: "Loan", label: "Loan", description: "Intercompany loan (principal or interest)" },
+  { value: "ManagementFee", label: "Management Fee", description: "Management or administrative fee" },
+  { value: "Dividend", label: "Dividend", description: "Dividend distribution" },
+  { value: "CapitalContribution", label: "Capital Contribution", description: "Capital contribution" },
+  { value: "CostAllocation", label: "Cost Allocation", description: "Shared cost allocation" },
+  { value: "Royalty", label: "Royalty", description: "Royalty payment" }
+]
+
+// =============================================================================
+// Server Functions
+// =============================================================================
+
+const fetchFormData = createServerFn({ method: "GET" })
+  .inputValidator((data: string) => data)
+  .handler(async ({ data: organizationId }) => {
+    const sessionToken = getCookie("accountability_session")
+
+    if (!sessionToken) {
+      return { organization: null, companies: [], error: "unauthorized" as const }
+    }
+
+    try {
+      const serverApi = createServerApi()
+      const Authorization = `Bearer ${sessionToken}`
+
+      const [orgResult, companiesResult] = await Promise.all([
+        serverApi.GET("/api/v1/organizations/{id}", {
+          params: { path: { id: organizationId } },
+          headers: { Authorization }
+        }),
+        serverApi.GET("/api/v1/companies", {
+          params: { query: { organizationId } },
+          headers: { Authorization }
+        })
+      ])
+
+      if (orgResult.error) {
+        if (typeof orgResult.error === "object" && "status" in orgResult.error && orgResult.error.status === 404) {
+          return { organization: null, companies: [], error: "not_found" as const }
+        }
+        return { organization: null, companies: [], error: "failed" as const }
+      }
+
+      return {
+        organization: orgResult.data,
+        companies: companiesResult.data?.companies ?? [],
+        error: null
+      }
+    } catch {
+      return { organization: null, companies: [], error: "failed" as const }
+    }
+  })
+
+// =============================================================================
+// Route Definition
+// =============================================================================
+
+export const Route = createFileRoute("/organizations/$organizationId/intercompany/new")({
+  beforeLoad: async ({ context, params }) => {
+    if (!context.user) {
+      throw redirect({
+        to: "/login",
+        search: {
+          redirect: `/organizations/${params.organizationId}/intercompany/new`
+        }
+      })
+    }
+  },
+  loader: async ({ params }) => {
+    const result = await fetchFormData({ data: params.organizationId })
+
+    if (result.error === "not_found") {
+      throw new Error("Organization not found")
+    }
+
+    return {
+      organization: result.organization,
+      companies: result.companies
+    }
+  },
+  errorComponent: ({ error }) => (
+    <div className="min-h-screen bg-gray-50">
+      <header className="border-b border-gray-200 bg-white">
+        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-4">
+            <Link to="/" className="text-xl font-bold text-gray-900">
+              Accountability
+            </Link>
+            <span className="text-gray-400">/</span>
+            <Link to="/organizations" className="text-xl text-gray-600 hover:text-gray-900">
+              Organizations
+            </Link>
+          </div>
+        </div>
+      </header>
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-center">
+          <h2 className="text-lg font-medium text-red-800">Error</h2>
+          <p className="mt-2 text-red-700">{error.message}</p>
+          <Link
+            to="/organizations"
+            className="mt-4 inline-block rounded-lg bg-red-600 px-4 py-2 font-medium text-white hover:bg-red-700"
+          >
+            Back to Organizations
+          </Link>
+        </div>
+      </main>
+    </div>
+  ),
+  component: CreateIntercompanyTransactionPage
+})
+
+// =============================================================================
+// Page Component
+// =============================================================================
+
+function CreateIntercompanyTransactionPage() {
+  const context = Route.useRouteContext()
+  const loaderData = Route.useLoaderData()
+  const params = Route.useParams()
+  const router = useRouter()
+  const user = context.user
+  const organizations = context.organizations ?? []
+
+  /* eslint-disable @typescript-eslint/consistent-type-assertions -- Loader data typing */
+  const organization = loaderData.organization as Organization | null
+  const companies = loaderData.companies as readonly Company[]
+  /* eslint-enable @typescript-eslint/consistent-type-assertions */
+
+  // Form state
+  const [fromCompanyId, setFromCompanyId] = useState("")
+  const [toCompanyId, setToCompanyId] = useState("")
+  const [transactionType, setTransactionType] = useState<TransactionType>("SalePurchase")
+  const [transactionDate, setTransactionDate] = useState(() => {
+    const today = new Date()
+    return today.toISOString().split("T")[0]
+  })
+  const [amount, setAmount] = useState("")
+  const [currency, setCurrency] = useState("")
+  const [description, setDescription] = useState("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [apiError, setApiError] = useState<string | null>(null)
+
+  // Validation state
+  const [errors, setErrors] = useState<{
+    fromCompanyId?: string
+    toCompanyId?: string
+    transactionDate?: string
+    amount?: string
+    currency?: string
+  }>({})
+
+  // Get active companies only
+  const activeCompanies = useMemo(
+    () => companies.filter((c) => c.isActive),
+    [companies]
+  )
+
+  // Set default currency based on selected from company
+  useMemo(() => {
+    if (fromCompanyId && !currency) {
+      const selectedCompany = activeCompanies.find((c) => c.id === fromCompanyId)
+      if (selectedCompany) {
+        setCurrency(selectedCompany.functionalCurrency)
+      }
+    }
+  }, [fromCompanyId, activeCompanies, currency])
+
+  // Get unique currencies from companies
+  const availableCurrencies = useMemo(() => {
+    const currencies = new Set<string>()
+    for (const company of activeCompanies) {
+      currencies.add(company.functionalCurrency)
+    }
+    if (organization?.reportingCurrency) {
+      currencies.add(organization.reportingCurrency)
+    }
+    return Array.from(currencies).sort()
+  }, [activeCompanies, organization])
+
+  // Map companies for sidebar
+  const companiesForSidebar = companies.map((c) => ({ id: c.id, name: c.name }))
+
+  if (!organization) {
+    return null
+  }
+
+  const breadcrumbItems = [
+    {
+      label: "Intercompany",
+      href: `/organizations/${params.organizationId}/intercompany`
+    },
+    {
+      label: "New Transaction",
+      href: `/organizations/${params.organizationId}/intercompany/new`
+    }
+  ]
+
+  // Validation
+  const validateForm = (): boolean => {
+    const newErrors: typeof errors = {}
+
+    if (!fromCompanyId) {
+      newErrors.fromCompanyId = "From company is required"
+    }
+
+    if (!toCompanyId) {
+      newErrors.toCompanyId = "To company is required"
+    }
+
+    if (fromCompanyId && toCompanyId && fromCompanyId === toCompanyId) {
+      newErrors.toCompanyId = "From and To companies must be different"
+    }
+
+    if (!transactionDate) {
+      newErrors.transactionDate = "Transaction date is required"
+    }
+
+    const amountNum = parseFloat(amount)
+    if (!amount || isNaN(amountNum)) {
+      newErrors.amount = "Amount is required"
+    } else if (amountNum <= 0) {
+      newErrors.amount = "Amount must be positive"
+    }
+
+    if (!currency) {
+      newErrors.currency = "Currency is required"
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
+  // Handle form submit
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!validateForm()) return
+
+    setIsSubmitting(true)
+    setApiError(null)
+
+    try {
+      const { data, error } = await api.POST("/api/v1/intercompany-transactions", {
+        body: {
+          fromCompanyId,
+          toCompanyId,
+          transactionType,
+          transactionDate,
+          amount: {
+            amount,
+            currency
+          },
+          description: description.trim() || null
+        }
+      })
+
+      if (error) {
+        let errorMessage = "Failed to create transaction"
+        if (typeof error === "object" && error !== null) {
+          if ("message" in error && typeof error.message === "string") {
+            errorMessage = error.message
+          }
+        }
+        setApiError(errorMessage)
+        setIsSubmitting(false)
+        return
+      }
+
+      // Navigate to the transaction detail page
+      if (data?.id) {
+        await router.navigate({
+          to: `/organizations/${params.organizationId}/intercompany/${data.id}`
+        })
+      } else {
+        await router.navigate({
+          to: `/organizations/${params.organizationId}/intercompany`
+        })
+      }
+    } catch {
+      setApiError("An unexpected error occurred. Please try again.")
+      setIsSubmitting(false)
+    }
+  }
+
+  // Handle cancel
+  const handleCancel = () => {
+    router.navigate({
+      to: `/organizations/${params.organizationId}/intercompany`
+    })
+  }
+
+  return (
+    <AppLayout
+      user={user}
+      organizations={organizations}
+      currentOrganization={organization}
+      breadcrumbItems={breadcrumbItems}
+      companies={companiesForSidebar}
+    >
+      <div data-testid="create-intercompany-transaction-page">
+        {/* Page Header */}
+        <div className="mb-6">
+          <Link
+            to="/organizations/$organizationId/intercompany"
+            params={{ organizationId: params.organizationId }}
+            className="inline-flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Intercompany Transactions
+          </Link>
+          <h1 className="mt-2 text-2xl font-bold text-gray-900" data-testid="page-title">
+            New Intercompany Transaction
+          </h1>
+          <p className="mt-1 text-sm text-gray-500">
+            Record a transaction between two companies in your organization.
+          </p>
+        </div>
+
+        {/* API Error */}
+        {apiError && (
+          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4">
+            <p className="text-sm text-red-700">{apiError}</p>
+          </div>
+        )}
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Companies Card */}
+          <div className="rounded-lg border border-gray-200 bg-white p-6">
+            <h2 className="text-lg font-medium text-gray-900 mb-4">Transaction Parties</h2>
+            <div className="grid gap-6 sm:grid-cols-2">
+              {/* From Company */}
+              <div>
+                <label htmlFor="fromCompanyId" className="block text-sm font-medium text-gray-700">
+                  From Company <span className="text-red-500">*</span>
+                </label>
+                <Select
+                  id="fromCompanyId"
+                  value={fromCompanyId}
+                  onChange={(e) => {
+                    setFromCompanyId(e.target.value)
+                    // Reset currency to the new company's currency
+                    const company = activeCompanies.find((c) => c.id === e.target.value)
+                    if (company) {
+                      setCurrency(company.functionalCurrency)
+                    }
+                  }}
+                  className="mt-1"
+                  data-testid="from-company-select"
+                >
+                  <option value="">Select company...</option>
+                  {activeCompanies.map((company) => (
+                    <option key={company.id} value={company.id}>
+                      {company.name} ({company.functionalCurrency})
+                    </option>
+                  ))}
+                </Select>
+                {errors.fromCompanyId && (
+                  <p className="mt-1 text-sm text-red-600">{errors.fromCompanyId}</p>
+                )}
+                <p className="mt-1 text-xs text-gray-500">
+                  The seller, lender, or payer in this transaction.
+                </p>
+              </div>
+
+              {/* To Company */}
+              <div>
+                <label htmlFor="toCompanyId" className="block text-sm font-medium text-gray-700">
+                  To Company <span className="text-red-500">*</span>
+                </label>
+                <Select
+                  id="toCompanyId"
+                  value={toCompanyId}
+                  onChange={(e) => setToCompanyId(e.target.value)}
+                  className="mt-1"
+                  data-testid="to-company-select"
+                >
+                  <option value="">Select company...</option>
+                  {activeCompanies
+                    .filter((c) => c.id !== fromCompanyId)
+                    .map((company) => (
+                      <option key={company.id} value={company.id}>
+                        {company.name} ({company.functionalCurrency})
+                      </option>
+                    ))}
+                </Select>
+                {errors.toCompanyId && (
+                  <p className="mt-1 text-sm text-red-600">{errors.toCompanyId}</p>
+                )}
+                <p className="mt-1 text-xs text-gray-500">
+                  The buyer, borrower, or recipient in this transaction.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Transaction Details Card */}
+          <div className="rounded-lg border border-gray-200 bg-white p-6">
+            <h2 className="text-lg font-medium text-gray-900 mb-4">Transaction Details</h2>
+            <div className="grid gap-6 sm:grid-cols-2">
+              {/* Transaction Type */}
+              <div>
+                <label htmlFor="transactionType" className="block text-sm font-medium text-gray-700">
+                  Transaction Type <span className="text-red-500">*</span>
+                </label>
+                <Select
+                  id="transactionType"
+                  value={transactionType}
+                  onChange={(e) => {
+                    const transactionTypeLookup: Record<string, TransactionType> = {
+                      SalePurchase: "SalePurchase",
+                      Loan: "Loan",
+                      ManagementFee: "ManagementFee",
+                      Dividend: "Dividend",
+                      CapitalContribution: "CapitalContribution",
+                      CostAllocation: "CostAllocation",
+                      Royalty: "Royalty"
+                    }
+                    const value = transactionTypeLookup[e.target.value]
+                    if (value) {
+                      setTransactionType(value)
+                    }
+                  }}
+                  className="mt-1"
+                  data-testid="transaction-type-select"
+                >
+                  {TRANSACTION_TYPES.map((type) => (
+                    <option key={type.value} value={type.value}>
+                      {type.label}
+                    </option>
+                  ))}
+                </Select>
+                <p className="mt-1 text-xs text-gray-500">
+                  {TRANSACTION_TYPES.find((t) => t.value === transactionType)?.description}
+                </p>
+              </div>
+
+              {/* Transaction Date */}
+              <div>
+                <label htmlFor="transactionDate" className="block text-sm font-medium text-gray-700">
+                  Transaction Date <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  id="transactionDate"
+                  type="date"
+                  value={transactionDate}
+                  onChange={(e) => setTransactionDate(e.target.value)}
+                  className="mt-1"
+                  data-testid="transaction-date-input"
+                />
+                {errors.transactionDate && (
+                  <p className="mt-1 text-sm text-red-600">{errors.transactionDate}</p>
+                )}
+              </div>
+
+              {/* Amount */}
+              <div>
+                <label htmlFor="amount" className="block text-sm font-medium text-gray-700">
+                  Amount <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  id="amount"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder="0.00"
+                  className="mt-1"
+                  data-testid="amount-input"
+                />
+                {errors.amount && (
+                  <p className="mt-1 text-sm text-red-600">{errors.amount}</p>
+                )}
+              </div>
+
+              {/* Currency */}
+              <div>
+                <label htmlFor="currency" className="block text-sm font-medium text-gray-700">
+                  Currency <span className="text-red-500">*</span>
+                </label>
+                <Select
+                  id="currency"
+                  value={currency}
+                  onChange={(e) => setCurrency(e.target.value)}
+                  className="mt-1"
+                  data-testid="currency-select"
+                >
+                  <option value="">Select currency...</option>
+                  {availableCurrencies.map((curr) => (
+                    <option key={curr} value={curr}>
+                      {curr}
+                    </option>
+                  ))}
+                </Select>
+                {errors.currency && (
+                  <p className="mt-1 text-sm text-red-600">{errors.currency}</p>
+                )}
+              </div>
+
+              {/* Description */}
+              <div className="sm:col-span-2">
+                <label htmlFor="description" className="block text-sm font-medium text-gray-700">
+                  Description
+                </label>
+                <textarea
+                  id="description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={3}
+                  placeholder="Optional description or reference for this transaction..."
+                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  data-testid="description-input"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Form Actions */}
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={handleCancel}
+              data-testid="cancel-button"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              data-testid="submit-button"
+            >
+              {isSubmitting ? "Creating..." : "Create Transaction"}
+            </Button>
+          </div>
+        </form>
+      </div>
+    </AppLayout>
+  )
+}
