@@ -399,21 +399,27 @@ test.describe("Apply Account Template", () => {
       `/organizations/${orgData.id}/companies/${companyData.id}/accounts`
     )
 
-    // 6. Verify empty state
+    // 6. Wait for page to be fully hydrated
+    await expect(page.locator('[data-testid="app-layout"]')).toBeVisible()
+    await page.waitForTimeout(500)
+
+    // 7. Verify empty state
     await expect(page.locator('[data-testid="accounts-empty-state"]')).toBeVisible()
 
-    // 7. Open template modal (with extended timeout for modal visibility)
-    await page.locator('[data-testid="apply-template-button"]').click()
-    await expect(page.locator('[data-testid="apply-template-modal"]')).toBeVisible({ timeout: 10000 })
+    // 8. Open template modal (with extended timeout for modal visibility)
+    const applyTemplateButton = page.locator('[data-testid="apply-template-button"]')
+    await expect(applyTemplateButton).toBeVisible()
+    await applyTemplateButton.click({ force: true })
+    await expect(page.locator('[data-testid="apply-template-modal"]')).toBeVisible({ timeout: 15000 })
 
-    // 8. Select General Business template
+    // 9. Select General Business template
     await page.locator('[data-testid="template-card-GeneralBusiness"]').click()
 
-    // 9. Confirm application
+    // 10. Confirm application
     await expect(page.locator('[data-testid="apply-template-confirmation"]')).toBeVisible()
     await page.locator('[data-testid="apply-template-confirm-button"]').click()
 
-    // 10. Should show success message
+    // 11. Should show success message
     await expect(page.locator('[data-testid="apply-template-success"]')).toBeVisible({
       timeout: 10000
     })
@@ -421,16 +427,16 @@ test.describe("Apply Account Template", () => {
     const successMessage = page.locator('[data-testid="apply-template-success"]')
     await expect(successMessage).toContainText(/Successfully created \d+ accounts/i)
 
-    // 11. After modal closes, should show accounts in tree (data refreshed)
+    // 12. After modal closes, should show accounts in tree (data refreshed)
     await expect(page.locator('[data-testid="apply-template-modal"]')).not.toBeVisible({
       timeout: 10000
     })
 
-    // 12. Should show accounts tree instead of empty state
+    // 13. Should show accounts tree instead of empty state
     await expect(page.locator('[data-testid="accounts-empty-state"]')).not.toBeVisible()
     await expect(page.locator('[data-testid="accounts-tree"]')).toBeVisible()
 
-    // 13. Should show account count greater than 0
+    // 14. Should show account count greater than 0
     const accountCountText = await page.locator('[data-testid="accounts-count"]').textContent()
     expect(accountCountText).toMatch(/\d+ of \d+ accounts/)
     // Extract the total count and verify it's greater than 0

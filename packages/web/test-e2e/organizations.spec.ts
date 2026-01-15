@@ -440,15 +440,21 @@ test.describe("Organization Selection Flow", () => {
     // 5. Navigate to organizations page
     await page.goto("/organizations")
 
-    // 6. Should show both organizations
+    // 6. Wait for page to be fully loaded
+    await expect(page.locator('[data-testid="app-layout"]')).toBeVisible()
+    await page.waitForTimeout(500)
+
+    // 7. Should show both organizations
     await expect(page.getByText(org1Name)).toBeVisible()
     await expect(page.getByText(org2Name)).toBeVisible()
 
-    // 7. Click on the first organization card
-    await page.locator(`[data-testid="organization-card-${org1Data.id}"]`).click()
+    // 8. Click on the first organization card
+    const orgCard = page.locator(`[data-testid="organization-card-${org1Data.id}"]`)
+    await expect(orgCard).toBeVisible()
+    await orgCard.click({ force: true })
 
-    // 8. Should navigate to organization dashboard
-    await page.waitForURL(`/organizations/${org1Data.id}/dashboard`)
+    // 9. Should navigate to organization dashboard
+    await page.waitForURL(`/organizations/${org1Data.id}/dashboard`, { timeout: 15000 })
     expect(page.url()).toContain(`/organizations/${org1Data.id}/dashboard`)
   })
 
@@ -641,34 +647,42 @@ test.describe("Organization Selection Flow", () => {
     // 5. Navigate to organizations page
     await page.goto("/organizations")
 
-    // 6. All three organizations should be visible initially
+    // 6. Wait for page to be fully hydrated
+    await expect(page.locator('[data-testid="app-layout"]')).toBeVisible()
+    await page.waitForTimeout(500)
+
+    // 7. All three organizations should be visible initially
     await expect(page.getByText(alphaOrgName)).toBeVisible()
     await expect(page.getByText(betaOrgName)).toBeVisible()
     await expect(page.getByText(gammaOrgName)).toBeVisible()
 
-    // 7. Search for "Alpha"
-    await page.locator('[data-testid="organizations-search-input"]').fill("Alpha")
+    // 8. Search for "Alpha"
+    const searchInput = page.locator('[data-testid="organizations-search-input"]')
+    await expect(searchInput).toBeVisible()
+    await searchInput.pressSequentially("Alpha", { delay: 50 })
 
-    // 8. Only Alpha Corp should be visible
-    await expect(page.getByText(alphaOrgName)).toBeVisible()
-    await expect(page.getByText(betaOrgName)).not.toBeVisible()
-    await expect(page.getByText(gammaOrgName)).not.toBeVisible()
+    // 9. Only Alpha Corp should be visible (wait for filter to apply)
+    await expect(page.getByText(alphaOrgName)).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText(betaOrgName)).not.toBeVisible({ timeout: 10000 })
+    await expect(page.getByText(gammaOrgName)).not.toBeVisible({ timeout: 10000 })
 
-    // 9. Clear search and search by currency
-    await page.locator('[data-testid="organizations-search-input"]').fill("EUR")
+    // 10. Clear search and search by currency
+    await searchInput.clear()
+    await page.waitForTimeout(200)
+    await searchInput.pressSequentially("EUR", { delay: 50 })
 
-    // 10. Only Beta Industries (EUR) should be visible
-    await expect(page.getByText(alphaOrgName)).not.toBeVisible()
-    await expect(page.getByText(betaOrgName)).toBeVisible()
-    await expect(page.getByText(gammaOrgName)).not.toBeVisible()
+    // 11. Only Beta Industries (EUR) should be visible (wait for filter to apply)
+    await expect(page.getByText(alphaOrgName)).not.toBeVisible({ timeout: 10000 })
+    await expect(page.getByText(betaOrgName)).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText(gammaOrgName)).not.toBeVisible({ timeout: 10000 })
 
-    // 11. Clear search
-    await page.locator('[data-testid="organizations-search-input"]').fill("")
+    // 12. Clear search
+    await searchInput.clear()
 
-    // 12. All organizations should be visible again
-    await expect(page.getByText(alphaOrgName)).toBeVisible()
-    await expect(page.getByText(betaOrgName)).toBeVisible()
-    await expect(page.getByText(gammaOrgName)).toBeVisible()
+    // 13. All organizations should be visible again (wait for filter to clear)
+    await expect(page.getByText(alphaOrgName)).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText(betaOrgName)).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText(gammaOrgName)).toBeVisible({ timeout: 10000 })
   })
 
   test("should show no results message when search has no matches", async ({

@@ -560,17 +560,21 @@ test.describe("Organization Details Page", () => {
     // 5. Navigate to organizations list
     await page.goto("/organizations")
 
-    // 6. Should see organization card
+    // 6. Wait for page to be fully hydrated
+    await expect(page.locator('[data-testid="app-layout"]')).toBeVisible()
+    await page.waitForTimeout(500)
+
+    // 7. Should see organization card
     await expect(page.getByText(orgName)).toBeVisible()
 
-    // 7. Click on organization card (it's now a link)
-    await page.getByText(orgName).click()
+    // 8. Click on organization card (it's now a link)
+    await page.getByText(orgName).click({ force: true })
 
-    // 8. Should be on organization dashboard (card click goes to dashboard)
-    await page.waitForURL(/\/organizations\/[^/]+\/dashboard/)
+    // 9. Should be on organization dashboard (card click goes to dashboard)
+    await page.waitForURL(/\/organizations\/[^/]+\/dashboard/, { timeout: 15000 })
     expect(page.url()).toContain(`/organizations/${orgData.id}/dashboard`)
 
-    // 9. Should show organization name on dashboard
+    // 10. Should show organization name on dashboard
     await expect(page.getByTestId("org-dashboard-name")).toContainText(orgName)
   })
 

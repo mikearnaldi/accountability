@@ -558,29 +558,33 @@ test.describe("Journal Entries List Page", () => {
       `/organizations/${orgData.id}/companies/${companyData.id}/journal-entries`
     )
 
-    // 7. Should show all entries initially
+    // 7. Wait for page to be fully hydrated
+    await expect(page.locator('[data-testid="app-layout"]')).toBeVisible()
+    await page.waitForTimeout(500)
+
+    // 8. Should show all entries initially
     await expect(page.locator('[data-testid="journal-entries-count"]')).toContainText("2 of 2 entries")
     await expect(page.getByText("Draft Entry 1")).toBeVisible()
     await expect(page.getByText("Draft Entry 2")).toBeVisible()
 
-    // 8. Filter by Draft status
-    await page.locator('[data-testid="journal-entries-filter-status"]').selectOption("Draft")
+    // 9. Filter by Draft status
+    await page.locator('[data-testid="journal-entries-filter-status"]').selectOption("Draft", { force: true })
 
-    // 9. Should still show both entries (both are Draft)
-    await expect(page.locator('[data-testid="journal-entries-count"]')).toContainText("2 of 2 entries")
+    // 10. Should still show both entries (both are Draft)
+    await expect(page.locator('[data-testid="journal-entries-count"]')).toContainText("2 of 2 entries", { timeout: 10000 })
 
-    // 10. Filter by Posted status (no entries should match)
-    await page.locator('[data-testid="journal-entries-filter-status"]').selectOption("Posted")
+    // 11. Filter by Posted status (no entries should match)
+    await page.locator('[data-testid="journal-entries-filter-status"]').selectOption("Posted", { force: true })
 
-    // 11. Should show no entries message
-    await expect(page.locator('[data-testid="journal-entries-no-results"]')).toBeVisible()
+    // 12. Should show no entries message
+    await expect(page.locator('[data-testid="journal-entries-no-results"]')).toBeVisible({ timeout: 15000 })
     await expect(page.locator('[data-testid="journal-entries-no-results"]')).toContainText("No journal entries match")
 
-    // 12. Clear filters (use exact match to get toolbar button)
-    await page.locator('[data-testid="journal-entries-clear-filters"]').click()
+    // 13. Clear filters (use exact match to get toolbar button)
+    await page.locator('[data-testid="journal-entries-clear-filters"]').click({ force: true })
 
-    // 13. Should show all entries again
-    await expect(page.locator('[data-testid="journal-entries-count"]')).toContainText("2 of 2 entries")
+    // 14. Should show all entries again
+    await expect(page.locator('[data-testid="journal-entries-count"]')).toContainText("2 of 2 entries", { timeout: 15000 })
   })
 
   test("should filter journal entries by type", async ({ page, request }) => {

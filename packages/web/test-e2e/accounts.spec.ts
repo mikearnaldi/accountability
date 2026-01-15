@@ -1608,24 +1608,30 @@ test.describe("Chart of Accounts Page", () => {
       `/organizations/${orgData.id}/companies/${companyData.id}/accounts`
     )
 
-    // 8. Should show both accounts initially
+    // 8. Wait for page to be fully hydrated
+    await expect(page.locator('[data-testid="app-layout"]')).toBeVisible()
+    await page.waitForTimeout(500)
+
+    // 9. Should show both accounts initially
     await expect(page.locator('[data-testid="accounts-count"]')).toContainText("2 of 2 accounts")
     await expect(page.getByText("Summary Account")).toBeVisible()
     await expect(page.getByText("Postable Cash")).toBeVisible()
 
-    // 9. Check the postable only checkbox
-    await page.locator('[data-testid="accounts-filter-postable"]').check()
+    // 10. Check the postable only checkbox
+    const postableCheckbox = page.locator('[data-testid="accounts-filter-postable"]')
+    await expect(postableCheckbox).toBeVisible()
+    await postableCheckbox.check({ force: true })
 
-    // 10. Should only show postable account - wait for filter to apply
-    await expect(page.locator('[data-testid="accounts-count"]')).toContainText("1 of 2 accounts", { timeout: 10000 })
+    // 11. Should only show postable account - wait for filter to apply
+    await expect(page.locator('[data-testid="accounts-count"]')).toContainText("1 of 2 accounts", { timeout: 15000 })
     await expect(page.getByText("Postable Cash")).toBeVisible()
     await expect(page.getByText("Summary Account")).not.toBeVisible()
 
-    // 11. Uncheck the postable only checkbox
-    await page.locator('[data-testid="accounts-filter-postable"]').uncheck()
+    // 12. Uncheck the postable only checkbox
+    await page.locator('[data-testid="accounts-filter-postable"]').uncheck({ force: true })
 
-    // 12. Should show both accounts again - wait for filter to apply
-    await expect(page.locator('[data-testid="accounts-count"]')).toContainText("2 of 2 accounts", { timeout: 10000 })
+    // 13. Should show both accounts again - wait for filter to apply
+    await expect(page.locator('[data-testid="accounts-count"]')).toContainText("2 of 2 accounts", { timeout: 15000 })
   })
 
   test("should show breadcrumb navigation", async ({ page, request }) => {

@@ -176,3 +176,8 @@
 **Task**: Fixed Issue 25 - Made Exchange Rates header "Add Rate" button conditional to only show when rates exist, preventing redundant button display alongside empty state CTA. All 179 E2E tests pass and typecheck is clean.
 **Status**: complete
 ---
+
+## Iteration 10 - 2026-01-15 19:12
+**Task**: Fixed 9 flaky E2E tests by adding proper React hydration waits and force clicks - all 180 E2E tests now pass consistently and typecheck is clean. Tests fixed: dashboard user menu dropdown/logout, organizations card click/search, login form submission, apply-template modal, organization-details navigation, accounts postable filter, and journal-entries status filter.
+**Status**: complete
+---

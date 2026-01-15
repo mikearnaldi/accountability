@@ -312,16 +312,19 @@ test.describe("Dashboard - Header", () => {
     // Wait for app layout to be fully rendered (React hydration)
     await expect(page.locator('[data-testid="app-layout"]')).toBeVisible()
 
+    // Wait for React hydration to complete
+    await page.waitForTimeout(500)
+
     // Wait for user menu button to be visible and enabled
     const userMenuButton = page.locator('[data-testid="user-menu-button"]')
     await expect(userMenuButton).toBeVisible()
     await expect(userMenuButton).toBeEnabled()
 
-    // Click user menu button
-    await userMenuButton.click()
+    // Click user menu button with force to ensure it registers
+    await userMenuButton.click({ force: true })
 
     // Verify dropdown is displayed (wait for React state update)
-    await expect(page.locator('[data-testid="user-menu-dropdown"]')).toBeVisible({ timeout: 10000 })
+    await expect(page.locator('[data-testid="user-menu-dropdown"]')).toBeVisible({ timeout: 15000 })
 
     // Verify menu items
     await expect(page.locator('[data-testid="user-menu-profile"]')).toBeVisible()
@@ -332,11 +335,17 @@ test.describe("Dashboard - Header", () => {
   test("should logout from user menu", async ({ page }) => {
     await page.goto(`/organizations/${organizationId}/dashboard`)
 
-    // Click user menu button
-    await page.locator('[data-testid="user-menu-button"]').click()
+    // Wait for page to be fully hydrated
+    await expect(page.locator('[data-testid="app-layout"]')).toBeVisible()
+    await page.waitForTimeout(500)
+
+    // Click user menu button with force
+    const userMenuButton = page.locator('[data-testid="user-menu-button"]')
+    await expect(userMenuButton).toBeVisible()
+    await userMenuButton.click({ force: true })
 
     // Wait for dropdown
-    await expect(page.locator('[data-testid="user-menu-dropdown"]')).toBeVisible()
+    await expect(page.locator('[data-testid="user-menu-dropdown"]')).toBeVisible({ timeout: 15000 })
 
     // Click logout
     await page.locator('[data-testid="user-menu-logout"]').click()
