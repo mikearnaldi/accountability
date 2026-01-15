@@ -22,7 +22,12 @@ This section tracks known issues, implementation status, and priorities.
 | **Issue 31** | ✅ DONE | Reports Parameter Selection UI Improvement | 5 files to update |
 | **Issue 32** | ✅ DONE | Journal Entry Form UX Issues | 3 sub-issues (multi-currency, auto-period, empty periods) |
 | **Issue 33** | ✅ DONE | Fiscal Periods Should Be Computed | Computed periods, no persistence, no period closing |
-| **Issue 34** | ❌ OPEN | Backend: Remove Fiscal Period Persistence | API still requires fiscalPeriod, FiscalPeriodsApi still exists |
+| **Issue 34** | ✅ DONE | Backend: Remove Fiscal Period Persistence | FiscalPeriodsApi deleted, fiscalPeriod computed from transactionDate |
+| **Issue 35** | ✅ DONE | Sidebar: Only show "Organizations" on /organizations page | Hide Dashboard and other nav when no org selected |
+| **Issue 36** | ✅ DONE | Intercompany: Link JEs During Creation | Backend + Frontend - select existing JEs when creating IC transaction |
+| **Issue 37** | ❌ OPEN | Profile Page Implementation | Create /profile route, enable dropdown link, allow editing display name |
+| **Issue 38** | ❌ OPEN | Journal Entry Edit Functionality | Create edit route, enable Edit button on JE detail page |
+| **Issue 39** | ❌ OPEN | Dashboard Recent Activity | Wire up to Audit Log API instead of empty array placeholder |
 
 **⚠️ You MUST complete ALL issues marked ❌ OPEN before signaling completion.**
 
@@ -954,6 +959,492 @@ Implemented computed fiscal periods to simplify the system and remove unnecessar
 4. **No Period Management**: No more period open/close workflows - simpler UX
 
 All tests pass (3589 tests). Typecheck passes.
+
+### Issue 35: Sidebar - Only Show "Organizations" on /organizations Page - RESOLVED
+- **Status**: ✅ RESOLVED
+- **Priority**: HIGH
+- **Resolution**: Updated `getNavItems()` function in `Sidebar.tsx` to only return the "Organizations" nav item when no organization is selected. The Dashboard link (which previously pointed to `/` but made no sense without an org context) has been removed from the no-org-selected state. The Quick Actions menu already conditionally shows only "Organization" when no org is selected, so no changes were needed there.
+
+**Files Modified**:
+- `packages/web/src/components/layout/Sidebar.tsx` - Modified `getNavItems()` to return only "Organizations" when `organizationId` is undefined
+
+### Issue 36: Intercompany - Link Journal Entries During Creation - RESOLVED
+- **Status**: ✅ RESOLVED
+- **Priority**: MEDIUM
+- **Resolution**: Implemented optional JE linking during IC transaction creation. Users can now select existing journal entries when creating an intercompany transaction, eliminating the need for separate link actions after creation.
+
+**Changes Made:**
+1. **Backend** (`packages/api/src/Definitions/IntercompanyTransactionsApi.ts`): Added optional `fromJournalEntryId` and `toJournalEntryId` fields to `CreateIntercompanyTransactionRequest`
+2. **Backend** (`packages/api/src/Layers/IntercompanyTransactionsApiLive.ts`): Updated create handler to use provided JE IDs
+3. **Frontend** (`packages/web/src/routes/organizations/$organizationId/intercompany/new.tsx`):
+   - Added collapsible "Link Journal Entries" section that appears after company selection
+   - Fetches approved/posted JEs for each company when selected
+   - Shows JE picker dropdowns with date, reference number, and description
+   - Passes optional JE IDs when creating the transaction
+4. **API Client**: Regenerated to include new fields
+
+**Additional Fixes (Pre-existing Issues from Issue 33/34):**
+- Fixed `journal-entries/index.tsx` to compute fiscal years from entry data instead of fetching deleted API
+- Fixed `companies/new.tsx` to remove fiscal year creation calls
+- Fixed `dashboard.tsx` to remove fiscal periods count API call
+
+**Problem (was)**: Currently, when creating an Intercompany Transaction, users cannot select existing Journal Entries. JEs must be linked after creation via separate "Link JE" actions on the detail page. This is cumbersome - users often already have the JEs created and want to associate them during IC transaction creation.
+
+#### Current Flow (Suboptimal)
+
+1. Create IC Transaction with: companies, type, date, amount, description
+2. Navigate to IC Transaction detail page
+3. Click "Link From JE" → Select JE from modal
+4. Click "Link To JE" → Select JE from modal
+
+This requires 4 separate steps and page navigations.
+
+#### Desired Flow (Improved UX)
+
+1. Create IC Transaction:
+   - Select From Company → System fetches JEs for this company
+   - Select To Company → System fetches JEs for this company
+   - Fill in type, date, amount, description
+   - **NEW**: Optionally select "From JE" from available JEs for From Company
+   - **NEW**: Optionally select "To JE" from available JEs for To Company
+   - Submit → Transaction created with JEs already linked
+
+This allows users to link JEs in a single step during creation.
+
+#### Backend Changes Required
+
+**File: `packages/api/src/Definitions/IntercompanyTransactionsApi.ts`**
+
+Update `CreateIntercompanyTransactionRequest` to accept optional JE IDs:
+
+```typescript
+export class CreateIntercompanyTransactionRequest extends Schema.Class<CreateIntercompanyTransactionRequest>("CreateIntercompanyTransactionRequest")({
+  fromCompanyId: CompanyId,
+  toCompanyId: CompanyId,
+  transactionType: IntercompanyTransactionType,
+  transactionDate: LocalDateFromString,
+  amount: MonetaryAmount,
+  description: Schema.OptionFromNullOr(Schema.NonEmptyTrimmedString),
+  // NEW: Optional JE linking during creation
+  fromJournalEntryId: Schema.OptionFromNullOr(JournalEntryId),
+  toJournalEntryId: Schema.OptionFromNullOr(JournalEntryId)
+}) {}
+```
+
+**File: `packages/api/src/Layers/IntercompanyTransactionsApiLive.ts`**
+
+Update the create handler to use the provided JE IDs:
+
+```typescript
+// In createIntercompanyTransaction handler:
+// If fromJournalEntryId is provided, validate it belongs to fromCompanyId
+// If toJournalEntryId is provided, validate it belongs to toCompanyId
+// Create transaction with JE IDs already set
+```
+
+**File: `packages/persistence/src/Services/IntercompanyTransactionRepository.ts`**
+
+Ensure the create method can accept optional JE IDs.
+
+#### Frontend Changes Required
+
+**File: `packages/web/src/routes/organizations/$organizationId/intercompany/new.tsx`**
+
+Add JE selection UI:
+
+1. After user selects "From Company":
+   - Fetch JEs for that company via `GET /api/v1/journal-entries?companyId={fromCompanyId}`
+   - Show a collapsible "Link Journal Entry (Optional)" section
+   - Display JEs in a dropdown or searchable list
+
+2. After user selects "To Company":
+   - Fetch JEs for that company via `GET /api/v1/journal-entries?companyId={toCompanyId}`
+   - Show a collapsible "Link Journal Entry (Optional)" section
+   - Display JEs in a dropdown or searchable list
+
+3. JE display format in dropdown:
+   ```
+   2024-01-15 | JE-001 | Sale Revenue - $10,000.00 USD
+   2024-01-15 | JE-002 | Account Receivable - $10,000.00 USD
+   ```
+   Show: date, reference number, description, total amount
+
+4. Submit the form with optional JE IDs
+
+#### UI Mockup
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ New Intercompany Transaction                                │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│ Transaction Parties                                         │
+│ ┌─────────────────────────┐ ┌─────────────────────────────┐ │
+│ │ From Company *          │ │ To Company *                │ │
+│ │ [Acme Corp (USD)    ▾]  │ │ [Acme UK Ltd (GBP)      ▾]  │ │
+│ └─────────────────────────┘ └─────────────────────────────┘ │
+│                                                             │
+│ ▼ Link From Company Journal Entry (Optional)                │
+│ ┌─────────────────────────────────────────────────────────┐ │
+│ │ Select journal entry...                              ▾ │ │
+│ │ ─────────────────────────────────────────────────────── │ │
+│ │ 2024-01-15 | Intercompany Sale | $10,000.00           │ │
+│ │ 2024-01-14 | Revenue Recognition | $5,000.00          │ │
+│ │ 2024-01-13 | Service Fee | $2,500.00                  │ │
+│ └─────────────────────────────────────────────────────────┘ │
+│                                                             │
+│ ▼ Link To Company Journal Entry (Optional)                  │
+│ ┌─────────────────────────────────────────────────────────┐ │
+│ │ Select journal entry...                              ▾ │ │
+│ │ ─────────────────────────────────────────────────────── │ │
+│ │ 2024-01-15 | Intercompany Purchase | £8,000.00        │ │
+│ │ 2024-01-14 | Expense Recognition | £4,000.00          │ │
+│ └─────────────────────────────────────────────────────────┘ │
+│                                                             │
+│ Transaction Details                                         │
+│ [Type, Date, Amount, Currency, Description fields...]       │
+│                                                             │
+│                              [Cancel]  [Create Transaction] │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### Validation Rules
+
+1. `fromJournalEntryId` (if provided) must belong to `fromCompanyId`
+2. `toJournalEntryId` (if provided) must belong to `toCompanyId`
+3. JE selection is OPTIONAL - users can still create IC transactions without linking JEs
+4. Only show JEs in "posted" or "approved" status (not draft)
+
+#### Files to Modify
+
+**Backend:**
+- `packages/api/src/Definitions/IntercompanyTransactionsApi.ts` - Add optional JE IDs to create request
+- `packages/api/src/Layers/IntercompanyTransactionsApiLive.ts` - Handle JE IDs in create handler
+- `packages/persistence/src/Services/IntercompanyTransactionRepository.ts` - Support JE IDs in create
+
+**Frontend:**
+- `packages/web/src/routes/organizations/$organizationId/intercompany/new.tsx` - Add JE selection UI
+
+### Issue 37: Profile Page Implementation
+- **Status**: ❌ OPEN
+- **Priority**: MEDIUM
+- **Problem**: The Profile link in the user dropdown menu (header) shows "Soon" and is disabled. Users cannot view or edit their profile information.
+
+#### Current State
+
+In `Header.tsx`, the Profile button is:
+```tsx
+<button
+  data-testid="user-menu-profile"
+  className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-400 cursor-not-allowed"
+  disabled
+  title="Profile page coming soon"
+>
+  <User className="h-4 w-4" />
+  Profile
+  <span className="ml-auto text-xs text-gray-400">Soon</span>
+</button>
+```
+
+#### User Data Available (AuthUser model)
+
+From `packages/core/src/Auth/AuthUser.ts`:
+- `id` - User ID (UUID)
+- `email` - User's email address
+- `displayName` - Editable display name
+- `role` - User role (admin, owner, member, viewer)
+- `primaryProvider` - Auth provider (local, google, github, microsoft)
+- `createdAt` - Account creation timestamp
+- `updatedAt` - Last update timestamp
+
+#### Required Implementation
+
+**1. Backend: Create User Profile API**
+
+**File: `packages/api/src/Definitions/UsersApi.ts`** (NEW)
+
+```typescript
+// GET /api/v1/users/me - Get current user's profile
+const getCurrentUser = HttpApiEndpoint.get("getCurrentUser", "/me")
+  .addSuccess(AuthUser)
+  .addError(NotFoundError)
+
+// PUT /api/v1/users/me - Update current user's profile
+const updateCurrentUser = HttpApiEndpoint.put("updateCurrentUser", "/me")
+  .setPayload(UpdateUserRequest)
+  .addSuccess(AuthUser)
+  .addError(ValidationError)
+
+class UpdateUserRequest extends Schema.Class<UpdateUserRequest>("UpdateUserRequest")({
+  displayName: Schema.OptionFromNullOr(Schema.NonEmptyTrimmedString)
+}) {}
+
+export class UsersApi extends HttpApiGroup.make("users")
+  .add(getCurrentUser)
+  .add(updateCurrentUser)
+  .middleware(AuthMiddleware)
+  .prefix("/v1/users")
+```
+
+**File: `packages/api/src/Layers/UsersApiLive.ts`** (NEW)
+
+Implement the handlers using the existing UserRepository.
+
+**File: `packages/persistence/src/Services/UserRepository.ts`**
+
+Add method to update user profile (if not already present).
+
+**2. Frontend: Create Profile Page**
+
+**File: `packages/web/src/routes/profile.tsx`** (NEW)
+
+Route: `/profile` (global, not org-scoped)
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ Profile                                                     │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│ ┌─────────────────────────────────────────────────────────┐ │
+│ │ Account Information                                     │ │
+│ │                                                         │ │
+│ │ Display Name                                            │ │
+│ │ ┌─────────────────────────────────┐ ┌────────┐          │ │
+│ │ │ John Smith                      │ │ Save   │          │ │
+│ │ └─────────────────────────────────┘ └────────┘          │ │
+│ │                                                         │ │
+│ │ Email                                                   │ │
+│ │ john.smith@example.com                                  │ │
+│ │ (Cannot be changed)                                     │ │
+│ │                                                         │ │
+│ │ Role                                                    │ │
+│ │ Member                                                  │ │
+│ │ (Managed by organization administrators)                │ │
+│ └─────────────────────────────────────────────────────────┘ │
+│                                                             │
+│ ┌─────────────────────────────────────────────────────────┐ │
+│ │ Authentication                                          │ │
+│ │                                                         │ │
+│ │ Primary Sign-in Method                                  │ │
+│ │ 🔑 Google Account                                       │ │
+│ │                                                         │ │
+│ │ Member Since                                            │ │
+│ │ January 15, 2024                                        │ │
+│ └─────────────────────────────────────────────────────────┘ │
+│                                                             │
+│ ┌─────────────────────────────────────────────────────────┐ │
+│ │ Danger Zone                                             │ │
+│ │                                                         │ │
+│ │ [Delete Account]                                        │ │
+│ │ This will permanently delete your account and all data. │ │
+│ └─────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**3. Frontend: Enable Profile Link in Header**
+
+**File: `packages/web/src/components/layout/Header.tsx`**
+
+Change disabled button to a working link:
+
+```tsx
+// Before (disabled)
+<button disabled className="text-gray-400 cursor-not-allowed">
+  Profile <span>Soon</span>
+</button>
+
+// After (enabled)
+<Link
+  to="/profile"
+  data-testid="user-menu-profile"
+  className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+  onClick={() => setShowUserMenu(false)}
+>
+  <User className="h-4 w-4" />
+  Profile
+</Link>
+```
+
+#### Features to Implement
+
+1. **View Profile**: Display all user information (read-only except display name)
+2. **Edit Display Name**: Allow user to change their display name
+3. **Auth Provider Display**: Show which method was used to sign in (Google, GitHub, Local, etc.)
+4. **Member Since**: Show account creation date
+5. **Delete Account** (optional/future): Placeholder for account deletion
+
+#### Files to Create/Modify
+
+**Backend (NEW):**
+- `packages/api/src/Definitions/UsersApi.ts` - Define GET/PUT /users/me endpoints
+- `packages/api/src/Layers/UsersApiLive.ts` - Implement handlers
+- `packages/api/src/Definitions/AppApi.ts` - Register UsersApi in the main API
+
+**Backend (MODIFY):**
+- `packages/persistence/src/Services/UserRepository.ts` - Add updateUser method if needed
+
+**Frontend (NEW):**
+- `packages/web/src/routes/profile.tsx` - Profile page component
+
+**Frontend (MODIFY):**
+- `packages/web/src/components/layout/Header.tsx` - Enable Profile link
+
+#### Regenerate API Client
+
+After backend changes, run:
+```bash
+cd packages/web && pnpm generate:api
+```
+
+### Issue 38: Journal Entry Edit Functionality
+- **Status**: ❌ OPEN
+- **Priority**: HIGH
+- **Problem**: The Edit button on the Journal Entry detail page is disabled with "Edit functionality coming soon". Users cannot edit draft journal entries.
+
+#### Current State
+
+In `journal-entries/$entryId/index.tsx` line 729-739:
+```tsx
+<button
+  disabled
+  className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-400 cursor-not-allowed"
+  title="Edit functionality coming soon"
+  data-testid="edit-button"
+>
+  <EditIcon />
+  Edit
+</button>
+```
+
+No edit route exists (`journal-entries/$entryId/edit.tsx` is missing).
+
+#### Backend API Available
+
+The API already supports updating journal entries:
+- `PUT /api/v1/journal-entries/:id` - Update a draft journal entry
+
+From `JournalEntriesApi.ts`:
+```typescript
+const updateJournalEntry = HttpApiEndpoint.put("updateJournalEntry", "/:id")
+  .setPath(Schema.Struct({ id: JournalEntryId }))
+  .setPayload(UpdateJournalEntryRequest)
+  .addSuccess(JournalEntryWithLinesResponse)
+```
+
+#### Required Implementation
+
+**1. Create Edit Route**
+
+**File: `packages/web/src/routes/organizations/$organizationId/companies/$companyId/journal-entries/$entryId/edit.tsx`** (NEW)
+
+- Pre-populate form with existing entry data
+- Use same form structure as `new.tsx` but in edit mode
+- Only allow editing entries in "Draft" status
+- Call `PUT /api/v1/journal-entries/:id` on submit
+- Redirect to detail page on success
+
+**2. Enable Edit Button**
+
+**File: `packages/web/src/routes/organizations/$organizationId/companies/$companyId/journal-entries/$entryId/index.tsx`**
+
+Change disabled button to a working link:
+```tsx
+// Before (disabled)
+<button disabled title="Edit functionality coming soon">
+  Edit
+</button>
+
+// After (enabled, only for Draft entries)
+{entry.status === "Draft" && (
+  <Link
+    to="/organizations/$organizationId/companies/$companyId/journal-entries/$entryId/edit"
+    params={{ organizationId, companyId, entryId: entry.id }}
+    className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+    data-testid="edit-button"
+  >
+    <EditIcon />
+    Edit
+  </Link>
+)}
+```
+
+#### Validation Rules
+
+1. Only Draft entries can be edited (enforced by backend)
+2. Entry must still balance after edit (debits = credits)
+3. Must have at least 2 lines
+
+#### Files to Create/Modify
+
+**Frontend (NEW):**
+- `packages/web/src/routes/organizations/$organizationId/companies/$companyId/journal-entries/$entryId/edit.tsx`
+
+**Frontend (MODIFY):**
+- `packages/web/src/routes/organizations/$organizationId/companies/$companyId/journal-entries/$entryId/index.tsx` - Enable Edit button
+
+### Issue 39: Dashboard Recent Activity
+- **Status**: ❌ OPEN
+- **Priority**: LOW
+- **Problem**: The Dashboard's "Recent Activity" section shows nothing because it's hardcoded to return an empty array. The Audit Log API exists and should be used to populate this section.
+
+#### Current State
+
+In `dashboard.tsx` line 189-190:
+```typescript
+// Recent activity placeholder (until audit log API is ready)
+const recentActivity: DashboardData["recentActivity"] = []
+```
+
+The Audit Log API is fully implemented and available:
+- `GET /api/v1/audit-log` - List audit log entries with filtering
+
+#### Required Implementation
+
+**File: `packages/web/src/routes/organizations/$organizationId/dashboard.tsx`**
+
+1. **Fetch recent audit log entries in the loader:**
+```typescript
+// Fetch recent activity from audit log
+const auditLogResult = await serverApi.GET("/api/v1/audit-log", {
+  params: {
+    query: {
+      organizationId,
+      limit: "10"  // Last 10 activities
+    }
+  },
+  headers
+})
+
+const recentActivity = auditLogResult.data?.entries ?? []
+```
+
+2. **Display activity in the Recent Activity card:**
+- Show entity type (JournalEntry, Account, Company, etc.)
+- Show action (Created, Updated, Deleted, etc.)
+- Show timestamp (relative time like "2 hours ago")
+- Show user who performed the action
+- Link to the affected entity
+
+#### UI Mockup
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ Recent Activity                                      View All│
+├─────────────────────────────────────────────────────────────┤
+│ 📄 Journal Entry JE-001 created           2 hours ago      │
+│    by John Smith                                            │
+│ ─────────────────────────────────────────────────────────── │
+│ 💰 Account "Cash" updated                 3 hours ago      │
+│    by Jane Doe                                              │
+│ ─────────────────────────────────────────────────────────── │
+│ 🏢 Company "Acme Corp" created            1 day ago        │
+│    by John Smith                                            │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### Files to Modify
+
+- `packages/web/src/routes/organizations/$organizationId/dashboard.tsx` - Fetch and display audit log data
 
 ### Issue 15: UI Structure - Organization Selector & New Dropdown - RESOLVED
 - **Status**: Completed

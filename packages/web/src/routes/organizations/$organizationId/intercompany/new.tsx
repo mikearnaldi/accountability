@@ -9,14 +9,14 @@
 import { createFileRoute, redirect, Link, useRouter } from "@tanstack/react-router"
 import { createServerFn } from "@tanstack/react-start"
 import { getCookie } from "@tanstack/react-start/server"
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { createServerApi } from "@/api/server"
 import { api } from "@/api/client"
 import { AppLayout } from "@/components/layout/AppLayout"
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
 import { Select } from "@/components/ui/Select"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, ChevronDown, FileText, Loader2 } from "lucide-react"
 
 // =============================================================================
 // Types
@@ -33,6 +33,15 @@ interface Company {
   readonly name: string
   readonly functionalCurrency: string
   readonly isActive: boolean
+}
+
+interface JournalEntry {
+  readonly id: string
+  readonly referenceNumber: string | null
+  readonly entryNumber: string | null
+  readonly transactionDate: { year: number; month: number; day: number }
+  readonly description: string
+  readonly status: string
 }
 
 type TransactionType = "SalePurchase" | "Loan" | "ManagementFee" | "Dividend" | "CapitalContribution" | "CostAllocation" | "Royalty"
@@ -183,6 +192,16 @@ function CreateIntercompanyTransactionPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [apiError, setApiError] = useState<string | null>(null)
 
+  // Journal Entry linking state (per Issue 36)
+  const [fromJournalEntries, setFromJournalEntries] = useState<readonly JournalEntry[]>([])
+  const [toJournalEntries, setToJournalEntries] = useState<readonly JournalEntry[]>([])
+  const [fromJournalEntryId, setFromJournalEntryId] = useState<string | null>(null)
+  const [toJournalEntryId, setToJournalEntryId] = useState<string | null>(null)
+  const [isLoadingFromJEs, setIsLoadingFromJEs] = useState(false)
+  const [isLoadingToJEs, setIsLoadingToJEs] = useState(false)
+  const [showFromJESection, setShowFromJESection] = useState(false)
+  const [showToJESection, setShowToJESection] = useState(false)
+
   // Validation state
   const [errors, setErrors] = useState<{
     fromCompanyId?: string
@@ -219,6 +238,84 @@ function CreateIntercompanyTransactionPage() {
     }
     return Array.from(currencies).sort()
   }, [activeCompanies, organization])
+
+  // Fetch journal entries for "From" company when selected (per Issue 36)
+  useEffect(() => {
+    if (!fromCompanyId) {
+      setFromJournalEntries([])
+      setFromJournalEntryId(null)
+      return
+    }
+
+    const fetchFromJEs = async () => {
+      setIsLoadingFromJEs(true)
+      try {
+        const { data } = await api.GET("/api/v1/journal-entries", {
+          params: { query: { companyId: fromCompanyId } }
+        })
+        if (data?.entries) {
+          // Filter to only include approved/posted entries (not drafts) and map to local interface
+          const filteredEntries: JournalEntry[] = data.entries
+            .filter((je) => je.status === "Approved" || je.status === "Posted")
+            .map((je) => ({
+              id: je.id,
+              referenceNumber: je.referenceNumber,
+              entryNumber: je.entryNumber,
+              transactionDate: je.transactionDate,
+              description: je.description,
+              status: je.status
+            }))
+          setFromJournalEntries(filteredEntries)
+        }
+      } catch {
+        // Silently fail - JE linking is optional
+        setFromJournalEntries([])
+      } finally {
+        setIsLoadingFromJEs(false)
+      }
+    }
+
+    fetchFromJEs()
+  }, [fromCompanyId])
+
+  // Fetch journal entries for "To" company when selected (per Issue 36)
+  useEffect(() => {
+    if (!toCompanyId) {
+      setToJournalEntries([])
+      setToJournalEntryId(null)
+      return
+    }
+
+    const fetchToJEs = async () => {
+      setIsLoadingToJEs(true)
+      try {
+        const { data } = await api.GET("/api/v1/journal-entries", {
+          params: { query: { companyId: toCompanyId } }
+        })
+        if (data?.entries) {
+          // Filter to only include approved/posted entries (not drafts) and map to local interface
+          const filteredEntries: JournalEntry[] = data.entries
+            .filter((je) => je.status === "Approved" || je.status === "Posted")
+            .map((je) => ({
+              id: je.id,
+              referenceNumber: je.referenceNumber,
+              entryNumber: je.entryNumber,
+              transactionDate: je.transactionDate,
+              description: je.description,
+              status: je.status
+            }))
+          setToJournalEntries(filteredEntries)
+        }
+      } catch {
+        // Silently fail - JE linking is optional
+        setToJournalEntries([])
+      } finally {
+        setIsLoadingToJEs(false)
+      }
+    }
+
+    fetchToJEs()
+  }, [toCompanyId])
 
   // Map companies for sidebar
   const companiesForSidebar = companies.map((c) => ({ id: c.id, name: c.name }))
@@ -293,7 +390,10 @@ function CreateIntercompanyTransactionPage() {
             amount,
             currency
           },
-          description: description.trim() || null
+          description: description.trim() || null,
+          // Include optional JE links (per Issue 36)
+          fromJournalEntryId: fromJournalEntryId || null,
+          toJournalEntryId: toJournalEntryId || null
         }
       })
 
@@ -436,6 +536,137 @@ function CreateIntercompanyTransactionPage() {
               </div>
             </div>
           </div>
+
+          {/* Journal Entry Linking Section (per Issue 36) */}
+          {(fromCompanyId || toCompanyId) && (
+            <div className="rounded-lg border border-gray-200 bg-white p-6">
+              <h2 className="text-lg font-medium text-gray-900 mb-2">
+                Link Journal Entries
+                <span className="ml-2 text-sm font-normal text-gray-500">(Optional)</span>
+              </h2>
+              <p className="text-sm text-gray-500 mb-4">
+                Optionally link existing journal entries from each company to this intercompany transaction.
+              </p>
+
+              <div className="grid gap-6 sm:grid-cols-2">
+                {/* From Company JE */}
+                {fromCompanyId && (
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => setShowFromJESection(!showFromJESection)}
+                      className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900"
+                      data-testid="from-je-toggle"
+                    >
+                      <ChevronDown
+                        className={`h-4 w-4 transition-transform ${showFromJESection ? "rotate-180" : ""}`}
+                      />
+                      <FileText className="h-4 w-4" />
+                      From Company Journal Entry
+                    </button>
+
+                    {showFromJESection && (
+                      <div className="mt-3">
+                        {isLoadingFromJEs ? (
+                          <div className="flex items-center gap-2 text-sm text-gray-500">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Loading journal entries...
+                          </div>
+                        ) : fromJournalEntries.length === 0 ? (
+                          <p className="text-sm text-gray-500 italic">
+                            No approved journal entries found for this company.
+                          </p>
+                        ) : (
+                          <>
+                            <Select
+                              id="fromJournalEntryId"
+                              value={fromJournalEntryId ?? ""}
+                              onChange={(e) => setFromJournalEntryId(e.target.value || null)}
+                              className="w-full"
+                              data-testid="from-je-select"
+                            >
+                              <option value="">Select journal entry...</option>
+                              {fromJournalEntries.map((je) => {
+                                const dateStr = `${je.transactionDate.year}-${String(je.transactionDate.month).padStart(2, "0")}-${String(je.transactionDate.day).padStart(2, "0")}`
+                                const ref = je.referenceNumber ?? je.entryNumber ?? "—"
+                                const desc = je.description.substring(0, 30) || "No description"
+                                return (
+                                  <option key={je.id} value={je.id}>
+                                    {dateStr} | {ref} | {desc}
+                                  </option>
+                                )
+                              })}
+                            </Select>
+                            <p className="mt-1 text-xs text-gray-500">
+                              Select a journal entry from the "From" company to link.
+                            </p>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* To Company JE */}
+                {toCompanyId && (
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => setShowToJESection(!showToJESection)}
+                      className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900"
+                      data-testid="to-je-toggle"
+                    >
+                      <ChevronDown
+                        className={`h-4 w-4 transition-transform ${showToJESection ? "rotate-180" : ""}`}
+                      />
+                      <FileText className="h-4 w-4" />
+                      To Company Journal Entry
+                    </button>
+
+                    {showToJESection && (
+                      <div className="mt-3">
+                        {isLoadingToJEs ? (
+                          <div className="flex items-center gap-2 text-sm text-gray-500">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Loading journal entries...
+                          </div>
+                        ) : toJournalEntries.length === 0 ? (
+                          <p className="text-sm text-gray-500 italic">
+                            No approved journal entries found for this company.
+                          </p>
+                        ) : (
+                          <>
+                            <Select
+                              id="toJournalEntryId"
+                              value={toJournalEntryId ?? ""}
+                              onChange={(e) => setToJournalEntryId(e.target.value || null)}
+                              className="w-full"
+                              data-testid="to-je-select"
+                            >
+                              <option value="">Select journal entry...</option>
+                              {toJournalEntries.map((je) => {
+                                const dateStr = `${je.transactionDate.year}-${String(je.transactionDate.month).padStart(2, "0")}-${String(je.transactionDate.day).padStart(2, "0")}`
+                                const ref = je.referenceNumber ?? je.entryNumber ?? "—"
+                                const desc = je.description.substring(0, 30) || "No description"
+                                return (
+                                  <option key={je.id} value={je.id}>
+                                    {dateStr} | {ref} | {desc}
+                                  </option>
+                                )
+                              })}
+                            </Select>
+                            <p className="mt-1 text-xs text-gray-500">
+                              Select a journal entry from the "To" company to link.
+                            </p>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Transaction Details Card */}
           <div className="rounded-lg border border-gray-200 bg-white p-6">

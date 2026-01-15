@@ -79,17 +79,15 @@ interface QuickActionItem {
 
 /**
  * Get navigation items based on whether an organization is selected
+ *
+ * Per Issue 35: When no organization is selected (on /organizations page),
+ * only show "Organizations" link. Dashboard and other nav items don't make
+ * sense without an organization context.
  */
 function getNavItems(organizationId?: string): readonly NavItem[] {
-  // If no organization selected, show global navigation
+  // If no organization selected, only show Organizations link
   if (!organizationId) {
     return [
-      {
-        label: "Dashboard",
-        href: "/",
-        icon: LayoutDashboard,
-        testId: "nav-dashboard"
-      },
       {
         label: "Organizations",
         href: "/organizations",

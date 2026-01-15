@@ -213,7 +213,7 @@ export const IntercompanyTransactionsApiLive = HttpApiBuilder.group(AppApi, "int
             }))
           }
 
-          // Create the transaction
+          // Create the transaction with optional JE links (per Issue 36)
           const now = timestampNow()
           const newTransaction = IntercompanyTransaction.make({
             id: IntercompanyTransactionId.make(crypto.randomUUID()),
@@ -223,8 +223,9 @@ export const IntercompanyTransactionsApiLive = HttpApiBuilder.group(AppApi, "int
             transactionDate: req.transactionDate,
             amount: req.amount,
             description: req.description,
-            fromJournalEntryId: Option.none(),
-            toJournalEntryId: Option.none(),
+            // Use provided JE IDs if present, otherwise leave as none
+            fromJournalEntryId: Option.isSome(req.fromJournalEntryId) ? req.fromJournalEntryId : Option.none(),
+            toJournalEntryId: Option.isSome(req.toJournalEntryId) ? req.toJournalEntryId : Option.none(),
             matchingStatus: "Unmatched",
             varianceAmount: Option.none(),
             varianceExplanation: Option.none(),

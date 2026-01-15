@@ -9,6 +9,11 @@ export default defineConfig({
   server: {
     port: 3000
   },
+  // Build-time replacement enables dead code elimination for conditional imports
+  // This allows the bundler to tree-shake out handler.dev.ts (testcontainers) in production
+  define: {
+    "process.env.NODE_ENV": JSON.stringify(process.env.NODE_ENV || "development")
+  },
   css: {
     // Disable lightningcss transformer - incompatible with Tailwind v4 syntax
     transformer: "postcss"

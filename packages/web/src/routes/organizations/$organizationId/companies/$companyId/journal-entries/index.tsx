@@ -105,26 +105,8 @@ interface Organization {
   readonly name: string
 }
 
-interface FiscalPeriod {
-  readonly id: string
-  readonly fiscalYearId: string
-  readonly periodNumber: number
-  readonly name: string
-  readonly periodType: string
-  readonly startDate: LocalDate
-  readonly endDate: LocalDate
-  readonly status: string
-}
-
-interface FiscalYear {
-  readonly id: string
-  readonly companyId: string
-  readonly name: string
-  readonly startDate: LocalDate
-  readonly endDate: LocalDate
-  readonly status: string
-  readonly periods: readonly FiscalPeriod[]
-}
+// Note: FiscalYear and FiscalPeriod are now computed automatically from transaction dates (Issue 33/34)
+// The filtering uses the fiscal year/period stored on each journal entry
 
 // =============================================================================
 // Server Functions: Fetch journal entries, company, organization and fiscal data
@@ -144,7 +126,6 @@ const fetchJournalEntriesData = createServerFn({ method: "GET" })
         total: 0,
         company: null,
         organization: null,
-        fiscalYears: [],
         error: "unauthorized" as const
       }
     }
@@ -154,8 +135,9 @@ const fetchJournalEntriesData = createServerFn({ method: "GET" })
       const serverApi = createServerApi()
       const Authorization = `Bearer ${sessionToken}`
 
-      // Fetch journal entries, company, organization, and fiscal years in parallel
-      const [entriesResult, companyResult, orgResult, fiscalYearsResult] = await Promise.all([
+      // Fetch journal entries, company, and organization in parallel
+      // Note: Fiscal periods are now computed automatically, no longer persisted (Issue 33/34)
+      const [entriesResult, companyResult, orgResult] = await Promise.all([
         serverApi.GET("/api/v1/journal-entries", {
           params: { query: { companyId: data.companyId, limit: "1000" } },
           headers: { Authorization }
@@ -167,10 +149,6 @@ const fetchJournalEntriesData = createServerFn({ method: "GET" })
         serverApi.GET("/api/v1/organizations/{id}", {
           params: { path: { id: data.organizationId } },
           headers: { Authorization }
-        }),
-        serverApi.GET("/api/v1/fiscal/fiscal-years", {
-          params: { query: { companyId: data.companyId, limit: "100" } },
-          headers: { Authorization }
         })
       ])
 
@@ -181,7 +159,6 @@ const fetchJournalEntriesData = createServerFn({ method: "GET" })
             total: 0,
             company: null,
             organization: null,
-            fiscalYears: [],
             error: "not_found" as const
           }
         }
@@ -190,7 +167,6 @@ const fetchJournalEntriesData = createServerFn({ method: "GET" })
           total: 0,
           company: null,
           organization: null,
-          fiscalYears: [],
           error: "failed" as const
         }
       }
@@ -201,7 +177,6 @@ const fetchJournalEntriesData = createServerFn({ method: "GET" })
           total: 0,
           company: null,
           organization: null,
-          fiscalYears: [],
           error: "failed" as const
         }
       }
@@ -211,7 +186,6 @@ const fetchJournalEntriesData = createServerFn({ method: "GET" })
         total: entriesResult.data?.total ?? 0,
         company: companyResult.data,
         organization: orgResult.data,
-        fiscalYears: fiscalYearsResult.data?.fiscalYears ?? [],
         error: null
       }
     } catch {
@@ -220,7 +194,6 @@ const fetchJournalEntriesData = createServerFn({ method: "GET" })
         total: 0,
         company: null,
         organization: null,
-        fiscalYears: [],
         error: "failed" as const
       }
     }
@@ -259,8 +232,7 @@ export const Route = createFileRoute(
       entries: result.entries,
       total: result.total,
       company: result.company,
-      organization: result.organization,
-      fiscalYears: result.fiscalYears
+      organization: result.organization
     }
   },
   errorComponent: ({ error }) => (
@@ -311,8 +283,16 @@ function JournalEntriesPage() {
   const total = loaderData.total as number
   const company = loaderData.company as Company | null
   const organization = loaderData.organization as Organization | null
-  const fiscalYears = loaderData.fiscalYears as readonly FiscalYear[]
   /* eslint-enable @typescript-eslint/consistent-type-assertions */
+
+  // Compute available fiscal years from entries (since fiscal periods are now computed, Issue 33/34)
+  const availableFiscalYears = useMemo(() => {
+    const years = new Set<number>()
+    for (const entry of entries) {
+      years.add(entry.fiscalPeriod.year)
+    }
+    return Array.from(years).sort((a, b) => b - a) // Sort descending (most recent first)
+  }, [entries])
   const params = Route.useParams()
   const user = context.user
   // Organizations come from the parent layout route's beforeLoad
@@ -327,12 +307,18 @@ function JournalEntriesPage() {
   const [filterToDate, setFilterToDate] = useState<string>("")
   const [searchQuery, setSearchQuery] = useState("")
 
-  // Get available periods for selected fiscal year
+  // Get available periods for selected fiscal year (computed from entries)
   const availablePeriods = useMemo(() => {
     if (filterFiscalYear === "All") return []
-    const selectedYear = fiscalYears.find(fy => fy.id === filterFiscalYear)
-    return selectedYear?.periods ?? []
-  }, [filterFiscalYear, fiscalYears])
+    const yearNum = parseInt(filterFiscalYear, 10)
+    const periods = new Set<number>()
+    for (const entry of entries) {
+      if (entry.fiscalPeriod.year === yearNum) {
+        periods.add(entry.fiscalPeriod.period)
+      }
+    }
+    return Array.from(periods).sort((a, b) => a - b) // Sort ascending
+  }, [filterFiscalYear, entries])
 
   // Filter entries
   const filteredEntries = useMemo(() => {
@@ -348,13 +334,10 @@ function JournalEntriesPage() {
       result = result.filter((entry) => entry.entryType === filterType)
     }
 
-    // Filter by fiscal year
+    // Filter by fiscal year (computed from entry's fiscalPeriod.year)
     if (filterFiscalYear !== "All") {
-      const selectedYear = fiscalYears.find(fy => fy.id === filterFiscalYear)
-      if (selectedYear) {
-        const yearNum = parseInt(selectedYear.name.replace(/\D/g, ""), 10)
-        result = result.filter((entry) => entry.fiscalPeriod.year === yearNum)
-      }
+      const yearNum = parseInt(filterFiscalYear, 10)
+      result = result.filter((entry) => entry.fiscalPeriod.year === yearNum)
     }
 
     // Filter by fiscal period
@@ -401,7 +384,7 @@ function JournalEntriesPage() {
     })
 
     return result
-  }, [entries, filterStatus, filterType, filterFiscalYear, filterFiscalPeriod, filterFromDate, filterToDate, searchQuery, fiscalYears])
+  }, [entries, filterStatus, filterType, filterFiscalYear, filterFiscalPeriod, filterFromDate, filterToDate, searchQuery])
 
   // Clear all filters
   const clearFilters = () => {
@@ -565,9 +548,9 @@ function JournalEntriesPage() {
               className="rounded-lg border border-gray-300 py-2 pl-3 pr-8 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
               <option value="All">All Fiscal Years</option>
-              {fiscalYears.map((fy) => (
-                <option key={fy.id} value={fy.id}>
-                  {fy.name}
+              {availableFiscalYears.map((year) => (
+                <option key={year} value={year.toString()}>
+                  FY {year}
                 </option>
               ))}
             </select>
@@ -581,9 +564,9 @@ function JournalEntriesPage() {
               className="rounded-lg border border-gray-300 py-2 pl-3 pr-8 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-400"
             >
               <option value="All">All Periods</option>
-              {availablePeriods.map((period) => (
-                <option key={period.id} value={period.periodNumber.toString()}>
-                  {period.name}
+              {availablePeriods.map((periodNum) => (
+                <option key={periodNum} value={periodNum.toString()}>
+                  P{periodNum}
                 </option>
               ))}
             </select>

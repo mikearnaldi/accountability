@@ -221,3 +221,8 @@
 **Task**: Fixed 7 failing E2E tests by: (1) Using specific data-testid selectors for account code in accounts.spec.ts to avoid matching timestamps in org names, (2) Removing the obsolete Fiscal Periods test from company-details.spec.ts since FiscalPeriodsApi was removed, (3) Removing all 10 fiscal year creation API calls from journal-entries.spec.ts and journal-entry-workflow.spec.ts since fiscal periods are now computed automatically, (4) Fixing organizations.spec.ts to handle both empty state and list view button variants, and (5) Adding proper wait times and force clicks for filter operations. All 179 E2E tests now pass, along with all unit tests, typecheck, and lint.
 **Status**: complete
 ---
+
+## Iteration 1 - 2026-01-15 22:51
+**Task**: Implemented Issues 35 and 36: (1) Updated Sidebar to only show "Organizations" nav item when no organization is selected, hiding Dashboard and other org-scoped navigation items. (2) Added optional JE linking during Intercompany Transaction creation - backend now accepts optional fromJournalEntryId/toJournalEntryId in create request, frontend shows collapsible JE selection section after company selection with approved/posted JEs from each company. Also fixed pre-existing type errors from Issue 33/34 (fiscal periods removal) in journal-entries/index.tsx, companies/new.tsx, and dashboard.tsx.
+**Status**: complete
+---

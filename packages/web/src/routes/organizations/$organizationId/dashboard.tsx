@@ -172,21 +172,11 @@ const fetchOrganizationDashboard = createServerFn({ method: "GET" })
         }
       }
 
-      // Fetch open fiscal periods count
-      let openPeriodsCount = 0
-      for (const company of companies.slice(0, 10)) {
-        try {
-          const periodsResult = await serverApi.GET("/api/v1/fiscal/fiscal-periods", {
-            params: { query: { companyId: company.id, status: "Open", limit: "1" } },
-            headers
-          })
-          openPeriodsCount += periodsResult.data?.total ?? 0
-        } catch {
-          // Skip failed periods fetches
-        }
-      }
+      // Note: Fiscal periods are now computed automatically from transaction dates (Issue 33/34)
+      // No need to track "open periods" since periods are never closed
+      const openPeriodsCount = 0
 
-      // Recent activity placeholder (until audit log API is ready)
+      // Recent activity placeholder (until audit log API is ready - Issue 39)
       const recentActivity: DashboardData["recentActivity"] = []
 
       // Map companies to minimal structure for sidebar

@@ -33,6 +33,9 @@ import { AuthMiddleware } from "./AuthMiddleware.ts"
 
 /**
  * CreateIntercompanyTransactionRequest - Request body for creating a new intercompany transaction
+ *
+ * Optional JE linking: Users can optionally link journal entries during creation
+ * instead of requiring separate link actions after the fact.
  */
 export class CreateIntercompanyTransactionRequest extends Schema.Class<CreateIntercompanyTransactionRequest>("CreateIntercompanyTransactionRequest")({
   fromCompanyId: CompanyId,
@@ -40,7 +43,10 @@ export class CreateIntercompanyTransactionRequest extends Schema.Class<CreateInt
   transactionType: IntercompanyTransactionType,
   transactionDate: LocalDateFromString,
   amount: MonetaryAmount,
-  description: Schema.OptionFromNullOr(Schema.NonEmptyTrimmedString)
+  description: Schema.OptionFromNullOr(Schema.NonEmptyTrimmedString),
+  // Optional JE linking during creation (per Issue 36)
+  fromJournalEntryId: Schema.OptionFromNullOr(JournalEntryId),
+  toJournalEntryId: Schema.OptionFromNullOr(JournalEntryId)
 }) {}
 
 /**

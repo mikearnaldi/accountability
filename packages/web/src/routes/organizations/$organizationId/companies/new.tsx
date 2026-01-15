@@ -209,7 +209,7 @@ function NewCompanyPage() {
     setApiError(null)
 
     try {
-      const { data: companyData, error } = await api.POST("/api/v1/companies", {
+      const { error } = await api.POST("/api/v1/companies", {
         body: {
           organizationId: params.organizationId,
           name: formData.name,
@@ -237,72 +237,8 @@ function NewCompanyPage() {
         return
       }
 
-      // Auto-create fiscal year and periods for the new company
-      // This ensures users can immediately create journal entries
-      if (companyData?.id && formData.fiscalYearEnd) {
-        try {
-          // Calculate start date for current fiscal year based on fiscal year end
-          const now = new Date()
-          const currentYear = now.getFullYear()
-          const fyMonth = formData.fiscalYearEnd.month
-          const fyDay = formData.fiscalYearEnd.day
-
-          // Calculate fiscal year start date
-          let startYear: number
-          if (fyMonth === 12 && fyDay === 31) {
-            // Calendar year - start Jan 1 of current year
-            startYear = currentYear
-          } else {
-            // Non-calendar year - check if we're past the fiscal year end
-            const fyEndThisYear = new Date(currentYear, fyMonth - 1, fyDay)
-            if (now > fyEndThisYear) {
-              startYear = currentYear
-            } else {
-              startYear = currentYear - 1
-            }
-          }
-
-          // Calculate actual start date: day after last fiscal year end
-          let startMonth = fyMonth
-          let startDay = fyDay + 1
-          if (startMonth === 12 && startDay > 31) {
-            startMonth = 1
-            startDay = 1
-            startYear++
-          } else if (startDay > new Date(startYear, startMonth, 0).getDate()) {
-            startMonth++
-            startDay = 1
-            if (startMonth > 12) {
-              startMonth = 1
-              startYear++
-            }
-          }
-
-          const startDate = `${startYear}-${String(startMonth).padStart(2, "0")}-${String(startDay).padStart(2, "0")}`
-
-          // Create fiscal year with 12 monthly periods + adjustment period
-          await api.POST("/api/v1/fiscal/fiscal-years", {
-            body: {
-              companyId: companyData.id,
-              startDate,
-              includeAdjustmentPeriod: true
-            }
-          })
-
-          // Also create next fiscal year for future planning
-          const nextStartDate = `${startYear + 1}-${String(startMonth).padStart(2, "0")}-${String(startDay).padStart(2, "0")}`
-          await api.POST("/api/v1/fiscal/fiscal-years", {
-            body: {
-              companyId: companyData.id,
-              startDate: nextStartDate,
-              includeAdjustmentPeriod: true
-            }
-          })
-        } catch {
-          // Fiscal year creation failure is not critical - company was created successfully
-          // User can manually create fiscal years later via the Fiscal Periods page
-        }
-      }
+      // Note: Fiscal periods are now computed automatically from transaction dates (Issue 33/34)
+      // No need to create fiscal years/periods explicitly
 
       // Navigate to companies list after successful creation
       router.navigate({
