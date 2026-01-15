@@ -13,9 +13,9 @@ const baseURL = `http://localhost:${TEST_PORT}`
 export default defineConfig({
   testDir: "./test-e2e",
 
-  // Run tests sequentially for database state isolation
-  fullyParallel: false,
-  workers: 1,
+  // Run tests in parallel - each test creates its own isolated data
+  fullyParallel: true,
+  workers: process.env.CI ? 2 : "50%",
 
   // Fail the build on CI if you accidentally left test.only
   forbidOnly: !!process.env.CI,
