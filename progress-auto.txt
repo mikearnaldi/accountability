@@ -226,3 +226,8 @@
 **Task**: Implemented Issues 35 and 36: (1) Updated Sidebar to only show "Organizations" nav item when no organization is selected, hiding Dashboard and other org-scoped navigation items. (2) Added optional JE linking during Intercompany Transaction creation - backend now accepts optional fromJournalEntryId/toJournalEntryId in create request, frontend shows collapsible JE selection section after company selection with approved/posted JEs from each company. Also fixed pre-existing type errors from Issue 33/34 (fiscal periods removal) in journal-entries/index.tsx, companies/new.tsx, and dashboard.tsx.
 **Status**: complete
 ---
+
+## Iteration 2 - 2026-01-15 22:57
+**Task**: Implemented Issue 38 - Journal Entry Edit Functionality. Created a new edit route page (`packages/web/src/routes/organizations/$organizationId/companies/$companyId/journal-entries/$entryId/edit.tsx`) that pre-populates the form with existing entry data, supports multi-currency, shows computed fiscal periods, and only allows editing Draft entries. Updated the detail page to enable the Edit button as a working link for Draft entries. All 3589 unit tests pass and typecheck is clean.
+**Status**: complete
+---

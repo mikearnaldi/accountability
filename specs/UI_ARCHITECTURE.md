@@ -26,7 +26,7 @@ This section tracks known issues, implementation status, and priorities.
 | **Issue 35** | ✅ DONE | Sidebar: Only show "Organizations" on /organizations page | Hide Dashboard and other nav when no org selected |
 | **Issue 36** | ✅ DONE | Intercompany: Link JEs During Creation | Backend + Frontend - select existing JEs when creating IC transaction |
 | **Issue 37** | ❌ OPEN | Profile Page Implementation | Create /profile route, enable dropdown link, allow editing display name |
-| **Issue 38** | ❌ OPEN | Journal Entry Edit Functionality | Create edit route, enable Edit button on JE detail page |
+| **Issue 38** | ✅ DONE | Journal Entry Edit Functionality | Create edit route, enable Edit button on JE detail page |
 | **Issue 39** | ❌ OPEN | Dashboard Recent Activity | Wire up to Audit Log API instead of empty array placeholder |
 
 **⚠️ You MUST complete ALL issues marked ❌ OPEN before signaling completion.**
@@ -1296,91 +1296,36 @@ After backend changes, run:
 cd packages/web && pnpm generate:api
 ```
 
-### Issue 38: Journal Entry Edit Functionality
-- **Status**: ❌ OPEN
-- **Priority**: HIGH
-- **Problem**: The Edit button on the Journal Entry detail page is disabled with "Edit functionality coming soon". Users cannot edit draft journal entries.
+### Issue 38: Journal Entry Edit Functionality - RESOLVED
+- **Status**: ✅ RESOLVED
+- **Priority**: HIGH (was)
+- **Problem** (was): The Edit button on the Journal Entry detail page was disabled with "Edit functionality coming soon". Users could not edit draft journal entries.
 
-#### Current State
+#### Resolution
 
-In `journal-entries/$entryId/index.tsx` line 729-739:
-```tsx
-<button
-  disabled
-  className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-400 cursor-not-allowed"
-  title="Edit functionality coming soon"
-  data-testid="edit-button"
->
-  <EditIcon />
-  Edit
-</button>
-```
+Implemented full journal entry editing functionality:
 
-No edit route exists (`journal-entries/$entryId/edit.tsx` is missing).
+1. **Created Edit Route Page**: `packages/web/src/routes/organizations/$organizationId/companies/$companyId/journal-entries/$entryId/edit.tsx`
+   - Pre-populates form with existing entry data (description, reference, transaction date, entry type, line items)
+   - Uses same form structure as new.tsx (consistent UX)
+   - Only allows editing entries in "Draft" status (displays warning for non-draft entries)
+   - Calls `PUT /api/v1/journal-entries/:id` on submit
+   - Shows real-time balance validation (entry must be balanced to save)
+   - Supports multi-currency entries
+   - Computed fiscal period display (based on transaction date)
+   - Navigates back to detail page on success
 
-#### Backend API Available
+2. **Enabled Edit Button**: Updated `journal-entries/$entryId/index.tsx`
+   - Changed disabled button to a working `<Link>` component
+   - Links to the new edit route with proper params
+   - Only shown for Draft entries (already conditionally rendered in Draft status block)
 
-The API already supports updating journal entries:
-- `PUT /api/v1/journal-entries/:id` - Update a draft journal entry
+#### Files Modified
 
-From `JournalEntriesApi.ts`:
-```typescript
-const updateJournalEntry = HttpApiEndpoint.put("updateJournalEntry", "/:id")
-  .setPath(Schema.Struct({ id: JournalEntryId }))
-  .setPayload(UpdateJournalEntryRequest)
-  .addSuccess(JournalEntryWithLinesResponse)
-```
+- **NEW**: `packages/web/src/routes/organizations/$organizationId/companies/$companyId/journal-entries/$entryId/edit.tsx`
+- **MODIFIED**: `packages/web/src/routes/organizations/$organizationId/companies/$companyId/journal-entries/$entryId/index.tsx`
 
-#### Required Implementation
-
-**1. Create Edit Route**
-
-**File: `packages/web/src/routes/organizations/$organizationId/companies/$companyId/journal-entries/$entryId/edit.tsx`** (NEW)
-
-- Pre-populate form with existing entry data
-- Use same form structure as `new.tsx` but in edit mode
-- Only allow editing entries in "Draft" status
-- Call `PUT /api/v1/journal-entries/:id` on submit
-- Redirect to detail page on success
-
-**2. Enable Edit Button**
-
-**File: `packages/web/src/routes/organizations/$organizationId/companies/$companyId/journal-entries/$entryId/index.tsx`**
-
-Change disabled button to a working link:
-```tsx
-// Before (disabled)
-<button disabled title="Edit functionality coming soon">
-  Edit
-</button>
-
-// After (enabled, only for Draft entries)
-{entry.status === "Draft" && (
-  <Link
-    to="/organizations/$organizationId/companies/$companyId/journal-entries/$entryId/edit"
-    params={{ organizationId, companyId, entryId: entry.id }}
-    className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-    data-testid="edit-button"
-  >
-    <EditIcon />
-    Edit
-  </Link>
-)}
-```
-
-#### Validation Rules
-
-1. Only Draft entries can be edited (enforced by backend)
-2. Entry must still balance after edit (debits = credits)
-3. Must have at least 2 lines
-
-#### Files to Create/Modify
-
-**Frontend (NEW):**
-- `packages/web/src/routes/organizations/$organizationId/companies/$companyId/journal-entries/$entryId/edit.tsx`
-
-**Frontend (MODIFY):**
-- `packages/web/src/routes/organizations/$organizationId/companies/$companyId/journal-entries/$entryId/index.tsx` - Enable Edit button
+All tests pass (3589 unit tests, typecheck clean)
 
 ### Issue 39: Dashboard Recent Activity
 - **Status**: ❌ OPEN

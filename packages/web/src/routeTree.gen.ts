@@ -46,6 +46,7 @@ import { Route as OrganizationsOrganizationIdCompaniesCompanyIdReportsBalanceShe
 import { Route as OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesNewRouteImport } from './routes/organizations/$organizationId/companies/$companyId/journal-entries/new'
 import { Route as OrganizationsOrganizationIdCompaniesCompanyIdAccountsNewRouteImport } from './routes/organizations/$organizationId/companies/$companyId/accounts/new'
 import { Route as OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesEntryIdIndexRouteImport } from './routes/organizations/$organizationId/companies/$companyId/journal-entries/$entryId/index'
+import { Route as OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesEntryIdEditRouteImport } from './routes/organizations/$organizationId/companies/$companyId/journal-entries/$entryId/edit'
 
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
@@ -279,6 +280,14 @@ const OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesEntryIdIndexRou
       getParentRoute: () => OrganizationsOrganizationIdRouteRoute,
     } as any,
   )
+const OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesEntryIdEditRoute =
+  OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesEntryIdEditRouteImport.update(
+    {
+      id: '/companies/$companyId/journal-entries/$entryId/edit',
+      path: '/companies/$companyId/journal-entries/$entryId/edit',
+      getParentRoute: () => OrganizationsOrganizationIdRouteRoute,
+    } as any,
+  )
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -317,6 +326,7 @@ export interface FileRoutesByFullPath {
   '/organizations/$organizationId/companies/$companyId/accounts': typeof OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute
   '/organizations/$organizationId/companies/$companyId/journal-entries': typeof OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesIndexRoute
   '/organizations/$organizationId/companies/$companyId/reports': typeof OrganizationsOrganizationIdCompaniesCompanyIdReportsIndexRoute
+  '/organizations/$organizationId/companies/$companyId/journal-entries/$entryId/edit': typeof OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesEntryIdEditRoute
   '/organizations/$organizationId/companies/$companyId/journal-entries/$entryId': typeof OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesEntryIdIndexRoute
 }
 export interface FileRoutesByTo {
@@ -355,6 +365,7 @@ export interface FileRoutesByTo {
   '/organizations/$organizationId/companies/$companyId/accounts': typeof OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute
   '/organizations/$organizationId/companies/$companyId/journal-entries': typeof OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesIndexRoute
   '/organizations/$organizationId/companies/$companyId/reports': typeof OrganizationsOrganizationIdCompaniesCompanyIdReportsIndexRoute
+  '/organizations/$organizationId/companies/$companyId/journal-entries/$entryId/edit': typeof OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesEntryIdEditRoute
   '/organizations/$organizationId/companies/$companyId/journal-entries/$entryId': typeof OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesEntryIdIndexRoute
 }
 export interface FileRoutesById {
@@ -395,6 +406,7 @@ export interface FileRoutesById {
   '/organizations/$organizationId/companies/$companyId/accounts/': typeof OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute
   '/organizations/$organizationId/companies/$companyId/journal-entries/': typeof OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesIndexRoute
   '/organizations/$organizationId/companies/$companyId/reports/': typeof OrganizationsOrganizationIdCompaniesCompanyIdReportsIndexRoute
+  '/organizations/$organizationId/companies/$companyId/journal-entries/$entryId/edit': typeof OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesEntryIdEditRoute
   '/organizations/$organizationId/companies/$companyId/journal-entries/$entryId/': typeof OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesEntryIdIndexRoute
 }
 export interface FileRouteTypes {
@@ -436,6 +448,7 @@ export interface FileRouteTypes {
     | '/organizations/$organizationId/companies/$companyId/accounts'
     | '/organizations/$organizationId/companies/$companyId/journal-entries'
     | '/organizations/$organizationId/companies/$companyId/reports'
+    | '/organizations/$organizationId/companies/$companyId/journal-entries/$entryId/edit'
     | '/organizations/$organizationId/companies/$companyId/journal-entries/$entryId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -474,6 +487,7 @@ export interface FileRouteTypes {
     | '/organizations/$organizationId/companies/$companyId/accounts'
     | '/organizations/$organizationId/companies/$companyId/journal-entries'
     | '/organizations/$organizationId/companies/$companyId/reports'
+    | '/organizations/$organizationId/companies/$companyId/journal-entries/$entryId/edit'
     | '/organizations/$organizationId/companies/$companyId/journal-entries/$entryId'
   id:
     | '__root__'
@@ -513,6 +527,7 @@ export interface FileRouteTypes {
     | '/organizations/$organizationId/companies/$companyId/accounts/'
     | '/organizations/$organizationId/companies/$companyId/journal-entries/'
     | '/organizations/$organizationId/companies/$companyId/reports/'
+    | '/organizations/$organizationId/companies/$companyId/journal-entries/$entryId/edit'
     | '/organizations/$organizationId/companies/$companyId/journal-entries/$entryId/'
   fileRoutesById: FileRoutesById
 }
@@ -787,6 +802,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesEntryIdIndexRouteImport
       parentRoute: typeof OrganizationsOrganizationIdRouteRoute
     }
+    '/organizations/$organizationId/companies/$companyId/journal-entries/$entryId/edit': {
+      id: '/organizations/$organizationId/companies/$companyId/journal-entries/$entryId/edit'
+      path: '/companies/$companyId/journal-entries/$entryId/edit'
+      fullPath: '/organizations/$organizationId/companies/$companyId/journal-entries/$entryId/edit'
+      preLoaderRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesEntryIdEditRouteImport
+      parentRoute: typeof OrganizationsOrganizationIdRouteRoute
+    }
   }
 }
 
@@ -820,6 +842,7 @@ interface OrganizationsOrganizationIdRouteRouteChildren {
   OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute
   OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesIndexRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesIndexRoute
   OrganizationsOrganizationIdCompaniesCompanyIdReportsIndexRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdReportsIndexRoute
+  OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesEntryIdEditRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesEntryIdEditRoute
   OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesEntryIdIndexRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesEntryIdIndexRoute
 }
 
@@ -883,6 +906,8 @@ const OrganizationsOrganizationIdRouteRouteChildren: OrganizationsOrganizationId
       OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesIndexRoute,
     OrganizationsOrganizationIdCompaniesCompanyIdReportsIndexRoute:
       OrganizationsOrganizationIdCompaniesCompanyIdReportsIndexRoute,
+    OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesEntryIdEditRoute:
+      OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesEntryIdEditRoute,
     OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesEntryIdIndexRoute:
       OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesEntryIdIndexRoute,
   }
