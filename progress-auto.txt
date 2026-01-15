@@ -106,3 +106,8 @@
 **Task**: Updated UI_ARCHITECTURE.md spec to mark all 7 known issues (Post-Login Redirect, Home Route Redirect, Organization Detail Page Layout, Dashboard Breadcrumb, Consistent Page Layouts, Sidebar Flat Navigation, Create New Organization Link) as resolved with completion details.
 **Status**: complete
 ---
+
+## Iteration 5 - 2026-01-15 17:09
+**Task**: Fixed lint error by adding .tsx extension to Tooltip import in Table.tsx
+**Status**: complete
+---

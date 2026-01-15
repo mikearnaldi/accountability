@@ -13,6 +13,8 @@
 import { clsx } from "clsx"
 import type { ReactNode } from "react"
 
+import { Tooltip } from "./Tooltip.tsx"
+
 // =============================================================================
 // Table Component
 // =============================================================================
@@ -132,6 +134,8 @@ export function TableRow({ children, selected = false, className, "data-testid":
 interface TableHeaderCellProps {
   /** Cell content */
   readonly children?: ReactNode
+  /** Tooltip text explaining the column (shown on hover) */
+  readonly tooltip?: string
   /** Sortable indicator */
   readonly sortable?: boolean
   /** Current sort direction */
@@ -146,6 +150,7 @@ interface TableHeaderCellProps {
 
 export function TableHeaderCell({
   children,
+  tooltip,
   sortable = false,
   sortDirection,
   onSort,
@@ -159,6 +164,17 @@ export function TableHeaderCell({
       onSort()
     }
   } : undefined
+
+  const content = (
+    <div className="flex items-center gap-1">
+      {children}
+      {sortable && (
+        <span className="text-gray-400">
+          {sortDirection === "asc" ? "↑" : sortDirection === "desc" ? "↓" : "↕"}
+        </span>
+      )}
+    </div>
+  )
 
   return (
     <th
@@ -174,14 +190,13 @@ export function TableHeaderCell({
       aria-sort={sortDirection === "asc" ? "ascending" : sortDirection === "desc" ? "descending" : undefined}
       data-testid={testId}
     >
-      <div className="flex items-center gap-1">
-        {children}
-        {sortable && (
-          <span className="text-gray-400">
-            {sortDirection === "asc" ? "↑" : sortDirection === "desc" ? "↓" : "↕"}
-          </span>
-        )}
-      </div>
+      {tooltip ? (
+        <Tooltip content={tooltip} position="bottom">
+          {content}
+        </Tooltip>
+      ) : (
+        content
+      )}
     </th>
   )
 }

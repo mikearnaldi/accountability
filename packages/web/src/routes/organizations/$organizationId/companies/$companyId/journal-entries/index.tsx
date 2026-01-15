@@ -4,6 +4,7 @@ import { getCookie } from "@tanstack/react-start/server"
 import { useState, useMemo } from "react"
 import { createServerApi } from "@/api/server"
 import { AppLayout } from "@/components/layout/AppLayout"
+import { Tooltip } from "@/components/ui/Tooltip"
 
 // =============================================================================
 // Types (extracted from API response schema)
@@ -685,13 +686,37 @@ function JournalEntriesTable({
   return (
     <div className="rounded-lg border border-gray-200 bg-white overflow-hidden" data-testid="journal-entries-table">
       {/* Header */}
-      <div className="grid grid-cols-12 gap-4 border-b border-gray-200 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-500" data-testid="journal-entries-table-header">
-        <div className="col-span-2" data-testid="header-date">Date</div>
-        <div className="col-span-2" data-testid="header-reference">Reference</div>
-        <div className="col-span-3" data-testid="header-description">Description</div>
-        <div className="col-span-1" data-testid="header-type">Type</div>
-        <div className="col-span-2" data-testid="header-period">Period</div>
-        <div className="col-span-1" data-testid="header-status">Status</div>
+      <div className="grid grid-cols-12 gap-4 border-b border-gray-200 bg-gray-50 px-4 py-3 text-sm font-medium uppercase tracking-wider text-gray-500" data-testid="journal-entries-table-header">
+        <div className="col-span-2" data-testid="header-date">
+          <Tooltip content="Transaction date when the entry occurred">
+            <span className="cursor-help">Date</span>
+          </Tooltip>
+        </div>
+        <div className="col-span-2" data-testid="header-reference">
+          <Tooltip content="Entry reference number (user-defined) or system-generated entry number">
+            <span className="cursor-help">Reference</span>
+          </Tooltip>
+        </div>
+        <div className="col-span-3" data-testid="header-description">
+          <Tooltip content="Description of the journal entry transaction">
+            <span className="cursor-help">Description</span>
+          </Tooltip>
+        </div>
+        <div className="col-span-1" data-testid="header-type">
+          <Tooltip content="Entry type: Standard, Adjusting, Closing, Opening, Reversing, etc.">
+            <span className="cursor-help">Type</span>
+          </Tooltip>
+        </div>
+        <div className="col-span-2" data-testid="header-period">
+          <Tooltip content="Fiscal period (year and period number) to which this entry is posted">
+            <span className="cursor-help">Period</span>
+          </Tooltip>
+        </div>
+        <div className="col-span-1" data-testid="header-status">
+          <Tooltip content="Current state: Draft, Pending Approval, Approved, Posted, or Reversed">
+            <span className="cursor-help">Status</span>
+          </Tooltip>
+        </div>
         <div className="col-span-1"></div>
       </div>
 

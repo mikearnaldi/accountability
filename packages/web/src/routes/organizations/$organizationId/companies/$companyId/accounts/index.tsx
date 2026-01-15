@@ -11,6 +11,7 @@ import {
 } from "@/components/forms/AccountForm"
 import { ApplyTemplateModal } from "@/components/accounts/ApplyTemplateModal"
 import { AppLayout } from "@/components/layout/AppLayout"
+import { Tooltip } from "@/components/ui/Tooltip"
 
 // =============================================================================
 // Types
@@ -588,13 +589,37 @@ function AccountTreeView({
   return (
     <div className="rounded-lg border border-gray-200 bg-white" data-testid="accounts-tree">
       {/* Header */}
-      <div className="grid grid-cols-12 gap-4 border-b border-gray-200 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-500" data-testid="accounts-tree-header">
-        <div className="col-span-4" data-testid="header-account">Account</div>
-        <div className="col-span-2" data-testid="header-type">Type</div>
-        <div className="col-span-2" data-testid="header-category">Category</div>
-        <div className="col-span-1 text-center" data-testid="header-normal-balance">Normal</div>
-        <div className="col-span-1 text-center" data-testid="header-postable">Postable</div>
-        <div className="col-span-1 text-center" data-testid="header-status">Status</div>
+      <div className="grid grid-cols-12 gap-4 border-b border-gray-200 bg-gray-50 px-4 py-3 text-sm font-medium uppercase tracking-wider text-gray-500" data-testid="accounts-tree-header">
+        <div className="col-span-4" data-testid="header-account">
+          <Tooltip content="Account number and name in the chart of accounts">
+            <span className="cursor-help">Account</span>
+          </Tooltip>
+        </div>
+        <div className="col-span-2" data-testid="header-type">
+          <Tooltip content="Account classification: Asset, Liability, Equity, Revenue, or Expense">
+            <span className="cursor-help">Type</span>
+          </Tooltip>
+        </div>
+        <div className="col-span-2" data-testid="header-category">
+          <Tooltip content="Specific category within the account type (e.g., Current Asset, Fixed Asset)">
+            <span className="cursor-help">Category</span>
+          </Tooltip>
+        </div>
+        <div className="col-span-1 text-center" data-testid="header-normal-balance">
+          <Tooltip content="Normal balance side: Dr (Debit) for assets/expenses, Cr (Credit) for liabilities/equity/revenue">
+            <span className="cursor-help">Normal</span>
+          </Tooltip>
+        </div>
+        <div className="col-span-1 text-center" data-testid="header-postable">
+          <Tooltip content="Whether journal entries can be posted directly to this account (non-postable accounts are summary/grouping accounts)">
+            <span className="cursor-help">Postable</span>
+          </Tooltip>
+        </div>
+        <div className="col-span-1 text-center" data-testid="header-status">
+          <Tooltip content="Current state: Active accounts can receive transactions, Inactive accounts are disabled">
+            <span className="cursor-help">Status</span>
+          </Tooltip>
+        </div>
         <div className="col-span-1"></div>
       </div>
 
