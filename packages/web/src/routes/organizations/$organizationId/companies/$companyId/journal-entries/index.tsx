@@ -516,7 +516,7 @@ function JournalEntriesPage() {
                 }
               }}
               data-testid="journal-entries-filter-status"
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="rounded-lg border border-gray-300 py-2 pl-3 pr-8 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
               <option value="All">All Statuses</option>
               <option value="Draft">Draft</option>
@@ -536,7 +536,7 @@ function JournalEntriesPage() {
                 }
               }}
               data-testid="journal-entries-filter-type"
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="rounded-lg border border-gray-300 py-2 pl-3 pr-8 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
               <option value="All">All Types</option>
               <option value="Standard">Standard</option>
@@ -559,7 +559,7 @@ function JournalEntriesPage() {
                 setFilterFiscalPeriod("All") // Reset period when year changes
               }}
               data-testid="journal-entries-filter-fiscal-year"
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="rounded-lg border border-gray-300 py-2 pl-3 pr-8 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
               <option value="All">All Fiscal Years</option>
               {fiscalYears.map((fy) => (
@@ -575,7 +575,7 @@ function JournalEntriesPage() {
               onChange={(e) => setFilterFiscalPeriod(e.target.value)}
               disabled={filterFiscalYear === "All"}
               data-testid="journal-entries-filter-fiscal-period"
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-400"
+              className="rounded-lg border border-gray-300 py-2 pl-3 pr-8 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-400"
             >
               <option value="All">All Periods</option>
               {availablePeriods.map((period) => (
@@ -593,7 +593,7 @@ function JournalEntriesPage() {
                 value={filterFromDate}
                 onChange={(e) => setFilterFromDate(e.target.value)}
                 data-testid="journal-entries-filter-from-date"
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="rounded-lg border border-gray-300 py-2 pl-3 pr-8 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
             </div>
             <div className="flex items-center gap-2">
@@ -603,7 +603,7 @@ function JournalEntriesPage() {
                 value={filterToDate}
                 onChange={(e) => setFilterToDate(e.target.value)}
                 data-testid="journal-entries-filter-to-date"
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="rounded-lg border border-gray-300 py-2 pl-3 pr-8 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
             </div>
 

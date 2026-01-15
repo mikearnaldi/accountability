@@ -34,14 +34,43 @@ This section tracks known issues, implementation status, and priorities.
   5. **Accessible**: Includes proper hover, focus, dismiss, and role interactions
 - Updated `packages/web/src/components/ui/Tooltip.tsx` to use Floating UI instead of pure CSS positioning
 
-### Issue 9: Filter Input Icon Alignment Inconsistency
+### Issue 9: Filter Input Icon Alignment Inconsistency - RESOLVED
+- **Status**: Completed
+- **Resolution**: Standardized filter input styling across the application:
+  1. Updated Journal Entries filter inputs (Status, Type, Fiscal Year, Fiscal Period, From Date, To Date) to use `pl-3 pr-8` instead of `px-3` for consistent right padding that accommodates native browser icons
+  2. Updated the shared `Select` component in `packages/web/src/components/ui/Select.tsx` to use `pl-3 pr-8` as the default padding, ensuring all select dropdowns have consistent icon positioning
+  3. Both select inputs and date inputs now have the same visual spacing, with `pr-8` providing adequate room for native browser controls (dropdown arrows, calendar icons)
+
+### Issue 18: Organization Selector Should Only Allow Selection - RESOLVED
+- **Status**: Completed
+- **Resolution**: Removed "Create New Organization" and "View All Organizations" footer actions from `OrganizationSelector.tsx`. The dropdown now only contains:
+  1. "Switch Organization" header
+  2. List of organizations to choose from (or empty state message if none exist)
+  3. No footer actions - organization creation is handled via "+ New > Organization" in the sidebar
+
+### Issue 20: Remove Redundant Organization Display from Sidebar
 - **Status**: Open
-- **Problem**: In Journal Entries filters, the dropdown arrow in select inputs is positioned too far to the right compared to the calendar icons in date picker inputs - inconsistent visual alignment
-- **Expected**: All filter input icons (dropdown arrows, calendar icons, etc.) should have consistent positioning and padding
-- **Fix**: Standardize filter input styling:
-  1. Use consistent `padding-right` for all filter inputs
-  2. Ensure dropdown arrows and date picker icons are aligned at the same distance from the right edge
-  3. Consider creating a shared filter input component with consistent icon positioning
+- **Problem**: The sidebar shows the current organization name, but this is redundant because the header already displays the current organization in the organization selector dropdown
+- **Expected**: Remove the organization name/display from the sidebar to avoid duplication
+- **Rationale**: The header's organization selector already shows the current org name. Showing it again in the sidebar wastes space and creates visual clutter.
+- **Files to modify**:
+  - `packages/web/src/components/layout/Sidebar.tsx`
+
+### Issue 19: Organization Selector Shows Empty List When In Organization Context
+- **Status**: Open
+- **Priority**: CRITICAL
+- **Observed Behavior**:
+  - When FIRST organization is selected → dropdown correctly shows list of all organizations
+  - When SECOND organization is selected → dropdown shows EMPTY list
+- **Root Cause**: Only the dashboard route fetches and passes organizations to AppLayout. When switching to a different org (which may land on a page that doesn't fetch orgs), the list becomes empty.
+- **Previous Partial Fix**: Dashboard was updated to fetch organizations, but this doesn't persist when navigating to other pages or switching orgs
+- **Proper Fix**: Organizations should be fetched ONCE at a higher level and available globally:
+  1. **Option A (Recommended)**: Create a layout route (`_layout.tsx`) for `/organizations/$organizationId/` that fetches all organizations and provides them to all child routes via context
+  2. **Option B**: Fetch organizations in the root route and store in a global context/store
+  3. **Option C (Not recommended)**: Add organizations fetching to every single route (repetitive, error-prone)
+- **Files to modify**:
+  - Create `packages/web/src/routes/organizations/$organizationId/_layout.tsx`
+  - Or modify `packages/web/src/routes/__root.tsx` to fetch organizations globally
 
 ### Issue 17: Organization Selector Should Be Dropdown Menu - RESOLVED
 - **Status**: Completed

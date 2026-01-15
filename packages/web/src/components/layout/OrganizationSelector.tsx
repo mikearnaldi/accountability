@@ -10,10 +10,10 @@
  * - Data-testid attributes for E2E testing
  */
 
-import { Link, useNavigate } from "@tanstack/react-router"
+import { useNavigate } from "@tanstack/react-router"
 import { clsx } from "clsx"
 import { useState, useRef, useEffect } from "react"
-import { Building2, ChevronDown, Check, Plus } from "lucide-react"
+import { Building2, ChevronDown, Check } from "lucide-react"
 
 // =============================================================================
 // Types
@@ -208,31 +208,6 @@ export function OrganizationSelector({
             )}
           </div>
 
-          {/* Footer Actions */}
-          <div className="border-t border-gray-100 py-1">
-            <Link
-              to="/organizations/new"
-              onClick={() => setIsOpen(false)}
-              className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-              data-testid="org-selector-create-new"
-            >
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
-                <Plus className="h-4 w-4" />
-              </div>
-              <span>Create New Organization</span>
-            </Link>
-            <Link
-              to="/organizations"
-              onClick={() => setIsOpen(false)}
-              className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-              data-testid="org-selector-view-all"
-            >
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100 text-gray-600">
-                <Building2 className="h-4 w-4" />
-              </div>
-              <span>View All Organizations</span>
-            </Link>
-          </div>
         </div>
       )}
     </div>

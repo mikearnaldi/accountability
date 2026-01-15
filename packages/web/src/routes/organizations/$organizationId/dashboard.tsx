@@ -56,8 +56,15 @@ interface Organization {
   }
 }
 
+interface OrganizationListItem {
+  readonly id: string
+  readonly name: string
+  readonly reportingCurrency: string
+}
+
 export interface DashboardData {
   readonly organization: Organization | null
+  readonly organizations: readonly OrganizationListItem[]
   readonly companiesCount: number
   readonly accountsCount: number
   readonly pendingEntriesCount: number
@@ -84,6 +91,7 @@ const fetchOrganizationDashboard = createServerFn({ method: "GET" })
     if (!sessionToken) {
       return {
         organization: null,
+        organizations: [],
         companiesCount: 0,
         accountsCount: 0,
         pendingEntriesCount: 0,
@@ -106,6 +114,7 @@ const fetchOrganizationDashboard = createServerFn({ method: "GET" })
       if (orgResult.error || !orgResult.data) {
         return {
           organization: null,
+          organizations: [],
           companiesCount: 0,
           accountsCount: 0,
           pendingEntriesCount: 0,
@@ -116,6 +125,16 @@ const fetchOrganizationDashboard = createServerFn({ method: "GET" })
       }
 
       const organization = orgResult.data
+
+      // Fetch all organizations for the organization selector
+      const allOrgsResult = await serverApi.GET("/api/v1/organizations", {
+        headers
+      })
+      const allOrganizations: OrganizationListItem[] = (allOrgsResult.data?.organizations ?? []).map((org) => ({
+        id: org.id,
+        name: org.name,
+        reportingCurrency: org.reportingCurrency
+      }))
 
       // Fetch companies for this organization
       const companiesResult = await serverApi.GET("/api/v1/companies", {
@@ -175,6 +194,7 @@ const fetchOrganizationDashboard = createServerFn({ method: "GET" })
 
       return {
         organization,
+        organizations: allOrganizations,
         companiesCount,
         accountsCount,
         pendingEntriesCount,
@@ -185,6 +205,7 @@ const fetchOrganizationDashboard = createServerFn({ method: "GET" })
     } catch {
       return {
         organization: null,
+        organizations: [],
         companiesCount: 0,
         accountsCount: 0,
         pendingEntriesCount: 0,
@@ -294,6 +315,7 @@ function OrganizationDashboardPage() {
   return (
     <AppLayout
       user={user}
+      organizations={dashboardData.organizations}
       currentOrganization={organization}
       companies={dashboardData.companies}
     >

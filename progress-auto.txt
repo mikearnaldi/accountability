@@ -141,3 +141,8 @@
 **Task**: Fixed Issue 8 (Tooltip Positioning/Overflow) by installing @floating-ui/react and updating Tooltip component to use smart positioning with collision detection. Tooltips now automatically flip and shift to avoid viewport edges and sidebar.
 **Status**: complete
 ---
+
+## Iteration 3 - 2026-01-15 18:19
+**Task**: Fixed 3 issues - Issue 9 (filter input icon alignment by standardizing padding to pl-3 pr-8 for select and date inputs), Issue 18 (simplified Organization Selector by removing footer actions), and partially fixed Issue 19 (dashboard now fetches and passes all organizations to AppLayout for the selector dropdown)
+**Status**: complete
+---
