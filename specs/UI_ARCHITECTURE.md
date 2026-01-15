@@ -7,22 +7,52 @@ This document defines the UI architecture, navigation patterns, and design stand
 The following issues are currently broken and MUST be fixed as highest priority:
 
 ### 1. Post-Login Redirect is Wrong
-- **Expected**: After login, user should go to `/organizations` (org selector)
-- **Actual**: User goes to `/` (home page) which shows a generic dashboard, NOT the org selector
+- **Expected**: After login, follow Post-Login Flow (see below):
+  - No organizations → `/organizations/new`
+  - Single organization → `/organizations/:id/dashboard`
+  - Multiple organizations → `/organizations`
+- **Actual**: User goes to `/` (home page) which shows a generic dashboard
 - **File**: `packages/web/src/routes/login.tsx`
-- **Fix**: Change default redirect from `"/"` to `"/organizations"` in:
-  - Line ~14: `throw redirect({ to: "/" })` → `throw redirect({ to: "/organizations" })`
-  - Line ~77: `const redirectTo = searchParams.get("redirect") || "/"` → `|| "/organizations"`
+- **Fix**: After successful login, fetch organizations and redirect based on count:
+  ```typescript
+  // After successful login, determine redirect destination
+  const orgsResult = await api.GET("/api/v1/organizations")
+  const orgs = orgsResult.data?.organizations ?? []
+
+  let redirectTo = searchParams.get("redirect")
+  if (!redirectTo) {
+    if (orgs.length === 0) {
+      redirectTo = "/organizations/new"
+    } else if (orgs.length === 1) {
+      redirectTo = `/organizations/${orgs[0].id}/dashboard`
+    } else {
+      redirectTo = "/organizations"
+    }
+  }
+  navigate({ to: redirectTo })
+  ```
+- Also update `beforeLoad` to redirect already-authenticated users the same way
 
 ### 2. Home Route (`/`) Should Redirect When Logged In
-- **Expected**: When authenticated user visits `/`, they should be redirected to `/organizations`
+- **Expected**: When authenticated user visits `/`, redirect following Post-Login Flow (see below):
+  - No organizations → `/organizations/new`
+  - Single organization → `/organizations/:id/dashboard`
+  - Multiple organizations → `/organizations`
 - **Actual**: `/` shows a generic "main dashboard" that is NOT scoped to any organization
 - **File**: `packages/web/src/routes/index.tsx`
-- **Fix**: Add `beforeLoad` to redirect authenticated users to `/organizations`:
+- **Fix**: Add `beforeLoad` that fetches user's organizations and redirects accordingly:
   ```typescript
   beforeLoad: async ({ context }) => {
     if (context.user) {
-      throw redirect({ to: "/organizations" })
+      // Fetch organizations and redirect based on count
+      const orgs = await fetchOrganizations()
+      if (orgs.length === 0) {
+        throw redirect({ to: "/organizations/new" })
+      } else if (orgs.length === 1) {
+        throw redirect({ to: "/organizations/$organizationId/dashboard", params: { organizationId: orgs[0].id } })
+      } else {
+        throw redirect({ to: "/organizations" })
+      }
     }
   }
   ```
