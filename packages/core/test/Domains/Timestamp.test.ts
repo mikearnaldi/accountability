@@ -118,9 +118,10 @@ describe("Timestamp", () => {
   })
 
   describe("nowEffect", () => {
-    it.effect("returns timestamp from TestClock (starts at epoch)", () =>
+    it.effect("returns timestamp from TestClock", () =>
       Effect.gen(function* () {
-        // TestClock starts at epoch (0 ms)
+        // Set TestClock to epoch (0 ms) for this test
+        yield* TestClock.setTime(0)
         const ts = yield* nowEffect
         expect(ts.epochMillis).toBe(0)
         expect(ts.toISOString()).toBe("1970-01-01T00:00:00.000Z")
@@ -129,7 +130,8 @@ describe("Timestamp", () => {
 
     it.effect("advances with TestClock.adjust", () =>
       Effect.gen(function* () {
-        // Start at epoch
+        // Set TestClock to epoch (0 ms) for this test
+        yield* TestClock.setTime(0)
         const initial = yield* nowEffect
         expect(initial.epochMillis).toBe(0)
 

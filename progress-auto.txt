@@ -21,3 +21,8 @@
 **Task**: Implemented company sub-navigation in sidebar per UI_ARCHITECTURE.md spec
 **Status**: complete
 ---
+
+## Iteration 6 - 2026-01-15 14:27
+**Task**: Fixed failing CI tests - 1) Updated Timestamp.test.ts to explicitly set TestClock time to epoch since TestClock no longer starts at 0 by default, 2) Fixed E2E subsidiaries section test by scoping getByText selectors to the subsidiaries section to avoid matching sidebar navigation items, 3) Added explicit wait for save button to be enabled in organization defaults test to fix race condition.
+**Status**: complete
+---

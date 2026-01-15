@@ -5,13 +5,14 @@
  * Used for authenticated pages to provide consistent navigation.
  * Features:
  * - Collapsible sidebar with organization-scoped navigation
+ * - Keyboard shortcut to toggle sidebar: Ctrl+B (Windows/Linux) or Cmd+B (Mac)
  * - Header with organization selector and user profile
  * - Breadcrumbs with organization context
  * - Responsive design for mobile
  * - Data-testid attributes for E2E testing
  */
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Sidebar } from "./Sidebar.tsx"
 import { Header } from "./Header.tsx"
 import { Breadcrumbs } from "./Breadcrumbs.tsx"
@@ -67,6 +68,24 @@ export function AppLayout({
   currentCompany = null
 }: AppLayoutProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+
+  // Keyboard shortcut handler for toggling sidebar (Ctrl+B / Cmd+B)
+  const handleKeyDown = useCallback((event: KeyboardEvent) => {
+    // Check for Ctrl+B (Windows/Linux) or Cmd+B (Mac)
+    if ((event.ctrlKey || event.metaKey) && event.key === "b") {
+      // Prevent browser default behavior (e.g., bookmarks dialog)
+      event.preventDefault()
+      setSidebarCollapsed((prev) => !prev)
+    }
+  }, [])
+
+  // Register keyboard shortcut
+  useEffect(() => {
+    document.addEventListener("keydown", handleKeyDown)
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown)
+    }
+  }, [handleKeyDown])
 
   // Normalize undefined to null for exactOptionalPropertyTypes
   const normalizedOrg = currentOrganization ?? null

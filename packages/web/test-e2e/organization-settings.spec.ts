@@ -262,6 +262,9 @@ test.describe("Organization Settings Page", () => {
     // Should show success message
     await expect(page.getByTestId("org-defaults-success")).toBeVisible()
 
+    // Wait for button to be enabled again (save complete)
+    await expect(page.getByTestId("org-settings-save-defaults")).toBeEnabled()
+
     // Verify via API that settings were updated
     const getOrgRes = await request.get(`/api/v1/organizations/${orgData.id}`, {
       headers: { Authorization: `Bearer ${sessionToken}` }

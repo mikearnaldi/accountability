@@ -1298,10 +1298,12 @@ test.describe("Company Details Page", () => {
     await expect(page.getByRole("heading", { name: "Subsidiaries (2)" })).toBeVisible()
 
     // 10. Should list both subsidiaries with ownership percentages
-    await expect(page.getByText(subsidiary1Name)).toBeVisible()
-    await expect(page.getByText(subsidiary2Name)).toBeVisible()
-    await expect(page.getByText("100%")).toBeVisible()
-    await expect(page.getByText("60%")).toBeVisible()
+    // Scope to subsidiaries section to avoid matching sidebar navigation items
+    const subsidiariesSection = page.getByTestId("subsidiaries-section")
+    await expect(subsidiariesSection.getByText(subsidiary1Name)).toBeVisible()
+    await expect(subsidiariesSection.getByText(subsidiary2Name)).toBeVisible()
+    await expect(subsidiariesSection.getByText("100%")).toBeVisible()
+    await expect(subsidiariesSection.getByText("60%")).toBeVisible()
 
     // 11. Hierarchy card should show Parent badge with subsidiary count
     await expect(page.getByTestId("hierarchy-card")).toBeVisible()
