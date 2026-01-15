@@ -29,7 +29,6 @@ import { CompanyRepositoryLive } from "./CompanyRepositoryLive.ts"
 import { OrganizationRepositoryLive } from "./OrganizationRepositoryLive.ts"
 import { JournalEntryRepositoryLive } from "./JournalEntryRepositoryLive.ts"
 import { JournalEntryLineRepositoryLive } from "./JournalEntryLineRepositoryLive.ts"
-import { FiscalPeriodRepositoryLive } from "./FiscalPeriodRepositoryLive.ts"
 import { ExchangeRateRepositoryLive } from "./ExchangeRateRepositoryLive.ts"
 import { ConsolidationRepositoryLive } from "./ConsolidationRepositoryLive.ts"
 import { IntercompanyTransactionRepositoryLive } from "./IntercompanyTransactionRepositoryLive.ts"
@@ -52,7 +51,6 @@ import { AuthServiceConfig, SessionDurationConfig } from "../Services/AuthServic
  * - OrganizationRepository
  * - JournalEntryRepository
  * - JournalEntryLineRepository
- * - FiscalPeriodRepository
  * - ExchangeRateRepository
  * - ConsolidationRepository
  * - IntercompanyTransactionRepository
@@ -90,7 +88,6 @@ export const RepositoriesLive = Layer.mergeAll(
   OrganizationRepositoryLive,
   JournalEntryRepositoryLive,
   JournalEntryLineRepositoryLive,
-  FiscalPeriodRepositoryLive,
   ExchangeRateRepositoryLive,
   ConsolidationRepositoryLive,
   IntercompanyTransactionRepositoryLive,

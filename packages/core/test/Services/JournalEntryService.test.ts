@@ -4,7 +4,6 @@ import {
   JournalEntryService,
   JournalEntryServiceLive,
   AccountRepository,
-  PeriodRepository,
   EntryNumberGenerator,
   AccountNotFoundError,
   AccountNotPostableError,
@@ -28,12 +27,10 @@ import {
   isPeriodClosedError,
   isEntryNotPostedError,
   isEntryAlreadyReversedError,
-  type FiscalPeriodInfo,
   type CreateJournalEntryInput,
   type PostJournalEntryInput,
   type ReverseJournalEntryInput,
   type AccountRepositoryService,
-  type PeriodRepositoryService,
   type EntryNumberGeneratorService
 } from "../../src/Services/JournalEntryService.ts"
 import { JournalEntry, JournalEntryId, UserId, EntryNumber } from "../../src/Domains/JournalEntry.ts"
@@ -197,33 +194,6 @@ describe("JournalEntryService", () => {
     }
   }
 
-  const createMockPeriodRepository = (
-    openPeriods: ReadonlyArray<{ year: number; period: number; status: FiscalPeriodInfo["status"] }>
-  ): PeriodRepositoryService => {
-    const periodMap = new Map(
-      openPeriods.map((p) => [`${p.year}-${p.period}`, p])
-    )
-    return {
-      getPeriodStatus: (_companyId, fiscalPeriod) => {
-        const key = `${fiscalPeriod.year}-${fiscalPeriod.period}`
-        const periodInfo = periodMap.get(key)
-        if (periodInfo) {
-          return Effect.succeed(Option.some({
-            year: periodInfo.year,
-            period: periodInfo.period,
-            status: periodInfo.status
-          }))
-        }
-        return Effect.succeed(Option.none())
-      },
-      isPeriodOpen: (_companyId, fiscalPeriod) => {
-        const key = `${fiscalPeriod.year}-${fiscalPeriod.period}`
-        const periodInfo = periodMap.get(key)
-        return Effect.succeed(periodInfo?.status === "Open")
-      }
-    }
-  }
-
   const createMockEntryNumberGenerator = (): EntryNumberGeneratorService => {
     let counter = 0
     return {
@@ -236,17 +206,10 @@ describe("JournalEntryService", () => {
   }
 
   // Create test layer with mock dependencies
-  const createTestLayer = (
-    accounts: ReadonlyArray<Account>,
-    periods: ReadonlyArray<{ year: number; period: number; status: FiscalPeriodInfo["status"] }>
-  ) => {
+  const createTestLayer = (accounts: ReadonlyArray<Account>) => {
     const accountRepoLayer = Layer.succeed(
       AccountRepository,
       createMockAccountRepository(accounts)
-    )
-    const periodRepoLayer = Layer.succeed(
-      PeriodRepository,
-      createMockPeriodRepository(periods)
     )
     const entryNumberGenLayer = Layer.succeed(
       EntryNumberGenerator,
@@ -255,7 +218,6 @@ describe("JournalEntryService", () => {
 
     return JournalEntryServiceLive.pipe(
       Layer.provide(accountRepoLayer),
-      Layer.provide(periodRepoLayer),
       Layer.provide(entryNumberGenLayer)
     )
   }
@@ -287,9 +249,7 @@ describe("JournalEntryService", () => {
               [
                 createAccount(accountUUID1, "Cash", "1000"),
                 createAccount(accountUUID2, "Sales Revenue", "4000", true, true, "Revenue", "OperatingRevenue", "Credit")
-              ],
-              [{ year: 2025, period: 1, status: "Open" }]
-            )
+              ])
           )
         )
       )
@@ -318,9 +278,7 @@ describe("JournalEntryService", () => {
                 createAccount(accountUUID1, "Cash", "1000"),
                 createAccount(accountUUID2, "Accounts Receivable", "1100"),
                 createAccount(accountUUID3, "Sales Revenue", "4000", true, true, "Revenue", "OperatingRevenue", "Credit")
-              ],
-              [{ year: 2025, period: 1, status: "Open" }]
-            )
+              ])
           )
         )
       )
@@ -364,9 +322,7 @@ describe("JournalEntryService", () => {
               [
                 createAccount(accountUUID1, "Cash", "1000"),
                 createAccount(accountUUID2, "Revenue", "4000", true, true, "Revenue", "OperatingRevenue", "Credit")
-              ],
-              [{ year: 2025, period: 1, status: "Open" }]
-            )
+              ])
           )
         )
       )
@@ -391,7 +347,7 @@ describe("JournalEntryService", () => {
           }
         }).pipe(
           Effect.provide(
-            createTestLayer([], [{ year: 2025, period: 1, status: "Open" }])
+            createTestLayer([])
           )
         )
       )
@@ -424,9 +380,7 @@ describe("JournalEntryService", () => {
               [
                 createAccount(accountUUID1, "Cash", "1000"),
                 createAccount(accountUUID2, "Revenue", "4000", true, true, "Revenue", "OperatingRevenue", "Credit")
-              ],
-              [{ year: 2025, period: 1, status: "Open" }]
-            )
+              ])
           )
         )
       )
@@ -455,8 +409,7 @@ describe("JournalEntryService", () => {
           Effect.provide(
             createTestLayer(
               [createAccount(accountUUID1, "Cash", "1000")], // Missing account 2
-              [{ year: 2025, period: 1, status: "Open" }]
-            )
+                          )
           )
         )
       )
@@ -489,9 +442,7 @@ describe("JournalEntryService", () => {
               [
                 createAccount(accountUUID1, "Cash", "1000"),
                 createAccount(accountUUID2, "Summary Account", "4000", false)
-              ],
-              [{ year: 2025, period: 1, status: "Open" }]
-            )
+              ])
           )
         )
       )
@@ -524,9 +475,7 @@ describe("JournalEntryService", () => {
               [
                 createAccount(accountUUID1, "Cash", "1000"),
                 createAccount(accountUUID2, "Inactive Account", "4000", true, false)
-              ],
-              [{ year: 2025, period: 1, status: "Open" }]
-            )
+              ])
           )
         )
       )
@@ -566,184 +515,14 @@ describe("JournalEntryService", () => {
               [
                 createAccount(accountUUID1, "Cash", "1000"),
                 createAccount(accountUUID2, "Revenue", "4000", true, true, "Revenue", "OperatingRevenue", "Credit")
-              ],
-              [{ year: 2025, period: 1, status: "Open" }]
-            )
+              ])
           )
         )
       )
 
-      it.effect("fails with PeriodNotFoundError when fiscal period does not exist", () =>
-        Effect.gen(function* () {
-          const entry = createJournalEntry()
-          const debitLine = createDebitLine(lineUUID1, 1, accountUUID1, "1000.00")
-          const creditLine = createCreditLine(lineUUID2, 2, accountUUID2, "1000.00")
-
-          const input: CreateJournalEntryInput = {
-            entry,
-            lines: [debitLine, creditLine],
-            functionalCurrency: usdCurrency
-          }
-
-          const service = yield* JournalEntryService
-          const result = yield* Effect.exit(service.create(input))
-
-          expect(Exit.isFailure(result)).toBe(true)
-          if (Exit.isFailure(result) && result.cause._tag === "Fail") {
-            expect(isPeriodNotFoundError(result.cause.error)).toBe(true)
-          }
-        }).pipe(
-          Effect.provide(
-            createTestLayer(
-              [
-                createAccount(accountUUID1, "Cash", "1000"),
-                createAccount(accountUUID2, "Revenue", "4000", true, true, "Revenue", "OperatingRevenue", "Credit")
-              ],
-              [] // No periods defined
-            )
-          )
-        )
-      )
-
-      it.effect("fails with PeriodNotOpenError when fiscal period is closed", () =>
-        Effect.gen(function* () {
-          const entry = createJournalEntry()
-          const debitLine = createDebitLine(lineUUID1, 1, accountUUID1, "1000.00")
-          const creditLine = createCreditLine(lineUUID2, 2, accountUUID2, "1000.00")
-
-          const input: CreateJournalEntryInput = {
-            entry,
-            lines: [debitLine, creditLine],
-            functionalCurrency: usdCurrency
-          }
-
-          const service = yield* JournalEntryService
-          const result = yield* Effect.exit(service.create(input))
-
-          expect(Exit.isFailure(result)).toBe(true)
-          if (Exit.isFailure(result) && result.cause._tag === "Fail") {
-            expect(isPeriodNotOpenError(result.cause.error)).toBe(true)
-            if (isPeriodNotOpenError(result.cause.error)) {
-              expect(result.cause.error.status).toBe("Closed")
-            }
-          }
-        }).pipe(
-          Effect.provide(
-            createTestLayer(
-              [
-                createAccount(accountUUID1, "Cash", "1000"),
-                createAccount(accountUUID2, "Revenue", "4000", true, true, "Revenue", "OperatingRevenue", "Credit")
-              ],
-              [{ year: 2025, period: 1, status: "Closed" }]
-            )
-          )
-        )
-      )
-
-      it.effect("fails with PeriodNotOpenError when fiscal period is locked", () =>
-        Effect.gen(function* () {
-          const entry = createJournalEntry()
-          const debitLine = createDebitLine(lineUUID1, 1, accountUUID1, "1000.00")
-          const creditLine = createCreditLine(lineUUID2, 2, accountUUID2, "1000.00")
-
-          const input: CreateJournalEntryInput = {
-            entry,
-            lines: [debitLine, creditLine],
-            functionalCurrency: usdCurrency
-          }
-
-          const service = yield* JournalEntryService
-          const result = yield* Effect.exit(service.create(input))
-
-          expect(Exit.isFailure(result)).toBe(true)
-          if (Exit.isFailure(result) && result.cause._tag === "Fail") {
-            expect(isPeriodNotOpenError(result.cause.error)).toBe(true)
-            if (isPeriodNotOpenError(result.cause.error)) {
-              expect(result.cause.error.status).toBe("Locked")
-            }
-          }
-        }).pipe(
-          Effect.provide(
-            createTestLayer(
-              [
-                createAccount(accountUUID1, "Cash", "1000"),
-                createAccount(accountUUID2, "Revenue", "4000", true, true, "Revenue", "OperatingRevenue", "Credit")
-              ],
-              [{ year: 2025, period: 1, status: "Locked" }]
-            )
-          )
-        )
-      )
-
-      it.effect("fails with PeriodNotOpenError when fiscal period has soft close status", () =>
-        Effect.gen(function* () {
-          const entry = createJournalEntry()
-          const debitLine = createDebitLine(lineUUID1, 1, accountUUID1, "1000.00")
-          const creditLine = createCreditLine(lineUUID2, 2, accountUUID2, "1000.00")
-
-          const input: CreateJournalEntryInput = {
-            entry,
-            lines: [debitLine, creditLine],
-            functionalCurrency: usdCurrency
-          }
-
-          const service = yield* JournalEntryService
-          const result = yield* Effect.exit(service.create(input))
-
-          expect(Exit.isFailure(result)).toBe(true)
-          if (Exit.isFailure(result) && result.cause._tag === "Fail") {
-            expect(isPeriodNotOpenError(result.cause.error)).toBe(true)
-            if (isPeriodNotOpenError(result.cause.error)) {
-              expect(result.cause.error.status).toBe("SoftClose")
-            }
-          }
-        }).pipe(
-          Effect.provide(
-            createTestLayer(
-              [
-                createAccount(accountUUID1, "Cash", "1000"),
-                createAccount(accountUUID2, "Revenue", "4000", true, true, "Revenue", "OperatingRevenue", "Credit")
-              ],
-              [{ year: 2025, period: 1, status: "SoftClose" }]
-            )
-          )
-        )
-      )
-
-      it.effect("fails with PeriodNotOpenError when fiscal period is in future", () =>
-        Effect.gen(function* () {
-          const entry = createJournalEntry()
-          const debitLine = createDebitLine(lineUUID1, 1, accountUUID1, "1000.00")
-          const creditLine = createCreditLine(lineUUID2, 2, accountUUID2, "1000.00")
-
-          const input: CreateJournalEntryInput = {
-            entry,
-            lines: [debitLine, creditLine],
-            functionalCurrency: usdCurrency
-          }
-
-          const service = yield* JournalEntryService
-          const result = yield* Effect.exit(service.create(input))
-
-          expect(Exit.isFailure(result)).toBe(true)
-          if (Exit.isFailure(result) && result.cause._tag === "Fail") {
-            expect(isPeriodNotOpenError(result.cause.error)).toBe(true)
-            if (isPeriodNotOpenError(result.cause.error)) {
-              expect(result.cause.error.status).toBe("Future")
-            }
-          }
-        }).pipe(
-          Effect.provide(
-            createTestLayer(
-              [
-                createAccount(accountUUID1, "Cash", "1000"),
-                createAccount(accountUUID2, "Revenue", "4000", true, true, "Revenue", "OperatingRevenue", "Credit")
-              ],
-              [{ year: 2025, period: 1, status: "Future" }]
-            )
-          )
-        )
-      )
+      // NOTE: Period validation tests removed. Fiscal periods are now computed from
+      // transaction dates at runtime rather than validated against stored periods.
+      // This simplifies the system by eliminating period management workflows.
     })
 
     describe("edge cases", () => {
@@ -768,9 +547,7 @@ describe("JournalEntryService", () => {
         }).pipe(
           Effect.provide(
             createTestLayer(
-              [createAccount(accountUUID1, "Cash", "1000")],
-              [{ year: 2025, period: 1, status: "Open" }]
-            )
+              [createAccount(accountUUID1, "Cash", "1000")])
           )
         )
       )
@@ -797,9 +574,7 @@ describe("JournalEntryService", () => {
               [
                 createAccount(accountUUID1, "Cash", "1000"),
                 createAccount(accountUUID2, "Revenue", "4000", true, true, "Revenue", "OperatingRevenue", "Credit")
-              ],
-              [{ year: 2025, period: 1, status: "Open" }]
-            )
+              ])
           )
         )
       )
@@ -830,8 +605,7 @@ describe("JournalEntryService", () => {
           Effect.provide(
             createTestLayer(
               [], // No accounts
-              [{ year: 2025, period: 1, status: "Open" }]
-            )
+                          )
           )
         )
       )
@@ -856,9 +630,7 @@ describe("JournalEntryService", () => {
         }).pipe(
           Effect.provide(
             createTestLayer(
-              [createAccount(accountUUID1, "Cash", "1000")],
-              [{ year: 2025, period: 1, status: "Open" }]
-            )
+              [createAccount(accountUUID1, "Cash", "1000")])
           )
         )
       )
@@ -1060,9 +832,7 @@ describe("JournalEntryService", () => {
         }).pipe(
           Effect.provide(
             createTestLayer(
-              [],
-              [{ year: 2025, period: 1, status: "Open" }]
-            )
+              [])
           )
         )
       )
@@ -1093,9 +863,7 @@ describe("JournalEntryService", () => {
         }).pipe(
           Effect.provide(
             createTestLayer(
-              [],
-              [{ year: 2025, period: 1, status: "Open" }]
-            )
+              [])
           )
         )
       )
@@ -1125,9 +893,7 @@ describe("JournalEntryService", () => {
         }).pipe(
           Effect.provide(
             createTestLayer(
-              [],
-              [{ year: 2025, period: 1, status: "Open" }]
-            )
+              [])
           )
         )
       )
@@ -1158,9 +924,7 @@ describe("JournalEntryService", () => {
         }).pipe(
           Effect.provide(
             createTestLayer(
-              [],
-              [{ year: 2025, period: 1, status: "Open" }]
-            )
+              [])
           )
         )
       )
@@ -1194,9 +958,7 @@ describe("JournalEntryService", () => {
         }).pipe(
           Effect.provide(
             createTestLayer(
-              [],
-              [{ year: 2025, period: 1, status: "Open" }]
-            )
+              [])
           )
         )
       )
@@ -1227,190 +989,14 @@ describe("JournalEntryService", () => {
         }).pipe(
           Effect.provide(
             createTestLayer(
-              [],
-              [{ year: 2025, period: 1, status: "Open" }]
-            )
+              [])
           )
         )
       )
 
-      it.effect("fails with PeriodClosedError when fiscal period is Closed", () =>
-        Effect.gen(function* () {
-          const entry = createApprovedJournalEntry()
-          const postingUser = UserId.make("e0a7b810-9dad-11d1-80b4-00c04fd430cc")
-
-          const input: PostJournalEntryInput = {
-            entry,
-            postedBy: postingUser
-          }
-
-          const service = yield* JournalEntryService
-          const result = yield* Effect.exit(service.post(input))
-
-          expect(Exit.isFailure(result)).toBe(true)
-          if (Exit.isFailure(result) && result.cause._tag === "Fail") {
-            expect(isPeriodClosedError(result.cause.error)).toBe(true)
-            if (isPeriodClosedError(result.cause.error)) {
-              expect(result.cause.error.status).toBe("Closed")
-            }
-          }
-        }).pipe(
-          Effect.provide(
-            createTestLayer(
-              [],
-              [{ year: 2025, period: 1, status: "Closed" }]
-            )
-          )
-        )
-      )
-
-      it.effect("fails with PeriodClosedError when fiscal period is Locked", () =>
-        Effect.gen(function* () {
-          const entry = createApprovedJournalEntry()
-          const postingUser = UserId.make("e0a7b810-9dad-11d1-80b4-00c04fd430cc")
-
-          const input: PostJournalEntryInput = {
-            entry,
-            postedBy: postingUser
-          }
-
-          const service = yield* JournalEntryService
-          const result = yield* Effect.exit(service.post(input))
-
-          expect(Exit.isFailure(result)).toBe(true)
-          if (Exit.isFailure(result) && result.cause._tag === "Fail") {
-            expect(isPeriodClosedError(result.cause.error)).toBe(true)
-            if (isPeriodClosedError(result.cause.error)) {
-              expect(result.cause.error.status).toBe("Locked")
-            }
-          }
-        }).pipe(
-          Effect.provide(
-            createTestLayer(
-              [],
-              [{ year: 2025, period: 1, status: "Locked" }]
-            )
-          )
-        )
-      )
-
-      it.effect("fails with PeriodClosedError when fiscal period has SoftClose status", () =>
-        Effect.gen(function* () {
-          const entry = createApprovedJournalEntry()
-          const postingUser = UserId.make("e0a7b810-9dad-11d1-80b4-00c04fd430cc")
-
-          const input: PostJournalEntryInput = {
-            entry,
-            postedBy: postingUser
-          }
-
-          const service = yield* JournalEntryService
-          const result = yield* Effect.exit(service.post(input))
-
-          expect(Exit.isFailure(result)).toBe(true)
-          if (Exit.isFailure(result) && result.cause._tag === "Fail") {
-            expect(isPeriodClosedError(result.cause.error)).toBe(true)
-            if (isPeriodClosedError(result.cause.error)) {
-              expect(result.cause.error.status).toBe("SoftClose")
-            }
-          }
-        }).pipe(
-          Effect.provide(
-            createTestLayer(
-              [],
-              [{ year: 2025, period: 1, status: "SoftClose" }]
-            )
-          )
-        )
-      )
-
-      it.effect("fails with PeriodClosedError when fiscal period is Future", () =>
-        Effect.gen(function* () {
-          const entry = createApprovedJournalEntry()
-          const postingUser = UserId.make("e0a7b810-9dad-11d1-80b4-00c04fd430cc")
-
-          const input: PostJournalEntryInput = {
-            entry,
-            postedBy: postingUser
-          }
-
-          const service = yield* JournalEntryService
-          const result = yield* Effect.exit(service.post(input))
-
-          expect(Exit.isFailure(result)).toBe(true)
-          if (Exit.isFailure(result) && result.cause._tag === "Fail") {
-            expect(isPeriodClosedError(result.cause.error)).toBe(true)
-            if (isPeriodClosedError(result.cause.error)) {
-              expect(result.cause.error.status).toBe("Future")
-            }
-          }
-        }).pipe(
-          Effect.provide(
-            createTestLayer(
-              [],
-              [{ year: 2025, period: 1, status: "Future" }]
-            )
-          )
-        )
-      )
-
-      it.effect("fails with PeriodNotFoundError when fiscal period does not exist", () =>
-        Effect.gen(function* () {
-          const entry = createApprovedJournalEntry()
-          const postingUser = UserId.make("e0a7b810-9dad-11d1-80b4-00c04fd430cc")
-
-          const input: PostJournalEntryInput = {
-            entry,
-            postedBy: postingUser
-          }
-
-          const service = yield* JournalEntryService
-          const result = yield* Effect.exit(service.post(input))
-
-          expect(Exit.isFailure(result)).toBe(true)
-          if (Exit.isFailure(result) && result.cause._tag === "Fail") {
-            expect(isPeriodNotFoundError(result.cause.error)).toBe(true)
-          }
-        }).pipe(
-          Effect.provide(
-            createTestLayer(
-              [],
-              [] // No periods defined
-            )
-          )
-        )
-      )
-    })
-
-    describe("validation order", () => {
-      it.effect("validates status before period", () =>
-        Effect.gen(function* () {
-          // Entry is Draft and period is Closed - should fail with NotApprovedError first
-          const entry = createJournalEntry() // Draft status
-          const postingUser = UserId.make("e0a7b810-9dad-11d1-80b4-00c04fd430cc")
-
-          const input: PostJournalEntryInput = {
-            entry,
-            postedBy: postingUser
-          }
-
-          const service = yield* JournalEntryService
-          const result = yield* Effect.exit(service.post(input))
-
-          expect(Exit.isFailure(result)).toBe(true)
-          if (Exit.isFailure(result) && result.cause._tag === "Fail") {
-            // Should get NotApprovedError, not PeriodClosedError
-            expect(isNotApprovedError(result.cause.error)).toBe(true)
-          }
-        }).pipe(
-          Effect.provide(
-            createTestLayer(
-              [],
-              [{ year: 2025, period: 1, status: "Closed" }]
-            )
-          )
-        )
-      )
+      // NOTE: Period validation tests removed. Fiscal periods are now computed from
+      // transaction dates at runtime rather than validated against stored periods.
+      // This simplifies the system by eliminating period management workflows.
     })
   })
 
@@ -1577,7 +1163,7 @@ describe("JournalEntryService", () => {
           }
         }).pipe(
           Effect.provide(
-            createTestLayer([], [{ year: 2025, period: 1, status: "Open" }])
+            createTestLayer([])
           )
         )
       )
@@ -1611,7 +1197,7 @@ describe("JournalEntryService", () => {
           expect(result.reversalEntry.isMultiCurrency).toBe(entry.isMultiCurrency)
         }).pipe(
           Effect.provide(
-            createTestLayer([], [{ year: 2025, period: 1, status: "Open" }])
+            createTestLayer([])
           )
         )
       )
@@ -1643,7 +1229,7 @@ describe("JournalEntryService", () => {
           }
         }).pipe(
           Effect.provide(
-            createTestLayer([], [{ year: 2025, period: 1, status: "Open" }])
+            createTestLayer([])
           )
         )
       )
@@ -1673,7 +1259,7 @@ describe("JournalEntryService", () => {
           expect(result.reversalEntry.description).toContain("JE-2025-00001")
         }).pipe(
           Effect.provide(
-            createTestLayer([], [{ year: 2025, period: 1, status: "Open" }])
+            createTestLayer([])
           )
         )
       )
@@ -1728,7 +1314,7 @@ describe("JournalEntryService", () => {
           }
         }).pipe(
           Effect.provide(
-            createTestLayer([], [{ year: 2025, period: 1, status: "Open" }])
+            createTestLayer([])
           )
         )
       )
@@ -1769,7 +1355,7 @@ describe("JournalEntryService", () => {
           expect(Option.isNone(result.reversalLines[2].creditAmount)).toBe(true)
         }).pipe(
           Effect.provide(
-            createTestLayer([], [{ year: 2025, period: 1, status: "Open" }])
+            createTestLayer([])
           )
         )
       )
@@ -1806,7 +1392,7 @@ describe("JournalEntryService", () => {
           }
         }).pipe(
           Effect.provide(
-            createTestLayer([], [{ year: 2025, period: 1, status: "Open" }])
+            createTestLayer([])
           )
         )
       )
@@ -1844,7 +1430,7 @@ describe("JournalEntryService", () => {
           }
         }).pipe(
           Effect.provide(
-            createTestLayer([], [{ year: 2025, period: 1, status: "Open" }])
+            createTestLayer([])
           )
         )
       )
@@ -1882,7 +1468,7 @@ describe("JournalEntryService", () => {
           }
         }).pipe(
           Effect.provide(
-            createTestLayer([], [{ year: 2025, period: 1, status: "Open" }])
+            createTestLayer([])
           )
         )
       )
@@ -1920,7 +1506,7 @@ describe("JournalEntryService", () => {
           }
         }).pipe(
           Effect.provide(
-            createTestLayer([], [{ year: 2025, period: 1, status: "Open" }])
+            createTestLayer([])
           )
         )
       )
@@ -1959,7 +1545,7 @@ describe("JournalEntryService", () => {
           }
         }).pipe(
           Effect.provide(
-            createTestLayer([], [{ year: 2025, period: 1, status: "Open" }])
+            createTestLayer([])
           )
         )
       )

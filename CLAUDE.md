@@ -33,15 +33,28 @@ Accountability is a multi-company, multi-currency accounting application using:
 └─────────────────────────────────────────────────────────────┘
 ```
 
+## 🚨 CRITICAL: BACKEND AND FRONTEND MUST STAY ALIGNED 🚨
+
+**This is a HARD REQUIREMENT. When implementing features:**
+
+1. **NEVER do frontend-only changes** for features that need backend work
+2. **ALWAYS update both layers** - packages/web AND packages/core, packages/api, packages/persistence
+3. **Frontend workarounds are NOT acceptable** - if the spec says "update API", update the API
+4. **Run tests** - `pnpm test && pnpm typecheck` MUST pass before marking work complete
+5. **Read specs/UI_ARCHITECTURE.md** - See "MANDATORY: BACKEND AND FRONTEND MUST STAY ALIGNED" section
+
+**Data flow**: Frontend → API → Service → Repository → Database
+**All layers must be consistent.**
+
 ## Project Structure
 
 ```
 accountability/
 ├── packages/
-│   ├── core/           # Core accounting logic (Effect, 100% tested)
-│   ├── persistence/    # Database layer (@effect/sql + PostgreSQL)
-│   ├── api/            # Effect HttpApi server + OpenAPI export
-│   └── web/            # React UI (NO Effect - loaders + openapi-fetch client)
+│   ├── core/           # Core accounting logic (Effect, 100% tested) ← BACKEND
+│   ├── persistence/    # Database layer (@effect/sql + PostgreSQL) ← BACKEND
+│   ├── api/            # Effect HttpApi server + OpenAPI export ← BACKEND
+│   └── web/            # React UI (NO Effect - loaders + openapi-fetch client) ← FRONTEND
 ├── specs/              # ACTIONABLE specs - ralph-auto.sh implements these automatically
 ├── context/            # Reference documentation - provides context to agents
 └── repos/              # Reference repositories (git subtrees)

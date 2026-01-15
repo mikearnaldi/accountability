@@ -210,27 +210,41 @@ test.describe("Organizations Page", () => {
     // 4. Navigate to organizations page
     await page.goto("/organizations")
 
-    // 5. Click create organization link (navigates to /organizations/new)
-    // Use new-organization-button since we have orgs from other tests in shared DB
-    await page.getByTestId("new-organization-button").click()
+    // 5. Wait for React hydration
+    await page.waitForTimeout(500)
 
-    // 6. Wait for navigation to create organization page
-    await page.waitForURL("/organizations/new")
+    // 6. Click create organization button (handles both empty state and list view)
+    // Empty state has create-organization-button, list has new-organization-button
+    const createButton = page.getByTestId("create-organization-button")
+    const newOrgButton = page.getByTestId("new-organization-button")
 
-    // 7. Fill form
+    // Wait for either button to be visible (fresh user sees empty state)
+    await expect(createButton.or(newOrgButton)).toBeVisible({ timeout: 10000 })
+
+    // Click whichever button is visible
+    if (await createButton.isVisible()) {
+      await createButton.click({ force: true })
+    } else {
+      await newOrgButton.click({ force: true })
+    }
+
+    // 7. Wait for navigation to create organization page
+    await page.waitForURL("/organizations/new", { timeout: 10000 })
+
+    // 8. Fill form
     const newOrgName = `New Org ${Date.now()}`
     await page.fill("#org-name", newOrgName)
 
-    // 8. Select currency
+    // 9. Select currency
     await page.selectOption("#org-currency", "EUR")
 
-    // 9. Submit form
+    // 10. Submit form
     await page.getByTestId("org-form-submit-button").click()
 
-    // 10. After creating, should navigate to the new org's detail page
+    // 11. After creating, should navigate to the new org's detail page
     await page.waitForURL(/\/organizations\/[^/]+$/, { timeout: 15000 })
 
-    // 11. Should see the organization name on the detail page (use heading to avoid breadcrumb)
+    // 12. Should see the organization name on the detail page (use heading to avoid breadcrumb)
     await expect(page.getByRole("heading", { name: newOrgName })).toBeVisible({ timeout: 5000 })
   })
 

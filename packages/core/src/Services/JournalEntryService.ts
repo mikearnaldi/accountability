@@ -27,7 +27,6 @@ import { JournalEntryLine } from "../Domains/JournalEntryLine.ts"
 import type { Account, AccountId } from "../Domains/Account.ts"
 import type { CompanyId } from "../Domains/Company.ts"
 import type { CurrencyCode } from "../Domains/CurrencyCode.ts"
-import type { FiscalPeriodRef } from "../Domains/FiscalPeriodRef.ts"
 import type { UnbalancedEntryError } from "../Domains/BalanceValidation.ts";
 import { validateBalance } from "../Domains/BalanceValidation.ts"
 
@@ -323,42 +322,10 @@ export class AccountRepository extends Context.Tag("AccountRepository")<
   AccountRepositoryService
 >() {}
 
-/**
- * PeriodRepository - Repository interface for fiscal period lookups
- *
- * Used by JournalEntryService to validate that periods are open.
- */
-export interface PeriodRepositoryService {
-  /**
-   * Get the status of a fiscal period for a company
-   * @param companyId - The company ID
-   * @param fiscalPeriod - The fiscal period reference
-   * @returns Effect containing the period info or None if not found
-   */
-  readonly getPeriodStatus: (
-    companyId: CompanyId,
-    fiscalPeriod: FiscalPeriodRef
-  ) => Effect.Effect<Option.Option<FiscalPeriodInfo>>
-
-  /**
-   * Check if a fiscal period is open for posting
-   * @param companyId - The company ID
-   * @param fiscalPeriod - The fiscal period reference
-   * @returns Effect containing true if open, false otherwise
-   */
-  readonly isPeriodOpen: (
-    companyId: CompanyId,
-    fiscalPeriod: FiscalPeriodRef
-  ) => Effect.Effect<boolean>
-}
-
-/**
- * PeriodRepository Context.Tag
- */
-export class PeriodRepository extends Context.Tag("PeriodRepository")<
-  PeriodRepository,
-  PeriodRepositoryService
->() {}
+// NOTE: PeriodRepository has been removed. Fiscal periods are now computed from
+// transaction dates at runtime using computeFiscalPeriod() rather than being
+// validated against stored periods. This simplifies the system by eliminating
+// period management workflows.
 
 /**
  * EntryNumberGenerator - Service for generating sequential entry numbers
@@ -452,8 +419,11 @@ export interface JournalEntryServiceShape {
    * - All accounts exist and are postable
    * - All accounts are active
    * - Entry is balanced (debits = credits)
-   * - Fiscal period is open
    * - Assigns sequential entry number
+   *
+   * NOTE: Fiscal period validation has been removed. Periods are computed
+   * from the transaction date at runtime rather than validated against
+   * stored periods.
    *
    * @param input - The journal entry and lines to create
    * @returns Effect containing the created entry with assigned entry number
@@ -471,7 +441,10 @@ export interface JournalEntryServiceShape {
    *
    * Validates:
    * - Entry is in 'Approved' status
-   * - Fiscal period is still open
+   *
+   * NOTE: Fiscal period validation has been removed. Periods are computed
+   * from the transaction date at runtime rather than validated against
+   * stored periods.
    *
    * Updates:
    * - Status to 'Posted'
@@ -486,7 +459,7 @@ export interface JournalEntryServiceShape {
     input: PostJournalEntryInput
   ) => Effect.Effect<
     JournalEntry,
-    NotApprovedError | PeriodClosedError | PeriodNotFoundError,
+    NotApprovedError,
     never
   >
 
@@ -605,80 +578,16 @@ const validateAccounts = (
   })
 }
 
-/**
- * Validate that the fiscal period is open
- */
-const validatePeriodOpen = (
-  companyId: CompanyId,
-  fiscalPeriod: FiscalPeriodRef,
-  periodRepository: PeriodRepositoryService
-): Effect.Effect<void, PeriodNotOpenError | PeriodNotFoundError> => {
-  return Effect.gen(function* () {
-    const periodInfo = yield* periodRepository.getPeriodStatus(companyId, fiscalPeriod)
-
-    if (Option.isNone(periodInfo)) {
-      return yield* Effect.fail(
-        new PeriodNotFoundError({
-          fiscalPeriod: { year: fiscalPeriod.year, period: fiscalPeriod.period },
-          companyId
-        })
-      )
-    }
-
-    const status = periodInfo.value.status
-    // Only "Open" status allows unrestricted posting
-    // "SoftClose" requires approval, "Future", "Closed", "Locked" do not allow posting
-    if (status !== "Open") {
-      return yield* Effect.fail(
-        new PeriodNotOpenError({
-          fiscalPeriod: { year: fiscalPeriod.year, period: fiscalPeriod.period },
-          status
-        })
-      )
-    }
-  })
-}
-
-/**
- * Validate that the fiscal period is open for posting (used by post operation)
- * Returns PeriodClosedError instead of PeriodNotOpenError for clearer error semantics
- */
-const validatePeriodOpenForPosting = (
-  companyId: CompanyId,
-  fiscalPeriod: FiscalPeriodRef,
-  periodRepository: PeriodRepositoryService
-): Effect.Effect<void, PeriodClosedError | PeriodNotFoundError> => {
-  return Effect.gen(function* () {
-    const periodInfo = yield* periodRepository.getPeriodStatus(companyId, fiscalPeriod)
-
-    if (Option.isNone(periodInfo)) {
-      return yield* Effect.fail(
-        new PeriodNotFoundError({
-          fiscalPeriod: { year: fiscalPeriod.year, period: fiscalPeriod.period },
-          companyId
-        })
-      )
-    }
-
-    const status = periodInfo.value.status
-    // Only "Open" status allows posting
-    if (status !== "Open") {
-      return yield* Effect.fail(
-        new PeriodClosedError({
-          fiscalPeriod: { year: fiscalPeriod.year, period: fiscalPeriod.period },
-          status
-        })
-      )
-    }
-  })
-}
+// NOTE: Period validation functions have been removed.
+// Fiscal periods are now computed from transaction dates at runtime rather than
+// being validated against stored periods. This simplifies the system by eliminating
+// the need for period management and closing workflows.
 
 /**
  * Create the JournalEntryService implementation
  */
 const make = Effect.gen(function* () {
   const accountRepository = yield* AccountRepository
-  const periodRepository = yield* PeriodRepository
   const entryNumberGenerator = yield* EntryNumberGenerator
 
   return {
@@ -698,8 +607,10 @@ const make = Effect.gen(function* () {
         // Validate balance (debits = credits)
         yield* validateBalance(lines, functionalCurrency)
 
-        // Validate fiscal period is open
-        yield* validatePeriodOpen(entry.companyId, entry.fiscalPeriod, periodRepository)
+        // NOTE: Period validation removed. Fiscal periods are computed from
+        // the transaction date at runtime rather than being validated against
+        // stored periods. This simplifies the system by eliminating the need
+        // for period management and closing workflows.
 
         // Generate entry number
         const entryNumber = yield* entryNumberGenerator.nextEntryNumber(
@@ -728,8 +639,10 @@ const make = Effect.gen(function* () {
           )
         }
 
-        // Validate fiscal period is still open
-        yield* validatePeriodOpenForPosting(entry.companyId, entry.fiscalPeriod, periodRepository)
+        // NOTE: Period validation removed. Fiscal periods are computed from
+        // the transaction date at runtime rather than being validated against
+        // stored periods. This simplifies the system by eliminating the need
+        // for period management and closing workflows.
 
         // Get the current timestamp for postedAt
         const postedAt = yield* timestampNowEffect
@@ -850,10 +763,10 @@ const make = Effect.gen(function* () {
 /**
  * JournalEntryServiceLive - Live implementation of JournalEntryService
  *
- * Requires AccountRepository, PeriodRepository, and EntryNumberGenerator
+ * Requires AccountRepository and EntryNumberGenerator
  */
 export const JournalEntryServiceLive: Layer.Layer<
   JournalEntryService,
   never,
-  AccountRepository | PeriodRepository | EntryNumberGenerator
+  AccountRepository | EntryNumberGenerator
 > = Layer.effect(JournalEntryService, make)

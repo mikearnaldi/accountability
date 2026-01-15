@@ -45,7 +45,7 @@ describe("OpenAPI Specification", () => {
       expect(tagNames).toContain("Journal Entries")
       expect(tagNames).toContain("Reports")
       expect(tagNames).toContain("Currency & Exchange Rates")
-      expect(tagNames).toContain("Fiscal Periods")
+      // NOTE: "Fiscal Periods" removed - periods now computed at runtime
       expect(tagNames).toContain("Intercompany Transactions")
       expect(tagNames).toContain("Consolidation")
       expect(tagNames).toContain("Elimination Rules")
@@ -77,7 +77,6 @@ describe("OpenAPI Specification", () => {
       const hasJournalEntriesPath = paths.some((p) => p.includes("/journal-entries"))
       const hasReportsPath = paths.some((p) => p.includes("/reports"))
       const hasExchangeRatesPath = paths.some((p) => p.includes("/exchange-rates"))
-      const hasFiscalPath = paths.some((p) => p.includes("/fiscal"))
       const hasIntercompanyPath = paths.some((p) => p.includes("/intercompany-transactions"))
       const hasConsolidationPath = paths.some((p) => p.includes("/consolidation"))
       const hasEliminationRulesPath = paths.some((p) => p.includes("/elimination-rules"))
@@ -89,7 +88,7 @@ describe("OpenAPI Specification", () => {
       expect(hasJournalEntriesPath, "Should have journal entries endpoints").toBe(true)
       expect(hasReportsPath, "Should have reports endpoints").toBe(true)
       expect(hasExchangeRatesPath, "Should have exchange rates endpoints").toBe(true)
-      expect(hasFiscalPath, "Should have fiscal period endpoints").toBe(true)
+      // NOTE: Fiscal period endpoints removed - periods now computed at runtime
       expect(hasIntercompanyPath, "Should have intercompany transaction endpoints").toBe(true)
       expect(hasConsolidationPath, "Should have consolidation endpoints").toBe(true)
       expect(hasEliminationRulesPath, "Should have elimination rules endpoints").toBe(true)

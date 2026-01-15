@@ -138,20 +138,10 @@ test.describe("Journal Entries List Page", () => {
     expect(createAccount2Res.ok()).toBeTruthy()
     const account2Data = await createAccount2Res.json()
 
-    // 6. Create a fiscal year for the journal entries
-    const createFiscalYearRes = await request.post("/api/v1/fiscal/fiscal-years", {
-      headers: { Authorization: `Bearer ${sessionToken}` },
-      data: {
-        companyId: companyData.id,
-        name: "FY2025",
-        startDate: "2025-01-01",
-        endDate: "2025-12-31",
-        includePeriod13: false
-      }
-    })
-    expect(createFiscalYearRes.ok()).toBeTruthy()
+    // Note: Fiscal year creation removed - fiscal periods are now computed automatically
+    // from the transaction date and company's fiscalYearEnd setting
 
-    // 7. Create journal entries via API
+    // 6. Create journal entries via API
     const createJournalEntry1Res = await request.post("/api/v1/journal-entries", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
@@ -460,18 +450,7 @@ test.describe("Journal Entries List Page", () => {
     expect(createAccount2Res.ok()).toBeTruthy()
     const account2Data = await createAccount2Res.json()
 
-    // Create fiscal year
-    const createFiscalYearRes = await request.post("/api/v1/fiscal/fiscal-years", {
-      headers: { Authorization: `Bearer ${sessionToken}` },
-      data: {
-        companyId: companyData.id,
-        name: "FY2025",
-        startDate: "2025-01-01",
-        endDate: "2025-12-31",
-        includePeriod13: false
-      }
-    })
-    expect(createFiscalYearRes.ok()).toBeTruthy()
+    // Note: Fiscal year creation removed - fiscal periods are computed automatically
 
     // 4. Create journal entries (will all be Draft status)
     await request.post("/api/v1/journal-entries", {
@@ -690,17 +669,7 @@ test.describe("Journal Entries List Page", () => {
     expect(createAccount2Res.ok()).toBeTruthy()
     const account2Data = await createAccount2Res.json()
 
-    // Create fiscal year
-    await request.post("/api/v1/fiscal/fiscal-years", {
-      headers: { Authorization: `Bearer ${sessionToken}` },
-      data: {
-        companyId: companyData.id,
-        name: "FY2025",
-        startDate: "2025-01-01",
-        endDate: "2025-12-31",
-        includePeriod13: false
-      }
-    })
+    // Note: Fiscal year creation removed - fiscal periods are computed automatically
 
     // 4. Create journal entries of different types
     await request.post("/api/v1/journal-entries", {
@@ -793,7 +762,10 @@ test.describe("Journal Entries List Page", () => {
     await expect(page.getByText("Adjusting Entry")).toBeVisible()
 
     // 8. Filter by Standard type using data-testid
-    await page.locator('[data-testid="journal-entries-filter-type"]').selectOption("Standard")
+    const typeFilter = page.locator('[data-testid="journal-entries-filter-type"]')
+    await typeFilter.selectOption("Standard")
+    // Wait for filter to apply and count to update
+    await page.waitForTimeout(500)
 
     // 9. Should only show Standard entry - wait for filter to apply
     await expect(page.locator('[data-testid="journal-entries-count"]')).toContainText("1 of 2 entries", { timeout: 10000 })
@@ -801,7 +773,9 @@ test.describe("Journal Entries List Page", () => {
     await expect(page.getByText("Adjusting Entry")).not.toBeVisible()
 
     // 10. Filter by Adjusting type
-    await page.locator('[data-testid="journal-entries-filter-type"]').selectOption("Adjusting")
+    await typeFilter.selectOption("Adjusting")
+    // Wait for filter to apply
+    await page.waitForTimeout(500)
 
     // 11. Should only show Adjusting entry - wait for filter to apply
     await expect(page.locator('[data-testid="journal-entries-count"]')).toContainText("1 of 2 entries", { timeout: 10000 })
@@ -809,7 +783,8 @@ test.describe("Journal Entries List Page", () => {
     await expect(page.getByText("Standard Entry")).not.toBeVisible()
 
     // 12. Reset filter - wait for filter to apply
-    await page.locator('[data-testid="journal-entries-filter-type"]').selectOption("All")
+    await typeFilter.selectOption("All")
+    await page.waitForTimeout(500)
     await expect(page.locator('[data-testid="journal-entries-count"]')).toContainText("2 of 2 entries", { timeout: 10000 })
   })
 
@@ -1005,17 +980,7 @@ test.describe("Journal Entries List Page", () => {
     })
     expect(createAccount2Res.ok()).toBeTruthy()
 
-    // Create fiscal year
-    await request.post("/api/v1/fiscal/fiscal-years", {
-      headers: { Authorization: `Bearer ${sessionToken}` },
-      data: {
-        companyId: companyData.id,
-        name: "FY2026",
-        startDate: "2026-01-01",
-        endDate: "2026-12-31",
-        includePeriod13: false
-      }
-    })
+    // Note: Fiscal year creation removed - fiscal periods are computed automatically
 
     // 4. Set session cookie
     await page.context().addCookies([
@@ -1181,17 +1146,7 @@ test.describe("Journal Entries List Page", () => {
       }
     })
 
-    // Create fiscal year
-    await request.post("/api/v1/fiscal/fiscal-years", {
-      headers: { Authorization: `Bearer ${sessionToken}` },
-      data: {
-        companyId: companyData.id,
-        name: "FY2026",
-        startDate: "2026-01-01",
-        endDate: "2026-12-31",
-        includePeriod13: false
-      }
-    })
+    // Note: Fiscal year creation removed - fiscal periods are computed automatically
 
     // 4. Set session cookie
     await page.context().addCookies([
@@ -1556,17 +1511,7 @@ test.describe("Journal Entries List Page", () => {
     expect(createAccount2Res.ok()).toBeTruthy()
     const account2Data = await createAccount2Res.json()
 
-    // Create fiscal year
-    await request.post("/api/v1/fiscal/fiscal-years", {
-      headers: { Authorization: `Bearer ${sessionToken}` },
-      data: {
-        companyId: companyData.id,
-        name: "FY2025",
-        startDate: "2025-01-01",
-        endDate: "2025-12-31",
-        includePeriod13: false
-      }
-    })
+    // Note: Fiscal year creation removed - fiscal periods are computed automatically
 
     // 4. Create journal entries
     await request.post("/api/v1/journal-entries", {

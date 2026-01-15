@@ -33,8 +33,6 @@ import { AccountRepository } from "../src/Services/AccountRepository.ts"
 import { AccountRepositoryLive } from "../src/Layers/AccountRepositoryLive.ts"
 import { ExchangeRateRepository } from "../src/Services/ExchangeRateRepository.ts"
 import { ExchangeRateRepositoryLive } from "../src/Layers/ExchangeRateRepositoryLive.ts"
-import { FiscalPeriodRepository } from "../src/Services/FiscalPeriodRepository.ts"
-import { FiscalPeriodRepositoryLive } from "../src/Layers/FiscalPeriodRepositoryLive.ts"
 import { JournalEntryRepository } from "../src/Services/JournalEntryRepository.ts"
 import { JournalEntryRepositoryLive } from "../src/Layers/JournalEntryRepositoryLive.ts"
 import { JournalEntryLineRepository } from "../src/Services/JournalEntryLineRepository.ts"
@@ -46,7 +44,6 @@ import { IntercompanyTransactionRepositoryLive } from "../src/Layers/Intercompan
 import { EliminationRuleRepository } from "../src/Services/EliminationRuleRepository.ts"
 import { EliminationRuleRepositoryLive } from "../src/Layers/EliminationRuleRepositoryLive.ts"
 import { SharedPgClientLive } from "./Utils.ts"
-import { FiscalYearId, FiscalPeriodId } from "@accountability/core/Services/PeriodService"
 import { ExchangeRateId } from "@accountability/core/Domains/ExchangeRate"
 import { ConsolidationGroupId, EliminationRuleId } from "@accountability/core/Domains/ConsolidationGroup"
 import { JournalEntryId, UserId } from "@accountability/core/Domains/JournalEntry"
@@ -75,7 +72,6 @@ const TestLayer = Layer.mergeAll(
   AccountRepositoryLive,
   JournalEntryRepositoryLive,
   JournalEntryLineRepositoryLive,
-  FiscalPeriodRepositoryLive,
   ExchangeRateRepositoryLive,
   ConsolidationRepositoryLive,
   IntercompanyTransactionRepositoryLive,
@@ -93,10 +89,8 @@ const testCompanyId3 = CompanyId.make("33333333-3333-3333-3333-333333333334")
 const testAccountId = AccountId.make("44444444-4444-4444-4444-444444444444")
 const testAccountId2 = AccountId.make("55555555-5555-5555-5555-555555555555")
 const testAccountId3 = AccountId.make("55555555-5555-5555-5555-555555555556")
-const testFiscalYearId = FiscalYearId.make("cccccccc-cccc-cccc-cccc-cccccccccccc")
-const testFiscalYearId2 = FiscalYearId.make("cccccccc-cccc-cccc-cccc-cccccccccccd")
-const testFiscalPeriodId = FiscalPeriodId.make("dddddddd-dddd-dddd-dddd-dddddddddddd")
-const testFiscalPeriodId2 = FiscalPeriodId.make("dddddddd-dddd-dddd-dddd-ddddddddddde")
+// Fiscal year UUID for test data setup (database still has fiscal_years table for journal entry references)
+const testFiscalYearId2 = "cccccccc-cccc-cccc-cccc-cccccccccccd"
 const testRateId = ExchangeRateId.make("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee")
 const testRateId2 = ExchangeRateId.make("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeef")
 const testRateId3 = ExchangeRateId.make("eeeeeeee-eeee-eeee-eeee-eeeeeeeeee03")
@@ -650,128 +644,8 @@ describe("Repositories", () => {
     )
   })
 
-  // ============================================================================
-  // FiscalPeriodRepository Tests
-  // ============================================================================
-  it.layer(TestLayer, { timeout: "60 seconds" })("FiscalPeriodRepository", (it) => {
-    it.effect("setup: create test data", () =>
-      Effect.gen(function* () {
-        const sql = yield* PgClient.PgClient
-
-        yield* sql`
-          INSERT INTO organizations (id, name, reporting_currency, created_at)
-          VALUES (${testOrgId}, 'Test Organization', 'USD', NOW())
-          ON CONFLICT (id) DO NOTHING
-        `
-        yield* sql`
-          INSERT INTO companies (
-            id, organization_id, name, legal_name, jurisdiction,
-            functional_currency, reporting_currency, fiscal_year_end_month, fiscal_year_end_day,
-            is_active, created_at
-          ) VALUES (
-            ${testCompanyId}, ${testOrgId}, 'Test Company', 'Test Company LLC', 'US',
-            'USD', 'USD', 12, 31, true, NOW()
-          ) ON CONFLICT (id) DO NOTHING
-        `
-        yield* sql`
-          INSERT INTO fiscal_years (id, company_id, name, year, start_date, end_date, status, includes_adjustment_period, created_at)
-          VALUES (${testFiscalYearId}, ${testCompanyId}, 'FY 2025', 2025, '2025-01-01', '2025-12-31', 'Open', false, NOW())
-          ON CONFLICT (id) DO NOTHING
-        `
-        yield* sql`
-          INSERT INTO fiscal_years (id, company_id, name, year, start_date, end_date, status, includes_adjustment_period, created_at)
-          VALUES (${testFiscalYearId2}, ${testCompanyId}, 'FY 2024', 2024, '2024-01-01', '2024-12-31', 'Closed', false, NOW())
-          ON CONFLICT (id) DO NOTHING
-        `
-        yield* sql`
-          INSERT INTO fiscal_periods (id, fiscal_year_id, period_number, name, period_type, start_date, end_date, status)
-          VALUES (${testFiscalPeriodId}, ${testFiscalYearId}, 1, 'January 2025', 'Regular', '2025-01-01', '2025-01-31', 'Open')
-          ON CONFLICT (id) DO NOTHING
-        `
-        yield* sql`
-          INSERT INTO fiscal_periods (id, fiscal_year_id, period_number, name, period_type, start_date, end_date, status)
-          VALUES (${testFiscalPeriodId2}, ${testFiscalYearId}, 2, 'February 2025', 'Regular', '2025-02-01', '2025-02-28', 'Future')
-          ON CONFLICT (id) DO NOTHING
-        `
-      })
-    )
-
-    it.effect("findFiscalYearById: returns fiscal year", () =>
-      Effect.gen(function* () {
-        const repo = yield* FiscalPeriodRepository
-        const result = yield* repo.findFiscalYearById(testFiscalYearId)
-        expect(Option.isSome(result)).toBe(true)
-        if (Option.isSome(result)) {
-          expect(result.value.year).toBe(2025)
-        }
-      })
-    )
-
-    it.effect("getFiscalYearById: throws for non-existing year", () =>
-      Effect.gen(function* () {
-        const repo = yield* FiscalPeriodRepository
-        const result = yield* Effect.either(
-          repo.getFiscalYearById(FiscalYearId.make(nonExistentId))
-        )
-        expect(result._tag).toBe("Left")
-      })
-    )
-
-    it.effect("findFiscalYearsByCompany: returns fiscal years for company", () =>
-      Effect.gen(function* () {
-        const repo = yield* FiscalPeriodRepository
-        const years = yield* repo.findFiscalYearsByCompany(testCompanyId)
-        expect(years.length).toBeGreaterThanOrEqual(2)
-      })
-    )
-
-    it.effect("findById: returns fiscal period", () =>
-      Effect.gen(function* () {
-        const repo = yield* FiscalPeriodRepository
-        const result = yield* repo.findById(testFiscalPeriodId)
-        expect(Option.isSome(result)).toBe(true)
-        if (Option.isSome(result)) {
-          expect(result.value.periodNumber).toBe(1)
-        }
-      })
-    )
-
-    it.effect("findByFiscalYear: returns periods for fiscal year", () =>
-      Effect.gen(function* () {
-        const repo = yield* FiscalPeriodRepository
-        const periods = yield* repo.findByFiscalYear(testFiscalYearId)
-        expect(periods.length).toBeGreaterThanOrEqual(2)
-      })
-    )
-
-    it.effect("findOpen: returns open periods", () =>
-      Effect.gen(function* () {
-        const repo = yield* FiscalPeriodRepository
-        const periods = yield* repo.findOpen(testCompanyId)
-        expect(periods.every((p) => p.status === "Open")).toBe(true)
-      })
-    )
-
-    it.effect("findByStatus: returns periods with specific status", () =>
-      Effect.gen(function* () {
-        const repo = yield* FiscalPeriodRepository
-        const futurePeriods = yield* repo.findByStatus(testCompanyId, "Future")
-        expect(futurePeriods.every((p) => p.status === "Future")).toBe(true)
-      })
-    )
-
-    it.effect("findCurrentPeriod: returns open period if one exists within date range", () =>
-      Effect.gen(function* () {
-        const repo = yield* FiscalPeriodRepository
-        const result = yield* repo.findCurrentPeriod(testCompanyId)
-        // Note: This test may return None if current date is not within any open period's date range
-        // The important thing is the method executes without error
-        if (Option.isSome(result)) {
-          expect(result.value.status).toBe("Open")
-        }
-      })
-    )
-  })
+  // NOTE: FiscalPeriodRepository tests removed. Fiscal periods are now computed
+  // from transaction dates at runtime rather than stored/validated against periods.
 
   // ============================================================================
   // JournalEntryRepository Tests
@@ -796,8 +670,7 @@ describe("Repositories", () => {
             'USD', 'USD', 12, 31, true, NOW()
           ) ON CONFLICT (id) DO NOTHING
         `
-        // Use the same fiscal year as FiscalPeriodRepository tests to avoid duplicate key constraint
-        // The testFiscalYearId2 is already created with company_id and year 2024 in FiscalPeriodRepository setup
+        // Create fiscal year for journal entry tests
         yield* sql`
           INSERT INTO fiscal_years (id, company_id, name, year, start_date, end_date, status, includes_adjustment_period, created_at)
           VALUES (${testFiscalYearId2}, ${testCompanyId}, 'FY 2024', 2024, '2024-01-01', '2024-12-31', 'Open', false, NOW())

@@ -53,13 +53,16 @@ export class CreateJournalEntryLineRequest extends Schema.Class<CreateJournalEnt
 /**
  * CreateJournalEntryRequest - Request body for creating a new journal entry
  * Uses LocalDateFromString to automatically parse ISO date strings (YYYY-MM-DD)
+ *
+ * fiscalPeriod is optional - if not provided, it will be computed from the
+ * transactionDate and the company's fiscalYearEnd setting.
  */
 export class CreateJournalEntryRequest extends Schema.Class<CreateJournalEntryRequest>("CreateJournalEntryRequest")({
   companyId: CompanyId,
   description: Schema.NonEmptyTrimmedString,
   transactionDate: LocalDateFromString,
   documentDate: Schema.OptionFromNullOr(LocalDateFromString),
-  fiscalPeriod: FiscalPeriodRef,
+  fiscalPeriod: Schema.OptionFromNullOr(FiscalPeriodRef),
   entryType: JournalEntryType,
   sourceModule: SourceModule,
   referenceNumber: Schema.OptionFromNullOr(Schema.NonEmptyTrimmedString),

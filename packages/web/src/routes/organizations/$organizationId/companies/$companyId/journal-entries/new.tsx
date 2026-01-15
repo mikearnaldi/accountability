@@ -6,6 +6,7 @@
  * - Account dropdown searching postable accounts
  * - Multi-currency support with exchange rate field
  * - Save as Draft and Submit for Approval actions
+ * - Computed fiscal period based on transaction date and company's fiscal year end
  */
 
 import { createFileRoute, redirect, Link, useNavigate } from "@tanstack/react-router"
@@ -28,6 +29,10 @@ interface Company {
   readonly name: string
   readonly legalName: string
   readonly functionalCurrency: string
+  readonly fiscalYearEnd: {
+    readonly month: number
+    readonly day: number
+  }
 }
 
 interface Organization {
@@ -49,35 +54,6 @@ interface CurrencyInfo {
   readonly symbol: string
 }
 
-interface FiscalPeriod {
-  readonly id: string
-  readonly fiscalYearId: string
-  readonly periodNumber: number
-  readonly name: string
-  readonly periodType: string
-  readonly startDate: { year: number; month: number; day: number }
-  readonly endDate: { year: number; month: number; day: number }
-  readonly status: string
-}
-
-interface FiscalYear {
-  readonly id: string
-  readonly companyId: string
-  readonly name: string
-  readonly year: number
-  readonly startDate: { year: number; month: number; day: number }
-  readonly endDate: { year: number; month: number; day: number }
-  readonly status: string
-}
-
-interface FiscalPeriodOption {
-  readonly year: number
-  readonly period: number
-  readonly label: string
-  readonly startDate?: { year: number; month: number; day: number }
-  readonly endDate?: { year: number; month: number; day: number }
-}
-
 // =============================================================================
 // Server Functions
 // =============================================================================
@@ -95,8 +71,6 @@ const fetchNewJournalEntryData = createServerFn({ method: "GET" })
         organization: null,
         accounts: [],
         currencies: [],
-        fiscalYears: [],
-        fiscalPeriods: [],
         error: "unauthorized" as const
       }
     }
@@ -105,8 +79,9 @@ const fetchNewJournalEntryData = createServerFn({ method: "GET" })
       const serverApi = createServerApi()
       const Authorization = `Bearer ${sessionToken}`
 
-      // Fetch company, organization, accounts, currencies, fiscal years, and fiscal periods in parallel
-      const [companyResult, orgResult, accountsResult, currenciesResult, fiscalYearsResult, fiscalPeriodsResult] = await Promise.all([
+      // Fetch company, organization, accounts, and currencies in parallel
+      // No need to fetch fiscal periods - they are computed from company's fiscalYearEnd
+      const [companyResult, orgResult, accountsResult, currenciesResult] = await Promise.all([
         serverApi.GET("/api/v1/companies/{id}", {
           params: { path: { id: data.companyId } },
           headers: { Authorization }
@@ -122,14 +97,6 @@ const fetchNewJournalEntryData = createServerFn({ method: "GET" })
         serverApi.GET("/api/v1/currencies", {
           params: { query: { isActive: "true" } },
           headers: { Authorization }
-        }),
-        serverApi.GET("/api/v1/fiscal/fiscal-years", {
-          params: { query: { companyId: data.companyId, limit: "100" } },
-          headers: { Authorization }
-        }),
-        serverApi.GET("/api/v1/fiscal/fiscal-periods", {
-          params: { query: { companyId: data.companyId, limit: "1000" } },
-          headers: { Authorization }
         })
       ])
 
@@ -140,8 +107,6 @@ const fetchNewJournalEntryData = createServerFn({ method: "GET" })
             organization: null,
             accounts: [],
             currencies: [],
-            fiscalYears: [],
-            fiscalPeriods: [],
             error: "not_found" as const
           }
         }
@@ -150,8 +115,6 @@ const fetchNewJournalEntryData = createServerFn({ method: "GET" })
           organization: null,
           accounts: [],
           currencies: [],
-          fiscalYears: [],
-          fiscalPeriods: [],
           error: "failed" as const
         }
       }
@@ -162,8 +125,6 @@ const fetchNewJournalEntryData = createServerFn({ method: "GET" })
           organization: null,
           accounts: [],
           currencies: [],
-          fiscalYears: [],
-          fiscalPeriods: [],
           error: "failed" as const
         }
       }
@@ -173,8 +134,6 @@ const fetchNewJournalEntryData = createServerFn({ method: "GET" })
         organization: orgResult.data,
         accounts: accountsResult.data?.accounts ?? [],
         currencies: currenciesResult.data?.currencies ?? [],
-        fiscalYears: fiscalYearsResult.data?.fiscalYears ?? [],
-        fiscalPeriods: fiscalPeriodsResult.data?.periods ?? [],
         error: null
       }
     } catch {
@@ -183,8 +142,6 @@ const fetchNewJournalEntryData = createServerFn({ method: "GET" })
         organization: null,
         accounts: [],
         currencies: [],
-        fiscalYears: [],
-        fiscalPeriods: [],
         error: "failed" as const
       }
     }
@@ -268,40 +225,12 @@ function NewJournalEntryPage() {
   const organization = loaderData.organization as Organization | null
   const accounts = loaderData.accounts as readonly Account[]
   const currencies = loaderData.currencies as readonly CurrencyInfo[]
-  const fiscalYears = loaderData.fiscalYears as readonly FiscalYear[]
-  const fiscalPeriods = loaderData.fiscalPeriods as readonly FiscalPeriod[]
   /* eslint-enable @typescript-eslint/consistent-type-assertions */
   const params = Route.useParams()
   const navigate = useNavigate()
   const user = context.user
   // Organizations come from the parent layout route's beforeLoad
   const organizations = context.organizations ?? []
-
-  // Build a map of fiscal year ID to fiscal year for lookup
-  const fiscalYearMap = new Map<string, FiscalYear>()
-  for (const fy of fiscalYears) {
-    fiscalYearMap.set(fy.id, fy)
-  }
-
-  // Build fiscal period options from fiscal periods and years
-  const fiscalPeriodOptions: FiscalPeriodOption[] = []
-  for (const period of fiscalPeriods) {
-    const fy = fiscalYearMap.get(period.fiscalYearId)
-    if (fy) {
-      fiscalPeriodOptions.push({
-        year: fy.year,
-        period: period.periodNumber,
-        label: `${fy.name} - ${period.name}`,
-        startDate: period.startDate,
-        endDate: period.endDate
-      })
-    }
-  }
-
-  // Get default fiscal period (current or most recent open period)
-  const defaultFiscalPeriod = fiscalPeriodOptions.length > 0
-    ? fiscalPeriodOptions[0]
-    : { year: new Date().getFullYear(), period: 1, label: "P1" }
 
   // Handle success - navigate back to journal entries list
   const handleSuccess = () => {
@@ -426,9 +355,7 @@ function NewJournalEntryPage() {
             functionalCurrency={company.functionalCurrency}
             accounts={accounts}
             currencies={currencies}
-            fiscalPeriods={fiscalPeriodOptions}
-            defaultFiscalPeriod={defaultFiscalPeriod}
-            fiscalPeriodsConfigUrl={`/organizations/${params.organizationId}/companies/${params.companyId}/fiscal`}
+            fiscalYearEnd={company.fiscalYearEnd}
             onSuccess={handleSuccess}
             onCancel={handleCancel}
           />

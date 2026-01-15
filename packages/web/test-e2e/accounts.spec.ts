@@ -366,8 +366,9 @@ test.describe("Chart of Accounts Page", () => {
     await page.click('button[type="submit"]')
 
     // 11. Should show new account in list (after invalidation)
-    await expect(page.getByText("1100")).toBeVisible({ timeout: 10000 })
-    await expect(page.getByText("Petty Cash")).toBeVisible()
+    // Use specific data-testid to avoid matching timestamps in org/company names
+    await expect(page.getByTestId("account-number-1100")).toBeVisible({ timeout: 10000 })
+    await expect(page.getByTestId("account-name-1100").getByText("Petty Cash")).toBeVisible()
 
     // 12. Should show updated account count
     await expect(page.getByText(/1 of 1 accounts/i)).toBeVisible()

@@ -7,11 +7,12 @@
  * - Real-time balance validation (green=balanced, red=unbalanced)
  * - Multi-currency support with exchange rate field
  * - Save as Draft and Submit for Approval buttons
+ * - Computed fiscal period display (based on transaction date and company FY end)
  */
 
-import { useState, useMemo, useCallback, useEffect } from "react"
+import { useState, useMemo, useCallback } from "react"
 import { useRouter } from "@tanstack/react-router"
-import { Plus } from "lucide-react"
+import { Plus, Calendar, Info } from "lucide-react"
 import { api } from "@/api/client"
 import {
   JournalEntryLineEditor,
@@ -59,12 +60,16 @@ interface CurrencyInfo {
   readonly symbol: string
 }
 
-interface FiscalPeriodOption {
-  readonly year: number
-  readonly period: number
-  readonly label: string
-  readonly startDate?: { year: number; month: number; day: number }
-  readonly endDate?: { year: number; month: number; day: number }
+interface FiscalYearEnd {
+  readonly month: number
+  readonly day: number
+}
+
+interface ComputedPeriod {
+  readonly fiscalYear: number
+  readonly periodNumber: number
+  readonly periodName: string
+  readonly periodDisplayName: string
 }
 
 interface JournalEntryFormProps {
@@ -72,9 +77,7 @@ interface JournalEntryFormProps {
   readonly functionalCurrency: string
   readonly accounts: readonly Account[]
   readonly currencies: readonly CurrencyInfo[]
-  readonly fiscalPeriods: readonly FiscalPeriodOption[]
-  readonly defaultFiscalPeriod?: FiscalPeriodOption
-  readonly fiscalPeriodsConfigUrl?: string
+  readonly fiscalYearEnd: FiscalYearEnd
   readonly onSuccess: () => void
   readonly onCancel: () => void
 }
@@ -109,45 +112,100 @@ function formatAmount(value: number): string {
   return value.toFixed(2)
 }
 
+const MONTH_NAMES = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December"
+]
+
 /**
- * Find the fiscal period that contains a given date.
- * Returns the matching period option, or undefined if no match found.
+ * Get the number of days in a month
  */
-function findPeriodForDate(
+function daysInMonth(year: number, month: number): number {
+  return new Date(Date.UTC(year, month, 0)).getUTCDate()
+}
+
+/**
+ * Compute fiscal period from a date and fiscal year end setting
+ */
+function computeFiscalPeriod(
   dateStr: string,
-  periods: readonly FiscalPeriodOption[]
-): FiscalPeriodOption | undefined {
-  if (!dateStr || periods.length === 0) return undefined
-
+  fiscalYearEnd: FiscalYearEnd
+): ComputedPeriod {
+  // Parse the date string
   const [yearStr, monthStr, dayStr] = dateStr.split("-")
-  const targetDate = new Date(
-    parseInt(yearStr, 10),
-    parseInt(monthStr, 10) - 1,
-    parseInt(dayStr, 10)
-  )
+  const year = parseInt(yearStr, 10)
+  const month = parseInt(monthStr, 10)
+  const day = parseInt(dayStr, 10)
 
-  for (const period of periods) {
-    if (!period.startDate || !period.endDate) continue
+  const { month: fyEndMonth, day: fyEndDay } = fiscalYearEnd
 
-    const start = new Date(
-      period.startDate.year,
-      period.startDate.month - 1,
-      period.startDate.day
-    )
-    const end = new Date(
-      period.endDate.year,
-      period.endDate.month - 1,
-      period.endDate.day
-    )
-    // Set end to end of day for inclusive comparison
-    end.setHours(23, 59, 59, 999)
-
-    if (targetDate >= start && targetDate <= end) {
-      return period
-    }
+  // Determine fiscal year
+  // For calendar year (Dec 31): FY = calendar year
+  // For non-calendar year: FY = year containing the FY end
+  let fiscalYear: number
+  if (fyEndMonth === 12 && fyEndDay === 31) {
+    fiscalYear = year
+  } else {
+    // Check if we're past the fiscal year end in the current calendar year
+    const isPastFYEnd = month > fyEndMonth || (month === fyEndMonth && day > fyEndDay)
+    fiscalYear = isPastFYEnd ? year + 1 : year
   }
 
-  return undefined
+  // Determine fiscal year start
+  let fyStartYear: number
+  let fyStartMonth: number
+
+  if (fyEndMonth === 12 && fyEndDay === 31) {
+    // Calendar year starts Jan 1
+    fyStartYear = fiscalYear
+    fyStartMonth = 1
+  } else {
+    // Non-calendar year starts day after previous FY end
+    const prevEndMonth = fyEndMonth
+    const prevEndDay = Math.min(fyEndDay, daysInMonth(fiscalYear - 1, prevEndMonth))
+    const prevEndDate = new Date(Date.UTC(fiscalYear - 1, prevEndMonth - 1, prevEndDay))
+    prevEndDate.setUTCDate(prevEndDate.getUTCDate() + 1)
+    fyStartYear = prevEndDate.getUTCFullYear()
+    fyStartMonth = prevEndDate.getUTCMonth() + 1
+  }
+
+  // Determine period number (1-12)
+  // Period 1 starts at FY start month, each period is one calendar month
+  let periodNumber: number
+  if (fyStartMonth === 1) {
+    // Calendar year: period = month
+    periodNumber = month
+  } else {
+    // Calculate months from FY start
+    let monthsFromStart: number
+    if (year === fyStartYear) {
+      monthsFromStart = month - fyStartMonth
+    } else {
+      // Date is in the following calendar year
+      monthsFromStart = (12 - fyStartMonth) + month
+    }
+    periodNumber = monthsFromStart + 1
+  }
+
+  // Clamp period to 1-12
+  periodNumber = Math.max(1, Math.min(12, periodNumber))
+
+  // Calculate period start date for display
+  const periodStartMonth = ((fyStartMonth - 1 + periodNumber - 1) % 12) + 1
+  let periodStartYear = fyStartYear
+  if (fyStartMonth + periodNumber - 1 > 12) {
+    periodStartYear = fyStartYear + 1
+  }
+
+  const periodName = `P${periodNumber}`
+  const periodDisplayName = `${MONTH_NAMES[periodStartMonth - 1]} ${periodStartYear}`
+
+  return {
+    fiscalYear,
+    periodNumber,
+    periodName,
+    periodDisplayName
+  }
 }
 
 // =============================================================================
@@ -250,6 +308,43 @@ function BalanceIndicator({
 }
 
 // =============================================================================
+// Computed Period Display Component
+// =============================================================================
+
+function ComputedPeriodDisplay({
+  period,
+  fiscalYearEnd
+}: {
+  readonly period: ComputedPeriod
+  readonly fiscalYearEnd: FiscalYearEnd
+}) {
+  const fyEndDisplay = `${MONTH_NAMES[fiscalYearEnd.month - 1]} ${fiscalYearEnd.day}`
+
+  return (
+    <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+        <Calendar className="h-4 w-4 text-gray-400" />
+        <span className="text-sm font-medium text-gray-900" data-testid="computed-fiscal-period">
+          {period.periodName} FY{period.fiscalYear}
+        </span>
+        <span className="text-xs text-gray-500">
+          ({period.periodDisplayName})
+        </span>
+      </div>
+      <div className="group relative">
+        <Info className="h-4 w-4 cursor-help text-gray-400" />
+        <div className="pointer-events-none absolute left-0 top-full z-10 mt-1 w-64 rounded-lg border border-gray-200 bg-white p-3 opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+          <p className="text-xs text-gray-600">
+            Fiscal period is automatically determined from the transaction date.
+            Company fiscal year ends {fyEndDisplay}.
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// =============================================================================
 // JournalEntryForm Component
 // =============================================================================
 
@@ -258,9 +353,7 @@ export function JournalEntryForm({
   functionalCurrency,
   accounts,
   currencies,
-  fiscalPeriods,
-  defaultFiscalPeriod,
-  fiscalPeriodsConfigUrl,
+  fiscalYearEnd,
   onSuccess,
   onCancel
 }: JournalEntryFormProps) {
@@ -274,11 +367,11 @@ export function JournalEntryForm({
   const [referenceNumber, setReferenceNumber] = useState("")
   const [description, setDescription] = useState("")
   const [entryType, setEntryType] = useState<JournalEntryType>("Standard")
-  const [fiscalYear, setFiscalYear] = useState<number>(
-    defaultFiscalPeriod?.year ?? new Date().getFullYear()
-  )
-  const [fiscalPeriod, setFiscalPeriod] = useState<number>(
-    defaultFiscalPeriod?.period ?? 1
+
+  // Computed fiscal period (derived from transaction date)
+  const computedPeriod = useMemo(
+    () => computeFiscalPeriod(transactionDate, fiscalYearEnd),
+    [transactionDate, fiscalYearEnd]
   )
 
   // Multi-currency fields
@@ -296,8 +389,6 @@ export function JournalEntryForm({
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitAction, setSubmitAction] = useState<"draft" | "submit" | null>(null)
-  const [periodAutoDetected, setPeriodAutoDetected] = useState(false)
-  const [periodMismatchWarning, setPeriodMismatchWarning] = useState(false)
 
   // Calculate totals
   const { totalDebits, totalCredits, isBalanced } = useMemo(() => {
@@ -315,36 +406,6 @@ export function JournalEntryForm({
       isBalanced: Math.abs(debits - credits) < 0.01
     }
   }, [lines])
-
-  // Get unique fiscal years from periods
-  const availableFiscalYears = useMemo(() => {
-    const years = new Set(fiscalPeriods.map((p) => p.year))
-    return Array.from(years).sort((a, b) => b - a)
-  }, [fiscalPeriods])
-
-  // Get periods for selected year
-  const availablePeriodsForYear = useMemo(() => {
-    return fiscalPeriods.filter((p) => p.year === fiscalYear)
-  }, [fiscalPeriods, fiscalYear])
-
-  // Auto-detect fiscal period when transaction date changes
-  useEffect(() => {
-    if (!transactionDate || fiscalPeriods.length === 0) return
-
-    const matchingPeriod = findPeriodForDate(transactionDate, fiscalPeriods)
-
-    if (matchingPeriod) {
-      // Auto-update to matching period
-      setFiscalYear(matchingPeriod.year)
-      setFiscalPeriod(matchingPeriod.period)
-      setPeriodAutoDetected(true)
-      setPeriodMismatchWarning(false)
-    } else {
-      // Date doesn't fall within any configured period
-      setPeriodAutoDetected(false)
-      setPeriodMismatchWarning(true)
-    }
-  }, [transactionDate, fiscalPeriods])
 
   // Update line handler
   const handleUpdateLine = useCallback(
@@ -370,12 +431,6 @@ export function JournalEntryForm({
 
   // Validate form
   const validateForm = (): boolean => {
-    // Check fiscal periods are configured
-    if (fiscalPeriods.length === 0) {
-      setError("Cannot create journal entry: No fiscal periods configured for this company")
-      return false
-    }
-
     // Check description
     if (!description.trim()) {
       setError("Description is required")
@@ -453,7 +508,10 @@ export function JournalEntryForm({
           description: description.trim(),
           transactionDate,
           documentDate: null,
-          fiscalPeriod: { year: fiscalYear, period: fiscalPeriod },
+          fiscalPeriod: {
+            year: computedPeriod.fiscalYear,
+            period: computedPeriod.periodNumber
+          },
           entryType,
           sourceModule: "GeneralLedger",
           referenceNumber: referenceNumber.trim() || null,
@@ -534,60 +592,6 @@ export function JournalEntryForm({
         </div>
       )}
 
-      {/* No Fiscal Periods Warning */}
-      {fiscalPeriods.length === 0 && (
-        <div
-          data-testid="no-fiscal-periods-warning"
-          className="rounded-lg border border-amber-200 bg-amber-50 p-4"
-        >
-          <div className="flex items-start gap-3">
-            <svg
-              className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-600"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-              />
-            </svg>
-            <div>
-              <h3 className="font-medium text-amber-800">
-                No Fiscal Periods Configured
-              </h3>
-              <p className="mt-1 text-sm text-amber-700">
-                You need to configure fiscal periods for this company before creating journal entries.
-                Journal entries must be assigned to a fiscal period for proper accounting.
-              </p>
-              {fiscalPeriodsConfigUrl && (
-                <a
-                  href={fiscalPeriodsConfigUrl}
-                  className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-amber-800 underline hover:text-amber-900"
-                >
-                  Configure Fiscal Periods
-                  <svg
-                    className="h-4 w-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M14 5l7 7m0 0l-7 7m7-7H3"
-                    />
-                  </svg>
-                </a>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Header Fields */}
       <div className="rounded-lg border border-gray-200 bg-white p-4">
         <h3 className="mb-4 text-sm font-medium text-gray-700">Entry Details</h3>
@@ -665,63 +669,19 @@ export function JournalEntryForm({
             </select>
           </div>
 
-          {/* Fiscal Period */}
+          {/* Computed Fiscal Period (Read-only) */}
           <div>
             <label
-              htmlFor="fiscal-period"
               className="block text-sm font-medium text-gray-700"
             >
-              Period *
-              {periodAutoDetected && (
-                <span className="ml-2 text-xs font-normal text-green-600">
-                  (Auto-detected from date)
-                </span>
-              )}
+              Fiscal Period
             </label>
-            <div className="mt-1 flex gap-2">
-              <select
-                id="fiscal-year"
-                value={fiscalYear}
-                onChange={(e) => {
-                  setFiscalYear(parseInt(e.target.value, 10))
-                  setPeriodAutoDetected(false)
-                }}
-                disabled={isSubmitting}
-                data-testid="journal-entry-fiscal-year"
-                className="w-24 rounded-lg border border-gray-300 px-2 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100"
-              >
-                {availableFiscalYears.map((year) => (
-                  <option key={year} value={year}>
-                    {year}
-                  </option>
-                ))}
-              </select>
-              <select
-                id="fiscal-period"
-                value={fiscalPeriod}
-                onChange={(e) => {
-                  setFiscalPeriod(parseInt(e.target.value, 10))
-                  setPeriodAutoDetected(false)
-                }}
-                disabled={isSubmitting}
-                data-testid="journal-entry-fiscal-period"
-                className="flex-1 rounded-lg border border-gray-300 px-2 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100"
-              >
-                {availablePeriodsForYear.map((p) => (
-                  <option key={p.period} value={p.period}>
-                    P{p.period}
-                  </option>
-                ))}
-                {availablePeriodsForYear.length === 0 && (
-                  <option value={fiscalPeriod}>P{fiscalPeriod}</option>
-                )}
-              </select>
+            <div className="mt-1">
+              <ComputedPeriodDisplay
+                period={computedPeriod}
+                fiscalYearEnd={fiscalYearEnd}
+              />
             </div>
-            {periodMismatchWarning && fiscalPeriods.length > 0 && (
-              <p className="mt-1 text-xs text-amber-600">
-                Transaction date falls outside configured fiscal periods
-              </p>
-            )}
           </div>
         </div>
 

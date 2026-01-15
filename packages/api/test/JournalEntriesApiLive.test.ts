@@ -29,17 +29,9 @@ import { AccountId } from "@accountability/core/Domains/Account"
 import { FiscalPeriodRef } from "@accountability/core/Domains/FiscalPeriodRef"
 import { LocalDate, today as localDateToday } from "@accountability/core/Domains/LocalDate"
 import { MonetaryAmount } from "@accountability/core/Domains/MonetaryAmount"
-import {
-  FiscalPeriod,
-  FiscalPeriodId,
-  FiscalYear,
-  FiscalYearId,
-  type FiscalPeriodStatus
-} from "@accountability/core/Services/PeriodService"
 import { JournalEntryRepository, type JournalEntryRepositoryService } from "@accountability/persistence/Services/JournalEntryRepository"
 import { JournalEntryLineRepository, type JournalEntryLineRepositoryService } from "@accountability/persistence/Services/JournalEntryLineRepository"
 import { CompanyRepository, type CompanyRepositoryService } from "@accountability/persistence/Services/CompanyRepository"
-import { FiscalPeriodRepository, type FiscalPeriodRepositoryService } from "@accountability/persistence/Services/FiscalPeriodRepository"
 import { EntityNotFoundError } from "@accountability/persistence/Errors/RepositoryError"
 
 // =============================================================================
@@ -49,8 +41,6 @@ import { EntityNotFoundError } from "@accountability/persistence/Errors/Reposito
 const testCompanyId = CompanyId.make("550e8400-e29b-41d4-a716-446655440001")
 const testOrganizationId = OrganizationId.make("550e8400-e29b-41d4-a716-446655440000")
 const testUserId = UserId.make("550e8400-e29b-41d4-a716-446655440010")
-const testFiscalYearId = FiscalYearId.make("550e8400-e29b-41d4-a716-446655440020")
-const testFiscalPeriodId = FiscalPeriodId.make("550e8400-e29b-41d4-a716-446655440021")
 
 const testAccountId1 = AccountId.make("550e8400-e29b-41d4-a716-446655440030")
 const testAccountId2 = AccountId.make("550e8400-e29b-41d4-a716-446655440031")
@@ -80,46 +70,8 @@ const createTestCompany = (overrides: Partial<{
   })
 }
 
-const createTestFiscalYear = (overrides: Partial<{
-  year: number
-  status: "Open" | "Closed"
-}> = {}): FiscalYear => {
-  const year = overrides.year ?? 2025
-  const status = overrides.status ?? "Open"
-
-  return FiscalYear.make({
-    id: testFiscalYearId,
-    companyId: testCompanyId,
-    name: `FY ${year}`,
-    year,
-    startDate: LocalDate.make({ year, month: 1, day: 1 }),
-    endDate: LocalDate.make({ year, month: 12, day: 31 }),
-    status,
-    includesAdjustmentPeriod: false,
-    createdAt: timestampNow()
-  })
-}
-
-const createTestFiscalPeriod = (overrides: Partial<{
-  periodNumber: number
-  status: FiscalPeriodStatus
-}> = {}): FiscalPeriod => {
-  const periodNumber = overrides.periodNumber ?? 1
-  const status = overrides.status ?? "Open"
-
-  return FiscalPeriod.make({
-    id: testFiscalPeriodId,
-    fiscalYearId: testFiscalYearId,
-    periodNumber,
-    name: `Period ${periodNumber}`,
-    periodType: "Regular",
-    startDate: LocalDate.make({ year: 2025, month: periodNumber, day: 1 }),
-    endDate: LocalDate.make({ year: 2025, month: periodNumber, day: 28 }),
-    status,
-    closedBy: Option.none(),
-    closedAt: Option.none()
-  })
-}
+// NOTE: FiscalYear and FiscalPeriod test fixtures removed.
+// Fiscal periods are now computed from transaction dates at runtime.
 
 const createTestJournalEntry = (overrides: Partial<{
   id: JournalEntryId
@@ -453,169 +405,8 @@ const createMockCompanyRepository = (
     return service
   })
 
-const createMockFiscalPeriodRepository = (
-  fiscalYear: FiscalYear = createTestFiscalYear(),
-  periods: ReadonlyArray<FiscalPeriod> = [createTestFiscalPeriod()]
-) =>
-  Effect.gen(function* () {
-    const fiscalYearsRef = yield* Ref.make<ReadonlyArray<FiscalYear>>([fiscalYear])
-    const periodsRef = yield* Ref.make<ReadonlyArray<FiscalPeriod>>(periods)
-
-    const service: FiscalPeriodRepositoryService = {
-      findById: (id) =>
-        Effect.gen(function* () {
-          const ps = yield* Ref.get(periodsRef)
-          return Option.fromNullable(ps.find((p) => p.id === id))
-        }),
-
-      findByCompany: (_companyId) =>
-        Ref.get(periodsRef),
-
-      findOpen: (_companyId) =>
-        Effect.gen(function* () {
-          const ps = yield* Ref.get(periodsRef)
-          return ps.filter((p) => p.status === "Open")
-        }),
-
-      create: (period) =>
-        Effect.gen(function* () {
-          yield* Ref.update(periodsRef, (ps) => [...ps, period])
-          return period
-        }),
-
-      update: (period) =>
-        Effect.gen(function* () {
-          const ps = yield* Ref.get(periodsRef)
-          const exists = ps.some((p) => p.id === period.id)
-          if (!exists) {
-            return yield* Effect.fail(
-              new EntityNotFoundError({ entityType: "FiscalPeriod", entityId: period.id })
-            )
-          }
-          yield* Ref.update(periodsRef, (periods) =>
-            periods.map((p) => (p.id === period.id ? period : p))
-          )
-          return period
-        }),
-
-      getById: (id) =>
-        Effect.gen(function* () {
-          const ps = yield* Ref.get(periodsRef)
-          const period = ps.find((p) => p.id === id)
-          if (!period) {
-            return yield* Effect.fail(
-              new EntityNotFoundError({ entityType: "FiscalPeriod", entityId: id })
-            )
-          }
-          return period
-        }),
-
-      findByFiscalYear: (fiscalYearId) =>
-        Effect.gen(function* () {
-          const ps = yield* Ref.get(periodsRef)
-          return ps.filter((p) => p.fiscalYearId === fiscalYearId)
-        }),
-
-      findByStatus: (_companyId, status) =>
-        Effect.gen(function* () {
-          const ps = yield* Ref.get(periodsRef)
-          return ps.filter((p) => p.status === status)
-        }),
-
-      findCurrentPeriod: (_companyId) =>
-        Effect.gen(function* () {
-          const ps = yield* Ref.get(periodsRef)
-          return Option.fromNullable(ps.find((p) => p.status === "Open"))
-        }),
-
-      findByCompanyAndPeriod: (_companyId, year, periodNumber) =>
-        Effect.gen(function* () {
-          const fys = yield* Ref.get(fiscalYearsRef)
-          const fiscalYearMatch = fys.find((fy) => fy.year === year)
-          if (!fiscalYearMatch) {
-            return Option.none()
-          }
-          const ps = yield* Ref.get(periodsRef)
-          return Option.fromNullable(
-            ps.find((p) => p.fiscalYearId === fiscalYearMatch.id && p.periodNumber === periodNumber)
-          )
-        }),
-
-      createMany: (newPeriods) =>
-        Effect.gen(function* () {
-          yield* Ref.update(periodsRef, (ps) => [...ps, ...newPeriods])
-          return newPeriods
-        }),
-
-      exists: (id) =>
-        Effect.gen(function* () {
-          const ps = yield* Ref.get(periodsRef)
-          return ps.some((p) => p.id === id)
-        }),
-
-      findFiscalYearById: (id) =>
-        Effect.gen(function* () {
-          const fys = yield* Ref.get(fiscalYearsRef)
-          return Option.fromNullable(fys.find((fy) => fy.id === id))
-        }),
-
-      getFiscalYearById: (id) =>
-        Effect.gen(function* () {
-          const fys = yield* Ref.get(fiscalYearsRef)
-          const fy = fys.find((f) => f.id === id)
-          if (!fy) {
-            return yield* Effect.fail(
-              new EntityNotFoundError({ entityType: "FiscalYear", entityId: id })
-            )
-          }
-          return fy
-        }),
-
-      findFiscalYearsByCompany: (_companyId) =>
-        Ref.get(fiscalYearsRef),
-
-      findFiscalYearByCompanyAndYear: (_companyId, year) =>
-        Effect.gen(function* () {
-          const fys = yield* Ref.get(fiscalYearsRef)
-          return Option.fromNullable(fys.find((fy) => fy.year === year))
-        }),
-
-      findOpenFiscalYears: (_companyId) =>
-        Effect.gen(function* () {
-          const fys = yield* Ref.get(fiscalYearsRef)
-          return fys.filter((fy) => fy.status === "Open")
-        }),
-
-      createFiscalYear: (fy) =>
-        Effect.gen(function* () {
-          yield* Ref.update(fiscalYearsRef, (fys) => [...fys, fy])
-          return fy
-        }),
-
-      updateFiscalYear: (fy) =>
-        Effect.gen(function* () {
-          const fys = yield* Ref.get(fiscalYearsRef)
-          const exists = fys.some((f) => f.id === fy.id)
-          if (!exists) {
-            return yield* Effect.fail(
-              new EntityNotFoundError({ entityType: "FiscalYear", entityId: fy.id })
-            )
-          }
-          yield* Ref.update(fiscalYearsRef, (years) =>
-            years.map((y) => (y.id === fy.id ? fy : y))
-          )
-          return fy
-        }),
-
-      fiscalYearExists: (id) =>
-        Effect.gen(function* () {
-          const fys = yield* Ref.get(fiscalYearsRef)
-          return fys.some((fy) => fy.id === id)
-        })
-    }
-
-    return service
-  })
+// NOTE: FiscalPeriodRepository mock removed. Fiscal periods are now computed
+// from transaction dates at runtime rather than validated against stored periods.
 
 // =============================================================================
 // Test Layer
@@ -625,17 +416,11 @@ const createTestLayer = (options: {
   entries?: ReadonlyArray<JournalEntry>
   lines?: ReadonlyArray<JournalEntryLine>
   companies?: ReadonlyArray<Company>
-  fiscalYear?: FiscalYear
-  periods?: ReadonlyArray<FiscalPeriod>
 } = {}) =>
   Layer.mergeAll(
     Layer.effect(JournalEntryRepository, createMockJournalEntryRepository(options.entries ?? [])),
     Layer.effect(JournalEntryLineRepository, createMockJournalEntryLineRepository(options.lines ?? [])),
-    Layer.effect(CompanyRepository, createMockCompanyRepository(options.companies ?? [createTestCompany()])),
-    Layer.effect(FiscalPeriodRepository, createMockFiscalPeriodRepository(
-      options.fiscalYear ?? createTestFiscalYear(),
-      options.periods ?? [createTestFiscalPeriod()]
-    ))
+    Layer.effect(CompanyRepository, createMockCompanyRepository(options.companies ?? [createTestCompany()]))
   )
 
 // =============================================================================
@@ -795,20 +580,8 @@ describe("JournalEntriesApiLive", () => {
       })
     )
 
-    it.effect("should validate fiscal period exists and is open", () =>
-      Effect.gen(function* () {
-        const closedPeriod = createTestFiscalPeriod({ status: "Closed" })
-        const testLayer = createTestLayer({ periods: [closedPeriod] })
-
-        const periodRepo = yield* FiscalPeriodRepository.pipe(Effect.provide(testLayer))
-        const maybePeriod = yield* periodRepo.findByCompanyAndPeriod(testCompanyId, 2025, 1)
-
-        expect(Option.isSome(maybePeriod)).toBe(true)
-        if (Option.isSome(maybePeriod)) {
-          expect(maybePeriod.value.status).toBe("Closed")
-        }
-      })
-    )
+    // NOTE: Period validation test removed. Fiscal periods are now computed
+    // from transaction dates at runtime rather than validated against stored periods.
   })
 
   // ===========================================================================

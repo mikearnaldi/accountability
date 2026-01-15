@@ -35,6 +35,7 @@
     "./Domains/ConsolidationGroup": "./src/Domains/ConsolidationGroup.ts",
     "./Domains/ConsolidationMethodDetermination": "./src/Domains/ConsolidationMethodDetermination.ts",
     "./Domains/ConsolidationRun": "./src/Domains/ConsolidationRun.ts",
+    "./Domains/ComputedFiscalPeriod": "./src/Domains/ComputedFiscalPeriod.ts",
     "./Domains/Currency": "./src/Domains/Currency.ts",
     "./Domains/CurrencyCode": "./src/Domains/CurrencyCode.ts",
     "./Domains/EliminationRule": "./src/Domains/EliminationRule.ts",

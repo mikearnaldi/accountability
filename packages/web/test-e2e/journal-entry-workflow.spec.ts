@@ -117,20 +117,9 @@ test.describe("Journal Entry Detail and Workflow", () => {
     expect(createAccount2Res.ok()).toBeTruthy()
     const account2Data = await createAccount2Res.json()
 
-    // 6. Create a fiscal year for the journal entries
-    const createFiscalYearRes = await request.post("/api/v1/fiscal/fiscal-years", {
-      headers: { Authorization: `Bearer ${sessionToken}` },
-      data: {
-        companyId: companyData.id,
-        name: "FY2026",
-        startDate: "2026-01-01",
-        endDate: "2026-12-31",
-        includePeriod13: false
-      }
-    })
-    expect(createFiscalYearRes.ok()).toBeTruthy()
+    // Note: Fiscal year creation removed - fiscal periods are computed automatically
 
-    // 7. Create a journal entry via API
+    // 6. Create a journal entry via API
     const createJournalEntryRes = await request.post("/api/v1/journal-entries", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
@@ -323,19 +312,9 @@ test.describe("Journal Entry Detail and Workflow", () => {
     expect(createAccount2Res.ok()).toBeTruthy()
     const account2Data = await createAccount2Res.json()
 
-    // 6. Create fiscal year
-    await request.post("/api/v1/fiscal/fiscal-years", {
-      headers: { Authorization: `Bearer ${sessionToken}` },
-      data: {
-        companyId: companyData.id,
-        name: "FY2026",
-        startDate: "2026-01-01",
-        endDate: "2026-12-31",
-        includePeriod13: false
-      }
-    })
+    // Note: Fiscal year creation removed - fiscal periods are computed automatically
 
-    // 7. Create a journal entry and submit it via API
+    // 6. Create a journal entry and submit it via API
     const createJournalEntryRes = await request.post("/api/v1/journal-entries", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
@@ -533,19 +512,9 @@ test.describe("Journal Entry Detail and Workflow", () => {
     expect(createAccount2Res.ok()).toBeTruthy()
     const account2Data = await createAccount2Res.json()
 
-    // 6. Create fiscal year
-    await request.post("/api/v1/fiscal/fiscal-years", {
-      headers: { Authorization: `Bearer ${sessionToken}` },
-      data: {
-        companyId: companyData.id,
-        name: "FY2026",
-        startDate: "2026-01-01",
-        endDate: "2026-12-31",
-        includePeriod13: false
-      }
-    })
+    // Note: Fiscal year creation removed - fiscal periods are computed automatically
 
-    // 7. Create journal entry
+    // 6. Create journal entry
     const createJournalEntryRes = await request.post("/api/v1/journal-entries", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
@@ -749,19 +718,9 @@ test.describe("Journal Entry Detail and Workflow", () => {
     expect(createAccount2Res.ok()).toBeTruthy()
     const account2Data = await createAccount2Res.json()
 
-    // 6. Create fiscal year
-    await request.post("/api/v1/fiscal/fiscal-years", {
-      headers: { Authorization: `Bearer ${sessionToken}` },
-      data: {
-        companyId: companyData.id,
-        name: "FY2026",
-        startDate: "2026-01-01",
-        endDate: "2026-12-31",
-        includePeriod13: false
-      }
-    })
+    // Note: Fiscal year creation removed - fiscal periods are computed automatically
 
-    // 7. Create journal entry with all metadata
+    // 6. Create journal entry with all metadata
     const createJournalEntryRes = await request.post("/api/v1/journal-entries", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
@@ -947,19 +906,9 @@ test.describe("Journal Entry Detail and Workflow", () => {
     expect(createAccount2Res.ok()).toBeTruthy()
     const account2Data = await createAccount2Res.json()
 
-    // 6. Create fiscal year
-    await request.post("/api/v1/fiscal/fiscal-years", {
-      headers: { Authorization: `Bearer ${sessionToken}` },
-      data: {
-        companyId: companyData.id,
-        name: "FY2026",
-        startDate: "2026-01-01",
-        endDate: "2026-12-31",
-        includePeriod13: false
-      }
-    })
+    // Note: Fiscal year creation removed - fiscal periods are computed automatically
 
-    // 7. Create journal entry
+    // 6. Create journal entry
     const createJournalEntryRes = await request.post("/api/v1/journal-entries", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {

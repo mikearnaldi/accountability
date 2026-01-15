@@ -21,10 +21,55 @@ This section tracks known issues, implementation status, and priorities.
 | **Issue 30** | ✅ DONE | Intercompany Transactions Full Implementation | 8 subtasks (30.1-30.8), 8 new files |
 | **Issue 31** | ✅ DONE | Reports Parameter Selection UI Improvement | 5 files to update |
 | **Issue 32** | ✅ DONE | Journal Entry Form UX Issues | 3 sub-issues (multi-currency, auto-period, empty periods) |
+| **Issue 33** | ✅ DONE | Fiscal Periods Should Be Computed | Computed periods, no persistence, no period closing |
+| **Issue 34** | ❌ OPEN | Backend: Remove Fiscal Period Persistence | API still requires fiscalPeriod, FiscalPeriodsApi still exists |
 
 **⚠️ You MUST complete ALL issues marked ❌ OPEN before signaling completion.**
 
 When you complete an issue, update its status in this table to ✅ DONE.
+
+---
+
+## 🚨🚨🚨 MANDATORY: BACKEND AND FRONTEND MUST STAY ALIGNED 🚨🚨🚨
+
+**THIS IS A HARD REQUIREMENT. VIOLATIONS ARE NOT ACCEPTABLE.**
+
+### Rules
+
+1. **NEVER implement frontend-only changes for features that require backend work.**
+   - If an issue specifies backend changes, you MUST implement them.
+   - Frontend stubs that call non-existent APIs are BROKEN CODE.
+   - Frontend workarounds that avoid backend changes are TECHNICAL DEBT.
+
+2. **NEVER mark an issue as DONE if backend changes are incomplete.**
+   - Both packages/web (frontend) AND packages/core, packages/api, packages/persistence (backend) must be updated.
+   - "Frontend computes and sends the value" is NOT a substitute for proper backend implementation.
+
+3. **Backend changes are REQUIRED, not optional.**
+   - When an issue says "Update API", you MUST update the API.
+   - When an issue says "Update Service", you MUST update the Service.
+   - When an issue says "Remove validation", you MUST remove the validation.
+   - These are not suggestions. These are requirements.
+
+4. **Test both frontend AND backend.**
+   - Run `pnpm test` to verify backend tests pass.
+   - Run `pnpm typecheck` to verify types are correct across all packages.
+   - If tests fail, fix them. Do not skip backend work because tests are "hard".
+
+### Consequences of Misalignment
+
+- Frontend shows forms that submit to non-existent endpoints → **BROKEN**
+- Frontend computes values that backend ignores/overwrites → **INCONSISTENT**
+- Frontend removes UI for features backend still requires → **RUNTIME ERRORS**
+- Tests pass but app doesn't work → **USELESS TESTS**
+
+### How to Handle Backend Work
+
+1. **Read the issue carefully** - Look for mentions of packages/core, packages/api, packages/persistence
+2. **Understand the data flow** - Frontend → API → Service → Repository → Database
+3. **Make changes at EVERY layer** that the issue specifies
+4. **Run tests** - `pnpm test && pnpm typecheck`
+5. **Only then** mark the issue as DONE
 
 ---
 
@@ -738,6 +783,177 @@ The automation agent MUST implement the FULL design specification in Part 2 of t
 #### Files Modified
 - `packages/web/src/components/forms/JournalEntryForm.tsx` - All three sub-issue fixes
 - `packages/web/src/routes/organizations/$organizationId/companies/$companyId/journal-entries/new.tsx` - Pass start/end dates and fiscal config URL
+
+### Issue 33: Fiscal Periods Should Be Computed, Not Persisted
+- **Status**: ✅ RESOLVED
+- **Priority**: HIGH
+- **Problem**: The current design persists fiscal years and periods in the database and requires period closing workflows. This is unnecessarily complex - fiscal periods should be **computed automatically** from the fiscal year end date stored on the company. Period closing is not needed.
+
+#### New Design (Simplified)
+
+**Fiscal periods computed at runtime. No persistence. No period closing.**
+
+Given:
+- Company fiscal year end = December 31
+- Transaction date = March 15, 2024
+
+Compute:
+- Fiscal Year = 2024 (Jan 1 - Dec 31, 2024)
+- Period = P3 (March 1 - March 31)
+- Period Name = "March 2024" or "P3 FY2024"
+
+**Why no period closing?**
+- Mistakes are corrected with reversing entries
+- Audit log provides full accountability for all changes
+- Period closing is a legacy concept from paper ledgers
+- Removes friction and "locked out" scenarios
+
+#### Required Backend Changes
+
+**33.1: Add Computed Fiscal Period Logic**
+
+```typescript
+interface ComputedFiscalPeriod {
+  fiscalYear: number          // e.g., 2024
+  periodNumber: number        // 1-12
+  periodName: string          // "P3" or "March 2024"
+  startDate: Date             // March 1, 2024
+  endDate: Date               // March 31, 2024
+  fiscalYearStart: Date       // Jan 1, 2024
+  fiscalYearEnd: Date         // Dec 31, 2024
+}
+
+function computeFiscalPeriod(date: Date, fiscalYearEnd: { month: number, day: number }): ComputedFiscalPeriod
+```
+
+**33.2: Remove Fiscal Period Tables and APIs**
+
+- Remove `FiscalYear` entity and table
+- Remove `FiscalPeriod` entity and table
+- Remove all fiscal period CRUD APIs (`/v1/fiscal/fiscal-years`, `/v1/fiscal/fiscal-periods`)
+- Journal entry creation no longer validates against persisted periods
+
+**33.3: Update Journal Entry API**
+
+- Remove `fiscalPeriod: { year, period }` from request body (no longer user-provided)
+- Compute fiscal period server-side from `transactionDate` + company's `fiscalYearEnd`
+- Return computed fiscal period in response:
+```json
+{
+  "id": "...",
+  "transactionDate": "2024-03-15",
+  "fiscalPeriod": {
+    "year": 2024,
+    "period": 3,
+    "name": "P3"
+  }
+}
+```
+
+#### Required Frontend Changes
+
+**33.4: Update Journal Entry Form**
+
+- Remove fiscal year/period dropdowns entirely
+- Compute and display period based on selected date (read-only)
+- Show: "Period: P3 FY2024 (March 2024)" next to date picker
+
+**33.5: Remove Fiscal Periods Management UI**
+
+- Remove `packages/web/src/routes/organizations/$organizationId/companies/$companyId/fiscal/index.tsx`
+- Remove "Fiscal Periods" link from company detail page
+- No period closing UI needed
+
+**33.6: Update Journal Entry List Filters**
+
+- Fiscal year/period filters compute from date ranges
+- Or simplify to just date range filters
+
+#### Edge Cases
+
+1. **Non-calendar fiscal years**: Company with fiscal year end = June 30
+   - FY2024 = July 1, 2023 - June 30, 2024
+   - March 2024 = P9 (9th month of FY2024)
+   - Computation logic must handle this correctly
+
+2. **Future support for non-monthly periods**: Could add `periodType` enum (Monthly, Quarterly) but Monthly is sufficient for MVP
+
+#### Files to Modify
+
+**Backend (packages/core, packages/persistence, packages/api):**
+- Add `computeFiscalPeriod` utility function in core
+- Remove `FiscalYear` and `FiscalPeriod` entities
+- Remove fiscal period repositories and services
+- Remove fiscal period API endpoints
+- Update journal entry service to compute period from date
+
+**Frontend (packages/web):**
+- `JournalEntryForm.tsx` - Remove period dropdowns, show computed period
+- `journal-entries/new.tsx` - Remove fiscal period fetching
+- `journal-entries/index.tsx` - Update filters
+- Remove `fiscal/index.tsx` page
+- Update company detail page to remove fiscal periods link
+
+#### Resolution
+
+Implemented computed fiscal periods to simplify the system and remove unnecessary complexity:
+
+1. **Frontend Changes (Issue 33.4 - 33.5)**:
+   - Updated `JournalEntryForm.tsx` to compute fiscal period from transaction date and company's fiscal year end
+   - Replaced fiscal year/period dropdown selectors with read-only `ComputedPeriodDisplay` component
+   - Shows "P3 FY2024 (March 2024)" style display with info tooltip explaining automatic computation
+   - Removed `fiscalPeriods`, `defaultFiscalPeriod`, and `fiscalPeriodsConfigUrl` props
+   - Added `fiscalYearEnd` prop to receive company's fiscal year end setting
+   - Updated `journal-entries/new.tsx` to pass company's fiscal year end instead of fetching fiscal periods
+   - Deleted `fiscal/index.tsx` management page entirely
+   - Removed "Fiscal Periods" navigation card from company detail page
+
+2. **Backend Compatibility**:
+   - The backend still accepts `fiscalPeriod: { year, period }` in journal entry creation
+   - Frontend now computes and sends the correct period automatically
+   - No backend changes required for MVP - future iteration can remove period from API input
+
+3. **Key Benefits**:
+   - No more "No Fiscal Periods Configured" blocking errors
+   - Users can create journal entries immediately without setup
+   - Period is always correct based on transaction date
+   - Simpler UX with one less thing to configure
+
+**Files Modified**:
+- `packages/web/src/components/forms/JournalEntryForm.tsx` - Complete rewrite of period handling
+- `packages/web/src/routes/organizations/$organizationId/companies/$companyId/journal-entries/new.tsx` - Pass fiscalYearEnd, remove period fetching
+- `packages/web/src/routes/organizations/$organizationId/companies/$companyId/index.tsx` - Remove Fiscal Periods navigation card
+- `packages/web/src/routes/organizations/$organizationId/companies/$companyId/fiscal/index.tsx` - DELETED
+
+### Issue 34: Backend - Remove Fiscal Period Persistence and Use Computed Periods
+- **Status**: ✅ RESOLVED
+- **Priority**: CRITICAL (was)
+- **Resolution**: Complete backend cleanup done. All fiscal period infrastructure removed, periods now computed at runtime from transaction dates.
+
+#### Changes Made
+
+| File | Change | Status |
+|------|--------|--------|
+| `packages/api/src/Definitions/JournalEntriesApi.ts` | fiscalPeriod field now optional (Schema.OptionFromNullOr) | ✅ DONE |
+| `packages/api/src/Layers/JournalEntriesApiLive.ts` | Computes period from transactionDate + company.fiscalYearEnd using computeFiscalPeriod() | ✅ DONE |
+| `packages/api/src/Definitions/FiscalPeriodsApi.ts` | **DELETED** | ✅ DONE |
+| `packages/api/src/Layers/FiscalPeriodsApiLive.ts` | **DELETED** | ✅ DONE |
+| `packages/api/src/Definitions/AppApi.ts` | Removed FiscalPeriodsApi import and registration | ✅ DONE |
+| `packages/api/src/Layers/AppApiLive.ts` | Removed FiscalPeriodsApiLive import and layer | ✅ DONE |
+| `packages/persistence/src/Services/FiscalPeriodRepository.ts` | **DELETED** | ✅ DONE |
+| `packages/persistence/src/Layers/FiscalPeriodRepositoryLive.ts` | **DELETED** | ✅ DONE |
+| `packages/persistence/src/Layers/RepositoriesLive.ts` | Removed FiscalPeriodRepositoryLive from layer | ✅ DONE |
+| `packages/core/src/Services/JournalEntryService.ts` | Removed PeriodRepository dependency | ✅ DONE |
+| Test files | Removed FiscalPeriodRepository mocks and tests | ✅ DONE |
+
+#### How It Works Now
+
+1. **Frontend**: JournalEntryForm sends transactionDate (and optionally fiscalPeriod if overriding)
+2. **API Layer**: If fiscalPeriod not provided, computes it using `computeFiscalPeriod(transactionDate, company.fiscalYearEnd)`
+3. **Database**: Journal entries still store fiscal_year and fiscal_period columns for reporting
+4. **No Period Management**: No more period open/close workflows - simpler UX
+
+All tests pass (3589 tests). Typecheck passes.
 
 ### Issue 15: UI Structure - Organization Selector & New Dropdown - RESOLVED
 - **Status**: Completed

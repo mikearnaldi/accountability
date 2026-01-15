@@ -26,10 +26,10 @@ import { CurrencyCode } from "@accountability/core/Domains/CurrencyCode"
 import { MonetaryAmount } from "@accountability/core/Domains/MonetaryAmount"
 import { now as timestampNow } from "@accountability/core/Domains/Timestamp"
 import { FiscalPeriodRef } from "@accountability/core/Domains/FiscalPeriodRef"
+import { computeFiscalPeriod } from "@accountability/core/Domains/ComputedFiscalPeriod"
 import { JournalEntryRepository } from "@accountability/persistence/Services/JournalEntryRepository"
 import { JournalEntryLineRepository } from "@accountability/persistence/Services/JournalEntryLineRepository"
 import { CompanyRepository } from "@accountability/persistence/Services/CompanyRepository"
-import { FiscalPeriodRepository } from "@accountability/persistence/Services/FiscalPeriodRepository"
 import {
   isEntityNotFoundError,
   type EntityNotFoundError,
@@ -144,14 +144,12 @@ const createLineFromRequest = (
  * - JournalEntryRepository
  * - JournalEntryLineRepository
  * - CompanyRepository
- * - FiscalPeriodRepository
  */
 export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entries", (handlers) =>
   Effect.gen(function* () {
     const entryRepo = yield* JournalEntryRepository
     const lineRepo = yield* JournalEntryLineRepository
     const companyRepo = yield* CompanyRepository
-    const periodRepo = yield* FiscalPeriodRepository
 
     return handlers
       .handle("listJournalEntries", (_) =>
@@ -248,30 +246,17 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
           const company = maybeCompany.value
           const functionalCurrency = company.functionalCurrency
 
-          // Validate fiscal period exists
-          const maybePeriod = yield* periodRepo.findByCompanyAndPeriod(
-            req.companyId,
-            req.fiscalPeriod.year,
-            req.fiscalPeriod.period
-          ).pipe(Effect.mapError((e) => mapPersistenceToBusinessRule(e)))
-
-          if (Option.isNone(maybePeriod)) {
-            return yield* Effect.fail(new BusinessRuleError({
-              code: "PERIOD_NOT_FOUND",
-              message: `Fiscal period FY${req.fiscalPeriod.year}-P${req.fiscalPeriod.period} not found`,
-              details: Option.none()
-            }))
-          }
-
-          // Check period status
-          const period = maybePeriod.value
-          if (period.status !== "Open") {
-            return yield* Effect.fail(new BusinessRuleError({
-              code: "PERIOD_NOT_OPEN",
-              message: `Fiscal period FY${req.fiscalPeriod.year}-P${req.fiscalPeriod.period} is not open (status: ${period.status})`,
-              details: Option.none()
-            }))
-          }
+          // Compute fiscal period from transaction date and company's fiscal year end
+          // If fiscalPeriod is provided in the request, use it; otherwise compute it
+          const fiscalPeriod = Option.isSome(req.fiscalPeriod)
+            ? req.fiscalPeriod.value
+            : (() => {
+                const computed = computeFiscalPeriod(req.transactionDate, company.fiscalYearEnd)
+                return FiscalPeriodRef.make({
+                  year: computed.fiscalYear,
+                  period: computed.periodNumber
+                })
+              })()
 
           // Generate entry ID and entry number
           const entryId = JournalEntryId.make(crypto.randomUUID())
@@ -302,7 +287,7 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
             transactionDate: req.transactionDate,
             postingDate: Option.none(),
             documentDate: req.documentDate,
-            fiscalPeriod: req.fiscalPeriod,
+            fiscalPeriod,
             entryType: req.entryType,
             sourceModule: req.sourceModule,
             sourceDocumentRef: req.sourceDocumentRef,
@@ -616,20 +601,8 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
             }))
           }
 
-          // Validate period is still open
-          const maybePeriod = yield* periodRepo.findByCompanyAndPeriod(
-            existing.companyId,
-            existing.fiscalPeriod.year,
-            existing.fiscalPeriod.period
-          ).pipe(Effect.mapError((e) => mapPersistenceToBusinessRule(e)))
-
-          if (Option.isSome(maybePeriod) && maybePeriod.value.status !== "Open") {
-            return yield* Effect.fail(new BusinessRuleError({
-              code: "PERIOD_CLOSED",
-              message: `Cannot post: fiscal period FY${existing.fiscalPeriod.year}-P${existing.fiscalPeriod.period} is ${maybePeriod.value.status}`,
-              details: Option.none()
-            }))
-          }
+          // NOTE: Period validation removed. Fiscal periods are now computed from
+          // transaction dates at runtime rather than validated against stored periods.
 
           const now = timestampNow()
           const postingDate = Option.isSome(req.postingDate)
