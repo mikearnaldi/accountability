@@ -460,11 +460,25 @@ PROMPT_EOF
     echo "Investigate the project, select a high priority task, implement it, and signal completion."
 }
 
-# Extract task description from output
+# Extract task description from output (handles stream-json format)
 extract_task_description() {
     local output_file="$1"
-    # Look for TASK_COMPLETE: <description> pattern (macOS compatible)
-    grep "TASK_COMPLETE:" "$output_file" | head -1 | sed 's/.*TASK_COMPLETE:[[:space:]]*//' || echo "Autonomous improvements"
+    local desc=""
+
+    # The output file is in stream-json format (one JSON object per line)
+    # Extract text content from assistant messages and find TASK_COMPLETE:
+    desc=$(cat "$output_file" | \
+        jq -r 'select(.type == "assistant") | .message.content[]? | select(.type == "text") | .text // empty' 2>/dev/null | \
+        grep "TASK_COMPLETE:" | \
+        head -1 | \
+        sed 's/.*TASK_COMPLETE:[[:space:]]*//')
+
+    # If we got something, return it; otherwise return default
+    if [ -n "$desc" ]; then
+        echo "$desc"
+    else
+        echo "Autonomous improvements"
+    fi
 }
 
 # Run a single iteration of the agent
