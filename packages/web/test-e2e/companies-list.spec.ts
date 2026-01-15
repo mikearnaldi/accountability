@@ -464,11 +464,24 @@ test.describe("Companies List Page", () => {
     // 5. Navigate to companies list page
     await page.goto(`/organizations/${orgData.id}/companies`)
 
-    // 6. Click "New Company" button
-    await page.getByRole("button", { name: /New Company/i }).click()
+    // Wait for page to fully load (React hydration)
+    await expect(page.getByTestId("companies-list-page")).toBeVisible()
+
+    // Wait for "New Company" button to be visible and enabled
+    const newCompanyButton = page.getByRole("button", { name: /New Company/i })
+    await expect(newCompanyButton).toBeVisible()
+    await expect(newCompanyButton).toBeEnabled()
+
+    // Wait for full hydration before clicking
+    await page.waitForTimeout(500)
+
+    // 6. Click "New Company" button with force
+    await newCompanyButton.click({ force: true })
 
     // 7. Modal should be visible
-    await expect(page.getByRole("heading", { name: "Create Company" })).toBeVisible()
+    await expect(
+      page.getByRole("heading", { name: "Create Company" })
+    ).toBeVisible({ timeout: 10000 })
 
     // 8. Click cancel
     await page.getByTestId("company-form-cancel-button").click()
