@@ -17,7 +17,7 @@ This section tracks known issues, implementation status, and priorities.
 | Issue | Status | Description | Subtasks |
 |-------|--------|-------------|----------|
 | **Issue 28** | ✅ DONE | Consolidation Page Full Implementation | 8 subtasks (28.1-28.8), 10+ new files |
-| **Issue 29** | ❌ OPEN | Reports - Complete All Financial Report Views | 6 subtasks (29.1-29.6), 8 new files |
+| **Issue 29** | ✅ DONE | Reports - Complete All Financial Report Views | 6 subtasks (29.1-29.6), 8 new files |
 | **Issue 30** | ❌ OPEN | Intercompany Transactions Full Implementation | 8 subtasks (30.1-30.8), 8 new files |
 
 **⚠️ You MUST complete ALL issues marked ❌ OPEN before signaling completion.**
@@ -40,7 +40,7 @@ The automation agent MUST implement the FULL design specification in Part 2 of t
 |------|-------|--------|-------|
 | **Consolidation** | `/organizations/:orgId/consolidation` | ✅ IMPLEMENTED | All 8 subtasks complete: list page, create/edit forms, group detail, member management, run initiation, run detail with progress stepper and trial balance. |
 | **Intercompany** | `/organizations/:orgId/intercompany` | ❌ NEEDS WORK | See **Issue 30** for detailed tasks (8 subtasks, 8 new files). Backend has 8 endpoints for transactions, matching, JE linking. |
-| **Reports** | `/organizations/:orgId/reports` | ⚠️ PARTIAL | See **Issue 29** for detailed tasks. Trial Balance done; Balance Sheet, Income Statement, Cash Flow, Equity Statement need implementation (4 pages, 4 shared components) |
+| **Reports** | `/organizations/:orgId/reports` | ✅ IMPLEMENTED | All 5 financial reports implemented: Trial Balance, Balance Sheet, Income Statement, Cash Flow Statement, Statement of Changes in Equity. |
 | **Audit Log** | `/organizations/:orgId/audit-log` | ✅ IMPLEMENTED | Backend API wired up. Issue 27 (filter UX) resolved. |
 
 ### Implementation Requirements
@@ -280,35 +280,51 @@ The automation agent MUST implement the FULL design specification in Part 2 of t
 **Modify:**
 - `packages/web/src/routes/organizations/$organizationId/consolidation/index.tsx` - Replace stub with real implementation
 
-### Issue 29: Reports - Complete All Financial Report Views
-- **Status**: Open
+### Issue 29: Reports - Complete All Financial Report Views - RESOLVED
+- **Status**: Completed
 - **Priority**: HIGH
-- **Problem**: Only Trial Balance is implemented. Balance Sheet, Income Statement, Cash Flow Statement, and Statement of Changes in Equity all show "Coming Soon" despite having fully implemented backend APIs.
+- **Resolution**: Implemented all 4 remaining financial report pages. Each report has full parameter selection, API integration, and professional report display with tooltips:
+  1. **Balance Sheet** (`balance-sheet.tsx`): As-of date, comparative date, include zero balances checkbox. Shows Assets, Liabilities, Equity sections with totals and balance verification.
+  2. **Income Statement** (`income-statement.tsx`): Period dates with optional comparative period. Shows Revenue, Cost of Sales, Gross Profit, Operating Expenses, Operating Income, Other Income/Expense, and Net Income.
+  3. **Cash Flow Statement** (`cash-flow.tsx`): Period dates with method selection (direct/indirect). Shows Beginning Cash, Operating/Investing/Financing activities, Exchange Rate Effect, Net Change, and Ending Cash with verification.
+  4. **Statement of Changes in Equity** (`equity-statement.tsx`): Period dates. Columnar format showing all equity components (Common Stock, Preferred Stock, APIC, Retained Earnings, Treasury Stock, AOCI, NCI) with opening balances, movements, and closing balances.
+- **Files created**:
+  - `packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/balance-sheet.tsx`
+  - `packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/income-statement.tsx`
+  - `packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/cash-flow.tsx`
+  - `packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/equity-statement.tsx`
+- **Files modified**:
+  - `packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/index.tsx` - Enabled all 5 report cards and updated routing to use dynamic paths based on report ID
+- **Previous Problem**: Only Trial Balance was implemented. Balance Sheet, Income Statement, Cash Flow Statement, and Statement of Changes in Equity all showed "Coming Soon" despite having fully implemented backend APIs.
 
 #### Backend API Available (ReportsApi - 5 endpoints)
 
 | Endpoint | Route | Parameters | Status |
 |----------|-------|------------|--------|
 | Trial Balance | `GET /v1/reports/trial-balance` | companyId, asOfDate, periodStartDate?, excludeZeroBalances?, format? | ✅ Frontend Done |
-| Balance Sheet | `GET /v1/reports/balance-sheet` | companyId, asOfDate, comparativeDate?, includeZeroBalances?, format? | ❌ Frontend Needed |
-| Income Statement | `GET /v1/reports/income-statement` | companyId, periodStartDate, periodEndDate, comparativeStartDate?, comparativeEndDate?, format? | ❌ Frontend Needed |
-| Cash Flow Statement | `GET /v1/reports/cash-flow` | companyId, periodStartDate, periodEndDate, method? (direct/indirect), format? | ❌ Frontend Needed |
-| Equity Statement | `GET /v1/reports/equity-statement` | companyId, periodStartDate, periodEndDate, format? | ❌ Frontend Needed |
+| Balance Sheet | `GET /v1/reports/balance-sheet` | companyId, asOfDate, comparativeDate?, includeZeroBalances?, format? | ✅ Frontend Done |
+| Income Statement | `GET /v1/reports/income-statement` | companyId, periodStartDate, periodEndDate, comparativeStartDate?, comparativeEndDate?, format? | ✅ Frontend Done |
+| Cash Flow Statement | `GET /v1/reports/cash-flow` | companyId, periodStartDate, periodEndDate, method? (direct/indirect), format? | ✅ Frontend Done |
+| Equity Statement | `GET /v1/reports/equity-statement` | companyId, periodStartDate, periodEndDate, format? | ✅ Frontend Done |
 
 #### Current Implementation
 
 - ✅ `/organizations/:orgId/reports` - Company selection (Step 1)
 - ✅ `/organizations/:orgId/companies/:companyId/reports` - Report type selection (Step 2)
 - ✅ `/organizations/:orgId/companies/:companyId/reports/trial-balance` - Working
+- ✅ `/organizations/:orgId/companies/:companyId/reports/balance-sheet` - Working
+- ✅ `/organizations/:orgId/companies/:companyId/reports/income-statement` - Working
+- ✅ `/organizations/:orgId/companies/:companyId/reports/cash-flow` - Working
+- ✅ `/organizations/:orgId/companies/:companyId/reports/equity-statement` - Working
 
-#### Routes to Create
+#### Routes Created (Issue 29 Resolution)
 
 | Route | File | Report Type |
 |-------|------|-------------|
-| `.../reports/balance-sheet` | `balance-sheet.tsx` | Balance Sheet (ASC 210) |
-| `.../reports/income-statement` | `income-statement.tsx` | Income Statement (ASC 220) |
-| `.../reports/cash-flow` | `cash-flow.tsx` | Cash Flow Statement (ASC 230) |
-| `.../reports/equity-statement` | `equity-statement.tsx` | Statement of Changes in Equity |
+| `.../reports/balance-sheet` | `balance-sheet.tsx` | Balance Sheet (ASC 210) ✅ |
+| `.../reports/income-statement` | `income-statement.tsx` | Income Statement (ASC 220) ✅ |
+| `.../reports/cash-flow` | `cash-flow.tsx` | Cash Flow Statement (ASC 230) ✅ |
+| `.../reports/equity-statement` | `equity-statement.tsx` | Statement of Changes in Equity ✅ |
 
 #### Task 29.1: Balance Sheet Report Page
 - **Route**: `/organizations/:orgId/companies/:companyId/reports/balance-sheet`

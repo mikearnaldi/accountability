@@ -211,7 +211,7 @@ function getReportCards(): readonly ReportCard[] {
       iconColor: "text-green-600",
       bgColor: "bg-green-100",
       hoverBgColor: "group-hover:bg-green-200",
-      available: false
+      available: true
     },
     {
       id: "income-statement",
@@ -221,7 +221,7 @@ function getReportCards(): readonly ReportCard[] {
       iconColor: "text-purple-600",
       bgColor: "bg-purple-100",
       hoverBgColor: "group-hover:bg-purple-200",
-      available: false
+      available: true
     },
     {
       id: "cash-flow",
@@ -231,7 +231,7 @@ function getReportCards(): readonly ReportCard[] {
       iconColor: "text-teal-600",
       bgColor: "bg-teal-100",
       hoverBgColor: "group-hover:bg-teal-200",
-      available: false
+      available: true
     },
     {
       id: "equity-statement",
@@ -241,7 +241,7 @@ function getReportCards(): readonly ReportCard[] {
       iconColor: "text-orange-600",
       bgColor: "bg-orange-100",
       hoverBgColor: "group-hover:bg-orange-200",
-      available: false
+      available: true
     }
   ]
 }
@@ -382,9 +382,21 @@ function ReportCardComponent({
     )
   }
 
+  // Build the route path based on report ID
+  const getReportRoute = () => {
+    const routes: Record<string, string> = {
+      "trial-balance": "/organizations/$organizationId/companies/$companyId/reports/trial-balance",
+      "balance-sheet": "/organizations/$organizationId/companies/$companyId/reports/balance-sheet",
+      "income-statement": "/organizations/$organizationId/companies/$companyId/reports/income-statement",
+      "cash-flow": "/organizations/$organizationId/companies/$companyId/reports/cash-flow",
+      "equity-statement": "/organizations/$organizationId/companies/$companyId/reports/equity-statement"
+    }
+    return routes[report.id] ?? "/organizations/$organizationId/companies/$companyId/reports/trial-balance"
+  }
+
   return (
     <Link
-      to="/organizations/$organizationId/companies/$companyId/reports/trial-balance"
+      to={getReportRoute()}
       params={{ organizationId, companyId }}
       className="group block rounded-lg border border-gray-200 bg-white p-6 transition-shadow hover:shadow-md"
       data-testid={`report-card-${report.id}`}

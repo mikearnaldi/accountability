@@ -196,3 +196,8 @@
 **Task**: Fixed 7 lint errors by replacing inline type assertions with object lookup pattern for consolidation method conversion in audit-log/index.tsx, consolidation/$groupId/edit.tsx, and consolidation/new.tsx. Also removed invalid ESLint disable comment for non-existent react-hooks/exhaustive-deps rule. All lint and typecheck now pass.
 **Status**: complete
 ---
+
+## Iteration 3 - 2026-01-15 20:47
+**Task**: Implemented Issue 29 - All 4 remaining financial report pages (Balance Sheet, Income Statement, Cash Flow Statement, Statement of Changes in Equity) are now fully functional. Each page has parameter selection forms, API integration using openapi-fetch, professional report display with column header tooltips, and export buttons. Updated the Reports hub page to enable all 5 report cards with dynamic routing. Updated UI_ARCHITECTURE.md spec to mark Issue 29 as resolved.
+**Status**: complete
+---

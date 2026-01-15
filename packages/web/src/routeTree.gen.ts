@@ -36,6 +36,10 @@ import { Route as OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesInd
 import { Route as OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRouteImport } from './routes/organizations/$organizationId/companies/$companyId/accounts/index'
 import { Route as OrganizationsOrganizationIdConsolidationGroupIdRunsRunIdRouteImport } from './routes/organizations/$organizationId/consolidation/$groupId/runs/$runId'
 import { Route as OrganizationsOrganizationIdCompaniesCompanyIdReportsTrialBalanceRouteImport } from './routes/organizations/$organizationId/companies/$companyId/reports/trial-balance'
+import { Route as OrganizationsOrganizationIdCompaniesCompanyIdReportsIncomeStatementRouteImport } from './routes/organizations/$organizationId/companies/$companyId/reports/income-statement'
+import { Route as OrganizationsOrganizationIdCompaniesCompanyIdReportsEquityStatementRouteImport } from './routes/organizations/$organizationId/companies/$companyId/reports/equity-statement'
+import { Route as OrganizationsOrganizationIdCompaniesCompanyIdReportsCashFlowRouteImport } from './routes/organizations/$organizationId/companies/$companyId/reports/cash-flow'
+import { Route as OrganizationsOrganizationIdCompaniesCompanyIdReportsBalanceSheetRouteImport } from './routes/organizations/$organizationId/companies/$companyId/reports/balance-sheet'
 import { Route as OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesNewRouteImport } from './routes/organizations/$organizationId/companies/$companyId/journal-entries/new'
 import { Route as OrganizationsOrganizationIdCompaniesCompanyIdAccountsNewRouteImport } from './routes/organizations/$organizationId/companies/$companyId/accounts/new'
 import { Route as OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesEntryIdIndexRouteImport } from './routes/organizations/$organizationId/companies/$companyId/journal-entries/$entryId/index'
@@ -200,6 +204,38 @@ const OrganizationsOrganizationIdCompaniesCompanyIdReportsTrialBalanceRoute =
       getParentRoute: () => OrganizationsOrganizationIdRouteRoute,
     } as any,
   )
+const OrganizationsOrganizationIdCompaniesCompanyIdReportsIncomeStatementRoute =
+  OrganizationsOrganizationIdCompaniesCompanyIdReportsIncomeStatementRouteImport.update(
+    {
+      id: '/companies/$companyId/reports/income-statement',
+      path: '/companies/$companyId/reports/income-statement',
+      getParentRoute: () => OrganizationsOrganizationIdRouteRoute,
+    } as any,
+  )
+const OrganizationsOrganizationIdCompaniesCompanyIdReportsEquityStatementRoute =
+  OrganizationsOrganizationIdCompaniesCompanyIdReportsEquityStatementRouteImport.update(
+    {
+      id: '/companies/$companyId/reports/equity-statement',
+      path: '/companies/$companyId/reports/equity-statement',
+      getParentRoute: () => OrganizationsOrganizationIdRouteRoute,
+    } as any,
+  )
+const OrganizationsOrganizationIdCompaniesCompanyIdReportsCashFlowRoute =
+  OrganizationsOrganizationIdCompaniesCompanyIdReportsCashFlowRouteImport.update(
+    {
+      id: '/companies/$companyId/reports/cash-flow',
+      path: '/companies/$companyId/reports/cash-flow',
+      getParentRoute: () => OrganizationsOrganizationIdRouteRoute,
+    } as any,
+  )
+const OrganizationsOrganizationIdCompaniesCompanyIdReportsBalanceSheetRoute =
+  OrganizationsOrganizationIdCompaniesCompanyIdReportsBalanceSheetRouteImport.update(
+    {
+      id: '/companies/$companyId/reports/balance-sheet',
+      path: '/companies/$companyId/reports/balance-sheet',
+      getParentRoute: () => OrganizationsOrganizationIdRouteRoute,
+    } as any,
+  )
 const OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesNewRoute =
   OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesNewRouteImport.update(
     {
@@ -248,6 +284,10 @@ export interface FileRoutesByFullPath {
   '/organizations/$organizationId/consolidation/$groupId': typeof OrganizationsOrganizationIdConsolidationGroupIdIndexRoute
   '/organizations/$organizationId/companies/$companyId/accounts/new': typeof OrganizationsOrganizationIdCompaniesCompanyIdAccountsNewRoute
   '/organizations/$organizationId/companies/$companyId/journal-entries/new': typeof OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesNewRoute
+  '/organizations/$organizationId/companies/$companyId/reports/balance-sheet': typeof OrganizationsOrganizationIdCompaniesCompanyIdReportsBalanceSheetRoute
+  '/organizations/$organizationId/companies/$companyId/reports/cash-flow': typeof OrganizationsOrganizationIdCompaniesCompanyIdReportsCashFlowRoute
+  '/organizations/$organizationId/companies/$companyId/reports/equity-statement': typeof OrganizationsOrganizationIdCompaniesCompanyIdReportsEquityStatementRoute
+  '/organizations/$organizationId/companies/$companyId/reports/income-statement': typeof OrganizationsOrganizationIdCompaniesCompanyIdReportsIncomeStatementRoute
   '/organizations/$organizationId/companies/$companyId/reports/trial-balance': typeof OrganizationsOrganizationIdCompaniesCompanyIdReportsTrialBalanceRoute
   '/organizations/$organizationId/consolidation/$groupId/runs/$runId': typeof OrganizationsOrganizationIdConsolidationGroupIdRunsRunIdRoute
   '/organizations/$organizationId/companies/$companyId/accounts': typeof OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute
@@ -279,6 +319,10 @@ export interface FileRoutesByTo {
   '/organizations/$organizationId/consolidation/$groupId': typeof OrganizationsOrganizationIdConsolidationGroupIdIndexRoute
   '/organizations/$organizationId/companies/$companyId/accounts/new': typeof OrganizationsOrganizationIdCompaniesCompanyIdAccountsNewRoute
   '/organizations/$organizationId/companies/$companyId/journal-entries/new': typeof OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesNewRoute
+  '/organizations/$organizationId/companies/$companyId/reports/balance-sheet': typeof OrganizationsOrganizationIdCompaniesCompanyIdReportsBalanceSheetRoute
+  '/organizations/$organizationId/companies/$companyId/reports/cash-flow': typeof OrganizationsOrganizationIdCompaniesCompanyIdReportsCashFlowRoute
+  '/organizations/$organizationId/companies/$companyId/reports/equity-statement': typeof OrganizationsOrganizationIdCompaniesCompanyIdReportsEquityStatementRoute
+  '/organizations/$organizationId/companies/$companyId/reports/income-statement': typeof OrganizationsOrganizationIdCompaniesCompanyIdReportsIncomeStatementRoute
   '/organizations/$organizationId/companies/$companyId/reports/trial-balance': typeof OrganizationsOrganizationIdCompaniesCompanyIdReportsTrialBalanceRoute
   '/organizations/$organizationId/consolidation/$groupId/runs/$runId': typeof OrganizationsOrganizationIdConsolidationGroupIdRunsRunIdRoute
   '/organizations/$organizationId/companies/$companyId/accounts': typeof OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute
@@ -312,6 +356,10 @@ export interface FileRoutesById {
   '/organizations/$organizationId/consolidation/$groupId/': typeof OrganizationsOrganizationIdConsolidationGroupIdIndexRoute
   '/organizations/$organizationId/companies/$companyId/accounts/new': typeof OrganizationsOrganizationIdCompaniesCompanyIdAccountsNewRoute
   '/organizations/$organizationId/companies/$companyId/journal-entries/new': typeof OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesNewRoute
+  '/organizations/$organizationId/companies/$companyId/reports/balance-sheet': typeof OrganizationsOrganizationIdCompaniesCompanyIdReportsBalanceSheetRoute
+  '/organizations/$organizationId/companies/$companyId/reports/cash-flow': typeof OrganizationsOrganizationIdCompaniesCompanyIdReportsCashFlowRoute
+  '/organizations/$organizationId/companies/$companyId/reports/equity-statement': typeof OrganizationsOrganizationIdCompaniesCompanyIdReportsEquityStatementRoute
+  '/organizations/$organizationId/companies/$companyId/reports/income-statement': typeof OrganizationsOrganizationIdCompaniesCompanyIdReportsIncomeStatementRoute
   '/organizations/$organizationId/companies/$companyId/reports/trial-balance': typeof OrganizationsOrganizationIdCompaniesCompanyIdReportsTrialBalanceRoute
   '/organizations/$organizationId/consolidation/$groupId/runs/$runId': typeof OrganizationsOrganizationIdConsolidationGroupIdRunsRunIdRoute
   '/organizations/$organizationId/companies/$companyId/accounts/': typeof OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute
@@ -346,6 +394,10 @@ export interface FileRouteTypes {
     | '/organizations/$organizationId/consolidation/$groupId'
     | '/organizations/$organizationId/companies/$companyId/accounts/new'
     | '/organizations/$organizationId/companies/$companyId/journal-entries/new'
+    | '/organizations/$organizationId/companies/$companyId/reports/balance-sheet'
+    | '/organizations/$organizationId/companies/$companyId/reports/cash-flow'
+    | '/organizations/$organizationId/companies/$companyId/reports/equity-statement'
+    | '/organizations/$organizationId/companies/$companyId/reports/income-statement'
     | '/organizations/$organizationId/companies/$companyId/reports/trial-balance'
     | '/organizations/$organizationId/consolidation/$groupId/runs/$runId'
     | '/organizations/$organizationId/companies/$companyId/accounts'
@@ -377,6 +429,10 @@ export interface FileRouteTypes {
     | '/organizations/$organizationId/consolidation/$groupId'
     | '/organizations/$organizationId/companies/$companyId/accounts/new'
     | '/organizations/$organizationId/companies/$companyId/journal-entries/new'
+    | '/organizations/$organizationId/companies/$companyId/reports/balance-sheet'
+    | '/organizations/$organizationId/companies/$companyId/reports/cash-flow'
+    | '/organizations/$organizationId/companies/$companyId/reports/equity-statement'
+    | '/organizations/$organizationId/companies/$companyId/reports/income-statement'
     | '/organizations/$organizationId/companies/$companyId/reports/trial-balance'
     | '/organizations/$organizationId/consolidation/$groupId/runs/$runId'
     | '/organizations/$organizationId/companies/$companyId/accounts'
@@ -409,6 +465,10 @@ export interface FileRouteTypes {
     | '/organizations/$organizationId/consolidation/$groupId/'
     | '/organizations/$organizationId/companies/$companyId/accounts/new'
     | '/organizations/$organizationId/companies/$companyId/journal-entries/new'
+    | '/organizations/$organizationId/companies/$companyId/reports/balance-sheet'
+    | '/organizations/$organizationId/companies/$companyId/reports/cash-flow'
+    | '/organizations/$organizationId/companies/$companyId/reports/equity-statement'
+    | '/organizations/$organizationId/companies/$companyId/reports/income-statement'
     | '/organizations/$organizationId/companies/$companyId/reports/trial-balance'
     | '/organizations/$organizationId/consolidation/$groupId/runs/$runId'
     | '/organizations/$organizationId/companies/$companyId/accounts/'
@@ -618,6 +678,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdReportsTrialBalanceRouteImport
       parentRoute: typeof OrganizationsOrganizationIdRouteRoute
     }
+    '/organizations/$organizationId/companies/$companyId/reports/income-statement': {
+      id: '/organizations/$organizationId/companies/$companyId/reports/income-statement'
+      path: '/companies/$companyId/reports/income-statement'
+      fullPath: '/organizations/$organizationId/companies/$companyId/reports/income-statement'
+      preLoaderRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdReportsIncomeStatementRouteImport
+      parentRoute: typeof OrganizationsOrganizationIdRouteRoute
+    }
+    '/organizations/$organizationId/companies/$companyId/reports/equity-statement': {
+      id: '/organizations/$organizationId/companies/$companyId/reports/equity-statement'
+      path: '/companies/$companyId/reports/equity-statement'
+      fullPath: '/organizations/$organizationId/companies/$companyId/reports/equity-statement'
+      preLoaderRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdReportsEquityStatementRouteImport
+      parentRoute: typeof OrganizationsOrganizationIdRouteRoute
+    }
+    '/organizations/$organizationId/companies/$companyId/reports/cash-flow': {
+      id: '/organizations/$organizationId/companies/$companyId/reports/cash-flow'
+      path: '/companies/$companyId/reports/cash-flow'
+      fullPath: '/organizations/$organizationId/companies/$companyId/reports/cash-flow'
+      preLoaderRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdReportsCashFlowRouteImport
+      parentRoute: typeof OrganizationsOrganizationIdRouteRoute
+    }
+    '/organizations/$organizationId/companies/$companyId/reports/balance-sheet': {
+      id: '/organizations/$organizationId/companies/$companyId/reports/balance-sheet'
+      path: '/companies/$companyId/reports/balance-sheet'
+      fullPath: '/organizations/$organizationId/companies/$companyId/reports/balance-sheet'
+      preLoaderRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdReportsBalanceSheetRouteImport
+      parentRoute: typeof OrganizationsOrganizationIdRouteRoute
+    }
     '/organizations/$organizationId/companies/$companyId/journal-entries/new': {
       id: '/organizations/$organizationId/companies/$companyId/journal-entries/new'
       path: '/companies/$companyId/journal-entries/new'
@@ -660,6 +748,10 @@ interface OrganizationsOrganizationIdRouteRouteChildren {
   OrganizationsOrganizationIdConsolidationGroupIdIndexRoute: typeof OrganizationsOrganizationIdConsolidationGroupIdIndexRoute
   OrganizationsOrganizationIdCompaniesCompanyIdAccountsNewRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdAccountsNewRoute
   OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesNewRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesNewRoute
+  OrganizationsOrganizationIdCompaniesCompanyIdReportsBalanceSheetRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdReportsBalanceSheetRoute
+  OrganizationsOrganizationIdCompaniesCompanyIdReportsCashFlowRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdReportsCashFlowRoute
+  OrganizationsOrganizationIdCompaniesCompanyIdReportsEquityStatementRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdReportsEquityStatementRoute
+  OrganizationsOrganizationIdCompaniesCompanyIdReportsIncomeStatementRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdReportsIncomeStatementRoute
   OrganizationsOrganizationIdCompaniesCompanyIdReportsTrialBalanceRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdReportsTrialBalanceRoute
   OrganizationsOrganizationIdConsolidationGroupIdRunsRunIdRoute: typeof OrganizationsOrganizationIdConsolidationGroupIdRunsRunIdRoute
   OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute
@@ -704,6 +796,14 @@ const OrganizationsOrganizationIdRouteRouteChildren: OrganizationsOrganizationId
       OrganizationsOrganizationIdCompaniesCompanyIdAccountsNewRoute,
     OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesNewRoute:
       OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesNewRoute,
+    OrganizationsOrganizationIdCompaniesCompanyIdReportsBalanceSheetRoute:
+      OrganizationsOrganizationIdCompaniesCompanyIdReportsBalanceSheetRoute,
+    OrganizationsOrganizationIdCompaniesCompanyIdReportsCashFlowRoute:
+      OrganizationsOrganizationIdCompaniesCompanyIdReportsCashFlowRoute,
+    OrganizationsOrganizationIdCompaniesCompanyIdReportsEquityStatementRoute:
+      OrganizationsOrganizationIdCompaniesCompanyIdReportsEquityStatementRoute,
+    OrganizationsOrganizationIdCompaniesCompanyIdReportsIncomeStatementRoute:
+      OrganizationsOrganizationIdCompaniesCompanyIdReportsIncomeStatementRoute,
     OrganizationsOrganizationIdCompaniesCompanyIdReportsTrialBalanceRoute:
       OrganizationsOrganizationIdCompaniesCompanyIdReportsTrialBalanceRoute,
     OrganizationsOrganizationIdConsolidationGroupIdRunsRunIdRoute:
