@@ -51,3 +51,8 @@
 **Task**: Updated journal entry detail page ($entryId/index.tsx) to use AppLayout with sidebar, header, and proper breadcrumbs instead of a custom header. Added companies data to the loader for sidebar navigation.
 **Status**: complete
 ---
+
+## Iteration 14 - 2026-01-15 15:31
+**Task**: Created dedicated /organizations/$organizationId/companies/new.tsx page for company creation form with AppLayout, breadcrumbs, and proper form handling. Updated Sidebar quick actions and "Add Company" link to navigate to /companies/new instead of /companies (list page), per UI_ARCHITECTURE.md spec requirement that "New Company" MUST open the creation form, not the list page.
+**Status**: complete
+---

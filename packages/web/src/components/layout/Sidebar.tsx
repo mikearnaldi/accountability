@@ -239,7 +239,7 @@ function QuickActionMenu({ organizationId, companies = [], isCollapsed }: QuickA
       : []),
     {
       label: "Company",
-      href: `/organizations/${organizationId}/companies`,
+      href: `/organizations/${organizationId}/companies/new`,
       icon: Building,
       testId: "quick-action-company"
     },
@@ -650,7 +650,7 @@ function CompaniesNavSection({
 
           {/* Add Company link */}
           <Link
-            to="/organizations/$organizationId/companies"
+            to="/organizations/$organizationId/companies/new"
             params={{ organizationId }}
             data-testid={isMobile ? "mobile-nav-add-company" : "nav-add-company"}
             onClick={onNavigate}
