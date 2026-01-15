@@ -48,6 +48,37 @@ This section tracks known issues, implementation status, and priorities.
   2. List of organizations to choose from (or empty state message if none exist)
   3. No footer actions - organization creation is handled via "+ New > Organization" in the sidebar
 
+### Issue 21: Chart of Accounts Table Header Doesn't Resize Correctly
+- **Status**: Open
+- **Problem**: The header row in the Chart of Accounts table does not resize correctly when the browser window is shrunk. The header columns become misaligned or overflow.
+- **Expected**: Table header should be responsive and resize proportionally with the table body when window width changes
+- **Location**: `/organizations/:id/companies/:companyId/accounts` page
+- **Fix**: Investigate and fix the table layout:
+  1. Ensure table uses proper responsive CSS (`table-layout: fixed` or `auto` as appropriate)
+  2. Check if header and body columns have matching width definitions
+  3. Consider using `min-width` instead of fixed widths
+  4. May need horizontal scroll wrapper for very narrow viewports
+  5. Test with sidebar collapsed and expanded
+- **Files to investigate**:
+  - `packages/web/src/routes/organizations/$organizationId/companies/$companyId/accounts/index.tsx`
+  - `packages/web/src/components/accounts/AccountTree.tsx` (if table is here)
+  - Any shared Table component used
+
+### Issue 22: Breadcrumbs Don't Resize Correctly
+- **Status**: Open
+- **Problem**: Breadcrumbs don't resize correctly when the browser window is shrunk - they overflow or break layout
+- **Expected**: Breadcrumbs should be responsive:
+  1. Truncate long segment names with ellipsis when space is limited
+  2. On very narrow viewports, consider collapsing middle segments (e.g., "Home > ... > Current Page")
+  3. Never overflow the container or cause horizontal scrolling
+- **Fix**:
+  1. Add `overflow-hidden` and `text-ellipsis` to breadcrumb container
+  2. Set `max-width` on individual breadcrumb segments
+  3. Consider responsive behavior: hide middle segments on mobile, show only first and last
+  4. Use `flex-shrink` to allow segments to shrink proportionally
+- **Files to modify**:
+  - `packages/web/src/components/layout/Breadcrumbs.tsx`
+
 ### Issue 20: Remove Redundant Organization Display from Sidebar
 - **Status**: Open
 - **Problem**: The sidebar shows the current organization name, but this is redundant because the header already displays the current organization in the organization selector dropdown
@@ -56,21 +87,20 @@ This section tracks known issues, implementation status, and priorities.
 - **Files to modify**:
   - `packages/web/src/components/layout/Sidebar.tsx`
 
-### Issue 19: Organization Selector Shows Empty List When In Organization Context
-- **Status**: Open
-- **Priority**: CRITICAL
-- **Observed Behavior**:
-  - When FIRST organization is selected → dropdown correctly shows list of all organizations
-  - When SECOND organization is selected → dropdown shows EMPTY list
-- **Root Cause**: Only the dashboard route fetches and passes organizations to AppLayout. When switching to a different org (which may land on a page that doesn't fetch orgs), the list becomes empty.
-- **Previous Partial Fix**: Dashboard was updated to fetch organizations, but this doesn't persist when navigating to other pages or switching orgs
-- **Proper Fix**: Organizations should be fetched ONCE at a higher level and available globally:
-  1. **Option A (Recommended)**: Create a layout route (`_layout.tsx`) for `/organizations/$organizationId/` that fetches all organizations and provides them to all child routes via context
-  2. **Option B**: Fetch organizations in the root route and store in a global context/store
-  3. **Option C (Not recommended)**: Add organizations fetching to every single route (repetitive, error-prone)
-- **Files to modify**:
-  - Create `packages/web/src/routes/organizations/$organizationId/_layout.tsx`
-  - Or modify `packages/web/src/routes/__root.tsx` to fetch organizations globally
+### Issue 19: Organization Selector Shows Empty List When In Organization Context - RESOLVED
+- **Status**: Completed
+- **Resolution**: Created a layout route `packages/web/src/routes/organizations/$organizationId/route.tsx` that:
+  1. Uses `beforeLoad` to fetch all organizations once for all child routes
+  2. Provides organizations via route context to all pages under `/organizations/$organizationId/*`
+  3. Updated ALL child routes (19 files) to access `context.organizations` and pass it to AppLayout
+- **Implementation Details**:
+  - The layout route fetches organizations in `beforeLoad` and returns `{ organizations }` as route context
+  - Child routes access via `const organizations = context.organizations ?? []`
+  - AppLayout receives `organizations` prop and passes it to the OrganizationSelector
+  - This ensures the organization list is always available when switching organizations
+- **Files modified**:
+  - Created: `packages/web/src/routes/organizations/$organizationId/route.tsx` (layout route)
+  - Updated: All 19 child route files to pass organizations to AppLayout
 
 ### Issue 17: Organization Selector Should Be Dropdown Menu - RESOLVED
 - **Status**: Completed

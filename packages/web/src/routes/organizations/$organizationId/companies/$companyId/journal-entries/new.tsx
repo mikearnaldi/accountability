@@ -272,6 +272,8 @@ function NewJournalEntryPage() {
   const params = Route.useParams()
   const navigate = useNavigate()
   const user = context.user
+  // Organizations come from the parent layout route's beforeLoad
+  const organizations = context.organizations ?? []
 
   // Build a map of fiscal year ID to fiscal year for lookup
   const fiscalYearMap = new Map<string, FiscalYear>()
@@ -355,6 +357,7 @@ function NewJournalEntryPage() {
   return (
     <AppLayout
       user={user}
+      organizations={organizations}
       currentOrganization={organization}
       breadcrumbItems={breadcrumbItems}
       companies={companiesForSidebar}

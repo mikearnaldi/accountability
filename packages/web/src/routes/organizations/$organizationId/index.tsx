@@ -194,6 +194,8 @@ function OrganizationDetailsPage() {
   const navigate = useNavigate()
   const [isEditing, setIsEditing] = useState(false)
   const user = context.user
+  // Organizations come from the parent layout route's beforeLoad
+  const organizations = context.organizations ?? []
 
   if (!organization) {
     return null
@@ -211,6 +213,7 @@ function OrganizationDetailsPage() {
   return (
     <AppLayout
       user={user}
+      organizations={organizations}
       currentOrganization={organization}
       companies={companiesForSidebar}
     >

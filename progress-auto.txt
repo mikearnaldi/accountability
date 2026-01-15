@@ -146,3 +146,8 @@
 **Task**: Fixed 3 issues - Issue 9 (filter input icon alignment by standardizing padding to pl-3 pr-8 for select and date inputs), Issue 18 (simplified Organization Selector by removing footer actions), and partially fixed Issue 19 (dashboard now fetches and passes all organizations to AppLayout for the selector dropdown)
 **Status**: complete
 ---
+
+## Iteration 4 - 2026-01-15 18:29
+**Task**: Fixed Issue 19 (CRITICAL) - Organization Selector Shows Empty List When In Organization Context. Created a layout route (`packages/web/src/routes/organizations/$organizationId/route.tsx`) that fetches all organizations once in `beforeLoad` and provides them to all child routes via route context. Updated all 19 child route files under `$organizationId/` to access `context.organizations` and pass it to AppLayout. This ensures the organization selector dropdown always shows the full list of organizations regardless of which page the user is on or which organization they switch to. All 178 E2E tests pass and typecheck is clean.
+**Status**: complete
+---

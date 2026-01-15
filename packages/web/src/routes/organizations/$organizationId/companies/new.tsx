@@ -160,6 +160,8 @@ function NewCompanyPage() {
   const router = useRouter()
   const params = Route.useParams()
   const user = context.user
+  // Organizations come from the parent layout route's beforeLoad
+  const organizations = context.organizations ?? []
 
   /* eslint-disable @typescript-eslint/consistent-type-assertions -- Type assertions needed for loader data typing */
   const organization = loaderData.organization as Organization | null
@@ -260,6 +262,7 @@ function NewCompanyPage() {
   return (
     <AppLayout
       user={user}
+      organizations={organizations}
       currentOrganization={organization}
       breadcrumbItems={breadcrumbItems}
       companies={companiesForSidebar}

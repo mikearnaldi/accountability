@@ -142,6 +142,8 @@ function AuditLogPage() {
   const loaderData = Route.useLoaderData()
   const params = Route.useParams()
   const user = context.user
+  // Organizations come from the parent layout route's beforeLoad
+  const organizations = context.organizations ?? []
 
   /* eslint-disable @typescript-eslint/consistent-type-assertions -- Loader data typing */
   const organization = loaderData.organization as Organization | null
@@ -165,6 +167,7 @@ function AuditLogPage() {
   return (
     <AppLayout
       user={user}
+      organizations={organizations}
       currentOrganization={organization}
       breadcrumbItems={breadcrumbItems}
       companies={companiesForSidebar}

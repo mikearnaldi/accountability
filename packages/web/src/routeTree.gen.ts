@@ -15,6 +15,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as OrganizationsIndexRouteImport } from './routes/organizations/index'
 import { Route as OrganizationsNewRouteImport } from './routes/organizations/new'
 import { Route as ApiSplatRouteImport } from './routes/api/$'
+import { Route as OrganizationsOrganizationIdRouteRouteImport } from './routes/organizations/$organizationId/route'
 import { Route as OrganizationsOrganizationIdIndexRouteImport } from './routes/organizations/$organizationId/index'
 import { Route as OrganizationsOrganizationIdSettingsRouteImport } from './routes/organizations/$organizationId/settings'
 import { Route as OrganizationsOrganizationIdDashboardRouteImport } from './routes/organizations/$organizationId/dashboard'
@@ -65,126 +66,132 @@ const ApiSplatRoute = ApiSplatRouteImport.update({
   path: '/api/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OrganizationsOrganizationIdRouteRoute =
+  OrganizationsOrganizationIdRouteRouteImport.update({
+    id: '/organizations/$organizationId',
+    path: '/organizations/$organizationId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const OrganizationsOrganizationIdIndexRoute =
   OrganizationsOrganizationIdIndexRouteImport.update({
-    id: '/organizations/$organizationId/',
-    path: '/organizations/$organizationId/',
-    getParentRoute: () => rootRouteImport,
+    id: '/',
+    path: '/',
+    getParentRoute: () => OrganizationsOrganizationIdRouteRoute,
   } as any)
 const OrganizationsOrganizationIdSettingsRoute =
   OrganizationsOrganizationIdSettingsRouteImport.update({
-    id: '/organizations/$organizationId/settings',
-    path: '/organizations/$organizationId/settings',
-    getParentRoute: () => rootRouteImport,
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => OrganizationsOrganizationIdRouteRoute,
   } as any)
 const OrganizationsOrganizationIdDashboardRoute =
   OrganizationsOrganizationIdDashboardRouteImport.update({
-    id: '/organizations/$organizationId/dashboard',
-    path: '/organizations/$organizationId/dashboard',
-    getParentRoute: () => rootRouteImport,
+    id: '/dashboard',
+    path: '/dashboard',
+    getParentRoute: () => OrganizationsOrganizationIdRouteRoute,
   } as any)
 const OrganizationsOrganizationIdReportsIndexRoute =
   OrganizationsOrganizationIdReportsIndexRouteImport.update({
-    id: '/organizations/$organizationId/reports/',
-    path: '/organizations/$organizationId/reports/',
-    getParentRoute: () => rootRouteImport,
+    id: '/reports/',
+    path: '/reports/',
+    getParentRoute: () => OrganizationsOrganizationIdRouteRoute,
   } as any)
 const OrganizationsOrganizationIdIntercompanyIndexRoute =
   OrganizationsOrganizationIdIntercompanyIndexRouteImport.update({
-    id: '/organizations/$organizationId/intercompany/',
-    path: '/organizations/$organizationId/intercompany/',
-    getParentRoute: () => rootRouteImport,
+    id: '/intercompany/',
+    path: '/intercompany/',
+    getParentRoute: () => OrganizationsOrganizationIdRouteRoute,
   } as any)
 const OrganizationsOrganizationIdExchangeRatesIndexRoute =
   OrganizationsOrganizationIdExchangeRatesIndexRouteImport.update({
-    id: '/organizations/$organizationId/exchange-rates/',
-    path: '/organizations/$organizationId/exchange-rates/',
-    getParentRoute: () => rootRouteImport,
+    id: '/exchange-rates/',
+    path: '/exchange-rates/',
+    getParentRoute: () => OrganizationsOrganizationIdRouteRoute,
   } as any)
 const OrganizationsOrganizationIdConsolidationIndexRoute =
   OrganizationsOrganizationIdConsolidationIndexRouteImport.update({
-    id: '/organizations/$organizationId/consolidation/',
-    path: '/organizations/$organizationId/consolidation/',
-    getParentRoute: () => rootRouteImport,
+    id: '/consolidation/',
+    path: '/consolidation/',
+    getParentRoute: () => OrganizationsOrganizationIdRouteRoute,
   } as any)
 const OrganizationsOrganizationIdCompaniesIndexRoute =
   OrganizationsOrganizationIdCompaniesIndexRouteImport.update({
-    id: '/organizations/$organizationId/companies/',
-    path: '/organizations/$organizationId/companies/',
-    getParentRoute: () => rootRouteImport,
+    id: '/companies/',
+    path: '/companies/',
+    getParentRoute: () => OrganizationsOrganizationIdRouteRoute,
   } as any)
 const OrganizationsOrganizationIdAuditLogIndexRoute =
   OrganizationsOrganizationIdAuditLogIndexRouteImport.update({
-    id: '/organizations/$organizationId/audit-log/',
-    path: '/organizations/$organizationId/audit-log/',
-    getParentRoute: () => rootRouteImport,
+    id: '/audit-log/',
+    path: '/audit-log/',
+    getParentRoute: () => OrganizationsOrganizationIdRouteRoute,
   } as any)
 const OrganizationsOrganizationIdExchangeRatesNewRoute =
   OrganizationsOrganizationIdExchangeRatesNewRouteImport.update({
-    id: '/organizations/$organizationId/exchange-rates/new',
-    path: '/organizations/$organizationId/exchange-rates/new',
-    getParentRoute: () => rootRouteImport,
+    id: '/exchange-rates/new',
+    path: '/exchange-rates/new',
+    getParentRoute: () => OrganizationsOrganizationIdRouteRoute,
   } as any)
 const OrganizationsOrganizationIdCompaniesNewRoute =
   OrganizationsOrganizationIdCompaniesNewRouteImport.update({
-    id: '/organizations/$organizationId/companies/new',
-    path: '/organizations/$organizationId/companies/new',
-    getParentRoute: () => rootRouteImport,
+    id: '/companies/new',
+    path: '/companies/new',
+    getParentRoute: () => OrganizationsOrganizationIdRouteRoute,
   } as any)
 const OrganizationsOrganizationIdCompaniesCompanyIdIndexRoute =
   OrganizationsOrganizationIdCompaniesCompanyIdIndexRouteImport.update({
-    id: '/organizations/$organizationId/companies/$companyId/',
-    path: '/organizations/$organizationId/companies/$companyId/',
-    getParentRoute: () => rootRouteImport,
+    id: '/companies/$companyId/',
+    path: '/companies/$companyId/',
+    getParentRoute: () => OrganizationsOrganizationIdRouteRoute,
   } as any)
 const OrganizationsOrganizationIdCompaniesCompanyIdReportsIndexRoute =
   OrganizationsOrganizationIdCompaniesCompanyIdReportsIndexRouteImport.update({
-    id: '/organizations/$organizationId/companies/$companyId/reports/',
-    path: '/organizations/$organizationId/companies/$companyId/reports/',
-    getParentRoute: () => rootRouteImport,
+    id: '/companies/$companyId/reports/',
+    path: '/companies/$companyId/reports/',
+    getParentRoute: () => OrganizationsOrganizationIdRouteRoute,
   } as any)
 const OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesIndexRoute =
   OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesIndexRouteImport.update(
     {
-      id: '/organizations/$organizationId/companies/$companyId/journal-entries/',
-      path: '/organizations/$organizationId/companies/$companyId/journal-entries/',
-      getParentRoute: () => rootRouteImport,
+      id: '/companies/$companyId/journal-entries/',
+      path: '/companies/$companyId/journal-entries/',
+      getParentRoute: () => OrganizationsOrganizationIdRouteRoute,
     } as any,
   )
 const OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute =
   OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRouteImport.update({
-    id: '/organizations/$organizationId/companies/$companyId/accounts/',
-    path: '/organizations/$organizationId/companies/$companyId/accounts/',
-    getParentRoute: () => rootRouteImport,
+    id: '/companies/$companyId/accounts/',
+    path: '/companies/$companyId/accounts/',
+    getParentRoute: () => OrganizationsOrganizationIdRouteRoute,
   } as any)
 const OrganizationsOrganizationIdCompaniesCompanyIdReportsTrialBalanceRoute =
   OrganizationsOrganizationIdCompaniesCompanyIdReportsTrialBalanceRouteImport.update(
     {
-      id: '/organizations/$organizationId/companies/$companyId/reports/trial-balance',
-      path: '/organizations/$organizationId/companies/$companyId/reports/trial-balance',
-      getParentRoute: () => rootRouteImport,
+      id: '/companies/$companyId/reports/trial-balance',
+      path: '/companies/$companyId/reports/trial-balance',
+      getParentRoute: () => OrganizationsOrganizationIdRouteRoute,
     } as any,
   )
 const OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesNewRoute =
   OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesNewRouteImport.update(
     {
-      id: '/organizations/$organizationId/companies/$companyId/journal-entries/new',
-      path: '/organizations/$organizationId/companies/$companyId/journal-entries/new',
-      getParentRoute: () => rootRouteImport,
+      id: '/companies/$companyId/journal-entries/new',
+      path: '/companies/$companyId/journal-entries/new',
+      getParentRoute: () => OrganizationsOrganizationIdRouteRoute,
     } as any,
   )
 const OrganizationsOrganizationIdCompaniesCompanyIdAccountsNewRoute =
   OrganizationsOrganizationIdCompaniesCompanyIdAccountsNewRouteImport.update({
-    id: '/organizations/$organizationId/companies/$companyId/accounts/new',
-    path: '/organizations/$organizationId/companies/$companyId/accounts/new',
-    getParentRoute: () => rootRouteImport,
+    id: '/companies/$companyId/accounts/new',
+    path: '/companies/$companyId/accounts/new',
+    getParentRoute: () => OrganizationsOrganizationIdRouteRoute,
   } as any)
 const OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesEntryIdIndexRoute =
   OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesEntryIdIndexRouteImport.update(
     {
-      id: '/organizations/$organizationId/companies/$companyId/journal-entries/$entryId/',
-      path: '/organizations/$organizationId/companies/$companyId/journal-entries/$entryId/',
-      getParentRoute: () => rootRouteImport,
+      id: '/companies/$companyId/journal-entries/$entryId/',
+      path: '/companies/$companyId/journal-entries/$entryId/',
+      getParentRoute: () => OrganizationsOrganizationIdRouteRoute,
     } as any,
   )
 
@@ -192,12 +199,13 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
+  '/organizations/$organizationId': typeof OrganizationsOrganizationIdRouteRouteWithChildren
   '/api/$': typeof ApiSplatRoute
   '/organizations/new': typeof OrganizationsNewRoute
   '/organizations': typeof OrganizationsIndexRoute
   '/organizations/$organizationId/dashboard': typeof OrganizationsOrganizationIdDashboardRoute
   '/organizations/$organizationId/settings': typeof OrganizationsOrganizationIdSettingsRoute
-  '/organizations/$organizationId': typeof OrganizationsOrganizationIdIndexRoute
+  '/organizations/$organizationId/': typeof OrganizationsOrganizationIdIndexRoute
   '/organizations/$organizationId/companies/new': typeof OrganizationsOrganizationIdCompaniesNewRoute
   '/organizations/$organizationId/exchange-rates/new': typeof OrganizationsOrganizationIdExchangeRatesNewRoute
   '/organizations/$organizationId/audit-log': typeof OrganizationsOrganizationIdAuditLogIndexRoute
@@ -247,6 +255,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
+  '/organizations/$organizationId': typeof OrganizationsOrganizationIdRouteRouteWithChildren
   '/api/$': typeof ApiSplatRoute
   '/organizations/new': typeof OrganizationsNewRoute
   '/organizations/': typeof OrganizationsIndexRoute
@@ -276,12 +285,13 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/register'
+    | '/organizations/$organizationId'
     | '/api/$'
     | '/organizations/new'
     | '/organizations'
     | '/organizations/$organizationId/dashboard'
     | '/organizations/$organizationId/settings'
-    | '/organizations/$organizationId'
+    | '/organizations/$organizationId/'
     | '/organizations/$organizationId/companies/new'
     | '/organizations/$organizationId/exchange-rates/new'
     | '/organizations/$organizationId/audit-log'
@@ -330,6 +340,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/register'
+    | '/organizations/$organizationId'
     | '/api/$'
     | '/organizations/new'
     | '/organizations/'
@@ -358,28 +369,10 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
   RegisterRoute: typeof RegisterRoute
+  OrganizationsOrganizationIdRouteRoute: typeof OrganizationsOrganizationIdRouteRouteWithChildren
   ApiSplatRoute: typeof ApiSplatRoute
   OrganizationsNewRoute: typeof OrganizationsNewRoute
   OrganizationsIndexRoute: typeof OrganizationsIndexRoute
-  OrganizationsOrganizationIdDashboardRoute: typeof OrganizationsOrganizationIdDashboardRoute
-  OrganizationsOrganizationIdSettingsRoute: typeof OrganizationsOrganizationIdSettingsRoute
-  OrganizationsOrganizationIdIndexRoute: typeof OrganizationsOrganizationIdIndexRoute
-  OrganizationsOrganizationIdCompaniesNewRoute: typeof OrganizationsOrganizationIdCompaniesNewRoute
-  OrganizationsOrganizationIdExchangeRatesNewRoute: typeof OrganizationsOrganizationIdExchangeRatesNewRoute
-  OrganizationsOrganizationIdAuditLogIndexRoute: typeof OrganizationsOrganizationIdAuditLogIndexRoute
-  OrganizationsOrganizationIdCompaniesIndexRoute: typeof OrganizationsOrganizationIdCompaniesIndexRoute
-  OrganizationsOrganizationIdConsolidationIndexRoute: typeof OrganizationsOrganizationIdConsolidationIndexRoute
-  OrganizationsOrganizationIdExchangeRatesIndexRoute: typeof OrganizationsOrganizationIdExchangeRatesIndexRoute
-  OrganizationsOrganizationIdIntercompanyIndexRoute: typeof OrganizationsOrganizationIdIntercompanyIndexRoute
-  OrganizationsOrganizationIdReportsIndexRoute: typeof OrganizationsOrganizationIdReportsIndexRoute
-  OrganizationsOrganizationIdCompaniesCompanyIdIndexRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdIndexRoute
-  OrganizationsOrganizationIdCompaniesCompanyIdAccountsNewRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdAccountsNewRoute
-  OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesNewRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesNewRoute
-  OrganizationsOrganizationIdCompaniesCompanyIdReportsTrialBalanceRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdReportsTrialBalanceRoute
-  OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute
-  OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesIndexRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesIndexRoute
-  OrganizationsOrganizationIdCompaniesCompanyIdReportsIndexRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdReportsIndexRoute
-  OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesEntryIdIndexRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesEntryIdIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -426,186 +419,227 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/organizations/$organizationId/': {
-      id: '/organizations/$organizationId/'
+    '/organizations/$organizationId': {
+      id: '/organizations/$organizationId'
       path: '/organizations/$organizationId'
       fullPath: '/organizations/$organizationId'
-      preLoaderRoute: typeof OrganizationsOrganizationIdIndexRouteImport
+      preLoaderRoute: typeof OrganizationsOrganizationIdRouteRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/organizations/$organizationId/': {
+      id: '/organizations/$organizationId/'
+      path: '/'
+      fullPath: '/organizations/$organizationId/'
+      preLoaderRoute: typeof OrganizationsOrganizationIdIndexRouteImport
+      parentRoute: typeof OrganizationsOrganizationIdRouteRoute
     }
     '/organizations/$organizationId/settings': {
       id: '/organizations/$organizationId/settings'
-      path: '/organizations/$organizationId/settings'
+      path: '/settings'
       fullPath: '/organizations/$organizationId/settings'
       preLoaderRoute: typeof OrganizationsOrganizationIdSettingsRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof OrganizationsOrganizationIdRouteRoute
     }
     '/organizations/$organizationId/dashboard': {
       id: '/organizations/$organizationId/dashboard'
-      path: '/organizations/$organizationId/dashboard'
+      path: '/dashboard'
       fullPath: '/organizations/$organizationId/dashboard'
       preLoaderRoute: typeof OrganizationsOrganizationIdDashboardRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof OrganizationsOrganizationIdRouteRoute
     }
     '/organizations/$organizationId/reports/': {
       id: '/organizations/$organizationId/reports/'
-      path: '/organizations/$organizationId/reports'
+      path: '/reports'
       fullPath: '/organizations/$organizationId/reports'
       preLoaderRoute: typeof OrganizationsOrganizationIdReportsIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof OrganizationsOrganizationIdRouteRoute
     }
     '/organizations/$organizationId/intercompany/': {
       id: '/organizations/$organizationId/intercompany/'
-      path: '/organizations/$organizationId/intercompany'
+      path: '/intercompany'
       fullPath: '/organizations/$organizationId/intercompany'
       preLoaderRoute: typeof OrganizationsOrganizationIdIntercompanyIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof OrganizationsOrganizationIdRouteRoute
     }
     '/organizations/$organizationId/exchange-rates/': {
       id: '/organizations/$organizationId/exchange-rates/'
-      path: '/organizations/$organizationId/exchange-rates'
+      path: '/exchange-rates'
       fullPath: '/organizations/$organizationId/exchange-rates'
       preLoaderRoute: typeof OrganizationsOrganizationIdExchangeRatesIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof OrganizationsOrganizationIdRouteRoute
     }
     '/organizations/$organizationId/consolidation/': {
       id: '/organizations/$organizationId/consolidation/'
-      path: '/organizations/$organizationId/consolidation'
+      path: '/consolidation'
       fullPath: '/organizations/$organizationId/consolidation'
       preLoaderRoute: typeof OrganizationsOrganizationIdConsolidationIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof OrganizationsOrganizationIdRouteRoute
     }
     '/organizations/$organizationId/companies/': {
       id: '/organizations/$organizationId/companies/'
-      path: '/organizations/$organizationId/companies'
+      path: '/companies'
       fullPath: '/organizations/$organizationId/companies'
       preLoaderRoute: typeof OrganizationsOrganizationIdCompaniesIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof OrganizationsOrganizationIdRouteRoute
     }
     '/organizations/$organizationId/audit-log/': {
       id: '/organizations/$organizationId/audit-log/'
-      path: '/organizations/$organizationId/audit-log'
+      path: '/audit-log'
       fullPath: '/organizations/$organizationId/audit-log'
       preLoaderRoute: typeof OrganizationsOrganizationIdAuditLogIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof OrganizationsOrganizationIdRouteRoute
     }
     '/organizations/$organizationId/exchange-rates/new': {
       id: '/organizations/$organizationId/exchange-rates/new'
-      path: '/organizations/$organizationId/exchange-rates/new'
+      path: '/exchange-rates/new'
       fullPath: '/organizations/$organizationId/exchange-rates/new'
       preLoaderRoute: typeof OrganizationsOrganizationIdExchangeRatesNewRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof OrganizationsOrganizationIdRouteRoute
     }
     '/organizations/$organizationId/companies/new': {
       id: '/organizations/$organizationId/companies/new'
-      path: '/organizations/$organizationId/companies/new'
+      path: '/companies/new'
       fullPath: '/organizations/$organizationId/companies/new'
       preLoaderRoute: typeof OrganizationsOrganizationIdCompaniesNewRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof OrganizationsOrganizationIdRouteRoute
     }
     '/organizations/$organizationId/companies/$companyId/': {
       id: '/organizations/$organizationId/companies/$companyId/'
-      path: '/organizations/$organizationId/companies/$companyId'
+      path: '/companies/$companyId'
       fullPath: '/organizations/$organizationId/companies/$companyId'
       preLoaderRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof OrganizationsOrganizationIdRouteRoute
     }
     '/organizations/$organizationId/companies/$companyId/reports/': {
       id: '/organizations/$organizationId/companies/$companyId/reports/'
-      path: '/organizations/$organizationId/companies/$companyId/reports'
+      path: '/companies/$companyId/reports'
       fullPath: '/organizations/$organizationId/companies/$companyId/reports'
       preLoaderRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdReportsIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof OrganizationsOrganizationIdRouteRoute
     }
     '/organizations/$organizationId/companies/$companyId/journal-entries/': {
       id: '/organizations/$organizationId/companies/$companyId/journal-entries/'
-      path: '/organizations/$organizationId/companies/$companyId/journal-entries'
+      path: '/companies/$companyId/journal-entries'
       fullPath: '/organizations/$organizationId/companies/$companyId/journal-entries'
       preLoaderRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof OrganizationsOrganizationIdRouteRoute
     }
     '/organizations/$organizationId/companies/$companyId/accounts/': {
       id: '/organizations/$organizationId/companies/$companyId/accounts/'
-      path: '/organizations/$organizationId/companies/$companyId/accounts'
+      path: '/companies/$companyId/accounts'
       fullPath: '/organizations/$organizationId/companies/$companyId/accounts'
       preLoaderRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof OrganizationsOrganizationIdRouteRoute
     }
     '/organizations/$organizationId/companies/$companyId/reports/trial-balance': {
       id: '/organizations/$organizationId/companies/$companyId/reports/trial-balance'
-      path: '/organizations/$organizationId/companies/$companyId/reports/trial-balance'
+      path: '/companies/$companyId/reports/trial-balance'
       fullPath: '/organizations/$organizationId/companies/$companyId/reports/trial-balance'
       preLoaderRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdReportsTrialBalanceRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof OrganizationsOrganizationIdRouteRoute
     }
     '/organizations/$organizationId/companies/$companyId/journal-entries/new': {
       id: '/organizations/$organizationId/companies/$companyId/journal-entries/new'
-      path: '/organizations/$organizationId/companies/$companyId/journal-entries/new'
+      path: '/companies/$companyId/journal-entries/new'
       fullPath: '/organizations/$organizationId/companies/$companyId/journal-entries/new'
       preLoaderRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesNewRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof OrganizationsOrganizationIdRouteRoute
     }
     '/organizations/$organizationId/companies/$companyId/accounts/new': {
       id: '/organizations/$organizationId/companies/$companyId/accounts/new'
-      path: '/organizations/$organizationId/companies/$companyId/accounts/new'
+      path: '/companies/$companyId/accounts/new'
       fullPath: '/organizations/$organizationId/companies/$companyId/accounts/new'
       preLoaderRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdAccountsNewRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof OrganizationsOrganizationIdRouteRoute
     }
     '/organizations/$organizationId/companies/$companyId/journal-entries/$entryId/': {
       id: '/organizations/$organizationId/companies/$companyId/journal-entries/$entryId/'
-      path: '/organizations/$organizationId/companies/$companyId/journal-entries/$entryId'
+      path: '/companies/$companyId/journal-entries/$entryId'
       fullPath: '/organizations/$organizationId/companies/$companyId/journal-entries/$entryId'
       preLoaderRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesEntryIdIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof OrganizationsOrganizationIdRouteRoute
     }
   }
 }
+
+interface OrganizationsOrganizationIdRouteRouteChildren {
+  OrganizationsOrganizationIdDashboardRoute: typeof OrganizationsOrganizationIdDashboardRoute
+  OrganizationsOrganizationIdSettingsRoute: typeof OrganizationsOrganizationIdSettingsRoute
+  OrganizationsOrganizationIdIndexRoute: typeof OrganizationsOrganizationIdIndexRoute
+  OrganizationsOrganizationIdCompaniesNewRoute: typeof OrganizationsOrganizationIdCompaniesNewRoute
+  OrganizationsOrganizationIdExchangeRatesNewRoute: typeof OrganizationsOrganizationIdExchangeRatesNewRoute
+  OrganizationsOrganizationIdAuditLogIndexRoute: typeof OrganizationsOrganizationIdAuditLogIndexRoute
+  OrganizationsOrganizationIdCompaniesIndexRoute: typeof OrganizationsOrganizationIdCompaniesIndexRoute
+  OrganizationsOrganizationIdConsolidationIndexRoute: typeof OrganizationsOrganizationIdConsolidationIndexRoute
+  OrganizationsOrganizationIdExchangeRatesIndexRoute: typeof OrganizationsOrganizationIdExchangeRatesIndexRoute
+  OrganizationsOrganizationIdIntercompanyIndexRoute: typeof OrganizationsOrganizationIdIntercompanyIndexRoute
+  OrganizationsOrganizationIdReportsIndexRoute: typeof OrganizationsOrganizationIdReportsIndexRoute
+  OrganizationsOrganizationIdCompaniesCompanyIdIndexRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdIndexRoute
+  OrganizationsOrganizationIdCompaniesCompanyIdAccountsNewRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdAccountsNewRoute
+  OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesNewRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesNewRoute
+  OrganizationsOrganizationIdCompaniesCompanyIdReportsTrialBalanceRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdReportsTrialBalanceRoute
+  OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute
+  OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesIndexRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesIndexRoute
+  OrganizationsOrganizationIdCompaniesCompanyIdReportsIndexRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdReportsIndexRoute
+  OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesEntryIdIndexRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesEntryIdIndexRoute
+}
+
+const OrganizationsOrganizationIdRouteRouteChildren: OrganizationsOrganizationIdRouteRouteChildren =
+  {
+    OrganizationsOrganizationIdDashboardRoute:
+      OrganizationsOrganizationIdDashboardRoute,
+    OrganizationsOrganizationIdSettingsRoute:
+      OrganizationsOrganizationIdSettingsRoute,
+    OrganizationsOrganizationIdIndexRoute:
+      OrganizationsOrganizationIdIndexRoute,
+    OrganizationsOrganizationIdCompaniesNewRoute:
+      OrganizationsOrganizationIdCompaniesNewRoute,
+    OrganizationsOrganizationIdExchangeRatesNewRoute:
+      OrganizationsOrganizationIdExchangeRatesNewRoute,
+    OrganizationsOrganizationIdAuditLogIndexRoute:
+      OrganizationsOrganizationIdAuditLogIndexRoute,
+    OrganizationsOrganizationIdCompaniesIndexRoute:
+      OrganizationsOrganizationIdCompaniesIndexRoute,
+    OrganizationsOrganizationIdConsolidationIndexRoute:
+      OrganizationsOrganizationIdConsolidationIndexRoute,
+    OrganizationsOrganizationIdExchangeRatesIndexRoute:
+      OrganizationsOrganizationIdExchangeRatesIndexRoute,
+    OrganizationsOrganizationIdIntercompanyIndexRoute:
+      OrganizationsOrganizationIdIntercompanyIndexRoute,
+    OrganizationsOrganizationIdReportsIndexRoute:
+      OrganizationsOrganizationIdReportsIndexRoute,
+    OrganizationsOrganizationIdCompaniesCompanyIdIndexRoute:
+      OrganizationsOrganizationIdCompaniesCompanyIdIndexRoute,
+    OrganizationsOrganizationIdCompaniesCompanyIdAccountsNewRoute:
+      OrganizationsOrganizationIdCompaniesCompanyIdAccountsNewRoute,
+    OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesNewRoute:
+      OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesNewRoute,
+    OrganizationsOrganizationIdCompaniesCompanyIdReportsTrialBalanceRoute:
+      OrganizationsOrganizationIdCompaniesCompanyIdReportsTrialBalanceRoute,
+    OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute:
+      OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute,
+    OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesIndexRoute:
+      OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesIndexRoute,
+    OrganizationsOrganizationIdCompaniesCompanyIdReportsIndexRoute:
+      OrganizationsOrganizationIdCompaniesCompanyIdReportsIndexRoute,
+    OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesEntryIdIndexRoute:
+      OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesEntryIdIndexRoute,
+  }
+
+const OrganizationsOrganizationIdRouteRouteWithChildren =
+  OrganizationsOrganizationIdRouteRoute._addFileChildren(
+    OrganizationsOrganizationIdRouteRouteChildren,
+  )
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
   RegisterRoute: RegisterRoute,
+  OrganizationsOrganizationIdRouteRoute:
+    OrganizationsOrganizationIdRouteRouteWithChildren,
   ApiSplatRoute: ApiSplatRoute,
   OrganizationsNewRoute: OrganizationsNewRoute,
   OrganizationsIndexRoute: OrganizationsIndexRoute,
-  OrganizationsOrganizationIdDashboardRoute:
-    OrganizationsOrganizationIdDashboardRoute,
-  OrganizationsOrganizationIdSettingsRoute:
-    OrganizationsOrganizationIdSettingsRoute,
-  OrganizationsOrganizationIdIndexRoute: OrganizationsOrganizationIdIndexRoute,
-  OrganizationsOrganizationIdCompaniesNewRoute:
-    OrganizationsOrganizationIdCompaniesNewRoute,
-  OrganizationsOrganizationIdExchangeRatesNewRoute:
-    OrganizationsOrganizationIdExchangeRatesNewRoute,
-  OrganizationsOrganizationIdAuditLogIndexRoute:
-    OrganizationsOrganizationIdAuditLogIndexRoute,
-  OrganizationsOrganizationIdCompaniesIndexRoute:
-    OrganizationsOrganizationIdCompaniesIndexRoute,
-  OrganizationsOrganizationIdConsolidationIndexRoute:
-    OrganizationsOrganizationIdConsolidationIndexRoute,
-  OrganizationsOrganizationIdExchangeRatesIndexRoute:
-    OrganizationsOrganizationIdExchangeRatesIndexRoute,
-  OrganizationsOrganizationIdIntercompanyIndexRoute:
-    OrganizationsOrganizationIdIntercompanyIndexRoute,
-  OrganizationsOrganizationIdReportsIndexRoute:
-    OrganizationsOrganizationIdReportsIndexRoute,
-  OrganizationsOrganizationIdCompaniesCompanyIdIndexRoute:
-    OrganizationsOrganizationIdCompaniesCompanyIdIndexRoute,
-  OrganizationsOrganizationIdCompaniesCompanyIdAccountsNewRoute:
-    OrganizationsOrganizationIdCompaniesCompanyIdAccountsNewRoute,
-  OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesNewRoute:
-    OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesNewRoute,
-  OrganizationsOrganizationIdCompaniesCompanyIdReportsTrialBalanceRoute:
-    OrganizationsOrganizationIdCompaniesCompanyIdReportsTrialBalanceRoute,
-  OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute:
-    OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute,
-  OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesIndexRoute:
-    OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesIndexRoute,
-  OrganizationsOrganizationIdCompaniesCompanyIdReportsIndexRoute:
-    OrganizationsOrganizationIdCompaniesCompanyIdReportsIndexRoute,
-  OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesEntryIdIndexRoute:
-    OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesEntryIdIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -214,6 +214,8 @@ function ExchangeRatesPage() {
   const params = Route.useParams()
   const router = useRouter()
   const user = context.user
+  // Organizations come from the parent layout route's beforeLoad
+  const organizations = context.organizations ?? []
 
   /* eslint-disable @typescript-eslint/consistent-type-assertions -- Loader data typing */
   const organization = loaderData.organization as Organization | null
@@ -353,6 +355,7 @@ function ExchangeRatesPage() {
   return (
     <AppLayout
       user={user}
+      organizations={organizations}
       currentOrganization={organization}
       breadcrumbItems={breadcrumbItems}
     >

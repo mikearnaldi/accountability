@@ -257,6 +257,8 @@ function CompanyReportsPage() {
   /* eslint-enable @typescript-eslint/consistent-type-assertions */
   const params = Route.useParams()
   const user = context.user
+  // Organizations come from the parent layout route's beforeLoad
+  const organizations = context.organizations ?? []
 
   const reportCards = useMemo(() => getReportCards(), [])
 
@@ -289,6 +291,7 @@ function CompanyReportsPage() {
   return (
     <AppLayout
       user={user}
+      organizations={organizations}
       currentOrganization={organization}
       breadcrumbItems={breadcrumbItems}
       companies={companiesForSidebar}

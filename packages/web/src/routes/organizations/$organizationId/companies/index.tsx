@@ -223,6 +223,8 @@ function CompaniesListPage() {
   const params = Route.useParams()
   const router = useRouter()
   const user = context.user
+  // Organizations come from the parent layout route's beforeLoad
+  const organizations = context.organizations ?? []
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all")
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -324,6 +326,7 @@ function CompaniesListPage() {
   return (
     <AppLayout
       user={user}
+      organizations={organizations}
       currentOrganization={organization}
       breadcrumbItems={breadcrumbItems}
       companies={companiesForSidebar}

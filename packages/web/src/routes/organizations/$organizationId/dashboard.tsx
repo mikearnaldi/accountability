@@ -276,6 +276,9 @@ function OrganizationDashboardPage() {
   const { dashboardData } = Route.useLoaderData()
   const params = Route.useParams()
   const user = context.user
+  // Organizations come from the parent layout route's beforeLoad
+  // Fall back to dashboard loader data for backwards compatibility
+  const organizations = context.organizations ?? dashboardData.organizations ?? []
 
   // Redirect if organization not found
   if (!dashboardData.organization) {
@@ -315,7 +318,7 @@ function OrganizationDashboardPage() {
   return (
     <AppLayout
       user={user}
-      organizations={dashboardData.organizations}
+      organizations={organizations}
       currentOrganization={organization}
       companies={dashboardData.companies}
     >

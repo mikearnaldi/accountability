@@ -193,6 +193,8 @@ function NewAccountPage() {
   const router = useRouter()
   const params = Route.useParams()
   const user = context.user
+  // Organizations come from the parent layout route's beforeLoad
+  const organizations = context.organizations ?? []
 
   /* eslint-disable @typescript-eslint/consistent-type-assertions -- Type assertions needed for loader data typing */
   const accounts = loaderData.accounts as readonly Account[]
@@ -259,6 +261,7 @@ function NewAccountPage() {
   return (
     <AppLayout
       user={user}
+      organizations={organizations}
       currentOrganization={organization}
       breadcrumbItems={breadcrumbItems}
       companies={companiesForSidebar}

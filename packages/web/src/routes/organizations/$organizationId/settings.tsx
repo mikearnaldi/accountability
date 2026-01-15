@@ -198,6 +198,8 @@ function OrganizationSettingsPage() {
   const context = Route.useRouteContext()
   const loaderData = Route.useLoaderData()
   const user = context.user
+  // Organizations come from the parent layout route's beforeLoad
+  const organizations = context.organizations ?? []
 
   /* eslint-disable @typescript-eslint/consistent-type-assertions -- Loader data typing */
   const organization = loaderData.organization as Organization | null
@@ -214,6 +216,7 @@ function OrganizationSettingsPage() {
   return (
     <AppLayout
       user={user}
+      organizations={organizations}
       currentOrganization={organization}
       companies={companiesForSidebar}
     >
