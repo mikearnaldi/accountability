@@ -111,3 +111,8 @@
 **Task**: Fixed lint error by adding .tsx extension to Tooltip import in Table.tsx
 **Status**: complete
 ---
+
+## Iteration 6 - 2026-01-15 17:13
+**Task**: Added explanatory tooltips to table column headers in CompanyHierarchyTree and Exchange Rates pages per UI_ARCHITECTURE.md spec requirement
+**Status**: complete
+---

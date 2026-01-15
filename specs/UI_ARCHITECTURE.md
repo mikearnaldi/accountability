@@ -10,7 +10,52 @@ This section tracks known issues, implementation status, and priorities.
 
 ## Known Issues
 
-All known issues have been resolved. See "Completed Items" section below.
+### Issue 8: Tooltip Positioning/Overflow
+- **Status**: Open
+- **Problem**: Column header tooltips collide with the sidebar on the left side and get cut off by the screen edge on the right side, making them hard to read
+- **Expected**: Tooltips should be fully visible regardless of column position - they should intelligently reposition to avoid collisions with screen edges and sidebar
+- **Fix**: Implement smart tooltip positioning:
+  1. Detect if tooltip would overflow viewport edges
+  2. For left columns (near sidebar): position tooltip to the right of the element
+  3. For right columns (near screen edge): position tooltip to the left of the element
+  4. Consider using a tooltip library with built-in collision detection (e.g., Radix UI Tooltip, Floating UI)
+  5. Ensure tooltip has `z-index` higher than sidebar
+
+### Issue 9: Filter Input Icon Alignment Inconsistency
+- **Status**: Open
+- **Problem**: In Journal Entries filters, the dropdown arrow in select inputs is positioned too far to the right compared to the calendar icons in date picker inputs - inconsistent visual alignment
+- **Expected**: All filter input icons (dropdown arrows, calendar icons, etc.) should have consistent positioning and padding
+- **Fix**: Standardize filter input styling:
+  1. Use consistent `padding-right` for all filter inputs
+  2. Ensure dropdown arrows and date picker icons are aligned at the same distance from the right edge
+  3. Consider creating a shared filter input component with consistent icon positioning
+
+### Issue 10: Redundant "Add First Exchange Rate" on Exchange Rate Page
+- **Status**: Open
+- **Problem**: The Exchange Rate page shows "Add First Exchange Rate" which is redundant (likely duplicate CTA or empty state showing incorrectly)
+- **Expected**: Single clear CTA to add exchange rate - either in the page header OR in empty state, not both
+- **Fix**:
+  1. If page has data: show only the header "+ Add Exchange Rate" button
+  2. If page is empty: show only the empty state with CTA
+  3. Remove any duplicate/redundant buttons
+
+### Issue 11: Add Buttons Broken Layout (Icon on Separate Line)
+- **Status**: Open
+- **Problem**: All "Add" buttons across the app display the "+" on a separate line from the text, making them look broken and unprofessional
+- **Expected**: Add buttons should be single-line with a proper icon and text inline, looking polished across the entire app
+- **Fix**: Create a standardized Add/Create button component:
+  1. Use `whitespace-nowrap` or `flex-nowrap` to prevent line breaks
+  2. Use a proper Plus icon from Lucide (`<Plus />`) instead of plain "+" text
+  3. Use `inline-flex items-center gap-2` for proper icon + text alignment
+  4. Apply consistent sizing: `px-4 py-2` padding
+  5. Example structure:
+     ```tsx
+     <button className="inline-flex items-center gap-2 whitespace-nowrap px-4 py-2 bg-blue-600 text-white rounded-lg">
+       <Plus className="h-4 w-4" />
+       <span>Add Exchange Rate</span>
+     </button>
+     ```
+  6. Create a reusable `<AddButton>` component and use it everywhere
 
 ## Completed Items
 

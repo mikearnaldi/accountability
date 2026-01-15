@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/Button"
 import { Select } from "@/components/ui/Select"
 import { Input } from "@/components/ui/Input"
 import { TrendingUp, Plus, Trash2, Calendar, ArrowRightLeft } from "lucide-react"
+import { Tooltip } from "@/components/ui/Tooltip"
 
 // =============================================================================
 // Types
@@ -591,19 +592,29 @@ function ExchangeRatesPage() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Currency Pair
+                    <Tooltip content="The source and target currencies for the exchange rate (e.g., USD to EUR)">
+                      <span className="cursor-help">Currency Pair</span>
+                    </Tooltip>
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Rate
+                    <Tooltip content="Exchange rate value: how many units of the target currency equal one unit of the source currency">
+                      <span className="cursor-help">Rate</span>
+                    </Tooltip>
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Effective Date
+                    <Tooltip content="Date from which this exchange rate is applicable for transactions">
+                      <span className="cursor-help">Effective Date</span>
+                    </Tooltip>
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Type
+                    <Tooltip content="Rate type: Spot (current market rate), Average (period average), or Historical (past rate)">
+                      <span className="cursor-help">Type</span>
+                    </Tooltip>
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Source
+                    <Tooltip content="How the rate was obtained: Manual entry, API feed, or file Import">
+                      <span className="cursor-help">Source</span>
+                    </Tooltip>
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
                     Actions

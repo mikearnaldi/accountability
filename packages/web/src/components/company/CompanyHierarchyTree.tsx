@@ -219,17 +219,46 @@ export function CompanyHierarchyTree({
       <Table stickyHeader>
         <TableHeader data-testid="company-hierarchy-header">
           <TableRow>
-            <TableHeaderCell data-testid="header-name">Name</TableHeaderCell>
-            <TableHeaderCell data-testid="header-legal-name">Legal Name</TableHeaderCell>
-            <TableHeaderCell data-testid="header-jurisdiction">Jurisdiction</TableHeaderCell>
-            <TableHeaderCell data-testid="header-currency">
+            <TableHeaderCell
+              data-testid="header-name"
+              tooltip="Short name used to identify the company within the organization"
+            >
+              Name
+            </TableHeaderCell>
+            <TableHeaderCell
+              data-testid="header-legal-name"
+              tooltip="Official registered name of the legal entity"
+            >
+              Legal Name
+            </TableHeaderCell>
+            <TableHeaderCell
+              data-testid="header-jurisdiction"
+              tooltip="Country or region where the company is legally registered"
+            >
+              Jurisdiction
+            </TableHeaderCell>
+            <TableHeaderCell
+              data-testid="header-currency"
+              tooltip="Primary currency used for the company's day-to-day transactions and financial records"
+            >
               Functional Currency
             </TableHeaderCell>
-            <TableHeaderCell data-testid="header-status">Status</TableHeaderCell>
-            <TableHeaderCell data-testid="header-ownership">
+            <TableHeaderCell
+              data-testid="header-status"
+              tooltip="Current state: Active companies can receive transactions, Inactive companies are disabled"
+            >
+              Status
+            </TableHeaderCell>
+            <TableHeaderCell
+              data-testid="header-ownership"
+              tooltip="Percentage of the subsidiary owned by its parent company"
+            >
               Ownership
             </TableHeaderCell>
-            <TableHeaderCell data-testid="header-consolidation">
+            <TableHeaderCell
+              data-testid="header-consolidation"
+              tooltip="Method used to consolidate subsidiary financial statements: Full Consolidation, Equity Method, Cost Method, or VIE"
+            >
               Consolidation Method
             </TableHeaderCell>
           </TableRow>
