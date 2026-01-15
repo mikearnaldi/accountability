@@ -13,6 +13,13 @@ import { getCookie } from "@tanstack/react-start/server"
 import { useState, useMemo } from "react"
 import { createServerApi } from "@/api/server"
 import { AppLayout } from "@/components/layout/AppLayout"
+import {
+  ReportParameterForm,
+  FormSection,
+  FormRow,
+  FormField,
+  DateInput
+} from "@/components/reports/ReportParameterForm"
 import { Tooltip } from "@/components/ui/Tooltip"
 import { ArrowLeft, Download, Printer } from "lucide-react"
 
@@ -341,42 +348,28 @@ function TrialBalancePage() {
           </p>
         </div>
 
-        {/* Date Selection */}
-        <div className="mb-6 rounded-lg border border-gray-200 bg-white p-6">
-          <h2 className="mb-4 font-semibold text-gray-900">Report Parameters</h2>
-          <div className="flex flex-wrap items-end gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                As of Date
-              </label>
-              <input
-                type="date"
-                value={asOfDate}
-                onChange={(e) => {
-                  setAsOfDate(e.target.value)
-                  setTrialBalance(null)
-                }}
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                data-testid="trial-balance-as-of-date"
-              />
-            </div>
-
-            <button
-              onClick={handleGenerateReport}
-              disabled={!asOfDate || isLoading}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
-              data-testid="trial-balance-generate"
-            >
-              {isLoading ? "Generating..." : "Generate Report"}
-            </button>
-          </div>
-
-          {error && (
-            <p className="mt-4 text-sm text-red-600" data-testid="trial-balance-error">
-              {error}
-            </p>
-          )}
-        </div>
+        {/* Parameter Form */}
+        <ReportParameterForm
+          onSubmit={handleGenerateReport}
+          isLoading={isLoading}
+          isValid={Boolean(asOfDate)}
+          error={error}
+        >
+          <FormSection title="Report Date" description="Select the date for the trial balance">
+            <FormRow>
+              <FormField label="As of Date" required hint="Account balances as of this date">
+                <DateInput
+                  value={asOfDate}
+                  onChange={(value) => {
+                    setAsOfDate(value)
+                    setTrialBalance(null)
+                  }}
+                  data-testid="trial-balance-as-of-date"
+                />
+              </FormField>
+            </FormRow>
+          </FormSection>
+        </ReportParameterForm>
 
         {/* Trial Balance Results */}
         {trialBalance && (

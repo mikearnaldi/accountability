@@ -13,6 +13,14 @@ import { getCookie } from "@tanstack/react-start/server"
 import { useState, useMemo } from "react"
 import { createServerApi } from "@/api/server"
 import { AppLayout } from "@/components/layout/AppLayout"
+import {
+  ReportParameterForm,
+  FormSection,
+  FormRow,
+  FormField,
+  DateInput,
+  RadioGroup
+} from "@/components/reports/ReportParameterForm"
 import { Tooltip } from "@/components/ui/Tooltip"
 import { ArrowLeft, Download, Printer, CheckCircle, AlertTriangle } from "lucide-react"
 
@@ -373,92 +381,62 @@ function CashFlowStatementPage() {
           </p>
         </div>
 
-        {/* Parameters Form */}
-        <div className="mb-6 rounded-lg border border-gray-200 bg-white p-6">
-          <h2 className="mb-4 font-semibold text-gray-900">Report Parameters</h2>
-          <div className="flex flex-wrap items-end gap-4">
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
-                Period Start Date *
-              </label>
-              <input
-                type="date"
-                value={periodStartDate}
-                onChange={(e) => {
-                  setPeriodStartDate(e.target.value)
-                  setReport(null)
+        {/* Parameter Form */}
+        <ReportParameterForm
+          onSubmit={handleGenerateReport}
+          isLoading={isLoading}
+          isValid={Boolean(periodStartDate && periodEndDate)}
+          error={error}
+        >
+          <FormSection title="Report Period" description="Date range for cash flow activities">
+            <FormRow>
+              <FormField label="Period Start Date" required hint="Beginning of reporting period">
+                <DateInput
+                  value={periodStartDate}
+                  onChange={(value) => {
+                    setPeriodStartDate(value)
+                    setReport(null)
+                  }}
+                  data-testid="cash-flow-start-date"
+                />
+              </FormField>
+              <FormField label="Period End Date" required hint="End of reporting period">
+                <DateInput
+                  value={periodEndDate}
+                  onChange={(value) => {
+                    setPeriodEndDate(value)
+                    setReport(null)
+                  }}
+                  data-testid="cash-flow-end-date"
+                />
+              </FormField>
+            </FormRow>
+          </FormSection>
+
+          <FormSection title="Reporting Method" description="Choose how operating activities are presented">
+            <FormField label="Method" hint="Indirect starts from net income; Direct shows cash receipts/payments">
+              <RadioGroup
+                name="method"
+                value={method}
+                onChange={(value) => {
+                  const methodLookup: Record<string, "direct" | "indirect"> = {
+                    direct: "direct",
+                    indirect: "indirect"
+                  }
+                  const newMethod = methodLookup[value]
+                  if (newMethod) {
+                    setMethod(newMethod)
+                    setReport(null)
+                  }
                 }}
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                data-testid="cash-flow-start-date"
+                options={[
+                  { value: "indirect", label: "Indirect Method" },
+                  { value: "direct", label: "Direct Method" }
+                ]}
               />
-            </div>
-
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
-                Period End Date *
-              </label>
-              <input
-                type="date"
-                value={periodEndDate}
-                onChange={(e) => {
-                  setPeriodEndDate(e.target.value)
-                  setReport(null)
-                }}
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                data-testid="cash-flow-end-date"
-              />
-            </div>
-
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Method</label>
-              <div className="flex gap-4">
-                <label className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    name="method"
-                    value="indirect"
-                    checked={method === "indirect"}
-                    onChange={() => {
-                      setMethod("indirect")
-                      setReport(null)
-                    }}
-                    className="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  <span className="text-sm text-gray-700">Indirect</span>
-                </label>
-                <label className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    name="method"
-                    value="direct"
-                    checked={method === "direct"}
-                    onChange={() => {
-                      setMethod("direct")
-                      setReport(null)
-                    }}
-                    className="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  <span className="text-sm text-gray-700">Direct</span>
-                </label>
-              </div>
-            </div>
-
-            <button
-              onClick={handleGenerateReport}
-              disabled={!periodStartDate || !periodEndDate || isLoading}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300"
-              data-testid="cash-flow-generate"
-            >
-              {isLoading ? "Generating..." : "Generate Report"}
-            </button>
-          </div>
-
-          {error && (
-            <p className="mt-4 text-sm text-red-600" data-testid="cash-flow-error">
-              {error}
-            </p>
-          )}
-        </div>
+            </FormField>
+          </FormSection>
+        </ReportParameterForm>
 
         {/* Cash Flow Statement Report */}
         {report && (

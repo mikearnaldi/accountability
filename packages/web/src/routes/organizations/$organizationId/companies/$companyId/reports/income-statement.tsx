@@ -13,6 +13,13 @@ import { getCookie } from "@tanstack/react-start/server"
 import { useState, useMemo } from "react"
 import { createServerApi } from "@/api/server"
 import { AppLayout } from "@/components/layout/AppLayout"
+import {
+  ReportParameterForm,
+  FormSection,
+  FormRow,
+  FormField,
+  DateInput
+} from "@/components/reports/ReportParameterForm"
 import { Tooltip } from "@/components/ui/Tooltip"
 import { ArrowLeft, Download, Printer } from "lucide-react"
 
@@ -387,96 +394,63 @@ function IncomeStatementPage() {
           </p>
         </div>
 
-        {/* Parameters Form */}
-        <div className="mb-6 rounded-lg border border-gray-200 bg-white p-6">
-          <h2 className="mb-4 font-semibold text-gray-900">Report Parameters</h2>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
-                Period Start Date *
-              </label>
-              <input
-                type="date"
-                value={periodStartDate}
-                onChange={(e) => {
-                  setPeriodStartDate(e.target.value)
-                  setReport(null)
-                }}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                data-testid="income-statement-start-date"
-              />
-            </div>
+        {/* Parameter Form */}
+        <ReportParameterForm
+          onSubmit={handleGenerateReport}
+          isLoading={isLoading}
+          isValid={Boolean(periodStartDate && periodEndDate)}
+          error={error}
+        >
+          <FormSection title="Report Period" description="Date range for revenue and expenses">
+            <FormRow>
+              <FormField label="Period Start Date" required hint="Beginning of reporting period">
+                <DateInput
+                  value={periodStartDate}
+                  onChange={(value) => {
+                    setPeriodStartDate(value)
+                    setReport(null)
+                  }}
+                  data-testid="income-statement-start-date"
+                />
+              </FormField>
+              <FormField label="Period End Date" required hint="End of reporting period">
+                <DateInput
+                  value={periodEndDate}
+                  onChange={(value) => {
+                    setPeriodEndDate(value)
+                    setReport(null)
+                  }}
+                  data-testid="income-statement-end-date"
+                />
+              </FormField>
+            </FormRow>
+          </FormSection>
 
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
-                Period End Date *
-              </label>
-              <input
-                type="date"
-                value={periodEndDate}
-                onChange={(e) => {
-                  setPeriodEndDate(e.target.value)
-                  setReport(null)
-                }}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                data-testid="income-statement-end-date"
-              />
-            </div>
-
-            <div className="sm:col-span-2 lg:col-span-1">
-              <p className="mb-2 text-xs font-medium uppercase text-gray-500">Comparative Period (optional)</p>
-            </div>
-
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
-                Comparative Start Date
-              </label>
-              <input
-                type="date"
-                value={comparativeStartDate}
-                onChange={(e) => {
-                  setComparativeStartDate(e.target.value)
-                  setReport(null)
-                }}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                data-testid="income-statement-comparative-start"
-              />
-            </div>
-
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
-                Comparative End Date
-              </label>
-              <input
-                type="date"
-                value={comparativeEndDate}
-                onChange={(e) => {
-                  setComparativeEndDate(e.target.value)
-                  setReport(null)
-                }}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                data-testid="income-statement-comparative-end"
-              />
-            </div>
-          </div>
-
-          <div className="mt-4">
-            <button
-              onClick={handleGenerateReport}
-              disabled={!periodStartDate || !periodEndDate || isLoading}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300"
-              data-testid="income-statement-generate"
-            >
-              {isLoading ? "Generating..." : "Generate Report"}
-            </button>
-          </div>
-
-          {error && (
-            <p className="mt-4 text-sm text-red-600" data-testid="income-statement-error">
-              {error}
-            </p>
-          )}
-        </div>
+          <FormSection title="Comparison Period" description="Optional prior period for variance analysis">
+            <FormRow>
+              <FormField label="Comparative Start Date" hint="Beginning of comparison period">
+                <DateInput
+                  value={comparativeStartDate}
+                  onChange={(value) => {
+                    setComparativeStartDate(value)
+                    setReport(null)
+                  }}
+                  data-testid="income-statement-comparative-start"
+                />
+              </FormField>
+              <FormField label="Comparative End Date" hint="End of comparison period">
+                <DateInput
+                  value={comparativeEndDate}
+                  onChange={(value) => {
+                    setComparativeEndDate(value)
+                    setReport(null)
+                  }}
+                  data-testid="income-statement-comparative-end"
+                />
+              </FormField>
+            </FormRow>
+          </FormSection>
+        </ReportParameterForm>
 
         {/* Income Statement Report */}
         {report && (

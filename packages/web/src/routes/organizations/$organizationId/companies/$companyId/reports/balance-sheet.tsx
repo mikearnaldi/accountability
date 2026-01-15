@@ -13,6 +13,14 @@ import { getCookie } from "@tanstack/react-start/server"
 import { useState, useMemo } from "react"
 import { createServerApi } from "@/api/server"
 import { AppLayout } from "@/components/layout/AppLayout"
+import {
+  ReportParameterForm,
+  FormSection,
+  FormRow,
+  FormField,
+  DateInput,
+  CheckboxField
+} from "@/components/reports/ReportParameterForm"
 import { Tooltip } from "@/components/ui/Tooltip"
 import { ArrowLeft, Download, Printer, AlertTriangle, CheckCircle } from "lucide-react"
 
@@ -379,74 +387,50 @@ function BalanceSheetPage() {
           </p>
         </div>
 
-        {/* Parameters Form */}
-        <div className="mb-6 rounded-lg border border-gray-200 bg-white p-6">
-          <h2 className="mb-4 font-semibold text-gray-900">Report Parameters</h2>
-          <div className="flex flex-wrap items-end gap-4">
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
-                As of Date *
-              </label>
-              <input
-                type="date"
-                value={asOfDate}
-                onChange={(e) => {
-                  setAsOfDate(e.target.value)
-                  setReport(null)
-                }}
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                data-testid="balance-sheet-as-of-date"
-              />
-            </div>
+        {/* Parameter Form */}
+        <ReportParameterForm
+          onSubmit={handleGenerateReport}
+          isLoading={isLoading}
+          isValid={Boolean(asOfDate)}
+          error={error}
+        >
+          <FormSection title="Report Date" description="Balance sheet as of a specific date">
+            <FormRow>
+              <FormField label="As of Date" required hint="Point-in-time balance snapshot">
+                <DateInput
+                  value={asOfDate}
+                  onChange={(value) => {
+                    setAsOfDate(value)
+                    setReport(null)
+                  }}
+                  data-testid="balance-sheet-as-of-date"
+                />
+              </FormField>
+              <FormField label="Comparative Date" hint="Optional prior period for comparison">
+                <DateInput
+                  value={comparativeDate}
+                  onChange={(value) => {
+                    setComparativeDate(value)
+                    setReport(null)
+                  }}
+                  data-testid="balance-sheet-comparative-date"
+                />
+              </FormField>
+            </FormRow>
+          </FormSection>
 
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
-                Comparative Date (optional)
-              </label>
-              <input
-                type="date"
-                value={comparativeDate}
-                onChange={(e) => {
-                  setComparativeDate(e.target.value)
-                  setReport(null)
-                }}
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                data-testid="balance-sheet-comparative-date"
-              />
-            </div>
-
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="includeZeroBalances"
-                checked={includeZeroBalances}
-                onChange={(e) => {
-                  setIncludeZeroBalances(e.target.checked)
-                  setReport(null)
-                }}
-                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-              <label htmlFor="includeZeroBalances" className="text-sm text-gray-700">
-                Include Zero Balances
-              </label>
-            </div>
-
-            <button
-              onClick={handleGenerateReport}
-              disabled={!asOfDate || isLoading}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300"
-              data-testid="balance-sheet-generate"
-            >
-              {isLoading ? "Generating..." : "Generate Report"}
-            </button>
-          </div>
-
-          {error && (
-            <p className="mt-4 text-sm text-red-600" data-testid="balance-sheet-error">
-              {error}
-            </p>
-          )}
-        </div>
+          <FormSection title="Options">
+            <CheckboxField
+              id="includeZeroBalances"
+              checked={includeZeroBalances}
+              onChange={(checked) => {
+                setIncludeZeroBalances(checked)
+                setReport(null)
+              }}
+              label="Include accounts with zero balances"
+            />
+          </FormSection>
+        </ReportParameterForm>
 
         {/* Balance Sheet Report */}
         {report && (

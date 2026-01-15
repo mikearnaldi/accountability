@@ -19,7 +19,8 @@ This section tracks known issues, implementation status, and priorities.
 | **Issue 28** | ✅ DONE | Consolidation Page Full Implementation | 8 subtasks (28.1-28.8), 10+ new files |
 | **Issue 29** | ✅ DONE | Reports - Complete All Financial Report Views | 6 subtasks (29.1-29.6), 8 new files |
 | **Issue 30** | ✅ DONE | Intercompany Transactions Full Implementation | 8 subtasks (30.1-30.8), 8 new files |
-| **Issue 31** | ❌ OPEN | Reports Parameter Selection UI Improvement | 5 files to update |
+| **Issue 31** | ✅ DONE | Reports Parameter Selection UI Improvement | 5 files to update |
+| **Issue 32** | ❌ OPEN | Journal Entry Form UX Issues | 3 sub-issues (multi-currency, auto-period, empty periods) |
 
 **⚠️ You MUST complete ALL issues marked ❌ OPEN before signaling completion.**
 
@@ -687,80 +688,138 @@ The automation agent MUST implement the FULL design specification in Part 2 of t
 **Modify:**
 - `packages/web/src/routes/organizations/$organizationId/intercompany/index.tsx` - Replace stub with real implementation
 
-### Issue 31: Reports Parameter Selection UI Improvement
-- **Status**: Open
+### Issue 31: Reports Parameter Selection UI Improvement - RESOLVED
+- **Status**: Completed
 - **Priority**: MEDIUM
-- **Problem**: The parameter selection forms on all 5 financial report pages look unprofessional. Form fields are misaligned, spacing is inconsistent, and the overall layout doesn't match the polished feel of the rest of the application.
+- **Resolution**: Created a shared `ReportParameterForm` component with professional, consistent styling that all 5 financial report pages now use. The component provides:
+  1. **Card wrapper** with "Report Parameters" header and description
+  2. **FormSection** component for grouping related fields with headers
+  3. **FormRow** component for 2-column grid layout on desktop (single column on mobile)
+  4. **FormField** component with consistent label styling, required indicators, and hint text
+  5. **DateInput** component with consistent styling
+  6. **CheckboxField** component for option toggles with proper alignment
+  7. **RadioGroup** component for method selection
+  8. **Footer area** with prominent "Generate Report" button with arrow icon and loading spinner
+- **Files created**:
+  - `packages/web/src/components/reports/ReportParameterForm.tsx` - Shared form components
+- **Files modified**:
+  - `packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/trial-balance.tsx`
+  - `packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/balance-sheet.tsx`
+  - `packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/income-statement.tsx`
+  - `packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/cash-flow.tsx`
+  - `packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/equity-statement.tsx`
+
+### Issue 32: Journal Entry Form UX Issues
+- **Status**: Open
+- **Priority**: HIGH
+- **Problem**: The Journal Entry creation form has confusing UX for multi-currency entries and empty fiscal period selection.
 
 #### Current Issues
 
-1. **Inconsistent field alignment**: Date pickers and checkboxes don't align properly in rows
-2. **Poor spacing**: Gaps between fields are inconsistent
-3. **Lack of visual grouping**: Related fields (like period start/end dates) should be visually grouped
-4. **No clear hierarchy**: The "Generate Report" button doesn't stand out enough
-5. **Mobile responsiveness**: Forms don't adapt well to smaller screens
+**Issue 32.1: Multi-Currency Behavior is Confusing**
+
+When the user enables "Multi-currency entry", they expect to be able to enter different currencies per line (e.g., line 1 in EUR, line 2 in GBP). Instead, the current implementation:
+- Sets ALL lines to the same selected currency
+- This is "single foreign currency entry" not "true multi-currency"
+
+**Current code behavior** (`JournalEntryForm.tsx:433-443`):
+```javascript
+const handleCurrencyChange = (newCurrency: string) => {
+  setCurrency(newCurrency)
+  // Updates ALL lines to new currency
+  setLines((prev) =>
+    prev.map((line) => ({ ...line, currency: newCurrency }))
+  )
+}
+```
+
+**Options to fix:**
+1. **Rename the feature**: Change "Multi-currency entry" to "Foreign currency entry" to clarify it's a single foreign currency
+2. **True multi-currency**: Allow each line to have its own currency selector (more complex, requires per-line exchange rates)
+3. **Keep current but improve UX**: Show clear explanation like "Enter this journal entry in a foreign currency. All lines will use the selected currency."
+
+**Recommended approach**: Option 3 - Add clear helper text explaining the behavior.
+
+---
+
+**Issue 32.2: Period Should Auto-Select Based on Transaction Date**
+
+The fiscal year and period are currently **manually selected** independently from the transaction date. This is confusing and error-prone - users shouldn't have to figure out which period a date belongs to.
+
+**Expected behavior**: When user enters a transaction date (e.g., `2024-03-15`), the system should:
+1. Automatically look up which fiscal year contains that date
+2. Automatically look up which fiscal period contains that date
+3. Auto-populate the period selection (or just display it as read-only)
+
+**Current behavior**: Date and period are independent. User can select March 15, 2024 as the date but accidentally leave period as "P1" (January).
+
+---
+
+**Issue 32.3: Empty Period Selection When No Fiscal Periods Configured**
+
+The fiscal year and period dropdowns are empty when the company has no fiscal periods configured. This leaves users confused with empty dropdowns and no way to proceed.
+
+**Current code behavior** (`JournalEntryForm.tsx:273-281`):
+```javascript
+const availableFiscalYears = useMemo(() => {
+  const years = new Set(fiscalPeriods.map((p) => p.year))
+  return Array.from(years).sort((a, b) => b - a)
+}, [fiscalPeriods])
+```
+
+If `fiscalPeriods` is empty, the dropdown has no options.
+
+**Required fixes:**
+1. **Show clear warning**: If no fiscal periods exist, show a prominent warning message explaining the user needs to configure fiscal periods first
+2. **Link to setup**: Provide a direct link to the fiscal periods setup page
+3. **Prevent form submission**: Make it clear the entry cannot be created without fiscal periods
+4. **Consider auto-creation**: Optionally prompt to auto-create default fiscal periods for the current year
 
 #### Requirements
 
-1. **Consistent grid layout**: Use a proper grid system for form fields
-   - 2-column layout on desktop for related fields (e.g., Start Date / End Date side by side)
-   - Single column on mobile
-   - Consistent gap spacing (e.g., `gap-4` between rows, `gap-6` between sections)
+**For Issue 32.1 (Multi-Currency UX):**
+1. Add helper text below the "Multi-currency entry" checkbox explaining:
+   - "Enable to record this entry in a foreign currency"
+   - "All line items will use the selected currency"
+   - "Exchange rate converts to the company's functional currency (XXX)"
+2. When enabled, show a clear info banner explaining the behavior
+3. Consider renaming checkbox label to "Foreign currency entry"
 
-2. **Visual grouping with sections**:
-   - Group related fields in labeled sections (e.g., "Report Period", "Options")
-   - Use subtle borders or background colors to distinguish sections
-   - Add section headers with appropriate typography
+**For Issue 32.2 (Auto-Select Period from Date):**
+1. When transaction date changes, find the matching fiscal period:
+   ```javascript
+   const findPeriodForDate = (date: string, periods: FiscalPeriod[]) => {
+     const targetDate = new Date(date)
+     return periods.find(p => {
+       const start = new Date(p.startDate.year, p.startDate.month - 1, p.startDate.day)
+       const end = new Date(p.endDate.year, p.endDate.month - 1, p.endDate.day)
+       return targetDate >= start && targetDate <= end
+     })
+   }
+   ```
+2. Auto-update fiscal year and period when date changes
+3. Show the period as informational (perhaps read-only or with "Auto-detected" label)
+4. Allow manual override with a warning if date doesn't match period
+5. If date falls outside all configured periods, show a warning
 
-3. **Proper form field sizing**:
-   - Date inputs should have consistent width
-   - Checkboxes should align with their labels properly
-   - Labels above inputs (consistent with rest of app)
+**For Issue 32.3 (Empty Periods):**
+1. Detect when `fiscalPeriods` array is empty
+2. Show a warning card above the form:
+   ```
+   ⚠️ No Fiscal Periods Configured
 
-4. **Clear action area**:
-   - "Generate Report" button prominently placed
-   - Consider adding "Reset" or "Clear" option
-   - Button should be full-width on mobile, right-aligned on desktop
+   You need to configure fiscal periods for this company before
+   creating journal entries.
 
-5. **Professional card wrapper**:
-   - Wrap the entire parameter form in a card component
-   - Add a header like "Report Parameters" or "Configure Report"
-   - Consistent with other form pages in the app
+   [Configure Fiscal Periods →]
+   ```
+3. Disable the form submission when no periods exist
+4. Link should go to `/organizations/:orgId/companies/:companyId/fiscal`
 
 #### Files to Update
 
-- `packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/trial-balance.tsx`
-- `packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/balance-sheet.tsx`
-- `packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/income-statement.tsx`
-- `packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/cash-flow.tsx`
-- `packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/equity-statement.tsx`
-
-#### Design Reference
-
-The parameter form should follow this structure:
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│ Report Parameters                                                    │
-├─────────────────────────────────────────────────────────────────────┤
-│ Report Period                                                        │
-│ ┌──────────────────────────┐  ┌──────────────────────────┐          │
-│ │ Start Date *             │  │ End Date *               │          │
-│ │ [    2024-01-01    📅]   │  │ [    2024-12-31    📅]   │          │
-│ └──────────────────────────┘  └──────────────────────────┘          │
-│                                                                      │
-│ Comparison Period (Optional)                                         │
-│ ┌──────────────────────────┐  ┌──────────────────────────┐          │
-│ │ Comparative Start        │  │ Comparative End          │          │
-│ │ [                  📅]   │  │ [                  📅]   │          │
-│ └──────────────────────────┘  └──────────────────────────┘          │
-│                                                                      │
-│ Options                                                              │
-│ ☐ Include zero balance accounts                                      │
-│ ☐ Show account numbers                                               │
-│                                                                      │
-│                                              [Generate Report →]     │
-└─────────────────────────────────────────────────────────────────────┘
-```
+- `packages/web/src/components/forms/JournalEntryForm.tsx` - Main form component
+- `packages/web/src/routes/organizations/$organizationId/companies/$companyId/journal-entries/new.tsx` - Page wrapper (may need to handle empty periods at page level)
 
 ### Issue 15: UI Structure - Organization Selector & New Dropdown - RESOLVED
 - **Status**: Completed

@@ -206,3 +206,8 @@
 **Task**: Fixed 4 lint errors in intercompany routes by replacing type assertions with object lookup patterns for TransactionType and MatchingStatus filter selects.
 **Status**: complete
 ---
+
+## Iteration 3 - 2026-01-15 21:09
+**Task**: Implemented Issue 31 - Reports Parameter Selection UI Improvement. Created a shared `ReportParameterForm` component (`packages/web/src/components/reports/ReportParameterForm.tsx`) with professional, consistent styling including: card wrapper with header, FormSection for grouping fields, FormRow for 2-column responsive grid, FormField with labels/hints/required indicators, DateInput, CheckboxField, and RadioGroup components. Updated all 5 financial report pages (trial-balance, balance-sheet, income-statement, cash-flow, equity-statement) to use the new shared components. The forms now have proper visual hierarchy, consistent spacing, responsive layouts, and a prominent "Generate Report" button with loading state.
+**Status**: complete
+---
