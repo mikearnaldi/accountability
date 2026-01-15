@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "@accountability/api": "workspace:*",
+    "@floating-ui/react": "^0.27.16",
     "@tailwindcss/vite": "^4.1.18",
     "@tanstack/react-router": "^1.147.0",
     "@tanstack/react-router-devtools": "^1.147.0",

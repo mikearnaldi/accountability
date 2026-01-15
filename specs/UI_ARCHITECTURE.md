@@ -24,16 +24,15 @@ This section tracks known issues, implementation status, and priorities.
 - **Status**: Completed
 - **Resolution**: Added `whitespace-nowrap` to the base Button component class list in `packages/web/src/components/ui/Button.tsx`. This ensures all buttons with icons and text display on a single line without text wrapping, regardless of container width.
 
-### Issue 8: Tooltip Positioning/Overflow
-- **Status**: Open
-- **Problem**: Column header tooltips collide with the sidebar on the left side and get cut off by the screen edge on the right side, making them hard to read
-- **Expected**: Tooltips should be fully visible regardless of column position - they should intelligently reposition to avoid collisions with screen edges and sidebar
-- **Fix**: Implement smart tooltip positioning:
-  1. Detect if tooltip would overflow viewport edges
-  2. For left columns (near sidebar): position tooltip to the right of the element
-  3. For right columns (near screen edge): position tooltip to the left of the element
-  4. Consider using a tooltip library with built-in collision detection (e.g., Radix UI Tooltip, Floating UI)
-  5. Ensure tooltip has `z-index` higher than sidebar
+### Issue 8: Tooltip Positioning/Overflow - RESOLVED
+- **Status**: Completed
+- **Resolution**: Implemented smart tooltip positioning using `@floating-ui/react` library:
+  1. **Collision detection**: Tooltips now automatically detect viewport edges and reposition
+  2. **Flip middleware**: If tooltip doesn't fit on preferred side, it flips to opposite side
+  3. **Shift middleware**: Tooltips shift along axis to stay fully visible with 8px padding from edges
+  4. **High z-index**: Tooltip renders in a FloatingPortal with z-index 9999, above sidebar
+  5. **Accessible**: Includes proper hover, focus, dismiss, and role interactions
+- Updated `packages/web/src/components/ui/Tooltip.tsx` to use Floating UI instead of pure CSS positioning
 
 ### Issue 9: Filter Input Icon Alignment Inconsistency
 - **Status**: Open
