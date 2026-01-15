@@ -112,8 +112,6 @@ Accountability is a **professional multi-company accounting application**. The U
 │  Dashboard  │                                                          │
 │             │  [Page Content]                                          │
 │  Companies  │                                                          │
-│   └─ Acme   │                                                          │
-│   └─ Beta   │                                                          │
 │             │                                                          │
 │  Reports    │                                                          │
 │             │                                                          │
@@ -126,6 +124,8 @@ Accountability is a **professional multi-company accounting application**. The U
 │             │                                                          │
 └─────────────┴──────────────────────────────────────────────────────────┘
 ```
+
+**Note:** Sidebar items are flat links (no sub-menus). Navigation into company-specific pages happens through the main content area, not sidebar expansion.
 
 ### Critical Requirements
 
@@ -143,6 +143,8 @@ The following are explicitly **FORBIDDEN**:
 - Different layouts for different sections
 - Manual breadcrumb HTML in individual pages
 - Pages where user cannot switch organizations
+- Sub-navigation menus in the sidebar (e.g., expanding Companies or Reports into sub-items)
+- Form/creation pages without the standard AppLayout (e.g., "Create Journal Entry" must have sidebar)
 
 ## Post-Login Flow
 
@@ -183,52 +185,36 @@ When organization is selected, sidebar shows:
 
 Dashboard
 
-Companies
-  └─ [Company 1]
-  └─ [Company 2]
-  └─ [Add Company]
+Companies          → /organizations/:orgId/companies
 
-Reports
-  └─ Trial Balance
-  └─ Balance Sheet
-  └─ Income Statement
-  └─ Cash Flow
-  └─ Equity Statement
+Reports            → /organizations/:orgId/reports
 
-Exchange Rates
+Exchange Rates     → /organizations/:orgId/exchange-rates
 
-Consolidation
+Consolidation      → /organizations/:orgId/consolidation
 
-Intercompany
+Intercompany       → /organizations/:orgId/intercompany
 
-Audit Log
+Audit Log          → /organizations/:orgId/audit-log
 
 ──────────────
-Settings
+Settings           → /organizations/:orgId/settings
 ```
+
+**NO sub-navigation in sidebar.** Companies and Reports do NOT expand into sub-items. Clicking "Companies" goes to the companies list. Clicking "Reports" goes to the reports hub where the user can select a report type.
 
 ### "+ New" Quick Action Menu
 
-The "+ New" button at top of sidebar provides fast access to common creation actions:
-- New Journal Entry (most common)
-- New Company
-- New Account
-- New Exchange Rate
+The "+ New" button at top of sidebar provides fast access to common creation actions. Each item opens the corresponding **creation form** directly (NOT list pages):
 
-### Company Sub-navigation
+| Menu Item | Opens | Route |
+|-----------|-------|-------|
+| Journal Entry | Journal entry creation form | `/organizations/:orgId/companies/:companyId/journal-entries/new` (prompts for company if needed) |
+| Company | Company creation form | `/organizations/:orgId/companies/new` |
+| Account | Account creation form | `/organizations/:orgId/companies/:companyId/accounts/new` (prompts for company if needed) |
+| Exchange Rate | Exchange rate creation form | `/organizations/:orgId/exchange-rates/new` |
 
-When a company is selected (user is on a company-scoped page), show company-specific navigation in the sidebar:
-
-```
-Companies
-  └─ Acme Corp ← (selected, highlighted)
-      └─ Chart of Accounts
-      └─ Journal Entries
-      └─ Fiscal Periods
-      └─ Reports
-  └─ Beta Inc
-  └─ [Add Company]
-```
+**IMPORTANT:** "New Company" MUST open the company creation form (`/companies/new`), NOT the companies list page.
 
 ### Sidebar State
 
@@ -457,7 +443,15 @@ Standard structure for detail/view pages:
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
-### Form Pages
+### Form Pages (Create/Edit)
+
+**ALL form pages use AppLayout** with sidebar and header visible. This includes:
+- Create Journal Entry (`/organizations/:orgId/companies/:companyId/journal-entries/new`)
+- New Company (`/organizations/:orgId/companies/new`)
+- New Account (`/organizations/:orgId/companies/:companyId/accounts/new`)
+- Edit forms for any entity
+
+Form pages are NOT special modal dialogs or standalone pages. They are regular pages within the standard layout.
 
 Standard structure for create/edit forms:
 

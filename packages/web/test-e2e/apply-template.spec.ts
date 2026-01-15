@@ -280,9 +280,17 @@ test.describe("Apply Account Template", () => {
       `/organizations/${orgData.id}/companies/${companyData.id}/accounts`
     )
 
+    // Wait for page to fully load (React hydration)
+    await expect(page.getByTestId("accounts-page")).toBeVisible()
+
+    // Wait for apply template button to be visible and enabled
+    const applyTemplateButton = page.locator('[data-testid="apply-template-button"]')
+    await expect(applyTemplateButton).toBeVisible()
+    await expect(applyTemplateButton).toBeEnabled()
+
     // 6. Open template modal
-    await page.locator('[data-testid="apply-template-button"]').click()
-    await expect(page.locator('[data-testid="apply-template-modal"]')).toBeVisible()
+    await applyTemplateButton.click()
+    await expect(page.locator('[data-testid="apply-template-modal"]')).toBeVisible({ timeout: 10000 })
 
     // 7. Select a template (General Business)
     await page.locator('[data-testid="template-card-GeneralBusiness"]').click()

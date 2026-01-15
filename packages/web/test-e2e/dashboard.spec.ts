@@ -226,6 +226,9 @@ test.describe("Dashboard - Sidebar Navigation", () => {
     await page.setViewportSize({ width: 1280, height: 720 })
     await page.goto(`/organizations/${organizationId}/dashboard`)
 
+    // Wait for app layout to be fully rendered (React hydration)
+    await expect(page.locator('[data-testid="app-layout"]')).toBeVisible()
+
     // Wait for sidebar to load
     const sidebar = page.locator('[data-testid="sidebar"]')
     await expect(sidebar).toBeVisible()
@@ -233,14 +236,22 @@ test.describe("Dashboard - Sidebar Navigation", () => {
     // Verify sidebar is initially expanded
     await expect(sidebar).toHaveClass(/w-64/)
 
+    // Wait for collapse toggle button to be visible and clickable
+    const collapseToggle = page.locator('[data-testid="sidebar-collapse-toggle"]')
+    await expect(collapseToggle).toBeVisible()
+    await expect(collapseToggle).toBeEnabled()
+
     // Click collapse toggle
-    await page.locator('[data-testid="sidebar-collapse-toggle"]').click()
+    await collapseToggle.click()
 
     // Sidebar should be collapsed (narrower width) - wait for state update
     await expect(sidebar).toHaveClass(/w-16/, { timeout: 10000 })
 
+    // Wait for toggle button to be ready again
+    await expect(collapseToggle).toBeEnabled()
+
     // Click again to expand
-    await page.locator('[data-testid="sidebar-collapse-toggle"]').click()
+    await collapseToggle.click()
 
     // Sidebar should be expanded - wait for state update
     await expect(sidebar).toHaveClass(/w-64/, { timeout: 10000 })
@@ -291,11 +302,19 @@ test.describe("Dashboard - Header", () => {
   test("should open user menu dropdown", async ({ page }) => {
     await page.goto(`/organizations/${organizationId}/dashboard`)
 
-    // Click user menu button
-    await page.locator('[data-testid="user-menu-button"]').click()
+    // Wait for app layout to be fully rendered (React hydration)
+    await expect(page.locator('[data-testid="app-layout"]')).toBeVisible()
 
-    // Verify dropdown is displayed
-    await expect(page.locator('[data-testid="user-menu-dropdown"]')).toBeVisible()
+    // Wait for user menu button to be visible and enabled
+    const userMenuButton = page.locator('[data-testid="user-menu-button"]')
+    await expect(userMenuButton).toBeVisible()
+    await expect(userMenuButton).toBeEnabled()
+
+    // Click user menu button
+    await userMenuButton.click()
+
+    // Verify dropdown is displayed (wait for React state update)
+    await expect(page.locator('[data-testid="user-menu-dropdown"]')).toBeVisible({ timeout: 10000 })
 
     // Verify menu items
     await expect(page.locator('[data-testid="user-menu-profile"]')).toBeVisible()
@@ -363,9 +382,17 @@ test.describe("Dashboard - Responsive Design", () => {
     await page.setViewportSize({ width: 375, height: 667 })
     await page.goto(`/organizations/${organizationId}/dashboard`)
 
+    // Wait for page to fully load (React hydration)
+    await expect(page.locator('[data-testid="header"]')).toBeVisible()
+
+    // Wait for mobile menu toggle to be visible and enabled
+    const mobileMenuToggle = page.locator('[data-testid="mobile-menu-toggle"]')
+    await expect(mobileMenuToggle).toBeVisible()
+    await expect(mobileMenuToggle).toBeEnabled()
+
     // Open mobile sidebar
-    await page.locator('[data-testid="mobile-menu-toggle"]').click()
-    await expect(page.locator('[data-testid="mobile-sidebar"]')).toBeVisible()
+    await mobileMenuToggle.click()
+    await expect(page.locator('[data-testid="mobile-sidebar"]')).toBeVisible({ timeout: 10000 })
 
     // Click close button
     await page.locator('[data-testid="mobile-sidebar-close"]').click()

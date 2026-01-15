@@ -361,8 +361,19 @@ test.describe("Companies List Page", () => {
     // 5. Navigate to companies list page
     await page.goto(`/organizations/${orgData.id}/companies`)
 
+    // Wait for page to fully load (React hydration)
+    await expect(page.getByTestId("companies-list-page")).toBeVisible()
+
+    // Wait for "New Company" button to be visible and enabled
+    const newCompanyButton = page.getByRole("button", { name: /New Company/i })
+    await expect(newCompanyButton).toBeVisible()
+    await expect(newCompanyButton).toBeEnabled()
+
     // 6. Click "New Company" button
-    await page.getByRole("button", { name: /New Company/i }).click()
+    await newCompanyButton.click()
+
+    // Wait for the form modal to be visible
+    await expect(page.locator("#company-name")).toBeVisible({ timeout: 10000 })
 
     // 7. Fill legal name and set company name to whitespace only (bypasses HTML5 required validation)
     await page.fill("#company-name", "   ")

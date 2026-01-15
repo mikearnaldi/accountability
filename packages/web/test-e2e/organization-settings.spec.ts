@@ -244,8 +244,20 @@ test.describe("Organization Settings Page", () => {
     // Navigate to organization settings page
     await page.goto(`/organizations/${orgData.id}/settings`)
 
+    // Wait for the settings page to fully load and hydrate
+    await expect(page.getByTestId("org-settings-page")).toBeVisible()
+    await expect(page.getByTestId("org-settings-defaults")).toBeVisible()
+
+    // Wait for the locale select to be visible and have its initial value
+    const localeSelect = page.getByTestId("org-settings-locale-select")
+    await expect(localeSelect).toBeVisible()
+    // Verify initial value is loaded (ensures React hydration is complete)
+    await expect(localeSelect).toHaveValue("en-US")
+
     // Update locale
-    await page.getByTestId("org-settings-locale-select").selectOption("de-DE")
+    await localeSelect.selectOption("de-DE")
+    // Verify the selection was applied
+    await expect(localeSelect).toHaveValue("de-DE")
 
     // Update timezone
     await page.getByTestId("org-settings-timezone-select").selectOption("Europe/Berlin")
@@ -544,11 +556,20 @@ test.describe("Organization Settings Page", () => {
     // Navigate to organization settings page
     await page.goto(`/organizations/${orgData.id}/settings`)
 
-    // Click delete button
-    await page.getByTestId("org-settings-delete-button").click()
+    // Wait for page to fully load (React hydration)
+    await expect(page.getByTestId("org-settings-page")).toBeVisible()
+    await expect(page.getByTestId("org-settings-danger-zone")).toBeVisible()
 
-    // Should show confirmation UI
-    await expect(page.getByTestId("org-delete-confirm-input")).toBeVisible()
+    // Wait for delete button to be visible and enabled
+    const deleteButton = page.getByTestId("org-settings-delete-button")
+    await expect(deleteButton).toBeVisible()
+    await expect(deleteButton).toBeEnabled()
+
+    // Click delete button
+    await deleteButton.click()
+
+    // Should show confirmation UI (wait for React state update)
+    await expect(page.getByTestId("org-delete-confirm-input")).toBeVisible({ timeout: 10000 })
 
     // Click cancel button
     await page.getByTestId("org-delete-cancel-button").click()
@@ -636,11 +657,17 @@ test.describe("Organization Settings Page", () => {
     // Navigate to organization settings page
     await page.goto(`/organizations/${orgData.id}/settings`)
 
-    // Wait for settings page to load
+    // Wait for settings page to fully load (React hydration)
+    await expect(page.getByTestId("org-settings-page")).toBeVisible()
     await expect(page.getByTestId("org-settings-danger-zone")).toBeVisible()
 
+    // Wait for delete button to be visible and clickable
+    const deleteButton = page.getByTestId("org-settings-delete-button")
+    await expect(deleteButton).toBeVisible()
+    await expect(deleteButton).toBeEnabled()
+
     // Click delete button
-    await page.getByTestId("org-settings-delete-button").click()
+    await deleteButton.click()
 
     // Wait for delete confirmation UI to appear (increase timeout for React state update)
     await expect(page.getByTestId("org-delete-confirm-input")).toBeVisible({ timeout: 10000 })

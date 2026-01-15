@@ -1625,19 +1625,26 @@ test.describe("Journal Entries List Page", () => {
       `/organizations/${orgData.id}/companies/${companyData.id}/journal-entries`
     )
 
+    // Wait for page to fully load (React hydration)
+    await expect(page.getByTestId("journal-entries-page")).toBeVisible()
+
     // 7. Should show all entries initially
     await expect(page.locator('[data-testid="journal-entries-count"]')).toContainText("2 of 2 entries")
 
-    // 8. Search by description using data-testid
-    await page.locator('[data-testid="journal-entries-search-input"]').fill("Office")
+    // Wait for search input to be visible
+    const searchInput = page.locator('[data-testid="journal-entries-search-input"]')
+    await expect(searchInput).toBeVisible()
 
-    // 9. Should only show matching entry
-    await expect(page.locator('[data-testid="journal-entries-count"]')).toContainText("1 of 2 entries")
+    // 8. Search by description using pressSequentially to ensure proper event triggering
+    await searchInput.pressSequentially("Office", { delay: 50 })
+
+    // 9. Should only show matching entry (wait for React state update)
+    await expect(page.locator('[data-testid="journal-entries-count"]')).toContainText("1 of 2 entries", { timeout: 10000 })
     await expect(page.getByText("Office supplies purchase")).toBeVisible()
     await expect(page.getByText("Customer payment received")).not.toBeVisible()
 
     // 10. Clear search
-    await page.locator('[data-testid="journal-entries-search-input"]').fill("")
-    await expect(page.locator('[data-testid="journal-entries-count"]')).toContainText("2 of 2 entries")
+    await searchInput.clear()
+    await expect(page.locator('[data-testid="journal-entries-count"]')).toContainText("2 of 2 entries", { timeout: 10000 })
   })
 })

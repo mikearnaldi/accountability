@@ -36,3 +36,8 @@
 **Task**: Fixed flaky E2E tests by adding explicit waits after button clicks for modals (waiting for edit buttons to be visible before clicking, adding hydration waits, increasing timeouts for modal visibility), using `pressSequentially` instead of `fill` for search inputs to ensure proper event triggering, and adding a delay before API verification calls in settings tests.
 **Status**: complete
 ---
+
+## Iteration 11 - 2026-01-15 15:18
+**Task**: Fixed flaky E2E test "should update organization defaults" by adding explicit waits for page hydration and verifying initial select values before changing them, ensuring React state is fully loaded before interactions.
+**Status**: complete
+---

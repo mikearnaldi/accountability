@@ -639,14 +639,21 @@ test.describe("Chart of Accounts Page", () => {
       `/organizations/${orgData.id}/companies/${companyData.id}/accounts`
     )
 
+    // Wait for page to be fully loaded (React hydration)
+    await expect(page.getByTestId("accounts-page")).toBeVisible()
+
     // 7. Should show all 3 accounts initially
     await expect(page.getByText(/3 of 3 accounts/i)).toBeVisible()
     await expect(page.getByText("Cash Account")).toBeVisible()
     await expect(page.getByText("Sales Revenue")).toBeVisible()
     await expect(page.getByText("Office Supplies")).toBeVisible()
 
+    // Get the type filter select by its specific testid
+    const typeFilter = page.getByTestId("accounts-filter-type")
+    await expect(typeFilter).toBeVisible()
+
     // 8. Filter by Assets
-    await page.locator("select").first().selectOption("Asset")
+    await typeFilter.selectOption("Asset")
 
     // 9. Should only show asset accounts
     await expect(page.getByText(/1 of 3 accounts/i)).toBeVisible()
@@ -655,7 +662,7 @@ test.describe("Chart of Accounts Page", () => {
     await expect(page.getByText("Office Supplies")).not.toBeVisible()
 
     // 10. Filter by Revenue
-    await page.locator("select").first().selectOption("Revenue")
+    await typeFilter.selectOption("Revenue")
 
     // 11. Should only show revenue accounts
     await expect(page.getByText(/1 of 3 accounts/i)).toBeVisible()
@@ -664,7 +671,7 @@ test.describe("Chart of Accounts Page", () => {
     await expect(page.getByText("Office Supplies")).not.toBeVisible()
 
     // 12. Reset filter
-    await page.locator("select").first().selectOption("All")
+    await typeFilter.selectOption("All")
     await expect(page.getByText(/3 of 3 accounts/i)).toBeVisible()
   })
 
@@ -918,13 +925,21 @@ test.describe("Chart of Accounts Page", () => {
       `/organizations/${orgData.id}/companies/${companyData.id}/accounts`
     )
 
-    // 6. Click "New Account" button
-    await page.getByRole("button", { name: /New Account/i }).click()
+    // Wait for page to fully load (React hydration)
+    await expect(page.getByTestId("accounts-page")).toBeVisible()
 
-    // 7. Wait for modal to appear
+    // Wait for "New Account" button to be visible and enabled
+    const newAccountButton = page.getByRole("button", { name: /New Account/i })
+    await expect(newAccountButton).toBeVisible()
+    await expect(newAccountButton).toBeEnabled()
+
+    // 6. Click "New Account" button
+    await newAccountButton.click()
+
+    // 7. Wait for modal to appear (wait for React state update)
     await expect(
       page.getByRole("heading", { name: "Create Account" })
-    ).toBeVisible()
+    ).toBeVisible({ timeout: 10000 })
 
     // 8. Fill only account number, leave name empty (whitespace)
     await page.fill("#account-number", "1000")
@@ -1017,13 +1032,21 @@ test.describe("Chart of Accounts Page", () => {
       `/organizations/${orgData.id}/companies/${companyData.id}/accounts`
     )
 
-    // 6. Click "New Account" button
-    await page.getByRole("button", { name: /New Account/i }).click()
+    // Wait for page to be fully loaded (React hydration)
+    await expect(page.getByTestId("accounts-page")).toBeVisible()
 
-    // 7. Modal should be visible
+    // Wait for the "New Account" button to be visible and enabled
+    const newAccountButton = page.getByRole("button", { name: /New Account/i })
+    await expect(newAccountButton).toBeVisible()
+    await expect(newAccountButton).toBeEnabled()
+
+    // 6. Click "New Account" button
+    await newAccountButton.click()
+
+    // 7. Modal should be visible (wait for React state update)
     await expect(
       page.getByRole("heading", { name: "Create Account" })
-    ).toBeVisible()
+    ).toBeVisible({ timeout: 10000 })
 
     // 8. Click cancel
     await page.getByTestId("account-form-cancel-button").click()

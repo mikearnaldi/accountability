@@ -714,11 +714,18 @@ test.describe("Organization Selection Flow", () => {
     // 5. Navigate to organizations page
     await page.goto("/organizations")
 
-    // 6. Search for something that doesn't exist
-    await page.locator('[data-testid="organizations-search-input"]').fill("XYZ NonExistent")
+    // Wait for page to fully load (React hydration)
+    await expect(page.getByTestId("organizations-list-container")).toBeVisible()
 
-    // 7. Should show no results message
-    await expect(page.locator('[data-testid="organizations-no-results"]')).toBeVisible()
+    // Wait for search input to be visible
+    const searchInput = page.locator('[data-testid="organizations-search-input"]')
+    await expect(searchInput).toBeVisible()
+
+    // 6. Search for something that doesn't exist - use pressSequentially to ensure proper event triggering
+    await searchInput.pressSequentially("XYZ NonExistent", { delay: 50 })
+
+    // 7. Should show no results message (wait for React state update)
+    await expect(page.locator('[data-testid="organizations-no-results"]')).toBeVisible({ timeout: 10000 })
     await expect(page.getByText("No results found")).toBeVisible()
     await expect(page.getByText(/No organizations match "XYZ NonExistent"/)).toBeVisible()
 

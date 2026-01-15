@@ -395,14 +395,22 @@ test.describe("Journal Entry Detail and Workflow", () => {
       `/organizations/${orgData.id}/companies/${companyData.id}/journal-entries/${entryData.entry.id}`
     )
 
+    // Wait for page to fully load (React hydration)
+    await expect(page.getByTestId("journal-entry-header")).toBeVisible()
+
     // 11. Verify entry is pending approval
     await expect(page.locator('[data-testid="status-badge"]')).toContainText("Pending Approval")
 
-    // 12. Click reject button
-    await page.locator('[data-testid="reject-button"]').click()
+    // Wait for reject button to be visible and enabled
+    const rejectButton = page.locator('[data-testid="reject-button"]')
+    await expect(rejectButton).toBeVisible()
+    await expect(rejectButton).toBeEnabled()
 
-    // 13. Reject modal should appear
-    await expect(page.locator('[data-testid="reject-modal"]')).toBeVisible()
+    // 12. Click reject button
+    await rejectButton.click()
+
+    // 13. Reject modal should appear (wait for React state update)
+    await expect(page.locator('[data-testid="reject-modal"]')).toBeVisible({ timeout: 10000 })
 
     // 14. Enter rejection reason
     await page.locator('[data-testid="reject-reason-input"]').fill("Incorrect account classification")
@@ -601,14 +609,22 @@ test.describe("Journal Entry Detail and Workflow", () => {
       `/organizations/${orgData.id}/companies/${companyData.id}/journal-entries/${entryData.entry.id}`
     )
 
+    // Wait for page to fully load (React hydration)
+    await expect(page.getByTestId("journal-entry-header")).toBeVisible()
+
     // 11. Verify entry is posted
     await expect(page.locator('[data-testid="status-badge"]')).toContainText("Posted")
 
-    // 12. Click reverse button
-    await page.locator('[data-testid="reverse-button"]').click()
+    // Wait for reverse button to be visible and enabled
+    const reverseButton = page.locator('[data-testid="reverse-button"]')
+    await expect(reverseButton).toBeVisible()
+    await expect(reverseButton).toBeEnabled()
 
-    // 13. Confirm dialog should appear
-    await expect(page.locator('[data-testid="confirm-dialog"]')).toBeVisible()
+    // 12. Click reverse button
+    await reverseButton.click()
+
+    // 13. Confirm dialog should appear (wait for React state update)
+    await expect(page.locator('[data-testid="confirm-dialog"]')).toBeVisible({ timeout: 10000 })
 
     // 14. Confirm reversal
     await page.locator('[data-testid="confirm-button"]').click()
