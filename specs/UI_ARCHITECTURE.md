@@ -2,6 +2,62 @@
 
 This document defines the UI architecture, navigation patterns, and design standards for the Accountability application. All UI implementations MUST follow these specifications.
 
+## ⚠️ CRITICAL: Current Known Issues (MUST FIX)
+
+The following issues are currently broken and MUST be fixed as highest priority:
+
+### 1. Post-Login Redirect is Wrong
+- **Expected**: After login, user should go to `/organizations` (org selector)
+- **Actual**: User goes to `/` (home page) which shows a generic dashboard, NOT the org selector
+- **File**: `packages/web/src/routes/login.tsx`
+- **Fix**: Change default redirect from `"/"` to `"/organizations"` in:
+  - Line ~14: `throw redirect({ to: "/" })` → `throw redirect({ to: "/organizations" })`
+  - Line ~77: `const redirectTo = searchParams.get("redirect") || "/"` → `|| "/organizations"`
+
+### 2. Home Route (`/`) Should Redirect When Logged In
+- **Expected**: When authenticated user visits `/`, they should be redirected to `/organizations`
+- **Actual**: `/` shows a generic "main dashboard" that is NOT scoped to any organization
+- **File**: `packages/web/src/routes/index.tsx`
+- **Fix**: Add `beforeLoad` to redirect authenticated users to `/organizations`:
+  ```typescript
+  beforeLoad: async ({ context }) => {
+    if (context.user) {
+      throw redirect({ to: "/organizations" })
+    }
+  }
+  ```
+
+### 3. Organization Detail Page Missing AppLayout
+- **Expected**: `/organizations/:id` should use AppLayout with sidebar and header
+- **Actual**: Organization detail page has its own custom header (lines 205-219), NO sidebar
+- **File**: `packages/web/src/routes/organizations/$organizationId/index.tsx`
+- **Fix**:
+  1. Import and wrap content in `AppLayout` component
+  2. Remove the custom `<header>` element
+  3. Pass organization data to AppLayout for breadcrumbs and sidebar
+
+### 4. Dashboard Breadcrumb Flickers/Unstable
+- **Expected**: Breadcrumbs should be stable, clicking "Organizations" navigates cleanly
+- **Actual**: Clicking "Organizations" in breadcrumb briefly shows "Organizations" then flickers
+- **Root Cause**: The `/` route (home) shows dashboard with breadcrumbs, but `/organizations` is a different page
+- **Fix**: Once issues #1 and #2 are fixed, this should resolve itself
+
+### 5. Inconsistent Page Layouts Across Routes
+- **Problem**: Multiple pages under `/organizations` don't use AppLayout consistently
+- **Files to audit**:
+  - `packages/web/src/routes/organizations/$organizationId/index.tsx` - BROKEN (no AppLayout)
+  - `packages/web/src/routes/organizations/index.tsx` - Check if uses AppLayout
+  - `packages/web/src/routes/organizations/new.tsx` - Check if uses AppLayout
+- **Fix**: Every authenticated route MUST use AppLayout wrapper
+
+### Priority Order
+1. Fix #2 first (redirect `/` to `/organizations` when logged in)
+2. Fix #1 (post-login redirect)
+3. Fix #3 (organization detail page layout)
+4. Audit and fix #5 (all other pages)
+
+---
+
 ## Design Philosophy
 
 Accountability is a **professional multi-company accounting application**. The UI must:
