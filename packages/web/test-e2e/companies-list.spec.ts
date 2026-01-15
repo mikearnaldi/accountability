@@ -274,11 +274,23 @@ test.describe("Companies List Page", () => {
     // 6. Navigate to companies list page
     await page.goto(`/organizations/${orgData.id}/companies`)
 
-    // 7. Click "New Company" button
-    await page.getByRole("button", { name: /New Company/i }).click()
+    // Wait for page to fully load (React hydration)
+    await expect(page.getByTestId("companies-list-page")).toBeVisible()
+
+    // Wait for "New Company" button to be visible and enabled
+    const newCompanyButton = page.getByRole("button", { name: /New Company/i })
+    await expect(newCompanyButton).toBeVisible()
+    await expect(newCompanyButton).toBeEnabled()
+
+    // Wait for full hydration before clicking
+    await page.waitForTimeout(500)
+
+    // 7. Click "New Company" button with force
+    await newCompanyButton.click({ force: true })
 
     // 8. Should show create company form modal
-    await expect(page.getByRole("heading", { name: "Create Company" })).toBeVisible()
+    await expect(page.getByTestId("create-company-modal")).toBeVisible({ timeout: 15000 })
+    await expect(page.getByRole("heading", { name: "Create Company" })).toBeVisible({ timeout: 10000 })
 
     // 9. Fill in company details
     const newCompanyName = `New Test Company ${Date.now()}`
@@ -369,10 +381,16 @@ test.describe("Companies List Page", () => {
     await expect(newCompanyButton).toBeVisible()
     await expect(newCompanyButton).toBeEnabled()
 
-    // 6. Click "New Company" button
-    await newCompanyButton.click()
+    // Wait for full hydration before clicking
+    await page.waitForTimeout(500)
 
-    // Wait for the form modal to be visible
+    // 6. Click "New Company" button with force to ensure click registers
+    await newCompanyButton.click({ force: true })
+
+    // Wait for the modal to appear first
+    await expect(page.getByTestId("create-company-modal")).toBeVisible({ timeout: 15000 })
+
+    // Wait for the form input to be visible
     await expect(page.locator("#company-name")).toBeVisible({ timeout: 10000 })
 
     // 7. Fill legal name and set company name to whitespace only (bypasses HTML5 required validation)

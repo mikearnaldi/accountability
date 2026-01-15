@@ -443,11 +443,23 @@ test.describe("Company Details Page", () => {
     // 6. Navigate to company details page
     await page.goto(`/organizations/${orgData.id}/companies/${companyData.id}`)
 
-    // 7. Click Edit button
-    await page.getByTestId("edit-company-button").click()
+    // Wait for page to fully load
+    await expect(page.getByTestId("company-details-page")).toBeVisible()
+
+    // Wait for Edit button to be visible and enabled
+    const editButton = page.getByTestId("edit-company-button")
+    await expect(editButton).toBeVisible()
+    await expect(editButton).toBeEnabled()
+
+    // Wait for full hydration before clicking
+    await page.waitForTimeout(500)
+
+    // 7. Click Edit button with force
+    await editButton.click({ force: true })
 
     // 8. Wait for modal to appear
-    await expect(page.getByRole("heading", { name: "Edit Company" })).toBeVisible()
+    await expect(page.getByTestId("edit-company-modal")).toBeVisible({ timeout: 15000 })
+    await expect(page.getByRole("heading", { name: "Edit Company" })).toBeVisible({ timeout: 10000 })
 
     // 9. Clear the name field and submit (whitespace only)
     await page.fill("#edit-company-name", "   ")

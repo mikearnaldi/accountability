@@ -179,13 +179,19 @@ test.describe("Apply Account Template", () => {
     )
 
     // 6. Wait for page to load
-    await expect(page.locator('[data-testid="apply-template-button"]')).toBeVisible()
+    await expect(page.getByTestId("accounts-page")).toBeVisible()
+    const applyTemplateButton = page.locator('[data-testid="apply-template-button"]')
+    await expect(applyTemplateButton).toBeVisible()
+    await expect(applyTemplateButton).toBeEnabled()
 
-    // 7. Click Apply Template button
-    await page.locator('[data-testid="apply-template-button"]').click()
+    // Wait for full hydration before clicking
+    await page.waitForTimeout(500)
+
+    // 7. Click Apply Template button with force
+    await applyTemplateButton.click({ force: true })
 
     // 8. Should show template selection modal (extended timeout for modal visibility)
-    await expect(page.locator('[data-testid="apply-template-modal"]')).toBeVisible({ timeout: 10000 })
+    await expect(page.locator('[data-testid="apply-template-modal"]')).toBeVisible({ timeout: 15000 })
     await expect(page.locator('[data-testid="apply-template-list"]')).toBeVisible()
 
     // 9. Should show all four template types

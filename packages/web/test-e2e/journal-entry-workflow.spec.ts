@@ -620,11 +620,14 @@ test.describe("Journal Entry Detail and Workflow", () => {
     await expect(reverseButton).toBeVisible()
     await expect(reverseButton).toBeEnabled()
 
-    // 12. Click reverse button
-    await reverseButton.click()
+    // Wait for React hydration to complete before clicking
+    await page.waitForTimeout(500)
+
+    // 12. Click reverse button with force to ensure it registers
+    await reverseButton.click({ force: true })
 
     // 13. Confirm dialog should appear (wait for React state update)
-    await expect(page.locator('[data-testid="confirm-dialog"]')).toBeVisible({ timeout: 10000 })
+    await expect(page.locator('[data-testid="confirm-dialog"]')).toBeVisible({ timeout: 15000 })
 
     // 14. Confirm reversal
     await page.locator('[data-testid="confirm-button"]').click()

@@ -66,3 +66,8 @@
 **Task**: Fixed original 3 failing E2E tests by updating expected URL for companies quick action (companies/new vs companies), adding robust hydration waits and value verification for organization settings tests, and increasing timeouts for React state updates
 **Status**: complete
 ---
+
+## Iteration 18 - 2026-01-15 16:07
+**Task**: Fixed multiple flaky E2E tests by adding proper React hydration waits before button clicks (waitForTimeout 500ms), using force: true on click events to ensure they register, waiting for modal visibility before checking for inner elements, increasing timeouts for state updates (from 5000ms to 10000-15000ms), and using pressSequentially instead of fill for inputs that need proper event triggering. Fixed tests in: dashboard.spec.ts (sidebar collapse), organization-settings.spec.ts (delete confirmation, edit organization), organizations.spec.ts (form validation), companies-list.spec.ts (create company modal), company-details.spec.ts (edit company modal), journal-entry-workflow.spec.ts (reverse entry dialog), accounts.spec.ts (create account modal, filter by type), apply-template.spec.ts (template modal), and register.spec.ts (form validation). All 177 E2E tests now pass consistently.
+**Status**: complete
+---

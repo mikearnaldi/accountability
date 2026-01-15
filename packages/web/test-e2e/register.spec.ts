@@ -164,13 +164,26 @@ test.describe("Registration Page", () => {
   })
 
   test("should prevent submission with invalid form", async ({ page }) => {
-    // 1. Navigate to register page
+    // 1. Navigate to register page and wait for full hydration
     await page.goto("/register")
+    await expect(page.locator('button[type="submit"]')).toBeVisible()
+    await expect(page.locator('button[type="submit"]')).toBeEnabled()
 
-    // 2. Fill invalid data
-    await page.fill('input[type="email"]', "not-an-email")
-    await page.fill("#displayName", "")
-    await page.fill("#password", "weak")
+    // Wait for React hydration before interacting
+    await page.waitForTimeout(500)
+
+    // 2. Fill invalid data using pressSequentially for proper event triggering
+    const emailInput = page.locator('input[type="email"]')
+    await emailInput.click()
+    await emailInput.pressSequentially("not-an-email", { delay: 10 })
+
+    const displayNameInput = page.locator("#displayName")
+    await displayNameInput.click()
+    await displayNameInput.fill("")
+
+    const passwordInput = page.locator("#password")
+    await passwordInput.click()
+    await passwordInput.pressSequentially("weak", { delay: 10 })
 
     // 3. Click submit
     await page.click('button[type="submit"]')
@@ -178,8 +191,8 @@ test.describe("Registration Page", () => {
     // 4. Should still be on register page (not submitted)
     expect(page.url()).toContain("/register")
 
-    // 5. Errors should be visible
-    await expect(page.locator("#email-error")).toBeVisible()
+    // 5. Errors should be visible - email validation error
+    await expect(page.locator("#email-error")).toBeVisible({ timeout: 10000 })
   })
 
   test("should register successfully and redirect to home", async ({

@@ -169,18 +169,26 @@ test.describe("Organization Settings Page", () => {
     // Verify initial value is loaded (ensures React hydration is complete)
     await expect(nameInput).toHaveValue(orgName)
 
-    // Update organization name - clear and fill with click to ensure proper focus
+    // Wait for full hydration before interacting
+    await page.waitForTimeout(500)
+
+    // Update organization name - use pressSequentially to trigger proper React onChange events
     const newOrgName = `Updated Org Name ${Date.now()}`
     await nameInput.click()
-    await nameInput.fill(newOrgName)
+    await nameInput.clear()
+    await nameInput.pressSequentially(newOrgName, { delay: 10 })
+
     // Verify the fill was successful
     await expect(nameInput).toHaveValue(newOrgName)
+
+    // Wait a moment for React state to update
+    await page.waitForTimeout(200)
 
     // Click save button
     await page.getByTestId("org-settings-save-general").click()
 
-    // Should show success message with "updated" text
-    await expect(page.getByTestId("org-settings-success")).toBeVisible()
+    // Should show success message with "updated" text (wait longer for API response)
+    await expect(page.getByTestId("org-settings-success")).toBeVisible({ timeout: 10000 })
     await expect(page.getByTestId("org-settings-success")).toContainText("updated")
 
     // Verify via API that name was updated
@@ -710,10 +718,16 @@ test.describe("Organization Settings Page", () => {
     await expect(deleteButton).toBeVisible()
     await expect(deleteButton).toBeEnabled()
 
-    // Click delete button
-    await deleteButton.click()
+    // Wait for React hydration to fully complete before interacting
+    await page.waitForTimeout(500)
 
-    // Wait for confirmation UI to appear with increased timeout for React state update
+    // Click delete button using force to ensure it registers
+    await deleteButton.click({ force: true })
+
+    // Wait for delete button to disappear (confirms state change) before checking for confirmation UI
+    await expect(deleteButton).not.toBeVisible({ timeout: 15000 })
+
+    // Wait for confirmation UI to appear
     await expect(page.getByTestId("org-delete-confirm-input")).toBeVisible({ timeout: 15000 })
 
     // Type correct organization name

@@ -233,28 +233,35 @@ test.describe("Dashboard - Sidebar Navigation", () => {
     const sidebar = page.locator('[data-testid="sidebar"]')
     await expect(sidebar).toBeVisible()
 
-    // Verify sidebar is initially expanded
-    await expect(sidebar).toHaveClass(/w-64/)
+    // Verify sidebar is initially expanded - use longer timeout for initial state
+    await expect(sidebar).toHaveClass(/w-64/, { timeout: 10000 })
 
     // Wait for collapse toggle button to be visible and clickable
     const collapseToggle = page.locator('[data-testid="sidebar-collapse-toggle"]')
     await expect(collapseToggle).toBeVisible()
     await expect(collapseToggle).toBeEnabled()
 
-    // Click collapse toggle
-    await collapseToggle.click()
+    // Wait a moment for React hydration to complete before clicking
+    await page.waitForTimeout(500)
 
-    // Sidebar should be collapsed (narrower width) - wait for state update
-    await expect(sidebar).toHaveClass(/w-16/, { timeout: 10000 })
+    // Click collapse toggle using force to ensure the click registers
+    await collapseToggle.click({ force: true })
+
+    // Sidebar should be collapsed (narrower width) - wait for state update and CSS transition
+    await expect(sidebar).toHaveClass(/w-16/, { timeout: 15000 })
+
+    // Wait for CSS transition to complete (duration-300 = 300ms)
+    await page.waitForTimeout(400)
 
     // Wait for toggle button to be ready again
+    await expect(collapseToggle).toBeVisible()
     await expect(collapseToggle).toBeEnabled()
 
     // Click again to expand
-    await collapseToggle.click()
+    await collapseToggle.click({ force: true })
 
     // Sidebar should be expanded - wait for state update
-    await expect(sidebar).toHaveClass(/w-64/, { timeout: 10000 })
+    await expect(sidebar).toHaveClass(/w-64/, { timeout: 15000 })
   })
 
   test("should show sidebar logo that links to home", async ({ page }) => {

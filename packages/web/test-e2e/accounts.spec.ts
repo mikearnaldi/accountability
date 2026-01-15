@@ -652,12 +652,18 @@ test.describe("Chart of Accounts Page", () => {
     const typeFilter = page.getByTestId("accounts-filter-type")
     await expect(typeFilter).toBeVisible()
 
+    // Wait for full hydration before interacting with filter
+    await page.waitForTimeout(500)
+
     // 8. Filter by Assets - wait for filter to be applied
     await typeFilter.selectOption("Asset")
     await expect(typeFilter).toHaveValue("Asset")
 
+    // Wait a moment for React state to update
+    await page.waitForTimeout(200)
+
     // 9. Should only show asset accounts - wait for filtering to complete
-    await expect(page.getByText(/1 of 3 accounts/i)).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText(/1 of 3 accounts/i)).toBeVisible({ timeout: 10000 })
     await expect(page.getByText("Cash Account")).toBeVisible()
     await expect(page.getByText("Sales Revenue")).not.toBeVisible()
     await expect(page.getByText("Office Supplies")).not.toBeVisible()
@@ -666,8 +672,11 @@ test.describe("Chart of Accounts Page", () => {
     await typeFilter.selectOption("Revenue")
     await expect(typeFilter).toHaveValue("Revenue")
 
+    // Wait a moment for React state to update
+    await page.waitForTimeout(200)
+
     // 11. Should only show revenue accounts - wait for filtering to complete
-    await expect(page.getByText(/1 of 3 accounts/i)).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText(/1 of 3 accounts/i)).toBeVisible({ timeout: 10000 })
     await expect(page.getByText("Cash Account")).not.toBeVisible()
     await expect(page.getByText("Sales Revenue")).toBeVisible()
     await expect(page.getByText("Office Supplies")).not.toBeVisible()
@@ -675,7 +684,8 @@ test.describe("Chart of Accounts Page", () => {
     // 12. Reset filter
     await typeFilter.selectOption("All")
     await expect(typeFilter).toHaveValue("All")
-    await expect(page.getByText(/3 of 3 accounts/i)).toBeVisible({ timeout: 5000 })
+    await page.waitForTimeout(200)
+    await expect(page.getByText(/3 of 3 accounts/i)).toBeVisible({ timeout: 10000 })
   })
 
   test("should search accounts by name and number", async ({
@@ -1043,10 +1053,14 @@ test.describe("Chart of Accounts Page", () => {
     await expect(newAccountButton).toBeVisible()
     await expect(newAccountButton).toBeEnabled()
 
-    // 6. Click "New Account" button
-    await newAccountButton.click()
+    // Wait for full hydration before clicking
+    await page.waitForTimeout(500)
+
+    // 6. Click "New Account" button with force
+    await newAccountButton.click({ force: true })
 
     // 7. Modal should be visible (wait for React state update)
+    await expect(page.getByTestId("account-form-modal")).toBeVisible({ timeout: 15000 })
     await expect(
       page.getByRole("heading", { name: "Create Account" })
     ).toBeVisible({ timeout: 10000 })

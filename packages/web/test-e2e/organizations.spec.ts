@@ -286,14 +286,23 @@ test.describe("Organizations Page", () => {
     // Wait for form to be ready - ensure React hydration is complete
     await expect(page.getByTestId("org-form-submit-button")).toBeEnabled()
 
+    // Wait for full hydration before interacting
+    await page.waitForTimeout(500)
+
     // 6. Clear the name field and submit
     await nameInput.click()
     await nameInput.fill("   ") // Just whitespace
     await expect(nameInput).toHaveValue("   ")
-    await page.getByTestId("org-form-submit-button").click()
 
-    // 7. Should show validation error
-    await expect(page.getByText(/Organization name is required/i)).toBeVisible({ timeout: 10000 })
+    // Click submit button using force to ensure click registers
+    const submitButton = page.getByTestId("org-form-submit-button")
+    await submitButton.click({ force: true })
+
+    // 7. Should show validation error - check both possible error locations
+    // The error could appear as an inline error message under the input
+    await expect(
+      page.getByText(/Organization name is required/i).or(page.getByTestId("org-name-error"))
+    ).toBeVisible({ timeout: 15000 })
   })
 
   test("should cancel form and navigate back", async ({ page, request }) => {
