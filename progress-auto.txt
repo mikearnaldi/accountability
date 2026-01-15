@@ -76,3 +76,8 @@
 **Task**: Simplified Sidebar Reports navigation by removing sub-items per UI_ARCHITECTURE.md spec requirement that Reports should not have expandable sub-menu but instead link directly to the reports hub page
 **Status**: complete
 ---
+
+## Iteration 20 - 2026-01-15 16:17
+**Task**: Added companies data to consolidation, intercompany, audit-log, and settings pages so the Sidebar's Companies section can show the company list with sub-navigation on all organization-level pages. Previously these pages did not pass the `companies` prop to AppLayout, which meant the sidebar couldn't display the expandable company navigation when users were on those pages.
+**Status**: complete
+---

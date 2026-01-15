@@ -41,36 +41,53 @@ interface Organization {
   }
 }
 
+interface Company {
+  readonly id: string
+  readonly name: string
+}
+
 // =============================================================================
 // Server Functions
 // =============================================================================
 
-const fetchOrganization = createServerFn({ method: "GET" })
+const fetchSettingsData = createServerFn({ method: "GET" })
   .inputValidator((data: string) => data)
   .handler(async ({ data: organizationId }) => {
     const sessionToken = getCookie("accountability_session")
 
     if (!sessionToken) {
-      return { organization: null, error: "unauthorized" as const }
+      return { organization: null, companies: [], error: "unauthorized" as const }
     }
 
     try {
       const serverApi = createServerApi()
-      const { data, error } = await serverApi.GET("/api/v1/organizations/{id}", {
-        params: { path: { id: organizationId } },
-        headers: { Authorization: `Bearer ${sessionToken}` }
-      })
+      const Authorization = `Bearer ${sessionToken}`
 
-      if (error) {
-        if (typeof error === "object" && "status" in error && error.status === 404) {
-          return { organization: null, error: "not_found" as const }
+      const [orgResult, companiesResult] = await Promise.all([
+        serverApi.GET("/api/v1/organizations/{id}", {
+          params: { path: { id: organizationId } },
+          headers: { Authorization }
+        }),
+        serverApi.GET("/api/v1/companies", {
+          params: { query: { organizationId } },
+          headers: { Authorization }
+        })
+      ])
+
+      if (orgResult.error) {
+        if (typeof orgResult.error === "object" && "status" in orgResult.error && orgResult.error.status === 404) {
+          return { organization: null, companies: [], error: "not_found" as const }
         }
-        return { organization: null, error: "failed" as const }
+        return { organization: null, companies: [], error: "failed" as const }
       }
 
-      return { organization: data, error: null }
+      return {
+        organization: orgResult.data,
+        companies: companiesResult.data?.companies ?? [],
+        error: null
+      }
     } catch {
-      return { organization: null, error: "failed" as const }
+      return { organization: null, companies: [], error: "failed" as const }
     }
   })
 
@@ -132,11 +149,14 @@ export const Route = createFileRoute("/organizations/$organizationId/settings")(
     }
   },
   loader: async ({ params }) => {
-    const result = await fetchOrganization({ data: params.organizationId })
+    const result = await fetchSettingsData({ data: params.organizationId })
     if (result.error === "not_found") {
       throw new Error("Organization not found")
     }
-    return result
+    return {
+      organization: result.organization,
+      companies: result.companies
+    }
   },
   errorComponent: ({ error }) => (
     <div className="min-h-screen bg-gray-50">
@@ -176,17 +196,26 @@ export const Route = createFileRoute("/organizations/$organizationId/settings")(
 
 function OrganizationSettingsPage() {
   const context = Route.useRouteContext()
-  const { organization } = Route.useLoaderData()
+  const loaderData = Route.useLoaderData()
   const user = context.user
+
+  /* eslint-disable @typescript-eslint/consistent-type-assertions -- Loader data typing */
+  const organization = loaderData.organization as Organization | null
+  const companies = loaderData.companies as readonly Company[]
+  /* eslint-enable @typescript-eslint/consistent-type-assertions */
 
   if (!organization) {
     return null
   }
 
+  // Map companies for sidebar
+  const companiesForSidebar = companies.map((c) => ({ id: c.id, name: c.name }))
+
   return (
     <AppLayout
       user={user}
       currentOrganization={organization}
+      companies={companiesForSidebar}
     >
       <div className="space-y-6" data-testid="org-settings-page">
         {/* Page Header */}

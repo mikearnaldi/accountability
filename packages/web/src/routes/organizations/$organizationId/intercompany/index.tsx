@@ -24,36 +24,53 @@ interface Organization {
   readonly reportingCurrency: string
 }
 
+interface Company {
+  readonly id: string
+  readonly name: string
+}
+
 // =============================================================================
 // Server Functions
 // =============================================================================
 
-const fetchOrganization = createServerFn({ method: "GET" })
+const fetchIntercompanyData = createServerFn({ method: "GET" })
   .inputValidator((data: string) => data)
   .handler(async ({ data: organizationId }) => {
     const sessionToken = getCookie("accountability_session")
 
     if (!sessionToken) {
-      return { organization: null, error: "unauthorized" as const }
+      return { organization: null, companies: [], error: "unauthorized" as const }
     }
 
     try {
       const serverApi = createServerApi()
-      const { data, error } = await serverApi.GET("/api/v1/organizations/{id}", {
-        params: { path: { id: organizationId } },
-        headers: { Authorization: `Bearer ${sessionToken}` }
-      })
+      const Authorization = `Bearer ${sessionToken}`
 
-      if (error) {
-        if (typeof error === "object" && "status" in error && error.status === 404) {
-          return { organization: null, error: "not_found" as const }
+      const [orgResult, companiesResult] = await Promise.all([
+        serverApi.GET("/api/v1/organizations/{id}", {
+          params: { path: { id: organizationId } },
+          headers: { Authorization }
+        }),
+        serverApi.GET("/api/v1/companies", {
+          params: { query: { organizationId } },
+          headers: { Authorization }
+        })
+      ])
+
+      if (orgResult.error) {
+        if (typeof orgResult.error === "object" && "status" in orgResult.error && orgResult.error.status === 404) {
+          return { organization: null, companies: [], error: "not_found" as const }
         }
-        return { organization: null, error: "failed" as const }
+        return { organization: null, companies: [], error: "failed" as const }
       }
 
-      return { organization: data, error: null }
+      return {
+        organization: orgResult.data,
+        companies: companiesResult.data?.companies ?? [],
+        error: null
+      }
     } catch {
-      return { organization: null, error: "failed" as const }
+      return { organization: null, companies: [], error: "failed" as const }
     }
   })
 
@@ -73,14 +90,15 @@ export const Route = createFileRoute("/organizations/$organizationId/intercompan
     }
   },
   loader: async ({ params }) => {
-    const orgResult = await fetchOrganization({ data: params.organizationId })
+    const result = await fetchIntercompanyData({ data: params.organizationId })
 
-    if (orgResult.error === "not_found") {
+    if (result.error === "not_found") {
       throw new Error("Organization not found")
     }
 
     return {
-      organization: orgResult.organization
+      organization: result.organization,
+      companies: result.companies
     }
   },
   errorComponent: ({ error }) => (
@@ -127,6 +145,7 @@ function IntercompanyPage() {
 
   /* eslint-disable @typescript-eslint/consistent-type-assertions -- Loader data typing */
   const organization = loaderData.organization as Organization | null
+  const companies = loaderData.companies as readonly Company[]
   /* eslint-enable @typescript-eslint/consistent-type-assertions */
 
   if (!organization) {
@@ -140,11 +159,15 @@ function IntercompanyPage() {
     }
   ]
 
+  // Map companies for sidebar
+  const companiesForSidebar = companies.map((c) => ({ id: c.id, name: c.name }))
+
   return (
     <AppLayout
       user={user}
       currentOrganization={organization}
       breadcrumbItems={breadcrumbItems}
+      companies={companiesForSidebar}
     >
       <div data-testid="intercompany-page">
         {/* Page Header */}
