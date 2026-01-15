@@ -12,7 +12,7 @@ import * as Schema from "effect/Schema"
 import * as Chunk from "effect/Chunk"
 import { CompanyId, ConsolidationMethod } from "./Company.ts"
 import { CurrencyCode } from "./CurrencyCode.ts"
-import { LocalDate } from "./LocalDate.ts"
+import { LocalDateFromString } from "./LocalDate.ts"
 import { MonetaryAmount } from "./MonetaryAmount.ts"
 import { OrganizationId } from "./Organization.ts"
 import { Percentage } from "./Percentage.ts"
@@ -124,7 +124,7 @@ export class ConsolidationMember extends Schema.Class<ConsolidationMember>("Cons
   /**
    * Date when the subsidiary was acquired or the investment was made
    */
-  acquisitionDate: LocalDate,
+  acquisitionDate: LocalDateFromString,
 
   /**
    * Goodwill amount recognized at acquisition (optional)

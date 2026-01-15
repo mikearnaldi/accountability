@@ -660,7 +660,7 @@ function EditConsolidationGroupPage() {
                         Company
                       </label>
                       {member.isExisting ? (
-                        <div className="text-sm text-gray-700 py-2">
+                        <div className="flex items-center w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-gray-900">
                           {companyNameMap.get(member.companyId) ?? "Unknown"}
                         </div>
                       ) : (

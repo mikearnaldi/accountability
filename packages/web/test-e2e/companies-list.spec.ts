@@ -698,7 +698,25 @@ test.describe("Companies List Page", () => {
     expect(createOrgRes.ok()).toBeTruthy()
     const orgData = await createOrgRes.json()
 
-    // 4. Set session cookie
+    // 4. Create a company so the "View all" link appears
+    const createCompanyRes = await request.post("/api/v1/companies", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        organizationId: orgData.id,
+        name: `Test Company ${Date.now()}`,
+        legalName: "Test Company LLC",
+        jurisdiction: "US",
+        functionalCurrency: "USD",
+        reportingCurrency: "USD",
+        fiscalYearEnd: { month: 12, day: 31 },
+        taxId: null,
+        parentCompanyId: null,
+        ownershipPercentage: null
+      }
+    })
+    expect(createCompanyRes.ok()).toBeTruthy()
+
+    // 5. Set session cookie
     await page.context().addCookies([
       {
         name: "accountability_session",
@@ -711,20 +729,20 @@ test.describe("Companies List Page", () => {
       }
     ])
 
-    // 5. Navigate to organization details page
+    // 6. Navigate to organization details page
     await page.goto(`/organizations/${orgData.id}`)
 
-    // 6. Should see "View all" link
+    // 7. Should see "View all" link (only visible when companies exist)
     await expect(page.getByRole("link", { name: "View all" })).toBeVisible()
 
-    // 7. Click "View all" link
+    // 8. Click "View all" link
     await page.getByRole("link", { name: "View all" }).click()
 
-    // 8. Should be on companies list page
+    // 9. Should be on companies list page
     await page.waitForURL(`/organizations/${orgData.id}/companies`)
     expect(page.url()).toContain(`/organizations/${orgData.id}/companies`)
 
-    // 9. Should show Companies heading (use exact match to avoid matching org name containing "Companies")
+    // 10. Should show Companies heading (use exact match to avoid matching org name containing "Companies")
     await expect(page.getByRole("heading", { name: "Companies", exact: true })).toBeVisible()
   })
 

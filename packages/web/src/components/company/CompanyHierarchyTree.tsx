@@ -286,7 +286,8 @@ function CompanyRow({
   onToggle
 }: CompanyRowProps) {
   const { company, depth } = node
-  const indentPx = depth * 24 // 24px per level
+  // Each level indents by button width (16px + 4px margin = 20px) to align names
+  const indentPx = depth * 20
 
   return (
     <TableRow data-testid={`company-row-${company.id}`}>
@@ -296,8 +297,8 @@ function CompanyRow({
           className="flex items-center"
           style={{ paddingLeft: `${indentPx}px` }}
         >
-          {/* Expand/Collapse button for parents */}
-          {hasChildren ? (
+          {/* Expand/Collapse button only for parents with children */}
+          {hasChildren && (
             <button
               type="button"
               onClick={(e) => {
@@ -305,14 +306,14 @@ function CompanyRow({
                 e.stopPropagation()
                 onToggle()
               }}
-              className="mr-2 flex h-5 w-5 items-center justify-center rounded hover:bg-gray-100"
+              className="mr-1 flex h-4 w-4 items-center justify-center rounded hover:bg-gray-100"
               aria-expanded={isExpanded}
               aria-label={isExpanded ? "Collapse" : "Expand"}
               data-testid={`company-expand-${company.id}`}
             >
               <svg
                 className={clsx(
-                  "h-4 w-4 text-gray-500 transition-transform",
+                  "h-3 w-3 text-gray-400 transition-transform",
                   isExpanded && "rotate-90"
                 )}
                 fill="none"
@@ -327,9 +328,6 @@ function CompanyRow({
                 />
               </svg>
             </button>
-          ) : (
-            // Placeholder for alignment
-            <span className="mr-2 w-5" />
           )}
 
           {/* Company name link */}
