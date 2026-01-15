@@ -7,7 +7,7 @@
  *   - Companies count in this org
  *   - Total accounts across all companies
  *   - Journal entries pending approval
- *   - Open fiscal periods
+ *   - Consolidation groups count
  * - Quick actions:
  *   - Create Company
  *   - View Companies
@@ -29,7 +29,7 @@ import {
   Building,
   CreditCard,
   FileText,
-  Calendar,
+  Layers,
   Plus,
   ArrowRight,
   TrendingUp,
@@ -67,7 +67,7 @@ export interface DashboardData {
   readonly companiesCount: number
   readonly accountsCount: number
   readonly pendingEntriesCount: number
-  readonly openPeriodsCount: number
+  readonly consolidationGroupsCount: number
   readonly recentActivity: readonly {
     readonly id: string
     readonly type: ActivityType
@@ -220,7 +220,7 @@ const fetchOrganizationDashboard = createServerFn({ method: "GET" })
         companiesCount: 0,
         accountsCount: 0,
         pendingEntriesCount: 0,
-        openPeriodsCount: 0,
+        consolidationGroupsCount: 0,
         recentActivity: [],
         companies: []
       }
@@ -243,7 +243,7 @@ const fetchOrganizationDashboard = createServerFn({ method: "GET" })
           companiesCount: 0,
           accountsCount: 0,
           pendingEntriesCount: 0,
-          openPeriodsCount: 0,
+          consolidationGroupsCount: 0,
           recentActivity: [],
           companies: []
         }
@@ -297,9 +297,17 @@ const fetchOrganizationDashboard = createServerFn({ method: "GET" })
         }
       }
 
-      // Note: Fiscal periods are now computed automatically from transaction dates (Issue 33/34)
-      // No need to track "open periods" since periods are never closed
-      const openPeriodsCount = 0
+      // Fetch consolidation groups count
+      let consolidationGroupsCount = 0
+      try {
+        const consolidationResult = await serverApi.GET("/api/v1/consolidation/groups", {
+          params: { query: { organizationId, limit: "1" } },
+          headers
+        })
+        consolidationGroupsCount = consolidationResult.data?.total ?? 0
+      } catch {
+        // Skip if consolidation API fails
+      }
 
       // Fetch recent activity from audit log (Issue 39)
       let recentActivity: DashboardData["recentActivity"] = []
@@ -340,7 +348,7 @@ const fetchOrganizationDashboard = createServerFn({ method: "GET" })
         companiesCount,
         accountsCount,
         pendingEntriesCount,
-        openPeriodsCount,
+        consolidationGroupsCount,
         recentActivity,
         companies: companiesForSidebar
       }
@@ -351,7 +359,7 @@ const fetchOrganizationDashboard = createServerFn({ method: "GET" })
         companiesCount: 0,
         accountsCount: 0,
         pendingEntriesCount: 0,
-        openPeriodsCount: 0,
+        consolidationGroupsCount: 0,
         recentActivity: [],
         companies: []
       }
@@ -492,11 +500,11 @@ function OrganizationDashboardPage() {
             testId="metric-org-pending-entries"
           />
           <MetricsCard
-            label="Open Periods"
-            value={dashboardData.openPeriodsCount}
-            icon={Calendar}
+            label="Consolidation Groups"
+            value={dashboardData.consolidationGroupsCount}
+            icon={Layers}
             iconColor="purple"
-            testId="metric-org-open-periods"
+            testId="metric-org-consolidation-groups"
           />
         </MetricsGrid>
 
