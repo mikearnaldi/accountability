@@ -10,10 +10,10 @@
  * - Data-testid attributes for E2E testing
  */
 
-import { useNavigate } from "@tanstack/react-router"
+import { useNavigate, Link } from "@tanstack/react-router"
 import { clsx } from "clsx"
 import { useState, useRef, useEffect } from "react"
-import { Building2, ChevronDown, Check } from "lucide-react"
+import { Building2, ChevronDown, Check, Plus } from "lucide-react"
 
 // =============================================================================
 // Types
@@ -206,6 +206,19 @@ export function OrganizationSelector({
                 )
               })
             )}
+          </div>
+
+          {/* Footer - Create New Organization */}
+          <div className="border-t border-gray-100 px-1 py-1">
+            <Link
+              to="/organizations/new"
+              onClick={() => setIsOpen(false)}
+              className="flex items-center gap-2 px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+              data-testid="org-selector-create-new"
+            >
+              <Plus className="h-4 w-4" />
+              <span>Create New Organization</span>
+            </Link>
           </div>
 
         </div>

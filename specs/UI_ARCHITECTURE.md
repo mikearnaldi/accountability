@@ -41,12 +41,13 @@ This section tracks known issues, implementation status, and priorities.
   2. Updated the shared `Select` component in `packages/web/src/components/ui/Select.tsx` to use `pl-3 pr-8` as the default padding, ensuring all select dropdowns have consistent icon positioning
   3. Both select inputs and date inputs now have the same visual spacing, with `pr-8` providing adequate room for native browser controls (dropdown arrows, calendar icons)
 
-### Issue 18: Organization Selector Should Only Allow Selection - RESOLVED
+### Issue 18: Organization Selector Dropdown - RESOLVED
 - **Status**: Completed
-- **Resolution**: Removed "Create New Organization" and "View All Organizations" footer actions from `OrganizationSelector.tsx`. The dropdown now only contains:
+- **Resolution**: Updated `OrganizationSelector.tsx` to follow the spec from Part 2:
   1. "Switch Organization" header
   2. List of organizations to choose from (or empty state message if none exist)
-  3. No footer actions - organization creation is handled via "+ New > Organization" in the sidebar
+  3. Footer with "+ Create New Organization" link (per spec requirement for two ways to create organizations)
+- This provides two ways to create organizations as specified: "+ New > Organization" in sidebar AND "+ Create New Organization" in header dropdown
 
 ### Issue 21: Chart of Accounts Table Header Doesn't Resize Correctly - RESOLVED
 - **Status**: Completed
