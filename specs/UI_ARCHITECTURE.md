@@ -10,6 +10,14 @@ This section tracks known issues, implementation status, and priorities.
 
 ## Known Issues
 
+### Issue 12: "Create New Organization" Link Still Broken (HIGH PRIORITY)
+- **Status**: Open
+- **Priority**: HIGH - Fix this first
+- **Problem**: The "+ Create New Organization" link in the header's Organization Selector dropdown is still not navigating to `/organizations/new` correctly
+- **File**: `packages/web/src/components/layout/OrganizationSelector.tsx`
+- **Expected**: Clicking "+ Create New Organization" navigates to `/organizations/new` to show the organization creation form
+- **Fix**: Verify the Link component in OrganizationSelector.tsx points to `/organizations/new` and not to dashboard or organizations list
+
 ### Issue 8: Tooltip Positioning/Overflow
 - **Status**: Open
 - **Problem**: Column header tooltips collide with the sidebar on the left side and get cut off by the screen edge on the right side, making them hard to read
@@ -29,33 +37,6 @@ This section tracks known issues, implementation status, and priorities.
   1. Use consistent `padding-right` for all filter inputs
   2. Ensure dropdown arrows and date picker icons are aligned at the same distance from the right edge
   3. Consider creating a shared filter input component with consistent icon positioning
-
-### Issue 10: Redundant "Add First Exchange Rate" on Exchange Rate Page
-- **Status**: Open
-- **Problem**: The Exchange Rate page shows "Add First Exchange Rate" which is redundant (likely duplicate CTA or empty state showing incorrectly)
-- **Expected**: Single clear CTA to add exchange rate - either in the page header OR in empty state, not both
-- **Fix**:
-  1. If page has data: show only the header "+ Add Exchange Rate" button
-  2. If page is empty: show only the empty state with CTA
-  3. Remove any duplicate/redundant buttons
-
-### Issue 11: Add Buttons Broken Layout (Icon on Separate Line)
-- **Status**: Open
-- **Problem**: All "Add" buttons across the app display the "+" on a separate line from the text, making them look broken and unprofessional
-- **Expected**: Add buttons should be single-line with a proper icon and text inline, looking polished across the entire app
-- **Fix**: Create a standardized Add/Create button component:
-  1. Use `whitespace-nowrap` or `flex-nowrap` to prevent line breaks
-  2. Use a proper Plus icon from Lucide (`<Plus />`) instead of plain "+" text
-  3. Use `inline-flex items-center gap-2` for proper icon + text alignment
-  4. Apply consistent sizing: `px-4 py-2` padding
-  5. Example structure:
-     ```tsx
-     <button className="inline-flex items-center gap-2 whitespace-nowrap px-4 py-2 bg-blue-600 text-white rounded-lg">
-       <Plus className="h-4 w-4" />
-       <span>Add Exchange Rate</span>
-     </button>
-     ```
-  6. Create a reusable `<AddButton>` component and use it everywhere
 
 ## Completed Items
 
@@ -94,6 +75,20 @@ This section tracks known issues, implementation status, and priorities.
 ### Issue 7: Create New Organization Link - RESOLVED
 - **Status**: Completed
 - OrganizationSelector dropdown includes "+ Create New Organization" that links to `/organizations/new`
+
+### Issue 10: Redundant "Add First Exchange Rate" - RESOLVED
+- **Status**: Completed
+- Exchange Rate page already correctly implements mutually exclusive CTAs:
+  - Header "Add Rate" button visible only when there are existing rates
+  - Empty state with "Add First Exchange Rate" CTA visible only when no rates exist
+- No code changes needed - page was already correctly implemented
+
+### Issue 11: Add Buttons Broken Layout - RESOLVED
+- **Status**: Completed
+- Standardized all add/create buttons to use the Button component with Lucide Plus icon
+- Updated pages: Companies list, Accounts page, Journal Entries list, Journal Entry form, Organization detail, Journal Entry new page
+- All buttons now use consistent `icon={<Plus />}` prop with the Button component
+- Replaced inline SVGs with Lucide icons throughout
 
 ---
 

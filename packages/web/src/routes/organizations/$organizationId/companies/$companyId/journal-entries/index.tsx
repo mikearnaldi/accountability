@@ -1,9 +1,11 @@
-import { createFileRoute, redirect, Link } from "@tanstack/react-router"
+import { createFileRoute, redirect, Link, useNavigate } from "@tanstack/react-router"
 import { createServerFn } from "@tanstack/react-start"
 import { getCookie } from "@tanstack/react-start/server"
 import { useState, useMemo } from "react"
+import { Plus, FileText, Search, ChevronRight } from "lucide-react"
 import { createServerApi } from "@/api/server"
 import { AppLayout } from "@/components/layout/AppLayout"
+import { Button } from "@/components/ui/Button"
 import { Tooltip } from "@/components/ui/Tooltip"
 
 // =============================================================================
@@ -303,6 +305,7 @@ export const Route = createFileRoute(
 function JournalEntriesPage() {
   const context = Route.useRouteContext()
   const loaderData = Route.useLoaderData()
+  const navigate = useNavigate()
   /* eslint-disable @typescript-eslint/consistent-type-assertions -- Type assertions needed for loader data typing */
   const entries = loaderData.entries as readonly JournalEntry[]
   const total = loaderData.total as number
@@ -464,30 +467,18 @@ function JournalEntriesPage() {
               </p>
             </div>
 
-            <Link
-              to="/organizations/$organizationId/companies/$companyId/journal-entries/new"
-              params={{
-                organizationId: params.organizationId,
-                companyId: params.companyId
-              }}
+            <Button
+              icon={<Plus className="h-4 w-4" />}
               data-testid="create-journal-entry-button"
-              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+              onClick={() => {
+                navigate({
+                  to: "/organizations/$organizationId/companies/$companyId/journal-entries/new",
+                  params: { organizationId: params.organizationId, companyId: params.companyId }
+                })
+              }}
             >
-              <svg
-                className="h-4 w-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 4v16m8-8H4"
-                />
-              </svg>
               New Entry
-            </Link>
+            </Button>
           </div>
         </div>
 
@@ -505,19 +496,7 @@ function JournalEntriesPage() {
                 data-testid="journal-entries-search-input"
                 className="w-64 rounded-lg border border-gray-300 py-2 pl-10 pr-4 text-sm text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
-              <svg
-                className="absolute left-3 top-2.5 h-4 w-4 text-gray-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
             </div>
 
             <span className="text-sm text-gray-500" data-testid="journal-entries-count">
@@ -809,19 +788,7 @@ function JournalEntryRow({
       {/* View indicator */}
       <div className="col-span-1 text-right">
         <span className="text-gray-400" data-testid={`journal-entry-view-${entryIdentifier}`}>
-          <svg
-            className="h-4 w-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M9 5l7 7-7 7"
-            />
-          </svg>
+          <ChevronRight className="h-4 w-4" />
         </span>
       </div>
     </Link>
@@ -839,22 +806,11 @@ function JournalEntriesEmptyState({
   readonly organizationId: string
   readonly companyId: string
 }) {
+  const navigate = useNavigate()
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-8 text-center" data-testid="journal-entries-empty-state">
       <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
-        <svg
-          className="h-6 w-6 text-blue-600"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-          />
-        </svg>
+        <FileText className="h-6 w-6 text-blue-600" />
       </div>
       <h3 className="mb-2 text-lg font-medium text-gray-900">
         No journal entries yet
@@ -862,30 +818,18 @@ function JournalEntriesEmptyState({
       <p className="mb-6 text-gray-500">
         Journal entries will appear here once created.
       </p>
-      <Link
-        to="/organizations/$organizationId/companies/$companyId/journal-entries/new"
-        params={{
-          organizationId,
-          companyId
-        }}
+      <Button
+        icon={<Plus className="h-5 w-5" />}
         data-testid="create-journal-entry-empty-button"
-        className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700"
+        onClick={() => {
+          navigate({
+            to: "/organizations/$organizationId/companies/$companyId/journal-entries/new",
+            params: { organizationId, companyId }
+          })
+        }}
       >
-        <svg
-          className="h-5 w-5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M12 4v16m8-8H4"
-          />
-        </svg>
         Create Journal Entry
-      </Link>
+      </Button>
     </div>
   )
 }

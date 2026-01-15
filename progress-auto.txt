@@ -116,3 +116,8 @@
 **Task**: Added explanatory tooltips to table column headers in CompanyHierarchyTree and Exchange Rates pages per UI_ARCHITECTURE.md spec requirement
 **Status**: complete
 ---
+
+## Iteration 7 - 2026-01-15 17:24
+**Task**: Standardized all add/create buttons to use Button component with Plus icon from Lucide-react, fixing Issue 11 (Add Buttons Broken Layout). Updated 7 files:
+**Status**: complete
+---

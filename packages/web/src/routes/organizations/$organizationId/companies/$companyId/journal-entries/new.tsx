@@ -12,9 +12,11 @@ import { createFileRoute, redirect, Link, useNavigate } from "@tanstack/react-ro
 import { createServerFn } from "@tanstack/react-start"
 import { getCookie } from "@tanstack/react-start/server"
 import { useMemo } from "react"
+import { Plus } from "lucide-react"
 import { createServerApi } from "@/api/server"
 import { JournalEntryForm } from "@/components/forms/JournalEntryForm"
 import { AppLayout } from "@/components/layout/AppLayout"
+import { Button } from "@/components/ui/Button"
 
 // =============================================================================
 // Types
@@ -427,29 +429,18 @@ function NewJournalEntryPage() {
             <p className="text-gray-500">
               Create accounts in your Chart of Accounts to start recording journal entries.
             </p>
-            <Link
-              to="/organizations/$organizationId/companies/$companyId/accounts"
-              params={{
-                organizationId: params.organizationId,
-                companyId: params.companyId
+            <Button
+              icon={<Plus className="h-5 w-5" />}
+              className="mt-4"
+              onClick={() => {
+                navigate({
+                  to: "/organizations/$organizationId/companies/$companyId/accounts",
+                  params: { organizationId: params.organizationId, companyId: params.companyId }
+                })
               }}
-              className="mt-4 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700"
             >
-              <svg
-                className="h-5 w-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 4v16m8-8H4"
-                />
-              </svg>
               Create Accounts
-            </Link>
+            </Button>
           </div>
         )}
       </div>

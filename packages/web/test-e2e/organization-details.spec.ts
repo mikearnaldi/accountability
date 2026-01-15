@@ -258,8 +258,8 @@ test.describe("Organization Details Page", () => {
     // 7. Should show empty state
     await expect(page.getByText(/No companies yet/i)).toBeVisible()
 
-    // 8. Should show create company link (links to companies list page)
-    await expect(page.getByRole("link", { name: /Create Company/i })).toBeVisible()
+    // 8. Should show create company button (navigates to companies creation page)
+    await expect(page.getByRole("button", { name: /Create Company/i })).toBeVisible()
   })
 
   test("should edit organization via form", async ({ page, request }) => {

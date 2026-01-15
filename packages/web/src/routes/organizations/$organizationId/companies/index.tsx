@@ -2,6 +2,7 @@ import { createFileRoute, redirect, useRouter, Link } from "@tanstack/react-rout
 import { createServerFn } from "@tanstack/react-start"
 import { getCookie } from "@tanstack/react-start/server"
 import { useState, useMemo } from "react"
+import { Plus } from "lucide-react"
 import { api } from "@/api/client"
 import { createServerApi } from "@/api/server"
 import { CompanyHierarchyTree, type Company } from "@/components/company/CompanyHierarchyTree"
@@ -342,21 +343,9 @@ function CompaniesListPage() {
 
             <Button
               onClick={() => setShowCreateForm(true)}
+              icon={<Plus className="h-4 w-4" />}
               data-testid="create-company-button"
             >
-              <svg
-                className="mr-2 h-4 w-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 4v16m8-8H4"
-                />
-              </svg>
               New Company
             </Button>
           </div>
@@ -417,20 +406,10 @@ function CompaniesListPage() {
         {companies.length === 0 ? (
           <NoCompaniesEmptyState
             action={
-              <Button onClick={() => setShowCreateForm(true)}>
-                <svg
-                  className="mr-2 h-5 w-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 4v16m8-8H4"
-                  />
-                </svg>
+              <Button
+                onClick={() => setShowCreateForm(true)}
+                icon={<Plus className="h-5 w-5" />}
+              >
                 Create Company
               </Button>
             }

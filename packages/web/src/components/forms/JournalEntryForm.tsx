@@ -11,12 +11,14 @@
 
 import { useState, useMemo, useCallback } from "react"
 import { useRouter } from "@tanstack/react-router"
+import { Plus } from "lucide-react"
 import { api } from "@/api/client"
 import {
   JournalEntryLineEditor,
   type Account,
   type JournalEntryLine
 } from "@/components/journal/JournalEntryLineEditor"
+import { Button } from "@/components/ui/Button"
 
 // =============================================================================
 // Types
@@ -679,28 +681,16 @@ export function JournalEntryForm({
       <div className="rounded-lg border border-gray-200 bg-white">
         <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
           <h3 className="text-sm font-medium text-gray-700">Line Items</h3>
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={handleAddLine}
             disabled={isSubmitting}
+            icon={<Plus className="h-4 w-4" />}
             data-testid="journal-entry-add-line"
-            className="inline-flex items-center gap-1 rounded-lg bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <svg
-              className="h-4 w-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 4v16m8-8H4"
-              />
-            </svg>
             Add Line
-          </button>
+          </Button>
         </div>
 
         {/* Lines Header */}

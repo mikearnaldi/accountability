@@ -1,10 +1,12 @@
-import { createFileRoute, redirect, useRouter, Link } from "@tanstack/react-router"
+import { createFileRoute, redirect, useRouter, Link, useNavigate } from "@tanstack/react-router"
 import { createServerFn } from "@tanstack/react-start"
 import { getCookie } from "@tanstack/react-start/server"
 import { useState } from "react"
+import { Plus, Building2 } from "lucide-react"
 import { api } from "@/api/client"
 import { createServerApi } from "@/api/server"
 import { AppLayout } from "@/components/layout/AppLayout"
+import { Button } from "@/components/ui/Button"
 
 // =============================================================================
 // Server Functions: Fetch organization and companies from API with cookie auth
@@ -189,6 +191,7 @@ interface Company {
 function OrganizationDetailsPage() {
   const context = Route.useRouteContext()
   const { organization, companies, companiesTotal } = Route.useLoaderData()
+  const navigate = useNavigate()
   const [isEditing, setIsEditing] = useState(false)
   const user = context.user
 
@@ -275,26 +278,17 @@ function OrganizationDetailsPage() {
               >
                 View all
               </Link>
-              <Link
-                to="/organizations/$organizationId/companies/new"
-                params={{ organizationId: organization.id }}
-                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+              <Button
+                icon={<Plus className="h-4 w-4" />}
+                onClick={() => {
+                  navigate({
+                    to: "/organizations/$organizationId/companies/new",
+                    params: { organizationId: organization.id }
+                  })
+                }}
               >
-                <svg
-                  className="h-4 w-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 4v16m8-8H4"
-                  />
-                </svg>
                 New Company
-              </Link>
+              </Button>
             </div>
           </div>
 
@@ -484,42 +478,27 @@ function EditOrganizationModal({
 // =============================================================================
 
 function CompaniesEmptyState({ organizationId }: { readonly organizationId: string }) {
+  const navigate = useNavigate()
   return (
     <div className="rounded-lg border border-dashed border-gray-300 p-8 text-center">
       <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
-        <svg
-          className="h-6 w-6 text-gray-400"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-          />
-        </svg>
+        <Building2 className="h-6 w-6 text-gray-400" />
       </div>
       <h4 className="mb-2 font-medium text-gray-900">No companies yet</h4>
       <p className="mb-4 text-sm text-gray-500">
         Create your first company to start managing accounts and journal entries.
       </p>
-      <Link
-        to="/organizations/$organizationId/companies/new"
-        params={{ organizationId }}
-        className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+      <Button
+        icon={<Plus className="h-4 w-4" />}
+        onClick={() => {
+          navigate({
+            to: "/organizations/$organizationId/companies/new",
+            params: { organizationId }
+          })
+        }}
       >
-        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M12 4v16m8-8H4"
-          />
-        </svg>
         Create Company
-      </Link>
+      </Button>
     </div>
   )
 }
