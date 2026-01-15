@@ -271,26 +271,28 @@ function OrganizationDetailsPage() {
                 {companiesTotal} compan{companiesTotal !== 1 ? "ies" : "y"} in this organization
               </p>
             </div>
-            <div className="flex items-center gap-3">
-              <Link
-                to="/organizations/$organizationId/companies"
-                params={{ organizationId: organization.id }}
-                className="text-sm font-medium text-blue-600 hover:text-blue-700"
-              >
-                View all
-              </Link>
-              <Button
-                icon={<Plus className="h-4 w-4" />}
-                onClick={() => {
-                  navigate({
-                    to: "/organizations/$organizationId/companies/new",
-                    params: { organizationId: organization.id }
-                  })
-                }}
-              >
-                New Company
-              </Button>
-            </div>
+            {companies.length > 0 && (
+              <div className="flex items-center gap-3">
+                <Link
+                  to="/organizations/$organizationId/companies"
+                  params={{ organizationId: organization.id }}
+                  className="text-sm font-medium text-blue-600 hover:text-blue-700"
+                >
+                  View all
+                </Link>
+                <Button
+                  icon={<Plus className="h-4 w-4" />}
+                  onClick={() => {
+                    navigate({
+                      to: "/organizations/$organizationId/companies/new",
+                      params: { organizationId: organization.id }
+                    })
+                  }}
+                >
+                  New Company
+                </Button>
+              </div>
+            )}
           </div>
 
           {companies.length === 0 ? (
