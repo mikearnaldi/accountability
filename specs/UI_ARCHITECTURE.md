@@ -10,22 +10,15 @@ This section tracks known issues, implementation status, and priorities.
 
 ## Known Issues
 
-### Issue 12: "Create New Organization" Routing Conflict
+### Issue 11: Add Buttons Broken Layout (Reopened)
 - **Status**: Open (Reopened)
-- **Problem**: Clicking "Create New Organization" in the OrganizationSelector dropdown redirects to the current organization's dashboard instead of `/organizations/new`
-- **Expected**: Should navigate to `/organizations/new` and display the Create Organization form
-- **Root Cause**: Likely a TanStack Router route matching conflict where `/organizations/new` is being matched as `/organizations/$organizationId` with `organizationId="new"`, then the organization detail page loader fails to find org "new" and redirects elsewhere
-- **Investigation Notes**:
-  - The Link component in OrganizationSelector.tsx correctly uses `to="/organizations/new"`
-  - Route definitions in routeTree.gen.ts show both routes exist:
-    - `/organizations/new` (OrganizationsNewRoute)
-    - `/organizations/$organizationId/` (OrganizationsOrganizationIdIndexRoute)
-  - TanStack Router should match static segments before dynamic, but something is causing incorrect routing
-- **Fix**: Investigate and resolve the route matching conflict:
-  1. Check if the route tree generation order is correct
-  2. Consider using a route prefix or suffix to avoid ambiguity (e.g., `/organizations/create` instead of `/organizations/new`)
-  3. Or add explicit route matching constraints to ensure "new" is not treated as an organizationId
-  4. Test in browser dev tools Network tab to see which route is actually being hit
+- **Problem**: Add/Create buttons still display text on two lines instead of single line in most interfaces. Only "Add Company" displays correctly.
+- **Expected**: All add buttons should display icon and text on a single line (e.g., `[+ Add Rate]` not `[+]` on one line and `[Add Rate]` on the next)
+- **Affected Pages**: All pages with add buttons EXCEPT Companies list page
+- **Fix**: Audit all add/create buttons and ensure they use:
+  1. `whitespace-nowrap` or `flex-nowrap` to prevent text wrapping
+  2. Proper flex container with `items-center` and `gap-2`
+  3. Consistent Button component usage across all pages
 
 ### Issue 8: Tooltip Positioning/Overflow
 - **Status**: Open
@@ -37,6 +30,13 @@ This section tracks known issues, implementation status, and priorities.
   3. For right columns (near screen edge): position tooltip to the left of the element
   4. Consider using a tooltip library with built-in collision detection (e.g., Radix UI Tooltip, Floating UI)
   5. Ensure tooltip has `z-index` higher than sidebar
+
+### Issue 12: "Create New Organization" Routing Conflict (REOPENED - NOT FIXED)
+- **Status**: OPEN - THIS IS NOT FIXED
+- **Problem**: WHEN USER HAS A SINGLE ORGANIZATION, CLICKING "ADD ORGANIZATION" NAVIGATES TO `/organizations/new` BUT THE ROUTING LAYER AUTOMATICALLY REDIRECTS TO THE MAIN DASHBOARD OF THE SINGLE ORGANIZATION
+- **Root Cause**: The `/organizations/index.tsx` loader has auto-redirect logic that redirects users with a single organization to that org's dashboard. This redirect is triggering even when navigating to `/organizations/new`
+- **Expected**: Navigation to `/organizations/new` should ALWAYS show the Create Organization form, regardless of how many organizations the user has
+- **Fix**: The auto-redirect logic in `/organizations/index.tsx` should NOT affect `/organizations/new` route. These are separate routes and the redirect logic should only apply to the `/organizations/` index route, not to sibling routes like `/organizations/new`
 
 ### Issue 9: Filter Input Icon Alignment Inconsistency
 - **Status**: Open
@@ -92,16 +92,17 @@ This section tracks known issues, implementation status, and priorities.
   - Empty state with "Add First Exchange Rate" CTA visible only when no rates exist
 - No code changes needed - page was already correctly implemented
 
-### Issue 11: Add Buttons Broken Layout - RESOLVED
-- **Status**: Completed
-- Standardized all add/create buttons to use the Button component with Lucide Plus icon
-- Updated pages: Companies list, Accounts page, Journal Entries list, Journal Entry form, Organization detail, Journal Entry new page, Exchange Rates page
-
-### Issue 12: "Create New Organization" Link - REOPENED
+### Issue 11: Add Buttons Broken Layout - REOPENED
 - **Status**: Reopened - moved back to Known Issues
-- Originally marked complete because the Link component code is correct (`to="/organizations/new"`)
-- **Actual Problem**: Route matching conflict causes redirect to current org dashboard instead of create form
-- See Known Issues section for full details and investigation plan
+- Originally marked complete but buttons still display on two lines in most interfaces
+- Only "Add Company" button displays correctly on single line
+- See Known Issues section for fix requirements
+
+### Issue 12: "Create New Organization" Routing - REOPENED (NOT FIXED)
+- **Status**: REOPENED - moved back to Known Issues
+- E2E tests pass but DO NOT cover the single-organization scenario
+- **ACTUAL BUG**: When user has exactly ONE organization, the auto-redirect logic in `/organizations/index.tsx` interferes with navigation to `/organizations/new`, redirecting to the single org's dashboard instead
+- See Known Issues section for full details
 
 ### Issue 13: Exchange Rates "Add Rate" Button - RESOLVED
 - **Status**: Completed

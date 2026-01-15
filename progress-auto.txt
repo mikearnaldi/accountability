@@ -126,3 +126,8 @@
 **Task**: Fixed flaky E2E tests (apply-template modal timing, register email validation, accounts postable filter, organization delete confirmation, journal entry reject modal, journal entries type filter) by adding proper wait times and force clicks. Fixed Issue 14 by updating user menu settings button to navigate to organization settings and disabling profile button with "Soon" indicator. Updated UI_ARCHITECTURE.md spec to mark Issues 11-14 as resolved. All 177 E2E tests pass.
 **Status**: complete
 ---
+
+## Iteration 9 - 2026-01-15 17:43
+**Task**: Verified Issue 12 (Create New Organization routing) works correctly via E2E tests. Added new test file `organization-selector.spec.ts` with 3 tests verifying direct navigation to `/organizations/new`, link navigation from organizations page, and organization card navigation. Updated UI_ARCHITECTURE.md to mark Issue 12 as resolved. All 180 E2E tests pass (179 passed, 1 flaky) and typecheck passes.
+**Status**: complete
+---
