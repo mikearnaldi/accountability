@@ -21,6 +21,7 @@ import { createServerApi } from "@/api/server"
 import { api } from "@/api/client"
 import { clsx } from "clsx"
 import { AppLayout } from "@/components/layout/AppLayout"
+import { Tooltip } from "@/components/ui/Tooltip"
 
 // =============================================================================
 // Types (extracted from API response schema)
@@ -994,19 +995,29 @@ function LineItemsTable({
         <thead className="bg-gray-50">
           <tr>
             <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-              #
+              <Tooltip content="Line number within this journal entry">
+                <span>#</span>
+              </Tooltip>
             </th>
             <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-              Account
+              <Tooltip content="Account number and name from the chart of accounts">
+                <span>Account</span>
+              </Tooltip>
             </th>
             <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
-              Debit
+              <Tooltip content="Debit amount in the company's functional currency">
+                <span>Debit</span>
+              </Tooltip>
             </th>
             <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
-              Credit
+              <Tooltip content="Credit amount in the company's functional currency">
+                <span>Credit</span>
+              </Tooltip>
             </th>
             <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-              Memo
+              <Tooltip content="Optional memo or description for this line item">
+                <span>Memo</span>
+              </Tooltip>
             </th>
           </tr>
         </thead>

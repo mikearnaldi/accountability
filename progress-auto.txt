@@ -166,3 +166,8 @@
 **Task**: Fixed Reports page to follow the spec's 3-step flow - org-level reports page now shows ONLY company selection (Step 1), company-level reports page shows report type selection (Step 2) with step indicators on both pages showing user progress through the flow.
 **Status**: complete
 ---
+
+## Iteration 8 - 2026-01-15 18:57
+**Task**: Added column tooltips to Trial Balance and Journal Entry Detail tables, and fixed add buttons on Exchange Rates, Intercompany, and Consolidation pages to use proper `icon` prop pattern per UI_ARCHITECTURE.md spec (Issue 24). All 179 E2E tests pass and typecheck is clean.
+**Status**: complete
+---

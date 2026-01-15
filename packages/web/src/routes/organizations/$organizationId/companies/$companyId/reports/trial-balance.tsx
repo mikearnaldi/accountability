@@ -13,6 +13,7 @@ import { getCookie } from "@tanstack/react-start/server"
 import { useState, useMemo } from "react"
 import { createServerApi } from "@/api/server"
 import { AppLayout } from "@/components/layout/AppLayout"
+import { Tooltip } from "@/components/ui/Tooltip"
 import { ArrowLeft, Download, Printer } from "lucide-react"
 
 // =============================================================================
@@ -469,16 +470,24 @@ function TrialBalanceReport({
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                Account
+                <Tooltip content="Account number and name from the chart of accounts">
+                  <span>Account</span>
+                </Tooltip>
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                Type
+                <Tooltip content="Account classification: Asset, Liability, Equity, Revenue, or Expense">
+                  <span>Type</span>
+                </Tooltip>
               </th>
               <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
-                Debit
+                <Tooltip content="Total debit balance for this account as of the report date">
+                  <span>Debit</span>
+                </Tooltip>
               </th>
               <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
-                Credit
+                <Tooltip content="Total credit balance for this account as of the report date">
+                  <span>Credit</span>
+                </Tooltip>
               </th>
             </tr>
           </thead>

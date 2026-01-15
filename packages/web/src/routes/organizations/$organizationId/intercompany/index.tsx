@@ -185,8 +185,7 @@ function IntercompanyPage() {
               </p>
             </div>
 
-            <Button disabled data-testid="create-transaction-button">
-              <Plus className="mr-2 h-4 w-4" />
+            <Button disabled icon={<Plus className="h-4 w-4" />} data-testid="create-transaction-button">
               New Transaction
             </Button>
           </div>

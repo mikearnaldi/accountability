@@ -20,6 +20,17 @@ This section tracks known issues, implementation status, and priorities.
   - Exchange Rate: Requires org selected
 - The Organization Selector in the header already includes "+ Create New Organization" link, providing two ways to create organizations as specified.
 
+### Issue 24: Add Buttons Still Broken on Multiple Pages - RESOLVED
+- **Status**: Completed
+- **Resolution**: Updated all add buttons on Exchange Rates, Intercompany, and Consolidation pages to use the standard Button component pattern with `icon` prop:
+  1. **Exchange Rates page**: Changed header "Add Rate" button and empty state "Add First Exchange Rate" button to use `icon={<Plus className="h-4 w-4" />}` prop instead of inline Plus icon with `mr-2`
+  2. **Intercompany page**: Changed "New Transaction" button to use `icon={<Plus className="h-4 w-4" />}` prop
+  3. **Consolidation page**: Changed "New Consolidation Group" button to use `icon={<Plus className="h-4 w-4" />}` prop
+- **Files modified**:
+  - `packages/web/src/routes/organizations/$organizationId/exchange-rates/index.tsx`
+  - `packages/web/src/routes/organizations/$organizationId/intercompany/index.tsx`
+  - `packages/web/src/routes/organizations/$organizationId/consolidation/index.tsx`
+
 ### Issue 11: Add Buttons Broken Layout - RESOLVED
 - **Status**: Completed
 - **Resolution**: Added `whitespace-nowrap` to the base Button component class list in `packages/web/src/components/ui/Button.tsx`. This ensures all buttons with icons and text display on a single line without text wrapping, regardless of container width.
@@ -169,11 +180,10 @@ This section tracks known issues, implementation status, and priorities.
   - Empty state with "Add First Exchange Rate" CTA visible only when no rates exist
 - No code changes needed - page was already correctly implemented
 
-### Issue 11: Add Buttons Broken Layout - REOPENED
-- **Status**: Reopened - moved back to Known Issues
-- Originally marked complete but buttons still display on two lines in most interfaces
-- Only "Add Company" button displays correctly on single line
-- See Known Issues section for fix requirements
+### Issue 11: Add Buttons Broken Layout - RESOLVED
+- **Status**: Completed (originally reopened, now fully resolved by Issue 24)
+- The `whitespace-nowrap` class in the Button component handles text wrapping prevention
+- Issue 24 addressed the remaining pages (Exchange Rates, Intercompany, Consolidation) by updating buttons to use proper `icon` prop pattern instead of inline icon children
 
 ### Issue 12: "Create New Organization" Routing & Layout - RESOLVED
 - **Status**: Completed

@@ -374,9 +374,9 @@ function ExchangeRatesPage() {
 
             <Button
               onClick={() => setShowCreateForm(true)}
+              icon={<Plus className="h-4 w-4" />}
               data-testid="create-rate-button"
             >
-              <Plus className="mr-2 h-4 w-4" />
               Add Rate
             </Button>
           </div>
@@ -709,10 +709,10 @@ function EmptyRatesState({ onCreateClick }: { readonly onCreateClick: () => void
       </p>
       <Button
         onClick={onCreateClick}
+        icon={<Plus className="h-4 w-4" />}
         className="mt-6"
         data-testid="empty-state-create-button"
       >
-        <Plus className="mr-2 h-4 w-4" />
         Add First Exchange Rate
       </Button>
     </div>
