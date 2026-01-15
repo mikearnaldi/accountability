@@ -171,3 +171,8 @@
 **Task**: Added column tooltips to Trial Balance and Journal Entry Detail tables, and fixed add buttons on Exchange Rates, Intercompany, and Consolidation pages to use proper `icon` prop pattern per UI_ARCHITECTURE.md spec (Issue 24). All 179 E2E tests pass and typecheck is clean.
 **Status**: complete
 ---
+
+## Iteration 9 - 2026-01-15 19:00
+**Task**: Fixed Issue 25 - Made Exchange Rates header "Add Rate" button conditional to only show when rates exist, preventing redundant button display alongside empty state CTA. All 179 E2E tests pass and typecheck is clean.
+**Status**: complete
+---

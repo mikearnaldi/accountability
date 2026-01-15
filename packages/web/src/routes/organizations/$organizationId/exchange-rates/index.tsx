@@ -372,13 +372,16 @@ function ExchangeRatesPage() {
               </p>
             </div>
 
-            <Button
-              onClick={() => setShowCreateForm(true)}
-              icon={<Plus className="h-4 w-4" />}
-              data-testid="create-rate-button"
-            >
-              Add Rate
-            </Button>
+            {/* Only show header button when rates exist - empty state has its own CTA */}
+            {rates.length > 0 && (
+              <Button
+                onClick={() => setShowCreateForm(true)}
+                icon={<Plus className="h-4 w-4" />}
+                data-testid="create-rate-button"
+              >
+                Add Rate
+              </Button>
+            )}
           </div>
 
           {/* Filters */}

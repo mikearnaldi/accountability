@@ -20,6 +20,15 @@ This section tracks known issues, implementation status, and priorities.
   - Exchange Rate: Requires org selected
 - The Organization Selector in the header already includes "+ Create New Organization" link, providing two ways to create organizations as specified.
 
+### Issue 25: Redundant "Add First Exchange Rate" Button - RESOLVED
+- **Status**: Completed
+- **Resolution**: Fixed the Exchange Rates page to show mutually exclusive CTAs:
+  1. When list is EMPTY: Shows empty state with "Add First Exchange Rate" CTA (header button hidden)
+  2. When list has items: Shows header "Add Rate" button (empty state not shown)
+- **Implementation**: Added conditional rendering `{rates.length > 0 && ...}` around the header "Add Rate" button so it only appears when there are existing exchange rates
+- **Files modified**:
+  - `packages/web/src/routes/organizations/$organizationId/exchange-rates/index.tsx`
+
 ### Issue 24: Add Buttons Still Broken on Multiple Pages - RESOLVED
 - **Status**: Completed
 - **Resolution**: Updated all add buttons on Exchange Rates, Intercompany, and Consolidation pages to use the standard Button component pattern with `icon` prop:
@@ -54,11 +63,16 @@ This section tracks known issues, implementation status, and priorities.
 
 ### Issue 18: Organization Selector Dropdown - RESOLVED
 - **Status**: Completed
-- **Resolution**: Updated `OrganizationSelector.tsx` to follow the spec from Part 2:
+- **Resolution**: Updated `OrganizationSelector.tsx` to be a PURE SELECTION DROPDOWN:
   1. "Switch Organization" header
   2. List of organizations to choose from (or empty state message if none exist)
-  3. Footer with "+ Create New Organization" link (per spec requirement for two ways to create organizations)
-- This provides two ways to create organizations as specified: "+ New > Organization" in sidebar AND "+ Create New Organization" in header dropdown
+  3. **NO footer actions** - NO "+ Create New Organization", NO "View All Organizations"
+- **CRITICAL REQUIREMENT**: The organization selector dropdown is ONLY for selecting existing organizations. Organization creation is handled EXCLUSIVELY through the "+ New > Organization" option in the sidebar's QuickActionMenu.
+
+**⚠️ DO NOT ADD CREATION LINKS TO THE ORGANIZATION DROPDOWN ⚠️**
+- The dropdown MUST only show: header, org list, nothing else
+- Creating organizations = "+ New > Organization" in sidebar ONLY
+- This is intentional - the dropdown is a selector, not a menu
 
 ### Issue 21: Chart of Accounts Table Header Doesn't Resize Correctly - RESOLVED
 - **Status**: Completed
