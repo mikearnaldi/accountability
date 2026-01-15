@@ -8,64 +8,47 @@ This document defines the UI architecture, navigation patterns, and design stand
 
 This section tracks known issues, implementation status, and priorities.
 
-## Known Issues (MUST FIX)
+## Known Issues
 
-### Issue 1: Post-Login Redirect is Wrong
-- **Status**: Open
-- **Expected**: After login, follow Post-Login Flow:
-  - No organizations → `/organizations/new`
-  - Single organization → `/organizations/:id/dashboard`
-  - Multiple organizations → `/organizations`
-- **Actual**: User goes to `/` (home page) which shows a generic dashboard
-- **File**: `packages/web/src/routes/login.tsx`
-
-### Issue 2: Home Route (`/`) Should Redirect When Logged In
-- **Status**: Open
-- **Expected**: When authenticated user visits `/`, redirect following Post-Login Flow
-- **Actual**: `/` shows a generic "main dashboard" that is NOT scoped to any organization
-- **File**: `packages/web/src/routes/index.tsx`
-
-### Issue 3: Organization Detail Page Missing AppLayout
-- **Status**: Open
-- **Expected**: `/organizations/:id` should use AppLayout with sidebar and header
-- **Actual**: Organization detail page has its own custom header, NO sidebar
-- **File**: `packages/web/src/routes/organizations/$organizationId/index.tsx`
-
-### Issue 4: Dashboard Breadcrumb Flickers/Unstable
-- **Status**: Open
-- **Expected**: Breadcrumbs should be stable
-- **Root Cause**: Will resolve once issues #1 and #2 are fixed
-
-### Issue 5: Inconsistent Page Layouts Across Routes
-- **Status**: Open
-- **Problem**: Multiple pages don't use AppLayout consistently
-- **Files to audit**: All routes under `/organizations`
-
-### Issue 6: Sidebar Has Company Sub-Navigation (WRONG)
-- **Status**: Open
-- **Expected**: Sidebar "Companies" is a flat link. NO expanding sub-menus.
-- **Actual**: `CompaniesNavSection` expands with nested sub-navigation
-- **File**: `packages/web/src/components/layout/Sidebar.tsx`
-- **Fix**: Remove `CompaniesNavSection`, use simple link
-
-### Issue 7: "Create New Organization" in Header Opens Wrong Destination
-- **Status**: Open
-- **Expected**: "+ Create New Organization" in header's Organization Selector dropdown navigates to `/organizations/new`
-- **Actual**: Button navigates to dashboard or organizations list instead
-- **File**: `packages/web/src/components/layout/OrganizationSelector.tsx`
-
-## Priority Order
-
-1. Fix Issue #2 (redirect `/` when logged in)
-2. Fix Issue #1 (post-login redirect)
-3. Fix Issue #3 (organization detail page layout)
-4. Fix Issue #5 (audit all pages for AppLayout)
-5. Fix Issue #6 (remove sidebar company sub-navigation)
-6. Fix Issue #7 (Create New Organization button)
+All known issues have been resolved. See "Completed Items" section below.
 
 ## Completed Items
 
-_Update this section as issues are resolved._
+### Issue 1: Post-Login Redirect - RESOLVED
+- **Status**: Completed
+- Login page (`packages/web/src/routes/login.tsx`) now follows Post-Login Flow correctly:
+  - No organizations → `/organizations/new`
+  - Single organization → `/organizations/:id/dashboard`
+  - Multiple organizations → `/organizations`
+
+### Issue 2: Home Route Redirect - RESOLVED
+- **Status**: Completed
+- Home page (`packages/web/src/routes/index.tsx`) redirects authenticated users following Post-Login Flow
+
+### Issue 3: Organization Detail Page Layout - RESOLVED
+- **Status**: Completed
+- Organization detail page (`packages/web/src/routes/organizations/$organizationId/index.tsx`) uses AppLayout with sidebar and header
+
+### Issue 4: Dashboard Breadcrumb Stability - RESOLVED
+- **Status**: Completed
+- Resolved by fixing issues #1 and #2
+
+### Issue 5: Consistent Page Layouts - RESOLVED
+- **Status**: Completed
+- All pages under `/organizations` now use AppLayout consistently, including:
+  - Dashboard, Companies, Reports, Exchange Rates, Consolidation, Intercompany, Audit Log, Settings
+  - All form pages (new company, new journal entry, new account, new exchange rate)
+  - All detail pages
+
+### Issue 6: Sidebar Flat Navigation - RESOLVED
+- **Status**: Completed
+- Sidebar now uses flat links for all items (Companies, Reports, etc.)
+- CompaniesNavSection removed
+- No expanding sub-menus in sidebar
+
+### Issue 7: Create New Organization Link - RESOLVED
+- **Status**: Completed
+- OrganizationSelector dropdown includes "+ Create New Organization" that links to `/organizations/new`
 
 ---
 

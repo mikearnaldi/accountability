@@ -101,3 +101,8 @@
 **Task**: Fixed flaky E2E test "should update organization defaults" by adding React hydration waits (500ms initial, 200ms between interactions), force clicks for form elements, and incremental verification between each field change to ensure state persistence. All 177 E2E tests now pass consistently.
 **Status**: complete
 ---
+
+## Iteration 3 - 2026-01-15 17:02
+**Task**: Updated UI_ARCHITECTURE.md spec to mark all 7 known issues (Post-Login Redirect, Home Route Redirect, Organization Detail Page Layout, Dashboard Breadcrumb, Consistent Page Layouts, Sidebar Flat Navigation, Create New Organization Link) as resolved with completion details.
+**Status**: complete
+---
