@@ -73,9 +73,12 @@ const CountRow = Schema.Struct({
 /**
  * Convert Date to LocalDate
  * Pure function - no validation needed, values come from database
+ *
+ * NOTE: The postgres driver returns DATE columns as Date objects at local midnight,
+ * so we use local time methods (getFullYear, getMonth, getDate) not UTC methods.
  */
 const dateToLocalDate = (date: Date): LocalDate =>
-  LocalDate.make({ year: date.getUTCFullYear(), month: date.getUTCMonth() + 1, day: date.getUTCDate() })
+  LocalDate.make({ year: date.getFullYear(), month: date.getMonth() + 1, day: date.getDate() })
 
 /**
  * Convert database row to FiscalYear domain entity
@@ -307,6 +310,7 @@ const make = Effect.gen(function* () {
           closed_by = ${Option.getOrNull(period.closedBy)},
           closed_at = ${Option.match(period.closedAt, { onNone: () => null, onSome: (t) => t.toDate() })}
         WHERE id = ${period.id}
+        RETURNING id
       `.pipe(wrapSqlError("update"))
 
       if (result.length === 0) {
@@ -438,6 +442,7 @@ const make = Effect.gen(function* () {
           status = ${fiscalYear.status},
           includes_adjustment_period = ${fiscalYear.includesAdjustmentPeriod}
         WHERE id = ${fiscalYear.id}
+        RETURNING id
       `.pipe(wrapSqlError("updateFiscalYear"))
 
       if (result.length === 0) {

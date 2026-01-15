@@ -955,7 +955,7 @@
           "packages/web/src/routes/organizations/$organizationId/companies/$companyId/journal-entries/$entryId/index.tsx"
         ]
       },
-      "status": "pending"
+      "status": "complete"
     },
     {
       "id": "7.1",

@@ -75,9 +75,12 @@ const MaxNumRow = Schema.Struct({
 /**
  * Convert Date to LocalDate
  * Pure function - no validation needed, values come from database
+ *
+ * NOTE: The postgres driver returns DATE columns as Date objects at local midnight,
+ * so we use local time methods (getFullYear, getMonth, getDate) not UTC methods.
  */
 const dateToLocalDate = (date: Date): LocalDate =>
-  LocalDate.make({ year: date.getUTCFullYear(), month: date.getUTCMonth() + 1, day: date.getUTCDate() })
+  LocalDate.make({ year: date.getFullYear(), month: date.getMonth() + 1, day: date.getDate() })
 
 /**
  * Convert database row to JournalEntry domain entity
@@ -359,6 +362,7 @@ const make = Effect.gen(function* () {
           posted_by = ${Option.getOrNull(entry.postedBy)},
           posted_at = ${Option.match(entry.postedAt, { onNone: () => null, onSome: (t) => t.toDate() })}
         WHERE id = ${entry.id}
+        RETURNING id
       `.pipe(wrapSqlError("update"))
 
       if (result.length === 0) {

@@ -746,14 +746,15 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
             reversingEntryId: Option.some(reversalId)
           })
 
-          // Save everything
-          yield* entryRepo.update(updatedOriginal).pipe(
-            Effect.mapError((e) => mapPersistenceToBusinessRule(e))
-          )
+          // Save everything - create reversal first (due to foreign key constraint on reversing_entry_id)
           yield* entryRepo.create(reversalEntry).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
           yield* lineRepo.createMany(reversalLines).pipe(
+            Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+          )
+          // Update original entry to mark as reversed (now the reversalEntry exists for FK reference)
+          yield* entryRepo.update(updatedOriginal).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
 

@@ -69,9 +69,12 @@ const CountRow = Schema.Struct({
 
 /**
  * Convert Date to LocalDate
+ *
+ * NOTE: The postgres driver returns DATE columns as Date objects at local midnight,
+ * so we use local time methods (getFullYear, getMonth, getDate) not UTC methods.
  */
 const dateToLocalDate = (date: Date): LocalDate =>
-  LocalDate.make({ year: date.getUTCFullYear(), month: date.getUTCMonth() + 1, day: date.getUTCDate() })
+  LocalDate.make({ year: date.getFullYear(), month: date.getMonth() + 1, day: date.getDate() })
 
 /**
  * Convert database row to IntercompanyTransaction domain entity

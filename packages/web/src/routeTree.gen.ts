@@ -24,6 +24,7 @@ import { Route as OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesInd
 import { Route as OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRouteImport } from './routes/organizations/$organizationId/companies/$companyId/accounts/index'
 import { Route as OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesNewRouteImport } from './routes/organizations/$organizationId/companies/$companyId/journal-entries/new'
 import { Route as OrganizationsOrganizationIdCompaniesCompanyIdAccountsNewRouteImport } from './routes/organizations/$organizationId/companies/$companyId/accounts/new'
+import { Route as OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesEntryIdIndexRouteImport } from './routes/organizations/$organizationId/companies/$companyId/journal-entries/$entryId/index'
 
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
@@ -113,6 +114,14 @@ const OrganizationsOrganizationIdCompaniesCompanyIdAccountsNewRoute =
     path: '/organizations/$organizationId/companies/$companyId/accounts/new',
     getParentRoute: () => rootRouteImport,
   } as any)
+const OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesEntryIdIndexRoute =
+  OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesEntryIdIndexRouteImport.update(
+    {
+      id: '/organizations/$organizationId/companies/$companyId/journal-entries/$entryId/',
+      path: '/organizations/$organizationId/companies/$companyId/journal-entries/$entryId/',
+      getParentRoute: () => rootRouteImport,
+    } as any,
+  )
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -130,6 +139,7 @@ export interface FileRoutesByFullPath {
   '/organizations/$organizationId/companies/$companyId/journal-entries/new': typeof OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesNewRoute
   '/organizations/$organizationId/companies/$companyId/accounts': typeof OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute
   '/organizations/$organizationId/companies/$companyId/journal-entries': typeof OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesIndexRoute
+  '/organizations/$organizationId/companies/$companyId/journal-entries/$entryId': typeof OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesEntryIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -147,6 +157,7 @@ export interface FileRoutesByTo {
   '/organizations/$organizationId/companies/$companyId/journal-entries/new': typeof OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesNewRoute
   '/organizations/$organizationId/companies/$companyId/accounts': typeof OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute
   '/organizations/$organizationId/companies/$companyId/journal-entries': typeof OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesIndexRoute
+  '/organizations/$organizationId/companies/$companyId/journal-entries/$entryId': typeof OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesEntryIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -165,6 +176,7 @@ export interface FileRoutesById {
   '/organizations/$organizationId/companies/$companyId/journal-entries/new': typeof OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesNewRoute
   '/organizations/$organizationId/companies/$companyId/accounts/': typeof OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute
   '/organizations/$organizationId/companies/$companyId/journal-entries/': typeof OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesIndexRoute
+  '/organizations/$organizationId/companies/$companyId/journal-entries/$entryId/': typeof OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesEntryIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -184,6 +196,7 @@ export interface FileRouteTypes {
     | '/organizations/$organizationId/companies/$companyId/journal-entries/new'
     | '/organizations/$organizationId/companies/$companyId/accounts'
     | '/organizations/$organizationId/companies/$companyId/journal-entries'
+    | '/organizations/$organizationId/companies/$companyId/journal-entries/$entryId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -201,6 +214,7 @@ export interface FileRouteTypes {
     | '/organizations/$organizationId/companies/$companyId/journal-entries/new'
     | '/organizations/$organizationId/companies/$companyId/accounts'
     | '/organizations/$organizationId/companies/$companyId/journal-entries'
+    | '/organizations/$organizationId/companies/$companyId/journal-entries/$entryId'
   id:
     | '__root__'
     | '/'
@@ -218,6 +232,7 @@ export interface FileRouteTypes {
     | '/organizations/$organizationId/companies/$companyId/journal-entries/new'
     | '/organizations/$organizationId/companies/$companyId/accounts/'
     | '/organizations/$organizationId/companies/$companyId/journal-entries/'
+    | '/organizations/$organizationId/companies/$companyId/journal-entries/$entryId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -236,6 +251,7 @@ export interface RootRouteChildren {
   OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesNewRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesNewRoute
   OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute
   OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesIndexRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesIndexRoute
+  OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesEntryIdIndexRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesEntryIdIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -345,6 +361,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdAccountsNewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/organizations/$organizationId/companies/$companyId/journal-entries/$entryId/': {
+      id: '/organizations/$organizationId/companies/$companyId/journal-entries/$entryId/'
+      path: '/organizations/$organizationId/companies/$companyId/journal-entries/$entryId'
+      fullPath: '/organizations/$organizationId/companies/$companyId/journal-entries/$entryId'
+      preLoaderRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesEntryIdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -372,6 +395,8 @@ const rootRouteChildren: RootRouteChildren = {
     OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute,
   OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesIndexRoute:
     OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesIndexRoute,
+  OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesEntryIdIndexRoute:
+    OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesEntryIdIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -667,6 +667,8 @@ function JournalEntriesPage() {
         ) : (
           <JournalEntriesTable
             entries={filteredEntries}
+            organizationId={params.organizationId}
+            companyId={params.companyId}
           />
         )}
       </main>
@@ -679,9 +681,13 @@ function JournalEntriesPage() {
 // =============================================================================
 
 function JournalEntriesTable({
-  entries
+  entries,
+  organizationId,
+  companyId
 }: {
   readonly entries: readonly JournalEntry[]
+  readonly organizationId: string
+  readonly companyId: string
 }) {
   return (
     <div className="rounded-lg border border-gray-200 bg-white overflow-hidden" data-testid="journal-entries-table">
@@ -699,7 +705,12 @@ function JournalEntriesTable({
       {/* Rows */}
       <div className="divide-y divide-gray-100">
         {entries.map((entry) => (
-          <JournalEntryRow key={entry.id} entry={entry} />
+          <JournalEntryRow
+            key={entry.id}
+            entry={entry}
+            organizationId={organizationId}
+            companyId={companyId}
+          />
         ))}
       </div>
     </div>
@@ -707,9 +718,13 @@ function JournalEntriesTable({
 }
 
 function JournalEntryRow({
-  entry
+  entry,
+  organizationId,
+  companyId
 }: {
   readonly entry: JournalEntry
+  readonly organizationId: string
+  readonly companyId: string
 }) {
   const formattedDate = formatLocalDate(entry.transactionDate)
   // Show reference number (user-defined) if available, otherwise entry number (system-generated)
@@ -719,7 +734,16 @@ function JournalEntryRow({
   const entryIdentifier = entry.referenceNumber ?? (entry.entryNumber ? String(entry.entryNumber) : entry.id)
 
   return (
-    <div className="grid grid-cols-12 items-center gap-4 px-4 py-3 hover:bg-gray-50" data-testid={`journal-entry-row-${entryIdentifier}`}>
+    <Link
+      to="/organizations/$organizationId/companies/$companyId/journal-entries/$entryId"
+      params={{
+        organizationId,
+        companyId,
+        entryId: entry.id
+      }}
+      className="grid grid-cols-12 items-center gap-4 px-4 py-3 hover:bg-gray-50"
+      data-testid={`journal-entry-row-${entryIdentifier}`}
+    >
       {/* Date */}
       <div className="col-span-2 text-sm text-gray-900" data-testid={`journal-entry-date-${entryIdentifier}`}>
         {formattedDate}
@@ -764,7 +788,7 @@ function JournalEntryRow({
         </span>
       </div>
 
-      {/* View indicator (detail page coming soon) */}
+      {/* View indicator */}
       <div className="col-span-1 text-right">
         <span className="text-gray-400" data-testid={`journal-entry-view-${entryIdentifier}`}>
           <svg
@@ -782,7 +806,7 @@ function JournalEntryRow({
           </svg>
         </span>
       </div>
-    </div>
+    </Link>
   )
 }
 
@@ -853,11 +877,14 @@ function JournalEntriesEmptyState({
 // =============================================================================
 
 function formatLocalDate(date: LocalDate): string {
-  const d = new Date(date.year, date.month - 1, date.day)
+  // Use UTC date to avoid timezone shifts
+  // LocalDate represents a calendar date, not a moment in time
+  const d = new Date(Date.UTC(date.year, date.month - 1, date.day))
   return d.toLocaleDateString("en-US", {
     year: "numeric",
     month: "short",
-    day: "numeric"
+    day: "numeric",
+    timeZone: "UTC"  // Format in UTC to preserve the date
   })
 }
 
