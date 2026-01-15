@@ -449,7 +449,6 @@ function JournalEntriesPage() {
       currentOrganization={organization}
       breadcrumbItems={breadcrumbItems}
       companies={companiesForSidebar}
-      currentCompany={{ id: company.id, name: company.name }}
     >
       <div data-testid="journal-entries-page">
         {/* Page Header */}

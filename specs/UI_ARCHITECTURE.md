@@ -91,12 +91,21 @@ The following issues are currently broken and MUST be fixed as highest priority:
   3. Remove `currentCompany` prop from Sidebar (no longer needed)
   4. Company-specific navigation happens on the company detail page, not in sidebar
 
+### 7. "Add Organization" Button Opens Dashboard Instead of Creation Form
+- **Expected**: Clicking "Add Organization" (or "+ Create New Organization") should navigate to `/organizations/new` to create a new organization
+- **Actual**: Button navigates to dashboard or wrong destination
+- **Locations to check**:
+  - Organization selector dropdown in header (`packages/web/src/components/layout/OrganizationSelector.tsx`)
+  - Organizations list page (`packages/web/src/routes/organizations/index.tsx`)
+- **Fix**: Ensure all "Add Organization" / "Create New Organization" buttons link to `/organizations/new`
+
 ### Priority Order
 1. Fix #2 first (redirect `/` to `/organizations` when logged in)
 2. Fix #1 (post-login redirect)
 3. Fix #3 (organization detail page layout)
 4. Audit and fix #5 (all other pages)
 5. Fix #6 (remove sidebar company sub-navigation)
+6. Fix #7 (Add Organization button destination)
 
 ---
 
@@ -213,7 +222,17 @@ Audit Log          → /organizations/:orgId/audit-log
 Settings           → /organizations/:orgId/settings
 ```
 
-**NO sub-navigation in sidebar.** Companies and Reports do NOT expand into sub-items. Clicking "Companies" goes to the companies list. Clicking "Reports" goes to the reports hub where the user can select a report type.
+**NO sub-navigation in sidebar.** Companies and Reports do NOT expand into sub-items. Clicking "Companies" goes to the companies list. Clicking "Reports" goes to the reports page.
+
+### Reports Page Flow
+
+Reports are **company-scoped** - you must select a company before viewing reports. The Reports page (`/organizations/:orgId/reports`) flow:
+
+1. **Step 1: Company Selection** - Show list of companies in the organization as selectable cards
+2. **Step 2: Report Type Selection** - After selecting a company, show available report types (Trial Balance, Balance Sheet, Income Statement, Cash Flow, Equity Statement)
+3. **Step 3: Report View** - Navigate to `/organizations/:orgId/companies/:companyId/reports/:reportType`
+
+The Reports page should NOT immediately show a list of report types. Users must first choose which company's reports they want to view.
 
 ### "+ New" Quick Action Menu
 

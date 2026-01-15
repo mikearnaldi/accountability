@@ -86,3 +86,8 @@
 **Task**: Fixed 2 flaky E2E tests by adding proper React hydration waits before button clicks (500ms waitForTimeout), using force: true on click events, and waiting for modal visibility with correct data-testid attributes (account-form-modal instead of create-account-modal, create-company-modal). Tests fixed: accounts.spec.ts "should show validation error for empty account name" and create-company.spec.ts "should create subsidiary company with ownership and consolidation method". All 177 E2E tests now pass consistently.
 **Status**: complete
 ---
+
+## Iteration 22 - 2026-01-15 16:28
+**Task**: Removed CompaniesNavSection component from Sidebar per UI_ARCHITECTURE.md spec. The sidebar Companies item is now a flat link to /organizations/:orgId/companies instead of an expandable sub-menu with company-specific navigation (Chart of Accounts, Journal Entries, Reports). Also removed the unused currentCompany prop from Sidebar, MobileSidebar, and AppLayout components. All 177 E2E tests pass.
+**Status**: complete
+---

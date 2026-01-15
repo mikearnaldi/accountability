@@ -262,7 +262,6 @@ function NewAccountPage() {
       currentOrganization={organization}
       breadcrumbItems={breadcrumbItems}
       companies={companiesForSidebar}
-      currentCompany={{ id: company.id, name: company.name }}
     >
       <div data-testid="new-account-page">
         {/* Page Title */}
