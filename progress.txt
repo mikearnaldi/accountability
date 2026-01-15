@@ -904,3 +904,8 @@
 **Story**: 2.2 - Organization-scoped dashboard
 **Status**: complete
 ---
+
+## Iteration 48 - 2026-01-15 07:41
+**Story**: 3.1 - Organization selection and list
+**Status**: complete
+---

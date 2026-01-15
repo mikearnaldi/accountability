@@ -1,51 +1,143 @@
-import { createFileRoute, redirect, useRouter, Link } from "@tanstack/react-router"
+/**
+ * Organizations Selection Page
+ *
+ * Entry point for selecting an organization. This is the first screen after login.
+ * User must select an org to access org-scoped features.
+ *
+ * Features:
+ * - Card-based layout showing user's organizations with:
+ *   - Organization name (prominent)
+ *   - Reporting currency
+ *   - Companies count
+ *   - Last accessed date (using createdAt for now)
+ * - Click card → navigate to /organizations/:id/dashboard
+ * - Create new organization button
+ * - If user has only 1 org: Auto-redirect to that org's dashboard
+ * - If user has 0 orgs: Show create organization prompt
+ * - Search/filter orgs (client-side for small lists)
+ *
+ * Route: /organizations
+ */
+
+import { createFileRoute, redirect, useRouter, Link, useNavigate } from "@tanstack/react-router"
 import { createServerFn } from "@tanstack/react-start"
 import { getCookie } from "@tanstack/react-start/server"
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { api } from "@/api/client"
 import { createServerApi } from "@/api/server"
+import { Building2, Search, Plus, Globe, Calendar, Users } from "lucide-react"
 
 // =============================================================================
-// Server Function: Fetch organizations from API with cookie auth
+// Types
 // =============================================================================
 
-const fetchOrganizations = createServerFn({ method: "GET" }).handler(async () => {
-  // Get the session cookie to forward to API
+interface Organization {
+  readonly id: string
+  readonly name: string
+  readonly reportingCurrency: string
+  readonly createdAt: {
+    readonly epochMillis: number
+  }
+  readonly settings: {
+    readonly defaultLocale: string
+    readonly defaultTimezone: string
+    readonly useFiscalYear: boolean
+    readonly defaultDecimalPlaces: number
+  }
+}
+
+interface OrganizationWithStats extends Organization {
+  readonly companiesCount: number
+}
+
+export interface LoaderResult {
+  readonly organizations: readonly OrganizationWithStats[]
+  readonly total: number
+  readonly shouldAutoRedirect: boolean
+  readonly autoRedirectId: string | null
+}
+
+// =============================================================================
+// Server Functions
+// =============================================================================
+
+const fetchOrganizationsWithStats = createServerFn({ method: "GET" }).handler(async (): Promise<LoaderResult> => {
   const sessionToken = getCookie("accountability_session")
 
   if (!sessionToken) {
-    return { organizations: [], total: 0, error: "unauthorized" as const }
+    return {
+      organizations: [],
+      total: 0,
+      shouldAutoRedirect: false,
+      autoRedirectId: null
+    }
   }
 
   try {
-    // Create server API client with dynamic base URL from request context
     const serverApi = createServerApi()
-    // Forward session token to API using Authorization Bearer header
-    const { data, error } = await serverApi.GET("/api/v1/organizations", {
-      headers: { Authorization: `Bearer ${sessionToken}` }
-    })
+    const headers = { Authorization: `Bearer ${sessionToken}` }
 
-    if (error) {
-      return { organizations: [], total: 0, error: "failed" as const }
+    // Fetch organizations
+    const { data, error } = await serverApi.GET("/api/v1/organizations", { headers })
+
+    if (error || !data) {
+      return {
+        organizations: [],
+        total: 0,
+        shouldAutoRedirect: false,
+        autoRedirectId: null
+      }
     }
+
+    const organizations = data.organizations ?? []
+
+    // Fetch companies count for each organization (in parallel)
+    const orgsWithStats: OrganizationWithStats[] = await Promise.all(
+      organizations.map(async (org) => {
+        try {
+          const companiesResult = await serverApi.GET("/api/v1/companies", {
+            params: { query: { organizationId: org.id } },
+            headers
+          })
+          return {
+            ...org,
+            companiesCount: companiesResult.data?.total ?? 0
+          }
+        } catch {
+          return {
+            ...org,
+            companiesCount: 0
+          }
+        }
+      })
+    )
+
+    // If exactly 1 organization, prepare for auto-redirect
+    const shouldAutoRedirect = orgsWithStats.length === 1
+    const autoRedirectId = shouldAutoRedirect ? orgsWithStats[0].id : null
 
     return {
-      organizations: data?.organizations ?? [],
-      total: data?.total ?? 0,
-      error: null
+      organizations: orgsWithStats,
+      total: orgsWithStats.length,
+      shouldAutoRedirect,
+      autoRedirectId
     }
   } catch {
-    return { organizations: [], total: 0, error: "failed" as const }
+    return {
+      organizations: [],
+      total: 0,
+      shouldAutoRedirect: false,
+      autoRedirectId: null
+    }
   }
 })
 
 // =============================================================================
-// Organizations List Route
+// Route Definition
 // =============================================================================
 
 export const Route = createFileRoute("/organizations/")({
   beforeLoad: async ({ context }) => {
-    // Redirect to login if not authenticated
     if (!context.user) {
       throw redirect({
         to: "/login",
@@ -56,47 +148,43 @@ export const Route = createFileRoute("/organizations/")({
     }
   },
   loader: async () => {
-    // Fetch organizations from API with SSR using server function
-    const result = await fetchOrganizations()
+    const result = await fetchOrganizationsWithStats()
 
-    if (result.error) {
-      // On auth error or failure, return empty state (UI will show empty state)
-      return {
-        organizations: [],
-        total: 0
-      }
+    // If exactly one org, redirect to its dashboard immediately
+    if (result.shouldAutoRedirect && result.autoRedirectId) {
+      throw redirect({
+        to: "/organizations/$organizationId/dashboard",
+        params: { organizationId: result.autoRedirectId }
+      })
     }
 
-    return {
-      organizations: result.organizations,
-      total: result.total
-    }
+    return result
   },
   component: OrganizationsPage
 })
-
-// =============================================================================
-// Organization Type (extracted from API response)
-// =============================================================================
-
-interface Organization {
-  readonly id: string
-  readonly name: string
-  readonly reportingCurrency: string
-  readonly createdAt: {
-    readonly epochMillis: number
-  }
-}
 
 // =============================================================================
 // Organizations Page Component
 // =============================================================================
 
 function OrganizationsPage() {
-  const { organizations } = Route.useLoaderData()
+  const { organizations, total } = Route.useLoaderData()
+  const [searchQuery, setSearchQuery] = useState("")
+
+  // Filter organizations based on search query
+  const filteredOrganizations = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return organizations
+    }
+    const query = searchQuery.toLowerCase()
+    return organizations.filter((org) =>
+      org.name.toLowerCase().includes(query) ||
+      org.reportingCurrency.toLowerCase().includes(query)
+    )
+  }, [organizations, searchQuery])
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50" data-testid="organizations-page">
       {/* Header */}
       <header className="border-b border-gray-200 bg-white">
         <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
@@ -105,8 +193,6 @@ function OrganizationsPage() {
               <Link to="/" className="text-xl font-bold text-gray-900">
                 Accountability
               </Link>
-              <span className="text-gray-400">/</span>
-              <h1 className="text-xl font-semibold text-gray-900">Organizations</h1>
             </div>
           </div>
         </div>
@@ -114,10 +200,15 @@ function OrganizationsPage() {
 
       {/* Main Content */}
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        {organizations.length === 0 ? (
+        {total === 0 ? (
           <EmptyState />
         ) : (
-          <OrganizationsList organizations={organizations} />
+          <OrganizationsList
+            organizations={filteredOrganizations}
+            totalCount={total}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+          />
         )}
       </main>
     </div>
@@ -132,23 +223,14 @@ function EmptyState() {
   const [showForm, setShowForm] = useState(false)
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-8 text-center">
-      <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
-        <svg
-          className="h-6 w-6 text-blue-600"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-          />
-        </svg>
+    <div
+      className="mx-auto max-w-lg rounded-lg border border-gray-200 bg-white p-8 text-center"
+      data-testid="organizations-empty-state"
+    >
+      <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-100">
+        <Building2 className="h-8 w-8 text-blue-600" />
       </div>
-      <h3 className="mb-2 text-lg font-medium text-gray-900">No organizations</h3>
+      <h2 className="mb-2 text-xl font-semibold text-gray-900">No organizations</h2>
       <p className="mb-6 text-gray-500">
         Get started by creating your first organization.
       </p>
@@ -158,21 +240,10 @@ function EmptyState() {
       ) : (
         <button
           onClick={() => setShowForm(true)}
+          data-testid="create-organization-button"
           className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700"
         >
-          <svg
-            className="h-5 w-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 4v16m8-8H4"
-            />
-          </svg>
+          <Plus className="h-5 w-5" />
           Create Organization
         </button>
       )}
@@ -184,36 +255,55 @@ function EmptyState() {
 // Organizations List Component
 // =============================================================================
 
-function OrganizationsList({ organizations }: { readonly organizations: readonly Organization[] }) {
+interface OrganizationsListProps {
+  readonly organizations: readonly OrganizationWithStats[]
+  readonly totalCount: number
+  readonly searchQuery: string
+  readonly onSearchChange: (query: string) => void
+}
+
+function OrganizationsList({
+  organizations,
+  totalCount,
+  searchQuery,
+  onSearchChange
+}: OrganizationsListProps) {
   const [showForm, setShowForm] = useState(false)
 
   return (
-    <div className="space-y-6">
-      {/* Actions Bar */}
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-gray-500">
-          {organizations.length} organization{organizations.length !== 1 ? "s" : ""}
-        </p>
+    <div className="space-y-6" data-testid="organizations-list-container">
+      {/* Page Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Select an Organization</h1>
+          <p className="mt-1 text-sm text-gray-500" data-testid="organizations-count">
+            {totalCount} organization{totalCount !== 1 ? "s" : ""} available
+          </p>
+        </div>
         <button
           onClick={() => setShowForm(true)}
+          data-testid="new-organization-button"
           className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
         >
-          <svg
-            className="h-4 w-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 4v16m8-8H4"
-            />
-          </svg>
+          <Plus className="h-4 w-4" />
           New Organization
         </button>
       </div>
+
+      {/* Search Bar */}
+      {totalCount > 1 && (
+        <div className="relative" data-testid="organizations-search-container">
+          <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search organizations..."
+            value={searchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
+            data-testid="organizations-search-input"
+            className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4 text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          />
+        </div>
+      )}
 
       {/* Create Form Modal */}
       {showForm && (
@@ -228,11 +318,33 @@ function OrganizationsList({ organizations }: { readonly organizations: readonly
       )}
 
       {/* Organizations Grid */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {organizations.map((org) => (
-          <OrganizationCard key={org.id} organization={org} />
-        ))}
-      </div>
+      {organizations.length === 0 && searchQuery ? (
+        <div
+          className="rounded-lg border border-gray-200 bg-white p-8 text-center"
+          data-testid="organizations-no-results"
+        >
+          <Search className="mx-auto h-12 w-12 text-gray-400" />
+          <h3 className="mt-4 text-lg font-medium text-gray-900">No results found</h3>
+          <p className="mt-2 text-gray-500">
+            No organizations match "{searchQuery}". Try a different search term.
+          </p>
+          <button
+            onClick={() => onSearchChange("")}
+            className="mt-4 text-sm font-medium text-blue-600 hover:text-blue-700"
+          >
+            Clear search
+          </button>
+        </div>
+      ) : (
+        <div
+          className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+          data-testid="organizations-grid"
+        >
+          {organizations.map((org) => (
+            <OrganizationCard key={org.id} organization={org} />
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -241,27 +353,77 @@ function OrganizationsList({ organizations }: { readonly organizations: readonly
 // Organization Card Component
 // =============================================================================
 
-function OrganizationCard({ organization }: { readonly organization: Organization }) {
-  const createdDate = new Date(organization.createdAt.epochMillis).toLocaleDateString("en-US", {
+interface OrganizationCardProps {
+  readonly organization: OrganizationWithStats
+}
+
+function OrganizationCard({ organization }: OrganizationCardProps) {
+  const navigate = useNavigate()
+
+  // Format last accessed date (using createdAt for now)
+  const lastAccessedDate = new Date(organization.createdAt.epochMillis).toLocaleDateString("en-US", {
     year: "numeric",
     month: "short",
     day: "numeric"
   })
 
+  const handleClick = () => {
+    navigate({
+      to: "/organizations/$organizationId/dashboard",
+      params: { organizationId: organization.id }
+    })
+  }
+
   return (
-    <Link
-      to="/organizations/$organizationId"
-      params={{ organizationId: organization.id }}
-      className="block rounded-lg border border-gray-200 bg-white p-6 transition-shadow hover:shadow-md"
+    <button
+      onClick={handleClick}
+      data-testid={`organization-card-${organization.id}`}
+      className="block w-full rounded-lg border border-gray-200 bg-white p-6 text-left transition-all hover:border-blue-300 hover:shadow-md focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
     >
-      <div className="mb-2 flex items-start justify-between">
-        <h3 className="font-medium text-gray-900">{organization.name}</h3>
-        <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
-          {organization.reportingCurrency}
+      {/* Organization Name */}
+      <h3
+        className="text-lg font-semibold text-gray-900"
+        data-testid={`organization-name-${organization.id}`}
+      >
+        {organization.name}
+      </h3>
+
+      {/* Stats Row */}
+      <div className="mt-4 grid grid-cols-2 gap-4">
+        {/* Reporting Currency */}
+        <div className="flex items-center gap-2">
+          <Globe className="h-4 w-4 text-gray-400" />
+          <span
+            className="text-sm font-medium text-gray-700"
+            data-testid={`organization-currency-${organization.id}`}
+          >
+            {organization.reportingCurrency}
+          </span>
+        </div>
+
+        {/* Companies Count */}
+        <div className="flex items-center gap-2">
+          <Users className="h-4 w-4 text-gray-400" />
+          <span
+            className="text-sm text-gray-600"
+            data-testid={`organization-companies-count-${organization.id}`}
+          >
+            {organization.companiesCount} {organization.companiesCount === 1 ? "company" : "companies"}
+          </span>
+        </div>
+      </div>
+
+      {/* Last Accessed Date */}
+      <div className="mt-3 flex items-center gap-2 border-t border-gray-100 pt-3">
+        <Calendar className="h-4 w-4 text-gray-400" />
+        <span
+          className="text-sm text-gray-500"
+          data-testid={`organization-last-accessed-${organization.id}`}
+        >
+          Created {lastAccessedDate}
         </span>
       </div>
-      <p className="text-sm text-gray-500">Created {createdDate}</p>
-    </Link>
+    </button>
   )
 }
 
@@ -271,6 +433,7 @@ function OrganizationCard({ organization }: { readonly organization: Organizatio
 
 function CreateOrganizationForm({ onCancel }: { readonly onCancel: () => void }) {
   const router = useRouter()
+  const navigate = useNavigate()
 
   const [name, setName] = useState("")
   const [reportingCurrency, setReportingCurrency] = useState("USD")
@@ -293,7 +456,7 @@ function CreateOrganizationForm({ onCancel }: { readonly onCancel: () => void })
     setError(null)
 
     try {
-      const { error: apiError } = await api.POST("/api/v1/organizations", {
+      const { data, error: apiError } = await api.POST("/api/v1/organizations", {
         body: {
           name: trimmedName,
           reportingCurrency,
@@ -314,12 +477,17 @@ function CreateOrganizationForm({ onCancel }: { readonly onCancel: () => void })
         return
       }
 
-      // Revalidate to show new organization in list
-      await router.invalidate()
-
-      // Close form after successful creation
-      // Organization detail page navigation will be added when that route exists
-      onCancel()
+      // Navigate to the new organization's dashboard
+      if (data?.id) {
+        navigate({
+          to: "/organizations/$organizationId/dashboard",
+          params: { organizationId: data.id }
+        })
+      } else {
+        // Fallback: revalidate and close form
+        await router.invalidate()
+        onCancel()
+      }
     } catch {
       setError("An unexpected error occurred. Please try again.")
       setIsSubmitting(false)
@@ -327,7 +495,7 @@ function CreateOrganizationForm({ onCancel }: { readonly onCancel: () => void })
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4" data-testid="create-organization-form">
       {/* Error Message */}
       {error && (
         <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3">
@@ -349,6 +517,7 @@ function CreateOrganizationForm({ onCancel }: { readonly onCancel: () => void })
           onChange={(e) => setName(e.target.value)}
           disabled={isSubmitting}
           placeholder="My Organization"
+          data-testid="org-name-input"
           className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
         />
       </div>
@@ -363,6 +532,7 @@ function CreateOrganizationForm({ onCancel }: { readonly onCancel: () => void })
           value={reportingCurrency}
           onChange={(e) => setReportingCurrency(e.target.value)}
           disabled={isSubmitting}
+          data-testid="org-currency-select"
           className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
         >
           <option value="USD">USD - US Dollar</option>
@@ -381,6 +551,7 @@ function CreateOrganizationForm({ onCancel }: { readonly onCancel: () => void })
           type="button"
           onClick={onCancel}
           disabled={isSubmitting}
+          data-testid="cancel-create-org-button"
           className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 font-medium text-gray-700 hover:bg-gray-50 disabled:bg-gray-50 disabled:text-gray-400"
         >
           Cancel
@@ -388,6 +559,7 @@ function CreateOrganizationForm({ onCancel }: { readonly onCancel: () => void })
         <button
           type="submit"
           disabled={isSubmitting}
+          data-testid="submit-create-org-button"
           className="flex-1 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-400"
         >
           {isSubmitting ? (

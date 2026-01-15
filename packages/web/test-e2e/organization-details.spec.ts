@@ -550,12 +550,12 @@ test.describe("Organization Details Page", () => {
     // 7. Click on organization card (it's now a link)
     await page.getByText(orgName).click()
 
-    // 8. Should be on organization details page
-    await page.waitForURL(/\/organizations\/[^/]+$/)
-    expect(page.url()).toContain(`/organizations/${orgData.id}`)
+    // 8. Should be on organization dashboard (card click goes to dashboard)
+    await page.waitForURL(/\/organizations\/[^/]+\/dashboard/)
+    expect(page.url()).toContain(`/organizations/${orgData.id}/dashboard`)
 
-    // 9. Should show organization details
-    await expect(page.getByRole("heading", { name: orgName })).toBeVisible()
+    // 9. Should show organization name on dashboard
+    await expect(page.getByTestId("org-dashboard-name")).toContainText(orgName)
   })
 
   test("should show breadcrumb navigation", async ({ page, request }) => {
