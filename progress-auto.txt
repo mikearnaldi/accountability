@@ -151,3 +151,8 @@
 **Task**: Fixed Issue 19 (CRITICAL) - Organization Selector Shows Empty List When In Organization Context. Created a layout route (`packages/web/src/routes/organizations/$organizationId/route.tsx`) that fetches all organizations once in `beforeLoad` and provides them to all child routes via route context. Updated all 19 child route files under `$organizationId/` to access `context.organizations` and pass it to AppLayout. This ensures the organization selector dropdown always shows the full list of organizations regardless of which page the user is on or which organization they switch to. All 178 E2E tests pass and typecheck is clean.
 **Status**: complete
 ---
+
+## Iteration 5 - 2026-01-15 18:36
+**Task**: Fixed 3 remaining UI issues - Issue 20 (removed redundant organization display from sidebar), Issue 22 (made breadcrumbs responsive with overflow handling, truncation, and mobile-friendly collapsing), and Issue 21 (replaced CSS Grid with HTML table for Chart of Accounts to fix column alignment issues). All 178 E2E tests pass and typecheck is clean.
+**Status**: complete
+---

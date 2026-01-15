@@ -567,55 +567,60 @@ function AccountTreeView({
   readonly onEditAccount: (account: Account) => void
 }) {
   return (
-    <div className="rounded-lg border border-gray-200 bg-white" data-testid="accounts-tree">
-      {/* Header */}
-      <div className="grid grid-cols-12 gap-4 border-b border-gray-200 bg-gray-50 px-4 py-3 text-sm font-medium uppercase tracking-wider text-gray-500" data-testid="accounts-tree-header">
-        <div className="col-span-4" data-testid="header-account">
-          <Tooltip content="Account number and name in the chart of accounts">
-            <span className="cursor-help">Account</span>
-          </Tooltip>
-        </div>
-        <div className="col-span-2" data-testid="header-type">
-          <Tooltip content="Account classification: Asset, Liability, Equity, Revenue, or Expense">
-            <span className="cursor-help">Type</span>
-          </Tooltip>
-        </div>
-        <div className="col-span-2" data-testid="header-category">
-          <Tooltip content="Specific category within the account type (e.g., Current Asset, Fixed Asset)">
-            <span className="cursor-help">Category</span>
-          </Tooltip>
-        </div>
-        <div className="col-span-1 text-center" data-testid="header-normal-balance">
-          <Tooltip content="Normal balance side: Dr (Debit) for assets/expenses, Cr (Credit) for liabilities/equity/revenue">
-            <span className="cursor-help">Normal</span>
-          </Tooltip>
-        </div>
-        <div className="col-span-1 text-center" data-testid="header-postable">
-          <Tooltip content="Whether journal entries can be posted directly to this account (non-postable accounts are summary/grouping accounts)">
-            <span className="cursor-help">Postable</span>
-          </Tooltip>
-        </div>
-        <div className="col-span-1 text-center" data-testid="header-status">
-          <Tooltip content="Current state: Active accounts can receive transactions, Inactive accounts are disabled">
-            <span className="cursor-help">Status</span>
-          </Tooltip>
-        </div>
-        <div className="col-span-1"></div>
-      </div>
+    <div className="rounded-lg border border-gray-200 bg-white overflow-x-auto" data-testid="accounts-tree">
+      {/* Use table for proper column alignment */}
+      <table className="w-full min-w-[800px]">
+        {/* Header */}
+        <thead>
+          <tr className="border-b border-gray-200 bg-gray-50 text-sm font-medium uppercase tracking-wider text-gray-500" data-testid="accounts-tree-header">
+            <th className="w-[33%] px-4 py-3 text-left" data-testid="header-account">
+              <Tooltip content="Account number and name in the chart of accounts">
+                <span className="cursor-help">Account</span>
+              </Tooltip>
+            </th>
+            <th className="w-[14%] px-4 py-3 text-left" data-testid="header-type">
+              <Tooltip content="Account classification: Asset, Liability, Equity, Revenue, or Expense">
+                <span className="cursor-help">Type</span>
+              </Tooltip>
+            </th>
+            <th className="w-[17%] px-4 py-3 text-left" data-testid="header-category">
+              <Tooltip content="Specific category within the account type (e.g., Current Asset, Fixed Asset)">
+                <span className="cursor-help">Category</span>
+              </Tooltip>
+            </th>
+            <th className="w-[9%] px-4 py-3 text-center" data-testid="header-normal-balance">
+              <Tooltip content="Normal balance side: Dr (Debit) for assets/expenses, Cr (Credit) for liabilities/equity/revenue">
+                <span className="cursor-help">Normal</span>
+              </Tooltip>
+            </th>
+            <th className="w-[9%] px-4 py-3 text-center" data-testid="header-postable">
+              <Tooltip content="Whether journal entries can be posted directly to this account (non-postable accounts are summary/grouping accounts)">
+                <span className="cursor-help">Postable</span>
+              </Tooltip>
+            </th>
+            <th className="w-[9%] px-4 py-3 text-center" data-testid="header-status">
+              <Tooltip content="Current state: Active accounts can receive transactions, Inactive accounts are disabled">
+                <span className="cursor-help">Status</span>
+              </Tooltip>
+            </th>
+            <th className="w-[9%] px-4 py-3"></th>
+          </tr>
+        </thead>
 
-      {/* Tree Rows */}
-      <div className="divide-y divide-gray-100">
-        {tree.map((node) => (
-          <AccountTreeRow
-            key={node.account.id}
-            node={node}
-            depth={0}
-            expandedIds={expandedIds}
-            onToggleExpand={onToggleExpand}
-            onEditAccount={onEditAccount}
-          />
-        ))}
-      </div>
+        {/* Tree Rows */}
+        <tbody className="divide-y divide-gray-100">
+          {tree.map((node) => (
+            <AccountTreeRow
+              key={node.account.id}
+              node={node}
+              depth={0}
+              expandedIds={expandedIds}
+              onToggleExpand={onToggleExpand}
+              onEditAccount={onEditAccount}
+            />
+          ))}
+        </tbody>
+      </table>
     </div>
   )
 }
@@ -639,12 +644,12 @@ function AccountTreeRow({
 
   return (
     <>
-      <div
-        className="grid grid-cols-12 items-center gap-4 px-4 py-3 hover:bg-gray-50"
+      <tr
+        className="hover:bg-gray-50"
         data-testid={`account-row-${account.accountNumber}`}
       >
         {/* Account Name & Number */}
-        <div className="col-span-4 flex items-center gap-2" data-testid={`account-name-${account.accountNumber}`}>
+        <td className="px-4 py-3" data-testid={`account-name-${account.accountNumber}`}>
           <div
             className="flex items-center"
             style={{ paddingLeft: `${depth * 24}px` }}
@@ -677,24 +682,24 @@ function AccountTreeRow({
             </span>
             <span className="font-medium text-gray-900">{account.name}</span>
           </div>
-        </div>
+        </td>
 
         {/* Type */}
-        <div className="col-span-2" data-testid={`account-type-${account.accountNumber}`}>
+        <td className="px-4 py-3" data-testid={`account-type-${account.accountNumber}`}>
           <span
             className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getAccountTypeColor(account.accountType)}`}
           >
             {account.accountType}
           </span>
-        </div>
+        </td>
 
         {/* Category */}
-        <div className="col-span-2 text-sm text-gray-600" data-testid={`account-category-${account.accountNumber}`}>
+        <td className="px-4 py-3 text-sm text-gray-600" data-testid={`account-category-${account.accountNumber}`}>
           {formatAccountCategory(account.accountCategory)}
-        </div>
+        </td>
 
         {/* Normal Balance */}
-        <div className="col-span-1 text-center" data-testid={`account-normal-balance-${account.accountNumber}`}>
+        <td className="px-4 py-3 text-center" data-testid={`account-normal-balance-${account.accountNumber}`}>
           <span
             className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${
               account.normalBalance === "Debit"
@@ -704,10 +709,10 @@ function AccountTreeRow({
           >
             {account.normalBalance === "Debit" ? "Dr" : "Cr"}
           </span>
-        </div>
+        </td>
 
         {/* Postable */}
-        <div className="col-span-1 text-center" data-testid={`account-postable-${account.accountNumber}`}>
+        <td className="px-4 py-3 text-center" data-testid={`account-postable-${account.accountNumber}`}>
           {account.isPostable ? (
             <span className="text-green-600">
               <svg
@@ -727,10 +732,10 @@ function AccountTreeRow({
           ) : (
             <span className="text-gray-400">—</span>
           )}
-        </div>
+        </td>
 
         {/* Status */}
-        <div className="col-span-1 text-center" data-testid={`account-status-${account.accountNumber}`}>
+        <td className="px-4 py-3 text-center" data-testid={`account-status-${account.accountNumber}`}>
           <span
             className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
               account.isActive
@@ -740,10 +745,10 @@ function AccountTreeRow({
           >
             {account.isActive ? "Active" : "Inactive"}
           </span>
-        </div>
+        </td>
 
         {/* Actions */}
-        <div className="col-span-1 text-right">
+        <td className="px-4 py-3 text-right">
           <button
             onClick={() => onEditAccount(account)}
             data-testid={`edit-account-${account.accountNumber}`}
@@ -765,8 +770,8 @@ function AccountTreeRow({
               />
             </svg>
           </button>
-        </div>
-      </div>
+        </td>
+      </tr>
 
       {/* Children */}
       {hasChildren &&

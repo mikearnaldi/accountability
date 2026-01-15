@@ -465,16 +465,6 @@ export function Sidebar({ isCollapsed, onToggleCollapse, currentOrganization, co
           </Link>
         </div>
 
-        {/* Organization Context Indicator */}
-        {currentOrganization && !isCollapsed && (
-          <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
-            <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Current Organization</p>
-            <p className="text-sm font-medium text-gray-900 truncate" data-testid="sidebar-current-org">
-              {currentOrganization.name}
-            </p>
-          </div>
-        )}
-
         {/* Quick Action Menu - ALWAYS visible per spec (Organization is always available) */}
         <div className="px-3 py-3 border-b border-gray-100">
           <QuickActionMenu

@@ -48,44 +48,35 @@ This section tracks known issues, implementation status, and priorities.
   2. List of organizations to choose from (or empty state message if none exist)
   3. No footer actions - organization creation is handled via "+ New > Organization" in the sidebar
 
-### Issue 21: Chart of Accounts Table Header Doesn't Resize Correctly
-- **Status**: Open
-- **Problem**: The header row in the Chart of Accounts table does not resize correctly when the browser window is shrunk. The header columns become misaligned or overflow.
-- **Expected**: Table header should be responsive and resize proportionally with the table body when window width changes
-- **Location**: `/organizations/:id/companies/:companyId/accounts` page
-- **Fix**: Investigate and fix the table layout:
-  1. Ensure table uses proper responsive CSS (`table-layout: fixed` or `auto` as appropriate)
-  2. Check if header and body columns have matching width definitions
-  3. Consider using `min-width` instead of fixed widths
-  4. May need horizontal scroll wrapper for very narrow viewports
-  5. Test with sidebar collapsed and expanded
-- **Files to investigate**:
+### Issue 21: Chart of Accounts Table Header Doesn't Resize Correctly - RESOLVED
+- **Status**: Completed
+- **Resolution**: Replaced CSS Grid layout with semantic HTML table (`<table>`, `<thead>`, `<tbody>`, `<tr>`, `<th>`, `<td>`):
+  1. Changed outer container from grid to table with `overflow-x-auto` wrapper
+  2. Added `min-w-[800px]` to ensure table doesn't shrink below readable size
+  3. Used percentage-based column widths (`w-[33%]`, `w-[14%]`, etc.) for proportional resizing
+  4. Header and body columns now perfectly align since they share the same table structure
+  5. At narrow viewports, table scrolls horizontally instead of columns collapsing
+  6. Works correctly with sidebar collapsed and expanded
+- **Files modified**:
   - `packages/web/src/routes/organizations/$organizationId/companies/$companyId/accounts/index.tsx`
-  - `packages/web/src/components/accounts/AccountTree.tsx` (if table is here)
-  - Any shared Table component used
 
-### Issue 22: Breadcrumbs Don't Resize Correctly
-- **Status**: Open
-- **Problem**: Breadcrumbs don't resize correctly when the browser window is shrunk - they overflow or break layout
-- **Expected**: Breadcrumbs should be responsive:
-  1. Truncate long segment names with ellipsis when space is limited
-  2. On very narrow viewports, consider collapsing middle segments (e.g., "Home > ... > Current Page")
-  3. Never overflow the container or cause horizontal scrolling
-- **Fix**:
-  1. Add `overflow-hidden` and `text-ellipsis` to breadcrumb container
-  2. Set `max-width` on individual breadcrumb segments
-  3. Consider responsive behavior: hide middle segments on mobile, show only first and last
-  4. Use `flex-shrink` to allow segments to shrink proportionally
-- **Files to modify**:
+### Issue 22: Breadcrumbs Don't Resize Correctly - RESOLVED
+- **Status**: Completed
+- **Resolution**: Updated breadcrumbs to be fully responsive with proper overflow handling:
+  1. Added `min-w-0 overflow-hidden` to the nav container to prevent horizontal overflow
+  2. Added `flex-shrink-0` to icons and separators so they don't shrink
+  3. Added `truncate` and `max-w-[150px]` to intermediate breadcrumb segments
+  4. Added `truncate` and `max-w-[200px] sm:max-w-[300px]` to the last (current) segment
+  5. Added `hidden sm:block` and `hidden sm:flex` to hide "Organizations" link and middle segments on mobile
+  6. On very narrow viewports, only shows: Home > Organization > Current Page
+- **Files modified**:
   - `packages/web/src/components/layout/Breadcrumbs.tsx`
 
-### Issue 20: Remove Redundant Organization Display from Sidebar
-- **Status**: Open
-- **Problem**: The sidebar shows the current organization name, but this is redundant because the header already displays the current organization in the organization selector dropdown
-- **Expected**: Remove the organization name/display from the sidebar to avoid duplication
-- **Rationale**: The header's organization selector already shows the current org name. Showing it again in the sidebar wastes space and creates visual clutter.
-- **Files to modify**:
-  - `packages/web/src/components/layout/Sidebar.tsx`
+### Issue 20: Remove Redundant Organization Display from Sidebar - RESOLVED
+- **Status**: Completed
+- **Resolution**: Removed the "Current Organization" section (data-testid="sidebar-current-org") from the Sidebar component. The header's OrganizationSelector already displays the current organization name, so showing it again in the sidebar was redundant and wasted space.
+- **Files modified**:
+  - `packages/web/src/components/layout/Sidebar.tsx` - Removed lines 468-476
 
 ### Issue 19: Organization Selector Shows Empty List When In Organization Context - RESOLVED
 - **Status**: Completed

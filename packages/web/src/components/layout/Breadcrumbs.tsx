@@ -115,7 +115,7 @@ export function Breadcrumbs({ items, showHome = true, organization }: Breadcrumb
   if (isOrganizationsPage && !organization) {
     return (
       <nav
-        className="flex items-center gap-2 text-sm mb-6"
+        className="flex items-center gap-2 text-sm mb-6 min-w-0 overflow-hidden"
         aria-label="Breadcrumb"
         data-testid="breadcrumbs"
       >
@@ -124,14 +124,14 @@ export function Breadcrumbs({ items, showHome = true, organization }: Breadcrumb
             <Link
               to="/"
               data-testid="breadcrumb-home"
-              className="flex items-center text-gray-500 hover:text-gray-700 transition-colors"
+              className="flex items-center flex-shrink-0 text-gray-500 hover:text-gray-700 transition-colors"
             >
               <Home className="h-4 w-4" />
             </Link>
-            <ChevronRight className="h-4 w-4 text-gray-400" />
+            <ChevronRight className="h-4 w-4 flex-shrink-0 text-gray-400" />
           </>
         )}
-        <span className="text-gray-900 font-medium" data-testid="breadcrumb-current">
+        <span className="text-gray-900 font-medium truncate" data-testid="breadcrumb-current">
           Organizations
         </span>
       </nav>
@@ -140,7 +140,7 @@ export function Breadcrumbs({ items, showHome = true, organization }: Breadcrumb
 
   return (
     <nav
-      className="flex items-center gap-2 text-sm mb-6"
+      className="flex items-center gap-2 text-sm mb-6 min-w-0 overflow-hidden"
       aria-label="Breadcrumb"
       data-testid="breadcrumbs"
     >
@@ -150,11 +150,11 @@ export function Breadcrumbs({ items, showHome = true, organization }: Breadcrumb
           <Link
             to="/"
             data-testid="breadcrumb-home"
-            className="flex items-center text-gray-500 hover:text-gray-700 transition-colors"
+            className="flex items-center flex-shrink-0 text-gray-500 hover:text-gray-700 transition-colors"
           >
             <Home className="h-4 w-4" />
           </Link>
-          <ChevronRight className="h-4 w-4 text-gray-400" />
+          <ChevronRight className="h-4 w-4 flex-shrink-0 text-gray-400" />
         </>
       )}
 
@@ -164,33 +164,35 @@ export function Breadcrumbs({ items, showHome = true, organization }: Breadcrumb
           <Link
             to="/organizations"
             data-testid="breadcrumb-organizations"
-            className="text-gray-500 hover:text-gray-700 transition-colors"
+            className="hidden sm:block flex-shrink-0 text-gray-500 hover:text-gray-700 transition-colors"
           >
             Organizations
           </Link>
-          <ChevronRight className="h-4 w-4 text-gray-400" />
+          <ChevronRight className="hidden sm:block h-4 w-4 flex-shrink-0 text-gray-400" />
           <Link
             to="/organizations/$organizationId"
             params={{ organizationId: organization.id }}
             data-testid="breadcrumb-organization"
-            className="flex items-center gap-1.5 text-gray-500 hover:text-gray-700 transition-colors"
+            className="flex items-center gap-1.5 min-w-0 flex-shrink text-gray-500 hover:text-gray-700 transition-colors"
           >
-            <Building2 className="h-4 w-4" />
+            <Building2 className="h-4 w-4 flex-shrink-0" />
             <span className="max-w-[150px] truncate">{organization.name}</span>
           </Link>
-          {breadcrumbItems.length > 0 && <ChevronRight className="h-4 w-4 text-gray-400" />}
+          {breadcrumbItems.length > 0 && <ChevronRight className="h-4 w-4 flex-shrink-0 text-gray-400" />}
         </>
       )}
 
       {/* Breadcrumb Items */}
       {breadcrumbItems.map((item, index) => {
         const isLast = index === breadcrumbItems.length - 1
+        // On mobile, hide middle items if there are more than 2
+        const hideOnMobile = !isLast && index > 0 && breadcrumbItems.length > 2
 
         return (
-          <span key={item.href} className="flex items-center gap-2">
+          <span key={item.href} className={`flex items-center gap-2 min-w-0 ${isLast ? 'flex-shrink' : 'flex-shrink-0'} ${hideOnMobile ? 'hidden sm:flex' : ''}`}>
             {isLast ? (
               <span
-                className="text-gray-900 font-medium"
+                className="text-gray-900 font-medium truncate max-w-[200px] sm:max-w-[300px]"
                 data-testid={`breadcrumb-${index}`}
               >
                 {item.label}
@@ -200,11 +202,11 @@ export function Breadcrumbs({ items, showHome = true, organization }: Breadcrumb
                 <Link
                   to={item.href}
                   data-testid={`breadcrumb-${index}`}
-                  className="text-gray-500 hover:text-gray-700 transition-colors"
+                  className="text-gray-500 hover:text-gray-700 transition-colors truncate max-w-[150px]"
                 >
                   {item.label}
                 </Link>
-                <ChevronRight className="h-4 w-4 text-gray-400" />
+                <ChevronRight className="h-4 w-4 flex-shrink-0 text-gray-400" />
               </>
             )}
           </span>
