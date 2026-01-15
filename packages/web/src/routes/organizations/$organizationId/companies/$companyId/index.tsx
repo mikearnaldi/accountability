@@ -303,6 +303,7 @@ function CompanyDetailsPage() {
       currentOrganization={organization}
       breadcrumbItems={breadcrumbItems}
       companies={companiesForSidebar}
+      currentCompany={company ? { id: company.id, name: company.name } : null}
     >
       <div className="space-y-6" data-testid="company-details-page">
           {/* Company Header Card with Name, Status Badge, and Jurisdiction */}

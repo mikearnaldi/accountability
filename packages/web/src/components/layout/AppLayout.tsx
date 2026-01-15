@@ -47,6 +47,8 @@ interface AppLayoutProps {
   readonly breadcrumbItems?: readonly BreadcrumbItem[]
   /** Companies in the current organization (for sidebar quick actions) */
   readonly companies?: readonly { readonly id: string; readonly name: string }[]
+  /** Currently selected company (for company sub-navigation in sidebar) */
+  readonly currentCompany?: { readonly id: string; readonly name: string } | null
 }
 
 // =============================================================================
@@ -61,7 +63,8 @@ export function AppLayout({
   organizationsLoading = false,
   showBreadcrumbs = true,
   breadcrumbItems,
-  companies = []
+  companies = [],
+  currentCompany = null
 }: AppLayoutProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
@@ -79,6 +82,7 @@ export function AppLayout({
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
         currentOrganization={normalizedOrg}
         companies={companies}
+        currentCompany={currentCompany}
       />
 
       {/* Main Content Area */}

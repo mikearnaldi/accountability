@@ -34,7 +34,8 @@ import {
   ChevronDown,
   BarChart3,
   PieChart,
-  DollarSign
+  DollarSign,
+  Calendar
 } from "lucide-react"
 import type { Organization } from "./OrganizationSelector.tsx"
 
@@ -66,6 +67,8 @@ interface SidebarProps {
   readonly currentOrganization?: Organization | null
   /** Companies in the current organization (for creating journal entries, accounts) */
   readonly companies?: readonly { readonly id: string; readonly name: string }[]
+  /** Currently selected company (for company sub-navigation) */
+  readonly currentCompany?: { readonly id: string; readonly name: string } | null
 }
 
 interface QuickActionItem {
@@ -442,10 +445,231 @@ function NavItemComponent({ item, isCollapsed, currentOrganization, isMobile, on
 }
 
 // =============================================================================
+// Companies Nav Section Component (with company sub-navigation)
+// =============================================================================
+
+interface CompaniesNavSectionProps {
+  readonly organizationId: string
+  readonly companies: readonly { readonly id: string; readonly name: string }[]
+  readonly currentCompany: { readonly id: string; readonly name: string } | null
+  readonly isCollapsed: boolean
+  readonly isMobile?: boolean
+  readonly onNavigate?: () => void
+}
+
+function CompaniesNavSection({
+  organizationId,
+  companies,
+  currentCompany,
+  isCollapsed,
+  isMobile = false,
+  onNavigate
+}: CompaniesNavSectionProps) {
+  const location = useLocation()
+  const [isExpanded, setIsExpanded] = useState(false)
+
+  // Auto-expand when on a company page
+  const isOnCompanyPage = location.pathname.includes(`/organizations/${organizationId}/companies/`) &&
+    !location.pathname.endsWith('/companies') &&
+    !location.pathname.endsWith('/companies/')
+
+  // Auto-expand when there's a current company selected
+  useEffect(() => {
+    if ((currentCompany || isOnCompanyPage) && !isCollapsed) {
+      setIsExpanded(true)
+    }
+  }, [currentCompany, isOnCompanyPage, isCollapsed])
+
+  const companiesHref = `/organizations/${organizationId}/companies`
+  const isCompaniesActive = location.pathname.startsWith(companiesHref)
+
+  // Company-specific sub-nav items (using route templates for TanStack Router)
+  // Items with available=true have links, items with available=false are shown as disabled placeholders
+  type AvailableRoute =
+    | "/organizations/$organizationId/companies/$companyId/accounts"
+    | "/organizations/$organizationId/companies/$companyId/journal-entries"
+    | "/organizations/$organizationId/companies/$companyId/reports"
+
+  type CompanySubNavItem =
+    | { label: string; to: AvailableRoute; pathSuffix: string; icon: typeof CreditCard; testId: string; available: true }
+    | { label: string; pathSuffix: string; icon: typeof CreditCard; testId: string; available: false }
+
+  const companySubNavItems: readonly CompanySubNavItem[] = [
+    {
+      label: "Chart of Accounts",
+      to: "/organizations/$organizationId/companies/$companyId/accounts",
+      pathSuffix: "/accounts",
+      icon: CreditCard,
+      testId: "nav-company-accounts",
+      available: true
+    },
+    {
+      label: "Journal Entries",
+      to: "/organizations/$organizationId/companies/$companyId/journal-entries",
+      pathSuffix: "/journal-entries",
+      icon: FileText,
+      testId: "nav-company-journal-entries",
+      available: true
+    },
+    {
+      label: "Reports",
+      to: "/organizations/$organizationId/companies/$companyId/reports",
+      pathSuffix: "/reports",
+      icon: BarChart3,
+      testId: "nav-company-reports",
+      available: true
+    },
+    {
+      label: "Fiscal Periods",
+      pathSuffix: "/fiscal",
+      icon: Calendar,
+      testId: "nav-company-fiscal",
+      available: false
+    }
+  ]
+
+  if (isCollapsed) {
+    // In collapsed mode, just show the icon
+    return (
+      <Link
+        to="/organizations/$organizationId/companies"
+        params={{ organizationId }}
+        data-testid={isMobile ? "mobile-nav-companies" : "nav-companies"}
+        onClick={onNavigate}
+        className={clsx(
+          "flex items-center justify-center px-3 py-2.5 rounded-lg transition-colors",
+          isCompaniesActive
+            ? "bg-blue-50 text-blue-700 font-medium"
+            : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+        )}
+        title="Companies"
+      >
+        <Building className="h-5 w-5 flex-shrink-0" />
+      </Link>
+    )
+  }
+
+  return (
+    <div>
+      {/* Companies header (clickable to expand/collapse) */}
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        data-testid={isMobile ? "mobile-nav-companies" : "nav-companies"}
+        className={clsx(
+          "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors w-full",
+          isCompaniesActive
+            ? "bg-blue-50 text-blue-700 font-medium"
+            : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+        )}
+      >
+        <Building className="h-5 w-5 flex-shrink-0" />
+        <span className="flex-1 text-left">Companies</span>
+        <ChevronDown
+          className={clsx(
+            "h-4 w-4 transition-transform",
+            isExpanded && "rotate-180"
+          )}
+        />
+      </button>
+
+      {/* Expanded companies list with sub-navigation */}
+      {isExpanded && (
+        <div className="ml-4 mt-1 space-y-1 border-l border-gray-200 pl-3">
+          {companies.map((company) => {
+            const isSelected = currentCompany?.id === company.id
+            const companyHref = `/organizations/${organizationId}/companies/${company.id}`
+            const isActive = location.pathname.startsWith(companyHref)
+
+            return (
+              <div key={company.id}>
+                {/* Company name (links to company detail) */}
+                <Link
+                  to="/organizations/$organizationId/companies/$companyId"
+                  params={{ organizationId, companyId: company.id }}
+                  data-testid={isMobile ? `mobile-nav-company-${company.id}` : `nav-company-${company.id}`}
+                  onClick={onNavigate}
+                  className={clsx(
+                    "flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors",
+                    isActive
+                      ? "text-blue-700 font-medium bg-blue-50"
+                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                  )}
+                >
+                  <Building2 className="h-4 w-4 flex-shrink-0" />
+                  <span className="truncate">{company.name}</span>
+                </Link>
+
+                {/* Company sub-navigation (shown when this company is selected) */}
+                {isSelected && (
+                  <div className="ml-4 mt-1 space-y-0.5 border-l border-gray-200 pl-3">
+                    {companySubNavItems.map((subItem) => {
+                      const subItemPath = `${companyHref}${subItem.pathSuffix}`
+                      const subIsActive = location.pathname.startsWith(subItemPath)
+                      const Icon = subItem.icon
+
+                      // If not available, show as disabled
+                      if (!subItem.available) {
+                        return (
+                          <div
+                            key={subItem.testId}
+                            data-testid={isMobile ? `mobile-${subItem.testId}` : subItem.testId}
+                            className="flex items-center gap-2 px-2 py-1.5 text-xs text-gray-400 cursor-not-allowed"
+                            title="Coming soon"
+                          >
+                            <Icon className="h-3.5 w-3.5 flex-shrink-0" />
+                            <span>{subItem.label}</span>
+                            <span className="ml-auto text-[10px] bg-gray-100 px-1 py-0.5 rounded text-gray-500">Soon</span>
+                          </div>
+                        )
+                      }
+
+                      return (
+                        <Link
+                          key={subItem.testId}
+                          to={subItem.to}
+                          params={{ organizationId, companyId: company.id }}
+                          data-testid={isMobile ? `mobile-${subItem.testId}` : subItem.testId}
+                          onClick={onNavigate}
+                          className={clsx(
+                            "flex items-center gap-2 px-2 py-1.5 text-xs rounded transition-colors",
+                            subIsActive
+                              ? "text-blue-700 font-medium"
+                              : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
+                          )}
+                        >
+                          <Icon className="h-3.5 w-3.5 flex-shrink-0" />
+                          <span>{subItem.label}</span>
+                        </Link>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+
+          {/* Add Company link */}
+          <Link
+            to="/organizations/$organizationId/companies"
+            params={{ organizationId }}
+            data-testid={isMobile ? "mobile-nav-add-company" : "nav-add-company"}
+            onClick={onNavigate}
+            className="flex items-center gap-2 px-3 py-2 text-sm text-gray-500 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
+          >
+            <Plus className="h-4 w-4 flex-shrink-0" />
+            <span>Add Company</span>
+          </Link>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// =============================================================================
 // Sidebar Component
 // =============================================================================
 
-export function Sidebar({ isCollapsed, onToggleCollapse, currentOrganization, companies = [] }: SidebarProps) {
+export function Sidebar({ isCollapsed, onToggleCollapse, currentOrganization, companies = [], currentCompany = null }: SidebarProps) {
   const navItems = getNavItems(currentOrganization?.id)
 
   return (
@@ -510,14 +734,29 @@ export function Sidebar({ isCollapsed, onToggleCollapse, currentOrganization, co
 
         {/* Navigation */}
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {navItems.map((item) => (
-            <NavItemComponent
-              key={item.href}
-              item={item}
-              isCollapsed={isCollapsed}
-              currentOrganization={currentOrganization}
-            />
-          ))}
+          {navItems.map((item) => {
+            // Use CompaniesNavSection for the Companies item when organization is selected
+            if (item.testId === "nav-companies" && currentOrganization) {
+              return (
+                <CompaniesNavSection
+                  key={item.href}
+                  organizationId={currentOrganization.id}
+                  companies={companies}
+                  currentCompany={currentCompany}
+                  isCollapsed={isCollapsed}
+                />
+              )
+            }
+
+            return (
+              <NavItemComponent
+                key={item.href}
+                item={item}
+                isCollapsed={isCollapsed}
+                currentOrganization={currentOrganization}
+              />
+            )
+          })}
         </nav>
 
         {/* Collapse Toggle */}
@@ -556,9 +795,11 @@ interface MobileSidebarProps {
   readonly currentOrganization?: Organization | null
   /** Companies in the current organization */
   readonly companies?: readonly { readonly id: string; readonly name: string }[]
+  /** Currently selected company (for company sub-navigation) */
+  readonly currentCompany?: { readonly id: string; readonly name: string } | null
 }
 
-export function MobileSidebar({ organizations = [], currentOrganization, companies = [] }: MobileSidebarProps) {
+export function MobileSidebar({ organizations = [], currentOrganization, companies = [], currentCompany = null }: MobileSidebarProps) {
   const [isOpen, setIsOpen] = useState(false)
   const navigate = useNavigate()
   const navItems = getNavItems(currentOrganization?.id)
@@ -678,16 +919,33 @@ export function MobileSidebar({ organizations = [], currentOrganization, compani
 
             {/* Navigation */}
             <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-              {navItems.map((item) => (
-                <NavItemComponent
-                  key={item.href}
-                  item={item}
-                  isCollapsed={false}
-                  currentOrganization={currentOrganization}
-                  isMobile={true}
-                  onNavigate={() => setIsOpen(false)}
-                />
-              ))}
+              {navItems.map((item) => {
+                // Use CompaniesNavSection for the Companies item when organization is selected
+                if (item.testId === "nav-companies" && currentOrganization) {
+                  return (
+                    <CompaniesNavSection
+                      key={item.href}
+                      organizationId={currentOrganization.id}
+                      companies={companies}
+                      currentCompany={currentCompany}
+                      isCollapsed={false}
+                      isMobile={true}
+                      onNavigate={() => setIsOpen(false)}
+                    />
+                  )
+                }
+
+                return (
+                  <NavItemComponent
+                    key={item.href}
+                    item={item}
+                    isCollapsed={false}
+                    currentOrganization={currentOrganization}
+                    isMobile={true}
+                    onNavigate={() => setIsOpen(false)}
+                  />
+                )
+              })}
             </nav>
           </aside>
         </div>

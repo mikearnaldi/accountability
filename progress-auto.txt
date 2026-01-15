@@ -16,3 +16,8 @@
 **Task**: Fixed flaky E2E tests by adding explicit modal/form waits after button clicks and enabling test retries. The key changes were:
 **Status**: complete
 ---
+
+## Iteration 4 - 2026-01-15 14:13
+**Task**: Implemented company sub-navigation in sidebar per UI_ARCHITECTURE.md spec
+**Status**: complete
+---

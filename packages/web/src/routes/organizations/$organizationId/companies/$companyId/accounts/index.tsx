@@ -328,6 +328,7 @@ function ChartOfAccountsPage() {
       currentOrganization={organization}
       breadcrumbItems={breadcrumbItems}
       companies={companiesForSidebar}
+      currentCompany={{ id: company.id, name: company.name }}
     >
       <div data-testid="accounts-page">
         {/* Page Header */}
