@@ -169,6 +169,7 @@ run_ci_checks() {
     log "INFO" "Running CI checks..."
 
     local ci_failed=0
+    local error_output=""
 
     echo "=========================================="
     echo "Running CI Checks"
@@ -178,44 +179,84 @@ run_ci_checks() {
     echo ""
     echo "1. Type Checking..."
     echo "-------------------"
-    if pnpm typecheck 2>&1 | tee -a "$OUTPUT_DIR/ci.log"; then
+    local typecheck_output
+    if typecheck_output=$(pnpm typecheck 2>&1); then
         echo -e "${GREEN}Type check passed${NC}"
     else
         echo -e "${RED}Type check failed${NC}"
         ci_failed=1
+        error_output+="## Type Check Failed
+
+Command: \`pnpm typecheck\`
+
+\`\`\`
+$typecheck_output
+\`\`\`
+
+"
     fi
 
     # Linting
     echo ""
     echo "2. Linting..."
     echo "-------------"
-    if pnpm lint 2>&1 | tee -a "$OUTPUT_DIR/ci.log"; then
+    local lint_output
+    if lint_output=$(pnpm lint 2>&1); then
         echo -e "${GREEN}Lint passed${NC}"
     else
         echo -e "${RED}Lint failed${NC}"
         ci_failed=1
+        error_output+="## Lint Failed
+
+Command: \`pnpm lint\`
+
+\`\`\`
+$lint_output
+\`\`\`
+
+"
     fi
 
     # Building
     echo ""
     echo "3. Building..."
     echo "--------------"
-    if pnpm build 2>&1 | tee -a "$OUTPUT_DIR/ci.log"; then
+    local build_output
+    if build_output=$(pnpm build 2>&1); then
         echo -e "${GREEN}Build passed${NC}"
     else
         echo -e "${RED}Build failed${NC}"
         ci_failed=1
+        error_output+="## Build Failed
+
+Command: \`pnpm build\`
+
+\`\`\`
+$build_output
+\`\`\`
+
+"
     fi
 
     # Testing
     echo ""
     echo "4. Running Tests..."
     echo "-------------------"
-    if CI=true pnpm test 2>&1 | tee -a "$OUTPUT_DIR/ci.log"; then
+    local test_output
+    if test_output=$(CI=true pnpm test 2>&1); then
         echo -e "${GREEN}Tests passed${NC}"
     else
         echo -e "${RED}Tests failed${NC}"
         ci_failed=1
+        error_output+="## Unit Tests Failed
+
+Command: \`pnpm test\`
+
+\`\`\`
+$test_output
+\`\`\`
+
+"
     fi
 
     # E2E Testing (optional)
@@ -223,11 +264,21 @@ run_ci_checks() {
         echo ""
         echo "5. Running E2E Tests..."
         echo "-----------------------"
-        if pnpm test:e2e 2>&1 | tee -a "$OUTPUT_DIR/ci.log"; then
+        local e2e_output
+        if e2e_output=$(pnpm test:e2e 2>&1); then
             echo -e "${GREEN}E2E tests passed${NC}"
         else
             echo -e "${RED}E2E tests failed${NC}"
             ci_failed=1
+            error_output+="## E2E Tests Failed
+
+Command: \`pnpm test:e2e\`
+
+\`\`\`
+$e2e_output
+\`\`\`
+
+"
         fi
     fi
 
@@ -241,8 +292,14 @@ run_ci_checks() {
     else
         echo -e "${RED}CI checks failed!${NC}"
         log "ERROR" "CI checks failed"
-        # Save errors for feedback to next iteration
-        echo "The previous iteration failed CI checks. Please fix these errors before continuing." > "$OUTPUT_DIR/ci_errors.txt"
+        # Save detailed errors for feedback to next iteration
+        cat > "$OUTPUT_DIR/ci_errors.txt" << EOF
+# CI Check Failures
+
+The previous iteration failed CI checks. You MUST fix these errors before continuing.
+
+$error_output
+EOF
         return 1
     fi
 }
