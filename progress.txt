@@ -919,3 +919,8 @@
 **Story**: 3.3 - Organization settings page
 **Status**: complete
 ---
+
+## Iteration 54 - 2026-01-15 08:52
+**Story**: 4.1 - Companies list with hierarchy
+**Status**: complete
+---

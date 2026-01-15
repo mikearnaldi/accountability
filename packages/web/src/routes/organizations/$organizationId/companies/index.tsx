@@ -1,9 +1,12 @@
 import { createFileRoute, redirect, useRouter, Link } from "@tanstack/react-router"
 import { createServerFn } from "@tanstack/react-start"
 import { getCookie } from "@tanstack/react-start/server"
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { api } from "@/api/client"
 import { createServerApi } from "@/api/server"
+import { CompanyHierarchyTree, type Company } from "@/components/company/CompanyHierarchyTree"
+import { NoCompaniesEmptyState } from "@/components/ui/EmptyState"
+import { Button } from "@/components/ui/Button"
 
 // =============================================================================
 // Server Functions: Fetch organization and companies from API with cookie auth
@@ -140,30 +143,11 @@ export const Route = createFileRoute("/organizations/$organizationId/companies/"
 })
 
 // =============================================================================
-// Types (extracted from API response schema)
+// Types
 // =============================================================================
 
-interface Company {
-  readonly id: string
-  readonly organizationId: string
-  readonly name: string
-  readonly legalName: string
-  readonly jurisdiction: string
-  readonly taxId: string | null
-  readonly functionalCurrency: string
-  readonly reportingCurrency: string
-  readonly fiscalYearEnd: {
-    readonly month: number
-    readonly day: number
-  }
-  readonly parentCompanyId: string | null
-  readonly ownershipPercentage: number | null
-  readonly consolidationMethod: string | null
-  readonly isActive: boolean
-  readonly createdAt: {
-    readonly epochMillis: number
-  }
-}
+type StatusFilter = "all" | "active" | "inactive"
+type ConsolidationMethodType = "FullConsolidation" | "EquityMethod" | "CostMethod" | "VariableInterestEntity"
 
 // =============================================================================
 // Companies List Page Component
@@ -182,13 +166,29 @@ function CompaniesListPage() {
   /* eslint-enable @typescript-eslint/consistent-type-assertions */
   const params = Route.useParams()
   const [showCreateForm, setShowCreateForm] = useState(false)
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all")
+
+  // Filter companies by status
+  const filteredCompanies = useMemo(() => {
+    if (statusFilter === "all") return companies
+    return companies.filter((company) =>
+      statusFilter === "active" ? company.isActive : !company.isActive
+    )
+  }, [companies, statusFilter])
+
+  // Count active/inactive for filter badges
+  const activeCount = useMemo(
+    () => companies.filter((c) => c.isActive).length,
+    [companies]
+  )
+  const inactiveCount = companies.length - activeCount
 
   if (!organization) {
     return null
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50" data-testid="companies-list-page">
       {/* Header */}
       <header className="border-b border-gray-200 bg-white">
         <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
@@ -217,16 +217,46 @@ function CompaniesListPage() {
       {/* Main Content */}
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Actions Bar */}
-        <div className="mb-6 flex items-center justify-between">
-          <p className="text-sm text-gray-500">
-            {companiesTotal} compan{companiesTotal !== 1 ? "ies" : "y"} in {organization.name}
-          </p>
-          <button
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <p className="text-sm text-gray-500" data-testid="companies-count">
+              {companiesTotal} compan{companiesTotal !== 1 ? "ies" : "y"} in {organization.name}
+            </p>
+
+            {/* Status Filter */}
+            {companies.length > 0 && (
+              <div className="flex items-center gap-2" data-testid="status-filter">
+                <StatusFilterButton
+                  label="All"
+                  count={companies.length}
+                  isActive={statusFilter === "all"}
+                  onClick={() => setStatusFilter("all")}
+                  data-testid="filter-all"
+                />
+                <StatusFilterButton
+                  label="Active"
+                  count={activeCount}
+                  isActive={statusFilter === "active"}
+                  onClick={() => setStatusFilter("active")}
+                  data-testid="filter-active"
+                />
+                <StatusFilterButton
+                  label="Inactive"
+                  count={inactiveCount}
+                  isActive={statusFilter === "inactive"}
+                  onClick={() => setStatusFilter("inactive")}
+                  data-testid="filter-inactive"
+                />
+              </div>
+            )}
+          </div>
+
+          <Button
             onClick={() => setShowCreateForm(true)}
-            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            data-testid="create-company-button"
           >
             <svg
-              className="h-4 w-4"
+              className="mr-2 h-4 w-4"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -239,12 +269,15 @@ function CompaniesListPage() {
               />
             </svg>
             New Company
-          </button>
+          </Button>
         </div>
 
         {/* Create Company Modal */}
         {showCreateForm && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+            data-testid="create-company-modal"
+          >
             <div className="mx-4 w-full max-w-lg rounded-lg bg-white p-6 shadow-xl">
               <h2 className="mb-4 text-lg font-semibold text-gray-900">
                 Create Company
@@ -252,17 +285,57 @@ function CompaniesListPage() {
               <CreateCompanyForm
                 organizationId={params.organizationId}
                 defaultCurrency={organization.reportingCurrency}
+                existingCompanies={companies}
                 onCancel={() => setShowCreateForm(false)}
               />
             </div>
           </div>
         )}
 
-        {/* Companies List */}
+        {/* Companies List - Hierarchy Tree View */}
         {companies.length === 0 ? (
-          <CompaniesEmptyState onCreateClick={() => setShowCreateForm(true)} />
+          <NoCompaniesEmptyState
+            action={
+              <Button onClick={() => setShowCreateForm(true)}>
+                <svg
+                  className="mr-2 h-5 w-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 4v16m8-8H4"
+                  />
+                </svg>
+                Create Company
+              </Button>
+            }
+          />
+        ) : filteredCompanies.length === 0 ? (
+          <div
+            className="rounded-lg border border-gray-200 bg-white p-8 text-center"
+            data-testid="no-filtered-results"
+          >
+            <p className="text-gray-500">
+              No {statusFilter === "active" ? "active" : "inactive"} companies found.
+            </p>
+            <button
+              onClick={() => setStatusFilter("all")}
+              className="mt-2 text-blue-600 hover:text-blue-700"
+            >
+              Show all companies
+            </button>
+          </div>
         ) : (
-          <CompaniesGrid companies={companies} organizationId={params.organizationId} />
+          <div className="rounded-lg border border-gray-200 bg-white">
+            <CompanyHierarchyTree
+              companies={filteredCompanies}
+              organizationId={params.organizationId}
+            />
+          </div>
         )}
       </main>
     </div>
@@ -270,130 +343,44 @@ function CompaniesListPage() {
 }
 
 // =============================================================================
-// Companies Empty State Component
+// Status Filter Button Component
 // =============================================================================
 
-function CompaniesEmptyState({ onCreateClick }: { readonly onCreateClick: () => void }) {
-  return (
-    <div className="rounded-lg border border-gray-200 bg-white p-8 text-center">
-      <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
-        <svg
-          className="h-6 w-6 text-blue-600"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-          />
-        </svg>
-      </div>
-      <h3 className="mb-2 text-lg font-medium text-gray-900">No companies</h3>
-      <p className="mb-6 text-gray-500">
-        Get started by creating your first company in this organization.
-      </p>
-      <button
-        onClick={onCreateClick}
-        className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700"
-      >
-        <svg
-          className="h-5 w-5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M12 4v16m8-8H4"
-          />
-        </svg>
-        Create Company
-      </button>
-    </div>
-  )
+interface StatusFilterButtonProps {
+  readonly label: string
+  readonly count: number
+  readonly isActive: boolean
+  readonly onClick: () => void
+  readonly "data-testid"?: string
 }
 
-// =============================================================================
-// Companies Grid Component
-// =============================================================================
-
-function CompaniesGrid({
-  companies,
-  organizationId
-}: {
-  readonly companies: readonly Company[]
-  readonly organizationId: string
-}) {
+function StatusFilterButton({
+  label,
+  count,
+  isActive,
+  onClick,
+  "data-testid": testId
+}: StatusFilterButtonProps) {
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {companies.map((company) => (
-        <CompanyCard
-          key={company.id}
-          company={company}
-          organizationId={organizationId}
-        />
-      ))}
-    </div>
-  )
-}
-
-// =============================================================================
-// Company Card Component
-// =============================================================================
-
-function CompanyCard({
-  company,
-  organizationId
-}: {
-  readonly company: Company
-  readonly organizationId: string
-}) {
-  const fiscalYearEndDate = formatFiscalYearEnd(company.fiscalYearEnd)
-
-  return (
-    <Link
-      to="/organizations/$organizationId/companies/$companyId"
-      params={{ organizationId, companyId: company.id }}
-      className="block rounded-lg border border-gray-200 bg-white p-6 transition-shadow hover:shadow-md"
+    <button
+      type="button"
+      onClick={onClick}
+      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium transition-colors ${
+        isActive
+          ? "bg-blue-100 text-blue-800"
+          : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+      }`}
+      data-testid={testId}
     >
-      {/* Header */}
-      <div className="mb-4 flex items-start justify-between">
-        <div className="min-w-0 flex-1">
-          <h3 className="truncate font-medium text-gray-900">{company.name}</h3>
-          <p className="mt-1 truncate text-sm text-gray-500">{company.legalName}</p>
-        </div>
-        <span
-          className={`ml-2 inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-            company.isActive
-              ? "bg-green-100 text-green-800"
-              : "bg-gray-100 text-gray-600"
-          }`}
-        >
-          {company.isActive ? "Active" : "Inactive"}
-        </span>
-      </div>
-
-      {/* Details */}
-      <div className="space-y-2 text-sm">
-        <div className="flex items-center justify-between">
-          <span className="text-gray-500">Currency</span>
-          <span className="font-medium text-gray-900">{company.functionalCurrency}</span>
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="text-gray-500">Fiscal Year End</span>
-          <span className="font-medium text-gray-900">{fiscalYearEndDate}</span>
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="text-gray-500">Jurisdiction</span>
-          <span className="font-medium text-gray-900">{company.jurisdiction}</span>
-        </div>
-      </div>
-    </Link>
+      {label}
+      <span
+        className={`rounded-full px-1.5 py-0.5 text-xs ${
+          isActive ? "bg-blue-200 text-blue-900" : "bg-gray-200 text-gray-700"
+        }`}
+      >
+        {count}
+      </span>
+    </button>
   )
 }
 
@@ -404,10 +391,12 @@ function CompanyCard({
 function CreateCompanyForm({
   organizationId,
   defaultCurrency,
+  existingCompanies,
   onCancel
 }: {
   readonly organizationId: string
   readonly defaultCurrency: string
+  readonly existingCompanies: readonly Company[]
   readonly onCancel: () => void
 }) {
   const router = useRouter()
@@ -419,8 +408,17 @@ function CreateCompanyForm({
   const [reportingCurrency, setReportingCurrency] = useState(defaultCurrency)
   const [fiscalYearEndMonth, setFiscalYearEndMonth] = useState(12)
   const [fiscalYearEndDay, setFiscalYearEndDay] = useState(31)
+  const [parentCompanyId, setParentCompanyId] = useState<string | null>(null)
+  const [ownershipPercentage, setOwnershipPercentage] = useState<number | null>(null)
+  const [consolidationMethod, setConsolidationMethod] = useState<ConsolidationMethodType | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Filter existing companies for parent selection (only active companies)
+  const availableParents = useMemo(
+    () => existingCompanies.filter((c) => c.isActive),
+    [existingCompanies]
+  )
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -440,6 +438,18 @@ function CreateCompanyForm({
       return
     }
 
+    // Validate subsidiary fields
+    if (parentCompanyId !== null) {
+      if (ownershipPercentage === null || ownershipPercentage <= 0 || ownershipPercentage > 100) {
+        setError("Ownership percentage must be between 1 and 100 for subsidiaries")
+        return
+      }
+      if (!consolidationMethod) {
+        setError("Consolidation method is required for subsidiaries")
+        return
+      }
+    }
+
     setIsSubmitting(true)
     setError(null)
 
@@ -457,9 +467,9 @@ function CreateCompanyForm({
             day: fiscalYearEndDay
           },
           taxId: null,
-          parentCompanyId: null,
-          ownershipPercentage: null,
-          consolidationMethod: null
+          parentCompanyId,
+          ownershipPercentage,
+          consolidationMethod
         }
       })
 
@@ -484,6 +494,20 @@ function CreateCompanyForm({
     } catch {
       setError("An unexpected error occurred. Please try again.")
       setIsSubmitting(false)
+    }
+  }
+
+  // Auto-set consolidation method based on ownership percentage
+  const handleOwnershipChange = (value: number | null) => {
+    setOwnershipPercentage(value)
+    if (value !== null) {
+      if (value > 50) {
+        setConsolidationMethod("FullConsolidation")
+      } else if (value >= 20) {
+        setConsolidationMethod("EquityMethod")
+      } else {
+        setConsolidationMethod("CostMethod")
+      }
     }
   }
 
@@ -645,6 +669,102 @@ function CreateCompanyForm({
         </div>
       </div>
 
+      {/* Parent Company Section (Hierarchy) */}
+      {availableParents.length > 0 && (
+        <div className="border-t border-gray-200 pt-4">
+          <h4 className="mb-3 text-sm font-medium text-gray-900">
+            Parent Company (Optional)
+          </h4>
+
+          {/* Parent Company Select */}
+          <div>
+            <label htmlFor="company-parent" className="block text-sm font-medium text-gray-700">
+              Parent Company
+            </label>
+            <select
+              id="company-parent"
+              value={parentCompanyId ?? ""}
+              onChange={(e) => {
+                const value = e.target.value
+                setParentCompanyId(value === "" ? null : value)
+                if (value === "") {
+                  setOwnershipPercentage(null)
+                  setConsolidationMethod(null)
+                }
+              }}
+              disabled={isSubmitting}
+              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
+              data-testid="company-parent-select"
+            >
+              <option value="">None (Top-level company)</option>
+              {availableParents.map((parent) => (
+                <option key={parent.id} value={parent.id}>
+                  {parent.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Ownership and Consolidation (shown when parent selected) */}
+          {parentCompanyId !== null && (
+            <div className="mt-4 grid grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="company-ownership" className="block text-sm font-medium text-gray-700">
+                  Ownership %
+                </label>
+                <input
+                  id="company-ownership"
+                  type="number"
+                  min="1"
+                  max="100"
+                  step="0.01"
+                  value={ownershipPercentage ?? ""}
+                  onChange={(e) => {
+                    const value = e.target.value
+                    handleOwnershipChange(value === "" ? null : Number(value))
+                  }}
+                  disabled={isSubmitting}
+                  placeholder="e.g. 100"
+                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
+                  data-testid="company-ownership-input"
+                />
+              </div>
+              <div>
+                <label htmlFor="company-consolidation" className="block text-sm font-medium text-gray-700">
+                  Consolidation Method
+                </label>
+                <select
+                  id="company-consolidation"
+                  value={consolidationMethod ?? ""}
+                  onChange={(e) => {
+                    const value = e.target.value
+                    if (value === "") {
+                      setConsolidationMethod(null)
+                    } else if (
+                      value === "FullConsolidation" ||
+                      value === "EquityMethod" ||
+                      value === "CostMethod" ||
+                      value === "VariableInterestEntity"
+                    ) {
+                      setConsolidationMethod(value)
+                    }
+                  }}
+                  disabled={isSubmitting}
+                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
+                  data-testid="company-consolidation-select"
+                >
+                  <option value="">Select method</option>
+                  <option value="FullConsolidation">Full Consolidation (&gt;50%)</option>
+                  <option value="EquityMethod">Equity Method (20-50%)</option>
+                  <option value="CostMethod">Cost Method (&lt;20%)</option>
+                  <option value="VariableInterestEntity">Variable Interest Entity</option>
+                </select>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Form Actions */}
       <div className="flex gap-3 pt-2">
         <button
@@ -677,14 +797,3 @@ function CreateCompanyForm({
   )
 }
 
-// =============================================================================
-// Helper Functions
-// =============================================================================
-
-function formatFiscalYearEnd(fiscalYearEnd: { month: number; day: number }): string {
-  const monthNames = [
-    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
-  ]
-  return `${monthNames[fiscalYearEnd.month - 1]} ${fiscalYearEnd.day}`
-}

@@ -3,7 +3,10 @@
  *
  * Tests for companies list page within an organization with SSR:
  * - loader fetches companies for organization
- * - Display company cards with name, currency, fiscal year
+ * - Tree view showing parent/subsidiary hierarchy
+ * - Columns: Name, Legal Name, Jurisdiction, Functional Currency, Status
+ * - Ownership % and consolidation method for subsidiaries
+ * - Filter by Active/Inactive status
  * - Create company: form calls api.POST, then router.invalidate()
  * - Link to company details
  */
@@ -131,15 +134,14 @@ test.describe("Companies List Page", () => {
     // 9. Should show companies count
     await expect(page.getByText(/2 companies/i)).toBeVisible()
 
-    // 10. Should show first company card with details (use heading role for company name)
-    await expect(page.getByRole("heading", { name: companyName1 })).toBeVisible()
+    // 10. Should show first company in hierarchy tree (use link role, not heading)
+    await expect(page.getByRole("link", { name: companyName1 })).toBeVisible()
     await expect(page.getByText("USD")).toBeVisible() // Currency
-    await expect(page.getByText("Dec 31")).toBeVisible() // Fiscal year end
+    // Note: fiscal year end is not shown in the hierarchy tree view
 
-    // 11. Should show second company card with details
-    await expect(page.getByRole("heading", { name: companyName2 })).toBeVisible()
+    // 11. Should show second company in hierarchy tree
+    await expect(page.getByRole("link", { name: companyName2 })).toBeVisible()
     await expect(page.getByText("DE", { exact: true })).toBeVisible() // Jurisdiction (exact match)
-    await expect(page.getByText("Mar 31")).toBeVisible() // Fiscal year end
   })
 
   test("should display empty state when no companies", async ({
@@ -291,15 +293,14 @@ test.describe("Companies List Page", () => {
     // 10. Submit form
     await page.click('button[type="submit"]')
 
-    // 11. Should show new company in list (after invalidation) - use heading role for company name
-    await expect(page.getByRole("heading", { name: newCompanyName })).toBeVisible({ timeout: 10000 })
+    // 11. Should show new company in list (after invalidation) - use link role for company name in tree view
+    await expect(page.getByRole("link", { name: newCompanyName })).toBeVisible({ timeout: 10000 })
 
     // 12. Should show updated company count
     await expect(page.getByText(/1 company/i)).toBeVisible()
 
-    // 13. Should show company details
+    // 13. Should show company details (in tree view columns)
     await expect(page.getByText("GBP")).toBeVisible()
-    await expect(page.getByText("Mar 31")).toBeVisible()
   })
 
   test("should show validation error for empty company name", async ({
@@ -525,18 +526,18 @@ test.describe("Companies List Page", () => {
     // 6. Navigate to companies list page
     await page.goto(`/organizations/${orgData.id}/companies`)
 
-    // 7. Should see company card (use heading role to avoid matching the legal name too)
-    await expect(page.getByRole("heading", { name: companyName })).toBeVisible()
+    // 7. Should see company in tree view (use link role - company name is a link)
+    await expect(page.getByRole("link", { name: companyName })).toBeVisible()
 
-    // 8. Click on company card (use heading role for precise targeting)
-    await page.getByRole("heading", { name: companyName }).click()
+    // 8. Click on company link to navigate to details
+    await page.getByRole("link", { name: companyName }).click()
 
     // 9. Should be on company details page
     await page.waitForURL(/\/companies\/[^/]+$/)
     expect(page.url()).toContain(`/organizations/${orgData.id}/companies/${companyData.id}`)
 
-    // 10. Should show company details
-    await expect(page.getByRole("heading", { name: companyName })).toBeVisible()
+    // 10. Should show company details (use main region to avoid matching header)
+    await expect(page.getByRole("main").getByRole("heading", { name: companyName })).toBeVisible()
     await expect(page.getByText(`${companyName} Inc.`)).toBeVisible()
   })
 
@@ -685,5 +686,360 @@ test.describe("Companies List Page", () => {
 
     // 9. Should show Companies heading (use exact match to avoid matching org name containing "Companies")
     await expect(page.getByRole("heading", { name: "Companies", exact: true })).toBeVisible()
+  })
+
+  test("should display companies in hierarchy tree view with parent/child relationships", async ({
+    page,
+    request
+  }) => {
+    // 1. Register a test user
+    const testUser = {
+      email: `test-hierarchy-${Date.now()}@example.com`,
+      password: "TestPassword123",
+      displayName: "Hierarchy Test User"
+    }
+
+    const registerRes = await request.post("/api/auth/register", {
+      data: testUser
+    })
+    expect(registerRes.ok()).toBeTruthy()
+
+    // 2. Login to get session token
+    const loginRes = await request.post("/api/auth/login", {
+      data: {
+        provider: "local",
+        credentials: {
+          email: testUser.email,
+          password: testUser.password
+        }
+      }
+    })
+    expect(loginRes.ok()).toBeTruthy()
+    const loginData = await loginRes.json()
+    const sessionToken = loginData.token
+
+    // 3. Create an organization via API
+    const orgName = `Hierarchy Test Org ${Date.now()}`
+    const createOrgRes = await request.post("/api/v1/organizations", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        name: orgName,
+        reportingCurrency: "USD",
+        settings: null
+      }
+    })
+    expect(createOrgRes.ok()).toBeTruthy()
+    const orgData = await createOrgRes.json()
+
+    // 4. Create parent company
+    const parentCompanyName = `Parent Corp ${Date.now()}`
+    const createParentRes = await request.post("/api/v1/companies", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        organizationId: orgData.id,
+        name: parentCompanyName,
+        legalName: `${parentCompanyName} Inc.`,
+        jurisdiction: "US",
+        functionalCurrency: "USD",
+        reportingCurrency: "USD",
+        fiscalYearEnd: { month: 12, day: 31 },
+        taxId: null,
+        parentCompanyId: null,
+        ownershipPercentage: null,
+        consolidationMethod: null
+      }
+    })
+    expect(createParentRes.ok()).toBeTruthy()
+    const parentData = await createParentRes.json()
+
+    // 5. Create subsidiary company with ownership and consolidation method
+    const subsidiaryName = `Subsidiary GmbH ${Date.now()}`
+    const createSubRes = await request.post("/api/v1/companies", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        organizationId: orgData.id,
+        name: subsidiaryName,
+        legalName: `${subsidiaryName} GmbH`,
+        jurisdiction: "DE",
+        functionalCurrency: "EUR",
+        reportingCurrency: "USD",
+        fiscalYearEnd: { month: 12, day: 31 },
+        taxId: null,
+        parentCompanyId: parentData.id,
+        ownershipPercentage: 80,
+        consolidationMethod: "FullConsolidation"
+      }
+    })
+    expect(createSubRes.ok()).toBeTruthy()
+    const subData = await createSubRes.json()
+
+    // 6. Set session cookie
+    await page.context().addCookies([
+      {
+        name: "accountability_session",
+        value: sessionToken,
+        domain: "localhost",
+        path: "/",
+        httpOnly: true,
+        secure: false,
+        sameSite: "Lax"
+      }
+    ])
+
+    // 7. Navigate to companies list page
+    await page.goto(`/organizations/${orgData.id}/companies`)
+
+    // 8. Should display the hierarchy tree
+    await expect(page.locator('[data-testid="company-hierarchy-tree"]')).toBeVisible()
+
+    // 9. Should show table headers
+    await expect(page.locator('[data-testid="header-name"]')).toBeVisible()
+    await expect(page.locator('[data-testid="header-legal-name"]')).toBeVisible()
+    await expect(page.locator('[data-testid="header-jurisdiction"]')).toBeVisible()
+    await expect(page.locator('[data-testid="header-currency"]')).toBeVisible()
+    await expect(page.locator('[data-testid="header-status"]')).toBeVisible()
+    await expect(page.locator('[data-testid="header-ownership"]')).toBeVisible()
+    await expect(page.locator('[data-testid="header-consolidation"]')).toBeVisible()
+
+    // 10. Should show parent company row
+    await expect(page.locator(`[data-testid="company-row-${parentData.id}"]`)).toBeVisible()
+    await expect(page.locator(`[data-testid="company-name-${parentData.id}"]`)).toContainText(parentCompanyName)
+    await expect(page.locator(`[data-testid="company-jurisdiction-${parentData.id}"]`)).toContainText("US")
+    await expect(page.locator(`[data-testid="company-currency-${parentData.id}"]`)).toContainText("USD")
+    await expect(page.locator(`[data-testid="company-status-${parentData.id}"]`)).toContainText("Active")
+    // Parent should not have ownership or consolidation method
+    await expect(page.locator(`[data-testid="company-ownership-${parentData.id}"]`)).toContainText("—")
+    await expect(page.locator(`[data-testid="company-consolidation-${parentData.id}"]`)).toContainText("—")
+
+    // 11. Should show subsidiary company row with ownership and consolidation method
+    await expect(page.locator(`[data-testid="company-row-${subData.id}"]`)).toBeVisible()
+    await expect(page.locator(`[data-testid="company-name-${subData.id}"]`)).toContainText(subsidiaryName)
+    await expect(page.locator(`[data-testid="company-jurisdiction-${subData.id}"]`)).toContainText("DE")
+    await expect(page.locator(`[data-testid="company-currency-${subData.id}"]`)).toContainText("EUR")
+    await expect(page.locator(`[data-testid="company-status-${subData.id}"]`)).toContainText("Active")
+    // Subsidiary should show ownership and consolidation method
+    await expect(page.locator(`[data-testid="company-ownership-${subData.id}"]`)).toContainText("80%")
+    await expect(page.locator(`[data-testid="company-consolidation-${subData.id}"]`)).toContainText("Full Consolidation")
+
+    // 12. Parent company should have expand/collapse button (since it has children)
+    await expect(page.locator(`[data-testid="company-expand-${parentData.id}"]`)).toBeVisible()
+  })
+
+  test("should filter companies by active/inactive status", async ({
+    page,
+    request
+  }) => {
+    // 1. Register a test user
+    const testUser = {
+      email: `test-filter-${Date.now()}@example.com`,
+      password: "TestPassword123",
+      displayName: "Filter Test User"
+    }
+
+    const registerRes = await request.post("/api/auth/register", {
+      data: testUser
+    })
+    expect(registerRes.ok()).toBeTruthy()
+
+    // 2. Login to get session token
+    const loginRes = await request.post("/api/auth/login", {
+      data: {
+        provider: "local",
+        credentials: {
+          email: testUser.email,
+          password: testUser.password
+        }
+      }
+    })
+    expect(loginRes.ok()).toBeTruthy()
+    const loginData = await loginRes.json()
+    const sessionToken = loginData.token
+
+    // 3. Create an organization
+    const createOrgRes = await request.post("/api/v1/organizations", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        name: `Filter Test Org ${Date.now()}`,
+        reportingCurrency: "USD",
+        settings: null
+      }
+    })
+    expect(createOrgRes.ok()).toBeTruthy()
+    const orgData = await createOrgRes.json()
+
+    // 4. Create an active company
+    const activeCompanyName = `Active Company ${Date.now()}`
+    await request.post("/api/v1/companies", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        organizationId: orgData.id,
+        name: activeCompanyName,
+        legalName: `${activeCompanyName} Inc.`,
+        jurisdiction: "US",
+        functionalCurrency: "USD",
+        reportingCurrency: "USD",
+        fiscalYearEnd: { month: 12, day: 31 },
+        taxId: null,
+        parentCompanyId: null,
+        ownershipPercentage: null,
+        consolidationMethod: null
+      }
+    })
+
+    // 5. Set session cookie
+    await page.context().addCookies([
+      {
+        name: "accountability_session",
+        value: sessionToken,
+        domain: "localhost",
+        path: "/",
+        httpOnly: true,
+        secure: false,
+        sameSite: "Lax"
+      }
+    ])
+
+    // 6. Navigate to companies list page
+    await page.goto(`/organizations/${orgData.id}/companies`)
+
+    // 7. Should show status filter buttons
+    await expect(page.locator('[data-testid="status-filter"]')).toBeVisible()
+    await expect(page.locator('[data-testid="filter-all"]')).toBeVisible()
+    await expect(page.locator('[data-testid="filter-active"]')).toBeVisible()
+    await expect(page.locator('[data-testid="filter-inactive"]')).toBeVisible()
+
+    // 8. "All" filter should be active by default and show the company (use link role to be specific)
+    await expect(page.getByRole("link", { name: activeCompanyName })).toBeVisible()
+
+    // 9. Click "Active" filter - should still show the company
+    await page.locator('[data-testid="filter-active"]').click()
+    await expect(page.getByRole("link", { name: activeCompanyName })).toBeVisible()
+
+    // 10. Click "Inactive" filter - should hide the active company
+    await page.locator('[data-testid="filter-inactive"]').click()
+    await expect(page.locator('[data-testid="no-filtered-results"]')).toBeVisible()
+    await expect(page.getByText("No inactive companies found")).toBeVisible()
+
+    // 11. Click "Show all companies" to reset filter
+    await page.getByText("Show all companies").click()
+    await expect(page.getByRole("link", { name: activeCompanyName })).toBeVisible()
+  })
+
+  test("should expand and collapse parent company to show/hide children", async ({
+    page,
+    request
+  }) => {
+    // 1. Register a test user
+    const testUser = {
+      email: `test-expand-${Date.now()}@example.com`,
+      password: "TestPassword123",
+      displayName: "Expand Test User"
+    }
+
+    const registerRes = await request.post("/api/auth/register", {
+      data: testUser
+    })
+    expect(registerRes.ok()).toBeTruthy()
+
+    // 2. Login to get session token
+    const loginRes = await request.post("/api/auth/login", {
+      data: {
+        provider: "local",
+        credentials: {
+          email: testUser.email,
+          password: testUser.password
+        }
+      }
+    })
+    expect(loginRes.ok()).toBeTruthy()
+    const loginData = await loginRes.json()
+    const sessionToken = loginData.token
+
+    // 3. Create an organization
+    const createOrgRes = await request.post("/api/v1/organizations", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        name: `Expand Test Org ${Date.now()}`,
+        reportingCurrency: "USD",
+        settings: null
+      }
+    })
+    expect(createOrgRes.ok()).toBeTruthy()
+    const orgData = await createOrgRes.json()
+
+    // 4. Create parent company
+    const parentName = `Parent Corp ${Date.now()}`
+    const createParentRes = await request.post("/api/v1/companies", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        organizationId: orgData.id,
+        name: parentName,
+        legalName: `${parentName} Inc.`,
+        jurisdiction: "US",
+        functionalCurrency: "USD",
+        reportingCurrency: "USD",
+        fiscalYearEnd: { month: 12, day: 31 },
+        taxId: null,
+        parentCompanyId: null,
+        ownershipPercentage: null,
+        consolidationMethod: null
+      }
+    })
+    expect(createParentRes.ok()).toBeTruthy()
+    const parentData = await createParentRes.json()
+
+    // 5. Create subsidiary
+    const subName = `Subsidiary Ltd ${Date.now()}`
+    const createSubRes = await request.post("/api/v1/companies", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        organizationId: orgData.id,
+        name: subName,
+        legalName: `${subName} Ltd`,
+        jurisdiction: "GB",
+        functionalCurrency: "GBP",
+        reportingCurrency: "USD",
+        fiscalYearEnd: { month: 12, day: 31 },
+        taxId: null,
+        parentCompanyId: parentData.id,
+        ownershipPercentage: 100,
+        consolidationMethod: "FullConsolidation"
+      }
+    })
+    expect(createSubRes.ok()).toBeTruthy()
+    const subData = await createSubRes.json()
+
+    // 6. Set session cookie
+    await page.context().addCookies([
+      {
+        name: "accountability_session",
+        value: sessionToken,
+        domain: "localhost",
+        path: "/",
+        httpOnly: true,
+        secure: false,
+        sameSite: "Lax"
+      }
+    ])
+
+    // 7. Navigate to companies list page
+    await page.goto(`/organizations/${orgData.id}/companies`)
+
+    // 8. Both parent and child should be visible (expanded by default)
+    await expect(page.locator(`[data-testid="company-row-${parentData.id}"]`)).toBeVisible()
+    await expect(page.locator(`[data-testid="company-row-${subData.id}"]`)).toBeVisible()
+
+    // 9. Click collapse button on parent
+    await page.locator(`[data-testid="company-expand-${parentData.id}"]`).click()
+
+    // 10. Parent should still be visible, but child should be hidden
+    await expect(page.locator(`[data-testid="company-row-${parentData.id}"]`)).toBeVisible()
+    await expect(page.locator(`[data-testid="company-row-${subData.id}"]`)).not.toBeVisible()
+
+    // 11. Click expand button again
+    await page.locator(`[data-testid="company-expand-${parentData.id}"]`).click()
+
+    // 12. Child should be visible again
+    await expect(page.locator(`[data-testid="company-row-${subData.id}"]`)).toBeVisible()
   })
 })

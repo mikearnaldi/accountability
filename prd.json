@@ -613,7 +613,7 @@
           "packages/web/src/routes/organizations/$organizationId/companies/index.tsx"
         ]
       },
-      "status": "pending"
+      "status": "complete"
     },
     {
       "id": "4.2",
