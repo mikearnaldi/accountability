@@ -41,7 +41,7 @@ Accountability is a multi-company, multi-currency accounting application using:
 2. **ALWAYS update both layers** - packages/web AND packages/core, packages/api, packages/persistence
 3. **Frontend workarounds are NOT acceptable** - if the spec says "update API", update the API
 4. **Run tests** - `pnpm test && pnpm typecheck` MUST pass before marking work complete
-5. **Read specs/UI_ARCHITECTURE.md** - See "MANDATORY: BACKEND AND FRONTEND MUST STAY ALIGNED" section
+5. **Read context/UI_ARCHITECTURE.md** - See "MANDATORY: BACKEND AND FRONTEND MUST STAY ALIGNED" section
 
 **Data flow**: Frontend → API → Service → Repository → Database
 **All layers must be consistent.**
@@ -78,23 +78,29 @@ accountability/
 
 | Spec File | Description |
 |-----------|-------------|
-| [specs/UI_ARCHITECTURE.md](specs/UI_ARCHITECTURE.md) | **IMPLEMENT** - Layout, navigation, page templates, known issues |
+| [specs/CONSOLIDATED_REPORTS.md](specs/CONSOLIDATED_REPORTS.md) | **IMPLEMENT** - Consolidated financial reports (Balance Sheet, Income Statement, Cash Flow, Equity) |
+| [specs/E2E_TEST_COVERAGE.md](specs/E2E_TEST_COVERAGE.md) | **IMPLEMENT** - E2E test coverage gaps and implementation plan |
+| [specs/EXCHANGE_RATE_SYNC.md](specs/EXCHANGE_RATE_SYNC.md) | **IMPLEMENT** - ECB exchange rate sync and cross-rate triangulation |
 
 ## Context Documentation (context/)
 
 | File | Description |
 |------|-------------|
 | [context/ACCOUNTING_RESEARCH.md](context/ACCOUNTING_RESEARCH.md) | Domain specifications (entities, services, reports) |
-| [context/EFFECT_BEST_PRACTICES.md](context/EFFECT_BEST_PRACTICES.md) | **Critical rules** for backend Effect code |
-| [context/EFFECT_SQL.md](context/EFFECT_SQL.md) | SqlSchema, Model.Class, repository patterns |
-| [context/EFFECT_LAYERS.md](context/EFFECT_LAYERS.md) | Layer composition, memoization, service patterns |
-| [context/EFFECT_TESTING.md](context/EFFECT_TESTING.md) | @effect/vitest, testcontainers, property testing |
-| [context/TYPESCRIPT_CONVENTIONS.md](context/TYPESCRIPT_CONVENTIONS.md) | Project refs, imports, module structure |
-| [context/HTTP_API_TANSTACK.md](context/HTTP_API_TANSTACK.md) | Effect HttpApi + TanStack Start SSR + openapi-fetch |
 | [context/API_BEST_PRACTICES.md](context/API_BEST_PRACTICES.md) | API layer conventions |
 | [context/AUTHENTICATION.md](context/AUTHENTICATION.md) | Multi-provider auth system, session management |
+| [context/CONSOLIDATION_METHOD_CLEANUP.md](context/CONSOLIDATION_METHOD_CLEANUP.md) | Consolidation method field cleanup notes |
+| [context/DOMAIN_MODEL.md](context/DOMAIN_MODEL.md) | Complete domain model documentation |
 | [context/E2E_TESTING.md](context/E2E_TESTING.md) | Playwright E2E testing patterns |
+| [context/EFFECT_BEST_PRACTICES.md](context/EFFECT_BEST_PRACTICES.md) | **Critical rules** for backend Effect code |
+| [context/EFFECT_LAYERS.md](context/EFFECT_LAYERS.md) | Layer composition, memoization, service patterns |
+| [context/EFFECT_SQL.md](context/EFFECT_SQL.md) | SqlSchema, Model.Class, repository patterns |
+| [context/EFFECT_TESTING.md](context/EFFECT_TESTING.md) | @effect/vitest, testcontainers, property testing |
+| [context/HTTP_API_TANSTACK.md](context/HTTP_API_TANSTACK.md) | Effect HttpApi + TanStack Start SSR + openapi-fetch |
 | [context/REACT_BEST_PRACTICES.md](context/REACT_BEST_PRACTICES.md) | React patterns, loaders, mutations, Tailwind |
+| [context/REFERENCE_REPOS.md](context/REFERENCE_REPOS.md) | Reference repository documentation |
+| [context/TYPESCRIPT_CONVENTIONS.md](context/TYPESCRIPT_CONVENTIONS.md) | Project refs, imports, module structure |
+| [context/UI_ARCHITECTURE.md](context/UI_ARCHITECTURE.md) | Layout, navigation, page templates, component patterns |
 | [context/USABILITY_BEST_PRACTICES.md](context/USABILITY_BEST_PRACTICES.md) | UX patterns, navigation, forms, states |
 
 ## Key Files
@@ -136,7 +142,7 @@ accountability/
 
 ### UI Architecture (CRITICAL)
 
-**Read [specs/UI_ARCHITECTURE.md](specs/UI_ARCHITECTURE.md) for all UI work.** Key rules:
+**Read [context/UI_ARCHITECTURE.md](context/UI_ARCHITECTURE.md) for all UI work.** Key rules:
 
 1. **ALL pages use AppLayout** - sidebar + header on EVERY authenticated page
 2. **NO manual breadcrumb HTML** - use the Breadcrumbs component
@@ -216,7 +222,7 @@ When working on stories:
 1. **Read [context/ACCOUNTING_RESEARCH.md](context/ACCOUNTING_RESEARCH.md)** for domain requirements
 2. **Read [context/EFFECT_BEST_PRACTICES.md](context/EFFECT_BEST_PRACTICES.md)** for backend coding rules
 3. **Read [context/REACT_BEST_PRACTICES.md](context/REACT_BEST_PRACTICES.md)** for frontend patterns
-4. **Read [specs/UI_ARCHITECTURE.md](specs/UI_ARCHITECTURE.md)** for UI layout and navigation rules (ACTIONABLE)
+4. **Read [context/UI_ARCHITECTURE.md](context/UI_ARCHITECTURE.md)** for UI layout and navigation rules
 5. **Search repos/** for implementation patterns
 6. **Signal STORY_COMPLETE** when done (don't commit, script handles it)
 7. **Run tests** before signaling completion: `pnpm test && pnpm typecheck`
