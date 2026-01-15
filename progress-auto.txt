@@ -231,3 +231,8 @@
 **Task**: Implemented Issue 38 - Journal Entry Edit Functionality. Created a new edit route page (`packages/web/src/routes/organizations/$organizationId/companies/$companyId/journal-entries/$entryId/edit.tsx`) that pre-populates the form with existing entry data, supports multi-currency, shows computed fiscal periods, and only allows editing Draft entries. Updated the detail page to enable the Edit button as a working link for Draft entries. All 3589 unit tests pass and typecheck is clean.
 **Status**: complete
 ---
+
+## Iteration 4 - 2026-01-15 23:09
+**Task**: Fixed 3 lint errors by replacing type assertions with type-safe patterns. In dashboard.tsx, replaced `as ActivityType` string concatenation with a type-safe lookup table for all entity type + action combinations. In profile.tsx, replaced `as UserProfile` and `as Identity[]` type assertions with explicit object construction that maps API response fields to the expected interface shapes.
+**Status**: complete
+---

@@ -316,6 +316,15 @@ export class RefreshResponse extends Schema.Class<RefreshResponse>("RefreshRespo
 }) {}
 
 /**
+ * UpdateProfileRequest - Request body for updating user profile
+ */
+export class UpdateProfileRequest extends Schema.Class<UpdateProfileRequest>("UpdateProfileRequest")({
+  displayName: Schema.OptionFromNullOr(Schema.NonEmptyTrimmedString).annotations({
+    description: "The user's display name (optional - only provided fields are updated)"
+  })
+}) {}
+
+/**
  * OAuthCallbackParams - Query parameters for OAuth callback
  */
 export const OAuthCallbackParams = Schema.Struct({
@@ -465,6 +474,18 @@ const me = HttpApiEndpoint.get("me", "/me")
   .annotateContext(OpenApi.annotations({
     summary: "Get current user",
     description: "Get the authenticated user's details including all linked provider identities"
+  }))
+
+/**
+ * PUT /api/auth/me - Update current user profile
+ */
+const updateMe = HttpApiEndpoint.put("updateMe", "/me")
+  .setPayload(UpdateProfileRequest)
+  .addSuccess(AuthUserResponse)
+  .addError(AuthValidationError)
+  .annotateContext(OpenApi.annotations({
+    summary: "Update current user profile",
+    description: "Update the authenticated user's profile information (display name)"
   }))
 
 /**
@@ -641,6 +662,7 @@ export class AuthApi extends HttpApiGroup.make("auth")
  * Protected endpoints (require authentication):
  * - POST /logout - Logout
  * - GET /me - Get current user
+ * - PUT /me - Update current user profile
  * - POST /refresh - Refresh session
  * - POST /link/:provider - Initiate provider linking
  * - GET /link/callback/:provider - Complete provider linking
@@ -650,6 +672,7 @@ export class AuthApi extends HttpApiGroup.make("auth")
 export class AuthSessionApi extends HttpApiGroup.make("authSession")
   .add(logout)
   .add(me)
+  .add(updateMe)
   .add(refresh)
   .add(linkProvider)
   .add(linkCallback)

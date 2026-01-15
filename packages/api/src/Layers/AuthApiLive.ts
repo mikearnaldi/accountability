@@ -515,6 +515,55 @@ export const AuthSessionApiLive = HttpApiBuilder.group(AppApi, "authSession", (h
           })
         })
       )
+      .handle("updateMe", (_) =>
+        Effect.gen(function* () {
+          const currentUser = yield* CurrentUser
+          const { displayName } = _.payload
+
+          // Get the current user from repository
+          const userId = AuthUserId.make(currentUser.userId)
+          const maybeUser = yield* userRepo.findById(userId).pipe(
+            Effect.catchAll(() => Effect.succeed(Option.none<AuthUser>()))
+          )
+
+          if (Option.isNone(maybeUser)) {
+            return yield* Effect.fail(new UnauthorizedError({ message: "User not found" }))
+          }
+
+          // Build update data - only update fields that were provided
+          const updateData: { displayName?: string } = {}
+          if (Option.isSome(displayName)) {
+            updateData.displayName = displayName.value
+          }
+
+          // Update user if there are changes
+          let updatedUser: AuthUser
+          if (Object.keys(updateData).length > 0) {
+            updatedUser = yield* userRepo.update(userId, updateData).pipe(
+              Effect.mapError(() =>
+                new AuthValidationError({
+                  message: "Failed to update profile",
+                  field: Option.none()
+                })
+              )
+            )
+          } else {
+            // No changes, return current user
+            updatedUser = maybeUser.value
+          }
+
+          // Get all linked identities
+          const identitiesChunk = yield* identityRepo.findByUserId(userId).pipe(
+            Effect.catchAll(() => Effect.succeed(Chunk.empty()))
+          )
+          const identities = Chunk.toReadonlyArray(identitiesChunk)
+
+          return AuthUserResponse.make({
+            user: updatedUser,
+            identities
+          })
+        })
+      )
       .handle("refresh", () =>
         Effect.gen(function* () {
           const currentUser = yield* CurrentUser

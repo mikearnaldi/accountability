@@ -151,7 +151,11 @@ export interface paths {
          * @description Get the authenticated user's details including all linked provider identities
          */
         get: operations["authSession.me"];
-        put?: never;
+        /**
+         * Update current user profile
+         * @description Update the authenticated user's profile information (display name)
+         */
+        put: operations["authSession.updateMe"];
         post?: never;
         delete?: never;
         options?: never;
@@ -1727,6 +1731,15 @@ export interface components {
             /** @enum {string} */
             _tag: "SessionInvalidError";
         };
+        UpdateProfileRequest: {
+            /** @description The user's display name (optional - only provided fields are updated) */
+            displayName: components["schemas"]["NonEmptyTrimmedString"] | null;
+        };
+        /**
+         * nonEmptyString
+         * @description a non empty string
+         */
+        NonEmptyTrimmedString: string;
         RefreshResponse: {
             /**
              * Session ID
@@ -1953,11 +1966,6 @@ export interface components {
             intercompanyPartnerId: components["schemas"]["CompanyId"] | null;
             currencyRestriction: components["schemas"]["CurrencyCode"] | null;
         };
-        /**
-         * nonEmptyString
-         * @description a non empty string
-         */
-        NonEmptyTrimmedString: string;
         ConflictError: {
             /** @description A human-readable description of the conflict */
             message: string;
@@ -3613,6 +3621,48 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HttpApiDecodeError"];
+                };
+            };
+            /** @description UnauthorizedError */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+        };
+    };
+    "authSession.updateMe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateProfileRequest"];
+            };
+        };
+        responses: {
+            /** @description AuthUserResponse */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthUserResponse"];
+                };
+            };
+            /** @description The request did not match the expected schema */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpApiDecodeError"] | components["schemas"]["AuthValidationError"];
                 };
             };
             /** @description UnauthorizedError */

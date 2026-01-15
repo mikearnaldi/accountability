@@ -80,6 +80,132 @@ export interface DashboardData {
 }
 
 // =============================================================================
+// Helper Functions for Audit Log Mapping
+// =============================================================================
+
+/**
+ * Map audit log entity type and action to ActivityType
+ * Uses a type-safe lookup table instead of string concatenation with type assertions
+ */
+function mapAuditToActivityType(entityType: string, action: string): ActivityType {
+  // Normalize entity type to lowercase
+  const type = entityType.toLowerCase()
+
+  // Type-safe lookup table for all entity type + action combinations
+  const activityTypeMap: Record<string, Record<string, ActivityType>> = {
+    journalentry: {
+      Create: "journal_created",
+      Update: "journal_updated",
+      Delete: "journal_deleted",
+      StatusChange: "journal_updated"
+    },
+    journalentryline: {
+      Create: "journal_created",
+      Update: "journal_updated",
+      Delete: "journal_deleted",
+      StatusChange: "journal_updated"
+    },
+    account: {
+      Create: "account_created",
+      Update: "account_updated",
+      Delete: "account_deleted",
+      StatusChange: "account_updated"
+    },
+    company: {
+      Create: "company_created",
+      Update: "company_updated",
+      Delete: "company_deleted",
+      StatusChange: "company_updated"
+    },
+    organization: {
+      Create: "organization_created",
+      Update: "organization_updated",
+      Delete: "organization_deleted",
+      StatusChange: "organization_updated"
+    },
+    exchangerate: {
+      Create: "exchangerate_created",
+      Update: "exchangerate_updated",
+      Delete: "exchangerate_deleted",
+      StatusChange: "exchangerate_updated"
+    },
+    intercompanytransaction: {
+      Create: "intercompany_created",
+      Update: "intercompany_updated",
+      Delete: "intercompany_deleted",
+      StatusChange: "intercompany_updated"
+    },
+    consolidationgroup: {
+      Create: "consolidation_created",
+      Update: "consolidation_updated",
+      Delete: "consolidation_deleted",
+      StatusChange: "consolidation_updated"
+    },
+    consolidationrun: {
+      Create: "consolidation_created",
+      Update: "consolidation_updated",
+      Delete: "consolidation_deleted",
+      StatusChange: "consolidation_updated"
+    },
+    eliminationrule: {
+      Create: "consolidation_created",
+      Update: "consolidation_updated",
+      Delete: "consolidation_deleted",
+      StatusChange: "consolidation_updated"
+    }
+  }
+
+  // Default mapping for unknown entity types
+  const defaultActionMap: Record<string, ActivityType> = {
+    Create: "generic_created",
+    Update: "generic_updated",
+    Delete: "generic_deleted",
+    StatusChange: "generic_updated"
+  }
+
+  const entityActions = activityTypeMap[type]
+  if (entityActions) {
+    return entityActions[action] ?? defaultActionMap[action] ?? "generic_updated"
+  }
+  return defaultActionMap[action] ?? "generic_updated"
+}
+
+/**
+ * Format audit log entry into human-readable description
+ */
+function formatAuditDescription(entityType: string, action: string, entityId: string): string {
+  const entityNames: Record<string, string> = {
+    JournalEntry: "Journal Entry",
+    JournalEntryLine: "Journal Entry Line",
+    Account: "Account",
+    Company: "Company",
+    Organization: "Organization",
+    ExchangeRate: "Exchange Rate",
+    IntercompanyTransaction: "Intercompany Transaction",
+    ConsolidationGroup: "Consolidation Group",
+    ConsolidationRun: "Consolidation Run",
+    EliminationRule: "Elimination Rule",
+    FiscalYear: "Fiscal Year",
+    FiscalPeriod: "Fiscal Period",
+    User: "User",
+    Session: "Session"
+  }
+
+  const actionVerbs: Record<string, string> = {
+    Create: "created",
+    Update: "updated",
+    Delete: "deleted",
+    StatusChange: "status changed for"
+  }
+
+  const entityName = entityNames[entityType] || entityType
+  const verb = actionVerbs[action] || action.toLowerCase()
+  const shortId = entityId.slice(0, 8)
+
+  return `${entityName} ${verb} (${shortId}...)`
+}
+
+// =============================================================================
 // Server Functions
 // =============================================================================
 
@@ -176,8 +302,35 @@ const fetchOrganizationDashboard = createServerFn({ method: "GET" })
       // No need to track "open periods" since periods are never closed
       const openPeriodsCount = 0
 
-      // Recent activity placeholder (until audit log API is ready - Issue 39)
-      const recentActivity: DashboardData["recentActivity"] = []
+      // Fetch recent activity from audit log (Issue 39)
+      let recentActivity: DashboardData["recentActivity"] = []
+      try {
+        const auditLogResult = await serverApi.GET("/api/v1/audit-log", {
+          params: {
+            query: {
+              limit: "10"
+            }
+          },
+          headers
+        })
+
+        if (auditLogResult.data?.entries) {
+          recentActivity = auditLogResult.data.entries.map((entry) => {
+            const activityType = mapAuditToActivityType(entry.entityType, entry.action)
+            const description = formatAuditDescription(entry.entityType, entry.action, entry.entityId)
+
+            return {
+              id: entry.id,
+              type: activityType,
+              description,
+              timestamp: entry.timestamp
+              // User lookup would require another API call - omitting for now
+            }
+          })
+        }
+      } catch {
+        // Audit log fetch failed, continue with empty activity
+      }
 
       // Map companies to minimal structure for sidebar
       const companiesForSidebar = companies.map((c) => ({ id: c.id, name: c.name }))
@@ -352,7 +505,10 @@ function OrganizationDashboardPage() {
         <OrgQuickActions organizationId={params.organizationId} />
 
         {/* Recent Activity */}
-        <ActivityFeed activities={dashboardData.recentActivity} />
+        <ActivityFeed
+          activities={dashboardData.recentActivity}
+          organizationId={params.organizationId}
+        />
       </div>
     </AppLayout>
   )

@@ -25,9 +25,9 @@ This section tracks known issues, implementation status, and priorities.
 | **Issue 34** | ✅ DONE | Backend: Remove Fiscal Period Persistence | FiscalPeriodsApi deleted, fiscalPeriod computed from transactionDate |
 | **Issue 35** | ✅ DONE | Sidebar: Only show "Organizations" on /organizations page | Hide Dashboard and other nav when no org selected |
 | **Issue 36** | ✅ DONE | Intercompany: Link JEs During Creation | Backend + Frontend - select existing JEs when creating IC transaction |
-| **Issue 37** | ❌ OPEN | Profile Page Implementation | Create /profile route, enable dropdown link, allow editing display name |
+| **Issue 37** | ✅ DONE | Profile Page Implementation | Create /profile route, enable dropdown link, allow editing display name |
 | **Issue 38** | ✅ DONE | Journal Entry Edit Functionality | Create edit route, enable Edit button on JE detail page |
-| **Issue 39** | ❌ OPEN | Dashboard Recent Activity | Wire up to Audit Log API instead of empty array placeholder |
+| **Issue 39** | ✅ DONE | Dashboard Recent Activity | Wire up to Audit Log API instead of empty array placeholder |
 
 **⚠️ You MUST complete ALL issues marked ❌ OPEN before signaling completion.**
 
@@ -1125,10 +1125,33 @@ Add JE selection UI:
 **Frontend:**
 - `packages/web/src/routes/organizations/$organizationId/intercompany/new.tsx` - Add JE selection UI
 
-### Issue 37: Profile Page Implementation
-- **Status**: ❌ OPEN
-- **Priority**: MEDIUM
-- **Problem**: The Profile link in the user dropdown menu (header) shows "Soon" and is disabled. Users cannot view or edit their profile information.
+### Issue 37: Profile Page Implementation - RESOLVED
+- **Status**: ✅ RESOLVED
+- **Priority**: MEDIUM (was)
+- **Problem** (was): The Profile link in the user dropdown menu (header) shows "Soon" and is disabled. Users cannot view or edit their profile information.
+
+#### Resolution
+
+Implemented full profile page functionality:
+
+1. **Backend**: Added `PUT /api/auth/me` endpoint to update user profile (display name) in AuthApi.ts and AuthApiLive.ts
+2. **Frontend**: Created `/profile` route page with:
+   - View account info (email, role, provider - read-only)
+   - Edit display name with save button
+   - Authentication section showing provider and linked accounts
+   - Member since date
+   - Danger zone placeholder for future account deletion
+3. **Header**: Updated Profile link from disabled button to working `<Link>` component
+
+**Files modified:**
+- `packages/api/src/Definitions/AuthApi.ts` - Added UpdateProfileRequest schema and updateMe endpoint
+- `packages/api/src/Layers/AuthApiLive.ts` - Implemented updateMe handler
+- `packages/web/src/routes/profile.tsx` - New profile page (created)
+- `packages/web/src/components/layout/Header.tsx` - Enabled Profile link
+
+All tests pass (typecheck clean).
+
+#### Previous Problem
 
 #### Current State
 
@@ -1327,69 +1350,29 @@ Implemented full journal entry editing functionality:
 
 All tests pass (3589 unit tests, typecheck clean)
 
-### Issue 39: Dashboard Recent Activity
-- **Status**: ❌ OPEN
-- **Priority**: LOW
-- **Problem**: The Dashboard's "Recent Activity" section shows nothing because it's hardcoded to return an empty array. The Audit Log API exists and should be used to populate this section.
+### Issue 39: Dashboard Recent Activity - RESOLVED
+- **Status**: ✅ RESOLVED
+- **Priority**: LOW (was)
+- **Problem** (was): The Dashboard's "Recent Activity" section shows nothing because it's hardcoded to return an empty array. The Audit Log API exists and should be used to populate this section.
 
-#### Current State
+#### Resolution
 
-In `dashboard.tsx` line 189-190:
-```typescript
-// Recent activity placeholder (until audit log API is ready)
-const recentActivity: DashboardData["recentActivity"] = []
-```
+Implemented full dashboard recent activity functionality:
 
-The Audit Log API is fully implemented and available:
-- `GET /api/v1/audit-log` - List audit log entries with filtering
+1. **Dashboard Loader**: Updated `dashboard.tsx` to fetch the last 10 audit log entries from `GET /api/v1/audit-log`
+2. **Activity Mapping**: Added helper functions to map audit log entries (entity type + action) to ActivityType and format descriptions
+3. **ActivityFeed Component**: Extended to support all audit entity types with appropriate icons and colors:
+   - Journal entries (created, updated, posted, voided, deleted)
+   - Accounts, Companies, Organizations
+   - Exchange rates, Intercompany transactions
+   - Consolidation groups/runs/rules
+4. **View All Link**: ActivityFeed now links to `/organizations/:id/audit-log` page
 
-#### Required Implementation
+**Files modified:**
+- `packages/web/src/routes/organizations/$organizationId/dashboard.tsx` - Added audit log fetch, helper functions
+- `packages/web/src/components/dashboard/ActivityFeed.tsx` - Extended ActivityType, added icons for all entity types, added organizationId prop for View All link
 
-**File: `packages/web/src/routes/organizations/$organizationId/dashboard.tsx`**
-
-1. **Fetch recent audit log entries in the loader:**
-```typescript
-// Fetch recent activity from audit log
-const auditLogResult = await serverApi.GET("/api/v1/audit-log", {
-  params: {
-    query: {
-      organizationId,
-      limit: "10"  // Last 10 activities
-    }
-  },
-  headers
-})
-
-const recentActivity = auditLogResult.data?.entries ?? []
-```
-
-2. **Display activity in the Recent Activity card:**
-- Show entity type (JournalEntry, Account, Company, etc.)
-- Show action (Created, Updated, Deleted, etc.)
-- Show timestamp (relative time like "2 hours ago")
-- Show user who performed the action
-- Link to the affected entity
-
-#### UI Mockup
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│ Recent Activity                                      View All│
-├─────────────────────────────────────────────────────────────┤
-│ 📄 Journal Entry JE-001 created           2 hours ago      │
-│    by John Smith                                            │
-│ ─────────────────────────────────────────────────────────── │
-│ 💰 Account "Cash" updated                 3 hours ago      │
-│    by Jane Doe                                              │
-│ ─────────────────────────────────────────────────────────── │
-│ 🏢 Company "Acme Corp" created            1 day ago        │
-│    by John Smith                                            │
-└─────────────────────────────────────────────────────────────┘
-```
-
-#### Files to Modify
-
-- `packages/web/src/routes/organizations/$organizationId/dashboard.tsx` - Fetch and display audit log data
+All tests pass (typecheck clean)
 
 ### Issue 15: UI Structure - Organization Selector & New Dropdown - RESOLVED
 - **Status**: Completed

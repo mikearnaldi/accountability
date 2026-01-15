@@ -10,7 +10,7 @@
  * - Data-testid attributes for E2E testing
  */
 
-import { useRouter } from "@tanstack/react-router"
+import { useRouter, Link } from "@tanstack/react-router"
 import { clsx } from "clsx"
 import { useState, useRef, useEffect } from "react"
 import { ChevronDown, LogOut, User, Settings } from "lucide-react"
@@ -171,16 +171,15 @@ export function Header({
 
                   {/* Menu Items */}
                   <div className="py-1">
-                    <button
+                    <Link
+                      to="/profile"
                       data-testid="user-menu-profile"
-                      className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-400 cursor-not-allowed"
-                      disabled
-                      title="Profile page coming soon"
+                      className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                      onClick={() => setShowUserMenu(false)}
                     >
                       <User className="h-4 w-4" />
                       Profile
-                      <span className="ml-auto text-xs text-gray-400">Soon</span>
-                    </button>
+                    </Link>
                     {normalizedOrg && (
                       <button
                         data-testid="user-menu-settings"

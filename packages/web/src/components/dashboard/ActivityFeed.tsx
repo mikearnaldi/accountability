@@ -11,24 +11,58 @@
  */
 
 import { clsx } from "clsx"
+import { Link } from "@tanstack/react-router"
 import {
   FileText,
-  Building2,
-  CreditCard,
   CheckCircle,
   Clock,
   AlertCircle,
-  Plus
+  Plus,
+  Edit,
+  Trash2,
+  ArrowLeftRight,
+  Settings,
+  TrendingUp
 } from "lucide-react"
 
+// Activity types cover all audit log entity types and actions
 export type ActivityType =
+  // Journal entries
   | "journal_created"
+  | "journal_updated"
   | "journal_posted"
   | "journal_voided"
-  | "company_created"
+  | "journal_deleted"
+  // Accounts
   | "account_created"
+  | "account_updated"
+  | "account_deleted"
+  // Companies
+  | "company_created"
+  | "company_updated"
+  | "company_deleted"
+  // Organizations
+  | "organization_created"
+  | "organization_updated"
+  | "organization_deleted"
+  // Exchange rates
+  | "exchangerate_created"
+  | "exchangerate_updated"
+  | "exchangerate_deleted"
+  // Intercompany transactions
+  | "intercompany_created"
+  | "intercompany_updated"
+  | "intercompany_deleted"
+  // Consolidation
+  | "consolidation_created"
+  | "consolidation_updated"
+  | "consolidation_deleted"
+  // Generic/legacy types
   | "period_closed"
   | "report_generated"
+  | "generic_created"
+  | "generic_updated"
+  | "generic_deleted"
 
 interface ActivityItem {
   readonly id: string
@@ -43,19 +77,50 @@ interface ActivityFeedProps {
   readonly activities: readonly ActivityItem[]
   /** Whether the feed is in loading state */
   readonly isLoading?: boolean
+  /** Organization ID for the View All link */
+  readonly organizationId?: string
 }
 
 const activityIcons: Record<
   ActivityType,
   { icon: typeof FileText; color: string }
 > = {
+  // Journal entries
   journal_created: { icon: Plus, color: "text-blue-600 bg-blue-100" },
+  journal_updated: { icon: Edit, color: "text-blue-600 bg-blue-100" },
   journal_posted: { icon: CheckCircle, color: "text-green-600 bg-green-100" },
   journal_voided: { icon: AlertCircle, color: "text-red-600 bg-red-100" },
-  company_created: { icon: Building2, color: "text-purple-600 bg-purple-100" },
-  account_created: { icon: CreditCard, color: "text-orange-600 bg-orange-100" },
+  journal_deleted: { icon: Trash2, color: "text-red-600 bg-red-100" },
+  // Accounts
+  account_created: { icon: Plus, color: "text-orange-600 bg-orange-100" },
+  account_updated: { icon: Edit, color: "text-orange-600 bg-orange-100" },
+  account_deleted: { icon: Trash2, color: "text-red-600 bg-red-100" },
+  // Companies
+  company_created: { icon: Plus, color: "text-purple-600 bg-purple-100" },
+  company_updated: { icon: Edit, color: "text-purple-600 bg-purple-100" },
+  company_deleted: { icon: Trash2, color: "text-red-600 bg-red-100" },
+  // Organizations
+  organization_created: { icon: Plus, color: "text-indigo-600 bg-indigo-100" },
+  organization_updated: { icon: Settings, color: "text-indigo-600 bg-indigo-100" },
+  organization_deleted: { icon: Trash2, color: "text-red-600 bg-red-100" },
+  // Exchange rates
+  exchangerate_created: { icon: Plus, color: "text-green-600 bg-green-100" },
+  exchangerate_updated: { icon: TrendingUp, color: "text-green-600 bg-green-100" },
+  exchangerate_deleted: { icon: Trash2, color: "text-red-600 bg-red-100" },
+  // Intercompany
+  intercompany_created: { icon: Plus, color: "text-cyan-600 bg-cyan-100" },
+  intercompany_updated: { icon: ArrowLeftRight, color: "text-cyan-600 bg-cyan-100" },
+  intercompany_deleted: { icon: Trash2, color: "text-red-600 bg-red-100" },
+  // Consolidation
+  consolidation_created: { icon: Plus, color: "text-teal-600 bg-teal-100" },
+  consolidation_updated: { icon: Edit, color: "text-teal-600 bg-teal-100" },
+  consolidation_deleted: { icon: Trash2, color: "text-red-600 bg-red-100" },
+  // Legacy/generic
   period_closed: { icon: Clock, color: "text-gray-600 bg-gray-100" },
-  report_generated: { icon: FileText, color: "text-blue-600 bg-blue-100" }
+  report_generated: { icon: FileText, color: "text-blue-600 bg-blue-100" },
+  generic_created: { icon: Plus, color: "text-gray-600 bg-gray-100" },
+  generic_updated: { icon: Edit, color: "text-gray-600 bg-gray-100" },
+  generic_deleted: { icon: Trash2, color: "text-red-600 bg-red-100" }
 }
 
 function formatTimestamp(timestamp: string): string {
@@ -77,7 +142,7 @@ function formatTimestamp(timestamp: string): string {
   })
 }
 
-export function ActivityFeed({ activities, isLoading = false }: ActivityFeedProps) {
+export function ActivityFeed({ activities, isLoading = false, organizationId }: ActivityFeedProps) {
   if (isLoading) {
     return <ActivityFeedSkeleton />
   }
@@ -135,12 +200,24 @@ export function ActivityFeed({ activities, isLoading = false }: ActivityFeedProp
 
       {/* View All Link */}
       <div className="px-6 py-3 border-t border-gray-200 bg-gray-50 rounded-b-lg">
-        <button
-          className="text-sm font-medium text-blue-600 hover:text-blue-700"
-          data-testid="activity-view-all"
-        >
-          View all activity
-        </button>
+        {organizationId ? (
+          <Link
+            to="/organizations/$organizationId/audit-log"
+            params={{ organizationId }}
+            className="text-sm font-medium text-blue-600 hover:text-blue-700"
+            data-testid="activity-view-all"
+          >
+            View all activity
+          </Link>
+        ) : (
+          <button
+            className="text-sm font-medium text-blue-600 hover:text-blue-700"
+            data-testid="activity-view-all"
+            disabled
+          >
+            View all activity
+          </button>
+        )}
       </div>
     </div>
   )
