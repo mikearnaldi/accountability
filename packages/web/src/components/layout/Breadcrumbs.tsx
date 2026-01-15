@@ -1,8 +1,9 @@
 /**
  * Breadcrumbs component
  *
- * Breadcrumb navigation for nested pages.
+ * Breadcrumb navigation with organization context support.
  * Features:
+ * - Organization as first breadcrumb when selected
  * - Automatic generation from route path
  * - Clickable links for parent routes
  * - Current page shown without link
@@ -10,19 +11,31 @@
  */
 
 import { Link, useLocation } from "@tanstack/react-router"
-import { ChevronRight, Home } from "lucide-react"
+import { ChevronRight, Home, Building2 } from "lucide-react"
+import type { Organization } from "./OrganizationSelector.tsx"
 
-interface BreadcrumbItem {
+// =============================================================================
+// Types
+// =============================================================================
+
+export interface BreadcrumbItem {
   readonly label: string
   readonly href: string
+  readonly icon?: React.ReactNode
 }
 
 interface BreadcrumbsProps {
   /** Custom breadcrumb items (overrides automatic generation) */
   readonly items?: readonly BreadcrumbItem[]
-  /** Whether to show home icon */
+  /** Whether to show home icon as first crumb */
   readonly showHome?: boolean
+  /** Current organization (used for org-scoped breadcrumbs) */
+  readonly organization?: Organization | null
 }
+
+// =============================================================================
+// Helpers
+// =============================================================================
 
 /**
  * Convert path segment to readable label
@@ -38,22 +51,37 @@ function formatSegment(segment: string): string {
 }
 
 /**
- * Generate breadcrumbs from current route
+ * Generate breadcrumbs from current route, handling organization context
  */
-function generateBreadcrumbs(pathname: string): readonly BreadcrumbItem[] {
+function generateBreadcrumbs(
+  pathname: string,
+  _organization?: Organization | null
+): readonly BreadcrumbItem[] {
   const segments = pathname.split("/").filter(Boolean)
   const breadcrumbs: BreadcrumbItem[] = []
 
-  let currentPath = ""
-  for (const segment of segments) {
+  // Check if we're in an organization context
+  const isOrgRoute = segments[0] === "organizations" && segments[1]
+
+  // Skip the organizations segment and org ID if we have org context
+  // The org will be shown separately
+  const startIndex = isOrgRoute ? 2 : 0
+
+  let currentPath = isOrgRoute ? `/organizations/${segments[1]}` : ""
+
+  for (let i = startIndex; i < segments.length; i++) {
+    const segment = segments[i]
     currentPath += `/${segment}`
 
-    // Skip parameter segments (those starting with $) in the URL
-    // but we'd need to resolve them with actual data
-    // For now, just show the segment as-is
-    const label = segment.startsWith("$")
-      ? segment.slice(1).replace(/Id$/, "")
-      : formatSegment(segment)
+    // Skip ID segments (UUIDs or numeric IDs)
+    if (segment.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+      continue
+    }
+    if (segment.match(/^\d+$/)) {
+      continue
+    }
+
+    const label = formatSegment(segment)
 
     breadcrumbs.push({
       label,
@@ -64,18 +92,50 @@ function generateBreadcrumbs(pathname: string): readonly BreadcrumbItem[] {
   return breadcrumbs
 }
 
-export function Breadcrumbs({ items, showHome = true }: BreadcrumbsProps) {
+// =============================================================================
+// Breadcrumbs Component
+// =============================================================================
+
+export function Breadcrumbs({ items, showHome = true, organization }: BreadcrumbsProps) {
   const location = useLocation()
 
   // Use custom items if provided, otherwise generate from path
-  const breadcrumbItems = items ?? generateBreadcrumbs(location.pathname)
+  const breadcrumbItems = items ?? generateBreadcrumbs(location.pathname, organization)
 
-  // Don't show breadcrumbs on home page or if only one item
-  if (
-    location.pathname === "/" ||
-    (breadcrumbItems.length <= 1 && !showHome)
-  ) {
+  // Check if we're on home page or organizations list
+  const isHomePage = location.pathname === "/"
+  const isOrganizationsPage = location.pathname === "/organizations"
+
+  // Don't show breadcrumbs on home page
+  if (isHomePage) {
     return null
+  }
+
+  // For organizations list, just show "Organizations"
+  if (isOrganizationsPage && !organization) {
+    return (
+      <nav
+        className="flex items-center gap-2 text-sm mb-6"
+        aria-label="Breadcrumb"
+        data-testid="breadcrumbs"
+      >
+        {showHome && (
+          <>
+            <Link
+              to="/"
+              data-testid="breadcrumb-home"
+              className="flex items-center text-gray-500 hover:text-gray-700 transition-colors"
+            >
+              <Home className="h-4 w-4" />
+            </Link>
+            <ChevronRight className="h-4 w-4 text-gray-400" />
+          </>
+        )}
+        <span className="text-gray-900 font-medium" data-testid="breadcrumb-current">
+          Organizations
+        </span>
+      </nav>
+    )
   }
 
   return (
@@ -94,9 +154,23 @@ export function Breadcrumbs({ items, showHome = true }: BreadcrumbsProps) {
           >
             <Home className="h-4 w-4" />
           </Link>
-          {breadcrumbItems.length > 0 && (
-            <ChevronRight className="h-4 w-4 text-gray-400" />
-          )}
+          <ChevronRight className="h-4 w-4 text-gray-400" />
+        </>
+      )}
+
+      {/* Organization (if in org context) */}
+      {organization && (
+        <>
+          <Link
+            to="/organizations/$organizationId"
+            params={{ organizationId: organization.id }}
+            data-testid="breadcrumb-organization"
+            className="flex items-center gap-1.5 text-gray-500 hover:text-gray-700 transition-colors"
+          >
+            <Building2 className="h-4 w-4" />
+            <span className="max-w-[150px] truncate">{organization.name}</span>
+          </Link>
+          {breadcrumbItems.length > 0 && <ChevronRight className="h-4 w-4 text-gray-400" />}
         </>
       )}
 
@@ -132,13 +206,67 @@ export function Breadcrumbs({ items, showHome = true }: BreadcrumbsProps) {
   )
 }
 
+// =============================================================================
+// Static Breadcrumbs
+// =============================================================================
+
 /**
  * Static breadcrumb component for when you know the exact items
  */
 export function StaticBreadcrumbs({
-  items
+  items,
+  organization = null
 }: {
   readonly items: readonly BreadcrumbItem[]
+  readonly organization?: Organization | null
 }) {
-  return <Breadcrumbs items={items} showHome={true} />
+  return <Breadcrumbs items={items} showHome={true} organization={organization ?? null} />
+}
+
+// =============================================================================
+// Preset Breadcrumbs
+// =============================================================================
+
+interface OrganizationBreadcrumbsProps {
+  readonly organization: Organization
+  readonly currentPage?: string
+}
+
+export function OrganizationBreadcrumbs({ organization, currentPage }: OrganizationBreadcrumbsProps) {
+  const items: BreadcrumbItem[] = currentPage
+    ? [{ label: currentPage, href: "#" }]
+    : []
+
+  return <Breadcrumbs items={items} organization={organization} />
+}
+
+interface CompanyBreadcrumbsProps {
+  readonly organization: Organization
+  readonly companyName: string
+  readonly companyId: string
+  readonly currentPage?: string
+}
+
+export function CompanyBreadcrumbs({
+  organization,
+  companyName,
+  companyId,
+  currentPage
+}: CompanyBreadcrumbsProps) {
+  const items: BreadcrumbItem[] = [
+    {
+      label: "Companies",
+      href: `/organizations/${organization.id}/companies`
+    },
+    {
+      label: companyName,
+      href: `/organizations/${organization.id}/companies/${companyId}`
+    }
+  ]
+
+  if (currentPage) {
+    items.push({ label: currentPage, href: "#" })
+  }
+
+  return <Breadcrumbs items={items} organization={organization} />
 }

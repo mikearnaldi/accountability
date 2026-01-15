@@ -1,11 +1,12 @@
 /**
  * AppLayout component
  *
- * Main application layout with sidebar and header.
+ * Main application layout with sidebar, header, and organization context.
  * Used for authenticated pages to provide consistent navigation.
  * Features:
- * - Collapsible sidebar
- * - Header with user profile and search
+ * - Collapsible sidebar with organization-scoped navigation
+ * - Header with organization selector and user profile
+ * - Breadcrumbs with organization context
  * - Responsive design for mobile
  * - Data-testid attributes for E2E testing
  */
@@ -13,6 +14,13 @@
 import { useState } from "react"
 import { Sidebar } from "./Sidebar.tsx"
 import { Header } from "./Header.tsx"
+import { Breadcrumbs } from "./Breadcrumbs.tsx"
+import type { Organization } from "./OrganizationSelector.tsx"
+import type { BreadcrumbItem } from "./Breadcrumbs.tsx"
+
+// =============================================================================
+// Types
+// =============================================================================
 
 interface UserInfo {
   readonly id: string
@@ -27,10 +35,35 @@ interface AppLayoutProps {
   readonly user: UserInfo | null
   /** Page content */
   readonly children: React.ReactNode
+  /** List of organizations for selector */
+  readonly organizations?: readonly Organization[]
+  /** Currently selected organization */
+  readonly currentOrganization?: Organization | null
+  /** Whether organizations are loading */
+  readonly organizationsLoading?: boolean
+  /** Whether to show breadcrumbs */
+  readonly showBreadcrumbs?: boolean
+  /** Custom breadcrumb items (optional) */
+  readonly breadcrumbItems?: readonly BreadcrumbItem[]
 }
 
-export function AppLayout({ user, children }: AppLayoutProps) {
+// =============================================================================
+// AppLayout Component
+// =============================================================================
+
+export function AppLayout({
+  user,
+  children,
+  organizations = [],
+  currentOrganization = null,
+  organizationsLoading = false,
+  showBreadcrumbs = true,
+  breadcrumbItems
+}: AppLayoutProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+
+  // Normalize undefined to null for exactOptionalPropertyTypes
+  const normalizedOrg = currentOrganization ?? null
 
   return (
     <div
@@ -41,21 +74,48 @@ export function AppLayout({ user, children }: AppLayoutProps) {
       <Sidebar
         isCollapsed={sidebarCollapsed}
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+        currentOrganization={normalizedOrg}
       />
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <Header user={user} />
+        <Header
+          user={user}
+          organizations={organizations}
+          currentOrganization={normalizedOrg}
+          organizationsLoading={organizationsLoading}
+        />
 
         {/* Page Content */}
         <main
           className="flex-1 overflow-y-auto p-4 lg:p-6"
           data-testid="app-main-content"
         >
+          {/* Breadcrumbs */}
+          {showBreadcrumbs && (
+            breadcrumbItems ? (
+              <Breadcrumbs
+                items={breadcrumbItems}
+                organization={normalizedOrg}
+              />
+            ) : (
+              <Breadcrumbs
+                organization={normalizedOrg}
+              />
+            )
+          )}
+
           {children}
         </main>
       </div>
     </div>
   )
 }
+
+// =============================================================================
+// Re-exports
+// =============================================================================
+
+export { type Organization } from "./OrganizationSelector.tsx"
+export { type BreadcrumbItem } from "./Breadcrumbs.tsx"

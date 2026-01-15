@@ -356,7 +356,7 @@ test.describe("Dashboard - Header", () => {
     ])
   })
 
-  test("should display header with search and user menu", async ({ page }) => {
+  test("should display header with user menu", async ({ page }) => {
     await page.goto("/")
 
     // Verify header is displayed
@@ -365,8 +365,7 @@ test.describe("Dashboard - Header", () => {
     // Verify user menu button
     await expect(page.locator('[data-testid="user-menu-button"]')).toBeVisible()
 
-    // Verify notifications button
-    await expect(page.locator('[data-testid="notifications-button"]')).toBeVisible()
+    // Note: NO search/notifications per requirements - "NO search/notifications (no API)"
   })
 
   test("should open user menu dropdown", async ({ page }) => {
@@ -402,14 +401,7 @@ test.describe("Dashboard - Header", () => {
     })
   })
 
-  test("should display search input on desktop", async ({ page }) => {
-    // Set viewport to desktop size
-    await page.setViewportSize({ width: 1280, height: 720 })
-    await page.goto("/")
-
-    // Verify search input is displayed
-    await expect(page.locator('[data-testid="header-search"]')).toBeVisible()
-  })
+  // Note: Search input test removed - per requirements "NO search/notifications (no API)"
 })
 
 test.describe("Dashboard - Responsive Design", () => {

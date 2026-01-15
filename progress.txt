@@ -894,3 +894,8 @@
 **Story**: 1.4 - Audit log query endpoint
 **Status**: complete
 ---
+
+## Iteration 45 - 2026-01-15 07:15
+**Story**: 2.1 - Layout with organization context selector
+**Status**: complete
+---

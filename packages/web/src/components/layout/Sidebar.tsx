@@ -1,29 +1,39 @@
 /**
  * Sidebar navigation component
  *
- * Professional sidebar navigation with collapsible menu for the accounting dashboard.
+ * Professional sidebar navigation with organization-scoped menu.
  * Features:
  * - Logo/brand link to home
- * - Main navigation links
+ * - Organization-scoped navigation when org is selected
+ * - Global navigation when no org selected
  * - Active route highlighting
  * - Collapsible menu for mobile
  * - Data-testid attributes for E2E testing
  */
 
-import { Link, useLocation } from "@tanstack/react-router"
+import { Link, useLocation, useNavigate } from "@tanstack/react-router"
 import { clsx } from "clsx"
 import { useState } from "react"
 import {
   LayoutDashboard,
   Building2,
-  FileText,
-  BookOpen,
+  TrendingUp,
+  Globe2,
+  ArrowLeftRight,
+  ClipboardList,
   Settings,
   ChevronLeft,
   ChevronRight,
   Menu,
-  X
+  X,
+  Building,
+  Check
 } from "lucide-react"
+import type { Organization } from "./OrganizationSelector.tsx"
+
+// =============================================================================
+// Types
+// =============================================================================
 
 interface NavItem {
   readonly label: string
@@ -32,46 +42,93 @@ interface NavItem {
   readonly testId: string
 }
 
-const navItems: readonly NavItem[] = [
-  {
-    label: "Dashboard",
-    href: "/",
-    icon: LayoutDashboard,
-    testId: "nav-dashboard"
-  },
-  {
-    label: "Organizations",
-    href: "/organizations",
-    icon: Building2,
-    testId: "nav-organizations"
-  },
-  {
-    label: "Journal Entries",
-    href: "/journal-entries",
-    icon: FileText,
-    testId: "nav-journal-entries"
-  },
-  {
-    label: "Reports",
-    href: "/reports",
-    icon: BookOpen,
-    testId: "nav-reports"
-  },
-  {
-    label: "Settings",
-    href: "/settings",
-    icon: Settings,
-    testId: "nav-settings"
-  }
-]
-
 interface SidebarProps {
   readonly isCollapsed: boolean
   readonly onToggleCollapse: () => void
+  /** Currently selected organization (for org-scoped navigation) */
+  readonly currentOrganization?: Organization | null
 }
 
-export function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
+// =============================================================================
+// Navigation Items
+// =============================================================================
+
+/**
+ * Get navigation items based on whether an organization is selected
+ */
+function getNavItems(organizationId?: string): readonly NavItem[] {
+  // If no organization selected, show global navigation
+  if (!organizationId) {
+    return [
+      {
+        label: "Dashboard",
+        href: "/",
+        icon: LayoutDashboard,
+        testId: "nav-dashboard"
+      },
+      {
+        label: "Organizations",
+        href: "/organizations",
+        icon: Building2,
+        testId: "nav-organizations"
+      }
+    ]
+  }
+
+  // Organization-scoped navigation
+  return [
+    {
+      label: "Dashboard",
+      href: `/organizations/${organizationId}`,
+      icon: LayoutDashboard,
+      testId: "nav-org-dashboard"
+    },
+    {
+      label: "Companies",
+      href: `/organizations/${organizationId}/companies`,
+      icon: Building,
+      testId: "nav-companies"
+    },
+    {
+      label: "Exchange Rates",
+      href: `/organizations/${organizationId}/exchange-rates`,
+      icon: TrendingUp,
+      testId: "nav-exchange-rates"
+    },
+    {
+      label: "Consolidation",
+      href: `/organizations/${organizationId}/consolidation`,
+      icon: Globe2,
+      testId: "nav-consolidation"
+    },
+    {
+      label: "Intercompany",
+      href: `/organizations/${organizationId}/intercompany`,
+      icon: ArrowLeftRight,
+      testId: "nav-intercompany"
+    },
+    {
+      label: "Audit Log",
+      href: `/organizations/${organizationId}/audit-log`,
+      icon: ClipboardList,
+      testId: "nav-audit-log"
+    },
+    {
+      label: "Settings",
+      href: `/organizations/${organizationId}/settings`,
+      icon: Settings,
+      testId: "nav-org-settings"
+    }
+  ]
+}
+
+// =============================================================================
+// Sidebar Component
+// =============================================================================
+
+export function Sidebar({ isCollapsed, onToggleCollapse, currentOrganization }: SidebarProps) {
   const location = useLocation()
+  const navItems = getNavItems(currentOrganization?.id)
 
   return (
     <>
@@ -112,13 +169,28 @@ export function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
           </Link>
         </div>
 
+        {/* Organization Context Indicator */}
+        {currentOrganization && !isCollapsed && (
+          <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
+            <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Current Organization</p>
+            <p className="text-sm font-medium text-gray-900 truncate" data-testid="sidebar-current-org">
+              {currentOrganization.name}
+            </p>
+          </div>
+        )}
+
         {/* Navigation */}
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
-            const isActive =
-              item.href === "/"
-                ? location.pathname === "/"
-                : location.pathname.startsWith(item.href)
+            // Determine if this item is active
+            let isActive = false
+            if (item.href === "/" || item.href === `/organizations/${currentOrganization?.id}`) {
+              // Dashboard: exact match
+              isActive = location.pathname === item.href
+            } else {
+              // Other items: prefix match
+              isActive = location.pathname.startsWith(item.href)
+            }
 
             return (
               <Link
@@ -166,12 +238,30 @@ export function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
   )
 }
 
-/**
- * Mobile sidebar component with slide-out drawer
- */
-export function MobileSidebar() {
+// =============================================================================
+// Mobile Sidebar Component
+// =============================================================================
+
+interface MobileSidebarProps {
+  /** List of organizations for org selector */
+  readonly organizations?: readonly Organization[]
+  /** Currently selected organization */
+  readonly currentOrganization?: Organization | null
+}
+
+export function MobileSidebar({ organizations = [], currentOrganization }: MobileSidebarProps) {
   const [isOpen, setIsOpen] = useState(false)
   const location = useLocation()
+  const navigate = useNavigate()
+  const navItems = getNavItems(currentOrganization?.id)
+
+  const handleSelectOrganization = (org: Organization) => {
+    setIsOpen(false)
+    navigate({
+      to: "/organizations/$organizationId",
+      params: { organizationId: org.id }
+    })
+  }
 
   return (
     <>
@@ -199,7 +289,7 @@ export function MobileSidebar() {
 
           {/* Sidebar Panel */}
           <aside
-            className="fixed inset-y-0 left-0 w-64 bg-white shadow-xl flex flex-col"
+            className="fixed inset-y-0 left-0 w-72 bg-white shadow-xl flex flex-col"
             data-testid="mobile-sidebar"
           >
             {/* Header */}
@@ -236,13 +326,46 @@ export function MobileSidebar() {
               </button>
             </div>
 
+            {/* Organization Selector (Mobile) */}
+            {organizations.length > 0 && (
+              <div className="px-3 py-3 border-b border-gray-200">
+                <p className="text-xs text-gray-500 uppercase tracking-wider mb-2 px-1">
+                  Organization
+                </p>
+                <div className="space-y-1">
+                  {organizations.map((org) => {
+                    const isSelected = currentOrganization?.id === org.id
+                    return (
+                      <button
+                        key={org.id}
+                        onClick={() => handleSelectOrganization(org)}
+                        className={clsx(
+                          "flex items-center gap-3 w-full px-3 py-2 rounded-lg text-left transition-colors",
+                          isSelected
+                            ? "bg-blue-50 text-blue-700"
+                            : "text-gray-700 hover:bg-gray-100"
+                        )}
+                        data-testid={`mobile-org-${org.id}`}
+                      >
+                        <Building2 className="h-4 w-4 flex-shrink-0" />
+                        <span className="flex-1 text-sm font-medium truncate">{org.name}</span>
+                        {isSelected && <Check className="h-4 w-4 flex-shrink-0" />}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Navigation */}
             <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
               {navItems.map((item) => {
-                const isActive =
-                  item.href === "/"
-                    ? location.pathname === "/"
-                    : location.pathname.startsWith(item.href)
+                let isActive = false
+                if (item.href === "/" || item.href === `/organizations/${currentOrganization?.id}`) {
+                  isActive = location.pathname === item.href
+                } else {
+                  isActive = location.pathname.startsWith(item.href)
+                }
 
                 return (
                   <Link

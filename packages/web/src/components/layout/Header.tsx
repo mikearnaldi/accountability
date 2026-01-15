@@ -1,20 +1,26 @@
 /**
  * Header component
  *
- * Top header with user profile, notifications, and search.
+ * Top header with organization selector, user profile, and logout.
  * Features:
- * - Search input (placeholder for future functionality)
- * - Notifications bell icon
+ * - Organization selector dropdown (switch between orgs)
+ * - Current org name shown prominently
  * - User profile dropdown with logout
+ * - NO search/notifications (no API)
  * - Data-testid attributes for E2E testing
  */
 
 import { useRouter } from "@tanstack/react-router"
 import { clsx } from "clsx"
 import { useState, useRef, useEffect } from "react"
-import { Search, Bell, ChevronDown, LogOut, User, Settings } from "lucide-react"
+import { ChevronDown, LogOut, User, Settings } from "lucide-react"
 import { api } from "@/api/client"
 import { MobileSidebar } from "./Sidebar.tsx"
+import { OrganizationSelector, type Organization } from "./OrganizationSelector.tsx"
+
+// =============================================================================
+// Types
+// =============================================================================
 
 interface UserInfo {
   readonly id: string
@@ -25,15 +31,33 @@ interface UserInfo {
 }
 
 interface HeaderProps {
+  /** User info from route context */
   readonly user: UserInfo | null
+  /** List of organizations user has access to */
+  readonly organizations?: readonly Organization[]
+  /** Currently selected organization */
+  readonly currentOrganization?: Organization | null
+  /** Whether organizations are loading */
+  readonly organizationsLoading?: boolean
 }
 
-export function Header({ user }: HeaderProps) {
+// =============================================================================
+// Header Component
+// =============================================================================
+
+export function Header({
+  user,
+  organizations = [],
+  currentOrganization = null,
+  organizationsLoading = false
+}: HeaderProps) {
   const router = useRouter()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
-  const [searchQuery, setSearchQuery] = useState("")
   const userMenuRef = useRef<HTMLDivElement>(null)
+
+  // Normalize undefined to null for exactOptionalPropertyTypes
+  const normalizedOrg = currentOrganization ?? null
 
   // Close user menu when clicking outside
   useEffect(() => {
@@ -82,40 +106,26 @@ export function Header({ user }: HeaderProps) {
       data-testid="header"
     >
       <div className="flex items-center justify-between h-full">
-        {/* Left: Mobile menu + Search */}
-        <div className="flex items-center gap-4">
+        {/* Left: Mobile menu + Organization Selector */}
+        <div className="flex items-center gap-3">
           {/* Mobile Menu Toggle */}
-          <MobileSidebar />
+          <MobileSidebar
+            organizations={organizations}
+            currentOrganization={normalizedOrg}
+          />
 
-          {/* Search (hidden on small screens) */}
-          <div className="hidden sm:flex items-center">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <input
-                type="search"
-                placeholder="Search..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                data-testid="header-search"
-                className="w-64 lg:w-80 pl-10 pr-4 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-400"
-              />
-            </div>
+          {/* Organization Selector (hidden on mobile, shown in mobile sidebar) */}
+          <div className="hidden sm:block">
+            <OrganizationSelector
+              organizations={organizations}
+              currentOrganization={normalizedOrg}
+              loading={organizationsLoading}
+            />
           </div>
         </div>
 
-        {/* Right: Notifications + User Profile */}
+        {/* Right: User Profile */}
         <div className="flex items-center gap-3">
-          {/* Notifications */}
-          <button
-            data-testid="notifications-button"
-            className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-            aria-label="Notifications"
-          >
-            <Bell className="h-5 w-5" />
-            {/* Notification badge placeholder */}
-            <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full" />
-          </button>
-
           {/* User Profile Dropdown */}
           {user && (
             <div className="relative" ref={userMenuRef}>
@@ -166,7 +176,6 @@ export function Header({ user }: HeaderProps) {
                       className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                       onClick={() => {
                         setShowUserMenu(false)
-                        // Settings page not implemented yet, navigate to home
                         router.navigate({ to: "/" })
                       }}
                     >
@@ -178,7 +187,6 @@ export function Header({ user }: HeaderProps) {
                       className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                       onClick={() => {
                         setShowUserMenu(false)
-                        // Settings page not implemented yet, navigate to home
                         router.navigate({ to: "/" })
                       }}
                     >
