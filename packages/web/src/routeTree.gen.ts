@@ -13,6 +13,7 @@ import { Route as RegisterRouteImport } from './routes/register'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as OrganizationsIndexRouteImport } from './routes/organizations/index'
+import { Route as OrganizationsNewRouteImport } from './routes/organizations/new'
 import { Route as ApiSplatRouteImport } from './routes/api/$'
 import { Route as OrganizationsOrganizationIdIndexRouteImport } from './routes/organizations/$organizationId/index'
 import { Route as OrganizationsOrganizationIdDashboardRouteImport } from './routes/organizations/$organizationId/dashboard'
@@ -39,6 +40,11 @@ const IndexRoute = IndexRouteImport.update({
 const OrganizationsIndexRoute = OrganizationsIndexRouteImport.update({
   id: '/organizations/',
   path: '/organizations/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OrganizationsNewRoute = OrganizationsNewRouteImport.update({
+  id: '/organizations/new',
+  path: '/organizations/new',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiSplatRoute = ApiSplatRouteImport.update({
@@ -90,6 +96,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/api/$': typeof ApiSplatRoute
+  '/organizations/new': typeof OrganizationsNewRoute
   '/organizations': typeof OrganizationsIndexRoute
   '/organizations/$organizationId/dashboard': typeof OrganizationsOrganizationIdDashboardRoute
   '/organizations/$organizationId': typeof OrganizationsOrganizationIdIndexRoute
@@ -103,6 +110,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/api/$': typeof ApiSplatRoute
+  '/organizations/new': typeof OrganizationsNewRoute
   '/organizations': typeof OrganizationsIndexRoute
   '/organizations/$organizationId/dashboard': typeof OrganizationsOrganizationIdDashboardRoute
   '/organizations/$organizationId': typeof OrganizationsOrganizationIdIndexRoute
@@ -117,6 +125,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/api/$': typeof ApiSplatRoute
+  '/organizations/new': typeof OrganizationsNewRoute
   '/organizations/': typeof OrganizationsIndexRoute
   '/organizations/$organizationId/dashboard': typeof OrganizationsOrganizationIdDashboardRoute
   '/organizations/$organizationId/': typeof OrganizationsOrganizationIdIndexRoute
@@ -132,6 +141,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/api/$'
+    | '/organizations/new'
     | '/organizations'
     | '/organizations/$organizationId/dashboard'
     | '/organizations/$organizationId'
@@ -145,6 +155,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/api/$'
+    | '/organizations/new'
     | '/organizations'
     | '/organizations/$organizationId/dashboard'
     | '/organizations/$organizationId'
@@ -158,6 +169,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/api/$'
+    | '/organizations/new'
     | '/organizations/'
     | '/organizations/$organizationId/dashboard'
     | '/organizations/$organizationId/'
@@ -172,6 +184,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   RegisterRoute: typeof RegisterRoute
   ApiSplatRoute: typeof ApiSplatRoute
+  OrganizationsNewRoute: typeof OrganizationsNewRoute
   OrganizationsIndexRoute: typeof OrganizationsIndexRoute
   OrganizationsOrganizationIdDashboardRoute: typeof OrganizationsOrganizationIdDashboardRoute
   OrganizationsOrganizationIdIndexRoute: typeof OrganizationsOrganizationIdIndexRoute
@@ -209,6 +222,13 @@ declare module '@tanstack/react-router' {
       path: '/organizations'
       fullPath: '/organizations'
       preLoaderRoute: typeof OrganizationsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/organizations/new': {
+      id: '/organizations/new'
+      path: '/organizations/new'
+      fullPath: '/organizations/new'
+      preLoaderRoute: typeof OrganizationsNewRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/$': {
@@ -268,6 +288,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   RegisterRoute: RegisterRoute,
   ApiSplatRoute: ApiSplatRoute,
+  OrganizationsNewRoute: OrganizationsNewRoute,
   OrganizationsIndexRoute: OrganizationsIndexRoute,
   OrganizationsOrganizationIdDashboardRoute:
     OrganizationsOrganizationIdDashboardRoute,

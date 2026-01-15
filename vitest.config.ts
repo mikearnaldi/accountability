@@ -19,6 +19,18 @@ export default defineConfig({
     ],
     passWithNoTests: true,
     hookTimeout: 120000, // 2 minutes for testcontainer setup hooks
+    // Run tests sequentially within each file to avoid migration race conditions
+    // when multiple test files try to create the same PostgreSQL types
+    sequence: {
+      hooks: "stack"
+    },
+    // Use forks pool with single thread to ensure migrations run once
+    pool: "forks",
+    poolOptions: {
+      forks: {
+        singleFork: true
+      }
+    },
     coverage: {
       provider: "v8",
       reporter: ["text", "html", "lcov"],

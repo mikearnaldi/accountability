@@ -19,14 +19,13 @@ import { CompanyRepository } from "../src/Services/CompanyRepository.ts"
 import { OrganizationRepository } from "../src/Services/OrganizationRepository.ts"
 import { CompanyRepositoryLive } from "../src/Layers/CompanyRepositoryLive.ts"
 import { OrganizationRepositoryLive } from "../src/Layers/OrganizationRepositoryLive.ts"
-import { MigrationLayer } from "../src/Layers/MigrationsLive.ts"
 import { SharedPgClientLive } from "./Utils.ts"
 
 /**
- * Layer with migrations and repositories
+ * Layer with repositories.
+ * Migrations are run globally in vitest.global-setup.ts to avoid race conditions.
  */
 const TestLayer = Layer.mergeAll(CompanyRepositoryLive, OrganizationRepositoryLive).pipe(
-  Layer.provideMerge(MigrationLayer),
   Layer.provideMerge(SharedPgClientLive)
 )
 

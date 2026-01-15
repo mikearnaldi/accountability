@@ -14,14 +14,13 @@ import { CurrencyCode } from "@accountability/core/Domains/CurrencyCode"
 import { Timestamp } from "@accountability/core/Domains/Timestamp"
 import { OrganizationRepository } from "../src/Services/OrganizationRepository.ts"
 import { OrganizationRepositoryLive } from "../src/Layers/OrganizationRepositoryLive.ts"
-import { MigrationLayer } from "../src/Layers/MigrationsLive.ts"
 import { SharedPgClientLive } from "./Utils.ts"
 
 /**
- * Layer with migrations and OrganizationRepository
+ * Layer with OrganizationRepository.
+ * Migrations are run globally in vitest.global-setup.ts to avoid race conditions.
  */
 const TestLayer = OrganizationRepositoryLive.pipe(
-  Layer.provideMerge(MigrationLayer),
   Layer.provideMerge(SharedPgClientLive)
 )
 

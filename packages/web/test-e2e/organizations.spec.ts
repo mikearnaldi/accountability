@@ -85,15 +85,15 @@ test.describe("Organizations Page", () => {
     const hasOrganizations = await page.getByText(/\d+ organization/i).isVisible()
 
     if (hasOrganizations) {
-      // List state
-      await expect(page.getByRole("button", { name: /New Organization/i })).toBeVisible()
+      // List state - "New Organization" is a Link, not a button
+      await expect(page.getByTestId("new-organization-button")).toBeVisible()
     } else {
-      // Empty state
+      // Empty state - "Create Organization" is a Link
       await expect(page.getByText("No organizations")).toBeVisible()
       await expect(
         page.getByText("Get started by creating your first organization")
       ).toBeVisible()
-      await expect(page.getByRole("button", { name: /Create Organization/i })).toBeVisible()
+      await expect(page.getByTestId("create-organization-button")).toBeVisible()
     }
   })
 
@@ -207,19 +207,15 @@ test.describe("Organizations Page", () => {
       }
     ])
 
-    // 4. Set localStorage token (needed for client-side API calls)
-    // Navigate to a page first to set localStorage (can only set localStorage for loaded pages)
-    await page.goto("/login")
-    await page.evaluate((token) => {
-      localStorage.setItem("accountabilitySessionToken", token)
-    }, sessionToken)
-
-    // 5. Navigate to organizations page
+    // 4. Navigate to organizations page
     await page.goto("/organizations")
 
-    // 6. Click create organization button (either "Create Organization" in empty state or "New Organization" in list state)
-    const createButton = page.getByRole("button", { name: /Create Organization|New Organization/i })
-    await createButton.click()
+    // 5. Click create organization link (navigates to /organizations/new)
+    // Use new-organization-button since we have orgs from other tests in shared DB
+    await page.getByTestId("new-organization-button").click()
+
+    // 6. Wait for navigation to create organization page
+    await page.waitForURL("/organizations/new")
 
     // 7. Fill form
     const newOrgName = `New Org ${Date.now()}`
@@ -229,14 +225,13 @@ test.describe("Organizations Page", () => {
     await page.selectOption("#org-currency", "EUR")
 
     // 9. Submit form
-    await page.click('button[type="submit"]')
+    await page.getByTestId("org-form-submit-button").click()
 
-    // 10. After creating, should navigate to the new org's dashboard
-    // The form submits and navigates to /organizations/:id/dashboard
-    await page.waitForURL(/\/organizations\/[^/]+\/dashboard/, { timeout: 10000 })
+    // 10. After creating, should navigate to the new org's detail page
+    await page.waitForURL(/\/organizations\/[^/]+$/, { timeout: 15000 })
 
-    // 11. Should see the organization name on the dashboard
-    await expect(page.getByTestId("org-dashboard-name")).toContainText(newOrgName)
+    // 11. Should see the organization name on the detail page (use heading to avoid breadcrumb)
+    await expect(page.getByRole("heading", { name: newOrgName })).toBeVisible({ timeout: 5000 })
   })
 
   test("should show form validation error for empty name", async ({
@@ -282,24 +277,19 @@ test.describe("Organizations Page", () => {
       }
     ])
 
-    // 4. Navigate to organizations page
-    await page.goto("/organizations")
+    // 4. Navigate to create organization page directly
+    await page.goto("/organizations/new")
 
-    // 5. Click create organization button (either "Create Organization" in empty state or "New Organization" in list state)
-    const createButton = page.getByRole("button", { name: /Create Organization|New Organization/i })
-    await createButton.click()
-
-    // 6. Clear the name field and submit
+    // 5. Clear the name field and submit
     await page.fill("#org-name", "   ") // Just whitespace
-    await page.click('button[type="submit"]')
+    await page.getByTestId("org-form-submit-button").click()
 
-    // 7. Should show validation error
-    await expect(page.getByRole("alert")).toBeVisible()
+    // 6. Should show validation error
     await expect(page.getByText(/Organization name is required/i)).toBeVisible()
   })
 
-  test("should cancel form and close modal", async ({ page, request }) => {
-    // 1. Register a test user with existing org
+  test("should cancel form and navigate back", async ({ page, request }) => {
+    // 1. Register a test user
     const testUser = {
       email: `test-cancel-${Date.now()}@example.com`,
       password: "TestPassword123",
@@ -325,17 +315,7 @@ test.describe("Organizations Page", () => {
     const loginData = await loginRes.json()
     const sessionToken = loginData.token
 
-    // 3. Create an organization (so we get the modal instead of inline form)
-    await request.post("/api/v1/organizations", {
-      headers: { Authorization: `Bearer ${sessionToken}` },
-      data: {
-        name: `Existing Org ${Date.now()}`,
-        reportingCurrency: "USD",
-        settings: null
-      }
-    })
-
-    // 4. Set session cookie
+    // 3. Set session cookie
     await page.context().addCookies([
       {
         name: "accountability_session",
@@ -348,20 +328,23 @@ test.describe("Organizations Page", () => {
       }
     ])
 
-    // 5. Navigate to organizations page
-    await page.goto("/organizations")
+    // 4. Navigate to create organization page
+    await page.goto("/organizations/new")
 
-    // 6. Click new organization button
-    await page.getByRole("button", { name: /New Organization/i }).click()
+    // 5. Wait for form to be visible
+    await expect(page.getByTestId("organization-form")).toBeVisible()
 
-    // 7. Modal should be visible
-    await expect(page.getByText("Create Organization")).toBeVisible()
+    // 6. First, blur the auto-focused name input by clicking on the header
+    await page.getByRole("heading", { name: "Create Organization" }).click()
+    await page.waitForTimeout(100)
 
-    // 8. Click cancel (use specific data-testid to avoid matching organization cards)
-    await page.locator('[data-testid="cancel-create-org-button"]').click()
+    // 7. Click cancel button (now a link)
+    await page.getByTestId("org-form-cancel-button").click()
 
-    // 9. Modal should be hidden
-    await expect(page.getByRole("heading", { name: "Create Organization" })).not.toBeVisible()
+    // 8. Should navigate back to organizations list
+    await page.waitForURL("/organizations", { timeout: 10000 })
+    expect(page.url()).toContain("/organizations")
+    expect(page.url()).not.toContain("/new")
   })
 })
 

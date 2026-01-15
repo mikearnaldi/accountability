@@ -46,7 +46,6 @@ import { AuthServiceConfig, SessionDurationConfig } from "../src/Services/AuthSe
 import { AuthServiceLive } from "../src/Layers/AuthServiceLive.ts"
 import { LocalAuthProvider } from "../src/Services/LocalAuthProvider.ts"
 import { LocalAuthProviderLive } from "../src/Layers/LocalAuthProviderLive.ts"
-import { MigrationLayer } from "../src/Layers/MigrationsLive.ts"
 import { SharedPgClientLive } from "./Utils.ts"
 
 /**
@@ -91,14 +90,14 @@ const SessionTokenGeneratorTestLive = SessionTokenGeneratorLive.pipe(
 )
 
 /**
- * Base layer with repositories
+ * Base layer with repositories.
+ * Migrations are run globally in vitest.global-setup.ts to avoid race conditions.
  */
 const RepositoriesLayer = Layer.mergeAll(
   UserRepositoryLive,
   IdentityRepositoryLive,
   SessionRepositoryLive
 ).pipe(
-  Layer.provideMerge(MigrationLayer),
   Layer.provideMerge(SharedPgClientLive)
 )
 

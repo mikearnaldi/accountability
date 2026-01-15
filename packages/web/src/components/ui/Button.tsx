@@ -54,12 +54,14 @@ export function Button({
   children,
   className,
   disabled,
+  type = "button",
   ...props
 }: ButtonProps) {
   const isDisabled = disabled || loading
 
   return (
     <button
+      type={type}
       className={clsx(
         "inline-flex items-center justify-center font-medium rounded-lg transition-colors",
         "focus:outline-none focus:ring-2 focus:ring-offset-2",

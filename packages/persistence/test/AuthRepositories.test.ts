@@ -30,18 +30,17 @@ import { SessionRepository, type SessionInsert } from "../src/Services/SessionRe
 import { SessionRepositoryLive } from "../src/Layers/SessionRepositoryLive.ts"
 import { IdentityRepository, type UserIdentityInsert } from "../src/Services/IdentityRepository.ts"
 import { IdentityRepositoryLive } from "../src/Layers/IdentityRepositoryLive.ts"
-import { MigrationLayer } from "../src/Layers/MigrationsLive.ts"
 import { SharedPgClientLive } from "./Utils.ts"
 
 /**
- * Layer with migrations and auth repositories
+ * Layer with auth repositories.
+ * Migrations are run globally in vitest.global-setup.ts to avoid race conditions.
  */
 const TestLayer = Layer.mergeAll(
   UserRepositoryLive,
   SessionRepositoryLive,
   IdentityRepositoryLive
 ).pipe(
-  Layer.provideMerge(MigrationLayer),
   Layer.provideMerge(SharedPgClientLive)
 )
 

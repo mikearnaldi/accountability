@@ -311,6 +311,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/account-templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List account templates
+         * @description Retrieve a list of available chart of accounts templates. Each template is designed for a specific business type and includes a predefined set of accounts.
+         */
+        get: operations["accountTemplates.listAccountTemplates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account-templates/{type}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get account template
+         * @description Retrieve a specific account template with all its account definitions. The type parameter must be one of: GeneralBusiness, Manufacturing, ServiceBusiness, HoldingCompany.
+         */
+        get: operations["accountTemplates.getAccountTemplate"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account-templates/{type}/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Apply account template
+         * @description Apply an account template to a company, creating all accounts defined in the template. The company must exist and should not already have accounts from a template.
+         */
+        post: operations["accountTemplates.applyAccountTemplate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audit-log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List audit log entries
+         * @description Retrieve paginated audit trail entries for compliance and SOX requirements. Supports filtering by entity type, entity ID, user, action, and date range.
+         */
+        get: operations["auditLog.listAuditLog"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/organizations": {
         parameters: {
             query?: never;
@@ -659,6 +739,46 @@ export interface paths {
          * @description Generate a statement of changes in equity showing movements in common stock, retained earnings, treasury stock, and other comprehensive income.
          */
         get: operations["reports.generateEquityStatement"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/currencies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List currencies
+         * @description Retrieve a list of available currencies for UI dropdowns. Returns predefined currencies with ISO 4217 codes. By default, only active currencies are returned.
+         */
+        get: operations["currencies.listCurrencies"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/jurisdictions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List jurisdictions
+         * @description Retrieve a list of available jurisdictions for UI dropdowns. Returns predefined jurisdictions with ISO 3166-1 alpha-2 country codes and their default currencies.
+         */
+        get: operations["jurisdictions.listJurisdictions"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2061,6 +2181,106 @@ export interface components {
             currencyRestriction: components["schemas"]["CurrencyCode"] | null;
             isActive: boolean | null;
         };
+        AccountTemplateListResponse: {
+            templates: components["schemas"]["AccountTemplateItem"][];
+        };
+        AccountTemplateItem: {
+            templateType: components["schemas"]["TemplateType"];
+            name: components["schemas"]["NonEmptyTrimmedString"];
+            description: string;
+            accountCount: number;
+        };
+        /**
+         * Template Type
+         * @description The type of business the template is designed for
+         * @enum {string}
+         */
+        TemplateType: "GeneralBusiness" | "Manufacturing" | "ServiceBusiness" | "HoldingCompany";
+        AccountTemplateDetailResponse: {
+            template: {
+                templateType: components["schemas"]["TemplateType"];
+                name: components["schemas"]["NonEmptyTrimmedString"];
+                description: string;
+                accounts: components["schemas"]["TemplateAccountItem"][];
+            };
+        };
+        TemplateAccountItem: {
+            accountNumber: string;
+            name: components["schemas"]["NonEmptyTrimmedString"];
+            description: string | null;
+            accountType: string;
+            accountCategory: string;
+            normalBalance: string | null;
+            parentAccountNumber: string | null;
+            isPostable: boolean;
+            isCashFlowRelevant: boolean;
+            cashFlowCategory: string | null;
+            isIntercompany: boolean;
+        };
+        ApplyTemplateRequest: {
+            companyId: components["schemas"]["UUID"];
+        };
+        /**
+         * Format: uuid
+         * @description a Universally Unique Identifier
+         */
+        UUID: string;
+        ApplyTemplateResponse: {
+            createdCount: number;
+            companyId: components["schemas"]["UUID"];
+            templateType: components["schemas"]["TemplateType"];
+        };
+        /**
+         * Audit Entity Type
+         * @description The type of entity being audited
+         * @enum {string}
+         */
+        AuditEntityType: "Organization" | "Company" | "Account" | "JournalEntry" | "JournalEntryLine" | "FiscalYear" | "FiscalPeriod" | "ExchangeRate" | "ConsolidationGroup" | "ConsolidationRun" | "EliminationRule" | "IntercompanyTransaction" | "User" | "Session";
+        /**
+         * Audit Action
+         * @description The type of action performed on an entity
+         * @enum {string}
+         */
+        AuditAction: "Create" | "Update" | "Delete" | "StatusChange";
+        /** @description a string to be decoded into a DateTime.Utc */
+        DateTimeUtc: string;
+        AuditLogListResponse: {
+            entries: components["schemas"]["AuditLogEntry"][];
+            /**
+             * nonNegative
+             * @description a non-negative number
+             */
+            total: number;
+        };
+        AuditLogEntry: {
+            id: components["schemas"]["AuditLogEntryId"];
+            entityType: components["schemas"]["AuditEntityType"];
+            entityId: string;
+            action: components["schemas"]["AuditAction"];
+            userId: components["schemas"]["UUID"] | null;
+            timestamp: components["schemas"]["DateTimeUtc"];
+            changes: {
+                [key: string]: {
+                    /** unknown */
+                    from: unknown;
+                    /** unknown */
+                    to: unknown;
+                };
+            } | null;
+        };
+        /**
+         * Audit Log Entry ID
+         * Format: uuid
+         * @description A unique identifier for an audit log entry (UUID format)
+         */
+        AuditLogEntryId: string;
+        InternalServerError: {
+            message: string;
+            /** @description A unique identifier for the request, useful for debugging */
+            requestId: string | null;
+            /** @enum {string} */
+            _tag: "InternalServerError";
+        };
         OrganizationListResponse: {
             organizations: components["schemas"]["Organization"][];
             /**
@@ -2462,8 +2682,8 @@ export interface components {
         CreateJournalEntryRequest: {
             companyId: components["schemas"]["CompanyId"];
             description: components["schemas"]["NonEmptyTrimmedString"];
-            transactionDate: components["schemas"]["LocalDate"];
-            documentDate: components["schemas"]["LocalDate"] | null;
+            transactionDate: components["schemas"]["LocalDateFromString"];
+            documentDate: components["schemas"]["LocalDateFromString"] | null;
             fiscalPeriod: components["schemas"]["FiscalPeriodRef"];
             entryType: components["schemas"]["JournalEntryType"];
             sourceModule: components["schemas"]["SourceModule"];
@@ -2487,8 +2707,8 @@ export interface components {
         };
         UpdateJournalEntryRequest: {
             description: components["schemas"]["NonEmptyTrimmedString"] | null;
-            transactionDate: components["schemas"]["LocalDate"] | null;
-            documentDate: components["schemas"]["LocalDate"] | null;
+            transactionDate: components["schemas"]["LocalDateFromString"] | null;
+            documentDate: components["schemas"]["LocalDateFromString"] | null;
             fiscalPeriod: components["schemas"]["FiscalPeriodRef"] | null;
             referenceNumber: components["schemas"]["NonEmptyTrimmedString"] | null;
             sourceDocumentRef: components["schemas"]["NonEmptyTrimmedString"] | null;
@@ -2496,10 +2716,10 @@ export interface components {
         };
         PostJournalEntryRequest: {
             postedBy: components["schemas"]["UserId"];
-            postingDate: components["schemas"]["LocalDate"] | null;
+            postingDate: components["schemas"]["LocalDateFromString"] | null;
         };
         ReverseJournalEntryRequest: {
-            reversalDate: components["schemas"]["LocalDate"];
+            reversalDate: components["schemas"]["LocalDateFromString"];
             reversalDescription: components["schemas"]["NonEmptyTrimmedString"] | null;
             reversedBy: components["schemas"]["UserId"];
         };
@@ -2677,6 +2897,30 @@ export interface components {
          * @enum {string}
          */
         EquityMovementType: "NetIncome" | "OtherComprehensiveIncome" | "DividendsDeclared" | "StockIssuance" | "StockRepurchase" | "StockBasedCompensation" | "PriorPeriodAdjustment" | "Other";
+        CurrencyListResponse: {
+            currencies: components["schemas"]["CurrencyItem"][];
+        };
+        CurrencyItem: {
+            code: components["schemas"]["CurrencyCode"];
+            name: components["schemas"]["NonEmptyTrimmedString"];
+            symbol: components["schemas"]["NonEmptyTrimmedString"];
+            decimalPlaces: components["schemas"]["DecimalPlaces"];
+            isActive: boolean;
+        };
+        /**
+         * Decimal Places
+         * @description Number of decimal places for the currency (0, 2, 3, or 4)
+         * @enum {number}
+         */
+        DecimalPlaces: 0 | 2 | 3 | 4;
+        JurisdictionListResponse: {
+            jurisdictions: components["schemas"]["JurisdictionItem"][];
+        };
+        JurisdictionItem: {
+            code: components["schemas"]["JurisdictionCode"];
+            name: components["schemas"]["NonEmptyTrimmedString"];
+            defaultCurrency: components["schemas"]["CurrencyCode"];
+        };
         /**
          * Rate Type
          * @description The type of exchange rate: Spot, Average, Historical, or Closing
@@ -2869,11 +3113,6 @@ export interface components {
             period: components["schemas"]["FiscalPeriod"];
             auditEntryId: components["schemas"]["UUID"];
         };
-        /**
-         * Format: uuid
-         * @description a Universally Unique Identifier
-         */
-        UUID: string;
         /**
          * Intercompany Transaction Type
          * @description Classification of the intercompany transaction type
@@ -4241,6 +4480,204 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BusinessRuleError"];
+                };
+            };
+        };
+    };
+    "accountTemplates.listAccountTemplates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description AccountTemplateListResponse */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountTemplateListResponse"];
+                };
+            };
+            /** @description The request did not match the expected schema */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpApiDecodeError"];
+                };
+            };
+            /** @description UnauthorizedError */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+        };
+    };
+    "accountTemplates.getAccountTemplate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                type: components["schemas"]["TemplateType"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description AccountTemplateDetailResponse */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountTemplateDetailResponse"];
+                };
+            };
+            /** @description The request did not match the expected schema */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpApiDecodeError"];
+                };
+            };
+            /** @description UnauthorizedError */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+        };
+    };
+    "accountTemplates.applyAccountTemplate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                type: components["schemas"]["TemplateType"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplyTemplateRequest"];
+            };
+        };
+        responses: {
+            /** @description ApplyTemplateResponse */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplyTemplateResponse"];
+                };
+            };
+            /** @description The request did not match the expected schema */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpApiDecodeError"];
+                };
+            };
+            /** @description UnauthorizedError */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description NotFoundError */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
+                };
+            };
+            /** @description BusinessRuleError */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BusinessRuleError"];
+                };
+            };
+        };
+    };
+    "auditLog.listAuditLog": {
+        parameters: {
+            query?: {
+                entityType?: components["schemas"]["AuditEntityType"];
+                entityId?: string;
+                userId?: components["schemas"]["UUID"];
+                action?: components["schemas"]["AuditAction"];
+                fromDate?: components["schemas"]["DateTimeUtc"];
+                toDate?: components["schemas"]["DateTimeUtc"];
+                /** @description a string to be decoded into a number */
+                limit?: string;
+                /** @description a string to be decoded into a number */
+                offset?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description AuditLogListResponse */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditLogListResponse"];
+                };
+            };
+            /** @description The request did not match the expected schema */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpApiDecodeError"];
+                };
+            };
+            /** @description UnauthorizedError */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description InternalServerError */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalServerError"];
                 };
             };
         };
@@ -5683,6 +6120,84 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BusinessRuleError"];
+                };
+            };
+        };
+    };
+    "currencies.listCurrencies": {
+        parameters: {
+            query?: {
+                isActive?: components["schemas"]["BooleanFromString"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description CurrencyListResponse */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CurrencyListResponse"];
+                };
+            };
+            /** @description The request did not match the expected schema */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpApiDecodeError"];
+                };
+            };
+            /** @description UnauthorizedError */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+        };
+    };
+    "jurisdictions.listJurisdictions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description JurisdictionListResponse */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JurisdictionListResponse"];
+                };
+            };
+            /** @description The request did not match the expected schema */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpApiDecodeError"];
+                };
+            };
+            /** @description UnauthorizedError */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
                 };
             };
         };

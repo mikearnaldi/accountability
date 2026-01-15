@@ -45,7 +45,6 @@ import { IntercompanyTransactionRepository } from "../src/Services/IntercompanyT
 import { IntercompanyTransactionRepositoryLive } from "../src/Layers/IntercompanyTransactionRepositoryLive.ts"
 import { EliminationRuleRepository } from "../src/Services/EliminationRuleRepository.ts"
 import { EliminationRuleRepositoryLive } from "../src/Layers/EliminationRuleRepositoryLive.ts"
-import { MigrationLayer } from "../src/Layers/MigrationsLive.ts"
 import { SharedPgClientLive } from "./Utils.ts"
 import { FiscalYearId, FiscalPeriodId } from "@accountability/core/Services/PeriodService"
 import { ExchangeRateId } from "@accountability/core/Domains/ExchangeRate"
@@ -67,7 +66,8 @@ import { EliminationRule } from "@accountability/core/Domains/EliminationRule"
 import * as Chunk from "effect/Chunk"
 
 /**
- * Layer with migrations and all repositories
+ * Layer with all repositories.
+ * Migrations are run globally in vitest.global-setup.ts to avoid race conditions.
  */
 const TestLayer = Layer.mergeAll(
   OrganizationRepositoryLive,
@@ -81,7 +81,6 @@ const TestLayer = Layer.mergeAll(
   IntercompanyTransactionRepositoryLive,
   EliminationRuleRepositoryLive
 ).pipe(
-  Layer.provideMerge(MigrationLayer),
   Layer.provideMerge(SharedPgClientLive)
 )
 

@@ -19,11 +19,10 @@
  * Route: /organizations
  */
 
-import { createFileRoute, redirect, useRouter, Link, useNavigate } from "@tanstack/react-router"
+import { createFileRoute, redirect, Link, useNavigate } from "@tanstack/react-router"
 import { createServerFn } from "@tanstack/react-start"
 import { getCookie } from "@tanstack/react-start/server"
 import { useState, useMemo } from "react"
-import { api } from "@/api/client"
 import { createServerApi } from "@/api/server"
 import { Building2, Search, Plus, Globe, Calendar, Users } from "lucide-react"
 
@@ -220,8 +219,6 @@ function OrganizationsPage() {
 // =============================================================================
 
 function EmptyState() {
-  const [showForm, setShowForm] = useState(false)
-
   return (
     <div
       className="mx-auto max-w-lg rounded-lg border border-gray-200 bg-white p-8 text-center"
@@ -235,18 +232,14 @@ function EmptyState() {
         Get started by creating your first organization.
       </p>
 
-      {showForm ? (
-        <CreateOrganizationForm onCancel={() => setShowForm(false)} />
-      ) : (
-        <button
-          onClick={() => setShowForm(true)}
-          data-testid="create-organization-button"
-          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700"
-        >
-          <Plus className="h-5 w-5" />
-          Create Organization
-        </button>
-      )}
+      <Link
+        to="/organizations/new"
+        data-testid="create-organization-button"
+        className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700"
+      >
+        <Plus className="h-5 w-5" />
+        Create Organization
+      </Link>
     </div>
   )
 }
@@ -268,8 +261,6 @@ function OrganizationsList({
   searchQuery,
   onSearchChange
 }: OrganizationsListProps) {
-  const [showForm, setShowForm] = useState(false)
-
   return (
     <div className="space-y-6" data-testid="organizations-list-container">
       {/* Page Header */}
@@ -280,14 +271,14 @@ function OrganizationsList({
             {totalCount} organization{totalCount !== 1 ? "s" : ""} available
           </p>
         </div>
-        <button
-          onClick={() => setShowForm(true)}
+        <Link
+          to="/organizations/new"
           data-testid="new-organization-button"
           className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
         >
           <Plus className="h-4 w-4" />
           New Organization
-        </button>
+        </Link>
       </div>
 
       {/* Search Bar */}
@@ -302,18 +293,6 @@ function OrganizationsList({
             data-testid="organizations-search-input"
             className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4 text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
-        </div>
-      )}
-
-      {/* Create Form Modal */}
-      {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="mx-4 w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
-            <h2 className="mb-4 text-lg font-semibold text-gray-900">
-              Create Organization
-            </h2>
-            <CreateOrganizationForm onCancel={() => setShowForm(false)} />
-          </div>
         </div>
       )}
 
@@ -427,154 +406,3 @@ function OrganizationCard({ organization }: OrganizationCardProps) {
   )
 }
 
-// =============================================================================
-// Create Organization Form Component
-// =============================================================================
-
-function CreateOrganizationForm({ onCancel }: { readonly onCancel: () => void }) {
-  const router = useRouter()
-  const navigate = useNavigate()
-
-  const [name, setName] = useState("")
-  const [reportingCurrency, setReportingCurrency] = useState("USD")
-  const [error, setError] = useState<string | null>(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    if (isSubmitting) return
-
-    // Validate name
-    const trimmedName = name.trim()
-    if (!trimmedName) {
-      setError("Organization name is required")
-      return
-    }
-
-    setIsSubmitting(true)
-    setError(null)
-
-    try {
-      const { data, error: apiError } = await api.POST("/api/v1/organizations", {
-        body: {
-          name: trimmedName,
-          reportingCurrency,
-          settings: null
-        }
-      })
-
-      if (apiError) {
-        // Extract error message
-        let errorMessage = "Failed to create organization"
-        if (typeof apiError === "object" && apiError !== null) {
-          if ("message" in apiError && typeof apiError.message === "string") {
-            errorMessage = apiError.message
-          }
-        }
-        setError(errorMessage)
-        setIsSubmitting(false)
-        return
-      }
-
-      // Navigate to the new organization's dashboard
-      if (data?.id) {
-        navigate({
-          to: "/organizations/$organizationId/dashboard",
-          params: { organizationId: data.id }
-        })
-      } else {
-        // Fallback: revalidate and close form
-        await router.invalidate()
-        onCancel()
-      }
-    } catch {
-      setError("An unexpected error occurred. Please try again.")
-      setIsSubmitting(false)
-    }
-  }
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4" data-testid="create-organization-form">
-      {/* Error Message */}
-      {error && (
-        <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3">
-          <p className="text-sm text-red-700">{error}</p>
-        </div>
-      )}
-
-      {/* Name Field */}
-      <div>
-        <label htmlFor="org-name" className="block text-sm font-medium text-gray-700">
-          Organization Name
-        </label>
-        <input
-          id="org-name"
-          type="text"
-          autoFocus
-          required
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          disabled={isSubmitting}
-          placeholder="My Organization"
-          data-testid="org-name-input"
-          className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
-        />
-      </div>
-
-      {/* Currency Field */}
-      <div>
-        <label htmlFor="org-currency" className="block text-sm font-medium text-gray-700">
-          Reporting Currency
-        </label>
-        <select
-          id="org-currency"
-          value={reportingCurrency}
-          onChange={(e) => setReportingCurrency(e.target.value)}
-          disabled={isSubmitting}
-          data-testid="org-currency-select"
-          className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
-        >
-          <option value="USD">USD - US Dollar</option>
-          <option value="EUR">EUR - Euro</option>
-          <option value="GBP">GBP - British Pound</option>
-          <option value="JPY">JPY - Japanese Yen</option>
-          <option value="CHF">CHF - Swiss Franc</option>
-          <option value="CAD">CAD - Canadian Dollar</option>
-          <option value="AUD">AUD - Australian Dollar</option>
-        </select>
-      </div>
-
-      {/* Form Actions */}
-      <div className="flex gap-3 pt-2">
-        <button
-          type="button"
-          onClick={onCancel}
-          disabled={isSubmitting}
-          data-testid="cancel-create-org-button"
-          className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 font-medium text-gray-700 hover:bg-gray-50 disabled:bg-gray-50 disabled:text-gray-400"
-        >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          data-testid="submit-create-org-button"
-          className="flex-1 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-400"
-        >
-          {isSubmitting ? (
-            <span className="flex items-center justify-center">
-              <svg className="mr-2 h-4 w-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" opacity="0.25" />
-                <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-              </svg>
-              Creating...
-            </span>
-          ) : (
-            "Create"
-          )}
-        </button>
-      </div>
-    </form>
-  )
-}
