@@ -578,7 +578,7 @@
           "packages/web/src/routes/organizations/$organizationId/settings.tsx"
         ]
       },
-      "status": "pending"
+      "status": "complete"
     },
     {
       "id": "4.1",

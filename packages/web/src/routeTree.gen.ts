@@ -16,6 +16,7 @@ import { Route as OrganizationsIndexRouteImport } from './routes/organizations/i
 import { Route as OrganizationsNewRouteImport } from './routes/organizations/new'
 import { Route as ApiSplatRouteImport } from './routes/api/$'
 import { Route as OrganizationsOrganizationIdIndexRouteImport } from './routes/organizations/$organizationId/index'
+import { Route as OrganizationsOrganizationIdSettingsRouteImport } from './routes/organizations/$organizationId/settings'
 import { Route as OrganizationsOrganizationIdDashboardRouteImport } from './routes/organizations/$organizationId/dashboard'
 import { Route as OrganizationsOrganizationIdCompaniesIndexRouteImport } from './routes/organizations/$organizationId/companies/index'
 import { Route as OrganizationsOrganizationIdCompaniesCompanyIdIndexRouteImport } from './routes/organizations/$organizationId/companies/$companyId/index'
@@ -56,6 +57,12 @@ const OrganizationsOrganizationIdIndexRoute =
   OrganizationsOrganizationIdIndexRouteImport.update({
     id: '/organizations/$organizationId/',
     path: '/organizations/$organizationId/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const OrganizationsOrganizationIdSettingsRoute =
+  OrganizationsOrganizationIdSettingsRouteImport.update({
+    id: '/organizations/$organizationId/settings',
+    path: '/organizations/$organizationId/settings',
     getParentRoute: () => rootRouteImport,
   } as any)
 const OrganizationsOrganizationIdDashboardRoute =
@@ -99,6 +106,7 @@ export interface FileRoutesByFullPath {
   '/organizations/new': typeof OrganizationsNewRoute
   '/organizations': typeof OrganizationsIndexRoute
   '/organizations/$organizationId/dashboard': typeof OrganizationsOrganizationIdDashboardRoute
+  '/organizations/$organizationId/settings': typeof OrganizationsOrganizationIdSettingsRoute
   '/organizations/$organizationId': typeof OrganizationsOrganizationIdIndexRoute
   '/organizations/$organizationId/companies': typeof OrganizationsOrganizationIdCompaniesIndexRoute
   '/organizations/$organizationId/companies/$companyId': typeof OrganizationsOrganizationIdCompaniesCompanyIdIndexRoute
@@ -113,6 +121,7 @@ export interface FileRoutesByTo {
   '/organizations/new': typeof OrganizationsNewRoute
   '/organizations': typeof OrganizationsIndexRoute
   '/organizations/$organizationId/dashboard': typeof OrganizationsOrganizationIdDashboardRoute
+  '/organizations/$organizationId/settings': typeof OrganizationsOrganizationIdSettingsRoute
   '/organizations/$organizationId': typeof OrganizationsOrganizationIdIndexRoute
   '/organizations/$organizationId/companies': typeof OrganizationsOrganizationIdCompaniesIndexRoute
   '/organizations/$organizationId/companies/$companyId': typeof OrganizationsOrganizationIdCompaniesCompanyIdIndexRoute
@@ -128,6 +137,7 @@ export interface FileRoutesById {
   '/organizations/new': typeof OrganizationsNewRoute
   '/organizations/': typeof OrganizationsIndexRoute
   '/organizations/$organizationId/dashboard': typeof OrganizationsOrganizationIdDashboardRoute
+  '/organizations/$organizationId/settings': typeof OrganizationsOrganizationIdSettingsRoute
   '/organizations/$organizationId/': typeof OrganizationsOrganizationIdIndexRoute
   '/organizations/$organizationId/companies/': typeof OrganizationsOrganizationIdCompaniesIndexRoute
   '/organizations/$organizationId/companies/$companyId/': typeof OrganizationsOrganizationIdCompaniesCompanyIdIndexRoute
@@ -144,6 +154,7 @@ export interface FileRouteTypes {
     | '/organizations/new'
     | '/organizations'
     | '/organizations/$organizationId/dashboard'
+    | '/organizations/$organizationId/settings'
     | '/organizations/$organizationId'
     | '/organizations/$organizationId/companies'
     | '/organizations/$organizationId/companies/$companyId'
@@ -158,6 +169,7 @@ export interface FileRouteTypes {
     | '/organizations/new'
     | '/organizations'
     | '/organizations/$organizationId/dashboard'
+    | '/organizations/$organizationId/settings'
     | '/organizations/$organizationId'
     | '/organizations/$organizationId/companies'
     | '/organizations/$organizationId/companies/$companyId'
@@ -172,6 +184,7 @@ export interface FileRouteTypes {
     | '/organizations/new'
     | '/organizations/'
     | '/organizations/$organizationId/dashboard'
+    | '/organizations/$organizationId/settings'
     | '/organizations/$organizationId/'
     | '/organizations/$organizationId/companies/'
     | '/organizations/$organizationId/companies/$companyId/'
@@ -187,6 +200,7 @@ export interface RootRouteChildren {
   OrganizationsNewRoute: typeof OrganizationsNewRoute
   OrganizationsIndexRoute: typeof OrganizationsIndexRoute
   OrganizationsOrganizationIdDashboardRoute: typeof OrganizationsOrganizationIdDashboardRoute
+  OrganizationsOrganizationIdSettingsRoute: typeof OrganizationsOrganizationIdSettingsRoute
   OrganizationsOrganizationIdIndexRoute: typeof OrganizationsOrganizationIdIndexRoute
   OrganizationsOrganizationIdCompaniesIndexRoute: typeof OrganizationsOrganizationIdCompaniesIndexRoute
   OrganizationsOrganizationIdCompaniesCompanyIdIndexRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdIndexRoute
@@ -245,6 +259,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrganizationsOrganizationIdIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/organizations/$organizationId/settings': {
+      id: '/organizations/$organizationId/settings'
+      path: '/organizations/$organizationId/settings'
+      fullPath: '/organizations/$organizationId/settings'
+      preLoaderRoute: typeof OrganizationsOrganizationIdSettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/organizations/$organizationId/dashboard': {
       id: '/organizations/$organizationId/dashboard'
       path: '/organizations/$organizationId/dashboard'
@@ -292,6 +313,8 @@ const rootRouteChildren: RootRouteChildren = {
   OrganizationsIndexRoute: OrganizationsIndexRoute,
   OrganizationsOrganizationIdDashboardRoute:
     OrganizationsOrganizationIdDashboardRoute,
+  OrganizationsOrganizationIdSettingsRoute:
+    OrganizationsOrganizationIdSettingsRoute,
   OrganizationsOrganizationIdIndexRoute: OrganizationsOrganizationIdIndexRoute,
   OrganizationsOrganizationIdCompaniesIndexRoute:
     OrganizationsOrganizationIdCompaniesIndexRoute,

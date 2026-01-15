@@ -129,8 +129,9 @@ const make = Effect.gen(function* () {
       const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : ""
 
       // Use raw SQL with parameter substitution
+      // Order by timestamp DESC and id DESC for deterministic ordering when timestamps are equal
       const query = sql.unsafe(
-        `SELECT * FROM audit_log ${whereClause} ORDER BY timestamp DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
+        `SELECT * FROM audit_log ${whereClause} ORDER BY timestamp DESC, id DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
         [...values, pagination.limit, pagination.offset]
       )
 
@@ -202,6 +203,7 @@ const make = Effect.gen(function* () {
     })
 
   // SqlSchema query builder for entity-specific queries
+  // Order by timestamp DESC and id DESC for deterministic ordering when timestamps are equal
   const findByEntityQuery = SqlSchema.findAll({
     Request: Schema.Struct({ entityType: AuditEntityType, entityId: Schema.String }),
     Result: AuditLogRow,
@@ -209,7 +211,7 @@ const make = Effect.gen(function* () {
       SELECT * FROM audit_log
       WHERE entity_type = ${params.entityType}
         AND entity_id = ${params.entityId}
-      ORDER BY timestamp DESC
+      ORDER BY timestamp DESC, id DESC
     `
   })
 

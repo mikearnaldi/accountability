@@ -914,3 +914,8 @@
 **Story**: 3.2 - Create organization form
 **Status**: complete
 ---
+
+## Iteration 52 - 2026-01-15 08:37
+**Story**: 3.3 - Organization settings page
+**Status**: complete
+---
