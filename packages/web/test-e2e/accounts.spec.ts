@@ -1118,6 +1118,460 @@ test.describe("Chart of Accounts Page", () => {
     ).toBeVisible()
   })
 
+  test("should display accounts tree with hierarchy and all columns", async ({
+    page,
+    request
+  }) => {
+    // 1. Register a test user
+    const testUser = {
+      email: `test-accounts-tree-${Date.now()}@example.com`,
+      password: "TestPassword123",
+      displayName: "Accounts Tree Test User"
+    }
+
+    const registerRes = await request.post("/api/auth/register", {
+      data: testUser
+    })
+    expect(registerRes.ok()).toBeTruthy()
+
+    // 2. Login
+    const loginRes = await request.post("/api/auth/login", {
+      data: {
+        provider: "local",
+        credentials: {
+          email: testUser.email,
+          password: testUser.password
+        }
+      }
+    })
+    expect(loginRes.ok()).toBeTruthy()
+    const loginData = await loginRes.json()
+    const sessionToken = loginData.token
+
+    // 3. Create org and company
+    const createOrgRes = await request.post("/api/v1/organizations", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        name: `Tree Test Org ${Date.now()}`,
+        reportingCurrency: "USD",
+        settings: null
+      }
+    })
+    expect(createOrgRes.ok()).toBeTruthy()
+    const orgData = await createOrgRes.json()
+
+    const createCompanyRes = await request.post("/api/v1/companies", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        organizationId: orgData.id,
+        name: `Tree Test Company ${Date.now()}`,
+        legalName: "Tree Test Company Inc.",
+        jurisdiction: "US",
+        functionalCurrency: "USD",
+        reportingCurrency: "USD",
+        fiscalYearEnd: { month: 12, day: 31 },
+        taxId: null,
+        parentCompanyId: null,
+        ownershipPercentage: null,
+        consolidationMethod: null
+      }
+    })
+    expect(createCompanyRes.ok()).toBeTruthy()
+    const companyData = await createCompanyRes.json()
+
+    // 4. Create parent account
+    const parentAccountRes = await request.post("/api/v1/accounts", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        companyId: companyData.id,
+        accountNumber: "1000",
+        name: "Current Assets",
+        description: "Parent account for current assets",
+        accountType: "Asset",
+        accountCategory: "CurrentAsset",
+        normalBalance: "Debit",
+        parentAccountId: null,
+        isPostable: false, // Not postable - parent account
+        isCashFlowRelevant: false,
+        cashFlowCategory: null,
+        isIntercompany: false,
+        intercompanyPartnerId: null,
+        currencyRestriction: null
+      }
+    })
+    expect(parentAccountRes.ok()).toBeTruthy()
+    const parentAccount = await parentAccountRes.json()
+
+    // 5. Create child account
+    const childAccountRes = await request.post("/api/v1/accounts", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        companyId: companyData.id,
+        accountNumber: "1100",
+        name: "Cash",
+        description: "Cash and cash equivalents",
+        accountType: "Asset",
+        accountCategory: "CurrentAsset",
+        normalBalance: "Debit",
+        parentAccountId: parentAccount.id,
+        isPostable: true,
+        isCashFlowRelevant: true,
+        cashFlowCategory: "Operating",
+        isIntercompany: false,
+        intercompanyPartnerId: null,
+        currencyRestriction: null
+      }
+    })
+    expect(childAccountRes.ok()).toBeTruthy()
+
+    // 6. Create a liability account with credit normal balance
+    await request.post("/api/v1/accounts", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        companyId: companyData.id,
+        accountNumber: "2000",
+        name: "Accounts Payable",
+        description: null,
+        accountType: "Liability",
+        accountCategory: "CurrentLiability",
+        normalBalance: "Credit",
+        parentAccountId: null,
+        isPostable: true,
+        isCashFlowRelevant: false,
+        cashFlowCategory: null,
+        isIntercompany: false,
+        intercompanyPartnerId: null,
+        currencyRestriction: null
+      }
+    })
+
+    // 7. Set session cookie
+    await page.context().addCookies([
+      {
+        name: "accountability_session",
+        value: sessionToken,
+        domain: "localhost",
+        path: "/",
+        httpOnly: true,
+        secure: false,
+        sameSite: "Lax"
+      }
+    ])
+
+    // 8. Navigate to accounts page
+    await page.goto(
+      `/organizations/${orgData.id}/companies/${companyData.id}/accounts`
+    )
+
+    // 9. Should display accounts tree container
+    await expect(page.locator('[data-testid="accounts-tree"]')).toBeVisible()
+
+    // 10. Should show tree header with all columns
+    await expect(page.locator('[data-testid="header-account"]')).toContainText("Account")
+    await expect(page.locator('[data-testid="header-type"]')).toContainText("Type")
+    await expect(page.locator('[data-testid="header-category"]')).toContainText("Category")
+    await expect(page.locator('[data-testid="header-normal-balance"]')).toContainText("Normal")
+    await expect(page.locator('[data-testid="header-postable"]')).toContainText("Postable")
+    await expect(page.locator('[data-testid="header-status"]')).toContainText("Status")
+
+    // 11. Verify parent account is displayed with correct columns
+    await expect(page.locator('[data-testid="account-row-1000"]')).toBeVisible()
+    await expect(page.locator('[data-testid="account-number-1000"]')).toContainText("1000")
+    await expect(page.locator('[data-testid="account-type-1000"]')).toContainText("Asset")
+    await expect(page.locator('[data-testid="account-normal-balance-1000"]')).toContainText("Dr")
+
+    // 12. Verify liability account shows Credit normal balance
+    await expect(page.locator('[data-testid="account-row-2000"]')).toBeVisible()
+    await expect(page.locator('[data-testid="account-normal-balance-2000"]')).toContainText("Cr")
+
+    // 13. Expand parent account to show child
+    await page.locator('[data-testid="account-expand-1000"]').click()
+
+    // 14. Verify child account is now visible
+    await expect(page.locator('[data-testid="account-row-1100"]')).toBeVisible()
+    await expect(page.locator('[data-testid="account-number-1100"]')).toContainText("1100")
+  })
+
+  test("should filter accounts by status (Active/Inactive)", async ({
+    page,
+    request
+  }) => {
+    // 1. Register a test user
+    const testUser = {
+      email: `test-status-filter-${Date.now()}@example.com`,
+      password: "TestPassword123",
+      displayName: "Status Filter Test User"
+    }
+
+    const registerRes = await request.post("/api/auth/register", {
+      data: testUser
+    })
+    expect(registerRes.ok()).toBeTruthy()
+
+    // 2. Login
+    const loginRes = await request.post("/api/auth/login", {
+      data: {
+        provider: "local",
+        credentials: {
+          email: testUser.email,
+          password: testUser.password
+        }
+      }
+    })
+    expect(loginRes.ok()).toBeTruthy()
+    const loginData = await loginRes.json()
+    const sessionToken = loginData.token
+
+    // 3. Create org and company
+    const createOrgRes = await request.post("/api/v1/organizations", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        name: `Status Filter Test Org ${Date.now()}`,
+        reportingCurrency: "USD",
+        settings: null
+      }
+    })
+    expect(createOrgRes.ok()).toBeTruthy()
+    const orgData = await createOrgRes.json()
+
+    const createCompanyRes = await request.post("/api/v1/companies", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        organizationId: orgData.id,
+        name: `Status Filter Company ${Date.now()}`,
+        legalName: "Status Filter Company Inc.",
+        jurisdiction: "US",
+        functionalCurrency: "USD",
+        reportingCurrency: "USD",
+        fiscalYearEnd: { month: 12, day: 31 },
+        taxId: null,
+        parentCompanyId: null,
+        ownershipPercentage: null,
+        consolidationMethod: null
+      }
+    })
+    expect(createCompanyRes.ok()).toBeTruthy()
+    const companyData = await createCompanyRes.json()
+
+    // 4. Create active account
+    await request.post("/api/v1/accounts", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        companyId: companyData.id,
+        accountNumber: "1000",
+        name: "Active Cash Account",
+        description: null,
+        accountType: "Asset",
+        accountCategory: "CurrentAsset",
+        normalBalance: "Debit",
+        parentAccountId: null,
+        isPostable: true,
+        isCashFlowRelevant: true,
+        cashFlowCategory: "Operating",
+        isIntercompany: false,
+        intercompanyPartnerId: null,
+        currencyRestriction: null
+      }
+    })
+
+    // 5. Create another active account
+    await request.post("/api/v1/accounts", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        companyId: companyData.id,
+        accountNumber: "2000",
+        name: "Active Payables",
+        description: null,
+        accountType: "Liability",
+        accountCategory: "CurrentLiability",
+        normalBalance: "Credit",
+        parentAccountId: null,
+        isPostable: true,
+        isCashFlowRelevant: false,
+        cashFlowCategory: null,
+        isIntercompany: false,
+        intercompanyPartnerId: null,
+        currencyRestriction: null
+      }
+    })
+
+    // 6. Set session cookie
+    await page.context().addCookies([
+      {
+        name: "accountability_session",
+        value: sessionToken,
+        domain: "localhost",
+        path: "/",
+        httpOnly: true,
+        secure: false,
+        sameSite: "Lax"
+      }
+    ])
+
+    // 7. Navigate to accounts page
+    await page.goto(
+      `/organizations/${orgData.id}/companies/${companyData.id}/accounts`
+    )
+
+    // 8. Should show both accounts initially
+    await expect(page.locator('[data-testid="accounts-count"]')).toContainText("2 of 2 accounts")
+    await expect(page.getByText("Active Cash Account")).toBeVisible()
+    await expect(page.getByText("Active Payables")).toBeVisible()
+
+    // 9. Verify status filter dropdown exists
+    await expect(page.locator('[data-testid="accounts-filter-status"]')).toBeVisible()
+
+    // 10. Filter by Active - should show both
+    await page.locator('[data-testid="accounts-filter-status"]').selectOption("Active")
+    await expect(page.locator('[data-testid="accounts-count"]')).toContainText("2 of 2 accounts")
+
+    // 11. Filter by Inactive - should show none
+    await page.locator('[data-testid="accounts-filter-status"]').selectOption("Inactive")
+    await expect(page.locator('[data-testid="accounts-count"]')).toContainText("0 of 2 accounts")
+
+    // 12. Reset filter
+    await page.locator('[data-testid="accounts-filter-status"]').selectOption("All")
+    await expect(page.locator('[data-testid="accounts-count"]')).toContainText("2 of 2 accounts")
+  })
+
+  test("should filter accounts by postable only", async ({ page, request }) => {
+    // 1. Register a test user
+    const testUser = {
+      email: `test-postable-filter-${Date.now()}@example.com`,
+      password: "TestPassword123",
+      displayName: "Postable Filter Test User"
+    }
+
+    const registerRes = await request.post("/api/auth/register", {
+      data: testUser
+    })
+    expect(registerRes.ok()).toBeTruthy()
+
+    // 2. Login
+    const loginRes = await request.post("/api/auth/login", {
+      data: {
+        provider: "local",
+        credentials: {
+          email: testUser.email,
+          password: testUser.password
+        }
+      }
+    })
+    expect(loginRes.ok()).toBeTruthy()
+    const loginData = await loginRes.json()
+    const sessionToken = loginData.token
+
+    // 3. Create org and company
+    const createOrgRes = await request.post("/api/v1/organizations", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        name: `Postable Filter Test Org ${Date.now()}`,
+        reportingCurrency: "USD",
+        settings: null
+      }
+    })
+    expect(createOrgRes.ok()).toBeTruthy()
+    const orgData = await createOrgRes.json()
+
+    const createCompanyRes = await request.post("/api/v1/companies", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        organizationId: orgData.id,
+        name: `Postable Filter Company ${Date.now()}`,
+        legalName: "Postable Filter Company Inc.",
+        jurisdiction: "US",
+        functionalCurrency: "USD",
+        reportingCurrency: "USD",
+        fiscalYearEnd: { month: 12, day: 31 },
+        taxId: null,
+        parentCompanyId: null,
+        ownershipPercentage: null,
+        consolidationMethod: null
+      }
+    })
+    expect(createCompanyRes.ok()).toBeTruthy()
+    const companyData = await createCompanyRes.json()
+
+    // 4. Create non-postable parent account
+    await request.post("/api/v1/accounts", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        companyId: companyData.id,
+        accountNumber: "1000",
+        name: "Summary Account",
+        description: "Non-postable parent",
+        accountType: "Asset",
+        accountCategory: "CurrentAsset",
+        normalBalance: "Debit",
+        parentAccountId: null,
+        isPostable: false, // NOT postable
+        isCashFlowRelevant: false,
+        cashFlowCategory: null,
+        isIntercompany: false,
+        intercompanyPartnerId: null,
+        currencyRestriction: null
+      }
+    })
+
+    // 5. Create postable account
+    await request.post("/api/v1/accounts", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        companyId: companyData.id,
+        accountNumber: "1100",
+        name: "Postable Cash",
+        description: null,
+        accountType: "Asset",
+        accountCategory: "CurrentAsset",
+        normalBalance: "Debit",
+        parentAccountId: null,
+        isPostable: true, // IS postable
+        isCashFlowRelevant: true,
+        cashFlowCategory: "Operating",
+        isIntercompany: false,
+        intercompanyPartnerId: null,
+        currencyRestriction: null
+      }
+    })
+
+    // 6. Set session cookie
+    await page.context().addCookies([
+      {
+        name: "accountability_session",
+        value: sessionToken,
+        domain: "localhost",
+        path: "/",
+        httpOnly: true,
+        secure: false,
+        sameSite: "Lax"
+      }
+    ])
+
+    // 7. Navigate to accounts page
+    await page.goto(
+      `/organizations/${orgData.id}/companies/${companyData.id}/accounts`
+    )
+
+    // 8. Should show both accounts initially
+    await expect(page.locator('[data-testid="accounts-count"]')).toContainText("2 of 2 accounts")
+    await expect(page.getByText("Summary Account")).toBeVisible()
+    await expect(page.getByText("Postable Cash")).toBeVisible()
+
+    // 9. Check the postable only checkbox
+    await page.locator('[data-testid="accounts-filter-postable"]').check()
+
+    // 10. Should only show postable account
+    await expect(page.locator('[data-testid="accounts-count"]')).toContainText("1 of 2 accounts")
+    await expect(page.getByText("Postable Cash")).toBeVisible()
+    await expect(page.getByText("Summary Account")).not.toBeVisible()
+
+    // 11. Uncheck the postable only checkbox
+    await page.locator('[data-testid="accounts-filter-postable"]').uncheck()
+
+    // 12. Should show both accounts again
+    await expect(page.locator('[data-testid="accounts-count"]')).toContainText("2 of 2 accounts")
+  })
+
   test("should show breadcrumb navigation", async ({ page, request }) => {
     // 1. Register a test user
     const testUser = {

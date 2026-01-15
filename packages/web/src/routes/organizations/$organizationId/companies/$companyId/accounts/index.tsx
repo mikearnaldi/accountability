@@ -282,6 +282,8 @@ function ChartOfAccountsPage() {
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [editingAccount, setEditingAccount] = useState<Account | null>(null)
   const [filterType, setFilterType] = useState<AccountType | "All">("All")
+  const [filterStatus, setFilterStatus] = useState<"All" | "Active" | "Inactive">("All")
+  const [filterPostable, setFilterPostable] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
 
@@ -292,6 +294,17 @@ function ChartOfAccountsPage() {
     // Filter by account type
     if (filterType !== "All") {
       result = result.filter((acc) => acc.accountType === filterType)
+    }
+
+    // Filter by status (Active/Inactive)
+    if (filterStatus !== "All") {
+      const isActive = filterStatus === "Active"
+      result = result.filter((acc) => acc.isActive === isActive)
+    }
+
+    // Filter by postable only
+    if (filterPostable) {
+      result = result.filter((acc) => acc.isPostable)
     }
 
     // Search by name or account number
@@ -305,7 +318,7 @@ function ChartOfAccountsPage() {
     }
 
     return result
-  }, [accounts, filterType, searchQuery])
+  }, [accounts, filterType, filterStatus, filterPostable, searchQuery])
 
   // Build tree structure
   const accountTree = useMemo(() => {
@@ -394,7 +407,7 @@ function ChartOfAccountsPage() {
       {/* Main Content */}
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Toolbar */}
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-4" data-testid="accounts-toolbar">
           <div className="flex flex-wrap items-center gap-4">
             {/* Search */}
             <div className="relative">
@@ -403,6 +416,7 @@ function ChartOfAccountsPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search accounts..."
+                data-testid="accounts-search-input"
                 className="w-64 rounded-lg border border-gray-300 py-2 pl-10 pr-4 text-sm text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
               <svg
@@ -429,6 +443,7 @@ function ChartOfAccountsPage() {
                   setFilterType(value)
                 }
               }}
+              data-testid="accounts-filter-type"
               className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
               <option value="All">All Types</option>
@@ -439,16 +454,47 @@ function ChartOfAccountsPage() {
               <option value="Expense">Expenses</option>
             </select>
 
+            {/* Filter by Status */}
+            <select
+              value={filterStatus}
+              onChange={(e) => {
+                const value = e.target.value
+                if (value === "All" || value === "Active" || value === "Inactive") {
+                  setFilterStatus(value)
+                }
+              }}
+              data-testid="accounts-filter-status"
+              className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            >
+              <option value="All">All Statuses</option>
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+            </select>
+
+            {/* Filter by Postable */}
+            <label className="flex items-center gap-2 text-sm text-gray-700" data-testid="accounts-filter-postable-label">
+              <input
+                type="checkbox"
+                checked={filterPostable}
+                onChange={(e) => setFilterPostable(e.target.checked)}
+                data-testid="accounts-filter-postable"
+                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              Postable only
+            </label>
+
             {/* Expand/Collapse buttons */}
             <div className="flex gap-2">
               <button
                 onClick={expandAll}
+                data-testid="accounts-expand-all"
                 className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
               >
                 Expand All
               </button>
               <button
                 onClick={collapseAll}
+                data-testid="accounts-collapse-all"
                 className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
               >
                 Collapse All
@@ -457,11 +503,12 @@ function ChartOfAccountsPage() {
           </div>
 
           <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-500">
+            <span className="text-sm text-gray-500" data-testid="accounts-count">
               {filteredAccounts.length} of {total} accounts
             </span>
             <button
               onClick={() => setShowCreateForm(true)}
+              data-testid="create-account-button"
               className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
             >
               <svg
@@ -510,7 +557,10 @@ function ChartOfAccountsPage() {
               onClick={() => {
                 setSearchQuery("")
                 setFilterType("All")
+                setFilterStatus("All")
+                setFilterPostable(false)
               }}
+              data-testid="clear-filters-button"
               className="mt-4 text-blue-600 hover:text-blue-700"
             >
               Clear filters
@@ -585,14 +635,15 @@ function AccountTreeView({
   readonly onEditAccount: (account: Account) => void
 }) {
   return (
-    <div className="rounded-lg border border-gray-200 bg-white">
+    <div className="rounded-lg border border-gray-200 bg-white" data-testid="accounts-tree">
       {/* Header */}
-      <div className="grid grid-cols-12 gap-4 border-b border-gray-200 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-500">
-        <div className="col-span-5">Account</div>
-        <div className="col-span-2">Type</div>
-        <div className="col-span-2">Category</div>
-        <div className="col-span-1 text-center">Postable</div>
-        <div className="col-span-1 text-center">Status</div>
+      <div className="grid grid-cols-12 gap-4 border-b border-gray-200 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-500" data-testid="accounts-tree-header">
+        <div className="col-span-4" data-testid="header-account">Account</div>
+        <div className="col-span-2" data-testid="header-type">Type</div>
+        <div className="col-span-2" data-testid="header-category">Category</div>
+        <div className="col-span-1 text-center" data-testid="header-normal-balance">Normal</div>
+        <div className="col-span-1 text-center" data-testid="header-postable">Postable</div>
+        <div className="col-span-1 text-center" data-testid="header-status">Status</div>
         <div className="col-span-1"></div>
       </div>
 
@@ -632,9 +683,12 @@ function AccountTreeRow({
 
   return (
     <>
-      <div className="grid grid-cols-12 items-center gap-4 px-4 py-3 hover:bg-gray-50">
+      <div
+        className="grid grid-cols-12 items-center gap-4 px-4 py-3 hover:bg-gray-50"
+        data-testid={`account-row-${account.accountNumber}`}
+      >
         {/* Account Name & Number */}
-        <div className="col-span-5 flex items-center gap-2">
+        <div className="col-span-4 flex items-center gap-2" data-testid={`account-name-${account.accountNumber}`}>
           <div
             className="flex items-center"
             style={{ paddingLeft: `${depth * 24}px` }}
@@ -642,6 +696,7 @@ function AccountTreeRow({
             {hasChildren ? (
               <button
                 onClick={() => onToggleExpand(account.id)}
+                data-testid={`account-expand-${account.accountNumber}`}
                 className="mr-2 flex h-5 w-5 items-center justify-center rounded text-gray-400 hover:bg-gray-200 hover:text-gray-600"
               >
                 <svg
@@ -661,7 +716,7 @@ function AccountTreeRow({
             ) : (
               <span className="mr-2 w-5" />
             )}
-            <span className="mr-2 font-mono text-sm text-gray-500">
+            <span className="mr-2 font-mono text-sm text-gray-500" data-testid={`account-number-${account.accountNumber}`}>
               {account.accountNumber}
             </span>
             <span className="font-medium text-gray-900">{account.name}</span>
@@ -669,7 +724,7 @@ function AccountTreeRow({
         </div>
 
         {/* Type */}
-        <div className="col-span-2">
+        <div className="col-span-2" data-testid={`account-type-${account.accountNumber}`}>
           <span
             className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getAccountTypeColor(account.accountType)}`}
           >
@@ -678,12 +733,25 @@ function AccountTreeRow({
         </div>
 
         {/* Category */}
-        <div className="col-span-2 text-sm text-gray-600">
+        <div className="col-span-2 text-sm text-gray-600" data-testid={`account-category-${account.accountNumber}`}>
           {formatAccountCategory(account.accountCategory)}
         </div>
 
+        {/* Normal Balance */}
+        <div className="col-span-1 text-center" data-testid={`account-normal-balance-${account.accountNumber}`}>
+          <span
+            className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${
+              account.normalBalance === "Debit"
+                ? "bg-blue-50 text-blue-700"
+                : "bg-amber-50 text-amber-700"
+            }`}
+          >
+            {account.normalBalance === "Debit" ? "Dr" : "Cr"}
+          </span>
+        </div>
+
         {/* Postable */}
-        <div className="col-span-1 text-center">
+        <div className="col-span-1 text-center" data-testid={`account-postable-${account.accountNumber}`}>
           {account.isPostable ? (
             <span className="text-green-600">
               <svg
@@ -706,7 +774,7 @@ function AccountTreeRow({
         </div>
 
         {/* Status */}
-        <div className="col-span-1 text-center">
+        <div className="col-span-1 text-center" data-testid={`account-status-${account.accountNumber}`}>
           <span
             className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
               account.isActive

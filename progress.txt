@@ -934,3 +934,8 @@
 **Story**: 4.3 - Company detail and edit
 **Status**: complete
 ---
+
+## Iteration 59 - 2026-01-15 09:32
+**Story**: 5.1 - Accounts list with hierarchy
+**Status**: complete
+---
