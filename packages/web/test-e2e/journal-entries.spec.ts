@@ -346,9 +346,15 @@ test.describe("Journal Entries List Page", () => {
     await expect(page.locator('[data-testid="journal-entries-empty-state"]')).toBeVisible()
     await expect(page.locator('[data-testid="journal-entries-empty-state"]')).toContainText("No journal entries yet")
 
-    // 7. Should show disabled create button (feature coming soon)
+    // 7. Should show enabled create button that navigates to new entry form
     await expect(page.locator('[data-testid="create-journal-entry-empty-button"]')).toBeVisible()
-    await expect(page.locator('[data-testid="create-journal-entry-empty-button"]')).toBeDisabled()
+
+    // 8. Click the Create Journal Entry button
+    await page.locator('[data-testid="create-journal-entry-empty-button"]').click()
+
+    // 9. Should navigate to new journal entry page
+    await page.waitForURL(/\/journal-entries\/new/)
+    expect(page.url()).toContain(`/organizations/${orgData.id}/companies/${companyData.id}/journal-entries/new`)
   })
 
   test("should filter journal entries by status", async ({ page, request }) => {
@@ -803,7 +809,7 @@ test.describe("Journal Entries List Page", () => {
     await expect(page.locator('[data-testid="journal-entries-count"]')).toContainText("2 of 2 entries")
   })
 
-  test("should show New Entry button (disabled - coming soon)", async ({ page, request }) => {
+  test("should navigate to new journal entry form when clicking New Entry button", async ({ page, request }) => {
     // 1. Register a test user
     const testUser = {
       email: `test-new-entry-button-${Date.now()}@example.com`,
@@ -879,10 +885,338 @@ test.describe("Journal Entries List Page", () => {
       `/organizations/${orgData.id}/companies/${companyData.id}/journal-entries`
     )
 
-    // 6. Should show disabled New Entry button (feature coming soon)
+    // 6. Should show enabled New Entry button
     const newEntryButton = page.locator('[data-testid="create-journal-entry-button"]')
     await expect(newEntryButton).toBeVisible()
-    await expect(newEntryButton).toBeDisabled()
+
+    // 7. Click the New Entry button
+    await newEntryButton.click()
+
+    // 8. Should navigate to new journal entry page
+    await page.waitForURL(/\/journal-entries\/new/)
+    expect(page.url()).toContain(`/organizations/${orgData.id}/companies/${companyData.id}/journal-entries/new`)
+
+    // 9. Should show Create Journal Entry heading
+    await expect(page.getByRole("heading", { name: "Create Journal Entry" })).toBeVisible()
+  })
+
+  test("should create a balanced journal entry", async ({ page, request }) => {
+    // 1. Register a test user
+    const testUser = {
+      email: `test-create-journal-entry-${Date.now()}@example.com`,
+      password: "TestPassword123",
+      displayName: "Create Journal Entry Test User"
+    }
+
+    const registerRes = await request.post("/api/auth/register", {
+      data: testUser
+    })
+    expect(registerRes.ok()).toBeTruthy()
+
+    // 2. Login
+    const loginRes = await request.post("/api/auth/login", {
+      data: {
+        provider: "local",
+        credentials: {
+          email: testUser.email,
+          password: testUser.password
+        }
+      }
+    })
+    expect(loginRes.ok()).toBeTruthy()
+    const loginData = await loginRes.json()
+    const sessionToken = loginData.token
+
+    // 3. Create org, company, accounts, fiscal year
+    const createOrgRes = await request.post("/api/v1/organizations", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        name: `Create JE Test Org ${Date.now()}`,
+        reportingCurrency: "USD",
+        settings: null
+      }
+    })
+    expect(createOrgRes.ok()).toBeTruthy()
+    const orgData = await createOrgRes.json()
+
+    const createCompanyRes = await request.post("/api/v1/companies", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        organizationId: orgData.id,
+        name: `Create JE Company ${Date.now()}`,
+        legalName: "Create JE Company Inc.",
+        jurisdiction: "US",
+        functionalCurrency: "USD",
+        reportingCurrency: "USD",
+        fiscalYearEnd: { month: 12, day: 31 },
+        taxId: null,
+        parentCompanyId: null,
+        ownershipPercentage: null,
+        consolidationMethod: null
+      }
+    })
+    expect(createCompanyRes.ok()).toBeTruthy()
+    const companyData = await createCompanyRes.json()
+
+    // Create accounts
+    const createAccount1Res = await request.post("/api/v1/accounts", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        companyId: companyData.id,
+        accountNumber: "1000",
+        name: "Cash",
+        description: "Cash and cash equivalents",
+        accountType: "Asset",
+        accountCategory: "CurrentAsset",
+        normalBalance: "Debit",
+        parentAccountId: null,
+        isPostable: true,
+        isCashFlowRelevant: true,
+        cashFlowCategory: "Operating",
+        isIntercompany: false,
+        intercompanyPartnerId: null,
+        currencyRestriction: null
+      }
+    })
+    expect(createAccount1Res.ok()).toBeTruthy()
+
+    const createAccount2Res = await request.post("/api/v1/accounts", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        companyId: companyData.id,
+        accountNumber: "4000",
+        name: "Revenue",
+        description: "Sales revenue",
+        accountType: "Revenue",
+        accountCategory: "OperatingRevenue",
+        normalBalance: "Credit",
+        parentAccountId: null,
+        isPostable: true,
+        isCashFlowRelevant: false,
+        cashFlowCategory: null,
+        isIntercompany: false,
+        intercompanyPartnerId: null,
+        currencyRestriction: null
+      }
+    })
+    expect(createAccount2Res.ok()).toBeTruthy()
+
+    // Create fiscal year
+    await request.post("/api/v1/fiscal/fiscal-years", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        companyId: companyData.id,
+        name: "FY2026",
+        startDate: "2026-01-01",
+        endDate: "2026-12-31",
+        includePeriod13: false
+      }
+    })
+
+    // 4. Set session cookie
+    await page.context().addCookies([
+      {
+        name: "accountability_session",
+        value: sessionToken,
+        domain: "localhost",
+        path: "/",
+        httpOnly: true,
+        secure: false,
+        sameSite: "Lax"
+      }
+    ])
+
+    // 5. Navigate to new journal entry page
+    await page.goto(
+      `/organizations/${orgData.id}/companies/${companyData.id}/journal-entries/new`
+    )
+
+    // 6. Should show the journal entry form
+    await expect(page.locator('[data-testid="journal-entry-form"]')).toBeVisible()
+    await expect(page.getByRole("heading", { name: "Create Journal Entry" })).toBeVisible()
+
+    // 7. Fill in entry details
+    await page.locator('[data-testid="journal-entry-description"]').fill("E2E Test - Cash sale transaction")
+    await page.locator('[data-testid="journal-entry-reference"]').fill("E2E-TEST-001")
+
+    // 8. Fill in first line (Debit to Cash)
+    await page.locator('[data-testid="journal-entry-line-account-0"]').selectOption({ label: "1000 - Cash" })
+    await page.locator('[data-testid="journal-entry-line-debit-0"]').fill("500.00")
+
+    // 9. Fill in second line (Credit to Revenue)
+    await page.locator('[data-testid="journal-entry-line-account-1"]').selectOption({ label: "4000 - Revenue" })
+    await page.locator('[data-testid="journal-entry-line-credit-1"]').fill("500.00")
+
+    // 10. Should show balance indicator as balanced (green)
+    await expect(page.locator('[data-testid="balance-indicator-balanced"]')).toBeVisible()
+    await expect(page.locator('[data-testid="total-debits"]')).toContainText("500.00")
+    await expect(page.locator('[data-testid="total-credits"]')).toContainText("500.00")
+
+    // 11. Submit button should be enabled when balanced
+    await expect(page.locator('[data-testid="journal-entry-submit"]')).toBeEnabled()
+
+    // 12. Click Save as Draft
+    await page.locator('[data-testid="journal-entry-save-draft"]').click()
+
+    // 13. Should navigate back to journal entries list
+    await page.waitForURL(/\/journal-entries$/)
+    expect(page.url()).toContain(`/organizations/${orgData.id}/companies/${companyData.id}/journal-entries`)
+    expect(page.url()).not.toContain("/new")
+
+    // 14. Should show the new entry in the list
+    await expect(page.getByText("E2E Test - Cash sale transaction")).toBeVisible()
+    await expect(page.getByText("E2E-TEST-001")).toBeVisible()
+  })
+
+  test("should show unbalanced indicator when debits do not equal credits", async ({ page, request }) => {
+    // 1. Register a test user
+    const testUser = {
+      email: `test-unbalanced-entry-${Date.now()}@example.com`,
+      password: "TestPassword123",
+      displayName: "Unbalanced Entry Test User"
+    }
+
+    const registerRes = await request.post("/api/auth/register", {
+      data: testUser
+    })
+    expect(registerRes.ok()).toBeTruthy()
+
+    // 2. Login
+    const loginRes = await request.post("/api/auth/login", {
+      data: {
+        provider: "local",
+        credentials: {
+          email: testUser.email,
+          password: testUser.password
+        }
+      }
+    })
+    expect(loginRes.ok()).toBeTruthy()
+    const loginData = await loginRes.json()
+    const sessionToken = loginData.token
+
+    // 3. Create org, company, accounts
+    const createOrgRes = await request.post("/api/v1/organizations", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        name: `Unbalanced Test Org ${Date.now()}`,
+        reportingCurrency: "USD",
+        settings: null
+      }
+    })
+    expect(createOrgRes.ok()).toBeTruthy()
+    const orgData = await createOrgRes.json()
+
+    const createCompanyRes = await request.post("/api/v1/companies", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        organizationId: orgData.id,
+        name: `Unbalanced Test Company ${Date.now()}`,
+        legalName: "Unbalanced Test Company Inc.",
+        jurisdiction: "US",
+        functionalCurrency: "USD",
+        reportingCurrency: "USD",
+        fiscalYearEnd: { month: 12, day: 31 },
+        taxId: null,
+        parentCompanyId: null,
+        ownershipPercentage: null,
+        consolidationMethod: null
+      }
+    })
+    expect(createCompanyRes.ok()).toBeTruthy()
+    const companyData = await createCompanyRes.json()
+
+    // Create accounts
+    await request.post("/api/v1/accounts", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        companyId: companyData.id,
+        accountNumber: "1000",
+        name: "Cash",
+        description: null,
+        accountType: "Asset",
+        accountCategory: "CurrentAsset",
+        normalBalance: "Debit",
+        parentAccountId: null,
+        isPostable: true,
+        isCashFlowRelevant: true,
+        cashFlowCategory: "Operating",
+        isIntercompany: false,
+        intercompanyPartnerId: null,
+        currencyRestriction: null
+      }
+    })
+
+    await request.post("/api/v1/accounts", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        companyId: companyData.id,
+        accountNumber: "4000",
+        name: "Revenue",
+        description: null,
+        accountType: "Revenue",
+        accountCategory: "OperatingRevenue",
+        normalBalance: "Credit",
+        parentAccountId: null,
+        isPostable: true,
+        isCashFlowRelevant: false,
+        cashFlowCategory: null,
+        isIntercompany: false,
+        intercompanyPartnerId: null,
+        currencyRestriction: null
+      }
+    })
+
+    // Create fiscal year
+    await request.post("/api/v1/fiscal/fiscal-years", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        companyId: companyData.id,
+        name: "FY2026",
+        startDate: "2026-01-01",
+        endDate: "2026-12-31",
+        includePeriod13: false
+      }
+    })
+
+    // 4. Set session cookie
+    await page.context().addCookies([
+      {
+        name: "accountability_session",
+        value: sessionToken,
+        domain: "localhost",
+        path: "/",
+        httpOnly: true,
+        secure: false,
+        sameSite: "Lax"
+      }
+    ])
+
+    // 5. Navigate to new journal entry page
+    await page.goto(
+      `/organizations/${orgData.id}/companies/${companyData.id}/journal-entries/new`
+    )
+
+    // 6. Fill in entry details
+    await page.locator('[data-testid="journal-entry-description"]').fill("Unbalanced entry test")
+
+    // 7. Fill in first line (Debit to Cash)
+    await page.locator('[data-testid="journal-entry-line-account-0"]').selectOption({ label: "1000 - Cash" })
+    await page.locator('[data-testid="journal-entry-line-debit-0"]').fill("1000.00")
+
+    // 8. Fill in second line with DIFFERENT amount (Credit to Revenue)
+    await page.locator('[data-testid="journal-entry-line-account-1"]').selectOption({ label: "4000 - Revenue" })
+    await page.locator('[data-testid="journal-entry-line-credit-1"]').fill("500.00")
+
+    // 9. Should show balance indicator as unbalanced (red)
+    await expect(page.locator('[data-testid="balance-indicator-unbalanced"]')).toBeVisible()
+    await expect(page.locator('[data-testid="balance-difference"]')).toContainText("500.00")
+
+    // 10. Submit for Approval button should be disabled when unbalanced
+    await expect(page.locator('[data-testid="journal-entry-submit"]')).toBeDisabled()
+
+    // 11. Save as Draft button should still be enabled
+    await expect(page.locator('[data-testid="journal-entry-save-draft"]')).toBeEnabled()
   })
 
   test("should navigate from company details to journal entries", async ({

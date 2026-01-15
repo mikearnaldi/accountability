@@ -504,12 +504,14 @@ function JournalEntriesPage() {
               <span className="text-sm text-gray-500" data-testid="journal-entries-count">
                 {filteredEntries.length} of {total} entries
               </span>
-              <button
-                type="button"
-                disabled
+              <Link
+                to="/organizations/$organizationId/companies/$companyId/journal-entries/new"
+                params={{
+                  organizationId: params.organizationId,
+                  companyId: params.companyId
+                }}
                 data-testid="create-journal-entry-button"
-                className="inline-flex cursor-not-allowed items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white opacity-50"
-                title="Create journal entry (coming soon)"
+                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
               >
                 <svg
                   className="h-4 w-4"
@@ -525,7 +527,7 @@ function JournalEntriesPage() {
                   />
                 </svg>
                 New Entry
-              </button>
+              </Link>
             </div>
           </div>
 
@@ -647,7 +649,10 @@ function JournalEntriesPage() {
 
         {/* Journal Entries List */}
         {entries.length === 0 ? (
-          <JournalEntriesEmptyState />
+          <JournalEntriesEmptyState
+            organizationId={params.organizationId}
+            companyId={params.companyId}
+          />
         ) : filteredEntries.length === 0 ? (
           <div className="rounded-lg border border-gray-200 bg-white p-8 text-center" data-testid="journal-entries-no-results">
             <p className="text-gray-500">No journal entries match your filter criteria.</p>
@@ -785,7 +790,13 @@ function JournalEntryRow({
 // Empty State Component
 // =============================================================================
 
-function JournalEntriesEmptyState() {
+function JournalEntriesEmptyState({
+  organizationId,
+  companyId
+}: {
+  readonly organizationId: string
+  readonly companyId: string
+}) {
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-8 text-center" data-testid="journal-entries-empty-state">
       <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
@@ -809,12 +820,14 @@ function JournalEntriesEmptyState() {
       <p className="mb-6 text-gray-500">
         Journal entries will appear here once created.
       </p>
-      <button
-        type="button"
-        disabled
+      <Link
+        to="/organizations/$organizationId/companies/$companyId/journal-entries/new"
+        params={{
+          organizationId,
+          companyId
+        }}
         data-testid="create-journal-entry-empty-button"
-        className="inline-flex cursor-not-allowed items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white opacity-50"
-        title="Create journal entry (coming soon)"
+        className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700"
       >
         <svg
           className="h-5 w-5"
@@ -830,7 +843,7 @@ function JournalEntriesEmptyState() {
           />
         </svg>
         Create Journal Entry
-      </button>
+      </Link>
     </div>
   )
 }

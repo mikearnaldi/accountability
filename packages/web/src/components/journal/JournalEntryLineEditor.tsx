@@ -1,0 +1,197 @@
+/**
+ * JournalEntryLineEditor Component
+ *
+ * A component for editing a single journal entry line item.
+ * Supports account selection via searchable dropdown, debit/credit amounts,
+ * memo field, and delete functionality.
+ */
+
+import { useMemo } from "react"
+
+// =============================================================================
+// Types
+// =============================================================================
+
+export interface Account {
+  readonly id: string
+  readonly accountNumber: string
+  readonly name: string
+  readonly accountType: string
+  readonly isPostable: boolean
+}
+
+export interface JournalEntryLine {
+  readonly id: string
+  readonly accountId: string
+  readonly debitAmount: string
+  readonly creditAmount: string
+  readonly memo: string
+  readonly currency: string
+}
+
+interface JournalEntryLineEditorProps {
+  readonly line: JournalEntryLine
+  readonly lineIndex: number
+  readonly accounts: readonly Account[]
+  readonly currency: string
+  readonly onUpdate: (lineId: string, field: keyof JournalEntryLine, value: string) => void
+  readonly onDelete: (lineId: string) => void
+  readonly canDelete: boolean
+  readonly disabled?: boolean
+}
+
+// =============================================================================
+// JournalEntryLineEditor Component
+// =============================================================================
+
+export function JournalEntryLineEditor({
+  line,
+  lineIndex,
+  accounts,
+  currency,
+  onUpdate,
+  onDelete,
+  canDelete,
+  disabled = false
+}: JournalEntryLineEditorProps) {
+  // Filter to only postable accounts
+  const postableAccounts = useMemo(
+    () => accounts.filter((acc) => acc.isPostable),
+    [accounts]
+  )
+
+  // Get selected account name for display
+  const selectedAccount = useMemo(
+    () => postableAccounts.find((acc) => acc.id === line.accountId),
+    [postableAccounts, line.accountId]
+  )
+
+  // Handle debit/credit input - clear the other field if entering a value
+  const handleDebitChange = (value: string) => {
+    onUpdate(line.id, "debitAmount", value)
+    if (value && value !== "0" && value !== "0.00") {
+      onUpdate(line.id, "creditAmount", "")
+    }
+  }
+
+  const handleCreditChange = (value: string) => {
+    onUpdate(line.id, "creditAmount", value)
+    if (value && value !== "0" && value !== "0.00") {
+      onUpdate(line.id, "debitAmount", "")
+    }
+  }
+
+  return (
+    <div
+      className="grid grid-cols-12 items-center gap-2 border-b border-gray-100 px-2 py-2 hover:bg-gray-50"
+      data-testid={`journal-entry-line-${lineIndex}`}
+    >
+      {/* Line Number */}
+      <div className="col-span-1 text-center text-sm font-medium text-gray-500">
+        {lineIndex + 1}
+      </div>
+
+      {/* Account Selector */}
+      <div className="col-span-4">
+        <select
+          value={line.accountId}
+          onChange={(e) => onUpdate(line.id, "accountId", e.target.value)}
+          disabled={disabled}
+          data-testid={`journal-entry-line-account-${lineIndex}`}
+          className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
+        >
+          <option value="">Select account...</option>
+          {postableAccounts
+            .sort((a, b) => a.accountNumber.localeCompare(b.accountNumber))
+            .map((acc) => (
+              <option key={acc.id} value={acc.id}>
+                {acc.accountNumber} - {acc.name}
+              </option>
+            ))}
+        </select>
+        {selectedAccount && (
+          <span className="mt-0.5 block text-xs text-gray-500">
+            {selectedAccount.accountType}
+          </span>
+        )}
+      </div>
+
+      {/* Memo */}
+      <div className="col-span-2">
+        <input
+          type="text"
+          value={line.memo}
+          onChange={(e) => onUpdate(line.id, "memo", e.target.value)}
+          disabled={disabled}
+          placeholder="Memo"
+          data-testid={`journal-entry-line-memo-${lineIndex}`}
+          className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
+        />
+      </div>
+
+      {/* Debit Amount */}
+      <div className="col-span-2">
+        <div className="relative">
+          <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2 text-sm text-gray-500">
+            {currency}
+          </span>
+          <input
+            type="text"
+            inputMode="decimal"
+            value={line.debitAmount}
+            onChange={(e) => handleDebitChange(e.target.value)}
+            disabled={disabled}
+            placeholder="0.00"
+            data-testid={`journal-entry-line-debit-${lineIndex}`}
+            className="w-full rounded-md border border-gray-300 py-1.5 pl-10 pr-2 text-right text-sm text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
+          />
+        </div>
+      </div>
+
+      {/* Credit Amount */}
+      <div className="col-span-2">
+        <div className="relative">
+          <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2 text-sm text-gray-500">
+            {currency}
+          </span>
+          <input
+            type="text"
+            inputMode="decimal"
+            value={line.creditAmount}
+            onChange={(e) => handleCreditChange(e.target.value)}
+            disabled={disabled}
+            placeholder="0.00"
+            data-testid={`journal-entry-line-credit-${lineIndex}`}
+            className="w-full rounded-md border border-gray-300 py-1.5 pl-10 pr-2 text-right text-sm text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
+          />
+        </div>
+      </div>
+
+      {/* Delete Button */}
+      <div className="col-span-1 text-center">
+        <button
+          type="button"
+          onClick={() => onDelete(line.id)}
+          disabled={!canDelete || disabled}
+          data-testid={`journal-entry-line-delete-${lineIndex}`}
+          className="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+          title={canDelete ? "Remove line" : "Minimum 2 lines required"}
+        >
+          <svg
+            className="h-4 w-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+            />
+          </svg>
+        </button>
+      </div>
+    </div>
+  )
+}

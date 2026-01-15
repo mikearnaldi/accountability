@@ -954,3 +954,8 @@
 **Story**: 6.1 - Journal entries list with filters
 **Status**: complete
 ---
+
+## Iteration 66 - 2026-01-15 10:26
+**Story**: 6.2 - Create journal entry form
+**Status**: complete
+---
