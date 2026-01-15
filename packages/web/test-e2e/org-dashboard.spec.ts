@@ -250,12 +250,12 @@ test.describe("Organization Dashboard", () => {
     // 4. Navigate to dashboard
     await page.goto(`/organizations/${organization.id}/dashboard`)
 
-    // 5. Click on create company quick action (which links to companies page)
+    // 5. Click on create company quick action (which links to new company form)
     await page.locator('[data-testid="org-quick-action-create-company"]').click()
 
-    // 6. Should navigate to companies page
-    await page.waitForURL(`/organizations/${organization.id}/companies`)
-    expect(page.url()).toContain(`/organizations/${organization.id}/companies`)
+    // 6. Should navigate to new company form page
+    await page.waitForURL(`/organizations/${organization.id}/companies/new`)
+    expect(page.url()).toContain(`/organizations/${organization.id}/companies/new`)
   })
 
   test("should display activity feed placeholder", async ({ page, request }) => {

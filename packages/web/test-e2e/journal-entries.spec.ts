@@ -1035,17 +1035,27 @@ test.describe("Journal Entries List Page", () => {
     await expect(page.locator('[data-testid="journal-entry-form"]')).toBeVisible()
     await expect(page.getByRole("heading", { name: "Create Journal Entry" })).toBeVisible()
 
-    // 7. Fill in entry details
-    await page.locator('[data-testid="journal-entry-description"]').fill("E2E Test - Cash sale transaction")
+    // 7. Fill in entry details - wait for form to be ready
+    const descriptionInput = page.locator('[data-testid="journal-entry-description"]')
+    await expect(descriptionInput).toBeVisible()
+    await descriptionInput.click()
+    await descriptionInput.fill("E2E Test - Cash sale transaction")
+    // Verify the fill was successful
+    await expect(descriptionInput).toHaveValue("E2E Test - Cash sale transaction")
+
     await page.locator('[data-testid="journal-entry-reference"]').fill("E2E-TEST-001")
 
     // 8. Fill in first line (Debit to Cash)
     await page.locator('[data-testid="journal-entry-line-account-0"]').selectOption({ label: "1000 - Cash" })
-    await page.locator('[data-testid="journal-entry-line-debit-0"]').fill("500.00")
+    const debitInput0 = page.locator('[data-testid="journal-entry-line-debit-0"]')
+    await debitInput0.click()
+    await debitInput0.fill("500.00")
 
     // 9. Fill in second line (Credit to Revenue)
     await page.locator('[data-testid="journal-entry-line-account-1"]').selectOption({ label: "4000 - Revenue" })
-    await page.locator('[data-testid="journal-entry-line-credit-1"]').fill("500.00")
+    const creditInput1 = page.locator('[data-testid="journal-entry-line-credit-1"]')
+    await creditInput1.click()
+    await creditInput1.fill("500.00")
 
     // 10. Should show balance indicator as balanced (green) - allow time for UI update
     await expect(page.locator('[data-testid="balance-indicator-balanced"]')).toBeVisible({ timeout: 10000 })
@@ -1197,19 +1207,33 @@ test.describe("Journal Entries List Page", () => {
       `/organizations/${orgData.id}/companies/${companyData.id}/journal-entries/new`
     )
 
-    // 6. Fill in entry details
-    await page.locator('[data-testid="journal-entry-description"]').fill("Unbalanced entry test")
+    // 6. Wait for form to be ready and fill in entry details
+    const descriptionInput = page.locator('[data-testid="journal-entry-description"]')
+    await expect(descriptionInput).toBeVisible()
+    await descriptionInput.click()
+    await descriptionInput.fill("Unbalanced entry test")
+    await expect(descriptionInput).toHaveValue("Unbalanced entry test")
 
     // 7. Fill in first line (Debit to Cash)
     await page.locator('[data-testid="journal-entry-line-account-0"]').selectOption({ label: "1000 - Cash" })
-    await page.locator('[data-testid="journal-entry-line-debit-0"]').fill("1000.00")
+    const debitInput = page.locator('[data-testid="journal-entry-line-debit-0"]')
+    await debitInput.click()
+    await debitInput.fill("1000.00")
+    await expect(debitInput).toHaveValue("1000.00")
+    // Wait for balance to update
+    await expect(page.locator('[data-testid="total-debits"]')).toContainText("1000.00", { timeout: 5000 })
 
     // 8. Fill in second line with DIFFERENT amount (Credit to Revenue)
     await page.locator('[data-testid="journal-entry-line-account-1"]').selectOption({ label: "4000 - Revenue" })
-    await page.locator('[data-testid="journal-entry-line-credit-1"]').fill("500.00")
+    const creditInput = page.locator('[data-testid="journal-entry-line-credit-1"]')
+    await creditInput.click()
+    await creditInput.fill("500.00")
+    await expect(creditInput).toHaveValue("500.00")
+    // Wait for balance to update
+    await expect(page.locator('[data-testid="total-credits"]')).toContainText("500.00", { timeout: 5000 })
 
     // 9. Should show balance indicator as unbalanced (red)
-    await expect(page.locator('[data-testid="balance-indicator-unbalanced"]')).toBeVisible()
+    await expect(page.locator('[data-testid="balance-indicator-unbalanced"]')).toBeVisible({ timeout: 5000 })
     await expect(page.locator('[data-testid="balance-difference"]')).toContainText("500.00")
 
     // 10. Submit for Approval button should be disabled when unbalanced

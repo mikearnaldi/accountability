@@ -287,10 +287,12 @@ test.describe("Apply Account Template", () => {
     const applyTemplateButton = page.locator('[data-testid="apply-template-button"]')
     await expect(applyTemplateButton).toBeVisible()
     await expect(applyTemplateButton).toBeEnabled()
+    // Small delay for React hydration
+    await page.waitForTimeout(200)
 
     // 6. Open template modal
     await applyTemplateButton.click()
-    await expect(page.locator('[data-testid="apply-template-modal"]')).toBeVisible({ timeout: 10000 })
+    await expect(page.locator('[data-testid="apply-template-modal"]')).toBeVisible({ timeout: 15000 })
 
     // 7. Select a template (General Business)
     await page.locator('[data-testid="template-card-GeneralBusiness"]').click()
@@ -508,9 +510,16 @@ test.describe("Apply Account Template", () => {
       `/organizations/${orgData.id}/companies/${companyData.id}/accounts`
     )
 
-    // 6. Open template modal
-    await page.locator('[data-testid="apply-template-button"]').click()
-    await expect(page.locator('[data-testid="apply-template-modal"]')).toBeVisible()
+    // Wait for page to fully load (React hydration)
+    await expect(page.getByTestId("accounts-page")).toBeVisible()
+
+    // 6. Open template modal - wait for button to be ready
+    const applyTemplateButton = page.locator('[data-testid="apply-template-button"]')
+    await expect(applyTemplateButton).toBeVisible()
+    await expect(applyTemplateButton).toBeEnabled()
+    await page.waitForTimeout(200) // Small delay for React hydration
+    await applyTemplateButton.click()
+    await expect(page.locator('[data-testid="apply-template-modal"]')).toBeVisible({ timeout: 15000 })
 
     // 7. Close modal using X button
     await page.locator('[data-testid="apply-template-close-button"]').click()

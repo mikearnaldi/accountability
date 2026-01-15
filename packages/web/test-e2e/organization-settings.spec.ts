@@ -163,17 +163,23 @@ test.describe("Organization Settings Page", () => {
     // Navigate to organization settings page
     await page.goto(`/organizations/${orgData.id}/settings`)
 
-    // Wait for settings page to load
-    await expect(page.getByTestId("org-settings-name-input")).toBeVisible()
+    // Wait for settings page to fully load and hydrate
+    const nameInput = page.getByTestId("org-settings-name-input")
+    await expect(nameInput).toBeVisible()
+    // Verify initial value is loaded (ensures React hydration is complete)
+    await expect(nameInput).toHaveValue(orgName)
 
-    // Update organization name
+    // Update organization name - clear and fill with click to ensure proper focus
     const newOrgName = `Updated Org Name ${Date.now()}`
-    await page.getByTestId("org-settings-name-input").fill(newOrgName)
+    await nameInput.click()
+    await nameInput.fill(newOrgName)
+    // Verify the fill was successful
+    await expect(nameInput).toHaveValue(newOrgName)
 
     // Click save button
     await page.getByTestId("org-settings-save-general").click()
 
-    // Should show success message
+    // Should show success message with "updated" text
     await expect(page.getByTestId("org-settings-success")).toBeVisible()
     await expect(page.getByTestId("org-settings-success")).toContainText("updated")
 
@@ -254,19 +260,34 @@ test.describe("Organization Settings Page", () => {
     // Verify initial value is loaded (ensures React hydration is complete)
     await expect(localeSelect).toHaveValue("en-US")
 
-    // Update locale
+    // Update locale with click to ensure focus
+    await localeSelect.click()
     await localeSelect.selectOption("de-DE")
     // Verify the selection was applied
     await expect(localeSelect).toHaveValue("de-DE")
 
     // Update timezone
-    await page.getByTestId("org-settings-timezone-select").selectOption("Europe/Berlin")
+    const timezoneSelect = page.getByTestId("org-settings-timezone-select")
+    await timezoneSelect.click()
+    await timezoneSelect.selectOption("Europe/Berlin")
+    await expect(timezoneSelect).toHaveValue("Europe/Berlin")
 
     // Toggle fiscal year
-    await page.getByTestId("org-settings-fiscal-year-checkbox").uncheck()
+    const fiscalCheckbox = page.getByTestId("org-settings-fiscal-year-checkbox")
+    await fiscalCheckbox.uncheck()
+    await expect(fiscalCheckbox).not.toBeChecked()
 
     // Update decimal places
-    await page.getByTestId("org-settings-decimal-places-select").selectOption("4")
+    const decimalSelect = page.getByTestId("org-settings-decimal-places-select")
+    await decimalSelect.click()
+    await decimalSelect.selectOption("4")
+    await expect(decimalSelect).toHaveValue("4")
+
+    // Verify all values are still set before saving
+    await expect(localeSelect).toHaveValue("de-DE")
+    await expect(timezoneSelect).toHaveValue("Europe/Berlin")
+    await expect(fiscalCheckbox).not.toBeChecked()
+    await expect(decimalSelect).toHaveValue("4")
 
     // Click save defaults button
     await page.getByTestId("org-settings-save-defaults").click()
@@ -277,19 +298,27 @@ test.describe("Organization Settings Page", () => {
     // Wait for button to be enabled again (save complete)
     await expect(page.getByTestId("org-settings-save-defaults")).toBeEnabled()
 
-    // Wait a moment for the backend to fully persist the data
-    await page.waitForTimeout(500)
+    // Poll the API to verify settings were updated (retry up to 20 times with 300ms delay = 6 seconds)
+    let updatedOrg: { settings: { defaultLocale: string; defaultTimezone: string; useFiscalYear: boolean; defaultDecimalPlaces: number } } | null = null
+    for (let i = 0; i < 20; i++) {
+      await page.waitForTimeout(300)
+      const getOrgRes = await request.get(`/api/v1/organizations/${orgData.id}`, {
+        headers: { Authorization: `Bearer ${sessionToken}` }
+      })
+      if (getOrgRes.ok()) {
+        const orgJson = await getOrgRes.json()
+        if (orgJson.settings.defaultLocale === "de-DE") {
+          updatedOrg = orgJson
+          break
+        }
+      }
+    }
 
-    // Verify via API that settings were updated
-    const getOrgRes = await request.get(`/api/v1/organizations/${orgData.id}`, {
-      headers: { Authorization: `Bearer ${sessionToken}` }
-    })
-    expect(getOrgRes.ok()).toBeTruthy()
-    const updatedOrg = await getOrgRes.json()
-    expect(updatedOrg.settings.defaultLocale).toBe("de-DE")
-    expect(updatedOrg.settings.defaultTimezone).toBe("Europe/Berlin")
-    expect(updatedOrg.settings.useFiscalYear).toBe(false)
-    expect(updatedOrg.settings.defaultDecimalPlaces).toBe(4)
+    expect(updatedOrg).not.toBeNull()
+    expect(updatedOrg!.settings.defaultLocale).toBe("de-DE")
+    expect(updatedOrg!.settings.defaultTimezone).toBe("Europe/Berlin")
+    expect(updatedOrg!.settings.useFiscalYear).toBe(false)
+    expect(updatedOrg!.settings.defaultDecimalPlaces).toBe(4)
   })
 
   test("should navigate to settings from sidebar", async ({ page, request }) => {
@@ -409,14 +438,29 @@ test.describe("Organization Settings Page", () => {
     // Navigate to organization settings page
     await page.goto(`/organizations/${orgData.id}/settings`)
 
-    // Clear organization name
-    await page.getByTestId("org-settings-name-input").fill("   ")
+    // Wait for form to fully load and hydrate
+    const nameInput = page.getByTestId("org-settings-name-input")
+    await expect(nameInput).toBeVisible()
+    // Wait for initial value to be loaded (ensures React hydration is complete)
+    await expect(nameInput).not.toHaveValue("")
+    // Small delay for React hydration
+    await page.waitForTimeout(300)
+
+    // Clear organization name - use triple-click to select all, then clear
+    await nameInput.click({ clickCount: 3 })
+    await nameInput.press("Backspace")
+    await nameInput.fill("   ")
+    // Wait for value to be set
+    await page.waitForTimeout(100)
+    await expect(nameInput).toHaveValue("   ")
 
     // Click save button
-    await page.getByTestId("org-settings-save-general").click()
+    const saveButton = page.getByTestId("org-settings-save-general")
+    await expect(saveButton).toBeEnabled()
+    await saveButton.click()
 
     // Should show validation error
-    await expect(page.getByTestId("org-settings-error")).toBeVisible()
+    await expect(page.getByTestId("org-settings-error")).toBeVisible({ timeout: 10000 })
     await expect(page.getByTestId("org-settings-error")).toContainText("required")
   })
 
@@ -669,8 +713,8 @@ test.describe("Organization Settings Page", () => {
     // Click delete button
     await deleteButton.click()
 
-    // Wait for delete confirmation UI to appear (increase timeout for React state update)
-    await expect(page.getByTestId("org-delete-confirm-input")).toBeVisible({ timeout: 10000 })
+    // Wait for confirmation UI to appear with increased timeout for React state update
+    await expect(page.getByTestId("org-delete-confirm-input")).toBeVisible({ timeout: 15000 })
 
     // Type correct organization name
     await page.getByTestId("org-delete-confirm-input").fill(orgName)

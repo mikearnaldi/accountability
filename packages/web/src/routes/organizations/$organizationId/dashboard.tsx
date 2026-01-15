@@ -459,7 +459,7 @@ function OrgQuickActions({ organizationId }: { readonly organizationId: string }
       label: "New Company",
       description: "Add a new company to this organization",
       icon: Plus,
-      href: `/organizations/${organizationId}/companies`,
+      href: `/organizations/${organizationId}/companies/new`,
       iconColor: "blue",
       testId: "org-quick-action-create-company"
     },

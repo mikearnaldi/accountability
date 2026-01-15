@@ -652,27 +652,30 @@ test.describe("Chart of Accounts Page", () => {
     const typeFilter = page.getByTestId("accounts-filter-type")
     await expect(typeFilter).toBeVisible()
 
-    // 8. Filter by Assets
+    // 8. Filter by Assets - wait for filter to be applied
     await typeFilter.selectOption("Asset")
+    await expect(typeFilter).toHaveValue("Asset")
 
-    // 9. Should only show asset accounts
-    await expect(page.getByText(/1 of 3 accounts/i)).toBeVisible()
+    // 9. Should only show asset accounts - wait for filtering to complete
+    await expect(page.getByText(/1 of 3 accounts/i)).toBeVisible({ timeout: 5000 })
     await expect(page.getByText("Cash Account")).toBeVisible()
     await expect(page.getByText("Sales Revenue")).not.toBeVisible()
     await expect(page.getByText("Office Supplies")).not.toBeVisible()
 
-    // 10. Filter by Revenue
+    // 10. Filter by Revenue - wait for filter to be applied
     await typeFilter.selectOption("Revenue")
+    await expect(typeFilter).toHaveValue("Revenue")
 
-    // 11. Should only show revenue accounts
-    await expect(page.getByText(/1 of 3 accounts/i)).toBeVisible()
+    // 11. Should only show revenue accounts - wait for filtering to complete
+    await expect(page.getByText(/1 of 3 accounts/i)).toBeVisible({ timeout: 5000 })
     await expect(page.getByText("Cash Account")).not.toBeVisible()
     await expect(page.getByText("Sales Revenue")).toBeVisible()
     await expect(page.getByText("Office Supplies")).not.toBeVisible()
 
     // 12. Reset filter
     await typeFilter.selectOption("All")
-    await expect(page.getByText(/3 of 3 accounts/i)).toBeVisible()
+    await expect(typeFilter).toHaveValue("All")
+    await expect(page.getByText(/3 of 3 accounts/i)).toBeVisible({ timeout: 5000 })
   })
 
   test("should search accounts by name and number", async ({

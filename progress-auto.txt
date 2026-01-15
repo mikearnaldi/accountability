@@ -61,3 +61,8 @@
 **Task**: Created dedicated /organizations/$organizationId/exchange-rates/new.tsx page for exchange rate creation form with AppLayout, breadcrumbs, and proper form handling. Updated Sidebar quick actions to navigate to /exchange-rates/new instead of the list page, per UI_ARCHITECTURE.md spec requirement that "Exchange Rate" quick action MUST open the creation form, not the list page.
 **Status**: complete
 ---
+
+## Iteration 17 - 2026-01-15 15:56
+**Task**: Fixed original 3 failing E2E tests by updating expected URL for companies quick action (companies/new vs companies), adding robust hydration waits and value verification for organization settings tests, and increasing timeouts for React state updates
+**Status**: complete
+---

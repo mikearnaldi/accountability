@@ -276,7 +276,7 @@ function OrganizationDetailsPage() {
                 View all
               </Link>
               <Link
-                to="/organizations/$organizationId/companies"
+                to="/organizations/$organizationId/companies/new"
                 params={{ organizationId: organization.id }}
                 className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
               >
@@ -506,7 +506,7 @@ function CompaniesEmptyState({ organizationId }: { readonly organizationId: stri
         Create your first company to start managing accounts and journal entries.
       </p>
       <Link
-        to="/organizations/$organizationId/companies"
+        to="/organizations/$organizationId/companies/new"
         params={{ organizationId }}
         className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
       >

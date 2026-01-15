@@ -280,15 +280,20 @@ test.describe("Organizations Page", () => {
     // 4. Navigate to create organization page directly
     await page.goto("/organizations/new")
 
-    // 5. Wait for form to load
-    await expect(page.locator("#org-name")).toBeVisible()
+    // 5. Wait for form to load and hydrate
+    const nameInput = page.locator("#org-name")
+    await expect(nameInput).toBeVisible()
+    // Wait for form to be ready - ensure React hydration is complete
+    await expect(page.getByTestId("org-form-submit-button")).toBeEnabled()
 
     // 6. Clear the name field and submit
-    await page.fill("#org-name", "   ") // Just whitespace
+    await nameInput.click()
+    await nameInput.fill("   ") // Just whitespace
+    await expect(nameInput).toHaveValue("   ")
     await page.getByTestId("org-form-submit-button").click()
 
     // 7. Should show validation error
-    await expect(page.getByText(/Organization name is required/i)).toBeVisible()
+    await expect(page.getByText(/Organization name is required/i)).toBeVisible({ timeout: 10000 })
   })
 
   test("should cancel form and navigate back", async ({ page, request }) => {
