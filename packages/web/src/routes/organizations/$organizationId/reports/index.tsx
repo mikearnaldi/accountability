@@ -1,9 +1,13 @@
 /**
  * Reports Hub Route
  *
- * Organization-level reports hub showing available financial reports.
- * Provides quick access to common reports and allows selecting a company
- * to view company-specific reports.
+ * Organization-level reports hub following the 3-step flow:
+ * Step 1: Company Selection - Users must first select a company
+ * Step 2: After company selection, navigate to company-level reports page
+ * Step 3: User views specific reports for the selected company
+ *
+ * This page shows ONLY company selection (Step 1). Report types are shown
+ * on the company-level reports page after a company is selected.
  *
  * Route: /organizations/:organizationId/reports
  */
@@ -13,14 +17,7 @@ import { createServerFn } from "@tanstack/react-start"
 import { getCookie } from "@tanstack/react-start/server"
 import { createServerApi } from "@/api/server"
 import { AppLayout } from "@/components/layout/AppLayout"
-import {
-  FileText,
-  BarChart3,
-  PieChart,
-  TrendingUp,
-  DollarSign,
-  Building
-} from "lucide-react"
+import { Building, ChevronRight, FileBarChart } from "lucide-react"
 
 // =============================================================================
 // Types
@@ -160,62 +157,6 @@ export const Route = createFileRoute("/organizations/$organizationId/reports/")(
 })
 
 // =============================================================================
-// Report Type Cards
-// =============================================================================
-
-interface ReportType {
-  readonly id: string
-  readonly name: string
-  readonly description: string
-  readonly icon: typeof FileText
-  readonly iconColor: string
-  readonly bgColor: string
-}
-
-const REPORT_TYPES: readonly ReportType[] = [
-  {
-    id: "trial-balance",
-    name: "Trial Balance",
-    description: "View account balances and verify debits equal credits",
-    icon: FileText,
-    iconColor: "text-blue-600",
-    bgColor: "bg-blue-100"
-  },
-  {
-    id: "balance-sheet",
-    name: "Balance Sheet",
-    description: "Assets, liabilities, and equity at a point in time",
-    icon: BarChart3,
-    iconColor: "text-green-600",
-    bgColor: "bg-green-100"
-  },
-  {
-    id: "income-statement",
-    name: "Income Statement",
-    description: "Revenue and expenses over a period",
-    icon: TrendingUp,
-    iconColor: "text-purple-600",
-    bgColor: "bg-purple-100"
-  },
-  {
-    id: "cash-flow",
-    name: "Cash Flow Statement",
-    description: "Cash inflows and outflows by activity",
-    icon: DollarSign,
-    iconColor: "text-teal-600",
-    bgColor: "bg-teal-100"
-  },
-  {
-    id: "equity-statement",
-    name: "Statement of Equity",
-    description: "Changes in owner's equity over a period",
-    icon: PieChart,
-    iconColor: "text-orange-600",
-    bgColor: "bg-orange-100"
-  }
-]
-
-// =============================================================================
 // Reports Hub Page Component
 // =============================================================================
 
@@ -264,8 +205,28 @@ function ReportsHubPage() {
             Financial Reports
           </h1>
           <p className="mt-1 text-sm text-gray-500">
-            Generate and view financial reports for your companies
+            Select a company to view and generate financial reports
           </p>
+        </div>
+
+        {/* Step Indicator */}
+        <div className="mb-8">
+          <div className="flex items-center gap-2 text-sm">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-xs font-medium text-white">
+              1
+            </span>
+            <span className="font-medium text-gray-900">Select Company</span>
+            <ChevronRight className="h-4 w-4 text-gray-400" />
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gray-200 text-xs font-medium text-gray-500">
+              2
+            </span>
+            <span className="text-gray-500">Choose Report</span>
+            <ChevronRight className="h-4 w-4 text-gray-400" />
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gray-200 text-xs font-medium text-gray-500">
+              3
+            </span>
+            <span className="text-gray-500">View Report</span>
+          </div>
         </div>
 
         {/* No Companies Message */}
@@ -293,63 +254,27 @@ function ReportsHubPage() {
             </Link>
           </div>
         ) : (
-          <>
-            {/* Report Types Grid */}
-            <div className="mb-8">
-              <h2 className="mb-4 text-lg font-semibold text-gray-900">
-                Available Reports
-              </h2>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {REPORT_TYPES.map((report) => (
-                  <ReportTypeCard key={report.id} report={report} />
-                ))}
-              </div>
+          <div>
+            <h2 className="mb-4 text-lg font-semibold text-gray-900">
+              Select a Company
+            </h2>
+            <p className="mb-6 text-sm text-gray-500">
+              Choose which company&apos;s financial reports you want to view.
+              Each company has its own set of reports based on its chart of accounts and journal entries.
+            </p>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {activeCompanies.map((company) => (
+                <CompanyReportCard
+                  key={company.id}
+                  company={company}
+                  organizationId={params.organizationId}
+                />
+              ))}
             </div>
-
-            {/* Companies Selection */}
-            <div>
-              <h2 className="mb-4 text-lg font-semibold text-gray-900">
-                Select a Company
-              </h2>
-              <p className="mb-4 text-sm text-gray-500">
-                Choose a company to view its financial reports
-              </p>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {activeCompanies.map((company) => (
-                  <CompanyReportCard
-                    key={company.id}
-                    company={company}
-                    organizationId={params.organizationId}
-                  />
-                ))}
-              </div>
-            </div>
-          </>
+          </div>
         )}
       </div>
     </AppLayout>
-  )
-}
-
-// =============================================================================
-// Report Type Card Component
-// =============================================================================
-
-function ReportTypeCard({ report }: { readonly report: ReportType }) {
-  const Icon = report.icon
-  return (
-    <div
-      className="rounded-lg border border-gray-200 bg-white p-6"
-      data-testid={`report-type-${report.id}`}
-    >
-      <div
-        className={`mb-4 flex h-10 w-10 items-center justify-center rounded-lg ${report.bgColor}`}
-      >
-        <Icon className={`h-5 w-5 ${report.iconColor}`} />
-      </div>
-      <h3 className="font-medium text-gray-900">{report.name}</h3>
-      <p className="mt-1 text-sm text-gray-500">{report.description}</p>
-    </div>
   )
 }
 
@@ -368,31 +293,31 @@ function CompanyReportCard({
     <Link
       to="/organizations/$organizationId/companies/$companyId/reports"
       params={{ organizationId, companyId: company.id }}
-      className="group block rounded-lg border border-gray-200 bg-white p-6 transition-shadow hover:shadow-md"
+      className="group block rounded-lg border border-gray-200 bg-white p-6 transition-all hover:border-blue-300 hover:shadow-md"
       data-testid={`company-report-card-${company.id}`}
     >
-      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 transition-colors group-hover:bg-blue-200">
-        <Building className="h-5 w-5 text-blue-600" />
+      <div className="flex items-start gap-4">
+        <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-blue-100 transition-colors group-hover:bg-blue-200">
+          <Building className="h-6 w-6 text-blue-600" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <h3 className="font-medium text-gray-900 group-hover:text-blue-600">
+            {company.name}
+          </h3>
+          <p className="mt-1 text-sm text-gray-500">
+            {company.functionalCurrency} • Active
+          </p>
+        </div>
       </div>
-      <h3 className="font-medium text-gray-900">{company.name}</h3>
-      <p className="mt-1 text-sm text-gray-500">
-        Currency: {company.functionalCurrency}
-      </p>
-      <div className="mt-4 flex items-center text-sm font-medium text-blue-600 group-hover:text-blue-700">
-        View Reports
-        <svg
-          className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M9 5l7 7-7 7"
-          />
-        </svg>
+      <div className="mt-4 flex items-center gap-2 border-t border-gray-100 pt-4">
+        <FileBarChart className="h-4 w-4 text-gray-400" />
+        <span className="text-sm text-gray-500">
+          Trial Balance, Balance Sheet, Income Statement...
+        </span>
+      </div>
+      <div className="mt-3 flex items-center justify-end text-sm font-medium text-blue-600 group-hover:text-blue-700">
+        Select &amp; View Reports
+        <ChevronRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1" />
       </div>
     </Link>
   )

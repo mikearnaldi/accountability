@@ -161,3 +161,8 @@
 **Task**: Re-added "+ Create New Organization" link to OrganizationSelector dropdown to align with UI_ARCHITECTURE.md Part 2 spec requirements. The spec requires two ways to create organizations: "+ New > Organization" in sidebar AND "+ Create New Organization" in header dropdown. Updated Issue 18 resolution in the spec to reflect this change. All 180 E2E tests pass and typecheck is clean.
 **Status**: complete
 ---
+
+## Iteration 7 - 2026-01-15 18:47
+**Task**: Fixed Reports page to follow the spec's 3-step flow - org-level reports page now shows ONLY company selection (Step 1), company-level reports page shows report type selection (Step 2) with step indicators on both pages showing user progress through the flow.
+**Status**: complete
+---

@@ -18,7 +18,9 @@ import {
   PieChart,
   TrendingUp,
   DollarSign,
-  ArrowRight
+  ArrowRight,
+  ChevronRight,
+  Check
 } from "lucide-react"
 import { useMemo } from "react"
 
@@ -303,8 +305,28 @@ function CompanyReportsPage() {
             Financial Reports
           </h1>
           <p className="mt-1 text-sm text-gray-500">
-            {company.name} - {company.functionalCurrency}
+            {company.name} • {company.functionalCurrency}
           </p>
+        </div>
+
+        {/* Step Indicator */}
+        <div className="mb-8">
+          <div className="flex items-center gap-2 text-sm">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-green-600 text-xs text-white">
+              <Check className="h-3 w-3" />
+            </span>
+            <span className="text-gray-500">Select Company</span>
+            <ChevronRight className="h-4 w-4 text-gray-400" />
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-xs font-medium text-white">
+              2
+            </span>
+            <span className="font-medium text-gray-900">Choose Report</span>
+            <ChevronRight className="h-4 w-4 text-gray-400" />
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gray-200 text-xs font-medium text-gray-500">
+              3
+            </span>
+            <span className="text-gray-500">View Report</span>
+          </div>
         </div>
 
         {/* Reports Grid */}

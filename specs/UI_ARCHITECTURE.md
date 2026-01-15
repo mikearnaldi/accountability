@@ -115,6 +115,17 @@ This section tracks known issues, implementation status, and priorities.
 
 ## Completed Items
 
+### Issue 23: Reports Page 3-Step Flow - RESOLVED
+- **Status**: Completed
+- **Problem**: Reports page at `/organizations/:orgId/reports` was showing report types first, then company selection second. This violated the spec which requires users to first select a company before seeing report types.
+- **Resolution**: Updated the Reports Hub page to follow the correct 3-step flow:
+  1. **Step 1: Company Selection** - Org-level reports page (`/organizations/:orgId/reports`) now shows ONLY company selection cards with a step indicator showing "1. Select Company → 2. Choose Report → 3. View Report"
+  2. **Step 2: Report Type Selection** - After selecting a company, navigates to company-level reports page (`/organizations/:orgId/companies/:companyId/reports`) which shows available report types with step indicator showing step 2 active
+  3. **Step 3: Report View** - Clicking a report navigates to the specific report page
+- **Files modified**:
+  - `packages/web/src/routes/organizations/$organizationId/reports/index.tsx` - Removed report type cards, shows only company selection with step indicator
+  - `packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/index.tsx` - Added step indicator showing step 2 (Choose Report) as active
+
 ### Issue 1: Post-Login Redirect - RESOLVED
 - **Status**: Completed
 - Login page (`packages/web/src/routes/login.tsx`) now follows Post-Login Flow correctly:
