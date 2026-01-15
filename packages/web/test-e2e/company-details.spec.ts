@@ -3,9 +3,12 @@
  *
  * Tests for company details page with SSR:
  * - loader fetches company by ID
- * - Display company info: name, currency, fiscal year, address
- * - Navigation links: Chart of Accounts, Journal Entries, Reports
+ * - Display company info: name, currency, fiscal year, address, jurisdiction
+ * - Navigation links: Chart of Accounts, Journal Entries, Reports, Fiscal Periods
  * - Edit company: form calls api.PUT, then router.invalidate()
+ * - Functional currency is read-only (ASC 830)
+ * - Deactivate/Activate company functionality
+ * - Parent/subsidiary hierarchy display
  */
 
 import { test, expect } from "@playwright/test"
@@ -702,5 +705,605 @@ test.describe("Company Details Page", () => {
 
     // 7. Should have link back to Organizations
     await expect(page.getByRole("link", { name: /Back to Organizations/i })).toBeVisible()
+  })
+
+  test("should show jurisdiction badge in header", async ({ page, request }) => {
+    // 1. Register a test user
+    const testUser = {
+      email: `test-jurisdiction-${Date.now()}@example.com`,
+      password: "TestPassword123",
+      displayName: "Jurisdiction Test User"
+    }
+
+    const registerRes = await request.post("/api/auth/register", {
+      data: testUser
+    })
+    expect(registerRes.ok()).toBeTruthy()
+
+    // 2. Login to get session token
+    const loginRes = await request.post("/api/auth/login", {
+      data: {
+        provider: "local",
+        credentials: {
+          email: testUser.email,
+          password: testUser.password
+        }
+      }
+    })
+    expect(loginRes.ok()).toBeTruthy()
+    const loginData = await loginRes.json()
+    const sessionToken = loginData.token
+
+    // 3. Create an organization via API
+    const createOrgRes = await request.post("/api/v1/organizations", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        name: `Jurisdiction Test Org ${Date.now()}`,
+        reportingCurrency: "USD",
+        settings: null
+      }
+    })
+    expect(createOrgRes.ok()).toBeTruthy()
+    const orgData = await createOrgRes.json()
+
+    // 4. Create a company via API with specific jurisdiction
+    const createCompanyRes = await request.post("/api/v1/companies", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        organizationId: orgData.id,
+        name: `Jurisdiction Test Company ${Date.now()}`,
+        legalName: "Jurisdiction Test Company Inc.",
+        jurisdiction: "GB",
+        functionalCurrency: "GBP",
+        reportingCurrency: "GBP",
+        fiscalYearEnd: { month: 12, day: 31 },
+        taxId: null,
+        parentCompanyId: null,
+        ownershipPercentage: null,
+        consolidationMethod: null
+      }
+    })
+    expect(createCompanyRes.ok()).toBeTruthy()
+    const companyData = await createCompanyRes.json()
+
+    // 5. Set session cookie
+    await page.context().addCookies([
+      {
+        name: "accountability_session",
+        value: sessionToken,
+        domain: "localhost",
+        path: "/",
+        httpOnly: true,
+        secure: false,
+        sameSite: "Lax"
+      }
+    ])
+
+    // 6. Navigate to company details page
+    await page.goto(`/organizations/${orgData.id}/companies/${companyData.id}`)
+
+    // 7. Should show jurisdiction badge in header
+    await expect(page.getByTestId("company-jurisdiction-badge")).toBeVisible()
+    await expect(page.getByTestId("company-jurisdiction-badge")).toHaveText("United Kingdom")
+  })
+
+  test("should display Fiscal Periods in quick links", async ({ page, request }) => {
+    // 1. Register a test user
+    const testUser = {
+      email: `test-fiscal-periods-${Date.now()}@example.com`,
+      password: "TestPassword123",
+      displayName: "Fiscal Periods Test User"
+    }
+
+    const registerRes = await request.post("/api/auth/register", {
+      data: testUser
+    })
+    expect(registerRes.ok()).toBeTruthy()
+
+    // 2. Login to get session token
+    const loginRes = await request.post("/api/auth/login", {
+      data: {
+        provider: "local",
+        credentials: {
+          email: testUser.email,
+          password: testUser.password
+        }
+      }
+    })
+    expect(loginRes.ok()).toBeTruthy()
+    const loginData = await loginRes.json()
+    const sessionToken = loginData.token
+
+    // 3. Create an organization via API
+    const createOrgRes = await request.post("/api/v1/organizations", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        name: `Fiscal Periods Test Org ${Date.now()}`,
+        reportingCurrency: "USD",
+        settings: null
+      }
+    })
+    expect(createOrgRes.ok()).toBeTruthy()
+    const orgData = await createOrgRes.json()
+
+    // 4. Create a company via API
+    const createCompanyRes = await request.post("/api/v1/companies", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        organizationId: orgData.id,
+        name: `Fiscal Periods Test Company ${Date.now()}`,
+        legalName: "Fiscal Periods Test Company Inc.",
+        jurisdiction: "US",
+        functionalCurrency: "USD",
+        reportingCurrency: "USD",
+        fiscalYearEnd: { month: 12, day: 31 },
+        taxId: null,
+        parentCompanyId: null,
+        ownershipPercentage: null,
+        consolidationMethod: null
+      }
+    })
+    expect(createCompanyRes.ok()).toBeTruthy()
+    const companyData = await createCompanyRes.json()
+
+    // 5. Set session cookie
+    await page.context().addCookies([
+      {
+        name: "accountability_session",
+        value: sessionToken,
+        domain: "localhost",
+        path: "/",
+        httpOnly: true,
+        secure: false,
+        sameSite: "Lax"
+      }
+    ])
+
+    // 6. Navigate to company details page
+    await page.goto(`/organizations/${orgData.id}/companies/${companyData.id}`)
+
+    // 7. Should show quick links section
+    await expect(page.getByTestId("quick-links-section")).toBeVisible()
+
+    // 8. Should show Fiscal Periods navigation card
+    await expect(page.getByTestId("nav-fiscal-periods")).toBeVisible()
+    // Use more specific selector to avoid matching company name in breadcrumb
+    await expect(page.getByTestId("nav-fiscal-periods").getByRole("heading", { name: "Fiscal Periods" })).toBeVisible()
+    await expect(page.getByText("Manage fiscal years and periods")).toBeVisible()
+  })
+
+  test("should show functional currency as read-only in edit form with ASC 830 note", async ({
+    page,
+    request
+  }) => {
+    // 1. Register a test user
+    const testUser = {
+      email: `test-asc830-${Date.now()}@example.com`,
+      password: "TestPassword123",
+      displayName: "ASC 830 Test User"
+    }
+
+    const registerRes = await request.post("/api/auth/register", {
+      data: testUser
+    })
+    expect(registerRes.ok()).toBeTruthy()
+
+    // 2. Login to get session token
+    const loginRes = await request.post("/api/auth/login", {
+      data: {
+        provider: "local",
+        credentials: {
+          email: testUser.email,
+          password: testUser.password
+        }
+      }
+    })
+    expect(loginRes.ok()).toBeTruthy()
+    const loginData = await loginRes.json()
+    const sessionToken = loginData.token
+
+    // 3. Create an organization via API
+    const createOrgRes = await request.post("/api/v1/organizations", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        name: `ASC 830 Test Org ${Date.now()}`,
+        reportingCurrency: "USD",
+        settings: null
+      }
+    })
+    expect(createOrgRes.ok()).toBeTruthy()
+    const orgData = await createOrgRes.json()
+
+    // 4. Create a company via API
+    const createCompanyRes = await request.post("/api/v1/companies", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        organizationId: orgData.id,
+        name: `ASC 830 Test Company ${Date.now()}`,
+        legalName: "ASC 830 Test Company Inc.",
+        jurisdiction: "US",
+        functionalCurrency: "EUR",
+        reportingCurrency: "USD",
+        fiscalYearEnd: { month: 12, day: 31 },
+        taxId: null,
+        parentCompanyId: null,
+        ownershipPercentage: null,
+        consolidationMethod: null
+      }
+    })
+    expect(createCompanyRes.ok()).toBeTruthy()
+    const companyData = await createCompanyRes.json()
+
+    // 5. Set session cookie
+    await page.context().addCookies([
+      {
+        name: "accountability_session",
+        value: sessionToken,
+        domain: "localhost",
+        path: "/",
+        httpOnly: true,
+        secure: false,
+        sameSite: "Lax"
+      }
+    ])
+
+    // 6. Navigate to company details page
+    await page.goto(`/organizations/${orgData.id}/companies/${companyData.id}`)
+
+    // 7. Click Edit button
+    await page.getByTestId("edit-company-button").click()
+
+    // 8. Should show edit form modal
+    await expect(page.getByTestId("edit-company-modal")).toBeVisible()
+
+    // 9. Functional currency should be displayed but disabled
+    const functionalCurrencyInput = page.getByTestId("edit-company-functional-currency-input")
+    await expect(functionalCurrencyInput).toBeVisible()
+    await expect(functionalCurrencyInput).toBeDisabled()
+    await expect(functionalCurrencyInput).toHaveValue("EUR")
+
+    // 10. Should show ASC 830 note
+    await expect(page.getByTestId("functional-currency-note")).toBeVisible()
+    await expect(page.getByTestId("functional-currency-note")).toContainText("ASC 830")
+  })
+
+  test("should deactivate and reactivate a company", async ({ page, request }) => {
+    // 1. Register a test user
+    const testUser = {
+      email: `test-deactivate-${Date.now()}@example.com`,
+      password: "TestPassword123",
+      displayName: "Deactivate Test User"
+    }
+
+    const registerRes = await request.post("/api/auth/register", {
+      data: testUser
+    })
+    expect(registerRes.ok()).toBeTruthy()
+
+    // 2. Login to get session token
+    const loginRes = await request.post("/api/auth/login", {
+      data: {
+        provider: "local",
+        credentials: {
+          email: testUser.email,
+          password: testUser.password
+        }
+      }
+    })
+    expect(loginRes.ok()).toBeTruthy()
+    const loginData = await loginRes.json()
+    const sessionToken = loginData.token
+
+    // 3. Create an organization via API
+    const createOrgRes = await request.post("/api/v1/organizations", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        name: `Deactivate Test Org ${Date.now()}`,
+        reportingCurrency: "USD",
+        settings: null
+      }
+    })
+    expect(createOrgRes.ok()).toBeTruthy()
+    const orgData = await createOrgRes.json()
+
+    // 4. Create a company via API
+    const createCompanyRes = await request.post("/api/v1/companies", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        organizationId: orgData.id,
+        name: `Deactivate Test Company ${Date.now()}`,
+        legalName: "Deactivate Test Company Inc.",
+        jurisdiction: "US",
+        functionalCurrency: "USD",
+        reportingCurrency: "USD",
+        fiscalYearEnd: { month: 12, day: 31 },
+        taxId: null,
+        parentCompanyId: null,
+        ownershipPercentage: null,
+        consolidationMethod: null
+      }
+    })
+    expect(createCompanyRes.ok()).toBeTruthy()
+    const companyData = await createCompanyRes.json()
+
+    // 5. Set session cookie
+    await page.context().addCookies([
+      {
+        name: "accountability_session",
+        value: sessionToken,
+        domain: "localhost",
+        path: "/",
+        httpOnly: true,
+        secure: false,
+        sameSite: "Lax"
+      }
+    ])
+
+    // 6. Navigate to company details page
+    await page.goto(`/organizations/${orgData.id}/companies/${companyData.id}`)
+
+    // 7. Verify company is initially active
+    await expect(page.getByTestId("company-status-badge")).toHaveText("Active")
+    await expect(page.getByTestId("toggle-active-button")).toHaveText("Deactivate")
+
+    // 8. Click Deactivate button
+    await page.getByTestId("toggle-active-button").click()
+
+    // 9. Wait for status to change to Inactive
+    await expect(page.getByTestId("company-status-badge")).toHaveText("Inactive", { timeout: 10000 })
+    await expect(page.getByTestId("toggle-active-button")).toHaveText("Activate")
+
+    // 10. Click Activate button to reactivate
+    await page.getByTestId("toggle-active-button").click()
+
+    // 11. Wait for status to change back to Active
+    await expect(page.getByTestId("company-status-badge")).toHaveText("Active", { timeout: 10000 })
+    await expect(page.getByTestId("toggle-active-button")).toHaveText("Deactivate")
+  })
+
+  test("should display parent company section for subsidiaries", async ({ page, request }) => {
+    // 1. Register a test user
+    const testUser = {
+      email: `test-subsidiary-${Date.now()}@example.com`,
+      password: "TestPassword123",
+      displayName: "Subsidiary Test User"
+    }
+
+    const registerRes = await request.post("/api/auth/register", {
+      data: testUser
+    })
+    expect(registerRes.ok()).toBeTruthy()
+
+    // 2. Login to get session token
+    const loginRes = await request.post("/api/auth/login", {
+      data: {
+        provider: "local",
+        credentials: {
+          email: testUser.email,
+          password: testUser.password
+        }
+      }
+    })
+    expect(loginRes.ok()).toBeTruthy()
+    const loginData = await loginRes.json()
+    const sessionToken = loginData.token
+
+    // 3. Create an organization via API
+    const createOrgRes = await request.post("/api/v1/organizations", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        name: `Subsidiary Test Org ${Date.now()}`,
+        reportingCurrency: "USD",
+        settings: null
+      }
+    })
+    expect(createOrgRes.ok()).toBeTruthy()
+    const orgData = await createOrgRes.json()
+
+    // 4. Create a parent company via API
+    const parentName = `Parent Company ${Date.now()}`
+    const createParentRes = await request.post("/api/v1/companies", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        organizationId: orgData.id,
+        name: parentName,
+        legalName: `${parentName} Inc.`,
+        jurisdiction: "US",
+        functionalCurrency: "USD",
+        reportingCurrency: "USD",
+        fiscalYearEnd: { month: 12, day: 31 },
+        taxId: null,
+        parentCompanyId: null,
+        ownershipPercentage: null,
+        consolidationMethod: null
+      }
+    })
+    expect(createParentRes.ok()).toBeTruthy()
+    const parentData = await createParentRes.json()
+
+    // 5. Create a subsidiary company via API
+    const subsidiaryName = `Subsidiary Company ${Date.now()}`
+    const createSubsidiaryRes = await request.post("/api/v1/companies", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        organizationId: orgData.id,
+        name: subsidiaryName,
+        legalName: `${subsidiaryName} Inc.`,
+        jurisdiction: "US",
+        functionalCurrency: "USD",
+        reportingCurrency: "USD",
+        fiscalYearEnd: { month: 12, day: 31 },
+        taxId: null,
+        parentCompanyId: parentData.id,
+        ownershipPercentage: 80,
+        consolidationMethod: "FullConsolidation"
+      }
+    })
+    expect(createSubsidiaryRes.ok()).toBeTruthy()
+    const subsidiaryData = await createSubsidiaryRes.json()
+
+    // 6. Set session cookie
+    await page.context().addCookies([
+      {
+        name: "accountability_session",
+        value: sessionToken,
+        domain: "localhost",
+        path: "/",
+        httpOnly: true,
+        secure: false,
+        sameSite: "Lax"
+      }
+    ])
+
+    // 7. Navigate to subsidiary company details page
+    await page.goto(`/organizations/${orgData.id}/companies/${subsidiaryData.id}`)
+
+    // 8. Should show Parent Company section
+    await expect(page.getByTestId("parent-company-section")).toBeVisible()
+    await expect(page.getByRole("heading", { name: "Parent Company" })).toBeVisible()
+
+    // 9. Should show parent company link with ownership percentage
+    await expect(page.getByTestId("parent-company-link")).toBeVisible()
+    await expect(page.getByTestId("parent-company-link")).toContainText(parentName)
+    await expect(page.getByTestId("parent-ownership")).toContainText("80%")
+
+    // 10. Hierarchy card should show Subsidiary badge
+    await expect(page.getByTestId("hierarchy-card")).toBeVisible()
+    // Use more specific selector to avoid matching company names
+    await expect(page.getByTestId("hierarchy-card").getByText("Subsidiary")).toBeVisible()
+    await expect(page.getByTestId("ownership-percentage")).toHaveText("80% owned")
+  })
+
+  test("should display subsidiaries section for parent companies", async ({ page, request }) => {
+    // 1. Register a test user
+    const testUser = {
+      email: `test-parent-${Date.now()}@example.com`,
+      password: "TestPassword123",
+      displayName: "Parent Test User"
+    }
+
+    const registerRes = await request.post("/api/auth/register", {
+      data: testUser
+    })
+    expect(registerRes.ok()).toBeTruthy()
+
+    // 2. Login to get session token
+    const loginRes = await request.post("/api/auth/login", {
+      data: {
+        provider: "local",
+        credentials: {
+          email: testUser.email,
+          password: testUser.password
+        }
+      }
+    })
+    expect(loginRes.ok()).toBeTruthy()
+    const loginData = await loginRes.json()
+    const sessionToken = loginData.token
+
+    // 3. Create an organization via API
+    const createOrgRes = await request.post("/api/v1/organizations", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        name: `Parent Test Org ${Date.now()}`,
+        reportingCurrency: "USD",
+        settings: null
+      }
+    })
+    expect(createOrgRes.ok()).toBeTruthy()
+    const orgData = await createOrgRes.json()
+
+    // 4. Create a parent company via API
+    const parentName = `Holding Company ${Date.now()}`
+    const createParentRes = await request.post("/api/v1/companies", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        organizationId: orgData.id,
+        name: parentName,
+        legalName: `${parentName} Inc.`,
+        jurisdiction: "US",
+        functionalCurrency: "USD",
+        reportingCurrency: "USD",
+        fiscalYearEnd: { month: 12, day: 31 },
+        taxId: null,
+        parentCompanyId: null,
+        ownershipPercentage: null,
+        consolidationMethod: null
+      }
+    })
+    expect(createParentRes.ok()).toBeTruthy()
+    const parentData = await createParentRes.json()
+
+    // 5. Create first subsidiary company via API
+    const subsidiary1Name = `Sub One ${Date.now()}`
+    const sub1Res = await request.post("/api/v1/companies", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        organizationId: orgData.id,
+        name: subsidiary1Name,
+        legalName: `${subsidiary1Name} Inc.`,
+        jurisdiction: "US",
+        functionalCurrency: "USD",
+        reportingCurrency: "USD",
+        fiscalYearEnd: { month: 12, day: 31 },
+        taxId: null,
+        parentCompanyId: parentData.id,
+        ownershipPercentage: 100,
+        consolidationMethod: "FullConsolidation"
+      }
+    })
+    expect(sub1Res.ok()).toBeTruthy()
+
+    // 6. Create second subsidiary company via API
+    const subsidiary2Name = `Sub Two ${Date.now()}`
+    const sub2Res = await request.post("/api/v1/companies", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        organizationId: orgData.id,
+        name: subsidiary2Name,
+        legalName: `${subsidiary2Name} Inc.`,
+        jurisdiction: "GB",
+        functionalCurrency: "GBP",
+        reportingCurrency: "USD",
+        fiscalYearEnd: { month: 3, day: 31 },
+        taxId: null,
+        parentCompanyId: parentData.id,
+        ownershipPercentage: 60,
+        consolidationMethod: "FullConsolidation"
+      }
+    })
+    expect(sub2Res.ok()).toBeTruthy()
+
+    // 7. Set session cookie
+    await page.context().addCookies([
+      {
+        name: "accountability_session",
+        value: sessionToken,
+        domain: "localhost",
+        path: "/",
+        httpOnly: true,
+        secure: false,
+        sameSite: "Lax"
+      }
+    ])
+
+    // 8. Navigate to parent company details page
+    await page.goto(`/organizations/${orgData.id}/companies/${parentData.id}`)
+
+    // 9. Should show Subsidiaries section with count
+    await expect(page.getByTestId("subsidiaries-section")).toBeVisible()
+    await expect(page.getByRole("heading", { name: "Subsidiaries (2)" })).toBeVisible()
+
+    // 10. Should list both subsidiaries with ownership percentages
+    await expect(page.getByText(subsidiary1Name)).toBeVisible()
+    await expect(page.getByText(subsidiary2Name)).toBeVisible()
+    await expect(page.getByText("100%")).toBeVisible()
+    await expect(page.getByText("60%")).toBeVisible()
+
+    // 11. Hierarchy card should show Parent badge with subsidiary count
+    await expect(page.getByTestId("hierarchy-card")).toBeVisible()
+    // Use more specific selector to avoid matching organization name
+    await expect(page.getByTestId("hierarchy-card").getByText("Parent")).toBeVisible()
+    await expect(page.getByTestId("subsidiaries-count")).toHaveText("2 subsidiaries")
   })
 })

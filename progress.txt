@@ -929,3 +929,8 @@
 **Story**: 4.2 - Create company form with hierarchy
 **Status**: complete
 ---
+
+## Iteration 58 - 2026-01-15 09:27
+**Story**: 4.3 - Company detail and edit
+**Status**: complete
+---

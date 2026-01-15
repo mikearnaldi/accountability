@@ -9,14 +9,14 @@ import { createServerApi } from "@/api/server"
 // Server Functions: Fetch company from API with cookie auth
 // =============================================================================
 
-const fetchCompany = createServerFn({ method: "GET" })
+const fetchCompanyData = createServerFn({ method: "GET" })
   .inputValidator((data: { companyId: string; organizationId: string }) => data)
   .handler(async ({ data }) => {
     // Get the session cookie to forward to API
     const sessionToken = getCookie("accountability_session")
 
     if (!sessionToken) {
-      return { company: null, organization: null, error: "unauthorized" as const }
+      return { company: null, organization: null, subsidiaries: [], parentCompany: null, error: "unauthorized" as const }
     }
 
     try {
@@ -38,18 +38,48 @@ const fetchCompany = createServerFn({ method: "GET" })
       if (companyResult.error) {
         // Check for NotFoundError using _tag (from Effect Schema TaggedError)
         if (typeof companyResult.error === "object" && "_tag" in companyResult.error && companyResult.error._tag === "NotFoundError") {
-          return { company: null, organization: null, error: "not_found" as const }
+          return { company: null, organization: null, subsidiaries: [], parentCompany: null, error: "not_found" as const }
         }
-        return { company: null, organization: null, error: "failed" as const }
+        return { company: null, organization: null, subsidiaries: [], parentCompany: null, error: "failed" as const }
       }
 
       if (orgResult.error) {
-        return { company: null, organization: null, error: "failed" as const }
+        return { company: null, organization: null, subsidiaries: [], parentCompany: null, error: "failed" as const }
       }
 
-      return { company: companyResult.data, organization: orgResult.data, error: null }
+      // Fetch subsidiaries (companies with this company as parent)
+      const subsidiariesResult = await serverApi.GET("/api/v1/companies", {
+        params: {
+          query: {
+            organizationId: data.organizationId,
+            parentCompanyId: data.companyId
+          }
+        },
+        headers: { Authorization }
+      })
+
+      // Fetch parent company if this company has a parent
+      let parentCompany = null
+      const company = companyResult.data
+      if (company?.parentCompanyId) {
+        const parentResult = await serverApi.GET("/api/v1/companies/{id}", {
+          params: { path: { id: company.parentCompanyId } },
+          headers: { Authorization }
+        })
+        if (!parentResult.error) {
+          parentCompany = parentResult.data
+        }
+      }
+
+      return {
+        company: companyResult.data,
+        organization: orgResult.data,
+        subsidiaries: subsidiariesResult.data?.companies ?? [],
+        parentCompany,
+        error: null
+      }
     } catch {
-      return { company: null, organization: null, error: "failed" as const }
+      return { company: null, organization: null, subsidiaries: [], parentCompany: null, error: "failed" as const }
     }
   })
 
@@ -70,7 +100,7 @@ export const Route = createFileRoute("/organizations/$organizationId/companies/$
     }
   },
   loader: async ({ params }) => {
-    const result = await fetchCompany({
+    const result = await fetchCompanyData({
       data: {
         companyId: params.companyId,
         organizationId: params.organizationId
@@ -83,7 +113,9 @@ export const Route = createFileRoute("/organizations/$organizationId/companies/$
 
     return {
       company: result.company,
-      organization: result.organization
+      organization: result.organization,
+      subsidiaries: result.subsidiaries,
+      parentCompany: result.parentCompany
     }
   },
   errorComponent: ({ error }) => (
@@ -156,9 +188,13 @@ function CompanyDetailsPage() {
     readonly id: string
     readonly name: string
   } | null
+  const subsidiaries = loaderData.subsidiaries as readonly Company[]
+  const parentCompany = loaderData.parentCompany as Company | null
   /* eslint-enable @typescript-eslint/consistent-type-assertions */
   const params = Route.useParams()
+  const router = useRouter()
   const [isEditing, setIsEditing] = useState(false)
+  const [isToggling, setIsToggling] = useState(false)
 
   if (!company || !organization) {
     return null
@@ -171,8 +207,69 @@ function CompanyDetailsPage() {
     day: "numeric"
   })
 
+  // Determine hierarchy position
+  const isParentCompany = subsidiaries.length > 0
+  const isSubsidiary = !!company.parentCompanyId
+
+  // Handle activate/deactivate
+  const handleToggleActive = async () => {
+    if (isToggling) return
+    setIsToggling(true)
+
+    try {
+      if (company.isActive) {
+        // Deactivate using DELETE endpoint
+        const { error } = await api.DELETE("/api/v1/companies/{id}", {
+          params: { path: { id: company.id } }
+        })
+
+        if (error) {
+          let errorMessage = "Failed to deactivate company"
+          if (typeof error === "object" && error !== null && "message" in error && typeof error.message === "string") {
+            errorMessage = error.message
+          }
+          alert(errorMessage)
+          setIsToggling(false)
+          return
+        }
+      } else {
+        // Activate using PUT endpoint
+        const { error } = await api.PUT("/api/v1/companies/{id}", {
+          params: { path: { id: company.id } },
+          body: {
+            isActive: true,
+            name: null,
+            legalName: null,
+            taxId: null,
+            reportingCurrency: null,
+            fiscalYearEnd: null,
+            parentCompanyId: null,
+            ownershipPercentage: null,
+            consolidationMethod: null
+          }
+        })
+
+        if (error) {
+          let errorMessage = "Failed to activate company"
+          if (typeof error === "object" && error !== null && "message" in error && typeof error.message === "string") {
+            errorMessage = error.message
+          }
+          alert(errorMessage)
+          setIsToggling(false)
+          return
+        }
+      }
+
+      await router.invalidate()
+      setIsToggling(false)
+    } catch {
+      alert("An unexpected error occurred")
+      setIsToggling(false)
+    }
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50" data-testid="company-details-page">
       {/* Header */}
       <header className="border-b border-gray-200 bg-white">
         <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
@@ -208,75 +305,217 @@ function CompanyDetailsPage() {
 
       {/* Main Content */}
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="space-y-8">
-          {/* Company Details Card */}
-          <div className="rounded-lg border border-gray-200 bg-white p-6">
-            {/* Company Header */}
-            <div className="mb-6 flex items-start justify-between">
+        <div className="space-y-6">
+          {/* Company Header Card with Name, Status Badge, and Jurisdiction */}
+          <div className="rounded-lg border border-gray-200 bg-white p-6" data-testid="company-header-card">
+            <div className="flex items-start justify-between">
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">{company.name}</h1>
-                <p className="mt-1 text-gray-500">{company.legalName}</p>
+                <div className="flex items-center gap-3">
+                  <h1 className="text-2xl font-bold text-gray-900" data-testid="company-name">{company.name}</h1>
+                  <span
+                    data-testid="company-status-badge"
+                    className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-medium ${
+                      company.isActive
+                        ? "bg-green-100 text-green-800"
+                        : "bg-gray-100 text-gray-600"
+                    }`}
+                  >
+                    {company.isActive ? "Active" : "Inactive"}
+                  </span>
+                  <span
+                    data-testid="company-jurisdiction-badge"
+                    className="inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-800"
+                  >
+                    {formatJurisdiction(company.jurisdiction)}
+                  </span>
+                </div>
+                <p className="mt-1 text-gray-500" data-testid="company-legal-name">{company.legalName}</p>
                 <p className="mt-1 text-sm text-gray-500">Created {createdDate}</p>
               </div>
               <div className="flex items-center gap-3">
-                <span
-                  className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-medium ${
-                    company.isActive
-                      ? "bg-green-100 text-green-800"
-                      : "bg-gray-100 text-gray-600"
-                  }`}
-                >
-                  {company.isActive ? "Active" : "Inactive"}
-                </span>
                 <button
                   onClick={() => setIsEditing(true)}
+                  data-testid="edit-company-button"
                   className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
                 >
                   Edit
                 </button>
-              </div>
-            </div>
-
-            {/* Company Details Grid */}
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              <div>
-                <dt className="text-sm font-medium text-gray-500">Functional Currency</dt>
-                <dd className="mt-1 text-lg font-medium text-gray-900">
-                  {company.functionalCurrency}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-sm font-medium text-gray-500">Reporting Currency</dt>
-                <dd className="mt-1 text-lg font-medium text-gray-900">
-                  {company.reportingCurrency}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-sm font-medium text-gray-500">Fiscal Year End</dt>
-                <dd className="mt-1 text-lg font-medium text-gray-900">
-                  {fiscalYearEndDate}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-sm font-medium text-gray-500">Jurisdiction</dt>
-                <dd className="mt-1 text-lg font-medium text-gray-900">
-                  {formatJurisdiction(company.jurisdiction)}
-                </dd>
-              </div>
-              {company.taxId && (
-                <div>
-                  <dt className="text-sm font-medium text-gray-500">Tax ID</dt>
-                  <dd className="mt-1 font-mono text-sm text-gray-900">
-                    {company.taxId}
-                  </dd>
-                </div>
-              )}
-              <div>
-                <dt className="text-sm font-medium text-gray-500">Company ID</dt>
-                <dd className="mt-1 font-mono text-sm text-gray-600">{company.id}</dd>
+                <button
+                  onClick={handleToggleActive}
+                  disabled={isToggling}
+                  data-testid="toggle-active-button"
+                  className={`rounded-lg px-4 py-2 text-sm font-medium ${
+                    company.isActive
+                      ? "border border-red-300 bg-white text-red-700 hover:bg-red-50"
+                      : "border border-green-300 bg-white text-green-700 hover:bg-green-50"
+                  } disabled:cursor-not-allowed disabled:opacity-50`}
+                >
+                  {isToggling ? "..." : company.isActive ? "Deactivate" : "Activate"}
+                </button>
               </div>
             </div>
           </div>
+
+          {/* Info Cards Grid */}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {/* Currencies Card */}
+            <div className="rounded-lg border border-gray-200 bg-white p-4" data-testid="currencies-card">
+              <h3 className="text-sm font-medium text-gray-500">Currencies</h3>
+              <div className="mt-2 space-y-2">
+                <div>
+                  <span className="text-xs text-gray-400">Functional</span>
+                  <p className="text-lg font-semibold text-gray-900" data-testid="functional-currency">
+                    {company.functionalCurrency}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-xs text-gray-400">Reporting</span>
+                  <p className="text-lg font-semibold text-gray-900" data-testid="reporting-currency">
+                    {company.reportingCurrency}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Fiscal Year Card */}
+            <div className="rounded-lg border border-gray-200 bg-white p-4" data-testid="fiscal-year-card">
+              <h3 className="text-sm font-medium text-gray-500">Fiscal Year End</h3>
+              <p className="mt-2 text-lg font-semibold text-gray-900" data-testid="fiscal-year-end">
+                {fiscalYearEndDate}
+              </p>
+              {company.taxId && (
+                <div className="mt-2">
+                  <span className="text-xs text-gray-400">Tax ID</span>
+                  <p className="font-mono text-sm text-gray-600" data-testid="company-tax-id">{company.taxId}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Hierarchy Position Card */}
+            <div className="rounded-lg border border-gray-200 bg-white p-4" data-testid="hierarchy-card">
+              <h3 className="text-sm font-medium text-gray-500">Hierarchy Position</h3>
+              <div className="mt-2">
+                {isParentCompany && (
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-800">
+                      Parent
+                    </span>
+                    <span className="text-sm text-gray-600" data-testid="subsidiaries-count">
+                      {subsidiaries.length} subsidiar{subsidiaries.length !== 1 ? "ies" : "y"}
+                    </span>
+                  </div>
+                )}
+                {isSubsidiary && (
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800">
+                      Subsidiary
+                    </span>
+                    {company.ownershipPercentage !== null && (
+                      <span className="text-sm text-gray-600" data-testid="ownership-percentage">
+                        {company.ownershipPercentage}% owned
+                      </span>
+                    )}
+                  </div>
+                )}
+                {!isParentCompany && !isSubsidiary && (
+                  <p className="text-sm text-gray-600">Standalone company</p>
+                )}
+                {company.consolidationMethod && (
+                  <p className="mt-1 text-xs text-gray-500" data-testid="consolidation-method">
+                    {formatConsolidationMethod(company.consolidationMethod)}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Company ID Card */}
+            <div className="rounded-lg border border-gray-200 bg-white p-4" data-testid="company-id-card">
+              <h3 className="text-sm font-medium text-gray-500">Company ID</h3>
+              <p className="mt-2 font-mono text-xs text-gray-600 break-all" data-testid="company-id">
+                {company.id}
+              </p>
+            </div>
+          </div>
+
+          {/* Parent Company Section - shown if subsidiary */}
+          {isSubsidiary && parentCompany && (
+            <div className="rounded-lg border border-gray-200 bg-white p-6" data-testid="parent-company-section">
+              <h2 className="mb-4 text-lg font-semibold text-gray-900">Parent Company</h2>
+              <Link
+                to="/organizations/$organizationId/companies/$companyId"
+                params={{
+                  organizationId: params.organizationId,
+                  companyId: parentCompany.id
+                }}
+                className="flex items-center justify-between rounded-lg border border-gray-200 p-4 hover:bg-gray-50"
+                data-testid="parent-company-link"
+              >
+                <div>
+                  <p className="font-medium text-gray-900">{parentCompany.name}</p>
+                  <p className="text-sm text-gray-500">{parentCompany.legalName}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-medium text-gray-900" data-testid="parent-ownership">
+                    {company.ownershipPercentage}% ownership
+                  </p>
+                  {company.consolidationMethod && (
+                    <p className="text-xs text-gray-500">
+                      {formatConsolidationMethod(company.consolidationMethod)}
+                    </p>
+                  )}
+                </div>
+              </Link>
+            </div>
+          )}
+
+          {/* Subsidiaries Section - shown if parent company */}
+          {isParentCompany && (
+            <div className="rounded-lg border border-gray-200 bg-white p-6" data-testid="subsidiaries-section">
+              <h2 className="mb-4 text-lg font-semibold text-gray-900">
+                Subsidiaries ({subsidiaries.length})
+              </h2>
+              <div className="space-y-3">
+                {subsidiaries.map((subsidiary) => (
+                  <Link
+                    key={subsidiary.id}
+                    to="/organizations/$organizationId/companies/$companyId"
+                    params={{
+                      organizationId: params.organizationId,
+                      companyId: subsidiary.id
+                    }}
+                    className="flex items-center justify-between rounded-lg border border-gray-200 p-4 hover:bg-gray-50"
+                    data-testid={`subsidiary-${subsidiary.id}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div>
+                        <p className="font-medium text-gray-900">{subsidiary.name}</p>
+                        <p className="text-sm text-gray-500">{formatJurisdiction(subsidiary.jurisdiction)}</p>
+                      </div>
+                      <span
+                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                          subsidiary.isActive
+                            ? "bg-green-100 text-green-800"
+                            : "bg-gray-100 text-gray-600"
+                        }`}
+                      >
+                        {subsidiary.isActive ? "Active" : "Inactive"}
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-medium text-gray-900">
+                        {subsidiary.ownershipPercentage}%
+                      </p>
+                      {subsidiary.consolidationMethod && (
+                        <p className="text-xs text-gray-500">
+                          {formatConsolidationMethod(subsidiary.consolidationMethod)}
+                        </p>
+                      )}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Edit Company Modal */}
           {isEditing && (
@@ -286,10 +525,10 @@ function CompanyDetailsPage() {
             />
           )}
 
-          {/* Navigation Links */}
-          <div className="rounded-lg border border-gray-200 bg-white p-6">
+          {/* Quick Links Section */}
+          <div className="rounded-lg border border-gray-200 bg-white p-6" data-testid="quick-links-section">
             <h2 className="mb-4 text-lg font-semibold text-gray-900">Company Data</h2>
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {/* Chart of Accounts */}
               <NavigationCard
                 to="/organizations/$organizationId/companies/$companyId/accounts"
@@ -299,6 +538,7 @@ function CompanyDetailsPage() {
                 }}
                 title="Chart of Accounts"
                 description="Manage accounts and account hierarchy"
+                testId="nav-accounts"
                 icon={
                   <svg
                     className="h-6 w-6"
@@ -326,6 +566,7 @@ function CompanyDetailsPage() {
                 }}
                 title="Journal Entries"
                 description="Create and manage journal entries"
+                testId="nav-journal-entries"
                 icon={
                   <svg
                     className="h-6 w-6"
@@ -348,6 +589,7 @@ function CompanyDetailsPage() {
               <NavigationCard
                 title="Reports"
                 description="Financial statements and reports"
+                testId="nav-reports"
                 icon={
                   <svg
                     className="h-6 w-6"
@@ -364,6 +606,29 @@ function CompanyDetailsPage() {
                   </svg>
                 }
                 linkText="View Reports"
+              />
+
+              {/* Fiscal Periods */}
+              <NavigationCard
+                title="Fiscal Periods"
+                description="Manage fiscal years and periods"
+                testId="nav-fiscal-periods"
+                icon={
+                  <svg
+                    className="h-6 w-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                    />
+                  </svg>
+                }
+                linkText="View Periods"
               />
             </div>
           </div>
@@ -383,7 +648,8 @@ function NavigationCard({
   title,
   description,
   icon,
-  linkText
+  linkText,
+  testId
 }: {
   readonly to?: string
   readonly params?: { readonly organizationId: string; readonly companyId: string }
@@ -391,6 +657,7 @@ function NavigationCard({
   readonly description: string
   readonly icon: React.ReactNode
   readonly linkText: string
+  readonly testId?: string
 }) {
   const content = (
     <>
@@ -411,6 +678,7 @@ function NavigationCard({
         to={to}
         params={params}
         className="block rounded-lg border border-gray-200 p-4 transition-shadow hover:shadow-md"
+        data-testid={testId}
       >
         {content}
       </Link>
@@ -418,7 +686,10 @@ function NavigationCard({
   }
 
   return (
-    <div className="rounded-lg border border-gray-200 p-4 transition-shadow hover:shadow-md">
+    <div
+      className="rounded-lg border border-gray-200 p-4 transition-shadow hover:shadow-md"
+      data-testid={testId}
+    >
       {content}
     </div>
   )
@@ -509,14 +780,14 @@ function EditCompanyModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="mx-4 w-full max-w-lg rounded-lg bg-white p-6 shadow-xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" data-testid="edit-company-modal">
+      <div className="mx-4 max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg bg-white p-6 shadow-xl">
         <h2 className="mb-4 text-lg font-semibold text-gray-900">Edit Company</h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Error Message */}
           {error && (
-            <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3">
+            <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3" data-testid="edit-company-error">
               <p className="text-sm text-red-700">{error}</p>
             </div>
           )}
@@ -528,6 +799,7 @@ function EditCompanyModal({
             </label>
             <input
               id="edit-company-name"
+              data-testid="edit-company-name-input"
               type="text"
               autoFocus
               required
@@ -545,6 +817,7 @@ function EditCompanyModal({
             </label>
             <input
               id="edit-company-legal-name"
+              data-testid="edit-company-legal-name-input"
               type="text"
               required
               value={legalName}
@@ -561,6 +834,7 @@ function EditCompanyModal({
             </label>
             <input
               id="edit-company-tax-id"
+              data-testid="edit-company-tax-id-input"
               type="text"
               value={taxId}
               onChange={(e) => setTaxId(e.target.value)}
@@ -570,6 +844,24 @@ function EditCompanyModal({
             />
           </div>
 
+          {/* Functional Currency Field (Read-only - ASC 830) */}
+          <div>
+            <label htmlFor="edit-company-functional-currency" className="block text-sm font-medium text-gray-700">
+              Functional Currency
+            </label>
+            <input
+              id="edit-company-functional-currency"
+              data-testid="edit-company-functional-currency-input"
+              type="text"
+              value={company.functionalCurrency}
+              disabled
+              className="mt-1 w-full rounded-lg border border-gray-200 bg-gray-100 px-3 py-2 text-gray-600 cursor-not-allowed"
+            />
+            <p className="mt-1 text-xs text-gray-500" data-testid="functional-currency-note">
+              Functional currency cannot be changed after creation (ASC 830)
+            </p>
+          </div>
+
           {/* Reporting Currency Field */}
           <div>
             <label htmlFor="edit-company-currency" className="block text-sm font-medium text-gray-700">
@@ -577,6 +869,7 @@ function EditCompanyModal({
             </label>
             <select
               id="edit-company-currency"
+              data-testid="edit-company-currency-select"
               value={reportingCurrency}
               onChange={(e) => setReportingCurrency(e.target.value)}
               disabled={isSubmitting}
@@ -714,4 +1007,14 @@ const jurisdictionNames: Record<string, string> = {
 
 function formatJurisdiction(code: string): string {
   return jurisdictionNames[code] ?? code
+}
+
+const consolidationMethodNames: Record<string, string> = {
+  Full: "Full Consolidation",
+  Proportional: "Proportional Consolidation",
+  Equity: "Equity Method"
+}
+
+function formatConsolidationMethod(method: string): string {
+  return consolidationMethodNames[method] ?? method
 }

@@ -706,7 +706,7 @@
           "packages/web/src/routes/organizations/$organizationId/companies/$companyId/index.tsx"
         ]
       },
-      "status": "pending"
+      "status": "complete"
     },
     {
       "id": "5.1",
