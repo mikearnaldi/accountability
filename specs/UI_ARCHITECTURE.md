@@ -20,16 +20,14 @@ This section tracks known issues, implementation status, and priorities.
   - Exchange Rate: Requires org selected
 - The Organization Selector in the header already includes "+ Create New Organization" link, providing two ways to create organizations as specified.
 
-### Issue 26: Reports Company Selection Shows Redundant Report Types Text
-- **Status**: Open
-- **Problem**: In the Reports page Step 1 (Company Selection), the company cards display "Trial Balance, Balance Sheet, Income Statement..." text. This is redundant because:
-  1. Report types are shown in Step 2 AFTER selecting a company
-  2. The same report types are available for ALL companies, so listing them on each card adds no value
-  3. It clutters the company selection UI and makes cards unnecessarily verbose
-- **Expected**: Company selection cards should show only company-relevant information (name, currency, etc.) without listing report types
-- **Location**: `/organizations/:orgId/reports` - company selection cards
-- **Files to modify**:
-  - `packages/web/src/routes/organizations/$organizationId/reports/index.tsx`
+### Issue 26: Reports Company Selection Shows Redundant Report Types Text - RESOLVED
+- **Status**: Completed
+- **Resolution**: Removed the redundant "Trial Balance, Balance Sheet, Income Statement..." text from company selection cards. Cards now show only company-relevant information:
+  1. Company name
+  2. Currency and Active status
+  3. "Select & View Reports" call-to-action
+- **Files modified**:
+  - `packages/web/src/routes/organizations/$organizationId/reports/index.tsx` - Removed the FileBarChart icon and report types text from CompanyReportCard component
 
 ### Issue 25: Redundant "Add First Exchange Rate" Button - RESOLVED
 - **Status**: Completed

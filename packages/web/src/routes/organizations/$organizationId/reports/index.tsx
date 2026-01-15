@@ -17,7 +17,7 @@ import { createServerFn } from "@tanstack/react-start"
 import { getCookie } from "@tanstack/react-start/server"
 import { createServerApi } from "@/api/server"
 import { AppLayout } from "@/components/layout/AppLayout"
-import { Building, ChevronRight, FileBarChart } from "lucide-react"
+import { Building, ChevronRight } from "lucide-react"
 
 // =============================================================================
 // Types
@@ -309,13 +309,7 @@ function CompanyReportCard({
           </p>
         </div>
       </div>
-      <div className="mt-4 flex items-center gap-2 border-t border-gray-100 pt-4">
-        <FileBarChart className="h-4 w-4 text-gray-400" />
-        <span className="text-sm text-gray-500">
-          Trial Balance, Balance Sheet, Income Statement...
-        </span>
-      </div>
-      <div className="mt-3 flex items-center justify-end text-sm font-medium text-blue-600 group-hover:text-blue-700">
+      <div className="mt-4 flex items-center justify-end border-t border-gray-100 pt-4 text-sm font-medium text-blue-600 group-hover:text-blue-700">
         Select &amp; View Reports
         <ChevronRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1" />
       </div>

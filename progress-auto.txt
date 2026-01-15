@@ -181,3 +181,8 @@
 **Task**: Fixed 9 flaky E2E tests by adding proper React hydration waits and force clicks - all 180 E2E tests now pass consistently and typecheck is clean. Tests fixed: dashboard user menu dropdown/logout, organizations card click/search, login form submission, apply-template modal, organization-details navigation, accounts postable filter, and journal-entries status filter.
 **Status**: complete
 ---
+
+## Iteration 11 - 2026-01-15 19:14
+**Task**: Fixed Issue 26 - Removed redundant "Trial Balance, Balance Sheet, Income Statement..." report types text from company selection cards on the Reports page. Cards now show only company-relevant information (name, currency, status) since report types are displayed in Step 2 after company selection. All 180 E2E tests pass and typecheck is clean.
+**Status**: complete
+---
