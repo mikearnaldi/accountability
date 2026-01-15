@@ -89,7 +89,7 @@ export function OrganizationSelector({
   if (!loading && organizations.length === 0) {
     return (
       <Link
-        to="/organizations"
+        to="/organizations/new"
         className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
         data-testid="org-selector-empty"
       >

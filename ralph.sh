@@ -380,6 +380,7 @@ build_prompt() {
     local technology=$(jq '.technology' "$PRD_FILE")
     local reference_repos=$(jq '.reference_repos' "$PRD_FILE")
     local specs_dir=$(jq -r '.specs_dir // "specs/"' "$PRD_FILE")
+    local context_dir=$(jq -r '.context_dir // "context/"' "$PRD_FILE")
     local progress_content=$(cat "$PROGRESS_FILE")
     local prompt_template=$(cat "$PROMPT_FILE")
     local ci_errors=""
@@ -392,7 +393,7 @@ build_prompt() {
         ci_errors="No errors from previous iteration."
     fi
 
-    # Build specs section - show story-specific specs and all available specs
+    # Build specs section - show story-specific specs and all available context
     local story_specs=$(echo "$story" | jq -r '.specs // empty')
     local specs_list=""
 
@@ -400,16 +401,21 @@ build_prompt() {
     if [ -n "$story_specs" ] && [ "$story_specs" != "null" ]; then
         specs_list="**Required for this story:**
 $(echo "$story" | jq -r '.specs[]' 2>/dev/null | while read spec; do
-            echo "- \`${specs_dir}${spec}\`"
+            echo "- \`${context_dir}${spec}\`"
         done)
 
 "
     fi
 
-    # Always list all available specs
-    specs_list="${specs_list}**All available specs in \`${specs_dir}\`:**
-$(jq -r '.available_specs[]' "$PRD_FILE" 2>/dev/null | while read spec; do
+    # List actionable specs
+    specs_list="${specs_list}**Actionable specs in \`${specs_dir}\`:**
+$(jq -r '.actionable_specs[]' "$PRD_FILE" 2>/dev/null | while read spec; do
         echo "- \`${specs_dir}${spec}\`"
+    done)
+
+**Context documentation in \`${context_dir}\`:**
+$(jq -r '.available_context[]' "$PRD_FILE" 2>/dev/null | while read spec; do
+        echo "- \`${context_dir}${spec}\`"
     done)"
 
     # Replace placeholders in template

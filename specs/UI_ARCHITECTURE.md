@@ -10,6 +10,22 @@ This section tracks known issues, implementation status, and priorities.
 
 ## Known Issues
 
+### Issue 15: UI Structure - Organization Selector & New Dropdown
+- **Status**: Open
+- **Priority**: HIGH - Core navigation structure change
+- **Problem**: Current UI structure does not match the intended design:
+  1. "Add Organization" is not accessible from the "+ New" dropdown
+  2. Organization selector placement needs to be consistent as a global header element
+- **Required Changes**:
+  1. **Add "Organization" to the "+ New" dropdown**: The sidebar's "+ New" menu should include "Organization" as an option that navigates to `/organizations/new`. This should be available even when no organization is currently selected.
+  2. **Organization Selector in Header**: The organization selector dropdown should be prominently placed in the header as a global element, allowing users to switch organizations from any page. This is already partially implemented but needs to be the PRIMARY way to switch/add organizations.
+  3. **Remove redundant organization selection UI**: The separate "Add Organization" buttons scattered throughout the app should be consolidated into the "+ New" dropdown.
+- **Files to Modify**:
+  - `packages/web/src/components/layout/Sidebar.tsx` - Add "Organization" to QuickActionMenu
+  - `packages/web/src/components/layout/Header.tsx` - Ensure org selector is prominent
+  - `packages/web/src/components/layout/OrganizationSelector.tsx` - Keep "+ Create New Organization" in dropdown
+- **Design Reference**: See Global Layout Structure diagram in Part 2 of this spec
+
 ### Issue 11: Add Buttons Broken Layout (Reopened)
 - **Status**: Open (Reopened)
 - **Problem**: Add/Create buttons still display text on two lines instead of single line in most interfaces. Only "Add Company" displays correctly.
@@ -30,13 +46,6 @@ This section tracks known issues, implementation status, and priorities.
   3. For right columns (near screen edge): position tooltip to the left of the element
   4. Consider using a tooltip library with built-in collision detection (e.g., Radix UI Tooltip, Floating UI)
   5. Ensure tooltip has `z-index` higher than sidebar
-
-### Issue 12: "Create New Organization" Routing Conflict (REOPENED - NOT FIXED)
-- **Status**: OPEN - THIS IS NOT FIXED
-- **Problem**: WHEN USER HAS A SINGLE ORGANIZATION, CLICKING "ADD ORGANIZATION" NAVIGATES TO `/organizations/new` BUT THE ROUTING LAYER AUTOMATICALLY REDIRECTS TO THE MAIN DASHBOARD OF THE SINGLE ORGANIZATION
-- **Root Cause**: The `/organizations/index.tsx` loader has auto-redirect logic that redirects users with a single organization to that org's dashboard. This redirect is triggering even when navigating to `/organizations/new`
-- **Expected**: Navigation to `/organizations/new` should ALWAYS show the Create Organization form, regardless of how many organizations the user has
-- **Fix**: The auto-redirect logic in `/organizations/index.tsx` should NOT affect `/organizations/new` route. These are separate routes and the redirect logic should only apply to the `/organizations/` index route, not to sibling routes like `/organizations/new`
 
 ### Issue 9: Filter Input Icon Alignment Inconsistency
 - **Status**: Open
@@ -98,11 +107,14 @@ This section tracks known issues, implementation status, and priorities.
 - Only "Add Company" button displays correctly on single line
 - See Known Issues section for fix requirements
 
-### Issue 12: "Create New Organization" Routing - REOPENED (NOT FIXED)
-- **Status**: REOPENED - moved back to Known Issues
-- E2E tests pass but DO NOT cover the single-organization scenario
-- **ACTUAL BUG**: When user has exactly ONE organization, the auto-redirect logic in `/organizations/index.tsx` interferes with navigation to `/organizations/new`, redirecting to the single org's dashboard instead
-- See Known Issues section for full details
+### Issue 12: "Create New Organization" Routing & Layout - RESOLVED
+- **Status**: Completed
+- **Problem 1 - Wrong Link**: The "Add Organization" button in OrganizationSelector had wrong link (`/organizations` instead of `/organizations/new`)
+- **Fix 1**: Changed link target from `/organizations` to `/organizations/new` in `OrganizationSelector.tsx`
+- **Problem 2 - Inconsistent Layout**: The Create Organization page had a completely different layout (no sidebar, custom header) unlike all other authenticated pages
+- **Fix 2**: Updated `/organizations/new.tsx` to use AppLayout with sidebar, header, and breadcrumbs - now consistent with rest of app
+- **Problem 3 - Organizations List Page Layout**: The `/organizations` page (org selector) also had a different layout without sidebar/header
+- **Fix 3**: Updated `/organizations/index.tsx` to use AppLayout with sidebar, header, and breadcrumbs
 
 ### Issue 13: Exchange Rates "Add Rate" Button - RESOLVED
 - **Status**: Completed
@@ -198,11 +210,12 @@ Login → /organizations (Organization selector page)
 ```
 
 ### Organization Selector Page
-The `/organizations` page is the ONLY page that doesn't show the full sidebar. Instead it shows:
-- A clean card-based selection UI
-- "Create New Organization" button
+The `/organizations` page uses the standard AppLayout (with sidebar and header) and shows:
+- A card-based selection UI for choosing an organization
+- "New Organization" button in the page header
 - Each card shows: Name, Currency, Companies count
 - Click card → navigate to org dashboard
+- Sidebar shows limited navigation since no org is selected yet
 
 ## Sidebar Navigation
 
@@ -250,14 +263,18 @@ The Reports page should NOT immediately show a list of report types. Users must 
 
 The "+ New" button at top of sidebar provides fast access to common creation actions. Each item opens the corresponding **creation form** directly (NOT list pages):
 
-| Menu Item | Opens | Route |
-|-----------|-------|-------|
-| Journal Entry | Journal entry creation form | `/organizations/:orgId/companies/:companyId/journal-entries/new` (prompts for company if needed) |
-| Company | Company creation form | `/organizations/:orgId/companies/new` |
-| Account | Account creation form | `/organizations/:orgId/companies/:companyId/accounts/new` (prompts for company if needed) |
-| Exchange Rate | Exchange rate creation form | `/organizations/:orgId/exchange-rates/new` |
+| Menu Item | Opens | Route | Availability |
+|-----------|-------|-------|--------------|
+| Organization | Organization creation form | `/organizations/new` | ALWAYS available |
+| Journal Entry | Journal entry creation form | `/organizations/:orgId/companies/:companyId/journal-entries/new` | Requires org + company |
+| Company | Company creation form | `/organizations/:orgId/companies/new` | Requires org selected |
+| Account | Account creation form | `/organizations/:orgId/companies/:companyId/accounts/new` | Requires org + company |
+| Exchange Rate | Exchange rate creation form | `/organizations/:orgId/exchange-rates/new` | Requires org selected |
 
-**IMPORTANT:** "New Company" MUST open the company creation form (`/companies/new`), NOT the companies list page.
+**IMPORTANT:**
+- "Organization" MUST ALWAYS be visible in the "+ New" dropdown, even when no organization is selected. This is the PRIMARY way to create new organizations.
+- "New Company" MUST open the company creation form (`/companies/new`), NOT the companies list page.
+- The "+ New" dropdown should be visible on ALL authenticated pages.
 
 ### Sidebar State
 
@@ -268,6 +285,8 @@ The "+ New" button at top of sidebar provides fast access to common creation act
 
 ## Header
 
+The header is a **global element** that appears on ALL authenticated pages. The organization selector in the header is the PRIMARY way to switch between organizations.
+
 ### Desktop Header
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
@@ -277,9 +296,11 @@ The "+ New" button at top of sidebar provides fast access to common creation act
 
 Components:
 1. **Logo**: Click returns to org dashboard (or org selector if no org)
-2. **Organization Selector**: Dropdown to switch organizations
+2. **Organization Selector**: **PRIMARY** dropdown to switch organizations - always visible, always accessible
 3. **Search** (future): Global search icon
 4. **User Menu**: Avatar with dropdown for profile, settings, logout
+
+**IMPORTANT:** The Organization Selector in the header is a GLOBAL element - users must be able to switch organizations from ANY page in the application.
 
 ### Mobile Header
 ```
@@ -309,7 +330,10 @@ When clicked, shows:
 └─────────────────────────────────────────┘
 ```
 
-**IMPORTANT:** "+ Create New Organization" MUST link to `/organizations/new`.
+**IMPORTANT:**
+- "+ Create New Organization" MUST link to `/organizations/new`
+- The Organization Selector dropdown provides a SECONDARY way to create organizations (in addition to the "+ New" dropdown in the sidebar)
+- Both methods should work: "+ New > Organization" in sidebar AND "+ Create New Organization" in header dropdown
 
 ## Breadcrumbs
 

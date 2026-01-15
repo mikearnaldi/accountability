@@ -42,38 +42,58 @@ accountability/
 │   ├── persistence/    # Database layer (@effect/sql + PostgreSQL)
 │   ├── api/            # Effect HttpApi server + OpenAPI export
 │   └── web/            # React UI (NO Effect - loaders + openapi-fetch client)
-├── specs/              # Detailed specifications (see below)
+├── specs/              # ACTIONABLE specs - ralph-auto.sh implements these automatically
+├── context/            # Reference documentation - provides context to agents
 └── repos/              # Reference repositories (git subtrees)
     ├── effect/         # Effect-TS source
     └── tanstack-router/# TanStack Router/Start source
 ```
 
-## Specifications Index
+## Specs vs Context
+
+**`specs/`** - Contains ACTIONABLE specifications that should be implemented:
+- `ralph-auto.sh` automatically implements everything in this folder
+- Each spec file defines features/UI/behavior that needs to be built
+- Specs should be updated as work is completed (mark issues resolved, etc.)
+
+**`context/`** - Contains REFERENCE documentation for agents:
+- Best practices, conventions, patterns
+- Domain knowledge and research
+- Not directly actionable - provides guidance and context
+
+## Actionable Specs (specs/)
 
 | Spec File | Description |
 |-----------|-------------|
-| [specs/ACCOUNTING_RESEARCH.md](specs/ACCOUNTING_RESEARCH.md) | Domain specifications (entities, services, reports) |
-| [specs/EFFECT_BEST_PRACTICES.md](specs/EFFECT_BEST_PRACTICES.md) | **Critical rules** for backend Effect code |
-| [specs/EFFECT_SQL.md](specs/EFFECT_SQL.md) | SqlSchema, Model.Class, repository patterns |
-| [specs/EFFECT_LAYERS.md](specs/EFFECT_LAYERS.md) | Layer composition, memoization, service patterns |
-| [specs/EFFECT_TESTING.md](specs/EFFECT_TESTING.md) | @effect/vitest, testcontainers, property testing |
-| [specs/TYPESCRIPT_CONVENTIONS.md](specs/TYPESCRIPT_CONVENTIONS.md) | Project refs, imports, module structure |
-| [specs/HTTP_API_TANSTACK.md](specs/HTTP_API_TANSTACK.md) | Effect HttpApi + TanStack Start SSR + openapi-fetch |
-| [specs/API_BEST_PRACTICES.md](specs/API_BEST_PRACTICES.md) | API layer conventions |
-| [specs/AUTHENTICATION.md](specs/AUTHENTICATION.md) | Multi-provider auth system, session management |
-| [specs/E2E_TESTING.md](specs/E2E_TESTING.md) | Playwright E2E testing patterns |
-| [specs/REACT_BEST_PRACTICES.md](specs/REACT_BEST_PRACTICES.md) | React patterns, loaders, mutations, Tailwind |
-| [specs/USABILITY_BEST_PRACTICES.md](specs/USABILITY_BEST_PRACTICES.md) | UX patterns, navigation, forms, states |
-| [specs/UI_ARCHITECTURE.md](specs/UI_ARCHITECTURE.md) | **Critical** - Layout, navigation, page templates |
+| [specs/UI_ARCHITECTURE.md](specs/UI_ARCHITECTURE.md) | **IMPLEMENT** - Layout, navigation, page templates, known issues |
+
+## Context Documentation (context/)
+
+| File | Description |
+|------|-------------|
+| [context/ACCOUNTING_RESEARCH.md](context/ACCOUNTING_RESEARCH.md) | Domain specifications (entities, services, reports) |
+| [context/EFFECT_BEST_PRACTICES.md](context/EFFECT_BEST_PRACTICES.md) | **Critical rules** for backend Effect code |
+| [context/EFFECT_SQL.md](context/EFFECT_SQL.md) | SqlSchema, Model.Class, repository patterns |
+| [context/EFFECT_LAYERS.md](context/EFFECT_LAYERS.md) | Layer composition, memoization, service patterns |
+| [context/EFFECT_TESTING.md](context/EFFECT_TESTING.md) | @effect/vitest, testcontainers, property testing |
+| [context/TYPESCRIPT_CONVENTIONS.md](context/TYPESCRIPT_CONVENTIONS.md) | Project refs, imports, module structure |
+| [context/HTTP_API_TANSTACK.md](context/HTTP_API_TANSTACK.md) | Effect HttpApi + TanStack Start SSR + openapi-fetch |
+| [context/API_BEST_PRACTICES.md](context/API_BEST_PRACTICES.md) | API layer conventions |
+| [context/AUTHENTICATION.md](context/AUTHENTICATION.md) | Multi-provider auth system, session management |
+| [context/E2E_TESTING.md](context/E2E_TESTING.md) | Playwright E2E testing patterns |
+| [context/REACT_BEST_PRACTICES.md](context/REACT_BEST_PRACTICES.md) | React patterns, loaders, mutations, Tailwind |
+| [context/USABILITY_BEST_PRACTICES.md](context/USABILITY_BEST_PRACTICES.md) | UX patterns, navigation, forms, states |
 
 ## Key Files
 
 | File | Purpose |
 |------|---------|
 | `prd.json` | User stories with status tracking |
-| `ralph.sh` | Autonomous agent loop orchestrator |
-| `RALPH_PROMPT.md` | Agent prompt template |
+| `ralph.sh` | PRD-based agent loop (follows prd.json stories) |
+| `ralph-auto.sh` | **AUTO agent loop** - implements everything in `specs/` automatically |
+| `RALPH_PROMPT.md` | Agent prompt template for ralph.sh |
 | `progress.txt` | Progress log for Ralph iterations |
+| `progress-auto.txt` | Progress log for Ralph Auto iterations |
 
 ---
 
@@ -81,7 +101,7 @@ accountability/
 
 ### Backend (Effect code in core, persistence, api)
 
-**Read [specs/EFFECT_BEST_PRACTICES.md](specs/EFFECT_BEST_PRACTICES.md) first.** Key rules:
+**Read [context/EFFECT_BEST_PRACTICES.md](context/EFFECT_BEST_PRACTICES.md) first.** Key rules:
 
 1. **NEVER use `any` or type casts** - use Schema.make(), decodeUnknown, identity
 2. **NEVER use global `Error`** - use Schema.TaggedError for all domain errors
@@ -146,8 +166,9 @@ pnpm format:check       # Check formatting
 # Maintenance
 pnpm clean              # Clean build outputs
 
-# Ralph Agent
-./ralph.sh [max_iterations]   # Start autonomous agent loop
+# Ralph Agents
+./ralph.sh [max_iterations]   # PRD-based agent loop (follows prd.json)
+./ralph-auto.sh               # AUTO agent loop - implements everything in specs/
 ```
 
 ---
@@ -179,10 +200,21 @@ pnpm clean              # Clean build outputs
 
 When working on stories:
 
-1. **Read [specs/ACCOUNTING_RESEARCH.md](specs/ACCOUNTING_RESEARCH.md)** for domain requirements
-2. **Read [specs/EFFECT_BEST_PRACTICES.md](specs/EFFECT_BEST_PRACTICES.md)** for backend coding rules
-3. **Read [specs/REACT_BEST_PRACTICES.md](specs/REACT_BEST_PRACTICES.md)** for frontend patterns
-4. **Read [specs/UI_ARCHITECTURE.md](specs/UI_ARCHITECTURE.md)** for UI layout and navigation rules
+1. **Read [context/ACCOUNTING_RESEARCH.md](context/ACCOUNTING_RESEARCH.md)** for domain requirements
+2. **Read [context/EFFECT_BEST_PRACTICES.md](context/EFFECT_BEST_PRACTICES.md)** for backend coding rules
+3. **Read [context/REACT_BEST_PRACTICES.md](context/REACT_BEST_PRACTICES.md)** for frontend patterns
+4. **Read [specs/UI_ARCHITECTURE.md](specs/UI_ARCHITECTURE.md)** for UI layout and navigation rules (ACTIONABLE)
 5. **Search repos/** for implementation patterns
 6. **Signal STORY_COMPLETE** when done (don't commit, script handles it)
 7. **Run tests** before signaling completion: `pnpm test && pnpm typecheck`
+
+## Notes for Ralph Auto Agent
+
+When running autonomously via `ralph-auto.sh`:
+
+1. **Read all files in `specs/`** - these are actionable specs to implement
+2. **Use `context/` for reference** - best practices, conventions, patterns
+3. **Implement specs fully** - each spec file defines work to be done
+4. **Update specs as you work** - mark issues resolved, remove completed items
+5. **Signal TASK_COMPLETE** when a task is done
+6. **Signal NOTHING_LEFT_TO_DO** when all specs are fully implemented

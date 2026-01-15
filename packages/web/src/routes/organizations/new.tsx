@@ -2,6 +2,7 @@
  * Create Organization Page
  *
  * Full-page form to create a new organization with all API-supported fields.
+ * Uses AppLayout for consistent navigation like all other authenticated pages.
  *
  * Features:
  * - Form fields:
@@ -28,6 +29,7 @@ import { ArrowLeft } from "lucide-react"
 import { api } from "@/api/client"
 import { createServerApi } from "@/api/server"
 import { OrganizationForm } from "@/components/forms/OrganizationForm"
+import { AppLayout } from "@/components/layout/AppLayout"
 
 // =============================================================================
 // Types
@@ -44,6 +46,12 @@ export interface CurrencyOption {
 // =============================================================================
 // Server Functions
 // =============================================================================
+
+export interface OrganizationData {
+  readonly id: string
+  readonly name: string
+  readonly reportingCurrency: string
+}
 
 const fetchCurrencies = createServerFn({ method: "GET" }).handler(async (): Promise<{
   currencies: CurrencyOption[]
@@ -71,6 +79,31 @@ const fetchCurrencies = createServerFn({ method: "GET" }).handler(async (): Prom
   }
 })
 
+const fetchOrganizations = createServerFn({ method: "GET" }).handler(async (): Promise<{
+  organizations: OrganizationData[]
+}> => {
+  const sessionToken = getCookie("accountability_session")
+
+  if (!sessionToken) {
+    return { organizations: [] }
+  }
+
+  try {
+    const serverApi = createServerApi()
+    const { data, error } = await serverApi.GET("/api/v1/organizations", {
+      headers: { Authorization: `Bearer ${sessionToken}` }
+    })
+
+    if (error || !data) {
+      return { organizations: [] }
+    }
+
+    return { organizations: data.organizations ?? [] }
+  } catch {
+    return { organizations: [] }
+  }
+})
+
 // =============================================================================
 // Route Definition
 // =============================================================================
@@ -87,8 +120,15 @@ export const Route = createFileRoute("/organizations/new")({
     }
   },
   loader: async () => {
-    const result = await fetchCurrencies()
-    return result
+    const [currenciesResult, orgsResult] = await Promise.all([
+      fetchCurrencies(),
+      fetchOrganizations()
+    ])
+    return {
+      currencies: currenciesResult.currencies,
+      error: currenciesResult.error,
+      organizations: orgsResult.organizations
+    }
   },
   component: CreateOrganizationPage
 })
@@ -98,12 +138,15 @@ export const Route = createFileRoute("/organizations/new")({
 // =============================================================================
 
 function CreateOrganizationPage() {
-  const { currencies, error: loadError } = Route.useLoaderData()
+  const { currencies, error: loadError, organizations } = Route.useLoaderData()
+  const context = Route.useRouteContext()
   const router = useRouter()
   const navigate = useNavigate()
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [apiError, setApiError] = useState<string | null>(loadError)
+
+  const user = context.user
 
   const handleSubmit = async (formData: {
     name: string
@@ -159,27 +202,21 @@ function CreateOrganizationPage() {
     }
   }
 
-  return (
-    <div className="min-h-screen bg-gray-50" data-testid="create-organization-page">
-      {/* Header */}
-      <header className="border-b border-gray-200 bg-white">
-        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-4">
-            <Link to="/" className="text-xl font-bold text-gray-900">
-              Accountability
-            </Link>
-            <span className="text-gray-400">/</span>
-            <Link to="/organizations" className="text-xl text-gray-600 hover:text-gray-900">
-              Organizations
-            </Link>
-            <span className="text-gray-400">/</span>
-            <span className="text-xl font-semibold text-gray-900">New</span>
-          </div>
-        </div>
-      </header>
+  // Custom breadcrumb items for this page
+  const breadcrumbItems = [
+    { label: "Organizations", href: "/organizations" },
+    { label: "New", href: "/organizations/new" }
+  ]
 
-      {/* Main Content */}
-      <main className="mx-auto max-w-2xl px-4 py-8 sm:px-6 lg:px-8">
+  return (
+    <AppLayout
+      user={user}
+      organizations={organizations}
+      currentOrganization={null}
+      showBreadcrumbs={true}
+      breadcrumbItems={breadcrumbItems}
+    >
+      <div className="max-w-2xl" data-testid="create-organization-page">
         {/* Back Link */}
         <Link
           to="/organizations"
@@ -208,7 +245,7 @@ function CreateOrganizationPage() {
             isSubmitting={isSubmitting}
           />
         </div>
-      </main>
-    </div>
+      </div>
+    </AppLayout>
   )
 }

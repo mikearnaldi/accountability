@@ -1,13 +1,14 @@
 #!/bin/bash
 
-# Ralph Auto Loop - Autonomous AI coding agent that picks its own tasks
+# Ralph Auto Loop - Autonomous AI coding agent that implements specs
 #
-# Unlike ralph.sh which follows a PRD, this script lets Claude autonomously:
-# 1. Read the UI_ARCHITECTURE.md spec
-# 2. Investigate the project
-# 3. Select its own high priority task
+# This script automatically implements everything in the specs/ directory:
+# 1. Read all actionable specs from specs/ folder
+# 2. Read context from context/ folder for best practices
+# 3. Select a high priority task from the specs
 # 4. Implement it
-# 5. Repeat until nothing left to do
+# 5. Update the spec (mark issues resolved, etc.)
+# 6. Repeat until all specs are fully implemented
 #
 # Usage: ./ralph-auto.sh [options]
 #
@@ -95,10 +96,23 @@ check_prerequisites() {
         exit 1
     fi
 
-    # Check for UI_ARCHITECTURE.md
-    if [ ! -f "specs/UI_ARCHITECTURE.md" ]; then
-        log "ERROR" "specs/UI_ARCHITECTURE.md not found"
+    # Check for specs directory with at least one .md file
+    if [ ! -d "specs" ]; then
+        log "ERROR" "specs/ directory not found"
         exit 1
+    fi
+
+    local spec_count=$(find specs -name "*.md" -type f | wc -l | tr -d ' ')
+    if [ "$spec_count" -eq 0 ]; then
+        log "ERROR" "No .md files found in specs/ directory"
+        exit 1
+    fi
+
+    log "INFO" "Found $spec_count actionable spec(s) in specs/"
+
+    # Check for context directory (optional but recommended)
+    if [ ! -d "context" ]; then
+        log "WARN" "context/ directory not found - context documentation unavailable"
     fi
 
     # Create progress file if it doesn't exist
@@ -358,79 +372,101 @@ build_prompt() {
         progress_content=$(cat "$PROGRESS_FILE")
     fi
 
-    cat << 'PROMPT_EOF'
-# Ralph Auto Loop - Autonomous Agent Instructions
+    # Get list of specs and context files
+    local specs_list=$(find specs -name "*.md" -type f | sort | while read f; do echo "- \`$f\`"; done)
+    local context_list=""
+    if [ -d "context" ]; then
+        context_list=$(find context -name "*.md" -type f | sort | while read f; do echo "- \`$f\`"; done)
+    fi
 
-You are an autonomous coding agent working on the Accountability project. You are running in an autonomous loop that will continue until you determine there is nothing left to do.
+    cat << PROMPT_EOF
+# Ralph Auto Loop - Autonomous Spec Implementation Agent
+
+You are an autonomous coding agent that implements everything defined in the \`specs/\` directory. You are running in an autonomous loop that will continue until all specs are fully implemented.
 
 ## Your Mission
 
-1. **Read** the `specs/UI_ARCHITECTURE.md` specification carefully
-2. **Investigate** the project to understand current state
-3. **Select** a high priority task that needs to be done
+1. **Read ALL specs** from the \`specs/\` directory - these are ACTIONABLE specifications
+2. **Read context** from the \`context/\` directory for best practices and conventions
+3. **Select** a high priority task from the specs (Known Issues, incomplete features, etc.)
 4. **Implement** the task fully
-5. **Signal** completion with `TASK_COMPLETE: <brief description of what you did>`
+5. **Update the spec** - mark issues as resolved, update status
+6. **Signal** completion with \`TASK_COMPLETE: <brief description of what you did>\`
 
 ## Critical Rules
 
 1. **DO NOT COMMIT**: The Ralph Auto script handles all git commits. Just write code.
 2. **KEEP CI GREEN**: Your code MUST pass all tests and type checks.
 3. **ONE TASK PER ITERATION**: Pick one focused task, complete it, and signal completion.
-4. **SIGNAL COMPLETION**: When done with a task, output `TASK_COMPLETE: <description>` on its own line.
-5. **SIGNAL DONE**: If you've investigated and there's genuinely nothing left to do, output `NOTHING_LEFT_TO_DO` on its own line.
+4. **UPDATE SPECS**: When you complete a task, UPDATE the spec file to mark it resolved.
+5. **SIGNAL COMPLETION**: When done with a task, output \`TASK_COMPLETE: <description>\` on its own line.
+6. **SIGNAL DONE**: When ALL specs are fully implemented, output \`NOTHING_LEFT_TO_DO\` on its own line.
 
-## Task Selection Guidelines
+## Actionable Specs (specs/)
+
+These files define work to be implemented:
+
+$specs_list
+
+## Context Documentation (context/)
+
+These files provide best practices and conventions - read them for guidance:
+
+$context_list
+
+## Task Selection Priority
 
 Look for tasks in this priority order:
-1. **CI Errors**: Fix any errors from the previous iteration first
-2. **Missing UI Components**: Components defined in UI_ARCHITECTURE.md but not implemented
-3. **Incomplete Pages**: Pages that exist but are missing required elements per spec
-4. **Layout Issues**: AppLayout, Breadcrumbs, Header, Sidebar issues
-5. **Empty States**: Lists without proper empty state components
-6. **Navigation**: Broken or missing navigation paths
-7. **Form Improvements**: Forms that don't match the spec patterns
-8. **Polish**: Small improvements to match the spec exactly
+1. **CI Errors**: Fix any errors from the previous iteration FIRST
+2. **Known Issues**: Issues marked "Open" or "CRITICAL" in spec files
+3. **Missing Features**: Features defined in specs but not implemented
+4. **Incomplete Pages**: Pages missing required elements per spec
+5. **Layout Issues**: AppLayout, Breadcrumbs, Header, Sidebar issues
+6. **Polish**: Small improvements to match the spec exactly
 
 ## Workflow
 
-1. **Read** `specs/UI_ARCHITECTURE.md` first
-2. **Explore** the `packages/web/src` directory to understand current state
-3. **Compare** what exists vs what the spec requires
-4. **Pick** the highest priority gap you find
-5. **Implement** it following the spec patterns
-6. **Update spec** - if you fix a known issue from `specs/UI_ARCHITECTURE.md`, remove or mark it as resolved in the spec
-7. **Test** - run `pnpm typecheck` to verify no type errors
-8. **Signal** - output `TASK_COMPLETE: <what you did>`
+1. **Read ALL files in \`specs/\`** - understand what needs to be implemented
+2. **Read relevant files in \`context/\`** - understand best practices
+3. **Explore the codebase** to understand current state
+4. **Compare** what exists vs what the specs require
+5. **Pick** the highest priority gap you find
+6. **Implement** it following the patterns from context/
+7. **Update the spec** - mark issues as RESOLVED with details
+8. **Test** - run \`pnpm typecheck\` to verify no type errors
+9. **Signal** - output \`TASK_COMPLETE: <what you did>\`
 
 ## Signaling
 
 When you have finished implementing a task:
 
-```
+\`\`\`
 TASK_COMPLETE: Brief description of what you implemented
-```
+\`\`\`
 
-When there is genuinely nothing left to do (spec is fully implemented):
+When ALL specs are fully implemented (no more Known Issues, all features complete):
 
-```
+\`\`\`
 NOTHING_LEFT_TO_DO
-```
+\`\`\`
 
 ## Project Context
 
 - **Monorepo Structure**: packages/core, packages/persistence, packages/api, packages/web
 - **Frontend**: React + TanStack Start + Tailwind CSS
-- **Key Spec**: `specs/UI_ARCHITECTURE.md` - the source of truth for UI work
+- **Specs folder**: Contains ACTIONABLE specifications to implement
+- **Context folder**: Contains best practices, conventions, patterns
 - **NO Effect in frontend** - use openapi-fetch client, loaders, useState
 
 ## Important Reminders
 
 - Read CLAUDE.md for project structure and conventions
-- Follow React patterns from `specs/REACT_BEST_PRACTICES.md`
+- Read \`context/REACT_BEST_PRACTICES.md\` for React patterns
+- Read \`context/USABILITY_BEST_PRACTICES.md\` for UX patterns
 - All pages must use AppLayout with Sidebar and Header
 - Use the Breadcrumbs component - never write manual breadcrumb HTML
 - Every list page needs an empty state with CTA
-- **UPDATE SPECS WITH PROGRESS**: When you fix a known issue from `specs/UI_ARCHITECTURE.md`, update the spec to remove or mark it as resolved. Keep specs in sync with implementation.
+- **UPDATE SPECS AS YOU WORK**: Keep specs in sync with implementation
 - DO NOT run git commands - the script handles commits
 
 PROMPT_EOF

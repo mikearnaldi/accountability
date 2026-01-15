@@ -25,6 +25,8 @@ import { getCookie } from "@tanstack/react-start/server"
 import { useState, useMemo } from "react"
 import { createServerApi } from "@/api/server"
 import { Building2, Search, Plus, Globe, Calendar, Users } from "lucide-react"
+import { AppLayout } from "@/components/layout/AppLayout"
+import { Button } from "@/components/ui/Button"
 
 // =============================================================================
 // Types
@@ -168,7 +170,10 @@ export const Route = createFileRoute("/organizations/")({
 
 function OrganizationsPage() {
   const { organizations, total } = Route.useLoaderData()
+  const context = Route.useRouteContext()
   const [searchQuery, setSearchQuery] = useState("")
+
+  const user = context.user
 
   // Filter organizations based on search query
   const filteredOrganizations = useMemo(() => {
@@ -182,23 +187,20 @@ function OrganizationsPage() {
     )
   }, [organizations, searchQuery])
 
-  return (
-    <div className="min-h-screen bg-gray-50" data-testid="organizations-page">
-      {/* Header */}
-      <header className="border-b border-gray-200 bg-white">
-        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link to="/" className="text-xl font-bold text-gray-900">
-                Accountability
-              </Link>
-            </div>
-          </div>
-        </div>
-      </header>
+  // Custom breadcrumb items for this page
+  const breadcrumbItems = [
+    { label: "Organizations", href: "/organizations" }
+  ]
 
-      {/* Main Content */}
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+  return (
+    <AppLayout
+      user={user}
+      organizations={organizations}
+      currentOrganization={null}
+      showBreadcrumbs={true}
+      breadcrumbItems={breadcrumbItems}
+    >
+      <div data-testid="organizations-page">
         {total === 0 ? (
           <EmptyState />
         ) : (
@@ -209,8 +211,8 @@ function OrganizationsPage() {
             onSearchChange={setSearchQuery}
           />
         )}
-      </main>
-    </div>
+      </div>
+    </AppLayout>
   )
 }
 
@@ -261,6 +263,8 @@ function OrganizationsList({
   searchQuery,
   onSearchChange
 }: OrganizationsListProps) {
+  const navigate = useNavigate()
+
   return (
     <div className="space-y-6" data-testid="organizations-list-container">
       {/* Page Header */}
@@ -271,14 +275,13 @@ function OrganizationsList({
             {totalCount} organization{totalCount !== 1 ? "s" : ""} available
           </p>
         </div>
-        <Link
-          to="/organizations/new"
+        <Button
+          icon={<Plus className="h-4 w-4" />}
+          onClick={() => navigate({ to: "/organizations/new" })}
           data-testid="new-organization-button"
-          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
         >
-          <Plus className="h-4 w-4" />
           New Organization
-        </Link>
+        </Button>
       </div>
 
       {/* Search Bar */}
