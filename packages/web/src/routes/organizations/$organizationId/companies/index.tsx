@@ -344,13 +344,15 @@ function CompaniesListPage() {
               </p>
             </div>
 
-            <Button
-              onClick={() => setShowCreateForm(true)}
-              icon={<Plus className="h-4 w-4" />}
-              data-testid="create-company-button"
-            >
-              New Company
-            </Button>
+            {companies.length > 0 && (
+              <Button
+                onClick={() => setShowCreateForm(true)}
+                icon={<Plus className="h-4 w-4" />}
+                data-testid="create-company-button"
+              >
+                New Company
+              </Button>
+            )}
           </div>
 
           {/* Status Filter */}
