@@ -406,8 +406,8 @@ PROMPT_EOF
 # Extract task description from output
 extract_task_description() {
     local output_file="$1"
-    # Look for TASK_COMPLETE: <description> pattern
-    grep -oP 'TASK_COMPLETE:\s*\K.*' "$output_file" | head -1 || echo "Autonomous improvements"
+    # Look for TASK_COMPLETE: <description> pattern (macOS compatible)
+    grep "TASK_COMPLETE:" "$output_file" | head -1 | sed 's/.*TASK_COMPLETE:[[:space:]]*//' || echo "Autonomous improvements"
 }
 
 # Run a single iteration of the agent
