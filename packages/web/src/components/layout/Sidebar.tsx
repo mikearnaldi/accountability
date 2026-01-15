@@ -79,7 +79,7 @@ function getNavItems(organizationId?: string): readonly NavItem[] {
   return [
     {
       label: "Dashboard",
-      href: `/organizations/${organizationId}`,
+      href: `/organizations/${organizationId}/dashboard`,
       icon: LayoutDashboard,
       testId: "nav-org-dashboard"
     },
@@ -184,7 +184,7 @@ export function Sidebar({ isCollapsed, onToggleCollapse, currentOrganization }: 
           {navItems.map((item) => {
             // Determine if this item is active
             let isActive = false
-            if (item.href === "/" || item.href === `/organizations/${currentOrganization?.id}`) {
+            if (item.href === "/" || item.href === `/organizations/${currentOrganization?.id}/dashboard`) {
               // Dashboard: exact match
               isActive = location.pathname === item.href
             } else {
@@ -258,7 +258,7 @@ export function MobileSidebar({ organizations = [], currentOrganization }: Mobil
   const handleSelectOrganization = (org: Organization) => {
     setIsOpen(false)
     navigate({
-      to: "/organizations/$organizationId",
+      to: "/organizations/$organizationId/dashboard",
       params: { organizationId: org.id }
     })
   }
@@ -361,7 +361,7 @@ export function MobileSidebar({ organizations = [], currentOrganization }: Mobil
             <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
               {navItems.map((item) => {
                 let isActive = false
-                if (item.href === "/" || item.href === `/organizations/${currentOrganization?.id}`) {
+                if (item.href === "/" || item.href === `/organizations/${currentOrganization?.id}/dashboard`) {
                   isActive = location.pathname === item.href
                 } else {
                   isActive = location.pathname.startsWith(item.href)

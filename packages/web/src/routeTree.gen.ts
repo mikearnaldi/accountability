@@ -15,6 +15,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as OrganizationsIndexRouteImport } from './routes/organizations/index'
 import { Route as ApiSplatRouteImport } from './routes/api/$'
 import { Route as OrganizationsOrganizationIdIndexRouteImport } from './routes/organizations/$organizationId/index'
+import { Route as OrganizationsOrganizationIdDashboardRouteImport } from './routes/organizations/$organizationId/dashboard'
 import { Route as OrganizationsOrganizationIdCompaniesIndexRouteImport } from './routes/organizations/$organizationId/companies/index'
 import { Route as OrganizationsOrganizationIdCompaniesCompanyIdIndexRouteImport } from './routes/organizations/$organizationId/companies/$companyId/index'
 import { Route as OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesIndexRouteImport } from './routes/organizations/$organizationId/companies/$companyId/journal-entries/index'
@@ -51,6 +52,12 @@ const OrganizationsOrganizationIdIndexRoute =
     path: '/organizations/$organizationId/',
     getParentRoute: () => rootRouteImport,
   } as any)
+const OrganizationsOrganizationIdDashboardRoute =
+  OrganizationsOrganizationIdDashboardRouteImport.update({
+    id: '/organizations/$organizationId/dashboard',
+    path: '/organizations/$organizationId/dashboard',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const OrganizationsOrganizationIdCompaniesIndexRoute =
   OrganizationsOrganizationIdCompaniesIndexRouteImport.update({
     id: '/organizations/$organizationId/companies/',
@@ -84,6 +91,7 @@ export interface FileRoutesByFullPath {
   '/register': typeof RegisterRoute
   '/api/$': typeof ApiSplatRoute
   '/organizations': typeof OrganizationsIndexRoute
+  '/organizations/$organizationId/dashboard': typeof OrganizationsOrganizationIdDashboardRoute
   '/organizations/$organizationId': typeof OrganizationsOrganizationIdIndexRoute
   '/organizations/$organizationId/companies': typeof OrganizationsOrganizationIdCompaniesIndexRoute
   '/organizations/$organizationId/companies/$companyId': typeof OrganizationsOrganizationIdCompaniesCompanyIdIndexRoute
@@ -96,6 +104,7 @@ export interface FileRoutesByTo {
   '/register': typeof RegisterRoute
   '/api/$': typeof ApiSplatRoute
   '/organizations': typeof OrganizationsIndexRoute
+  '/organizations/$organizationId/dashboard': typeof OrganizationsOrganizationIdDashboardRoute
   '/organizations/$organizationId': typeof OrganizationsOrganizationIdIndexRoute
   '/organizations/$organizationId/companies': typeof OrganizationsOrganizationIdCompaniesIndexRoute
   '/organizations/$organizationId/companies/$companyId': typeof OrganizationsOrganizationIdCompaniesCompanyIdIndexRoute
@@ -109,6 +118,7 @@ export interface FileRoutesById {
   '/register': typeof RegisterRoute
   '/api/$': typeof ApiSplatRoute
   '/organizations/': typeof OrganizationsIndexRoute
+  '/organizations/$organizationId/dashboard': typeof OrganizationsOrganizationIdDashboardRoute
   '/organizations/$organizationId/': typeof OrganizationsOrganizationIdIndexRoute
   '/organizations/$organizationId/companies/': typeof OrganizationsOrganizationIdCompaniesIndexRoute
   '/organizations/$organizationId/companies/$companyId/': typeof OrganizationsOrganizationIdCompaniesCompanyIdIndexRoute
@@ -123,6 +133,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/api/$'
     | '/organizations'
+    | '/organizations/$organizationId/dashboard'
     | '/organizations/$organizationId'
     | '/organizations/$organizationId/companies'
     | '/organizations/$organizationId/companies/$companyId'
@@ -135,6 +146,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/api/$'
     | '/organizations'
+    | '/organizations/$organizationId/dashboard'
     | '/organizations/$organizationId'
     | '/organizations/$organizationId/companies'
     | '/organizations/$organizationId/companies/$companyId'
@@ -147,6 +159,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/api/$'
     | '/organizations/'
+    | '/organizations/$organizationId/dashboard'
     | '/organizations/$organizationId/'
     | '/organizations/$organizationId/companies/'
     | '/organizations/$organizationId/companies/$companyId/'
@@ -160,6 +173,7 @@ export interface RootRouteChildren {
   RegisterRoute: typeof RegisterRoute
   ApiSplatRoute: typeof ApiSplatRoute
   OrganizationsIndexRoute: typeof OrganizationsIndexRoute
+  OrganizationsOrganizationIdDashboardRoute: typeof OrganizationsOrganizationIdDashboardRoute
   OrganizationsOrganizationIdIndexRoute: typeof OrganizationsOrganizationIdIndexRoute
   OrganizationsOrganizationIdCompaniesIndexRoute: typeof OrganizationsOrganizationIdCompaniesIndexRoute
   OrganizationsOrganizationIdCompaniesCompanyIdIndexRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdIndexRoute
@@ -211,6 +225,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrganizationsOrganizationIdIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/organizations/$organizationId/dashboard': {
+      id: '/organizations/$organizationId/dashboard'
+      path: '/organizations/$organizationId/dashboard'
+      fullPath: '/organizations/$organizationId/dashboard'
+      preLoaderRoute: typeof OrganizationsOrganizationIdDashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/organizations/$organizationId/companies/': {
       id: '/organizations/$organizationId/companies/'
       path: '/organizations/$organizationId/companies'
@@ -248,6 +269,8 @@ const rootRouteChildren: RootRouteChildren = {
   RegisterRoute: RegisterRoute,
   ApiSplatRoute: ApiSplatRoute,
   OrganizationsIndexRoute: OrganizationsIndexRoute,
+  OrganizationsOrganizationIdDashboardRoute:
+    OrganizationsOrganizationIdDashboardRoute,
   OrganizationsOrganizationIdIndexRoute: OrganizationsOrganizationIdIndexRoute,
   OrganizationsOrganizationIdCompaniesIndexRoute:
     OrganizationsOrganizationIdCompaniesIndexRoute,

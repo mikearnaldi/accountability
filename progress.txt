@@ -899,3 +899,8 @@
 **Story**: 2.1 - Layout with organization context selector
 **Status**: complete
 ---
+
+## Iteration 46 - 2026-01-15 07:22
+**Story**: 2.2 - Organization-scoped dashboard
+**Status**: complete
+---
