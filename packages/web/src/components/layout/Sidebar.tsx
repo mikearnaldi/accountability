@@ -157,6 +157,7 @@ function getNavItems(organizationId?: string): readonly NavItem[] {
 // =============================================================================
 
 interface QuickActionMenuProps {
+  /** Organization ID - optional, as Organization can always be created */
   readonly organizationId: string | undefined
   readonly companies?: readonly { readonly id: string; readonly name: string }[]
   readonly isCollapsed: boolean
@@ -177,15 +178,20 @@ function QuickActionMenu({ organizationId, companies = [], isCollapsed }: QuickA
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
 
-  // Can't show actions without an organization
-  if (!organizationId) return null
-
   // Get the first company for journal entry and account actions
   const firstCompany = companies[0]
 
+  // Build actions list - Organization is ALWAYS available per spec
   const actions: QuickActionItem[] = [
-    // Journal Entry - needs a company
-    ...(firstCompany
+    // Organization - ALWAYS available (even when no org selected)
+    {
+      label: "Organization",
+      href: "/organizations/new",
+      icon: Building2,
+      testId: "quick-action-organization"
+    },
+    // Journal Entry - needs an organization AND a company
+    ...(organizationId && firstCompany
       ? [
           {
             label: "Journal Entry",
@@ -195,14 +201,19 @@ function QuickActionMenu({ organizationId, companies = [], isCollapsed }: QuickA
           }
         ]
       : []),
-    {
-      label: "Company",
-      href: `/organizations/${organizationId}/companies/new`,
-      icon: Building,
-      testId: "quick-action-company"
-    },
-    // Account - needs a company
-    ...(firstCompany
+    // Company - needs an organization
+    ...(organizationId
+      ? [
+          {
+            label: "Company",
+            href: `/organizations/${organizationId}/companies/new`,
+            icon: Building,
+            testId: "quick-action-company"
+          }
+        ]
+      : []),
+    // Account - needs an organization AND a company
+    ...(organizationId && firstCompany
       ? [
           {
             label: "Account",
@@ -212,12 +223,17 @@ function QuickActionMenu({ organizationId, companies = [], isCollapsed }: QuickA
           }
         ]
       : []),
-    {
-      label: "Exchange Rate",
-      href: `/organizations/${organizationId}/exchange-rates/new`,
-      icon: TrendingUp,
-      testId: "quick-action-exchange-rate"
-    }
+    // Exchange Rate - needs an organization
+    ...(organizationId
+      ? [
+          {
+            label: "Exchange Rate",
+            href: `/organizations/${organizationId}/exchange-rates/new`,
+            icon: TrendingUp,
+            testId: "quick-action-exchange-rate"
+          }
+        ]
+      : [])
   ]
 
   return (
@@ -459,16 +475,14 @@ export function Sidebar({ isCollapsed, onToggleCollapse, currentOrganization, co
           </div>
         )}
 
-        {/* Quick Action Menu */}
-        {currentOrganization && (
-          <div className="px-3 py-3 border-b border-gray-100">
-            <QuickActionMenu
-              organizationId={currentOrganization.id}
-              companies={companies}
-              isCollapsed={isCollapsed}
-            />
-          </div>
-        )}
+        {/* Quick Action Menu - ALWAYS visible per spec (Organization is always available) */}
+        <div className="px-3 py-3 border-b border-gray-100">
+          <QuickActionMenu
+            organizationId={currentOrganization?.id}
+            companies={companies}
+            isCollapsed={isCollapsed}
+          />
+        </div>
 
         {/* Navigation */}
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
@@ -627,16 +641,14 @@ export function MobileSidebar({ organizations = [], currentOrganization, compani
               </div>
             )}
 
-            {/* Quick Action Menu (Mobile) */}
-            {currentOrganization && (
-              <div className="px-3 py-3 border-b border-gray-200">
-                <QuickActionMenu
-                  organizationId={currentOrganization.id}
-                  companies={companies}
-                  isCollapsed={false}
-                />
-              </div>
-            )}
+            {/* Quick Action Menu (Mobile) - ALWAYS visible per spec */}
+            <div className="px-3 py-3 border-b border-gray-200">
+              <QuickActionMenu
+                organizationId={currentOrganization?.id}
+                companies={companies}
+                isCollapsed={false}
+              />
+            </div>
 
             {/* Navigation */}
             <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">

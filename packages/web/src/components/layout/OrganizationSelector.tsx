@@ -85,19 +85,10 @@ export function OrganizationSelector({
     })
   }
 
-  // If no organizations, show add button
-  if (!loading && organizations.length === 0) {
-    return (
-      <Link
-        to="/organizations/new"
-        className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-        data-testid="org-selector-empty"
-      >
-        <Plus className="h-4 w-4" />
-        <span>Add Organization</span>
-      </Link>
-    )
-  }
+  // Determine display text based on state
+  const displayText = loading
+    ? "Loading..."
+    : currentOrganization?.name ?? "Select Organization"
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -130,9 +121,7 @@ export function OrganizationSelector({
           <div className="flex flex-col items-start min-w-0">
             <span className="text-xs text-gray-500 leading-none">Organization</span>
             <span className="text-sm font-medium text-gray-900 truncate max-w-[150px]">
-              {loading
-                ? "Loading..."
-                : currentOrganization?.name ?? "Select Organization"}
+              {displayText}
             </span>
           </div>
         )}
@@ -163,51 +152,60 @@ export function OrganizationSelector({
 
           {/* Organization List */}
           <div className="max-h-64 overflow-y-auto py-1">
-            {organizations.map((org) => {
-              const isSelected = currentOrganization?.id === org.id
+            {organizations.length === 0 ? (
+              <div className="px-3 py-4 text-center" data-testid="org-selector-empty-list">
+                <p className="text-sm text-gray-500">No organizations yet</p>
+                <p className="mt-1 text-xs text-gray-400">
+                  Create your first organization to get started
+                </p>
+              </div>
+            ) : (
+              organizations.map((org) => {
+                const isSelected = currentOrganization?.id === org.id
 
-              return (
-                <button
-                  key={org.id}
-                  onClick={() => handleSelectOrganization(org)}
-                  className={clsx(
-                    "flex items-center gap-3 w-full px-3 py-2 text-left transition-colors",
-                    isSelected ? "bg-blue-50" : "hover:bg-gray-50"
-                  )}
-                  role="option"
-                  aria-selected={isSelected}
-                  data-testid={`org-selector-option-${org.id}`}
-                >
-                  {/* Organization Icon */}
-                  <div
+                return (
+                  <button
+                    key={org.id}
+                    onClick={() => handleSelectOrganization(org)}
                     className={clsx(
-                      "flex h-8 w-8 items-center justify-center rounded-lg",
-                      isSelected ? "bg-blue-100 text-blue-600" : "bg-gray-100 text-gray-600"
+                      "flex items-center gap-3 w-full px-3 py-2 text-left transition-colors",
+                      isSelected ? "bg-blue-50" : "hover:bg-gray-50"
                     )}
+                    role="option"
+                    aria-selected={isSelected}
+                    data-testid={`org-selector-option-${org.id}`}
                   >
-                    <Building2 className="h-4 w-4" />
-                  </div>
-
-                  {/* Organization Info */}
-                  <div className="flex-1 min-w-0">
-                    <p
+                    {/* Organization Icon */}
+                    <div
                       className={clsx(
-                        "text-sm font-medium truncate",
-                        isSelected ? "text-blue-700" : "text-gray-900"
+                        "flex h-8 w-8 items-center justify-center rounded-lg",
+                        isSelected ? "bg-blue-100 text-blue-600" : "bg-gray-100 text-gray-600"
                       )}
                     >
-                      {org.name}
-                    </p>
-                    {org.reportingCurrency && (
-                      <p className="text-xs text-gray-500">{org.reportingCurrency}</p>
-                    )}
-                  </div>
+                      <Building2 className="h-4 w-4" />
+                    </div>
 
-                  {/* Selected Check */}
-                  {isSelected && <Check className="h-4 w-4 text-blue-600 flex-shrink-0" />}
-                </button>
-              )
-            })}
+                    {/* Organization Info */}
+                    <div className="flex-1 min-w-0">
+                      <p
+                        className={clsx(
+                          "text-sm font-medium truncate",
+                          isSelected ? "text-blue-700" : "text-gray-900"
+                        )}
+                      >
+                        {org.name}
+                      </p>
+                      {org.reportingCurrency && (
+                        <p className="text-xs text-gray-500">{org.reportingCurrency}</p>
+                      )}
+                    </div>
+
+                    {/* Selected Check */}
+                    {isSelected && <Check className="h-4 w-4 text-blue-600 flex-shrink-0" />}
+                  </button>
+                )
+              })
+            )}
           </div>
 
           {/* Footer Actions */}

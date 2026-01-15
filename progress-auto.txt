@@ -131,3 +131,8 @@
 **Task**: Verified Issue 12 (Create New Organization routing) works correctly via E2E tests. Added new test file `organization-selector.spec.ts` with 3 tests verifying direct navigation to `/organizations/new`, link navigation from organizations page, and organization card navigation. Updated UI_ARCHITECTURE.md to mark Issue 12 as resolved. All 180 E2E tests pass (179 passed, 1 flaky) and typecheck passes.
 **Status**: complete
 ---
+
+## Iteration 1 - 2026-01-15 18:10
+**Task**: Fixed 4 UI issues - Issue 15 (Organization in Quick Actions), Issue 11 (button text wrapping), Issue 17 (Organization Selector dropdown), and verified Issue 16 (Delete Organization UI already exists). Changes made to Sidebar.tsx, Button.tsx, OrganizationSelector.tsx, and UI_ARCHITECTURE.md spec. Remaining open issues are lower-priority cosmetic fixes (tooltip positioning, filter icon alignment).
+**Status**: complete
+---

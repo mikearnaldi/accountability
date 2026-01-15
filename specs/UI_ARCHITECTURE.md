@@ -10,31 +10,19 @@ This section tracks known issues, implementation status, and priorities.
 
 ## Known Issues
 
-### Issue 15: UI Structure - Organization Selector & New Dropdown
-- **Status**: Open
-- **Priority**: HIGH - Core navigation structure change
-- **Problem**: Current UI structure does not match the intended design:
-  1. "Add Organization" is not accessible from the "+ New" dropdown
-  2. Organization selector placement needs to be consistent as a global header element
-- **Required Changes**:
-  1. **Add "Organization" to the "+ New" dropdown**: The sidebar's "+ New" menu should include "Organization" as an option that navigates to `/organizations/new`. This should be available even when no organization is currently selected.
-  2. **Organization Selector in Header**: The organization selector dropdown should be prominently placed in the header as a global element, allowing users to switch organizations from any page. This is already partially implemented but needs to be the PRIMARY way to switch/add organizations.
-  3. **Remove redundant organization selection UI**: The separate "Add Organization" buttons scattered throughout the app should be consolidated into the "+ New" dropdown.
-- **Files to Modify**:
-  - `packages/web/src/components/layout/Sidebar.tsx` - Add "Organization" to QuickActionMenu
-  - `packages/web/src/components/layout/Header.tsx` - Ensure org selector is prominent
-  - `packages/web/src/components/layout/OrganizationSelector.tsx` - Keep "+ Create New Organization" in dropdown
-- **Design Reference**: See Global Layout Structure diagram in Part 2 of this spec
+### Issue 15: UI Structure - Organization Selector & New Dropdown - RESOLVED
+- **Status**: Completed
+- **Resolution**: Added "Organization" as the first option in the "+ New" dropdown menu in the sidebar. This option is ALWAYS visible, even when no organization is selected. The QuickActionMenu now shows conditionally:
+  - Organization: Always available (navigates to `/organizations/new`)
+  - Journal Entry: Requires org + company selected
+  - Company: Requires org selected
+  - Account: Requires org + company selected
+  - Exchange Rate: Requires org selected
+- The Organization Selector in the header already includes "+ Create New Organization" link, providing two ways to create organizations as specified.
 
-### Issue 11: Add Buttons Broken Layout (Reopened)
-- **Status**: Open (Reopened)
-- **Problem**: Add/Create buttons still display text on two lines instead of single line in most interfaces. Only "Add Company" displays correctly.
-- **Expected**: All add buttons should display icon and text on a single line (e.g., `[+ Add Rate]` not `[+]` on one line and `[Add Rate]` on the next)
-- **Affected Pages**: All pages with add buttons EXCEPT Companies list page
-- **Fix**: Audit all add/create buttons and ensure they use:
-  1. `whitespace-nowrap` or `flex-nowrap` to prevent text wrapping
-  2. Proper flex container with `items-center` and `gap-2`
-  3. Consistent Button component usage across all pages
+### Issue 11: Add Buttons Broken Layout - RESOLVED
+- **Status**: Completed
+- **Resolution**: Added `whitespace-nowrap` to the base Button component class list in `packages/web/src/components/ui/Button.tsx`. This ensures all buttons with icons and text display on a single line without text wrapping, regardless of container width.
 
 ### Issue 8: Tooltip Positioning/Overflow
 - **Status**: Open
@@ -55,6 +43,25 @@ This section tracks known issues, implementation status, and priorities.
   1. Use consistent `padding-right` for all filter inputs
   2. Ensure dropdown arrows and date picker icons are aligned at the same distance from the right edge
   3. Consider creating a shared filter input component with consistent icon positioning
+
+### Issue 17: Organization Selector Should Be Dropdown Menu - RESOLVED
+- **Status**: Completed
+- **Resolution**: Updated `OrganizationSelector.tsx` to always show a dropdown menu regardless of organization count:
+  1. Button now shows "Select Organization" when none selected (instead of link saying "Add Organization")
+  2. Dropdown always opens with consistent UI: header, organization list (or empty state message), and footer actions
+  3. Empty state shows friendly message "No organizations yet" with hint to create first organization
+  4. Footer actions always show "Create New Organization" and "View All Organizations" links
+  5. Works consistently with 0, 1, or many organizations
+
+### Issue 16: Missing Delete Organization UI - RESOLVED
+- **Status**: Completed
+- **Resolution**: Organization Settings page (`packages/web/src/routes/organizations/$organizationId/settings.tsx`) already has a fully implemented "Danger Zone" section with:
+  1. "Danger Zone" section with AlertTriangle icon and red border styling
+  2. "Delete Organization" button with danger variant (red)
+  3. Type-to-confirm dialog requiring user to type exact organization name
+  4. Disabled confirm button until text matches
+  5. Error handling for API errors (shows message if org has companies)
+  6. Navigation to `/organizations` after successful deletion
 
 ## Completed Items
 
