@@ -8,7 +8,659 @@ This document defines the UI architecture, navigation patterns, and design stand
 
 This section tracks known issues, implementation status, and priorities.
 
+## ⚠️⚠️⚠️ CRITICAL: OPEN ISSUES THAT MUST BE COMPLETED ⚠️⚠️⚠️
+
+**DO NOT signal NOTHING_LEFT_TO_DO or TASK_COMPLETE until ALL of these issues are implemented:**
+
+### OPEN ISSUES CHECKLIST
+
+| Issue | Status | Description | Subtasks |
+|-------|--------|-------------|----------|
+| **Issue 28** | ✅ DONE | Consolidation Page Full Implementation | 8 subtasks (28.1-28.8), 10+ new files |
+| **Issue 29** | ❌ OPEN | Reports - Complete All Financial Report Views | 6 subtasks (29.1-29.6), 8 new files |
+| **Issue 30** | ❌ OPEN | Intercompany Transactions Full Implementation | 8 subtasks (30.1-30.8), 8 new files |
+
+**⚠️ You MUST complete ALL issues marked ❌ OPEN before signaling completion.**
+
+When you complete an issue, update its status in this table to ✅ DONE.
+
+---
+
+## Implementation Scope
+
+**The Known Issues section below is NOT the complete scope of work.**
+
+The automation agent MUST implement the FULL design specification in Part 2 of this document.
+
+### Pages Implementation Status
+
+**⚠️ ALL BACKEND APIs EXIST** - These pages have stub frontends but the backend APIs are fully implemented. The frontend must be wired up to use the real APIs:
+
+| Page | Route | Status | Notes |
+|------|-------|--------|-------|
+| **Consolidation** | `/organizations/:orgId/consolidation` | ✅ IMPLEMENTED | All 8 subtasks complete: list page, create/edit forms, group detail, member management, run initiation, run detail with progress stepper and trial balance. |
+| **Intercompany** | `/organizations/:orgId/intercompany` | ❌ NEEDS WORK | See **Issue 30** for detailed tasks (8 subtasks, 8 new files). Backend has 8 endpoints for transactions, matching, JE linking. |
+| **Reports** | `/organizations/:orgId/reports` | ⚠️ PARTIAL | See **Issue 29** for detailed tasks. Trial Balance done; Balance Sheet, Income Statement, Cash Flow, Equity Statement need implementation (4 pages, 4 shared components) |
+| **Audit Log** | `/organizations/:orgId/audit-log` | ✅ IMPLEMENTED | Backend API wired up. Issue 27 (filter UX) resolved. |
+
+### Implementation Requirements
+
+1. **All page templates** - List pages, Detail pages, Form pages must follow the exact layouts defined in Part 2
+2. **Dashboard widgets** - The Organization Dashboard must have all widgets specified (summary cards, quick actions, recent activity)
+3. **Empty states** - EVERY list/data page must have proper empty states with CTAs as specified
+4. **Loading states** - Skeleton loaders, never blank pages, sidebar/header visible during load
+5. **Error states** - Consistent error UI with retry actions
+6. **Responsive design** - Mobile adaptations, collapsible sidebar, card-based lists on mobile
+7. **Component standards** - Buttons, status badges, forms, tables must follow the defined patterns
+8. **Table column tooltips** - Every column header must have explanatory tooltips
+9. **Accessibility** - Keyboard navigation, focus indicators, ARIA labels, skip links
+
+**DO NOT exit with NOTHING_LEFT_TO_DO until:**
+- ALL pages in the table above are fully implemented
+- Every page matches the templates in Part 2
+- All component standards are implemented
+- All states (empty, loading, error) are implemented across all pages
+- The dashboard has all specified widgets
+- Responsive design is fully implemented
+
+**How to verify completeness:**
+1. Navigate to each page in the sidebar and verify it's fully functional
+2. Compare each page against the Part 2 specification
+3. Check every list page has empty/loading/error states
+4. Verify all tables have column header tooltips
+5. Test responsive breakpoints (desktop, tablet, mobile)
+6. Verify accessibility requirements
+
 ## Known Issues
+
+### Issue 28: Consolidation Page Full Implementation - RESOLVED
+- **Status**: Completed
+- **Priority**: HIGH
+- **Resolution**: Fully implemented all 8 subtasks. The Consolidation page now has a working groups list, create/edit forms, group detail page with members table and run history, member management, initiate run modal, and run detail page with progress stepper and consolidated trial balance display.
+
+#### Backend API Available (ConsolidationApi - 17 endpoints)
+
+**Group Management:**
+- `GET /v1/consolidation/groups` - List groups (filter by organizationId, isActive)
+- `GET /v1/consolidation/groups/:id` - Get group with members
+- `POST /v1/consolidation/groups` - Create group
+- `PUT /v1/consolidation/groups/:id` - Update group
+- `DELETE /v1/consolidation/groups/:id` - Delete group
+- `POST /v1/consolidation/groups/:id/activate` - Activate group
+- `POST /v1/consolidation/groups/:id/deactivate` - Deactivate group
+
+**Member Management:**
+- `POST /v1/consolidation/groups/:id/members` - Add member
+- `PUT /v1/consolidation/groups/:id/members/:companyId` - Update member
+- `DELETE /v1/consolidation/groups/:id/members/:companyId` - Remove member
+
+**Run Management:**
+- `GET /v1/consolidation/runs` - List runs (filter by groupId, status, year, period)
+- `GET /v1/consolidation/runs/:id` - Get run with step statuses
+- `POST /v1/consolidation/groups/:groupId/runs` - Initiate run
+- `POST /v1/consolidation/runs/:id/cancel` - Cancel run
+- `DELETE /v1/consolidation/runs/:id` - Delete run
+- `GET /v1/consolidation/runs/:id/trial-balance` - Get consolidated trial balance
+- `GET /v1/consolidation/groups/:groupId/latest-run` - Get latest completed run
+
+#### Routes to Create
+
+| Route | File | Purpose |
+|-------|------|---------|
+| `/consolidation` | `index.tsx` | List consolidation groups |
+| `/consolidation/new` | `new.tsx` | Create new group form |
+| `/consolidation/:groupId` | `$groupId/index.tsx` | Group detail with members & run history |
+| `/consolidation/:groupId/edit` | `$groupId/edit.tsx` | Edit group form |
+| `/consolidation/:groupId/runs/:runId` | `$groupId/runs/$runId.tsx` | Run detail with progress & trial balance |
+
+#### Task 28.1: Consolidation Groups List Page
+- **Route**: `/organizations/:orgId/consolidation`
+- **File**: `packages/web/src/routes/organizations/$organizationId/consolidation/index.tsx`
+- **Requirements**:
+  1. Fetch groups via `GET /v1/consolidation/groups?organizationId=...`
+  2. Display table with columns: Name, Parent Company, Members (count), Currency, Status (Active/Inactive badge)
+  3. Add column header tooltips per spec
+  4. "New Consolidation Group" button (enabled, links to `/consolidation/new`)
+  5. Filter toggle for Active/Inactive groups
+  6. Click row → navigate to group detail
+  7. Empty state when no groups exist (keep existing feature cards but add working CTA)
+  8. Loading state with skeleton table
+  9. Pagination if > 25 groups
+
+#### Task 28.2: Create Consolidation Group Form
+- **Route**: `/organizations/:orgId/consolidation/new`
+- **File**: `packages/web/src/routes/organizations/$organizationId/consolidation/new.tsx`
+- **Requirements**:
+  1. Form fields:
+     - Name (required, text input)
+     - Reporting Currency (required, currency dropdown)
+     - Consolidation Method (required, select: FullConsolidation, EquityMethod, CostMethod, VariableInterestEntity)
+     - Parent Company (required, dropdown of org's companies)
+  2. Members section:
+     - "Add Member" button to add subsidiary companies
+     - Each member row: Company (dropdown), Ownership % (0-100), Consolidation Method (select)
+     - Remove member button on each row
+     - Validation: ownership % between 0-100, no duplicate companies
+  3. Submit via `POST /v1/consolidation/groups`
+  4. Cancel button returns to list
+  5. On success → navigate to group detail page
+  6. Form validation with error messages
+  7. Loading state on submit button
+
+#### Task 28.3: Consolidation Group Detail Page
+- **Route**: `/organizations/:orgId/consolidation/:groupId`
+- **File**: `packages/web/src/routes/organizations/$organizationId/consolidation/$groupId/index.tsx`
+- **Requirements**:
+  1. Fetch group via `GET /v1/consolidation/groups/:id`
+  2. Header section:
+     - Group name as title
+     - Status badge (Active/Inactive)
+     - Actions: Edit button, Activate/Deactivate toggle, Delete button (with confirmation modal)
+  3. Group info card:
+     - Reporting Currency
+     - Consolidation Method
+     - Parent Company name
+  4. Members table:
+     - Columns: Company Name, Ownership %, Consolidation Method, Acquisition Date, NCI %
+     - Row actions: Edit (modal), Remove (with confirmation)
+     - "Add Member" button opens modal
+     - Column header tooltips
+  5. Run History section:
+     - Fetch via `GET /v1/consolidation/runs?groupId=...`
+     - Table: Period, As-of Date, Status (badge), Initiated By, Duration
+     - Click row → navigate to run detail
+     - "New Run" button opens initiate run modal
+  6. Latest Run card (if exists):
+     - Show summary of most recent completed run
+     - Quick link to view trial balance
+
+#### Task 28.4: Edit Consolidation Group Form
+- **Route**: `/organizations/:orgId/consolidation/:groupId/edit`
+- **File**: `packages/web/src/routes/organizations/$organizationId/consolidation/$groupId/edit.tsx`
+- **Requirements**:
+  1. Pre-populate form with existing group data
+  2. Editable fields: Name, Consolidation Method, Reporting Currency
+  3. Parent Company shown but NOT editable (display only)
+  4. Submit via `PUT /v1/consolidation/groups/:id`
+  5. Cancel returns to group detail
+  6. On success → navigate back to group detail
+
+#### Task 28.5: Add/Edit Member Modal
+- **Location**: Component used in group detail page
+- **File**: `packages/web/src/components/consolidation/MemberModal.tsx`
+- **Requirements**:
+  1. Modal dialog for adding or editing a member
+  2. Fields:
+     - Company (dropdown, only companies not already members)
+     - Ownership Percentage (0-100 number input)
+     - Consolidation Method (select dropdown)
+  3. For add: `POST /v1/consolidation/groups/:id/members`
+  4. For edit: `PUT /v1/consolidation/groups/:id/members/:companyId`
+  5. Validation: ownership between 0-100
+  6. Auto-calculate NCI % (100 - ownership)
+
+#### Task 28.6: Initiate Run Modal
+- **Location**: Component used in group detail page
+- **File**: `packages/web/src/components/consolidation/InitiateRunModal.tsx`
+- **Requirements**:
+  1. Modal dialog to initiate a new consolidation run
+  2. Fields:
+     - Fiscal Year (number input or select)
+     - Fiscal Period (number input or select)
+     - As-of Date (date picker)
+  3. Options (checkboxes):
+     - Skip Validation (default: false)
+     - Continue on Warnings (default: true)
+     - Include Equity Method Investments (default: true)
+     - Force Regeneration (default: false)
+  4. Submit via `POST /v1/consolidation/groups/:groupId/runs`
+  5. On success → navigate to run detail page
+  6. Show error if run already exists for period (unless force regeneration)
+
+#### Task 28.7: Consolidation Run Detail Page
+- **Route**: `/organizations/:orgId/consolidation/:groupId/runs/:runId`
+- **File**: `packages/web/src/routes/organizations/$organizationId/consolidation/$groupId/runs/$runId.tsx`
+- **Requirements**:
+  1. Fetch run via `GET /v1/consolidation/runs/:id`
+  2. Header:
+     - "Consolidation Run: [Period]" title
+     - Status badge (Pending, InProgress, Completed, Failed, Cancelled)
+     - Back to group link
+  3. Run info section:
+     - Period (Year/Period)
+     - As-of Date
+     - Initiated By, Initiated At
+     - Started At, Completed At
+     - Total Duration
+  4. **Progress Stepper** (7 steps):
+     - Validate Member Data
+     - Currency Translation
+     - Aggregate Balances
+     - Intercompany Matching
+     - Generate Eliminations
+     - Calculate Minority Interest
+     - Generate Consolidated TB
+     - Each step shows: status icon (pending/running/completed/failed/skipped), name, duration
+  5. Validation Results section (if available):
+     - Show errors (red) and warnings (yellow)
+     - Display issue code, message, entity reference
+  6. Actions:
+     - Cancel button (for Pending/InProgress runs) via `POST /runs/:id/cancel`
+     - Delete button (for Pending/Failed runs) via `DELETE /runs/:id`
+  7. For COMPLETED runs:
+     - "View Consolidated Trial Balance" button/section
+     - Fetch via `GET /runs/:id/trial-balance`
+     - Display trial balance table: Account #, Account Name, Type, Aggregated, Eliminations, NCI, Consolidated
+     - Show totals: Total Debits, Total Credits, Total Eliminations, Total NCI
+     - Balance check indicator (debits = credits)
+
+#### Task 28.8: Delete Confirmation Modals
+- **File**: `packages/web/src/components/consolidation/DeleteGroupModal.tsx`
+- **File**: `packages/web/src/components/consolidation/DeleteRunModal.tsx`
+- **Requirements**:
+  1. Confirmation dialog with warning text
+  2. For groups: warn about impact, check for completed runs
+  3. For runs: only allow delete of Pending/Failed runs
+  4. Type-to-confirm pattern (type group/run name to confirm)
+
+#### Files to Create/Modify
+
+**New Files:**
+- `packages/web/src/routes/organizations/$organizationId/consolidation/new.tsx`
+- `packages/web/src/routes/organizations/$organizationId/consolidation/$groupId/index.tsx`
+- `packages/web/src/routes/organizations/$organizationId/consolidation/$groupId/edit.tsx`
+- `packages/web/src/routes/organizations/$organizationId/consolidation/$groupId/runs/$runId.tsx`
+- `packages/web/src/components/consolidation/MemberModal.tsx`
+- `packages/web/src/components/consolidation/InitiateRunModal.tsx`
+- `packages/web/src/components/consolidation/DeleteGroupModal.tsx`
+- `packages/web/src/components/consolidation/DeleteRunModal.tsx`
+- `packages/web/src/components/consolidation/ProgressStepper.tsx`
+- `packages/web/src/components/consolidation/TrialBalanceTable.tsx`
+
+**Modify:**
+- `packages/web/src/routes/organizations/$organizationId/consolidation/index.tsx` - Replace stub with real implementation
+
+### Issue 29: Reports - Complete All Financial Report Views
+- **Status**: Open
+- **Priority**: HIGH
+- **Problem**: Only Trial Balance is implemented. Balance Sheet, Income Statement, Cash Flow Statement, and Statement of Changes in Equity all show "Coming Soon" despite having fully implemented backend APIs.
+
+#### Backend API Available (ReportsApi - 5 endpoints)
+
+| Endpoint | Route | Parameters | Status |
+|----------|-------|------------|--------|
+| Trial Balance | `GET /v1/reports/trial-balance` | companyId, asOfDate, periodStartDate?, excludeZeroBalances?, format? | ✅ Frontend Done |
+| Balance Sheet | `GET /v1/reports/balance-sheet` | companyId, asOfDate, comparativeDate?, includeZeroBalances?, format? | ❌ Frontend Needed |
+| Income Statement | `GET /v1/reports/income-statement` | companyId, periodStartDate, periodEndDate, comparativeStartDate?, comparativeEndDate?, format? | ❌ Frontend Needed |
+| Cash Flow Statement | `GET /v1/reports/cash-flow` | companyId, periodStartDate, periodEndDate, method? (direct/indirect), format? | ❌ Frontend Needed |
+| Equity Statement | `GET /v1/reports/equity-statement` | companyId, periodStartDate, periodEndDate, format? | ❌ Frontend Needed |
+
+#### Current Implementation
+
+- ✅ `/organizations/:orgId/reports` - Company selection (Step 1)
+- ✅ `/organizations/:orgId/companies/:companyId/reports` - Report type selection (Step 2)
+- ✅ `/organizations/:orgId/companies/:companyId/reports/trial-balance` - Working
+
+#### Routes to Create
+
+| Route | File | Report Type |
+|-------|------|-------------|
+| `.../reports/balance-sheet` | `balance-sheet.tsx` | Balance Sheet (ASC 210) |
+| `.../reports/income-statement` | `income-statement.tsx` | Income Statement (ASC 220) |
+| `.../reports/cash-flow` | `cash-flow.tsx` | Cash Flow Statement (ASC 230) |
+| `.../reports/equity-statement` | `equity-statement.tsx` | Statement of Changes in Equity |
+
+#### Task 29.1: Balance Sheet Report Page
+- **Route**: `/organizations/:orgId/companies/:companyId/reports/balance-sheet`
+- **File**: `packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/balance-sheet.tsx`
+- **API**: `GET /v1/reports/balance-sheet`
+- **Requirements**:
+  1. Parameters form:
+     - As of Date (date picker, required)
+     - Comparative Date (date picker, optional - for period comparison)
+     - Include Zero Balances checkbox
+  2. "Generate Report" button
+  3. Report display:
+     - **Assets section**: Current Assets, Non-Current Assets, Total Assets
+     - **Liabilities section**: Current Liabilities, Non-Current Liabilities, Total Liabilities
+     - **Equity section**: Line items with Total Equity
+     - **Footer**: Total Liabilities & Equity (must equal Total Assets)
+  4. Each section shows line items with:
+     - Account number (optional), Description, Current Amount, Comparative Amount (if date provided), Variance, Variance %
+     - Indent levels for sub-items
+     - Subtotals with bold styling
+  5. Balance check indicator (Assets = Liabilities + Equity)
+  6. Export buttons (Print, PDF, Excel)
+  7. Column header tooltips
+
+#### Task 29.2: Income Statement Report Page
+- **Route**: `/organizations/:orgId/companies/:companyId/reports/income-statement`
+- **File**: `packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/income-statement.tsx`
+- **API**: `GET /v1/reports/income-statement`
+- **Requirements**:
+  1. Parameters form:
+     - Period Start Date (date picker, required)
+     - Period End Date (date picker, required)
+     - Comparative Start Date (optional)
+     - Comparative End Date (optional)
+  2. "Generate Report" button
+  3. Report display sections:
+     - **Revenue**: Line items → Total Revenue
+     - **Cost of Sales**: Line items → Total COGS
+     - **Gross Profit** (Revenue - COGS)
+     - **Operating Expenses**: Line items → Total OpEx
+     - **Operating Income** (Gross Profit - OpEx)
+     - **Other Income/Expense**: Line items → Total
+     - **Income Before Tax**
+     - **Tax Expense**
+     - **Net Income**
+  4. Each line shows: Description, Current, Comparative (if dates provided), Variance, Variance %
+  5. Visual hierarchy with bold totals, indented sub-items
+  6. Export buttons
+  7. Column header tooltips
+
+#### Task 29.3: Cash Flow Statement Report Page
+- **Route**: `/organizations/:orgId/companies/:companyId/reports/cash-flow`
+- **File**: `packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/cash-flow.tsx`
+- **API**: `GET /v1/reports/cash-flow`
+- **Requirements**:
+  1. Parameters form:
+     - Period Start Date (date picker, required)
+     - Period End Date (date picker, required)
+     - Method (radio: "Indirect" or "Direct", default Indirect)
+  2. "Generate Report" button
+  3. Report display sections:
+     - **Beginning Cash Balance**
+     - **Operating Activities**: Line items → Net Cash from Operations
+     - **Investing Activities**: Line items → Net Cash from Investing
+     - **Financing Activities**: Line items → Net Cash from Financing
+     - **Exchange Rate Effect**
+     - **Net Change in Cash**
+     - **Ending Cash Balance**
+  4. Each section shows line items with amounts
+  5. Verification: Beginning + Net Change = Ending
+  6. Export buttons
+  7. Column header tooltips
+
+#### Task 29.4: Statement of Changes in Equity Report Page
+- **Route**: `/organizations/:orgId/companies/:companyId/reports/equity-statement`
+- **File**: `packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/equity-statement.tsx`
+- **API**: `GET /v1/reports/equity-statement`
+- **Requirements**:
+  1. Parameters form:
+     - Period Start Date (date picker, required)
+     - Period End Date (date picker, required)
+  2. "Generate Report" button
+  3. Report display:
+     - **Opening Balances row**: Common Stock, Preferred Stock, APIC, Retained Earnings, Treasury Stock, Accumulated OCI, NCI, Total
+     - **Movement rows** (for each movement type):
+       - Net Income
+       - Other Comprehensive Income
+       - Dividends Declared
+       - Stock Issuance/Repurchase
+       - Stock-Based Compensation
+       - Prior Period Adjustments
+       - Other
+     - **Closing Balances row**: All columns with final totals
+  4. Columnar format showing each equity component
+  5. Movement type labels in first column
+  6. Export buttons
+  7. Column header tooltips explaining each equity component
+
+#### Task 29.5: Enable Report Cards in Hub Page
+- **File**: `packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/index.tsx`
+- **Requirements**:
+  1. Update `getReportCards()` function to set `available: true` for all reports once their pages are created
+  2. Update the `Link` component in `ReportCardComponent` to use dynamic routing based on `report.id`
+  3. Ensure all 5 report cards link to their respective pages
+
+#### Task 29.6: Shared Report Components
+- **File**: `packages/web/src/components/reports/ReportSection.tsx` - Reusable section component
+- **File**: `packages/web/src/components/reports/ReportLineItem.tsx` - Reusable line item with indent
+- **File**: `packages/web/src/components/reports/ReportHeader.tsx` - Standard report header with company/date/export
+- **File**: `packages/web/src/components/reports/ReportTable.tsx` - Standard report table wrapper
+- **Requirements**:
+  1. Extract common patterns from trial-balance.tsx
+  2. Support indent levels (0-3 levels)
+  3. Support line item styles (Normal, Subtotal, Total, Header)
+  4. Consistent number formatting
+  5. Variance calculation display (amount and %)
+
+#### Files to Create
+
+**New Report Pages:**
+- `packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/balance-sheet.tsx`
+- `packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/income-statement.tsx`
+- `packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/cash-flow.tsx`
+- `packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/equity-statement.tsx`
+
+**Shared Components:**
+- `packages/web/src/components/reports/ReportSection.tsx`
+- `packages/web/src/components/reports/ReportLineItem.tsx`
+- `packages/web/src/components/reports/ReportHeader.tsx`
+- `packages/web/src/components/reports/ReportTable.tsx`
+
+**Modify:**
+- `packages/web/src/routes/organizations/$organizationId/companies/$companyId/reports/index.tsx` - Enable all report cards
+
+### Issue 30: Intercompany Transactions Full Implementation
+- **Status**: Open
+- **Priority**: HIGH
+- **Problem**: The Intercompany page is currently a stub with disabled button and "Coming soon" message. The backend API has 8 fully implemented endpoints that need to be wired up to a functional frontend.
+
+#### Backend API Available (IntercompanyTransactionsApi - 8 endpoints)
+
+| Endpoint | Route | Purpose |
+|----------|-------|---------|
+| List | `GET /v1/intercompany-transactions` | List with filters (company, type, status, date range, unmatched, requiresElimination) |
+| Get | `GET /v1/intercompany-transactions/:id` | Get single transaction |
+| Create | `POST /v1/intercompany-transactions` | Create new transaction |
+| Update | `PUT /v1/intercompany-transactions/:id` | Update transaction |
+| Delete | `DELETE /v1/intercompany-transactions/:id` | Delete transaction |
+| Update Status | `POST /v1/intercompany-transactions/:id/matching-status` | Update matching status |
+| Link From JE | `POST /v1/intercompany-transactions/:id/link-from-journal-entry` | Link journal entry to "from" side |
+| Link To JE | `POST /v1/intercompany-transactions/:id/link-to-journal-entry` | Link journal entry to "to" side |
+
+#### Domain Model
+
+**Transaction Types:**
+- `SalePurchase` - Sale/purchase of goods or services
+- `Loan` - Intercompany loans
+- `ManagementFee` - Management fee charges
+- `Dividend` - Dividend distributions
+- `CapitalContribution` - Capital contributions
+- `CostAllocation` - Cost allocation charges
+- `Royalty` - Royalty payments
+
+**Matching Statuses:**
+- `Matched` - Both sides agree on amount and details (green)
+- `Unmatched` - Missing entry on one side (red)
+- `PartiallyMatched` - Amounts differ between sides (yellow)
+- `VarianceApproved` - Difference has been reviewed and accepted (blue)
+
+#### Routes to Create
+
+| Route | File | Purpose |
+|-------|------|---------|
+| `/intercompany` | `index.tsx` | List transactions with filters |
+| `/intercompany/new` | `new.tsx` | Create new transaction form |
+| `/intercompany/:transactionId` | `$transactionId/index.tsx` | Transaction detail page |
+| `/intercompany/:transactionId/edit` | `$transactionId/edit.tsx` | Edit transaction form |
+
+#### Task 30.1: Intercompany Transactions List Page
+- **Route**: `/organizations/:orgId/intercompany`
+- **File**: `packages/web/src/routes/organizations/$organizationId/intercompany/index.tsx`
+- **Requirements**:
+  1. Fetch transactions via `GET /v1/intercompany-transactions?...` with org's company filters
+  2. Filter controls:
+     - From Company (dropdown)
+     - To Company (dropdown)
+     - Transaction Type (multi-select)
+     - Matching Status (multi-select)
+     - Date Range (start/end date pickers)
+     - Show Unmatched Only (checkbox)
+     - Requires Elimination (checkbox)
+  3. Table columns with tooltips:
+     - Date
+     - Type (badge with icon)
+     - From Company → To Company (with arrow)
+     - Amount (formatted with currency)
+     - Matching Status (colored badge)
+     - Journal Entries (icons showing if from/to entries are linked)
+     - Actions (view, edit, delete dropdown)
+  4. "New Transaction" button (enabled, links to `/intercompany/new`)
+  5. Empty state with CTA when no transactions
+  6. Loading state with skeleton table
+  7. Pagination (limit 25 per page)
+  8. Click row → navigate to transaction detail
+
+#### Task 30.2: Create Intercompany Transaction Form
+- **Route**: `/organizations/:orgId/intercompany/new`
+- **File**: `packages/web/src/routes/organizations/$organizationId/intercompany/new.tsx`
+- **Requirements**:
+  1. Form fields:
+     - From Company (required, dropdown of org's companies)
+     - To Company (required, dropdown of org's companies, must differ from From)
+     - Transaction Type (required, select dropdown)
+     - Transaction Date (required, date picker)
+     - Amount (required, currency selector + number input)
+     - Description (optional, textarea)
+  2. Validation:
+     - From and To companies must be different
+     - Amount must be positive
+     - Date required
+  3. Submit via `POST /v1/intercompany-transactions`
+  4. Cancel button returns to list
+  5. On success → navigate to transaction detail page
+  6. Loading state on submit button
+  7. Display API validation errors
+
+#### Task 30.3: Intercompany Transaction Detail Page
+- **Route**: `/organizations/:orgId/intercompany/:transactionId`
+- **File**: `packages/web/src/routes/organizations/$organizationId/intercompany/$transactionId/index.tsx`
+- **Requirements**:
+  1. Fetch transaction via `GET /v1/intercompany-transactions/:id`
+  2. Header section:
+     - Transaction ID/reference
+     - Matching Status badge (prominent)
+     - Actions: Edit button, Delete button (with confirmation)
+  3. Transaction info card:
+     - From Company (with link to company page)
+     - To Company (with link to company page)
+     - Transaction Type (badge)
+     - Transaction Date
+     - Amount
+     - Description (if present)
+     - Created At, Updated At
+  4. **Journal Entries section** (two-column layout):
+     - **From Side**:
+       - If linked: Show JE number with link to journal entry detail
+       - If not linked: "Not linked" + "Link Journal Entry" button → opens modal
+     - **To Side**:
+       - Same as From Side
+  5. **Matching/Reconciliation section**:
+     - Current status with explanation
+     - If variance exists: Show variance amount
+     - If variance explanation exists: Show it
+     - "Update Matching Status" button → opens modal
+  6. **Variance section** (if applicable):
+     - Variance Amount
+     - Variance Explanation
+     - "Approve Variance" action if status is PartiallyMatched
+
+#### Task 30.4: Edit Intercompany Transaction Form
+- **Route**: `/organizations/:orgId/intercompany/:transactionId/edit`
+- **File**: `packages/web/src/routes/organizations/$organizationId/intercompany/$transactionId/edit.tsx`
+- **Requirements**:
+  1. Pre-populate form with existing transaction data
+  2. Editable fields:
+     - Transaction Type
+     - Transaction Date
+     - Amount
+     - Description
+     - Variance Amount (if applicable)
+     - Variance Explanation (if applicable)
+  3. From/To companies shown but NOT editable (display only)
+  4. Submit via `PUT /v1/intercompany-transactions/:id`
+  5. Cancel returns to transaction detail
+  6. On success → navigate back to transaction detail
+  7. Warn if transaction is already matched (edits may require re-matching)
+
+#### Task 30.5: Update Matching Status Modal
+- **Location**: Component used in transaction detail page
+- **File**: `packages/web/src/components/intercompany/MatchingStatusModal.tsx`
+- **Requirements**:
+  1. Modal dialog to update matching status
+  2. Radio/select for new status:
+     - Matched
+     - Unmatched
+     - PartiallyMatched
+     - VarianceApproved
+  3. Conditional variance explanation field:
+     - Required when changing to VarianceApproved
+     - Optional for other statuses
+  4. Submit via `POST /v1/intercompany-transactions/:id/matching-status`
+  5. Show current status for reference
+  6. Validation: VarianceApproved requires explanation
+
+#### Task 30.6: Link Journal Entry Modal
+- **Location**: Component used in transaction detail page
+- **File**: `packages/web/src/components/intercompany/LinkJournalEntryModal.tsx`
+- **Requirements**:
+  1. Modal dialog to link a journal entry
+  2. Props: transactionId, side ("from" or "to"), companyId
+  3. Journal entry search/selection:
+     - Filter by company (must match the transaction's from/to company)
+     - Search by JE number
+     - Show: JE Number, Date, Description, Amount
+  4. Validation:
+     - Journal entry must belong to correct company
+     - Journal entry should not already be linked to another IC transaction
+  5. Submit via:
+     - `POST /v1/intercompany-transactions/:id/link-from-journal-entry` (for "from" side)
+     - `POST /v1/intercompany-transactions/:id/link-to-journal-entry` (for "to" side)
+  6. On success: refresh transaction detail, close modal
+
+#### Task 30.7: Delete Transaction Confirmation Modal
+- **File**: `packages/web/src/components/intercompany/DeleteTransactionModal.tsx`
+- **Requirements**:
+  1. Confirmation dialog with warning text
+  2. Warn that linked journal entries will be unlinked
+  3. Cannot delete if status is Matched (business rule)
+  4. Type transaction ID or amount to confirm
+  5. Submit via `DELETE /v1/intercompany-transactions/:id`
+  6. On success → navigate to transactions list
+
+#### Task 30.8: Intercompany Transaction Type Badge Component
+- **File**: `packages/web/src/components/intercompany/TransactionTypeBadge.tsx`
+- **Requirements**:
+  1. Consistent badge styling for each transaction type
+  2. Include appropriate icon for each type:
+     - SalePurchase: ShoppingCart
+     - Loan: Banknote
+     - ManagementFee: Briefcase
+     - Dividend: TrendingUp
+     - CapitalContribution: Building
+     - CostAllocation: Calculator
+     - Royalty: Star
+  3. Color coding by type
+
+#### Files to Create
+
+**New Route Pages:**
+- `packages/web/src/routes/organizations/$organizationId/intercompany/new.tsx`
+- `packages/web/src/routes/organizations/$organizationId/intercompany/$transactionId/index.tsx`
+- `packages/web/src/routes/organizations/$organizationId/intercompany/$transactionId/edit.tsx`
+
+**New Components:**
+- `packages/web/src/components/intercompany/MatchingStatusModal.tsx`
+- `packages/web/src/components/intercompany/LinkJournalEntryModal.tsx`
+- `packages/web/src/components/intercompany/DeleteTransactionModal.tsx`
+- `packages/web/src/components/intercompany/TransactionTypeBadge.tsx`
+- `packages/web/src/components/intercompany/MatchingStatusBadge.tsx`
+
+**Modify:**
+- `packages/web/src/routes/organizations/$organizationId/intercompany/index.tsx` - Replace stub with real implementation
 
 ### Issue 15: UI Structure - Organization Selector & New Dropdown - RESOLVED
 - **Status**: Completed
@@ -19,6 +671,22 @@ This section tracks known issues, implementation status, and priorities.
   - Account: Requires org + company selected
   - Exchange Rate: Requires org selected
 - The Organization Selector in the header already includes "+ Create New Organization" link, providing two ways to create organizations as specified.
+
+### Issue 27: Audit Log Filter UX Improvements - RESOLVED
+- **Status**: Completed
+- **Resolution**: Fixed both UX issues:
+  1. **Custom chevron icon**: Updated the Select component globally (`packages/web/src/components/ui/Select.tsx`) to:
+     - Hide native browser dropdown arrow with `appearance-none`
+     - Add custom ChevronDown icon from lucide-react positioned consistently at the right edge
+     - Use pointer-events-none on the icon so clicks pass through to the select
+  2. **Auto-apply filters**: Updated the Audit Log page to:
+     - Remove the "Apply Filters" button entirely
+     - Auto-apply filter changes immediately when select dropdowns change
+     - Debounce date input changes by 500ms to avoid excessive API calls while typing
+     - Clean up debounce timers on component unmount
+- **Files modified**:
+  - `packages/web/src/components/ui/Select.tsx` - Added custom chevron icon with consistent positioning
+  - `packages/web/src/routes/organizations/$organizationId/audit-log/index.tsx` - Implemented auto-apply filters with debounce
 
 ### Issue 26: Reports Company Selection Shows Redundant Report Types Text - RESOLVED
 - **Status**: Completed
@@ -72,16 +740,15 @@ This section tracks known issues, implementation status, and priorities.
 
 ### Issue 18: Organization Selector Dropdown - RESOLVED
 - **Status**: Completed
-- **Resolution**: Updated `OrganizationSelector.tsx` to be a PURE SELECTION DROPDOWN:
+- **Resolution**: Updated `OrganizationSelector.tsx` to show a consistent dropdown:
   1. "Switch Organization" header
   2. List of organizations to choose from (or empty state message if none exist)
-  3. **NO footer actions** - NO "+ Create New Organization", NO "View All Organizations"
-- **CRITICAL REQUIREMENT**: The organization selector dropdown is ONLY for selecting existing organizations. Organization creation is handled EXCLUSIVELY through the "+ New > Organization" option in the sidebar's QuickActionMenu.
-
-**⚠️ DO NOT ADD CREATION LINKS TO THE ORGANIZATION DROPDOWN ⚠️**
-- The dropdown MUST only show: header, org list, nothing else
-- Creating organizations = "+ New > Organization" in sidebar ONLY
-- This is intentional - the dropdown is a selector, not a menu
+  3. "+ Create New Organization" link at the bottom (per Part 2 spec requirement)
+- **Implementation**: Per Part 2 of this spec, the Organization Selector dropdown provides a SECONDARY way to create organizations. Both methods work:
+  - Primary: "+ New > Organization" in sidebar QuickActionMenu
+  - Secondary: "+ Create New Organization" in header dropdown
+- **Files modified**:
+  - `packages/web/src/components/layout/OrganizationSelector.tsx`
 
 ### Issue 21: Chart of Accounts Table Header Doesn't Resize Correctly - RESOLVED
 - **Status**: Completed

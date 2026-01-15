@@ -191,3 +191,8 @@
 **Task**: Fixed flaky E2E test "should cancel create company form and close modal" by adding proper React hydration waits (waitForTimeout 500ms), button visibility/enabled checks, and force clicks. All 180 E2E tests and 3709 unit tests now pass consistently. Verified all 26 known issues in UI_ARCHITECTURE.md spec are resolved.
 **Status**: complete
 ---
+
+## Iteration 2 - 2026-01-15 20:37
+**Task**: Fixed 7 lint errors by replacing inline type assertions with object lookup pattern for consolidation method conversion in audit-log/index.tsx, consolidation/$groupId/edit.tsx, and consolidation/new.tsx. Also removed invalid ESLint disable comment for non-existent react-hooks/exhaustive-deps rule. All lint and typecheck now pass.
+**Status**: complete
+---

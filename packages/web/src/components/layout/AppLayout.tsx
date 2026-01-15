@@ -92,6 +92,15 @@ export function AppLayout({
       className="flex h-screen bg-gray-50 overflow-hidden"
       data-testid="app-layout"
     >
+      {/* Skip to main content link for accessibility */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-4 focus:left-4 focus:bg-blue-600 focus:text-white focus:px-4 focus:py-2 focus:rounded-md focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
+        data-testid="skip-to-main-content"
+      >
+        Skip to main content
+      </a>
+
       {/* Sidebar */}
       <Sidebar
         isCollapsed={sidebarCollapsed}
@@ -112,8 +121,10 @@ export function AppLayout({
 
         {/* Page Content */}
         <main
+          id="main-content"
           className="flex-1 overflow-y-auto p-4 lg:p-6"
           data-testid="app-main-content"
+          tabIndex={-1}
         >
           {/* Breadcrumbs */}
           {showBreadcrumbs && (

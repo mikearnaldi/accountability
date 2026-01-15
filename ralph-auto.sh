@@ -546,14 +546,19 @@ run_iteration() {
         log "WARN" "Agent exited with non-zero status"
     fi
 
-    # Check if agent signaled nothing left to do
-    if grep -q "$COMPLETE_MARKER" "$output_file"; then
+    # Extract only assistant text content from stream-json (excludes prompt)
+    local assistant_text
+    assistant_text=$(cat "$output_file" | \
+        jq -r 'select(.type == "assistant") | .message.content[]? | select(.type == "text") | .text // empty' 2>/dev/null)
+
+    # Check if agent signaled nothing left to do (only in assistant output, not prompt)
+    if echo "$assistant_text" | grep -q "$COMPLETE_MARKER"; then
         log "SUCCESS" "Agent signaled NOTHING_LEFT_TO_DO"
         return 0
     fi
 
-    # Check if agent signaled task completion
-    if grep -q "TASK_COMPLETE" "$output_file"; then
+    # Check if agent signaled task completion (only in assistant output, not prompt)
+    if echo "$assistant_text" | grep -q "TASK_COMPLETE"; then
         log "INFO" "Agent signaled task completion"
 
         local task_desc=$(extract_task_description "$output_file")

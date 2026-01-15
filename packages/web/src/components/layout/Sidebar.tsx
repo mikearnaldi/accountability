@@ -491,6 +491,7 @@ export function Sidebar({ isCollapsed, onToggleCollapse, currentOrganization, co
           <button
             onClick={onToggleCollapse}
             data-testid="sidebar-collapse-toggle"
+            aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             className={clsx(
               "flex items-center justify-center w-full px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors",
               isCollapsed && "px-0"
