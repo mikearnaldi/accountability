@@ -348,6 +348,14 @@ async function createJournalEntry(page: Page, entry: JournalEntry) { /* ... */ }
 - [ ] Generate consolidated cash flow statement
 - [ ] Generate consolidated equity statement
 
+### Phase 9: E2E Test Integration
+- [ ] Refactor script to export reusable `generateSyntheticData()` function
+- [ ] Create E2E test file `synthetic-data-generator.spec.ts`
+- [ ] Add verification assertions for all created data
+- [ ] Add `@slow` and `@synthetic-data` tags for CI control
+- [ ] Add `test:e2e:synthetic` script to package.json
+- [ ] Verify test passes in CI pipeline
+
 ---
 
 ## Success Criteria
@@ -359,6 +367,108 @@ async function createJournalEntry(page: Page, entry: JournalEntry) { /* ... */ }
 5. Script is idempotent (can detect existing data and skip/update)
 6. Script completes in under 5 minutes
 7. Verbose logging shows progress
+8. E2E test passes in CI pipeline
+
+---
+
+## E2E Test Integration
+
+The synthetic data generator **must be included in the E2E test suite** to ensure it continues to work as the application evolves.
+
+### Test File Location
+
+```
+packages/web/e2e/synthetic-data-generator.spec.ts
+```
+
+### Test Structure
+
+```typescript
+import { test, expect } from '@playwright/test';
+import { generateSyntheticData } from '../scripts/generate-synthetic-data';
+
+test.describe('Synthetic Data Generator', () => {
+  test.setTimeout(300000); // 5 minute timeout for full generation
+
+  test('generates complete synthetic dataset', async ({ page, baseURL }) => {
+    // Run the data generator against the test instance
+    await generateSyntheticData({
+      page,
+      baseUrl: baseURL!,
+      verbose: true,
+    });
+
+    // Verify key data was created
+    // 1. User can log in
+    await page.goto('/login');
+    await page.fill('[data-testid="email"]', 'demo@accountability.app');
+    await page.fill('[data-testid="password"]', 'Demo123!');
+    await page.click('[data-testid="login-button"]');
+    await expect(page).toHaveURL(/.*dashboard/);
+
+    // 2. Organization exists
+    await expect(page.getByText('Acme Corporation')).toBeVisible();
+
+    // 3. Both companies exist
+    await page.goto('/companies');
+    await expect(page.getByText('Acme Corp USA')).toBeVisible();
+    await expect(page.getByText('Acme Manufacturing Ltd')).toBeVisible();
+
+    // 4. Consolidation group exists
+    await page.goto('/consolidation/groups');
+    await expect(page.getByText('Acme Consolidated Group')).toBeVisible();
+
+    // 5. Consolidation runs completed
+    await page.goto('/consolidation/runs');
+    await expect(page.getByText('2024')).toBeVisible();
+    await expect(page.getByText('2025')).toBeVisible();
+
+    // 6. Consolidated reports are accessible
+    await page.goto('/consolidation/reports/balance-sheet');
+    await expect(page.locator('table')).toBeVisible();
+  });
+});
+```
+
+### Running the Test
+
+```bash
+# Run only the synthetic data generator test
+pnpm test:e2e --grep "Synthetic Data Generator"
+
+# Run as part of full E2E suite
+pnpm test:e2e
+```
+
+### CI Integration
+
+The test should be included in the E2E test suite but can be **tagged for optional execution** in CI since it:
+- Takes longer than typical E2E tests (~3-5 minutes)
+- Creates significant test data
+- May be run separately for demo environment seeding
+
+```typescript
+// Use Playwright's test.describe.configure for CI control
+test.describe.configure({ mode: 'serial' }); // Must run steps in order
+
+// Or use tags for selective execution
+test('generates complete synthetic dataset', {
+  tag: ['@slow', '@synthetic-data'],
+}, async ({ page }) => {
+  // ...
+});
+```
+
+### Package.json Scripts
+
+```json
+{
+  "scripts": {
+    "generate:synthetic-data": "tsx scripts/generate-synthetic-data.ts",
+    "test:e2e:synthetic": "playwright test synthetic-data-generator.spec.ts"
+  }
+}
+```
 
 ---
 
