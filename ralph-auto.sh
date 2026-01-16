@@ -39,6 +39,7 @@ done
 
 # Configuration
 PROGRESS_FILE="progress-auto.txt"
+PROMPT_TEMPLATE="RALPH_AUTO_PROMPT.md"
 COMPLETE_MARKER="NOTHING_LEFT_TO_DO"
 OUTPUT_DIR=".ralph-auto"
 AGENT_CMD="claude --dangerously-skip-permissions --verbose --model opus"
@@ -109,6 +110,12 @@ check_prerequisites() {
     fi
 
     log "INFO" "Found $spec_count actionable spec(s) in specs/"
+
+    # Check for prompt template
+    if [ ! -f "$PROMPT_TEMPLATE" ]; then
+        log "ERROR" "$PROMPT_TEMPLATE not found"
+        exit 1
+    fi
 
     # Check for context directory (optional but recommended)
     if [ ! -d "context" ]; then
@@ -365,11 +372,19 @@ build_prompt() {
     local progress_content=""
 
     if [ -f "$OUTPUT_DIR/ci_errors.txt" ]; then
-        ci_errors=$(cat "$OUTPUT_DIR/ci_errors.txt")
+        ci_errors="## Previous Iteration Errors
+
+$(cat "$OUTPUT_DIR/ci_errors.txt")
+"
     fi
 
     if [ -f "$PROGRESS_FILE" ]; then
-        progress_content=$(cat "$PROGRESS_FILE")
+        progress_content="## Progress So Far
+
+\`\`\`
+$(cat "$PROGRESS_FILE")
+\`\`\`
+"
     fi
 
     # Get list of specs and context files
@@ -379,123 +394,15 @@ build_prompt() {
         context_list=$(find context -name "*.md" -type f | sort | while read f; do echo "- \`$f\`"; done)
     fi
 
-    cat << PROMPT_EOF
-# Ralph Auto Loop - Autonomous Spec Implementation Agent
+    # Read template and substitute placeholders
+    local prompt=$(cat "$PROMPT_TEMPLATE")
+    prompt="${prompt//\{\{SPECS_LIST\}\}/$specs_list}"
+    prompt="${prompt//\{\{CONTEXT_LIST\}\}/$context_list}"
+    prompt="${prompt//\{\{ITERATION\}\}/$iteration}"
+    prompt="${prompt//\{\{CI_ERRORS\}\}/$ci_errors}"
+    prompt="${prompt//\{\{PROGRESS\}\}/$progress_content}"
 
-You are an autonomous coding agent that implements everything defined in the \`specs/\` directory. You are running in an autonomous loop that will continue until all specs are fully implemented.
-
-## Your Mission
-
-1. **Read ALL specs** from the \`specs/\` directory - these are ACTIONABLE specifications
-2. **Read context** from the \`context/\` directory for best practices and conventions
-3. **Select** a high priority task from the specs (Known Issues, incomplete features, etc.)
-4. **Implement** the task fully
-5. **Update the spec** - mark issues as resolved, update status
-6. **Signal** completion with \`TASK_COMPLETE: <brief description of what you did>\`
-
-## Critical Rules
-
-1. **DO NOT COMMIT**: The Ralph Auto script handles all git commits. Just write code.
-2. **KEEP CI GREEN**: Your code MUST pass all tests and type checks.
-3. **ONE TASK PER ITERATION**: Pick one focused task, complete it, and signal completion.
-4. **UPDATE SPECS**: When you complete a task, UPDATE the spec file to mark it resolved.
-5. **SIGNAL COMPLETION**: When done with a task, output \`TASK_COMPLETE: <description>\` on its own line.
-6. **SIGNAL DONE**: When ALL specs are fully implemented, output \`NOTHING_LEFT_TO_DO\` on its own line.
-
-## Actionable Specs (specs/)
-
-These files define work to be implemented:
-
-$specs_list
-
-## Context Documentation (context/)
-
-These files provide best practices and conventions - read them for guidance:
-
-$context_list
-
-## Task Selection Priority
-
-Look for tasks in this priority order:
-1. **CI Errors**: Fix any errors from the previous iteration FIRST
-2. **Known Issues**: Issues marked "Open" or "CRITICAL" in spec files
-3. **Missing Features**: Features defined in specs but not implemented
-4. **Incomplete Pages**: Pages missing required elements per spec
-5. **Layout Issues**: AppLayout, Breadcrumbs, Header, Sidebar issues
-6. **Polish**: Small improvements to match the spec exactly
-
-## Workflow
-
-1. **Read ALL files in \`specs/\`** - understand what needs to be implemented
-2. **Read relevant files in \`context/\`** - understand best practices
-3. **Explore the codebase** to understand current state
-4. **Compare** what exists vs what the specs require
-5. **Pick** the highest priority gap you find
-6. **Implement** it following the patterns from context/
-7. **Update the spec** - mark issues as RESOLVED with details
-8. **Test** - run \`pnpm typecheck\` to verify no type errors
-9. **Signal** - output \`TASK_COMPLETE: <what you did>\`
-
-## Signaling
-
-When you have finished implementing a task:
-
-\`\`\`
-TASK_COMPLETE: Brief description of what you implemented
-\`\`\`
-
-When ALL specs are fully implemented (no more Known Issues, all features complete):
-
-\`\`\`
-NOTHING_LEFT_TO_DO
-\`\`\`
-
-## Project Context
-
-- **Monorepo Structure**: packages/core, packages/persistence, packages/api, packages/web
-- **Frontend**: React + TanStack Start + Tailwind CSS
-- **Specs folder**: Contains ACTIONABLE specifications to implement
-- **Context folder**: Contains best practices, conventions, patterns
-- **NO Effect in frontend** - use openapi-fetch client, loaders, useState
-
-## Important Reminders
-
-- Read CLAUDE.md for project structure and conventions
-- Read \`context/REACT_BEST_PRACTICES.md\` for React patterns
-- Read \`context/USABILITY_BEST_PRACTICES.md\` for UX patterns
-- All pages must use AppLayout with Sidebar and Header
-- Use the Breadcrumbs component - never write manual breadcrumb HTML
-- Every list page needs an empty state with CTA
-- **UPDATE SPECS AS YOU WORK**: Keep specs in sync with implementation
-- DO NOT run git commands - the script handles commits
-
-PROMPT_EOF
-
-    echo ""
-    echo "## Iteration"
-    echo ""
-    echo "This is iteration $iteration of the autonomous loop."
-    echo ""
-
-    if [ -n "$ci_errors" ]; then
-        echo "## Previous Iteration Errors"
-        echo ""
-        echo "$ci_errors"
-        echo ""
-    fi
-
-    if [ -n "$progress_content" ]; then
-        echo "## Progress So Far"
-        echo ""
-        echo '```'
-        echo "$progress_content"
-        echo '```'
-        echo ""
-    fi
-
-    echo "## Begin"
-    echo ""
-    echo "Investigate the project, select a high priority task, implement it, and signal completion."
+    echo "$prompt"
 }
 
 # Extract task description from output (handles stream-json format)

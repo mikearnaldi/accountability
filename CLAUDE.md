@@ -107,11 +107,8 @@ accountability/
 
 | File | Purpose |
 |------|---------|
-| `prd.json` | User stories with status tracking |
-| `ralph.sh` | PRD-based agent loop (follows prd.json stories) |
 | `ralph-auto.sh` | **AUTO agent loop** - implements everything in `specs/` automatically |
-| `RALPH_PROMPT.md` | Agent prompt template for ralph.sh |
-| `progress.txt` | Progress log for Ralph iterations |
+| `RALPH_AUTO_PROMPT.md` | Prompt template for the Ralph Auto agent |
 | `progress-auto.txt` | Progress log for Ralph Auto iterations |
 
 ---
@@ -185,8 +182,7 @@ pnpm format:check       # Check formatting
 # Maintenance
 pnpm clean              # Clean build outputs
 
-# Ralph Agents
-./ralph.sh [max_iterations]   # PRD-based agent loop (follows prd.json)
+# Ralph Auto Agent
 ./ralph-auto.sh               # AUTO agent loop - implements everything in specs/
 ```
 
@@ -194,8 +190,16 @@ pnpm clean              # Clean build outputs
 
 ## Implementation Guidelines
 
-### Backend (Effect)
+### Backend (packages/core, persistence, api)
 
+**Effect-based** - functional, type-safe, composable. Services in `core/`, repositories in `persistence/`, endpoints in `api/`.
+
+**Read these context files:**
+- [context/EFFECT_BEST_PRACTICES.md](context/EFFECT_BEST_PRACTICES.md) - critical rules for Effect code
+- [context/EFFECT_SQL.md](context/EFFECT_SQL.md) - repository patterns, SqlSchema
+- [context/API_BEST_PRACTICES.md](context/API_BEST_PRACTICES.md) - API layer conventions
+
+**Guidelines:**
 1. **Flat modules, no barrel files** - `CurrencyCode.ts` not `domain/currency/index.ts`
 2. **Prefer Schema.Class over Schema.Struct** - classes give you constructor, Equal, Hash
 3. **Use Schema's `.make()` constructor** - all schemas have it, never use `new`
@@ -205,27 +209,33 @@ pnpm clean              # Clean build outputs
 7. **Use Layer.effect or Layer.scoped** - avoid Layer.succeed and Tag.of
 8. **Write tests** alongside implementation using `@effect/vitest`
 
-### Frontend (React)
+### Frontend (packages/web)
 
+**NO Effect code** - use openapi-fetch client for API calls. Use loaders for SSR data fetching, useState for UI state.
+
+**Read these context files:**
+- [context/REACT_BEST_PRACTICES.md](context/REACT_BEST_PRACTICES.md) - React patterns
+- [context/UI_ARCHITECTURE.md](context/UI_ARCHITECTURE.md) - layout, navigation, components
+
+**Guidelines:**
 1. **Use openapi-fetch client** - `api.GET()`, `api.POST()` for type-safe calls
 2. **Fetch in loaders** - use `loader()` for SSR data, `useLoaderData()` in component
 3. **Invalidate after mutations** - call `router.invalidate()` to refetch data
 4. **Handle empty states** - show helpful messages when no data
-5. **Use Tailwind utilities** - consistent spacing, colors, typography
+5. **All pages use AppLayout** with Sidebar and Header
+6. **Use Tailwind CSS** - consistent spacing, colors, typography
+
+### Full Stack Features
+
+When implementing a feature that spans layers:
+
+1. **Domain model** in `core/` - entities, value objects
+2. **Repository** in `persistence/` - database operations
+3. **Service** in `core/` - business logic
+4. **API endpoint** in `api/` - HTTP handlers
+5. **Frontend** in `web/` - pages, components, API calls
 
 ---
-
-## Notes for Ralph Agent
-
-When working on stories:
-
-1. **Read [context/ACCOUNTING_RESEARCH.md](context/ACCOUNTING_RESEARCH.md)** for domain requirements
-2. **Read [context/EFFECT_BEST_PRACTICES.md](context/EFFECT_BEST_PRACTICES.md)** for backend coding rules
-3. **Read [context/REACT_BEST_PRACTICES.md](context/REACT_BEST_PRACTICES.md)** for frontend patterns
-4. **Read [context/UI_ARCHITECTURE.md](context/UI_ARCHITECTURE.md)** for UI layout and navigation rules
-5. **Search repos/** for implementation patterns
-6. **Signal STORY_COMPLETE** when done (don't commit, script handles it)
-7. **Run tests** before signaling completion: `pnpm test && pnpm typecheck`
 
 ## Notes for Ralph Auto Agent
 
