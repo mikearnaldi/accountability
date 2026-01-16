@@ -261,3 +261,8 @@
 **Task**: Implemented comprehensive E2E test suites for Reports module (13 tests) and Audit Log module (10 tests). Reports tests cover hub page, company selection, report type navigation, trial balance form, and sidebar navigation. Audit log tests cover list page, entity/action filters, clear filters, date range filters, sidebar navigation, and refresh functionality. All 235 E2E tests pass (up from 212), all 3587 unit tests pass, and typecheck is clean. Updated E2E_TEST_COVERAGE.md spec to mark Reports and Audit Log as resolved.
 **Status**: complete
 ---
+
+## Iteration 5 - 2026-01-16 11:43
+**Task**: Implemented comprehensive E2E test suite for User Profile module (8 tests covering view profile info, update display name, save button disabled when unchanged, delete account button disabled, navigation via back arrow, account information sections, and breadcrumbs). All 243 E2E tests pass (up from 235), typecheck is clean. Updated E2E_TEST_COVERAGE.md spec to mark User Profile as resolved.
+**Status**: complete
+---

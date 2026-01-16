@@ -2,7 +2,7 @@
 
 ## Current State (January 2026)
 
-**Total Tests:** 235 passed, 2 skipped
+**Total Tests:** 243 passed, 2 skipped
 
 ### Existing E2E Test Files
 
@@ -32,6 +32,7 @@
 | `intercompany.spec.ts` | Intercompany transactions, create, navigation | Good |
 | `reports.spec.ts` | Financial reports hub, report navigation, parameters | Good |
 | `audit-log.spec.ts` | Audit log list, filters, refresh | Good |
+| `profile.spec.ts` | User profile view, edit display name | Good |
 
 ---
 
@@ -118,14 +119,18 @@
 
 ### Priority 3: Enhancement Coverage
 
-#### 6. User Profile
+#### 6. User Profile ✅ RESOLVED (2026-01-16)
 **Routes:** `/profile`
-- [ ] View profile information
-- [ ] Update display name
-- [ ] Change password
-- [ ] View linked identities
+- [x] View profile information (email, role, provider, member since)
+- [x] Update display name
+- [x] View linked identities
+- [x] Delete account button (disabled - feature not yet implemented)
+- [x] Navigation and breadcrumbs
+- [x] Account Information and Authentication sections
 
-**Test file to create:** `profile.spec.ts`
+**Test file:** `profile.spec.ts` (8 tests)
+
+**Note:** Password change is not tested as the profile page doesn't currently support changing passwords - this is managed through the authentication provider. The delete account button is shown but disabled as the feature is not yet implemented.
 
 #### 7. Error States
 - [ ] 404 page handling
@@ -149,7 +154,7 @@
 
 ### Phase 3: Supporting Features
 5. ~~**audit-log.spec.ts** - Audit trail verification~~ ✅ DONE (10 tests)
-6. **profile.spec.ts** - User profile management
+6. ~~**profile.spec.ts** - User profile management~~ ✅ DONE (8 tests)
 
 ### Phase 4: Error Handling
 7. **error-states.spec.ts** - Error recovery scenarios
@@ -234,7 +239,7 @@ pnpm test:e2e:report
 
 | Metric | Current | Target |
 |--------|---------|--------|
-| Route coverage | ~85% | 95% |
+| Route coverage | ~90% | 95% |
 | Critical flows | ~98% | 100% |
 | Error handling | ~20% | 80% |
-| Total test count | 235 | 250+ |
+| Total test count | 243 | 250+ |

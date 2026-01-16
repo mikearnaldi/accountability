@@ -11,301 +11,495 @@ This specification defines the authorization system for Accountability, implemen
 
 ---
 
-## Implementation Phases (Detailed)
+## Implementation Phases (Agent-Sized Tasks)
 
-This section provides a detailed breakdown of implementation phases with specific tasks, deliverables, and acceptance criteria.
+Each phase is sized for **1-2 hours of agent work**. Complete phases in order within each track. Run `pnpm test && pnpm typecheck` after each phase.
 
-### Phase 1: Database Schema & Domain Models
+### Track A: Foundation (Backend)
 
-**Goal**: Establish the data foundation for authorization.
-
-#### 1.1 Database Migration
-
+#### Phase A1: Database Migration
 **File**: `packages/persistence/src/Migrations/Migration00XX_CreateAuthorizationTables.ts`
 
-| Task | Description | Deliverable |
-|------|-------------|-------------|
-| 1.1.1 | Create `user_organization_members` table | Table with roles, functional roles, status, audit fields |
-| 1.1.2 | Create `organization_invitations` table | Table with token_hash, status, functional_roles JSONB |
-| 1.1.3 | Create `organization_policies` table | Table with JSONB conditions, priority, system flag |
-| 1.1.4 | Create `authorization_audit_log` table | Table for denied access logging |
-| 1.1.5 | Add `is_platform_admin` to `auth_users` | ALTER TABLE migration |
-| 1.1.6 | Add `created_by` to `organizations` table | Required for owner seeding (if not exists) |
-| 1.1.7 | Create indexes | All indexes defined in Data Model section |
+Create all authorization tables in a single migration:
+- `user_organization_members` table with roles, functional roles, status
+- `organization_invitations` table with token_hash, status
+- `organization_policies` table with JSONB conditions
+- `authorization_audit_log` table
+- Add `is_platform_admin` to `auth_users`
+- All indexes from Data Model section
 
-**Acceptance Criteria**:
-- [ ] Migration runs successfully on fresh database
-- [ ] Migration is idempotent (can run multiple times)
-- [ ] All foreign key constraints are valid
-- [ ] Indexes are created for query performance
-
-#### 1.2 Domain Models (packages/core/src/Auth/)
-
-| Task | File | Description |
-|------|------|-------------|
-| 1.2.1 | `OrganizationMembership.ts` | Schema.Class with BaseRole, FunctionalRoles, status |
-| 1.2.2 | `OrganizationMembershipId.ts` | Branded UUID type |
-| 1.2.3 | `BaseRole.ts` | Literal union: owner, admin, member, viewer |
-| 1.2.4 | `FunctionalRole.ts` | Literal union: controller, finance_manager, accountant, period_admin, consolidation_manager |
-| 1.2.5 | `OrganizationInvitation.ts` | Schema.Class with token, status, functional_roles |
-| 1.2.6 | `InvitationId.ts` | Branded UUID type |
-| 1.2.7 | `AuthorizationPolicy.ts` | Schema.Class with conditions, effect, priority |
-| 1.2.8 | `PolicyId.ts` | Branded UUID type |
-| 1.2.9 | `SubjectCondition.ts` | Schema for subject matching |
-| 1.2.10 | `ResourceCondition.ts` | Schema for resource matching |
-| 1.2.11 | `ActionCondition.ts` | Schema for action matching |
-| 1.2.12 | `EnvironmentCondition.ts` | Schema for environment matching |
-| 1.2.13 | `Action.ts` | Union type of all action strings |
-| 1.2.14 | `AuthorizationErrors.ts` | TaggedErrors: PermissionDeniedError, MembershipNotFoundError, InvalidInvitationError, etc. |
-
-**Acceptance Criteria**:
-- [ ] All schemas have proper validation
-- [ ] All schemas have `.make()` constructors
-- [ ] All errors extend Schema.TaggedError with proper messages
-- [ ] Unit tests for schema encoding/decoding
-
-#### 1.3 Repository Interfaces (packages/persistence/src/Services/)
-
-| Task | File | Description |
-|------|------|-------------|
-| 1.3.1 | `OrganizationMemberRepository.ts` | Interface: findByOrg, findByUser, findByUserAndOrg, create, update, remove, reinstate |
-| 1.3.2 | `InvitationRepository.ts` | Interface: create, findByToken, findByOrg, findPendingByEmail, accept, revoke |
-| 1.3.3 | `PolicyRepository.ts` | Interface: findByOrg, findActiveByOrg, create, update, delete |
-| 1.3.4 | `AuthorizationAuditRepository.ts` | Interface: logDenial, findByOrg, findByUser |
-
-**Acceptance Criteria**:
-- [ ] All methods return Effect types with proper errors
-- [ ] Interfaces use Context.Tag pattern
-- [ ] All methods are documented with JSDoc
-
-#### 1.4 Repository Implementations (packages/persistence/src/Layers/)
-
-| Task | File | Description |
-|------|------|-------------|
-| 1.4.1 | `OrganizationMemberRepositoryLive.ts` | SQL implementation with @effect/sql |
-| 1.4.2 | `InvitationRepositoryLive.ts` | SQL implementation, token hashing |
-| 1.4.3 | `PolicyRepositoryLive.ts` | SQL implementation, JSONB handling |
-| 1.4.4 | `AuthorizationAuditRepositoryLive.ts` | SQL implementation |
-
-**Acceptance Criteria**:
-- [ ] All queries filter by organizationId where applicable
-- [ ] Token hashing uses crypto.subtle or similar
-- [ ] Integration tests pass with testcontainers PostgreSQL
+**Test**: Migration runs, tables exist, constraints valid.
 
 ---
 
-### Phase 2: Core Services & Invitation Flow
+#### Phase A2: Core Type Definitions
+**Files** (packages/core/src/Auth/):
+- `BaseRole.ts` - Literal union: `owner | admin | member | viewer`
+- `FunctionalRole.ts` - Literal union: `controller | finance_manager | accountant | period_admin | consolidation_manager`
+- `Action.ts` - Union of all action strings (copy from spec)
+- `MembershipStatus.ts` - Literal union: `active | suspended | removed`
 
-**Goal**: Implement membership management and invitation system.
-
-#### 2.1 Service Interfaces (packages/core/src/Auth/)
-
-| Task | File | Description |
-|------|------|-------------|
-| 2.1.1 | `OrganizationMemberService.ts` | Interface: addMember, removeMember, updateRole, reinstateМember, transferOwnership |
-| 2.1.2 | `InvitationService.ts` | Interface: createInvitation, acceptInvitation, declineInvitation, revokeInvitation |
-
-#### 2.2 Service Implementations (packages/persistence/src/Layers/)
-
-| Task | File | Description |
-|------|------|-------------|
-| 2.2.1 | `OrganizationMemberServiceLive.ts` | Business logic: owner transfer rules, soft delete, reinstatement |
-| 2.2.2 | `InvitationServiceLive.ts` | Business logic: token generation, acceptance flow, rate limiting |
-
-**Acceptance Criteria**:
-- [ ] Owner cannot be removed without transfer
-- [ ] Ownership transfer is atomic
-- [ ] Invitation tokens are 256-bit random, stored as hash
-- [ ] Rate limiting prevents > 10 invitations/org/hour
-- [ ] Unit tests for all business rules
-
-#### 2.3 API Endpoints - Membership (packages/api/src/)
-
-| Task | File | Description |
-|------|------|-------------|
-| 2.3.1 | `Definitions/MembershipApi.ts` | HttpApi definition for membership endpoints |
-| 2.3.2 | `Layers/MembershipApiLive.ts` | Handler implementations |
-
-**Endpoints**:
-- `GET /v1/organizations/:orgId/members`
-- `POST /v1/organizations/:orgId/members/invite`
-- `PATCH /v1/organizations/:orgId/members/:userId`
-- `DELETE /v1/organizations/:orgId/members/:userId`
-- `POST /v1/organizations/:orgId/members/:userId/reinstate`
-- `POST /v1/organizations/:orgId/transfer-ownership`
-
-#### 2.4 API Endpoints - Invitations (packages/api/src/)
-
-| Task | File | Description |
-|------|------|-------------|
-| 2.4.1 | `Definitions/InvitationApi.ts` | HttpApi definition for invitation endpoints |
-| 2.4.2 | `Layers/InvitationApiLive.ts` | Handler implementations |
-
-**Endpoints**:
-- `GET /v1/users/me/invitations`
-- `POST /v1/invitations/:token/accept`
-- `POST /v1/invitations/:token/decline`
-- `DELETE /v1/organizations/:orgId/invitations/:invitationId`
-
-#### 2.5 API Endpoints - User Organizations
-
-| Task | File | Description |
-|------|------|-------------|
-| 2.5.1 | `Definitions/UserOrganizationsApi.ts` | HttpApi definition |
-| 2.5.2 | `Layers/UserOrganizationsApiLive.ts` | Handler: list user's orgs with roles |
-
-**Endpoints**:
-- `GET /v1/users/me/organizations`
-
-**Acceptance Criteria**:
-- [ ] All endpoints require authentication
-- [ ] Membership endpoints require org admin/owner role
-- [ ] OpenAPI spec is generated correctly
-- [ ] Integration tests for all endpoints
+**Test**: Types compile, can create values.
 
 ---
 
-### Phase 3: Authorization Middleware & Enforcement
+#### Phase A3: Authorization Errors
+**File**: `packages/core/src/Auth/AuthorizationErrors.ts`
 
-**Goal**: Enforce permissions on all API requests.
+Create TaggedError classes:
+- `PermissionDeniedError` - action, resource, reason
+- `MembershipNotFoundError` - userId, organizationId
+- `MembershipNotActiveError` - userId, organizationId, status
+- `InvalidInvitationError` - reason
+- `InvitationExpiredError` - (even though invites don't expire, for revoked)
+- `OwnerCannotBeRemovedError` - organizationId
+- `CannotTransferToNonAdminError` - userId
 
-#### 3.1 Organization Context
+**Test**: Errors have correct messages, `Schema.is()` type guards work.
 
-| Task | File | Description |
-|------|------|-------------|
-| 3.1.1 | `packages/core/src/Auth/CurrentOrganizationMembership.ts` | Context.Tag for current membership |
-| 3.1.2 | `packages/api/src/Layers/OrganizationContextMiddlewareLive.ts` | Middleware to load membership from URL |
+---
 
-**Middleware Logic**:
-1. Extract `organizationId` from URL path (`/v1/organizations/:orgId/...`)
-2. Load user's membership for that organization
-3. Validate membership status is `active`
-4. Provide `CurrentOrganizationMembership` to downstream handlers
-5. Return 403 if not a member
+#### Phase A4: OrganizationMembership Schema
+**Files** (packages/core/src/Auth/):
+- `OrganizationMembershipId.ts` - Branded UUID
+- `OrganizationMembership.ts` - Schema.Class with:
+  - id, userId, organizationId
+  - role (BaseRole), functional role booleans
+  - status, removedAt, removedBy, removalReason
+  - reinstatedAt, reinstatedBy
+  - createdAt, updatedAt, invitedBy
 
-#### 3.2 Permission Checking Service
+**Test**: Schema encodes/decodes, `.make()` works.
 
-| Task | File | Description |
-|------|------|-------------|
-| 3.2.1 | `packages/core/src/Auth/AuthorizationService.ts` | Interface: checkPermission, checkPermissions, hasRole, hasFunctionalRole |
-| 3.2.2 | `packages/persistence/src/Layers/AuthorizationServiceLive.ts` | Implementation with RBAC matrix |
+---
+
+#### Phase A5: OrganizationInvitation Schema
+**Files** (packages/core/src/Auth/):
+- `InvitationId.ts` - Branded UUID
+- `InvitationStatus.ts` - Literal union: `pending | accepted | revoked`
+- `OrganizationInvitation.ts` - Schema.Class with:
+  - id, organizationId, email, role
+  - functionalRoles (array), tokenHash
+  - status, acceptedAt, acceptedBy, revokedAt, revokedBy
+  - createdAt, invitedBy
+
+**Test**: Schema encodes/decodes, `.make()` works.
+
+---
+
+#### Phase A6: Policy Condition Schemas
+**Files** (packages/core/src/Auth/):
+- `SubjectCondition.ts` - Schema with optional: roles[], functionalRoles[], userIds[], isPlatformAdmin
+- `ResourceCondition.ts` - Schema with type, optional attributes
+- `ActionCondition.ts` - Schema with actions[]
+- `EnvironmentCondition.ts` - Schema with optional: timeOfDay, daysOfWeek, ipAllowList, ipDenyList
+
+**Test**: Schemas validate correctly, reject invalid conditions.
+
+---
+
+#### Phase A7: AuthorizationPolicy Schema
+**Files** (packages/core/src/Auth/):
+- `PolicyId.ts` - Branded UUID
+- `PolicyEffect.ts` - Literal union: `allow | deny`
+- `AuthorizationPolicy.ts` - Schema.Class with:
+  - id, organizationId, name, description
+  - subject (SubjectCondition), resource (ResourceCondition)
+  - action (ActionCondition), environment (optional EnvironmentCondition)
+  - effect, priority, isSystemPolicy, isActive
+  - createdAt, updatedAt, createdBy
+
+**Test**: Schema encodes/decodes, `.make()` works.
+
+---
+
+### Track B: Repositories (Backend)
+
+#### Phase B1: OrganizationMemberRepository
+**Files**:
+- `packages/persistence/src/Services/OrganizationMemberRepository.ts` - Interface
+- `packages/persistence/src/Layers/OrganizationMemberRepositoryLive.ts` - Implementation
 
 **Methods**:
-```typescript
-checkPermission(action: Action, resource?: ResourceContext): Effect<void, PermissionDeniedError>
-checkPermissions(actions: Action[]): Effect<Record<Action, boolean>, never>
-hasRole(role: BaseRole): Effect<boolean, never>
-hasFunctionalRole(role: FunctionalRole): Effect<boolean, never>
-```
+- `findByOrganization(orgId)` - List all members (any status)
+- `findActiveByOrganization(orgId)` - List active members only
+- `findByUser(userId)` - List user's memberships
+- `findByUserAndOrganization(userId, orgId)` - Single membership
+- `create(membership)` - Insert new
+- `update(id, changes)` - Update role/status
+- `remove(id, removedBy, reason)` - Soft delete
+- `reinstate(id, reinstatedBy)` - Reactivate
 
-#### 3.3 Denial Audit Logging
-
-| Task | File | Description |
-|------|------|-------------|
-| 3.3.1 | Update `AuthorizationServiceLive.ts` | Log to `authorization_audit_log` on denial |
-
-**Logged Data**:
-- user_id, organization_id
-- action, resource_type, resource_id
-- denial_reason, matched_policy_ids
-- ip_address, user_agent
-
-#### 3.4 Repository Organization Filtering
-
-| Task | Description |
-|------|-------------|
-| 3.4.1 | Update `CompanyRepository` to require `organizationId` |
-| 3.4.2 | Update `AccountRepository` to require `organizationId` |
-| 3.4.3 | Update `JournalEntryRepository` to require `organizationId` |
-| 3.4.4 | Update `FiscalPeriodRepository` to require `organizationId` |
-| 3.4.5 | Update `ConsolidationGroupRepository` to require `organizationId` |
-| 3.4.6 | Update `ExchangeRateRepository` to require `organizationId` |
-| 3.4.7 | Update all API handlers to use `CurrentOrganizationMembership` |
-
-**Acceptance Criteria**:
-- [ ] No repository query returns data without organizationId filter
-- [ ] All API handlers extract organizationId from context
-- [ ] Cross-org data access is impossible
-- [ ] Integration tests verify isolation
-
-#### 3.5 API Handler Permission Checks
-
-| Task | Description |
-|------|-------------|
-| 3.5.1 | Add permission checks to `CompaniesApi` handlers |
-| 3.5.2 | Add permission checks to `AccountsApi` handlers |
-| 3.5.3 | Add permission checks to `JournalEntriesApi` handlers |
-| 3.5.4 | Add permission checks to `FiscalPeriodsApi` handlers |
-| 3.5.5 | Add permission checks to `ConsolidationApi` handlers |
-| 3.5.6 | Add permission checks to `ExchangeRatesApi` handlers |
-| 3.5.7 | Add permission checks to `ReportsApi` handlers |
-
-**Pattern**:
-```typescript
-yield* AuthorizationService.checkPermission("journal_entry:create")
-// ... proceed with operation
-```
-
-**Acceptance Criteria**:
-- [ ] All write operations check appropriate permissions
-- [ ] Permission denials return 403 with clear message
-- [ ] All denials are logged to audit table
+**Test**: Integration tests with testcontainers.
 
 ---
 
-### Phase 4: ABAC Policy Engine
+#### Phase B2: InvitationRepository
+**Files**:
+- `packages/persistence/src/Services/InvitationRepository.ts` - Interface
+- `packages/persistence/src/Layers/InvitationRepositoryLive.ts` - Implementation
 
-**Goal**: Implement configurable policy-based authorization.
+**Methods**:
+- `create(invitation, rawToken)` - Insert with hashed token
+- `findByTokenHash(hash)` - Lookup by hash
+- `findByOrganization(orgId)` - List org's invitations
+- `findPendingByEmail(email)` - User's pending invites
+- `accept(id, acceptedBy)` - Mark accepted
+- `revoke(id, revokedBy)` - Mark revoked
 
-#### 4.1 Policy Engine Service
+**Token Hashing**: Use `crypto.subtle.digest('SHA-256', ...)` or similar.
 
-| Task | File | Description |
-|------|------|-------------|
-| 4.1.1 | `packages/core/src/Auth/PolicyEngine.ts` | Interface: evaluatePolicy, evaluatePolicies |
-| 4.1.2 | `packages/persistence/src/Layers/PolicyEngineLive.ts` | Implementation with matching logic |
+**Test**: Integration tests, verify token hashing works.
 
-**Evaluation Logic**:
-1. Load active policies for organization
-2. Check platform admin override (priority 1000)
-3. Evaluate deny policies first (explicit deny wins)
-4. Evaluate allow policies by priority (highest first)
-5. Default deny if no match
+---
 
-#### 4.2 Condition Matchers
+#### Phase B3: PolicyRepository
+**Files**:
+- `packages/persistence/src/Services/PolicyRepository.ts` - Interface
+- `packages/persistence/src/Layers/PolicyRepositoryLive.ts` - Implementation
 
-| Task | File | Description |
-|------|------|-------------|
-| 4.2.1 | `packages/core/src/Auth/matchers/SubjectMatcher.ts` | Match subject conditions against current user |
-| 4.2.2 | `packages/core/src/Auth/matchers/ResourceMatcher.ts` | Match resource conditions against target resource |
-| 4.2.3 | `packages/core/src/Auth/matchers/ActionMatcher.ts` | Match action conditions (including wildcards) |
-| 4.2.4 | `packages/core/src/Auth/matchers/EnvironmentMatcher.ts` | Match time/IP conditions |
+**Methods**:
+- `findByOrganization(orgId)` - All policies
+- `findActiveByOrganization(orgId)` - Active policies only
+- `findById(id)` - Single policy
+- `create(policy)` - Insert (reject if isSystemPolicy=true from user)
+- `update(id, changes)` - Update (reject system policies)
+- `delete(id)` - Delete (reject system policies)
 
-#### 4.3 System Policies Seeding
+**Test**: Integration tests, verify system policy protection.
 
-| Task | File | Description |
-|------|------|-------------|
-| 4.3.1 | `packages/persistence/src/Seeds/SystemPolicies.ts` | Seed data for 4 system policies |
-| 4.3.2 | Update organization creation | Auto-seed system policies on new org |
+---
 
-**System Policies**:
-1. Platform Admin Full Access (priority 1000)
-2. Organization Owner Full Access (priority 900)
-3. Viewer Read-Only Access (priority 100)
-4. Locked Period Protection (priority 999, deny)
+#### Phase B4: AuthorizationAuditRepository
+**Files**:
+- `packages/persistence/src/Services/AuthorizationAuditRepository.ts` - Interface
+- `packages/persistence/src/Layers/AuthorizationAuditRepositoryLive.ts` - Implementation
 
-#### 4.4 Effective Permissions Calculation
+**Methods**:
+- `logDenial(entry)` - Insert denial record
+- `findByOrganization(orgId, options)` - Query with pagination
+- `findByUser(userId, options)` - Query with pagination
 
-| Task | File | Description |
-|------|------|-------------|
-| 4.4.1 | `packages/core/src/Auth/EffectivePermissions.ts` | Calculate all allowed actions for a user |
-| 4.4.2 | Add caching layer | Cache with invalidation on role/policy change |
+**Test**: Integration tests.
 
-#### 4.5 Policy Management API
+---
 
-| Task | File | Description |
-|------|------|-------------|
-| 4.5.1 | `Definitions/PolicyApi.ts` | HttpApi definition for policy endpoints |
-| 4.5.2 | `Layers/PolicyApiLive.ts` | Handler implementations |
+### Track C: Services (Backend)
+
+#### Phase C1: OrganizationMemberService
+**Files**:
+- `packages/core/src/Auth/OrganizationMemberService.ts` - Interface
+- `packages/persistence/src/Layers/OrganizationMemberServiceLive.ts` - Implementation
+
+**Methods**:
+- `addMember(orgId, userId, role, functionalRoles, invitedBy)` - Create membership
+- `removeMember(orgId, userId, removedBy, reason)` - Soft delete (check not owner)
+- `updateRole(orgId, userId, role, functionalRoles)` - Change roles
+- `reinstateMember(orgId, userId, reinstatedBy)` - Reactivate
+- `transferOwnership(orgId, fromUserId, toUserId, newRoleForPrevious)` - Atomic transfer
+
+**Business Rules**:
+- Owner cannot be removed (use `OwnerCannotBeRemovedError`)
+- Transfer target must be admin (use `CannotTransferToNonAdminError`)
+- Transfer is atomic (transaction)
+
+**Test**: Unit tests for business rules.
+
+---
+
+#### Phase C2: InvitationService
+**Files**:
+- `packages/core/src/Auth/InvitationService.ts` - Interface
+- `packages/persistence/src/Layers/InvitationServiceLive.ts` - Implementation
+
+**Methods**:
+- `createInvitation(orgId, email, role, functionalRoles, invitedBy)` - Generate token, create invite
+- `acceptInvitation(token, userId)` - Validate, create membership, mark accepted
+- `declineInvitation(token)` - Mark revoked
+- `revokeInvitation(invitationId, revokedBy)` - Admin revoke
+
+**Token Generation**: 256-bit random, base64url encoded.
+
+**Test**: Unit tests, integration tests for accept flow.
+
+---
+
+#### Phase C3: CurrentOrganizationMembership Context
+**File**: `packages/core/src/Auth/CurrentOrganizationMembership.ts`
+
+Create Context.Tag pattern (like CurrentUser):
+- `CurrentOrganizationMembership` tag
+- `getCurrentOrganizationMembership()` accessor
+- `withOrganizationMembership(membership)` provider
+
+**Test**: Unit test for context access.
+
+---
+
+#### Phase C4: AuthorizationService (RBAC)
+**Files**:
+- `packages/core/src/Auth/AuthorizationService.ts` - Interface
+- `packages/persistence/src/Layers/AuthorizationServiceLive.ts` - Implementation
+
+**Methods**:
+- `checkPermission(action)` - Check against permission matrix, throw PermissionDeniedError
+- `checkPermissions(actions[])` - Batch check, return Record<Action, boolean>
+- `hasRole(role)` - Check current membership role
+- `hasFunctionalRole(role)` - Check functional role flag
+- `getEffectivePermissions()` - List all allowed actions
+
+**Implementation**: Use hardcoded permission matrix from spec (for now, ABAC comes later).
+
+**Test**: Unit tests for permission matrix.
+
+---
+
+### Track D: API Endpoints (Backend)
+
+#### Phase D1: Membership API Definition
+**File**: `packages/api/src/Definitions/MembershipApi.ts`
+
+Define HttpApi endpoints:
+- `GET /v1/organizations/:orgId/members` - List members
+- `POST /v1/organizations/:orgId/members/invite` - Send invitation
+- `PATCH /v1/organizations/:orgId/members/:userId` - Update role
+- `DELETE /v1/organizations/:orgId/members/:userId` - Remove member
+- `POST /v1/organizations/:orgId/members/:userId/reinstate` - Reinstate
+- `POST /v1/organizations/:orgId/transfer-ownership` - Transfer
+
+**Test**: Types compile.
+
+---
+
+#### Phase D2: Membership API Implementation
+**File**: `packages/api/src/Layers/MembershipApiLive.ts`
+
+Implement handlers using MemberService, InvitationService.
+
+**Test**: Integration tests for all endpoints.
+
+---
+
+#### Phase D3: Invitation API Definition & Implementation
+**Files**:
+- `packages/api/src/Definitions/InvitationApi.ts`
+- `packages/api/src/Layers/InvitationApiLive.ts`
+
+**Endpoints**:
+- `GET /v1/users/me/invitations` - User's pending invitations
+- `POST /v1/invitations/:token/accept` - Accept
+- `POST /v1/invitations/:token/decline` - Decline
+- `DELETE /v1/organizations/:orgId/invitations/:invitationId` - Revoke
+
+**Test**: Integration tests.
+
+---
+
+#### Phase D4: User Organizations API
+**Files**:
+- `packages/api/src/Definitions/UserOrganizationsApi.ts`
+- `packages/api/src/Layers/UserOrganizationsApiLive.ts`
+
+**Endpoint**: `GET /v1/users/me/organizations` - List user's orgs with roles
+
+**Test**: Integration test.
+
+---
+
+#### Phase D5: Organization Context Middleware
+**File**: `packages/api/src/Layers/OrganizationContextMiddlewareLive.ts`
+
+Middleware that:
+1. Extracts `organizationId` from URL path
+2. Loads membership via `OrganizationMemberRepository`
+3. Validates status is `active`
+4. Provides `CurrentOrganizationMembership`
+5. Returns 403 `ForbiddenError` if not a member
+
+**Test**: Integration test for middleware.
+
+---
+
+### Track E: Enforcement (Backend)
+
+#### Phase E1: Add Org Filtering to CompanyRepository
+Update `packages/persistence/src/Services/CompanyRepository.ts` and implementation:
+- All methods require `organizationId` parameter
+- All queries filter by `organization_id`
+
+**Test**: Verify queries include filter.
+
+---
+
+#### Phase E2: Add Org Filtering to AccountRepository
+Same pattern as E1 for accounts.
+
+---
+
+#### Phase E3: Add Org Filtering to JournalEntryRepository
+Same pattern as E1 for journal entries.
+
+---
+
+#### Phase E4: Add Org Filtering to FiscalPeriodRepository
+Same pattern as E1 for fiscal periods.
+
+---
+
+#### Phase E5: Add Org Filtering to ConsolidationGroupRepository
+Same pattern as E1 for consolidation groups.
+
+---
+
+#### Phase E6: Add Org Filtering to ExchangeRateRepository
+Same pattern as E1 for exchange rates.
+
+---
+
+#### Phase E7: Permission Checks in CompaniesApi
+Update handlers to:
+1. Get `organizationId` from `CurrentOrganizationMembership`
+2. Call `AuthorizationService.checkPermission()` before operations
+3. Pass `organizationId` to repository methods
+
+---
+
+#### Phase E8: Permission Checks in AccountsApi
+Same pattern as E7.
+
+---
+
+#### Phase E9: Permission Checks in JournalEntriesApi
+Same pattern as E7.
+
+---
+
+#### Phase E10: Permission Checks in FiscalPeriodsApi
+Same pattern as E7.
+
+---
+
+#### Phase E11: Permission Checks in ConsolidationApi
+Same pattern as E7.
+
+---
+
+#### Phase E12: Permission Checks in ExchangeRatesApi
+Same pattern as E7.
+
+---
+
+#### Phase E13: Permission Checks in ReportsApi
+Same pattern as E7.
+
+---
+
+#### Phase E14: Denial Audit Logging
+Update `AuthorizationServiceLive.ts`:
+- On `checkPermission` denial, call `AuthorizationAuditRepository.logDenial()`
+- Include user, org, action, resource, reason, IP, user agent
+
+**Test**: Verify denials are logged.
+
+---
+
+### Track F: ABAC Policy Engine (Backend)
+
+#### Phase F1: Action Matcher
+**File**: `packages/core/src/Auth/matchers/ActionMatcher.ts`
+
+Function to match action against ActionCondition:
+- Exact match: `"journal_entry:create"` matches `"journal_entry:create"`
+- Wildcard: `"*"` matches any action
+- Prefix wildcard: `"journal_entry:*"` matches `"journal_entry:create"`
+
+**Test**: Unit tests for all match types.
+
+---
+
+#### Phase F2: Subject Matcher
+**File**: `packages/core/src/Auth/matchers/SubjectMatcher.ts`
+
+Function to match current user against SubjectCondition:
+- `roles` - any of user's role matches
+- `functionalRoles` - any of user's functional roles matches
+- `userIds` - user's ID in list
+- `isPlatformAdmin` - user's platform admin flag
+
+**Test**: Unit tests.
+
+---
+
+#### Phase F3: Resource Matcher
+**File**: `packages/core/src/Auth/matchers/ResourceMatcher.ts`
+
+Function to match resource against ResourceCondition:
+- `type` - matches or is `"*"`
+- `attributes.accountNumber.range` - number in range
+- `attributes.accountType` - type in list
+- `attributes.periodStatus` - status in list
+- etc.
+
+**Test**: Unit tests.
+
+---
+
+#### Phase F4: Environment Matcher
+**File**: `packages/core/src/Auth/matchers/EnvironmentMatcher.ts`
+
+Function to match request context against EnvironmentCondition:
+- `timeOfDay` - current time in range
+- `daysOfWeek` - current day in list
+- `ipAllowList` - request IP matches CIDR
+- `ipDenyList` - request IP not in CIDR
+
+**Test**: Unit tests.
+
+---
+
+#### Phase F5: Policy Engine Service
+**Files**:
+- `packages/core/src/Auth/PolicyEngine.ts` - Interface
+- `packages/persistence/src/Layers/PolicyEngineLive.ts` - Implementation
+
+**Methods**:
+- `evaluatePolicy(policy, context)` - Returns match result
+- `evaluatePolicies(policies, context)` - Returns decision + matched policies
+
+**Logic**:
+1. Filter to active policies
+2. Evaluate deny policies first (any match = deny)
+3. Evaluate allow policies by priority
+4. Default deny
+
+**Test**: Integration tests.
+
+---
+
+#### Phase F6: System Policies Seeding
+**File**: `packages/persistence/src/Seeds/SystemPolicies.ts`
+
+Define the 4 system policies as seed data.
+Update organization creation to insert system policies.
+
+**Test**: New org has 4 system policies.
+
+---
+
+#### Phase F7: Integrate ABAC into AuthorizationService
+Update `AuthorizationServiceLive.ts`:
+- Replace hardcoded matrix with `PolicyEngine.evaluatePolicies()`
+- Load policies from `PolicyRepository`
+- Fall back to RBAC matrix if no policies (backward compat)
+
+**Test**: Policy-based authorization works.
+
+---
+
+#### Phase F8: Policy Management API
+**Files**:
+- `packages/api/src/Definitions/PolicyApi.ts`
+- `packages/api/src/Layers/PolicyApiLive.ts`
 
 **Endpoints**:
 - `GET /v1/organizations/:orgId/policies`
@@ -314,222 +508,266 @@ yield* AuthorizationService.checkPermission("journal_entry:create")
 - `DELETE /v1/organizations/:orgId/policies/:policyId`
 - `POST /v1/organizations/:orgId/policies/test`
 
-**Acceptance Criteria**:
-- [ ] System policies cannot be modified/deleted
-- [ ] Policy evaluation < 5ms (p99)
-- [ ] Wildcard matching works correctly
-- [ ] Unit tests for all matchers
-- [ ] Integration tests for policy evaluation
+**Test**: Integration tests, verify system policy protection.
 
 ---
 
-### Phase 5: Frontend - Organization Selector & Access Control
+### Track G: Frontend - Core
 
-**Goal**: Update frontend to respect authorization.
-
-#### 5.1 API Client Generation
-
-| Task | Description |
-|------|-------------|
-| 5.1.1 | Run `pnpm generate:api` to update typed client |
-| 5.1.2 | Verify all new endpoints are available |
-
-#### 5.2 Organization Selector Updates
-
-| Task | File | Description |
-|------|------|-------------|
-| 5.2.1 | `packages/web/src/components/layout/OrganizationSelector.tsx` | Filter to user's orgs only |
-| 5.2.2 | Add role badge display | Show role next to org name |
-| 5.2.3 | Update loader | Fetch from `/v1/users/me/organizations` |
-
-#### 5.3 Permission Hook
-
-| Task | File | Description |
-|------|------|-------------|
-| 5.3.1 | `packages/web/src/hooks/usePermissions.ts` | Hook to check permissions client-side |
-| 5.3.2 | `packages/web/src/hooks/useCanPerform.ts` | Convenience hook for single action |
-
-**Usage**:
-```typescript
-const { canPerform, isLoading } = usePermissions()
-if (canPerform("journal_entry:create")) { /* show button */ }
-```
-
-#### 5.4 Protected UI Elements
-
-| Task | Description |
-|------|-------------|
-| 5.4.1 | Hide "Create Company" button for non-admins |
-| 5.4.2 | Hide "Delete" buttons based on permissions |
-| 5.4.3 | Hide "Close Period" for non-controllers |
-| 5.4.4 | Hide settings pages for non-admins |
-| 5.4.5 | Disable edit forms for viewers |
-
-**Acceptance Criteria**:
-- [ ] Users only see organizations they belong to
-- [ ] Role badges are displayed correctly
-- [ ] UI elements hidden/shown based on permissions
-- [ ] No broken UI for restricted users
+#### Phase G1: Generate API Client
+Run `pnpm generate:api` in packages/web.
+Verify new endpoints available in typed client.
 
 ---
 
-### Phase 6: Frontend - Member Management UI
+#### Phase G2: Permission Hook
+**File**: `packages/web/src/hooks/usePermissions.ts`
 
-**Goal**: Implement member management interface.
-
-#### 6.1 Member List Page
-
-| Task | File | Description |
-|------|------|-------------|
-| 6.1.1 | `packages/web/src/routes/organizations/$organizationId/settings/members.tsx` | Route and loader |
-| 6.1.2 | Member table component | List with role badges, status |
-| 6.1.3 | Role template selector | Dropdown with presets |
-| 6.1.4 | Functional role toggles | Individual checkboxes |
-
-#### 6.2 Invite Member Modal
-
-| Task | File | Description |
-|------|------|-------------|
-| 6.2.1 | `packages/web/src/components/forms/InviteMemberModal.tsx` | Modal with email, role, functional roles |
-| 6.2.2 | Email validation | Check valid email format |
-| 6.2.3 | Success/error handling | Toast notifications |
-
-#### 6.3 Edit Member Role Modal
-
-| Task | File | Description |
-|------|------|-------------|
-| 6.3.1 | `packages/web/src/components/forms/EditMemberRoleModal.tsx` | Modal to change roles |
-| 6.3.2 | Effective permissions display | Show computed permissions |
-
-#### 6.4 Member Actions
-
-| Task | Description |
-|------|-------------|
-| 6.4.1 | Remove member (with confirmation) |
-| 6.4.2 | Reinstate member |
-| 6.4.3 | Transfer ownership (owner only) |
-
-#### 6.5 Pending Invitations Section
-
-| Task | Description |
-|------|-------------|
-| 6.5.1 | List pending invitations |
-| 6.5.2 | Revoke invitation action |
-| 6.5.3 | Resend invitation (create new) |
-
-**Acceptance Criteria**:
-- [ ] Members can be invited by email
-- [ ] Roles can be changed
-- [ ] Removed members can be reinstated
-- [ ] Ownership can be transferred
-- [ ] E2E tests pass for member management
+Hook that:
+- Fetches effective permissions from `/v1/users/me/organizations`
+- Caches in context
+- Exposes `canPerform(action)` function
 
 ---
 
-### Phase 7: Frontend - Policy Management UI
+#### Phase G3: Update Organization Selector
+**File**: `packages/web/src/components/layout/OrganizationSelector.tsx`
 
-**Goal**: Implement policy builder interface.
-
-#### 7.1 Policy List Page
-
-| Task | File | Description |
-|------|------|-------------|
-| 7.1.1 | `packages/web/src/routes/organizations/$organizationId/settings/policies.tsx` | Route and loader |
-| 7.1.2 | Policy table | List with name, effect, priority, status |
-| 7.1.3 | System policy indicator | Grayed out, non-editable |
-
-#### 7.2 Policy Builder Modal
-
-| Task | File | Description |
-|------|------|-------------|
-| 7.2.1 | `packages/web/src/components/forms/PolicyBuilderModal.tsx` | Full policy editor |
-| 7.2.2 | Subject condition builder | Role/user selector |
-| 7.2.3 | Resource condition builder | Type + attribute editors |
-| 7.2.4 | Action selector | Multi-select with search |
-| 7.2.5 | Environment condition builder | Time/IP inputs |
-| 7.2.6 | Priority slider | Visual priority control |
-
-#### 7.3 Policy Testing Tool
-
-| Task | File | Description |
-|------|------|-------------|
-| 7.3.1 | `packages/web/src/components/forms/PolicyTestModal.tsx` | Test policy evaluation |
-| 7.3.2 | User selector | Pick user to test |
-| 7.3.3 | Action/resource inputs | Define test scenario |
-| 7.3.4 | Result display | Show decision + matched policies |
-
-**Acceptance Criteria**:
-- [ ] Custom policies can be created via UI
-- [ ] All condition types are configurable
-- [ ] Policy testing works correctly
-- [ ] System policies are protected
-- [ ] E2E tests pass for policy management
+Changes:
+- Fetch from `/v1/users/me/organizations` instead of all orgs
+- Show role badge next to org name
+- Handle empty state (no orgs)
 
 ---
 
-### Phase 8: User Invitations UI & Migration
+#### Phase G4: Protected UI Elements - Companies
+Hide/disable UI elements in company pages based on permissions:
+- Create button: `company:create`
+- Edit button: `company:update`
+- Delete button: `company:delete`
 
-**Goal**: Complete invitation flow and migrate existing data.
+---
 
-#### 8.1 User Invitations Page
+#### Phase G5: Protected UI Elements - Accounts
+Same pattern for accounts pages.
 
-| Task | File | Description |
-|------|------|-------------|
-| 8.1.1 | `packages/web/src/routes/invitations.tsx` | List user's pending invitations |
-| 8.1.2 | Accept invitation action | Call API, redirect to org |
-| 8.1.3 | Decline invitation action | Call API, remove from list |
+---
 
-#### 8.2 Invitation Accept Page
+#### Phase G6: Protected UI Elements - Journal Entries
+Same pattern for journal entry pages.
 
-| Task | File | Description |
-|------|------|-------------|
-| 8.2.1 | `packages/web/src/routes/invitations/$token.tsx` | Deep link for invitation |
-| 8.2.2 | Handle logged-in user | Accept directly |
-| 8.2.3 | Handle logged-out user | Redirect to login, then accept |
+---
 
-#### 8.3 Data Migration
+#### Phase G7: Protected UI Elements - Periods
+Same pattern for fiscal period pages.
 
-| Task | File | Description |
-|------|------|-------------|
-| 8.3.1 | `packages/persistence/src/Migrations/Migration00XX_SeedOwners.ts` | Seed existing org owners |
+---
 
-**Migration Logic**:
-```sql
-INSERT INTO user_organization_members (user_id, organization_id, role, status)
-SELECT created_by, id, 'owner', 'active'
-FROM organizations
-WHERE created_by IS NOT NULL
-ON CONFLICT DO NOTHING;
-```
+#### Phase G8: Protected UI Elements - Consolidation
+Same pattern for consolidation pages.
 
-#### 8.4 Grace Period Feature Flag
+---
 
-| Task | Description |
-|------|-------------|
-| 8.4.1 | Add `AUTHORIZATION_ENFORCEMENT` env var |
-| 8.4.2 | When disabled, skip membership check (allow all authenticated users) |
-| 8.4.3 | When enabled, enforce membership strictly |
+### Track H: Frontend - Member Management
 
-**Acceptance Criteria**:
-- [ ] Users can accept invitations via link
-- [ ] Existing organizations have owners seeded
-- [ ] Grace period allows gradual rollout
-- [ ] E2E tests pass for invitation flow
+#### Phase H1: Members Page Route
+**File**: `packages/web/src/routes/organizations/$organizationId/settings/members.tsx`
+
+Create route with:
+- Loader fetching members list
+- Basic page layout with table
+
+---
+
+#### Phase H2: Member Table Component
+Display members with:
+- Name, email
+- Role badge
+- Functional roles tags
+- Status indicator
+- Actions dropdown
+
+---
+
+#### Phase H3: Invite Member Modal
+**File**: `packages/web/src/components/forms/InviteMemberModal.tsx`
+
+Form with:
+- Email input (with validation)
+- Role dropdown
+- Functional roles checkboxes
+- Submit/cancel buttons
+
+---
+
+#### Phase H4: Edit Member Role Modal
+**File**: `packages/web/src/components/forms/EditMemberRoleModal.tsx`
+
+Form with:
+- Role dropdown (with templates)
+- Functional roles checkboxes
+- Effective permissions display (read-only)
+
+---
+
+#### Phase H5: Member Actions
+Implement:
+- Remove member (confirmation dialog)
+- Reinstate member
+- Transfer ownership (owner only, confirmation)
+
+---
+
+#### Phase H6: Pending Invitations Section
+Add section showing:
+- Pending invitations list
+- Revoke button for each
+
+---
+
+### Track I: Frontend - Policy Management
+
+#### Phase I1: Policies Page Route
+**File**: `packages/web/src/routes/organizations/$organizationId/settings/policies.tsx`
+
+Create route with:
+- Loader fetching policies
+- Table with name, effect, priority, status
+- System policy indicator (grayed)
+
+---
+
+#### Phase I2: Policy Builder Modal - Basic
+**File**: `packages/web/src/components/forms/PolicyBuilderModal.tsx`
+
+Basic form with:
+- Name, description
+- Effect (allow/deny)
+- Priority slider
+
+---
+
+#### Phase I3: Policy Builder - Subject Conditions
+Add to modal:
+- Role multi-select
+- Functional role multi-select
+- User selector (optional)
+
+---
+
+#### Phase I4: Policy Builder - Resource Conditions
+Add to modal:
+- Resource type dropdown
+- Attribute editors (account range, etc.)
+
+---
+
+#### Phase I5: Policy Builder - Action Selection
+Add to modal:
+- Action multi-select with search
+- Group by resource type
+
+---
+
+#### Phase I6: Policy Builder - Environment Conditions
+Add to modal:
+- Time range inputs
+- Day of week checkboxes
+- IP allowlist/denylist inputs
+
+---
+
+#### Phase I7: Policy Testing Tool
+**File**: `packages/web/src/components/forms/PolicyTestModal.tsx`
+
+Form with:
+- User selector
+- Action dropdown
+- Resource inputs
+- Test button
+- Result display (decision + matched policies)
+
+---
+
+### Track J: Frontend - Invitations & Migration
+
+#### Phase J1: User Invitations Page
+**File**: `packages/web/src/routes/invitations.tsx`
+
+Page showing:
+- List of pending invitations
+- Accept/decline buttons
+- Org name, role, invited by
+
+---
+
+#### Phase J2: Invitation Accept Deep Link
+**File**: `packages/web/src/routes/invitations/$token.tsx`
+
+Handle:
+- Logged in: accept and redirect to org
+- Logged out: redirect to login with return URL
+
+---
+
+#### Phase J3: Owner Seeding Migration
+**File**: `packages/persistence/src/Migrations/Migration00XX_SeedOwners.ts`
+
+SQL to seed existing org creators as owners.
+
+---
+
+#### Phase J4: Grace Period Feature Flag
+Add `AUTHORIZATION_ENFORCEMENT` env var:
+- When `false`: skip membership check in middleware
+- When `true`: enforce strictly
 
 ---
 
 ### Phase Summary
 
-| Phase | Description | Dependencies |
-|-------|-------------|--------------|
-| **Phase 1** | Database Schema & Domain Models | None |
-| **Phase 2** | Core Services & Invitation Flow | Phase 1 |
-| **Phase 3** | Authorization Middleware & Enforcement | Phase 1, 2 |
-| **Phase 4** | ABAC Policy Engine | Phase 3 |
-| **Phase 5** | Frontend - Org Selector & Access Control | Phase 3 |
-| **Phase 6** | Frontend - Member Management UI | Phase 2, 5 |
-| **Phase 7** | Frontend - Policy Management UI | Phase 4, 5 |
-| **Phase 8** | User Invitations UI & Migration | Phase 2, 5 |
+| Track | Phases | Focus |
+|-------|--------|-------|
+| **A** | A1-A7 | Foundation: DB + Domain Models |
+| **B** | B1-B4 | Repositories |
+| **C** | C1-C4 | Services |
+| **D** | D1-D5 | API Endpoints |
+| **E** | E1-E14 | Enforcement (org filtering + permissions) |
+| **F** | F1-F8 | ABAC Policy Engine |
+| **G** | G1-G8 | Frontend Core |
+| **H** | H1-H6 | Frontend Member Management |
+| **I** | I1-I7 | Frontend Policy Management |
+| **J** | J1-J4 | Frontend Invitations + Migration |
+
+**Total: 57 phases**
+
+### Execution Order
+
+```
+A1 → A2 → A3 → A4 → A5 → A6 → A7  (Foundation)
+         ↓
+B1 → B2 → B3 → B4  (Repositories)
+         ↓
+C1 → C2 → C3 → C4  (Services)
+         ↓
+D1 → D2 → D3 → D4 → D5  (API)
+         ↓
+    ┌────┴────┐
+    ↓         ↓
+E1-E14    F1-F8  (Enforcement + ABAC - can parallelize)
+    ↓         ↓
+    └────┬────┘
+         ↓
+G1 → G2 → G3 → G4-G8  (Frontend Core)
+         ↓
+    ┌────┴────┐
+    ↓         ↓
+H1-H6      I1-I7  (Member UI + Policy UI - can parallelize)
+    ↓         ↓
+    └────┬────┘
+         ↓
+J1 → J2 → J3 → J4  (Invitations + Migration)
+```
 
 ### Testing Checkpoints
 
@@ -538,7 +776,11 @@ After each phase, run:
 pnpm test        # Unit/integration tests
 pnpm typecheck   # TypeScript validation
 pnpm lint        # Code quality
-pnpm test:e2e    # E2E tests (after Phase 5+)
+```
+
+After G1+:
+```bash
+pnpm test:e2e    # E2E tests
 ```
 
 ---
