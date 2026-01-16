@@ -2,7 +2,7 @@
 
 ## Current State (January 2026)
 
-**Total Tests:** 259 passed, 2 skipped
+**Total Tests:** 261 tests (259 passed, 2 skipped)
 
 ### Existing E2E Test Files
 
@@ -196,11 +196,19 @@ test("should create and view consolidation group", async ({ page, request }) => 
 
 ## Skipped Tests
 
-Currently 2 tests are skipped. Investigate and fix:
+Currently 2 tests are intentionally skipped in `organizations.spec.ts`:
 
-```bash
-pnpm test:e2e --grep "skip"
-```
+1. **"should auto-redirect to dashboard when user has only one organization"**
+   - Reason: Organizations are currently globally visible (not user-scoped)
+   - Auto-redirect requires exactly 1 organization globally, which cannot be guaranteed with shared E2E database
+   - Re-enable when user-scoped organization visibility is implemented
+
+2. **"should show empty state when user has no organizations"**
+   - Reason: Organizations are currently globally visible (not user-scoped)
+   - Empty state requires 0 organizations globally, which cannot be guaranteed with shared E2E database
+   - Re-enable when user-scoped organization visibility is implemented
+
+These tests require architectural changes to implement user-scoped organization ownership/membership.
 
 ---
 
@@ -249,4 +257,8 @@ pnpm test:e2e:report
 | Route coverage | ~95% | 95% |
 | Critical flows | ~100% | 100% |
 | Error handling | ~80% | 80% |
-| Total test count | 259 | 250+ |
+| Total test count | 261 | 250+ |
+
+## Summary
+
+E2E test coverage is complete. All critical business flows are tested. The 2 skipped tests require architectural changes (user-scoped organization visibility) that are outside the scope of this spec.

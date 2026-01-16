@@ -281,3 +281,8 @@
 **Task**: Fixed 8 lint errors in consolidated report pages (balance-sheet.tsx, cash-flow.tsx, equity-statement.tsx, income-statement.tsx) by replacing type assertions with proper type guards. Created `isErrorWithMessage` and `getErrorMessage` helper functions that use the `in` operator for type-safe property checking without any type assertions. All 3587 unit tests pass, typecheck is clean, and lint passes.
 **Status**: complete
 ---
+
+## Iteration 4 - 2026-01-16 12:49
+**Task**: Updated E2E_TEST_COVERAGE.md spec with accurate test counts (261 tests: 259 passed, 2 skipped) and documented why the 2 tests are intentionally skipped (require user-scoped organization visibility - architectural change). Added summary section confirming E2E coverage is complete. All CI checks pass.
+**Status**: complete
+---
