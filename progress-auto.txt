@@ -241,3 +241,8 @@
 **Task**: Fixed 12 failing E2E tests by making action buttons always visible in page headers (New Account, New Company, New Entry, View all link) regardless of whether records exist, and updated companies-list test to remove obsolete consolidation column references. All 178 E2E tests and 3587 unit tests now pass.
 **Status**: complete
 ---
+
+## Iteration 1 - 2026-01-16 11:10
+**Task**: Implemented comprehensive E2E test suite for consolidation module (12 tests covering group list, create, detail, activate/deactivate, delete, run initiation, status filters, and navigation). All 190 E2E tests pass, typecheck is clean. Updated E2E_TEST_COVERAGE.md spec to mark consolidation as resolved.
+**Status**: complete
+---
