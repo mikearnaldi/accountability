@@ -310,3 +310,8 @@
 **Task**: Fixed all E2E test failures - (1) consolidation toggle active status test by adding proper waits and specific selectors for status badge, (2) synthetic-data-generator test by using page.press for form submission, page.selectOption for dropdowns, correct data-testids, and extracting company IDs from list page links, (3) login flaky tests by adding hydration waits, force clicks, and proper URL wait patterns. All 3587 unit tests pass, typecheck passes, and 268 E2E tests pass with only 1 flaky and 2 skipped.
 **Status**: complete
 ---
+
+## Iteration 4 - 2026-01-16 20:42
+**Task**: Fixed E2E synthetic-data-generator test failure by changing ConsolidationRun.asOfDate from LocalDate to LocalDateFromString schema, ensuring proper JSON serialization as ISO string instead of {year, month, day} object which was causing React rendering error
+**Status**: complete
+---

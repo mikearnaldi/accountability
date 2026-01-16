@@ -7,7 +7,10 @@
  * - Parent and subsidiary companies
  * - Chart of accounts for both companies
  * - Journal entries for 2 years
+ * - Company reports (Trial Balance, Balance Sheet)
  * - Consolidation group
+ * - Consolidation runs (2024, 2025)
+ * - Consolidated reports
  *
  * This test is tagged as @slow and @synthetic-data for selective CI execution.
  */
@@ -18,7 +21,7 @@ import { generateSyntheticData, DEFAULT_CONFIG } from "../scripts/generate-synth
 test.describe("Synthetic Data Generator", () => {
   // Configure for serial execution and longer timeout
   test.describe.configure({ mode: "serial" })
-  test.setTimeout(600000) // 10 minute timeout for full generation (UI interactions are slower)
+  test.setTimeout(900000) // 15 minute timeout for full generation (UI interactions are slower)
 
   // Store generated data for verification tests
   let generatedData: Awaited<ReturnType<typeof generateSyntheticData>>
@@ -39,6 +42,12 @@ test.describe("Synthetic Data Generator", () => {
     expect(generatedData.subsidiaryCompany.id).toBeTruthy()
     expect(generatedData.accounts.parent.size).toBeGreaterThan(0)
     expect(generatedData.accounts.subsidiary.size).toBeGreaterThan(0)
+
+    // Verify consolidation data
+    expect(generatedData.consolidationGroup).toBeTruthy()
+    expect(generatedData.consolidationGroup?.id).toBeTruthy()
+    expect(generatedData.consolidationRuns).toBeTruthy()
+    expect(generatedData.consolidationRuns?.length).toBeGreaterThanOrEqual(2)
   })
 
   test("user can log in with generated credentials", {
@@ -243,6 +252,30 @@ test.describe("Synthetic Data Generator", () => {
 
     // Verify the consolidation group is visible
     await expect(page.getByText("Acme Consolidated Group")).toBeVisible()
+  })
+
+  test("consolidation runs exist for both years", {
+    tag: ["@slow", "@synthetic-data"]
+  }, async ({ page }) => {
+    // Log in first
+    await page.goto("/login")
+    await page.waitForTimeout(500)
+    await page.fill('input[type="email"]', DEFAULT_CONFIG.user.email)
+    await page.fill('input[type="password"]', DEFAULT_CONFIG.user.password)
+    await page.click('button[type="submit"]')
+    await page.waitForURL(/\/(organizations|dashboard)/, { timeout: 15000 })
+
+    // Navigate to consolidation group detail page
+    const groupId = generatedData.consolidationGroup?.id
+    expect(groupId).toBeTruthy()
+    await page.goto(`/organizations/${generatedData.organization.id}/consolidation/${groupId}`)
+
+    // Wait for page to load
+    await expect(page.getByTestId("consolidation-group-detail-page")).toBeVisible()
+
+    // Verify both consolidation runs are visible (2024 and 2025)
+    await expect(page.getByText("2024 P12")).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText("2025 P12")).toBeVisible({ timeout: 10000 })
   })
 
   test("reports page shows both companies", {

@@ -24,7 +24,7 @@ import { AccountCategory } from "./Account.ts"
 import { ConsolidationGroupId } from "./ConsolidationGroup.ts"
 import { CurrencyCode } from "./CurrencyCode.ts"
 import { FiscalPeriodRef } from "./FiscalPeriodRef.ts"
-import { LocalDate } from "./LocalDate.ts"
+import { LocalDate, LocalDateFromString } from "./LocalDate.ts"
 import { MonetaryAmount } from "./MonetaryAmount.ts"
 import { Timestamp } from "./Timestamp.ts"
 
@@ -691,8 +691,9 @@ export class ConsolidationRun extends Schema.Class<ConsolidationRun>("Consolidat
 
   /**
    * As-of date for the consolidation
+   * Uses LocalDateFromString to ensure proper JSON serialization as ISO string
    */
-  asOfDate: LocalDate,
+  asOfDate: LocalDateFromString,
 
   /**
    * Overall status of the consolidation run

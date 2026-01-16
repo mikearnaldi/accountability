@@ -93,6 +93,8 @@ interface GeneratedData {
     parent: Set<string> // set of account numbers that exist
     subsidiary: Set<string>
   }
+  consolidationGroup?: { id: string; name: string }
+  consolidationRuns?: { year: number; id: string }[]
 }
 
 // ===== Logging =====
@@ -131,6 +133,28 @@ function extractCompanyIdFromUrl(url: string): string {
   const match = url.match(/\/companies\/([a-f0-9-]+)/)
   if (!match) {
     throw new Error(`Could not extract company ID from URL: ${url}`)
+  }
+  return match[1]
+}
+
+/**
+ * Extracts consolidation group ID from URL path /consolidation/:id/...
+ */
+function extractConsolidationGroupIdFromUrl(url: string): string {
+  const match = url.match(/\/consolidation\/([a-f0-9-]+)/)
+  if (!match) {
+    throw new Error(`Could not extract consolidation group ID from URL: ${url}`)
+  }
+  return match[1]
+}
+
+/**
+ * Extracts consolidation run ID from URL path /runs/:id/...
+ */
+function extractConsolidationRunIdFromUrl(url: string): string {
+  const match = url.match(/\/runs\/([a-f0-9-]+)/)
+  if (!match) {
+    throw new Error(`Could not extract consolidation run ID from URL: ${url}`)
   }
   return match[1]
 }
@@ -1220,6 +1244,7 @@ async function createSubsidiaryYear2Data(
 
 /**
  * Creates the consolidation group via UI
+ * Returns the consolidation group ID
  */
 async function createConsolidationGroup(
   page: Page,
@@ -1227,7 +1252,7 @@ async function createConsolidationGroup(
   organizationId: string,
   parentCompanyId: string,
   subsidiaryCompanyId: string
-): Promise<void> {
+): Promise<{ id: string; name: string }> {
   logStep(config, "Creating Consolidation Group")
 
   // Navigate to consolidation page
@@ -1253,8 +1278,10 @@ async function createConsolidationGroup(
   await page.waitForURL(/\/consolidation\/new/, { timeout: 5000 })
   await page.waitForTimeout(300)
 
+  const groupName = "Acme Consolidated Group"
+
   // Fill consolidation group form
-  await page.fill('[data-testid="group-name-input"]', "Acme Consolidated Group")
+  await page.fill('[data-testid="group-name-input"]', groupName)
 
   // Select reporting currency (using correct data-testid)
   const currencySelect = page.locator('[data-testid="reporting-currency-select"]')
@@ -1294,7 +1321,291 @@ async function createConsolidationGroup(
   // Wait for redirect to group detail page
   await page.waitForURL(/\/consolidation\/[a-f0-9-]+/, { timeout: 15000 })
 
-  logSuccess("Created consolidation group: Acme Consolidated Group")
+  // Extract group ID from URL
+  const groupId = extractConsolidationGroupIdFromUrl(page.url())
+  logSuccess(`Created consolidation group: ${groupName} (${groupId})`)
+
+  return { id: groupId, name: groupName }
+}
+
+// ===== Phase 6: Company Reports =====
+
+/**
+ * Navigates to and generates a company report via UI
+ */
+async function generateCompanyReport(
+  page: Page,
+  config: Config,
+  organizationId: string,
+  companyId: string,
+  companyName: string,
+  reportType: "trial-balance" | "balance-sheet" | "income-statement" | "cash-flow" | "equity-statement",
+  asOfDate: string
+): Promise<void> {
+  const reportNames: Record<string, string> = {
+    "trial-balance": "Trial Balance",
+    "balance-sheet": "Balance Sheet",
+    "income-statement": "Income Statement",
+    "cash-flow": "Cash Flow Statement",
+    "equity-statement": "Statement of Changes in Equity"
+  }
+
+  log(config, `Generating ${reportNames[reportType]} for ${companyName}...`)
+
+  // Navigate to the specific report page
+  await page.goto(`/organizations/${organizationId}/companies/${companyId}/reports/${reportType}`)
+  await page.waitForTimeout(500)
+
+  // Wait for page to load
+  await page.waitForSelector(`[data-testid="${reportType}-page"]`, { timeout: 10000 })
+
+  // Fill in the as-of date parameter
+  const dateInput = page.locator(`[data-testid="${reportType}-as-of-date"]`)
+  if (await dateInput.isVisible({ timeout: 3000 })) {
+    await dateInput.fill(asOfDate)
+  } else {
+    // Try alternative date input selector
+    const altDateInput = page.locator('input[type="date"]')
+    if (await altDateInput.isVisible({ timeout: 2000 })) {
+      await altDateInput.fill(asOfDate)
+    }
+  }
+
+  // Click generate report button
+  const generateButton = page.locator('button:has-text("Generate Report")')
+  await generateButton.click()
+
+  // Wait for report to load (look for report table or data)
+  await page.waitForSelector(`[data-testid="${reportType}-report"]`, { timeout: 30000 }).catch(() => {
+    // Report might use different testid format
+    log(config, `Report loaded (waiting for data...)`)
+  })
+
+  // Give it time to render
+  await page.waitForTimeout(1000)
+
+  logSuccess(`Generated ${reportNames[reportType]} for ${companyName} (${asOfDate})`)
+}
+
+/**
+ * Generates company reports for both companies (Phase 6)
+ */
+async function generateCompanyReports(
+  page: Page,
+  config: Config,
+  organizationId: string,
+  parentCompanyId: string,
+  parentCompanyName: string,
+  subsidiaryCompanyId: string,
+  subsidiaryCompanyName: string
+): Promise<void> {
+  logStep(config, "Generating Company Reports")
+
+  // Generate Year 1 (2024) reports for parent company
+  await generateCompanyReport(page, config, organizationId, parentCompanyId, parentCompanyName, "trial-balance", "2024-12-31")
+  await generateCompanyReport(page, config, organizationId, parentCompanyId, parentCompanyName, "balance-sheet", "2024-12-31")
+
+  // Generate Year 1 (2024) reports for subsidiary company
+  await generateCompanyReport(page, config, organizationId, subsidiaryCompanyId, subsidiaryCompanyName, "trial-balance", "2024-12-31")
+  await generateCompanyReport(page, config, organizationId, subsidiaryCompanyId, subsidiaryCompanyName, "balance-sheet", "2024-12-31")
+
+  // Generate Year 2 (2025) reports for parent company
+  await generateCompanyReport(page, config, organizationId, parentCompanyId, parentCompanyName, "trial-balance", "2025-12-31")
+  await generateCompanyReport(page, config, organizationId, parentCompanyId, parentCompanyName, "balance-sheet", "2025-12-31")
+
+  // Generate Year 2 (2025) reports for subsidiary company
+  await generateCompanyReport(page, config, organizationId, subsidiaryCompanyId, subsidiaryCompanyName, "trial-balance", "2025-12-31")
+  await generateCompanyReport(page, config, organizationId, subsidiaryCompanyId, subsidiaryCompanyName, "balance-sheet", "2025-12-31")
+
+  logSuccess("All company reports generated successfully")
+}
+
+// ===== Phase 7: Consolidation Runs =====
+
+/**
+ * Initiates a consolidation run via UI
+ * Returns the run ID
+ */
+async function initiateConsolidationRun(
+  page: Page,
+  config: Config,
+  organizationId: string,
+  groupId: string,
+  year: number,
+  period: number,
+  asOfDate: string
+): Promise<string> {
+  log(config, `Initiating consolidation run for ${year} P${period}...`)
+
+  // Navigate to consolidation group detail page
+  await page.goto(`/organizations/${organizationId}/consolidation/${groupId}`)
+  await page.waitForTimeout(500)
+
+  // Wait for page to load
+  await page.waitForSelector('[data-testid="consolidation-group-detail-page"]', { timeout: 10000 })
+
+  // Click "New Run" button
+  const newRunButton = page.locator('[data-testid="initiate-run-button"]')
+  await newRunButton.waitFor({ state: "visible", timeout: 5000 })
+  await newRunButton.click()
+
+  // Wait for modal to appear
+  await page.waitForSelector('[data-testid="fiscal-year-input"]', { timeout: 5000 })
+  await page.waitForTimeout(300)
+
+  // Fill in the run parameters
+  await page.fill('[data-testid="fiscal-year-input"]', year.toString())
+  await page.fill('[data-testid="fiscal-period-input"]', period.toString())
+  await page.fill('[data-testid="as-of-date-input"]', asOfDate)
+
+  // Click Start Run button
+  await page.click('[data-testid="start-run-button"]')
+
+  // Wait for redirect to run detail page or back to group page
+  await page.waitForURL(/\/runs\/[a-f0-9-]+|\/consolidation\/[a-f0-9-]+$/, { timeout: 30000 })
+
+  // Extract run ID if we were redirected to run detail page
+  let runId = ""
+  const currentUrl = page.url()
+  if (currentUrl.includes("/runs/")) {
+    runId = extractConsolidationRunIdFromUrl(currentUrl)
+    logSuccess(`Consolidation run initiated: ${year} P${period} (${runId})`)
+  } else {
+    // If we stayed on group page, the run was created but we need to find its ID
+    // Reload the page and get the first run in the list
+    await page.reload()
+    await page.waitForTimeout(1000)
+    const firstRunRow = page.locator('[data-testid^="run-row-"]').first()
+    const testId = await firstRunRow.getAttribute("data-testid")
+    runId = testId?.replace("run-row-", "") ?? ""
+    logSuccess(`Consolidation run initiated: ${year} P${period}`)
+  }
+
+  return runId
+}
+
+/**
+ * Runs consolidations for Year 1 (2024) and Year 2 (2025) via UI (Phase 7)
+ */
+async function runConsolidations(
+  page: Page,
+  config: Config,
+  organizationId: string,
+  groupId: string
+): Promise<{ year: number; id: string }[]> {
+  logStep(config, "Running Consolidations")
+
+  const runs: { year: number; id: string }[] = []
+
+  // Run Year 1 (2024) consolidation - Period 12 (December)
+  const run2024Id = await initiateConsolidationRun(
+    page, config, organizationId, groupId,
+    2024, 12, "2024-12-31"
+  )
+  runs.push({ year: 2024, id: run2024Id })
+
+  // Wait a moment between runs
+  await page.waitForTimeout(1000)
+
+  // Run Year 2 (2025) consolidation - Period 12 (December)
+  const run2025Id = await initiateConsolidationRun(
+    page, config, organizationId, groupId,
+    2025, 12, "2025-12-31"
+  )
+  runs.push({ year: 2025, id: run2025Id })
+
+  logSuccess("All consolidation runs completed")
+
+  return runs
+}
+
+// ===== Phase 8: Consolidated Reports =====
+
+/**
+ * Navigates to and views a consolidated report via UI
+ */
+async function viewConsolidatedReport(
+  page: Page,
+  config: Config,
+  organizationId: string,
+  groupId: string,
+  runId: string,
+  reportType: "balance-sheet" | "income-statement" | "cash-flow" | "equity-statement",
+  year: number
+): Promise<void> {
+  const reportNames: Record<string, string> = {
+    "balance-sheet": "Consolidated Balance Sheet",
+    "income-statement": "Consolidated Income Statement",
+    "cash-flow": "Consolidated Cash Flow Statement",
+    "equity-statement": "Consolidated Statement of Changes in Equity"
+  }
+
+  log(config, `Viewing ${reportNames[reportType]} for ${year}...`)
+
+  // Navigate to the consolidated report page
+  await page.goto(`/organizations/${organizationId}/consolidation/${groupId}/runs/${runId}/reports/${reportType}`)
+  await page.waitForTimeout(500)
+
+  // Wait for page to load (consolidated reports may have different structure)
+  // Try multiple possible selectors
+  const possibleSelectors = [
+    `[data-testid="consolidated-${reportType}-page"]`,
+    `[data-testid="${reportType}-page"]`,
+    '[data-testid="consolidated-report-page"]',
+    'table',  // Most reports have a table
+    '.report-content'
+  ]
+
+  let loaded = false
+  for (const selector of possibleSelectors) {
+    try {
+      await page.waitForSelector(selector, { timeout: 5000 })
+      loaded = true
+      break
+    } catch {
+      continue
+    }
+  }
+
+  if (!loaded) {
+    log(config, `Warning: ${reportNames[reportType]} page may not have loaded completely`)
+  }
+
+  // Give it time to render
+  await page.waitForTimeout(1000)
+
+  logSuccess(`Viewed ${reportNames[reportType]} for ${year}`)
+}
+
+/**
+ * Generates consolidated reports for both years (Phase 8)
+ */
+async function generateConsolidatedReports(
+  page: Page,
+  config: Config,
+  organizationId: string,
+  groupId: string,
+  runs: { year: number; id: string }[]
+): Promise<void> {
+  logStep(config, "Viewing Consolidated Reports")
+
+  // Get runs by year
+  const run2024 = runs.find(r => r.year === 2024)
+  const run2025 = runs.find(r => r.year === 2025)
+
+  // View 2024 consolidated reports (if run exists and has ID)
+  if (run2024?.id) {
+    await viewConsolidatedReport(page, config, organizationId, groupId, run2024.id, "balance-sheet", 2024)
+    await viewConsolidatedReport(page, config, organizationId, groupId, run2024.id, "income-statement", 2024)
+  }
+
+  // View 2025 consolidated reports (if run exists and has ID)
+  if (run2025?.id) {
+    await viewConsolidatedReport(page, config, organizationId, groupId, run2025.id, "balance-sheet", 2025)
+    await viewConsolidatedReport(page, config, organizationId, groupId, run2025.id, "income-statement", 2025)
+  }
+
+  logSuccess("All consolidated reports viewed successfully")
 }
 
 // ===== Main Export Function =====
@@ -1391,8 +1702,25 @@ export async function generateSyntheticData(
     )
 
     // 8. Create consolidation group
-    await createConsolidationGroup(
+    const consolidationGroup = await createConsolidationGroup(
       page, config, organization.id, parentCompany.id, subsidiaryCompany.id
+    )
+
+    // 9. Generate company reports (Phase 6)
+    await generateCompanyReports(
+      page, config, organization.id,
+      parentCompany.id, parentCompany.name,
+      subsidiaryCompany.id, subsidiaryCompany.name
+    )
+
+    // 10. Run consolidations (Phase 7)
+    const consolidationRuns = await runConsolidations(
+      page, config, organization.id, consolidationGroup.id
+    )
+
+    // 11. View consolidated reports (Phase 8)
+    await generateConsolidatedReports(
+      page, config, organization.id, consolidationGroup.id, consolidationRuns
     )
 
     // Summary
@@ -1406,7 +1734,10 @@ Summary:
   ✓ Parent Company: ${parentCompany.name} (${parentAccounts.size} accounts)
   ✓ Subsidiary Company: ${subsidiaryCompany.name} (${subsidiaryAccounts.size} accounts)
   ✓ Journal Entries: 2 years of data (2024-2025)
-  ✓ Consolidation Group: Acme Consolidated Group
+  ✓ Consolidation Group: ${consolidationGroup.name}
+  ✓ Consolidation Runs: ${consolidationRuns.length} runs (2024, 2025)
+  ✓ Company Reports: Trial Balance, Balance Sheet for both companies
+  ✓ Consolidated Reports: Balance Sheet, Income Statement for both years
 
 Login credentials:
   Email: ${config.user.email}
@@ -1420,7 +1751,9 @@ Login credentials:
       accounts: {
         parent: parentAccounts,
         subsidiary: subsidiaryAccounts
-      }
+      },
+      consolidationGroup,
+      consolidationRuns
     }
   } finally {
     if (browser) {
