@@ -4,7 +4,7 @@
  * Tests for the organization dashboard at /organizations/:organizationId/dashboard:
  * - beforeLoad redirects to /login if not authenticated
  * - Dashboard shows organization header with name and currency
- * - Dashboard shows org-scoped metrics (companies, accounts, pending entries, open periods)
+ * - Dashboard shows org-scoped metrics (companies, accounts, pending entries, consolidation groups)
  * - Quick actions navigate correctly
  * - Activity feed shows placeholder
  */
@@ -147,7 +147,7 @@ test.describe("Organization Dashboard", () => {
     await expect(page.locator('[data-testid="metric-org-companies"]')).toBeVisible()
     await expect(page.locator('[data-testid="metric-org-accounts"]')).toBeVisible()
     await expect(page.locator('[data-testid="metric-org-pending-entries"]')).toBeVisible()
-    await expect(page.locator('[data-testid="metric-org-open-periods"]')).toBeVisible()
+    await expect(page.locator('[data-testid="metric-org-consolidation-groups"]')).toBeVisible()
   })
 
   test("should display quick actions", async ({ page, request }) => {

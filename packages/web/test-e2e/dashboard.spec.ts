@@ -111,7 +111,7 @@ test.describe("Dashboard - Organization Scoped", () => {
     await expect(page.locator('[data-testid="metric-org-companies"]')).toBeVisible()
     await expect(page.locator('[data-testid="metric-org-accounts"]')).toBeVisible()
     await expect(page.locator('[data-testid="metric-org-pending-entries"]')).toBeVisible()
-    await expect(page.locator('[data-testid="metric-org-open-periods"]')).toBeVisible()
+    await expect(page.locator('[data-testid="metric-org-consolidation-groups"]')).toBeVisible()
   })
 
   test("should display quick actions for organization", async ({ page }) => {
