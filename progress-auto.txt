@@ -246,3 +246,8 @@
 **Task**: Implemented comprehensive E2E test suite for consolidation module (12 tests covering group list, create, detail, activate/deactivate, delete, run initiation, status filters, and navigation). All 190 E2E tests pass, typecheck is clean. Updated E2E_TEST_COVERAGE.md spec to mark consolidation as resolved.
 **Status**: complete
 ---
+
+## Iteration 2 - 2026-01-16 11:23
+**Task**: Implemented comprehensive E2E test suite for exchange rates module (11 tests covering list page empty state, sidebar navigation, new rate page form, cancel/back navigation, sidebar quick actions, create rate modal opening/closing, and client-side validation for same currencies). All 200 E2E tests pass (up from 190), 3587 unit tests pass, typecheck is clean. Updated E2E_TEST_COVERAGE.md spec to mark exchange rates as resolved. Note: Rate creation/edit/delete functionality cannot be fully tested due to a backend bug - the ExchangeRate domain entity is missing organizationId but the database requires it.
+**Status**: complete
+---
