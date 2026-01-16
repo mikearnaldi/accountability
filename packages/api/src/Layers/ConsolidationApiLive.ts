@@ -685,5 +685,121 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
           return maybeRun
         })
       )
+      .handle("getConsolidatedBalanceSheet", (_) =>
+        Effect.gen(function* () {
+          const runId = _.path.id
+
+          // Check run exists and is completed
+          const maybeRun = yield* consolidationRepo.findRun(runId).pipe(
+            Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+          )
+          if (Option.isNone(maybeRun)) {
+            return yield* Effect.fail(new NotFoundError({ resource: "ConsolidationRun", id: runId }))
+          }
+          const run = maybeRun.value
+
+          if (run.status !== "Completed") {
+            return yield* Effect.fail(new BusinessRuleError({
+              code: "RUN_NOT_COMPLETED",
+              message: `Consolidation run status is ${run.status}, not Completed`,
+              details: Option.none()
+            }))
+          }
+
+          // Report generation not yet implemented
+          return yield* Effect.fail(new BusinessRuleError({
+            code: "NOT_IMPLEMENTED",
+            message: "Consolidated balance sheet generation is not yet implemented",
+            details: Option.none()
+          }))
+        })
+      )
+      .handle("getConsolidatedIncomeStatement", (_) =>
+        Effect.gen(function* () {
+          const runId = _.path.id
+
+          // Check run exists and is completed
+          const maybeRun = yield* consolidationRepo.findRun(runId).pipe(
+            Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+          )
+          if (Option.isNone(maybeRun)) {
+            return yield* Effect.fail(new NotFoundError({ resource: "ConsolidationRun", id: runId }))
+          }
+          const run = maybeRun.value
+
+          if (run.status !== "Completed") {
+            return yield* Effect.fail(new BusinessRuleError({
+              code: "RUN_NOT_COMPLETED",
+              message: `Consolidation run status is ${run.status}, not Completed`,
+              details: Option.none()
+            }))
+          }
+
+          // Report generation not yet implemented
+          return yield* Effect.fail(new BusinessRuleError({
+            code: "NOT_IMPLEMENTED",
+            message: "Consolidated income statement generation is not yet implemented",
+            details: Option.none()
+          }))
+        })
+      )
+      .handle("getConsolidatedCashFlowStatement", (_) =>
+        Effect.gen(function* () {
+          const runId = _.path.id
+
+          // Check run exists and is completed
+          const maybeRun = yield* consolidationRepo.findRun(runId).pipe(
+            Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+          )
+          if (Option.isNone(maybeRun)) {
+            return yield* Effect.fail(new NotFoundError({ resource: "ConsolidationRun", id: runId }))
+          }
+          const run = maybeRun.value
+
+          if (run.status !== "Completed") {
+            return yield* Effect.fail(new BusinessRuleError({
+              code: "RUN_NOT_COMPLETED",
+              message: `Consolidation run status is ${run.status}, not Completed`,
+              details: Option.none()
+            }))
+          }
+
+          // Report generation not yet implemented
+          return yield* Effect.fail(new BusinessRuleError({
+            code: "NOT_IMPLEMENTED",
+            message: "Consolidated cash flow statement generation is not yet implemented",
+            details: Option.none()
+          }))
+        })
+      )
+      .handle("getConsolidatedEquityStatement", (_) =>
+        Effect.gen(function* () {
+          const runId = _.path.id
+
+          // Check run exists and is completed
+          const maybeRun = yield* consolidationRepo.findRun(runId).pipe(
+            Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+          )
+          if (Option.isNone(maybeRun)) {
+            return yield* Effect.fail(new NotFoundError({ resource: "ConsolidationRun", id: runId }))
+          }
+          const run = maybeRun.value
+
+          if (run.status !== "Completed") {
+            return yield* Effect.fail(new BusinessRuleError({
+              code: "RUN_NOT_COMPLETED",
+              message: `Consolidation run status is ${run.status}, not Completed`,
+              details: Option.none()
+            }))
+          }
+
+          // Report generation not yet implemented
+          return yield* Effect.fail(new BusinessRuleError({
+            code: "NOT_IMPLEMENTED",
+            message: "Consolidated equity statement generation is not yet implemented",
+            details: Option.none()
+          }))
+        })
+      )
   })
 )

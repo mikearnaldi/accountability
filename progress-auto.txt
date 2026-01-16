@@ -271,3 +271,8 @@
 **Task**: Fixed flaky E2E test "should create top-level company with all fields" by adding proper React hydration waits (500ms waitForTimeout), page readiness checks (getByTestId("companies-list-page")), button visibility/enabled checks before clicking, force: true on click events, and modal visibility waits with 10s timeout. Applied the same pattern to all 6 tests in create-company.spec.ts for consistency. All 259 E2E tests pass and typecheck is clean.
 **Status**: complete
 ---
+
+## Iteration 1 - 2026-01-16 12:27
+**Task**: Fixed CI errors by adding 4 missing consolidated report endpoints (getConsolidatedBalanceSheet, getConsolidatedIncomeStatement, getConsolidatedCashFlowStatement, getConsolidatedEquityStatement) to ConsolidationApi group and implementing stub handlers in ConsolidationApiLive that return NOT_IMPLEMENTED BusinessRuleError until full report generation is implemented.
+**Status**: complete
+---
