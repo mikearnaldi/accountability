@@ -22,6 +22,7 @@ import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
 import { HttpApiBuilder, HttpApiClient, HttpClient, HttpClientRequest } from "@effect/platform"
 import { NodeHttpServer } from "@effect/platform-node"
+import { ConsolidatedReportServiceLive } from "@accountability/core/Services/ConsolidatedReportService"
 import { AppApi, HealthCheckResponse } from "@accountability/api/Definitions/AppApi"
 import { RepositoriesWithAuthLive } from "@accountability/persistence/Layers/RepositoriesLive"
 import { MigrationLayer } from "@accountability/persistence/Layers/MigrationsLive"
@@ -80,24 +81,24 @@ const HealthApiLive = HttpApiBuilder.group(AppApi, "health", (handlers) =>
  * this layer uses SessionTokenValidation which validates real session tokens
  * from the database. This is required for testing the actual auth flow.
  */
-const AppApiLiveWithSessionAuth = HttpApiBuilder.api(AppApi).pipe(
-  Layer.provide(HealthApiLive),
-  Layer.provide(AuthApiLive),
-  Layer.provide(AuthSessionApiLive),
-  Layer.provide(AccountsApiLive),
-  Layer.provide(AccountTemplatesApiLive),
-  Layer.provide(AuditLogApiLive),
-  Layer.provide(CompaniesApiLive),
-  Layer.provide(JournalEntriesApiLive),
-  Layer.provide(ReportsApiLive),
-  Layer.provide(CurrenciesApiLive),
-  Layer.provide(JurisdictionsApiLive),
-  Layer.provide(CurrencyApiLive),
-  Layer.provide(IntercompanyTransactionsApiLive),
-  Layer.provide(ConsolidationApiLive),
-  Layer.provide(EliminationRulesApiLive),
-  Layer.provide(AuthMiddlewareWithSessionValidation) // Use session-based validation
-)
+const AppApiLiveWithSessionAuth = HttpApiBuilder.api(AppApi)
+  .pipe(Layer.provide(HealthApiLive))
+  .pipe(Layer.provide(AuthApiLive))
+  .pipe(Layer.provide(AuthSessionApiLive))
+  .pipe(Layer.provide(AccountsApiLive))
+  .pipe(Layer.provide(AccountTemplatesApiLive))
+  .pipe(Layer.provide(AuditLogApiLive))
+  .pipe(Layer.provide(CompaniesApiLive))
+  .pipe(Layer.provide(JournalEntriesApiLive))
+  .pipe(Layer.provide(ReportsApiLive))
+  .pipe(Layer.provide(CurrenciesApiLive))
+  .pipe(Layer.provide(JurisdictionsApiLive))
+  .pipe(Layer.provide(CurrencyApiLive))
+  .pipe(Layer.provide(IntercompanyTransactionsApiLive))
+  .pipe(Layer.provide(ConsolidationApiLive))
+  .pipe(Layer.provide(ConsolidatedReportServiceLive))  
+  .pipe(Layer.provide(EliminationRulesApiLive))
+  .pipe(Layer.provide(AuthMiddlewareWithSessionValidation))
 
 /**
  * HttpLive - Complete test layer for API integration tests

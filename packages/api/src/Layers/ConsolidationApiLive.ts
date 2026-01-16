@@ -26,6 +26,10 @@ import {
   createInitialSteps
 } from "@accountability/core/Domains/ConsolidationRun"
 import { now as timestampNow } from "@accountability/core/Domains/Timestamp"
+import {
+  ConsolidatedReportService,
+  isConsolidatedBalanceSheetNotBalancedError
+} from "@accountability/core/Services/ConsolidatedReportService"
 import { ConsolidationRepository } from "@accountability/persistence/Services/ConsolidationRepository"
 import { CompanyRepository } from "@accountability/persistence/Services/CompanyRepository"
 import {
@@ -96,6 +100,7 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
   Effect.gen(function* () {
     const consolidationRepo = yield* ConsolidationRepository
     const companyRepo = yield* CompanyRepository
+    const reportService = yield* ConsolidatedReportService
 
     return handlers
       .handle("listConsolidationGroups", (_) =>
@@ -706,12 +711,44 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
             }))
           }
 
-          // Report generation not yet implemented
-          return yield* Effect.fail(new BusinessRuleError({
-            code: "NOT_IMPLEMENTED",
-            message: "Consolidated balance sheet generation is not yet implemented",
-            details: Option.none()
-          }))
+          // Get consolidated trial balance
+          if (Option.isNone(run.consolidatedTrialBalance)) {
+            return yield* Effect.fail(new BusinessRuleError({
+              code: "NO_TRIAL_BALANCE",
+              message: "Consolidated trial balance not available for this run",
+              details: Option.none()
+            }))
+          }
+          const trialBalance = run.consolidatedTrialBalance.value
+
+          // Get group name
+          const maybeGroup = yield* consolidationRepo.findGroup(run.groupId).pipe(
+            Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+          )
+          const groupName = Option.isSome(maybeGroup) ? maybeGroup.value.name : "Consolidation Group"
+
+          // Generate the balance sheet report
+          const report = yield* reportService.generateBalanceSheet({
+            trialBalance,
+            groupName
+          }).pipe(
+            Effect.mapError((e) => {
+              if (isConsolidatedBalanceSheetNotBalancedError(e)) {
+                return new BusinessRuleError({
+                  code: "BALANCE_SHEET_NOT_BALANCED",
+                  message: e.message,
+                  details: Option.none()
+                })
+              }
+              return new BusinessRuleError({
+                code: "REPORT_GENERATION_ERROR",
+                message: "Failed to generate balance sheet report",
+                details: Option.none()
+              })
+            })
+          )
+
+          return report
         })
       )
       .handle("getConsolidatedIncomeStatement", (_) =>
@@ -735,12 +772,29 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
             }))
           }
 
-          // Report generation not yet implemented
-          return yield* Effect.fail(new BusinessRuleError({
-            code: "NOT_IMPLEMENTED",
-            message: "Consolidated income statement generation is not yet implemented",
-            details: Option.none()
-          }))
+          // Get consolidated trial balance
+          if (Option.isNone(run.consolidatedTrialBalance)) {
+            return yield* Effect.fail(new BusinessRuleError({
+              code: "NO_TRIAL_BALANCE",
+              message: "Consolidated trial balance not available for this run",
+              details: Option.none()
+            }))
+          }
+          const trialBalance = run.consolidatedTrialBalance.value
+
+          // Get group name
+          const maybeGroup = yield* consolidationRepo.findGroup(run.groupId).pipe(
+            Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+          )
+          const groupName = Option.isSome(maybeGroup) ? maybeGroup.value.name : "Consolidation Group"
+
+          // Generate the income statement report
+          const report = yield* reportService.generateIncomeStatement({
+            trialBalance,
+            groupName
+          })
+
+          return report
         })
       )
       .handle("getConsolidatedCashFlowStatement", (_) =>
@@ -764,12 +818,29 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
             }))
           }
 
-          // Report generation not yet implemented
-          return yield* Effect.fail(new BusinessRuleError({
-            code: "NOT_IMPLEMENTED",
-            message: "Consolidated cash flow statement generation is not yet implemented",
-            details: Option.none()
-          }))
+          // Get consolidated trial balance
+          if (Option.isNone(run.consolidatedTrialBalance)) {
+            return yield* Effect.fail(new BusinessRuleError({
+              code: "NO_TRIAL_BALANCE",
+              message: "Consolidated trial balance not available for this run",
+              details: Option.none()
+            }))
+          }
+          const trialBalance = run.consolidatedTrialBalance.value
+
+          // Get group name
+          const maybeGroup = yield* consolidationRepo.findGroup(run.groupId).pipe(
+            Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+          )
+          const groupName = Option.isSome(maybeGroup) ? maybeGroup.value.name : "Consolidation Group"
+
+          // Generate the cash flow report
+          const report = yield* reportService.generateCashFlow({
+            trialBalance,
+            groupName
+          })
+
+          return report
         })
       )
       .handle("getConsolidatedEquityStatement", (_) =>
@@ -793,12 +864,29 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
             }))
           }
 
-          // Report generation not yet implemented
-          return yield* Effect.fail(new BusinessRuleError({
-            code: "NOT_IMPLEMENTED",
-            message: "Consolidated equity statement generation is not yet implemented",
-            details: Option.none()
-          }))
+          // Get consolidated trial balance
+          if (Option.isNone(run.consolidatedTrialBalance)) {
+            return yield* Effect.fail(new BusinessRuleError({
+              code: "NO_TRIAL_BALANCE",
+              message: "Consolidated trial balance not available for this run",
+              details: Option.none()
+            }))
+          }
+          const trialBalance = run.consolidatedTrialBalance.value
+
+          // Get group name
+          const maybeGroup = yield* consolidationRepo.findGroup(run.groupId).pipe(
+            Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+          )
+          const groupName = Option.isSome(maybeGroup) ? maybeGroup.value.name : "Consolidation Group"
+
+          // Generate the equity statement report
+          const report = yield* reportService.generateEquityStatement({
+            trialBalance,
+            groupName
+          })
+
+          return report
         })
       )
   })

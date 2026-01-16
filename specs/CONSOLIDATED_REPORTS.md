@@ -18,11 +18,17 @@ Implement standard financial reports for consolidation runs, transforming the co
   - Consolidated Statement of Changes in Equity (`/consolidation/:groupId/runs/:runId/reports/equity-statement`)
   - "View Reports" navigation button on run detail page (visible when run is Completed)
 
-**Not Implemented (Backend Logic):**
-- Consolidated Balance Sheet report generation
-- Consolidated Income Statement report generation
-- Consolidated Cash Flow Statement report generation
-- Consolidated Statement of Changes in Equity report generation
+**Implemented (Backend Logic) ✅:**
+- Consolidated Balance Sheet report generation - `ConsolidatedReportService.generateBalanceSheet()`
+- Consolidated Income Statement report generation - `ConsolidatedReportService.generateIncomeStatement()`
+- Consolidated Cash Flow Statement report generation - `ConsolidatedReportService.generateCashFlow()`
+- Consolidated Statement of Changes in Equity report generation - `ConsolidatedReportService.generateEquityStatement()`
+- API endpoints now call the service methods instead of returning NOT_IMPLEMENTED
+
+**Remaining Work (Phase 3):**
+- PDF export
+- Excel export
+- Print styling
 
 ---
 
@@ -359,24 +365,27 @@ For the income statement:
 
 ## Implementation Plan
 
-### Phase 1: Backend API
+### Phase 1: Backend API ✅ COMPLETE (2026-01-16)
 
-1. **Create report generation service**
-   - `ConsolidatedReportService` in `packages/core/src/Services/`
-   - Transform trial balance lines into report sections
-   - Account type/subtype classification logic
+1. **Create report generation service** ✅
+   - `ConsolidatedReportService` in `packages/core/src/Services/ConsolidatedReportService.ts`
+   - Transform trial balance lines into report sections using `accountCategory`
+   - Four report generation methods: `generateBalanceSheet`, `generateIncomeStatement`, `generateCashFlow`, `generateEquityStatement`
 
-2. **Add API endpoints**
+2. **Add API endpoints** ✅
    ```
    GET /api/v1/consolidation/runs/:runId/reports/balance-sheet
    GET /api/v1/consolidation/runs/:runId/reports/income-statement
    GET /api/v1/consolidation/runs/:runId/reports/cash-flow
    GET /api/v1/consolidation/runs/:runId/reports/equity-statement
    ```
+   - All endpoints now call `ConsolidatedReportService` instead of returning NOT_IMPLEMENTED
+   - `ConsolidationApiLive.ts` updated to wire service to endpoints
 
-3. **Response schemas**
-   - Define typed schemas for each report structure
-   - Include metadata (period, currency, group name)
+3. **Response schemas** ✅
+   - Defined in `ConsolidatedReportService.ts` and `ConsolidationApi.ts`
+   - Include metadata (runId, groupName, asOfDate, currency, periodRef)
+   - Proper section/line item structures with subtotals
 
 ### Phase 2: Frontend Routes ✅ COMPLETE
 

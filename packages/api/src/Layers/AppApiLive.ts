@@ -11,6 +11,7 @@ import { HttpApiBuilder } from "@effect/platform"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
+import { ConsolidatedReportServiceLive } from "@accountability/core/Services/ConsolidatedReportService"
 import { AppApi, HealthCheckResponse } from "../Definitions/AppApi.ts"
 import { AuthMiddlewareLive } from "./AuthMiddlewareLive.ts"
 import { AccountsApiLive } from "./AccountsApiLive.ts"
@@ -99,7 +100,7 @@ export const AppApiLive = HttpApiBuilder.api(AppApi).pipe(
   Layer.provide(JurisdictionsApiLive),
   Layer.provide(CurrencyApiLive),
   Layer.provide(IntercompanyTransactionsApiLive),
-  Layer.provide(ConsolidationApiLive),
+  Layer.provide(Layer.provide(ConsolidationApiLive, ConsolidatedReportServiceLive)),
   Layer.provide(EliminationRulesApiLive),
   // AuthMiddlewareLive requires TokenValidator to be provided externally
   // - For production: use SessionTokenValidatorLive (validates against database)

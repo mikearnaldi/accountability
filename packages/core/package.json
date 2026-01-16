@@ -55,6 +55,7 @@
     "./Domains/Timestamp": "./src/Domains/Timestamp.ts",
     "./Services/BalanceSheetService": "./src/Services/BalanceSheetService.ts",
     "./Services/CashFlowStatementService": "./src/Services/CashFlowStatementService.ts",
+    "./Services/ConsolidatedReportService": "./src/Services/ConsolidatedReportService.ts",
     "./Services/ConsolidationService": "./src/Services/ConsolidationService.ts",
     "./Services/CurrencyService": "./src/Services/CurrencyService.ts",
     "./Services/CurrencyTranslationService": "./src/Services/CurrencyTranslationService.ts",

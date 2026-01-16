@@ -226,6 +226,61 @@ const wrapSqlError = (operation: string) =>
 
 ---
 
+## Pipe Composition
+
+### Long Pipes - Chain `.pipe()` Calls for Readability
+
+When composing many operations, instead of putting all functions in a single `.pipe()` call, you can chain multiple `.pipe()` calls. This improves readability for long pipelines.
+
+```typescript
+// Single pipe with many operations - can be hard to read
+const result = effect.pipe(
+  Effect.map(transformA),
+  Effect.flatMap(fetchRelated),
+  Effect.map(transformB),
+  Effect.catchTag("NotFound", handleNotFound),
+  Effect.map(transformC),
+  Effect.tap(logResult),
+  Effect.withSpan("myOperation")
+)
+
+// Chained pipes - easier to read and group related operations
+const result = effect
+  .pipe(Effect.map(transformA))
+  .pipe(Effect.flatMap(fetchRelated))
+  .pipe(Effect.map(transformB))
+  .pipe(Effect.catchTag("NotFound", handleNotFound))
+  .pipe(Effect.map(transformC))
+  .pipe(Effect.tap(logResult))
+  .pipe(Effect.withSpan("myOperation"))
+
+// You can also group related operations together
+const result = effect
+  .pipe(
+    Effect.map(transformA),
+    Effect.flatMap(fetchRelated),
+    Effect.map(transformB)
+  )
+  .pipe(
+    Effect.catchTag("NotFound", handleNotFound),
+    Effect.catchTag("ValidationError", handleValidation)
+  )
+  .pipe(
+    Effect.tap(logResult),
+    Effect.withSpan("myOperation")
+  )
+```
+
+**Why chained pipes are necessary:**
+- **`.pipe()` has a maximum of 20 arguments** - TypeScript's type inference breaks down beyond this limit, so long pipelines must be split
+- When you want to visually group related operations
+- When debugging - you can easily comment out a single `.pipe()` step
+- When the single-pipe style becomes hard to scan
+
+**Both styles are valid** for shorter pipelines - use whichever is clearer. For pipelines with 20+ operations, chaining is required.
+
+---
+
 ## Schema Patterns
 
 ### Always Use Schema for Data Classes
