@@ -2833,6 +2833,7 @@ export interface components {
         };
         ExchangeRate: {
             id: components["schemas"]["ExchangeRateId"];
+            organizationId: components["schemas"]["OrganizationId"];
             fromCurrency: components["schemas"]["CurrencyCode"];
             toCurrency: components["schemas"]["CurrencyCode"];
             rate: components["schemas"]["Rate"];
@@ -2857,6 +2858,7 @@ export interface components {
         RateSource: "Manual" | "Import" | "API";
         BulkCreateExchangeRatesRequest: {
             rates: {
+                organizationId: components["schemas"]["OrganizationId"];
                 fromCurrency: components["schemas"]["CurrencyCode"];
                 toCurrency: components["schemas"]["CurrencyCode"];
                 rate: components["schemas"]["Rate"];
@@ -3202,6 +3204,7 @@ export interface components {
             accountName: components["schemas"]["NonEmptyTrimmedString"];
             /** @enum {string} */
             accountType: "Asset" | "Liability" | "Equity" | "Revenue" | "Expense";
+            accountCategory: components["schemas"]["AccountCategory"];
             aggregatedBalance: components["schemas"]["MonetaryAmount"];
             eliminationAmount: components["schemas"]["MonetaryAmount"];
             nciAmount: components["schemas"]["MonetaryAmount"] | null;
@@ -6103,7 +6106,8 @@ export interface operations {
     };
     "currency.listExchangeRates": {
         parameters: {
-            query?: {
+            query: {
+                organizationId: components["schemas"]["OrganizationId"];
                 fromCurrency?: components["schemas"]["CurrencyCode"];
                 toCurrency?: components["schemas"]["CurrencyCode"];
                 rateType?: components["schemas"]["RateType"];
@@ -6159,6 +6163,7 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
+                    organizationId: components["schemas"]["OrganizationId"];
                     fromCurrency: components["schemas"]["CurrencyCode"];
                     toCurrency: components["schemas"]["CurrencyCode"];
                     rate: components["schemas"]["Rate"];

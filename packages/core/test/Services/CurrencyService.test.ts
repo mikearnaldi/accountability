@@ -21,6 +21,7 @@ import {
 import { ExchangeRate, ExchangeRateId, Rate, type RateType } from "../../src/Domains/ExchangeRate.ts"
 import { CurrencyCode } from "../../src/Domains/CurrencyCode.ts"
 import { LocalDate } from "../../src/Domains/LocalDate.ts"
+import { OrganizationId } from "../../src/Domains/Organization.ts"
 import { Timestamp } from "../../src/Domains/Timestamp.ts"
 import { MonetaryAmount } from "../../src/Domains/MonetaryAmount.ts"
 
@@ -30,6 +31,9 @@ describe("CurrencyService", () => {
   const rateUUID2 = "6ba7b810-9dad-11d1-80b4-00c04fd430c8"
   const rateUUID3 = "7ba7b810-9dad-11d1-80b4-00c04fd430c9"
   const nonExistentUUID = "9ba7b810-9dad-11d1-80b4-00c04fd430ca"
+
+  // Test organization ID for all exchange rate tests
+  const testOrganizationId = OrganizationId.make("a1b2c3d4-e5f6-7890-abcd-ef1234567890")
 
   const usd = CurrencyCode.make("USD")
   const eur = CurrencyCode.make("EUR")
@@ -51,6 +55,7 @@ describe("CurrencyService", () => {
   ): ExchangeRate => {
     return ExchangeRate.make({
       id: ExchangeRateId.make(id),
+      organizationId: testOrganizationId,
       fromCurrency,
       toCurrency,
       rate: Rate.make(BigDecimal.unsafeFromString(rate)),
@@ -60,6 +65,26 @@ describe("CurrencyService", () => {
       createdAt: Timestamp.make({ epochMillis: Date.now() })
     })
   }
+
+  // Helper to create CreateExchangeRateInput with organizationId
+  const createRateInput = (
+    id: string,
+    fromCurrency: CurrencyCode,
+    toCurrency: CurrencyCode,
+    rate: string,
+    effectiveDate: LocalDate,
+    rateType: RateType = "Spot",
+    source: "Manual" | "API" | "Import" = "Manual"
+  ): CreateExchangeRateInput => ({
+    id: ExchangeRateId.make(id),
+    organizationId: testOrganizationId,
+    fromCurrency,
+    toCurrency,
+    rate: Rate.make(BigDecimal.unsafeFromString(rate)),
+    effectiveDate,
+    rateType,
+    source
+  })
 
   // Mock repository implementation
   const createMockRepository = (
@@ -163,6 +188,7 @@ describe("CurrencyService", () => {
         Effect.gen(function* () {
           const input: CreateExchangeRateInput = {
             id: ExchangeRateId.make(rateUUID1),
+            organizationId: testOrganizationId,
             fromCurrency: usd,
             toCurrency: eur,
             rate: Rate.make(BigDecimal.unsafeFromString("0.85")),
@@ -191,26 +217,14 @@ describe("CurrencyService", () => {
           const service = yield* CurrencyService
 
           // Create Spot rate
-          const spotRate = yield* service.createRate({
-            id: ExchangeRateId.make(rateUUID1),
-            fromCurrency: usd,
-            toCurrency: eur,
-            rate: Rate.make(BigDecimal.unsafeFromString("0.85")),
-            effectiveDate: date20250115,
-            rateType: "Spot",
-            source: "Manual"
-          })
+          const spotRate = yield* service.createRate(
+            createRateInput(rateUUID1, usd, eur, "0.85", date20250115, "Spot")
+          )
 
           // Create Average rate for same pair/date
-          const averageRate = yield* service.createRate({
-            id: ExchangeRateId.make(rateUUID2),
-            fromCurrency: usd,
-            toCurrency: eur,
-            rate: Rate.make(BigDecimal.unsafeFromString("0.84")),
-            effectiveDate: date20250115,
-            rateType: "Average",
-            source: "Manual"
-          })
+          const averageRate = yield* service.createRate(
+            createRateInput(rateUUID2, usd, eur, "0.84", date20250115, "Average")
+          )
 
           expect(spotRate.rateType).toBe("Spot")
           expect(averageRate.rateType).toBe("Average")
@@ -223,26 +237,14 @@ describe("CurrencyService", () => {
           const service = yield* CurrencyService
 
           // Create USD/EUR rate
-          const usdEurRate = yield* service.createRate({
-            id: ExchangeRateId.make(rateUUID1),
-            fromCurrency: usd,
-            toCurrency: eur,
-            rate: Rate.make(BigDecimal.unsafeFromString("0.85")),
-            effectiveDate: date20250115,
-            rateType: "Spot",
-            source: "Manual"
-          })
+          const usdEurRate = yield* service.createRate(
+            createRateInput(rateUUID1, usd, eur, "0.85", date20250115)
+          )
 
           // Create USD/GBP rate
-          const usdGbpRate = yield* service.createRate({
-            id: ExchangeRateId.make(rateUUID2),
-            fromCurrency: usd,
-            toCurrency: gbp,
-            rate: Rate.make(BigDecimal.unsafeFromString("0.78")),
-            effectiveDate: date20250115,
-            rateType: "Spot",
-            source: "API"
-          })
+          const usdGbpRate = yield* service.createRate(
+            createRateInput(rateUUID2, usd, gbp, "0.78", date20250115, "Spot", "API")
+          )
 
           expect(usdEurRate.toCurrency).toBe(eur)
           expect(usdGbpRate.toCurrency).toBe(gbp)
@@ -257,15 +259,9 @@ describe("CurrencyService", () => {
           const rateIds = [rateUUID1, rateUUID2, rateUUID3, nonExistentUUID]
 
           for (let i = 0; i < rateTypes.length; i++) {
-            const result = yield* service.createRate({
-              id: ExchangeRateId.make(rateIds[i]),
-              fromCurrency: usd,
-              toCurrency: eur,
-              rate: Rate.make(BigDecimal.unsafeFromString("0.85")),
-              effectiveDate: date20250115,
-              rateType: rateTypes[i],
-              source: "Manual"
-            })
+            const result = yield* service.createRate(
+              createRateInput(rateIds[i], usd, eur, "0.85", date20250115, rateTypes[i])
+            )
 
             expect(result.rateType).toBe(rateTypes[i])
           }
@@ -275,15 +271,9 @@ describe("CurrencyService", () => {
       it.effect("creates rate with Import source", () =>
         Effect.gen(function* () {
           const service = yield* CurrencyService
-          const result = yield* service.createRate({
-            id: ExchangeRateId.make(rateUUID1),
-            fromCurrency: usd,
-            toCurrency: eur,
-            rate: Rate.make(BigDecimal.unsafeFromString("0.85")),
-            effectiveDate: date20250115,
-            rateType: "Spot",
-            source: "Import"
-          })
+          const result = yield* service.createRate(
+            createRateInput(rateUUID1, usd, eur, "0.85", date20250115, "Spot", "Import")
+          )
 
           expect(result.source).toBe("Import")
         }).pipe(Effect.provide(createTestLayer()))
@@ -295,6 +285,7 @@ describe("CurrencyService", () => {
           const preciseRate = BigDecimal.unsafeFromString("0.85123456789")
           const result = yield* service.createRate({
             id: ExchangeRateId.make(rateUUID1),
+            organizationId: testOrganizationId,
             fromCurrency: usd,
             toCurrency: eur,
             rate: Rate.make(preciseRate),
@@ -311,15 +302,7 @@ describe("CurrencyService", () => {
     describe("validation errors", () => {
       it.effect("fails with RateAlreadyExistsError when duplicate rate exists", () =>
         Effect.gen(function* () {
-          const input: CreateExchangeRateInput = {
-            id: ExchangeRateId.make(rateUUID2),
-            fromCurrency: usd,
-            toCurrency: eur,
-            rate: Rate.make(BigDecimal.unsafeFromString("0.86")),
-            effectiveDate: date20250115,
-            rateType: "Spot",
-            source: "Manual"
-          }
+          const input = createRateInput(rateUUID2, usd, eur, "0.86", date20250115)
 
           const service = yield* CurrencyService
           const result = yield* Effect.exit(service.createRate(input))
@@ -343,15 +326,9 @@ describe("CurrencyService", () => {
           const service = yield* CurrencyService
 
           // This should succeed because date is different
-          const result = yield* service.createRate({
-            id: ExchangeRateId.make(rateUUID2),
-            fromCurrency: usd,
-            toCurrency: eur,
-            rate: Rate.make(BigDecimal.unsafeFromString("0.86")),
-            effectiveDate: date20250116, // Different date
-            rateType: "Spot",
-            source: "Manual"
-          })
+          const result = yield* service.createRate(
+            createRateInput(rateUUID2, usd, eur, "0.86", date20250116)
+          )
 
           expect(result.effectiveDate.day).toBe(16)
         }).pipe(Effect.provide(createTestLayer([
@@ -804,15 +781,9 @@ describe("CurrencyService", () => {
         const service = yield* CurrencyService
 
         // Create a rate
-        const created = yield* service.createRate({
-          id: ExchangeRateId.make(rateUUID1),
-          fromCurrency: usd,
-          toCurrency: jpy,
-          rate: Rate.make(BigDecimal.unsafeFromString("150.25")),
-          effectiveDate: date20250115,
-          rateType: "Spot",
-          source: "API"
-        })
+        const created = yield* service.createRate(
+          createRateInput(rateUUID1, usd, jpy, "150.25", date20250115, "Spot", "API")
+        )
 
         // Retrieve the same rate
         const retrieved = yield* service.getRate(usd, jpy, date20250115, "Spot")
@@ -827,15 +798,9 @@ describe("CurrencyService", () => {
         const service = yield* CurrencyService
 
         // Create a rate
-        yield* service.createRate({
-          id: ExchangeRateId.make(rateUUID1),
-          fromCurrency: usd,
-          toCurrency: jpy,
-          rate: Rate.make(BigDecimal.unsafeFromString("150.25")),
-          effectiveDate: date20250115,
-          rateType: "Spot",
-          source: "API"
-        })
+        yield* service.createRate(
+          createRateInput(rateUUID1, usd, jpy, "150.25", date20250115, "Spot", "API")
+        )
 
         // Update the rate
         yield* service.updateRate({
@@ -857,25 +822,13 @@ describe("CurrencyService", () => {
         const service = yield* CurrencyService
 
         // Create rates for different dates
-        yield* service.createRate({
-          id: ExchangeRateId.make(rateUUID1),
-          fromCurrency: gbp,
-          toCurrency: usd,
-          rate: Rate.make(BigDecimal.unsafeFromString("1.25")),
-          effectiveDate: date20250115,
-          rateType: "Spot",
-          source: "API"
-        })
+        yield* service.createRate(
+          createRateInput(rateUUID1, gbp, usd, "1.25", date20250115, "Spot", "API")
+        )
 
-        yield* service.createRate({
-          id: ExchangeRateId.make(rateUUID2),
-          fromCurrency: gbp,
-          toCurrency: usd,
-          rate: Rate.make(BigDecimal.unsafeFromString("1.27")),
-          effectiveDate: date20250117,
-          rateType: "Spot",
-          source: "API"
-        })
+        yield* service.createRate(
+          createRateInput(rateUUID2, gbp, usd, "1.27", date20250117, "Spot", "API")
+        )
 
         // Get latest
         const latest = yield* service.getLatestRate(gbp, usd)
@@ -1243,15 +1196,9 @@ describe("CurrencyService", () => {
           const service = yield* CurrencyService
 
           // Create a rate
-          yield* service.createRate({
-            id: ExchangeRateId.make(rateUUID1),
-            fromCurrency: usd,
-            toCurrency: jpy,
-            rate: Rate.make(BigDecimal.unsafeFromString("150.25")),
-            effectiveDate: date20250115,
-            rateType: "Spot",
-            source: "API"
-          })
+          yield* service.createRate(
+            createRateInput(rateUUID1, usd, jpy, "150.25", date20250115, "Spot", "API")
+          )
 
           // Translate using the newly created rate
           const amount = MonetaryAmount.unsafeFromString("100.00", "USD")
@@ -1267,15 +1214,9 @@ describe("CurrencyService", () => {
           const service = yield* CurrencyService
 
           // Create initial rate
-          yield* service.createRate({
-            id: ExchangeRateId.make(rateUUID1),
-            fromCurrency: usd,
-            toCurrency: eur,
-            rate: Rate.make(BigDecimal.unsafeFromString("0.85")),
-            effectiveDate: date20250115,
-            rateType: "Spot",
-            source: "Manual"
-          })
+          yield* service.createRate(
+            createRateInput(rateUUID1, usd, eur, "0.85", date20250115)
+          )
 
           // First translation
           const amount = MonetaryAmount.unsafeFromString("100.00", "USD")

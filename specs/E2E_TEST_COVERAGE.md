@@ -71,7 +71,7 @@
 
 **Test file:** `exchange-rates.spec.ts` (11 tests)
 
-**Note:** Rate creation/edit/delete functionality cannot be fully tested due to a backend bug - the ExchangeRate domain entity is missing `organizationId` but the database requires it (organization_id NOT NULL). This causes SQL errors when trying to insert rates. Tests verify the UI components (forms, modals, navigation) work correctly.
+**Note:** ~~Rate creation/edit/delete functionality cannot be fully tested due to a backend bug - the ExchangeRate domain entity is missing `organizationId` but the database requires it (organization_id NOT NULL). This causes SQL errors when trying to insert rates.~~ **Backend bug fixed (2026-01-16):** Added `organizationId` to ExchangeRate domain entity, repository, API schemas, and frontend. Tests verify the UI components (forms, modals, navigation) work correctly.
 
 #### 3. Intercompany Transactions ✅ RESOLVED (2026-01-16)
 **Routes:** `/organizations/:orgId/intercompany/*`
@@ -149,7 +149,7 @@
 
 ### Phase 1: Critical Business Flows
 1. ~~**consolidation.spec.ts** - Full consolidation workflow~~ ✅ DONE (12 tests)
-2. ~~**exchange-rates.spec.ts** - Exchange rate management~~ ✅ DONE (11 tests, backend bug limits full coverage)
+2. ~~**exchange-rates.spec.ts** - Exchange rate management~~ ✅ DONE (11 tests, backend bug fixed 2026-01-16)
 3. ~~**intercompany.spec.ts** - Intercompany transaction flows~~ ✅ DONE (12 tests, backend bug limits full coverage)
 
 ### Phase 2: Reporting

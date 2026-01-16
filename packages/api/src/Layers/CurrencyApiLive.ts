@@ -161,6 +161,7 @@ export const CurrencyApiLive = HttpApiBuilder.group(AppApi, "currency", (handler
           // Create the rate
           const newRate = ExchangeRate.make({
             id: ExchangeRateId.make(crypto.randomUUID()),
+            organizationId: req.organizationId,
             fromCurrency: req.fromCurrency,
             toCurrency: req.toCurrency,
             rate: req.rate,
@@ -194,6 +195,7 @@ export const CurrencyApiLive = HttpApiBuilder.group(AppApi, "currency", (handler
           const newRates = req.rates.map((rateReq) =>
             ExchangeRate.make({
               id: ExchangeRateId.make(crypto.randomUUID()),
+              organizationId: rateReq.organizationId,
               fromCurrency: rateReq.fromCurrency,
               toCurrency: rateReq.toCurrency,
               rate: rateReq.rate,

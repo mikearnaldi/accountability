@@ -32,6 +32,7 @@ import { JournalEntryLine } from "../Domains/JournalEntryLine.ts"
 import type { AccountId, AccountType } from "../Domains/Account.ts"
 import { CompanyId } from "../Domains/Company.ts"
 import type { FiscalPeriodRef } from "../Domains/FiscalPeriodRef.ts"
+import type { OrganizationId } from "../Domains/Organization.ts"
 
 // =============================================================================
 // Error Types
@@ -296,6 +297,8 @@ export class ExchangeRateRepository extends Context.Tag("ExchangeRateRepository"
 export interface CreateExchangeRateInput {
   /** Unique identifier for the new rate */
   readonly id: ExchangeRateId
+  /** The organization this rate belongs to */
+  readonly organizationId: OrganizationId
   /** Source currency code */
   readonly fromCurrency: CurrencyCode
   /** Target currency code */
@@ -931,6 +934,7 @@ const make = Effect.gen(function* () {
         const now = yield* timestampNowEffect
         const exchangeRate = ExchangeRate.make({
           id: input.id,
+          organizationId: input.organizationId,
           fromCurrency: input.fromCurrency,
           toCurrency: input.toCurrency,
           rate: input.rate,

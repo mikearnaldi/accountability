@@ -11,6 +11,7 @@ import * as BigDecimal from "effect/BigDecimal"
 import * as Schema from "effect/Schema"
 import { CurrencyCode } from "./CurrencyCode.ts"
 import { LocalDate } from "./LocalDate.ts"
+import { OrganizationId } from "./Organization.ts"
 import { Timestamp } from "./Timestamp.ts"
 
 /**
@@ -123,6 +124,11 @@ export class ExchangeRate extends Schema.Class<ExchangeRate>("ExchangeRate")({
   id: ExchangeRateId,
 
   /**
+   * The organization this exchange rate belongs to
+   */
+  organizationId: OrganizationId,
+
+  /**
    * Source currency code (the currency being converted from)
    */
   fromCurrency: CurrencyCode,
@@ -209,6 +215,7 @@ export const createInverse = (exchangeRate: ExchangeRate): ExchangeRate | undefi
   const rate = Rate.make(inverseRate)
   return ExchangeRate.make({
     id: exchangeRate.id, // Note: Would typically need a new ID in practice
+    organizationId: exchangeRate.organizationId,
     fromCurrency: exchangeRate.toCurrency,
     toCurrency: exchangeRate.fromCurrency,
     rate,

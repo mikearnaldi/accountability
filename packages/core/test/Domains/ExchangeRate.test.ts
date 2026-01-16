@@ -18,12 +18,17 @@ import {
 } from "../../src/Domains/ExchangeRate.ts"
 import { CurrencyCode } from "../../src/Domains/CurrencyCode.ts"
 import { LocalDate } from "../../src/Domains/LocalDate.ts"
+import { OrganizationId } from "../../src/Domains/Organization.ts"
 import { Timestamp } from "../../src/Domains/Timestamp.ts"
+
+// Test organization ID for all exchange rate tests
+const testOrganizationId = OrganizationId.make("a1b2c3d4-e5f6-7890-abcd-ef1234567890")
 
 // Test helpers
 const createTestExchangeRate = () => {
   return ExchangeRate.make({
     id: ExchangeRateId.make("550e8400-e29b-41d4-a716-446655440000"),
+    organizationId: testOrganizationId,
     fromCurrency: CurrencyCode.make("USD"),
     toCurrency: CurrencyCode.make("EUR"),
     rate: Rate.make(BigDecimal.unsafeFromString("0.85")),
@@ -334,6 +339,7 @@ describe("ExchangeRate", () => {
       Effect.gen(function* () {
         const baseData = {
           id: ExchangeRateId.make("550e8400-e29b-41d4-a716-446655440001"),
+          organizationId: testOrganizationId,
           fromCurrency: CurrencyCode.make("USD"),
           toCurrency: CurrencyCode.make("GBP"),
           rate: Rate.make(BigDecimal.unsafeFromString("0.75")),
@@ -372,6 +378,7 @@ describe("ExchangeRate", () => {
       Effect.gen(function* () {
         const baseData = {
           id: ExchangeRateId.make("550e8400-e29b-41d4-a716-446655440005"),
+          organizationId: testOrganizationId,
           fromCurrency: CurrencyCode.make("EUR"),
           toCurrency: CurrencyCode.make("JPY"),
           rate: Rate.make(BigDecimal.unsafeFromString("160.5")),
@@ -514,6 +521,7 @@ describe("ExchangeRate", () => {
     it("handles rate greater than 1", () => {
       const rate = ExchangeRate.make({
         id: ExchangeRateId.make("550e8400-e29b-41d4-a716-446655440008"),
+        organizationId: testOrganizationId,
         fromCurrency: CurrencyCode.make("EUR"),
         toCurrency: CurrencyCode.make("USD"),
         rate: Rate.make(BigDecimal.unsafeFromString("1.18")),
@@ -538,6 +546,7 @@ describe("ExchangeRate", () => {
     it("includes correct rate type", () => {
       const rate = ExchangeRate.make({
         id: ExchangeRateId.make("550e8400-e29b-41d4-a716-446655440009"),
+        organizationId: testOrganizationId,
         fromCurrency: CurrencyCode.make("GBP"),
         toCurrency: CurrencyCode.make("USD"),
         rate: Rate.make(BigDecimal.unsafeFromString("1.25")),
@@ -555,6 +564,7 @@ describe("ExchangeRate", () => {
       const rate1 = createTestExchangeRate()
       const rate2 = ExchangeRate.make({
         id: ExchangeRateId.make("550e8400-e29b-41d4-a716-446655440000"),
+        organizationId: testOrganizationId,
         fromCurrency: CurrencyCode.make("USD"),
         toCurrency: CurrencyCode.make("EUR"),
         rate: Rate.make(BigDecimal.unsafeFromString("0.85")),
@@ -571,6 +581,7 @@ describe("ExchangeRate", () => {
       const rate1 = createTestExchangeRate()
       const rate2 = ExchangeRate.make({
         id: ExchangeRateId.make("550e8400-e29b-41d4-a716-446655440000"),
+        organizationId: testOrganizationId,
         fromCurrency: CurrencyCode.make("USD"),
         toCurrency: CurrencyCode.make("EUR"),
         rate: Rate.make(BigDecimal.unsafeFromString("0.86")),
@@ -587,6 +598,7 @@ describe("ExchangeRate", () => {
       const rate1 = createTestExchangeRate()
       const rate2 = ExchangeRate.make({
         id: ExchangeRateId.make("550e8400-e29b-41d4-a716-446655440000"),
+        organizationId: testOrganizationId,
         fromCurrency: CurrencyCode.make("USD"),
         toCurrency: CurrencyCode.make("GBP"),
         rate: Rate.make(BigDecimal.unsafeFromString("0.85")),
@@ -603,6 +615,7 @@ describe("ExchangeRate", () => {
       const rate1 = createTestExchangeRate()
       const rate2 = ExchangeRate.make({
         id: ExchangeRateId.make("550e8400-e29b-41d4-a716-446655440000"),
+        organizationId: testOrganizationId,
         fromCurrency: CurrencyCode.make("USD"),
         toCurrency: CurrencyCode.make("EUR"),
         rate: Rate.make(BigDecimal.unsafeFromString("0.85")),
@@ -619,6 +632,7 @@ describe("ExchangeRate", () => {
       const rate1 = createTestExchangeRate()
       const rate2 = ExchangeRate.make({
         id: ExchangeRateId.make("550e8400-e29b-41d4-a716-446655440000"),
+        organizationId: testOrganizationId,
         fromCurrency: CurrencyCode.make("USD"),
         toCurrency: CurrencyCode.make("EUR"),
         rate: Rate.make(BigDecimal.unsafeFromString("0.85")),
@@ -677,6 +691,7 @@ describe("convertAmount helper function", () => {
   it("preserves precision", () => {
     const rate = ExchangeRate.make({
       id: ExchangeRateId.make("550e8400-e29b-41d4-a716-446655440010"),
+      organizationId: testOrganizationId,
       fromCurrency: CurrencyCode.make("USD"),
       toCurrency: CurrencyCode.make("JPY"),
       rate: Rate.make(BigDecimal.unsafeFromString("110.123456")),
@@ -704,6 +719,7 @@ describe("getInverseRate helper function", () => {
   it("inverse of inverse equals original rate (approximately)", () => {
     const rate = ExchangeRate.make({
       id: ExchangeRateId.make("550e8400-e29b-41d4-a716-446655440011"),
+      organizationId: testOrganizationId,
       fromCurrency: CurrencyCode.make("USD"),
       toCurrency: CurrencyCode.make("EUR"),
       rate: Rate.make(BigDecimal.unsafeFromString("2")),
@@ -741,6 +757,7 @@ describe("createInverse helper function", () => {
   it("inverse rate converts correctly", () => {
     const rate = ExchangeRate.make({
       id: ExchangeRateId.make("550e8400-e29b-41d4-a716-446655440012"),
+      organizationId: testOrganizationId,
       fromCurrency: CurrencyCode.make("USD"),
       toCurrency: CurrencyCode.make("EUR"),
       rate: Rate.make(BigDecimal.unsafeFromString("0.5")),
@@ -768,6 +785,7 @@ describe("ExchangeRate with various currency pairs", () => {
   it("handles USD/JPY (large rate)", () => {
     const rate = ExchangeRate.make({
       id: ExchangeRateId.make("550e8400-e29b-41d4-a716-446655440013"),
+      organizationId: testOrganizationId,
       fromCurrency: CurrencyCode.make("USD"),
       toCurrency: CurrencyCode.make("JPY"),
       rate: Rate.make(BigDecimal.unsafeFromString("148.50")),
@@ -785,6 +803,7 @@ describe("ExchangeRate with various currency pairs", () => {
   it("handles EUR/GBP (rate less than 1)", () => {
     const rate = ExchangeRate.make({
       id: ExchangeRateId.make("550e8400-e29b-41d4-a716-446655440014"),
+      organizationId: testOrganizationId,
       fromCurrency: CurrencyCode.make("EUR"),
       toCurrency: CurrencyCode.make("GBP"),
       rate: Rate.make(BigDecimal.unsafeFromString("0.86")),
@@ -802,6 +821,7 @@ describe("ExchangeRate with various currency pairs", () => {
   it("handles identical currency (rate of 1)", () => {
     const rate = ExchangeRate.make({
       id: ExchangeRateId.make("550e8400-e29b-41d4-a716-446655440015"),
+      organizationId: testOrganizationId,
       fromCurrency: CurrencyCode.make("USD"),
       toCurrency: CurrencyCode.make("USD"),
       rate: Rate.make(BigDecimal.unsafeFromString("1")),
@@ -821,6 +841,7 @@ describe("ExchangeRate date handling", () => {
   it("stores effective date correctly", () => {
     const rate = ExchangeRate.make({
       id: ExchangeRateId.make("550e8400-e29b-41d4-a716-446655440016"),
+      organizationId: testOrganizationId,
       fromCurrency: CurrencyCode.make("USD"),
       toCurrency: CurrencyCode.make("EUR"),
       rate: Rate.make(BigDecimal.unsafeFromString("0.85")),

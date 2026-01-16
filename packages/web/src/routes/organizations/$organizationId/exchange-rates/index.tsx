@@ -88,8 +88,8 @@ const fetchOrganization = createServerFn({ method: "GET" })
   })
 
 const fetchExchangeRates = createServerFn({ method: "GET" })
-  .inputValidator((data: { limit?: number; offset?: number }) => data)
-  .handler(async ({ data: { limit = 50, offset = 0 } }) => {
+  .inputValidator((data: { organizationId: string; limit?: number; offset?: number }) => data)
+  .handler(async ({ data: { organizationId, limit = 50, offset = 0 } }) => {
     const sessionToken = getCookie("accountability_session")
 
     if (!sessionToken) {
@@ -99,7 +99,7 @@ const fetchExchangeRates = createServerFn({ method: "GET" })
     try {
       const serverApi = createServerApi()
       const { data, error } = await serverApi.GET("/api/v1/exchange-rates", {
-        params: { query: { limit: String(limit), offset: String(offset) } },
+        params: { query: { organizationId, limit: String(limit), offset: String(offset) } },
         headers: { Authorization: `Bearer ${sessionToken}` }
       })
 
@@ -158,7 +158,7 @@ export const Route = createFileRoute("/organizations/$organizationId/exchange-ra
   loader: async ({ params }) => {
     const [orgResult, ratesResult, currenciesResult] = await Promise.all([
       fetchOrganization({ data: params.organizationId }),
-      fetchExchangeRates({ data: { limit: 50, offset: 0 } }),
+      fetchExchangeRates({ data: { organizationId: params.organizationId, limit: 50, offset: 0 } }),
       fetchCurrencies()
     ])
 
@@ -255,6 +255,7 @@ function ExchangeRatesPage() {
     try {
       const { error } = await api.POST("/api/v1/exchange-rates", {
         body: {
+          organizationId: params.organizationId,
           fromCurrency: formData.fromCurrency,
           toCurrency: formData.toCurrency,
           rate: formData.rate,

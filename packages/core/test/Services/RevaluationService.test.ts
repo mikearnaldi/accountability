@@ -31,6 +31,7 @@ import { JournalEntryLineId } from "../../src/Domains/JournalEntryLine.ts"
 import { FiscalPeriodRef } from "../../src/Domains/FiscalPeriodRef.ts"
 import { AccountId } from "../../src/Domains/Account.ts"
 import { CompanyId } from "../../src/Domains/Company.ts"
+import { OrganizationId } from "../../src/Domains/Organization.ts"
 
 describe("CurrencyService - Period-End Revaluation", () => {
   // Test data constants
@@ -50,6 +51,9 @@ describe("CurrencyService - Period-End Revaluation", () => {
   const usd = CurrencyCode.make("USD")
   const eur = CurrencyCode.make("EUR")
   const gbp = CurrencyCode.make("GBP")
+
+  // Test organization ID for all exchange rate tests
+  const testOrganizationId = OrganizationId.make("a1b2c3d4-e5f6-7890-abcd-ef1234567890")
 
   const closingDate = LocalDate.make({ year: 2025, month: 1, day: 31 })
   const fiscalPeriod = FiscalPeriodRef.make({ year: 2025, period: 1 })
@@ -71,6 +75,7 @@ describe("CurrencyService - Period-End Revaluation", () => {
   ): ExchangeRate => {
     return ExchangeRate.make({
       id: ExchangeRateId.make(id),
+      organizationId: testOrganizationId,
       fromCurrency,
       toCurrency,
       rate: Rate.make(BigDecimal.unsafeFromString(rate)),

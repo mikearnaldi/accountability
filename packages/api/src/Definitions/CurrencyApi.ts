@@ -18,6 +18,7 @@ import {
 } from "@accountability/core/Domains/ExchangeRate"
 import { CurrencyCode } from "@accountability/core/Domains/CurrencyCode"
 import { LocalDateFromString } from "@accountability/core/Domains/LocalDate"
+import { OrganizationId } from "@accountability/core/Domains/Organization"
 import {
   BusinessRuleError,
   ConflictError,
@@ -34,6 +35,7 @@ import { AuthMiddleware } from "./AuthMiddleware.ts"
  * CreateExchangeRateRequest - Request body for creating a new exchange rate
  */
 export class CreateExchangeRateRequest extends Schema.Class<CreateExchangeRateRequest>("CreateExchangeRateRequest")({
+  organizationId: OrganizationId,
   fromCurrency: CurrencyCode,
   toCurrency: CurrencyCode,
   rate: Rate,
@@ -81,6 +83,7 @@ export class GetRateResponse extends Schema.Class<GetRateResponse>("GetRateRespo
  * Query parameters for listing exchange rates
  */
 export const ExchangeRateListParams = Schema.Struct({
+  organizationId: OrganizationId,
   fromCurrency: Schema.optional(CurrencyCode),
   toCurrency: Schema.optional(CurrencyCode),
   rateType: Schema.optional(RateType),

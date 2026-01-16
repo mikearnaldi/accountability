@@ -240,6 +240,7 @@ function NewExchangeRatePage() {
     try {
       const { error } = await api.POST("/api/v1/exchange-rates", {
         body: {
+          organizationId: params.organizationId,
           fromCurrency: formData.fromCurrency,
           toCurrency: formData.toCurrency,
           rate: formData.rate,

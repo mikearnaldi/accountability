@@ -22,6 +22,7 @@ import {
   RateType
 } from "@accountability/core/Domains/ExchangeRate"
 import { LocalDate } from "@accountability/core/Domains/LocalDate"
+import { OrganizationId } from "@accountability/core/Domains/Organization"
 import { Timestamp } from "@accountability/core/Domains/Timestamp"
 import { ExchangeRateRepository, type ExchangeRateRepositoryService } from "../Services/ExchangeRateRepository.ts"
 import { EntityNotFoundError, wrapSqlError } from "../Errors/RepositoryError.ts"
@@ -32,6 +33,7 @@ import { EntityNotFoundError, wrapSqlError } from "../Errors/RepositoryError.ts"
  */
 const ExchangeRateRow = Schema.Struct({
   id: Schema.String,
+  organization_id: Schema.String,
   from_currency: CurrencyCode,
   to_currency: CurrencyCode,
   rate: Schema.String,
@@ -69,6 +71,7 @@ const rowToExchangeRate = (row: ExchangeRateRow): ExchangeRate => {
   const rateDecimal = BigDecimal.unsafeFromString(row.rate)
   return ExchangeRate.make({
     id: ExchangeRateId.make(row.id),
+    organizationId: OrganizationId.make(row.organization_id),
     fromCurrency: row.from_currency,
     toCurrency: row.to_currency,
     rate: Rate.make(rateDecimal),
@@ -248,10 +251,11 @@ const make = Effect.gen(function* () {
     Effect.gen(function* () {
       yield* sql`
         INSERT INTO exchange_rates (
-          id, from_currency, to_currency, rate, effective_date,
+          id, organization_id, from_currency, to_currency, rate, effective_date,
           rate_type, source, created_at
         ) VALUES (
           ${rate.id},
+          ${rate.organizationId},
           ${rate.fromCurrency},
           ${rate.toCurrency},
           ${BigDecimal.format(rate.rate)},
