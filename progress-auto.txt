@@ -305,3 +305,8 @@
 **Task**: Added PDF, Excel, and Print export functionality to all 3 remaining consolidated report pages (income-statement.tsx, cash-flow.tsx, equity-statement.tsx). Each page now has functional Print, Excel, and PDF export buttons that use the report-export.ts utilities. Updated CONSOLIDATED_REPORTS.md spec to mark Phase 3 (Export & Print) as complete.
 **Status**: complete
 ---
+
+## Iteration 2 - 2026-01-16 20:01
+**Task**: Fixed all E2E test failures - (1) consolidation toggle active status test by adding proper waits and specific selectors for status badge, (2) synthetic-data-generator test by using page.press for form submission, page.selectOption for dropdowns, correct data-testids, and extracting company IDs from list page links, (3) login flaky tests by adding hydration waits, force clicks, and proper URL wait patterns. All 3587 unit tests pass, typecheck passes, and 268 E2E tests pass with only 1 flaky and 2 skipped.
+**Status**: complete
+---

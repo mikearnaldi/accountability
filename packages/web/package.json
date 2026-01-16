@@ -18,7 +18,9 @@
     "test:e2e:verbose": "VERBOSE=1 playwright test",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:ui": "playwright test --ui",
-    "test:e2e:report": "playwright show-report"
+    "test:e2e:report": "playwright show-report",
+    "test:e2e:synthetic": "playwright test synthetic-data-generator.spec.ts",
+    "generate:synthetic-data": "tsx scripts/generate-synthetic-data.ts"
   },
   "dependencies": {
     "@accountability/api": "workspace:*",

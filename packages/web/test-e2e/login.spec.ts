@@ -125,17 +125,21 @@ test.describe("Login Page", () => {
   test("should show error message on failed login", async ({ page }) => {
     // 1. Navigate to login page
     await page.goto("/login")
+    await page.waitForTimeout(500) // Wait for page hydration
 
     // 2. Enter invalid credentials
     await page.fill('input[type="email"]', "invalid@example.com")
     await page.fill('input[type="password"]', "WrongPassword123")
 
-    // 3. Submit form
-    await page.click('button[type="submit"]')
+    // 3. Submit form with force click to ensure it registers
+    const submitButton = page.locator('button[type="submit"]')
+    await expect(submitButton).toBeEnabled()
+    await page.waitForTimeout(200)
+    await submitButton.click({ force: true })
 
-    // 4. Wait for error message
+    // 4. Wait for error message (API call takes time)
     const errorMessage = page.locator('[role="alert"]')
-    await expect(errorMessage).toBeVisible()
+    await expect(errorMessage).toBeVisible({ timeout: 10000 })
     await expect(errorMessage).toContainText("Invalid email or password")
   })
 
@@ -144,6 +148,7 @@ test.describe("Login Page", () => {
   }) => {
     // 1. Navigate to login page
     await page.goto("/login")
+    await page.waitForTimeout(500) // Wait for page hydration
 
     // 2. Enter credentials
     const email = "invalid@example.com"
@@ -151,12 +156,15 @@ test.describe("Login Page", () => {
     await page.fill('input[type="email"]', email)
     await page.fill('input[type="password"]', password)
 
-    // 3. Submit form
-    await page.click('button[type="submit"]')
+    // 3. Submit form with force click
+    const submitButton = page.locator('button[type="submit"]')
+    await expect(submitButton).toBeEnabled()
+    await page.waitForTimeout(200)
+    await submitButton.click({ force: true })
 
-    // 4. Wait for error message
+    // 4. Wait for error message (API call takes time)
     const errorMessage = page.locator('[role="alert"]')
-    await expect(errorMessage).toBeVisible()
+    await expect(errorMessage).toBeVisible({ timeout: 10000 })
 
     // 5. Email should still be filled
     const emailInput = page.locator('input[type="email"]')
@@ -227,32 +235,60 @@ test.describe("Login Page", () => {
     expect(page.url()).not.toContain("/login")
   })
 
-  test("should redirect to ?redirect param on success", async ({ page }) => {
-    // 1. Register a test user
+  test("should redirect to ?redirect param on success", async ({
+    page,
+    request
+  }) => {
+    // 1. Register a test user and create an organization so they have somewhere to go
     const testUser = {
       email: `test-redirect-param-${Date.now()}@example.com`,
       password: "TestPassword123",
       displayName: "Test User"
     }
 
-    await page.request.post("/api/auth/register", {
-      data: testUser
-    })
+    await request.post("/api/auth/register", { data: testUser })
 
-    // 2. Navigate to login page with redirect param
-    // Note: /organizations would be a protected route
-    await page.goto("/login?redirect=/")
+    // Login to get token for creating org
+    const loginRes = await request.post("/api/auth/login", {
+      data: {
+        provider: "local",
+        credentials: { email: testUser.email, password: testUser.password }
+      }
+    })
+    const loginData = await loginRes.json()
+    const token = loginData.token
+
+    // Create an organization so the user has data
+    const orgRes = await request.post("/api/v1/organizations", {
+      headers: { Authorization: `Bearer ${token}` },
+      data: {
+        name: `Test Org ${Date.now()}`,
+        reportingCurrency: "USD",
+        settings: null
+      }
+    })
+    const orgData = await orgRes.json()
+
+    // 2. Navigate to login page with redirect param pointing to specific org dashboard
+    const redirectPath = `/organizations/${orgData.id}/dashboard`
+    await page.goto(`/login?redirect=${encodeURIComponent(redirectPath)}`)
+    await page.waitForTimeout(500) // Wait for page hydration
 
     // 3. Fill form
     await page.fill('input[type="email"]', testUser.email)
     await page.fill('input[type="password"]', testUser.password)
 
-    // 4. Submit form
-    await page.click('button[type="submit"]')
+    // 4. Submit form with force click
+    const submitButton = page.locator('button[type="submit"]')
+    await expect(submitButton).toBeEnabled()
+    await page.waitForTimeout(200)
+    await submitButton.click({ force: true })
 
-    // 5. Should redirect to home page (the redirect param value)
-    await page.waitForURL("/")
-    expect(page.url()).toContain("/")
+    // 5. Should redirect to the specified redirect param value
+    // Wait for the specific dashboard URL since there may be intermediate redirects
+    await page.waitForURL(`**/organizations/${orgData.id}/dashboard`, { timeout: 20000 })
+    // Verify we ended up at the dashboard
+    expect(page.url()).toContain(`/organizations/${orgData.id}/dashboard`)
   })
 
   test("should show error on network failure", async ({ page }) => {

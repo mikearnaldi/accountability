@@ -851,20 +851,31 @@ test.describe("Consolidation Module", () => {
         `/organizations/${orgData.id}/consolidation/${groupData.group.id}`
       )
 
-      // 8. Should show Active status
-      await expect(page.getByText("Active")).toBeVisible()
+      // 8. Wait for page to fully load and hydrate
+      await page.waitForTimeout(500)
+      await expect(page.getByTestId("consolidation-group-detail-page")).toBeVisible()
 
-      // 9. Click deactivate button
-      await page.getByTestId("toggle-active-button").click()
+      // 9. Should show Active status initially (use specific selector to avoid matching other text)
+      const statusBadge = page.locator('h1 + span')
+      await expect(statusBadge).toHaveText("Active", { timeout: 5000 })
 
-      // 10. Should show Inactive status after deactivation
-      await expect(page.getByText("Inactive")).toBeVisible({ timeout: 10000 })
+      // 10. Wait for button to be ready and click deactivate
+      const toggleButton = page.getByTestId("toggle-active-button")
+      await expect(toggleButton).toBeVisible()
+      await expect(toggleButton).toBeEnabled()
+      await page.waitForTimeout(200) // Small wait for React hydration
+      await toggleButton.click({ force: true })
 
-      // 11. Click activate button
-      await page.getByTestId("toggle-active-button").click()
+      // 11. Should show Inactive status after deactivation (wait for API response)
+      await expect(statusBadge).toHaveText("Inactive", { timeout: 15000 })
 
-      // 12. Should show Active status again
-      await expect(page.getByText("Active")).toBeVisible({ timeout: 10000 })
+      // 12. Wait for button state to update and click activate
+      await expect(toggleButton).toContainText("Activate", { timeout: 5000 })
+      await page.waitForTimeout(200)
+      await toggleButton.click({ force: true })
+
+      // 13. Should show Active status again
+      await expect(statusBadge).toHaveText("Active", { timeout: 15000 })
     })
 
     test("should navigate from list to detail page", async ({

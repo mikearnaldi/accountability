@@ -4,6 +4,39 @@
 
 Create a Playwright-based script that generates a complete synthetic dataset by interacting with the running application UI. This script will be used to populate a demo environment or create reproducible test scenarios.
 
+## CRITICAL REQUIREMENT: UI-Based Interactions Only
+
+**The script MUST interact with the application through the UI, NOT through direct API calls.**
+
+This means:
+- **DO use:** `page.goto()`, `page.click()`, `page.fill()`, `page.getByRole()`, `page.getByTestId()`, etc.
+- **DO NOT use:** `page.request.post()`, `page.request.get()`, `apiPost()`, `fetch()`, or any direct HTTP calls
+
+**Why UI-only?**
+1. **Validates the full user experience** - ensures forms, navigation, and workflows work correctly
+2. **Catches UI bugs** - broken buttons, missing fields, incorrect routing
+3. **Tests real user flows** - the same paths actual users take
+4. **Serves as living documentation** - shows how to use the application
+5. **Regression detection** - if the UI changes and breaks, the script fails (which is what we want)
+
+**Example - CORRECT:**
+```typescript
+// Navigate to create company page
+await page.goto('/companies/new');
+await page.getByLabel('Company Name').fill('Acme Corp USA');
+await page.getByLabel('Currency').selectOption('USD');
+await page.getByRole('button', { name: 'Create Company' }).click();
+await expect(page.getByText('Company created successfully')).toBeVisible();
+```
+
+**Example - WRONG (do NOT do this):**
+```typescript
+// DO NOT use direct API calls
+await page.request.post('/api/companies', {
+  data: { name: 'Acme Corp USA', currency: 'USD' }
+});
+```
+
 ## Prerequisites
 
 - Application running at a configurable address (default: `http://localhost:3000`)
@@ -301,24 +334,26 @@ async function createJournalEntry(page: Page, entry: JournalEntry) { /* ... */ }
 
 ## Implementation Phases
 
+**IMPORTANT:** All phases must be implemented using UI interactions (page.click, page.fill, page.goto, etc.), NOT direct API calls. See "CRITICAL REQUIREMENT" section above.
+
 ### Phase 1: Script Infrastructure
 - [ ] Create script file with Playwright setup
 - [ ] Add CLI argument parsing (--url, --headless, --verbose)
 - [ ] Add package.json script entry
-- [ ] Create helper utilities for common UI interactions
+- [ ] Create helper utilities for common UI interactions (form filling, navigation, waiting)
 
 ### Phase 2: User & Organization Setup
-- [ ] Implement user registration flow
-- [ ] Implement organization creation
-- [ ] Handle authentication state
+- [ ] Implement user registration flow (navigate to /register, fill form, submit)
+- [ ] Implement organization creation (navigate to org creation, fill form, submit)
+- [ ] Handle authentication state (login if needed)
 
 ### Phase 3: Company Setup
-- [ ] Create parent company
+- [ ] Create parent company (navigate to /companies/new, fill form, submit)
 - [ ] Create subsidiary company with ownership relationship
-- [ ] Apply chart of accounts template to both
+- [ ] Apply chart of accounts template to both (via UI)
 
 ### Phase 4: Transaction Data - Year 1
-- [ ] Create initial capital entries
+- [ ] Create initial capital entries (navigate to journal entry form, fill, submit)
 - [ ] Create monthly operational entries (sales, COGS, payroll)
 - [ ] Create quarterly intercompany entries
 - [ ] Create year-end adjusting entries
@@ -331,22 +366,22 @@ async function createJournalEntry(page: Page, entry: JournalEntry) { /* ... */ }
 - [ ] Create closing entries
 
 ### Phase 6: Company Reports
-- [ ] Generate trial balances for both companies
-- [ ] Generate balance sheets
-- [ ] Generate income statements
-- [ ] Generate cash flow statements
+- [ ] Navigate to and verify trial balances for both companies
+- [ ] Navigate to and verify balance sheets
+- [ ] Navigate to and verify income statements
+- [ ] Navigate to and verify cash flow statements
 
 ### Phase 7: Consolidation
-- [ ] Create consolidation group
-- [ ] Run Year 1 consolidation
-- [ ] Run Year 2 consolidation
-- [ ] Verify elimination entries
+- [ ] Create consolidation group (navigate to consolidation setup, fill form, submit)
+- [ ] Run Year 1 consolidation (via UI)
+- [ ] Run Year 2 consolidation (via UI)
+- [ ] Verify elimination entries are displayed correctly
 
 ### Phase 8: Consolidated Reports
-- [ ] Generate consolidated balance sheet
-- [ ] Generate consolidated income statement
-- [ ] Generate consolidated cash flow statement
-- [ ] Generate consolidated equity statement
+- [ ] Navigate to and verify consolidated balance sheet
+- [ ] Navigate to and verify consolidated income statement
+- [ ] Navigate to and verify consolidated cash flow statement
+- [ ] Navigate to and verify consolidated equity statement
 
 ### Phase 9: E2E Test Integration
 - [ ] Refactor script to export reusable `generateSyntheticData()` function
@@ -506,15 +541,38 @@ interface ScriptOptions {
 
 ---
 
-## Known Issues
+## Implementation Status
 
-None yet.
+### UI-Based Implementation (Completed 2026-01-16)
+
+**Status:** ✅ Complete
+
+The synthetic data generator has been rewritten to use UI interactions only, as required by this specification.
+
+**Implementation Details:**
+- All data creation uses Playwright page interactions: `page.goto()`, `page.click()`, `page.fill()`, `page.waitForSelector()`, etc.
+- NO direct API calls (`apiPost`, `apiGet`, `page.request.post/get`) are used
+- Account selection in journal entries uses `selectOption({ label: '...' })` to select by visible text
+- Account numbers are mapped to their display names using the `ACCOUNT_NAMES` constant
+- The script works with the GeneralBusiness template's predefined account structure
+
+**Key Functions:**
+- `createUser()` - Registers user via /register form
+- `createOrganization()` - Creates organization via /organizations/new form
+- `createParentCompany()` / `createSubsidiaryCompany()` - Creates companies via /companies/new form
+- `applyAccountTemplate()` - Applies GeneralBusiness template via UI modal
+- `createJournalEntry()` - Creates journal entries via /journal-entries/new form
+- `createConsolidationGroup()` - Creates consolidation group via UI
+
+**Account Selection:**
+Journal entry line items select accounts by their visible label text (e.g., "1010 - Cash - Operating Account") rather than by internal account IDs, making the script fully UI-based without any API calls for account lookups
 
 ---
 
 ## Notes
 
-- This script interacts with the UI, so it depends on current page structure and selectors
-- Consider using data-testid attributes for stable selectors
+- This script MUST interact with the UI only - no direct API calls
+- Use `data-testid` attributes for stable selectors where available
+- Use semantic locators (`getByRole`, `getByLabel`, `getByText`) as primary selectors
 - The script should be updated when UI changes significantly
-- For faster data seeding in CI, consider a separate API-based seeder
+- If selectors break, that's a signal the UI changed and needs investigation
