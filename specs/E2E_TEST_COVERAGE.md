@@ -2,7 +2,7 @@
 
 ## Current State (January 2026)
 
-**Total Tests:** 243 passed, 2 skipped
+**Total Tests:** 259 passed, 2 skipped
 
 ### Existing E2E Test Files
 
@@ -33,6 +33,7 @@
 | `reports.spec.ts` | Financial reports hub, report navigation, parameters | Good |
 | `audit-log.spec.ts` | Audit log list, filters, refresh | Good |
 | `profile.spec.ts` | User profile view, edit display name | Good |
+| `error-states.spec.ts` | 404, network errors, session expiration, permissions | Good |
 
 ---
 
@@ -132,13 +133,15 @@
 
 **Note:** Password change is not tested as the profile page doesn't currently support changing passwords - this is managed through the authentication provider. The delete account button is shown but disabled as the feature is not yet implemented.
 
-#### 7. Error States
-- [ ] 404 page handling
-- [ ] Network error recovery
-- [ ] Session expiration handling
-- [ ] Permission denied states
+#### 7. Error States ✅ RESOLVED (2026-01-16)
+**Routes:** Various error scenarios
+- [x] 404 page handling (non-existent routes, invalid IDs, deeply nested routes)
+- [x] Network error recovery (API failures, server 500 errors)
+- [x] Session expiration handling (invalid, expired, missing, corrupted tokens)
+- [x] Permission denied states (unauthorized org access, 403 responses, protected routes)
+- [x] Error recovery (navigation after error, retry after form error)
 
-**Add to:** `error-states.spec.ts`
+**Test file:** `error-states.spec.ts` (16 tests)
 
 ---
 
@@ -157,7 +160,7 @@
 6. ~~**profile.spec.ts** - User profile management~~ ✅ DONE (8 tests)
 
 ### Phase 4: Error Handling
-7. **error-states.spec.ts** - Error recovery scenarios
+7. ~~**error-states.spec.ts** - Error recovery scenarios~~ ✅ DONE (16 tests)
 
 ---
 
@@ -239,7 +242,7 @@ pnpm test:e2e:report
 
 | Metric | Current | Target |
 |--------|---------|--------|
-| Route coverage | ~90% | 95% |
-| Critical flows | ~98% | 100% |
-| Error handling | ~20% | 80% |
-| Total test count | 243 | 250+ |
+| Route coverage | ~95% | 95% |
+| Critical flows | ~100% | 100% |
+| Error handling | ~80% | 80% |
+| Total test count | 259 | 250+ |

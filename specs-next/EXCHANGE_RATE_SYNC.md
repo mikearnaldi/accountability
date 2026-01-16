@@ -2,6 +2,464 @@
 
 This specification defines the integration with the Frankfurter API for automatic exchange rate synchronization.
 
+---
+
+## Implementation Phases
+
+This section provides a granular, step-by-step implementation plan for auto-implementing agents. Each phase builds on the previous one. Complete all tasks in order.
+
+### Phase 1: Domain Model
+
+**Goal**: Create the `SystemExchangeRate` domain entity and related types.
+
+**Files to create/modify**:
+- `packages/core/src/Domains/SystemExchangeRate.ts` (new)
+
+**Tasks**:
+- [ ] **1.1** Create `SystemExchangeRateId` branded type using `Schema.UUID.pipe(Schema.brand("SystemExchangeRateId"))`
+- [ ] **1.2** Create `SystemRateSource` literal type: `Schema.Literal("frankfurter", "manual")`
+- [ ] **1.3** Create `SystemExchangeRate` class extending `Schema.Class` with fields:
+  - `id: SystemExchangeRateId`
+  - `currency: CurrencyCode` (import from existing `CurrencyCode.ts`)
+  - `rate: Schema.BigDecimal`
+  - `effectiveDate: Schema.DateFromString`
+  - `source: SystemRateSource`
+  - `fetchedAt: Schema.OptionFromNullOr(Schema.DateTimeUtc)`
+  - `createdAt: Schema.DateTimeUtc`
+  - `updatedAt: Schema.DateTimeUtc`
+- [ ] **1.4** Export type guard: `export const isSystemExchangeRate = Schema.is(SystemExchangeRate)`
+- [ ] **1.5** Export type guard: `export const isSystemRateSource = Schema.is(SystemRateSource)`
+- [ ] **1.6** Run `pnpm typecheck` in `packages/core` to verify no type errors
+
+**Verification**: `pnpm typecheck` passes in `packages/core`
+
+---
+
+### Phase 2: Database Migration
+
+**Goal**: Create the `system_exchange_rates` table with enum, indexes, constraints, and trigger.
+
+**Files to create/modify**:
+- `packages/persistence/src/Migrations/Migration00XX_CreateSystemExchangeRates.ts` (new - use next migration number)
+
+**Tasks**:
+- [ ] **2.1** Determine the next migration number by checking existing migrations in `packages/persistence/src/Migrations/`
+- [ ] **2.2** Create new migration file with `Effect.gen()` pattern using `SqlClient.SqlClient`
+- [ ] **2.3** Create enum type: `CREATE TYPE system_rate_source AS ENUM ('frankfurter', 'manual')`
+- [ ] **2.4** Create table `system_exchange_rates` with columns:
+  - `id UUID PRIMARY KEY DEFAULT gen_random_uuid()`
+  - `currency VARCHAR(3) NOT NULL`
+  - `rate NUMERIC(19,10) NOT NULL`
+  - `effective_date DATE NOT NULL`
+  - `source system_rate_source NOT NULL`
+  - `fetched_at TIMESTAMPTZ` (nullable for manual entries)
+  - `created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`
+  - `updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`
+- [ ] **2.5** Add unique constraint: `UNIQUE(currency, effective_date)`
+- [ ] **2.6** Add check constraint: `CHECK(rate > 0)`
+- [ ] **2.7** Create index on `effective_date DESC`
+- [ ] **2.8** Create index on `currency`
+- [ ] **2.9** Create update trigger for `updated_at` (follow existing migration patterns)
+- [ ] **2.10** Export migration as default
+
+**Verification**: Migration file compiles without type errors
+
+---
+
+### Phase 3: Repository Interface
+
+**Goal**: Define the `SystemExchangeRateRepository` service interface.
+
+**Files to create/modify**:
+- `packages/persistence/src/Services/SystemExchangeRateRepository.ts` (new)
+
+**Tasks**:
+- [ ] **3.1** Import required types: `Context`, `Effect`, `Option` from `effect`, domain types from `@accountability/core`
+- [ ] **3.2** Import `PersistenceError` from existing `../Errors/RepositoryError`
+- [ ] **3.3** Define `SystemExchangeRateRepositoryService` interface with methods:
+  - `findRate(currency: CurrencyCode, date: string): Effect<Option<SystemExchangeRate>, PersistenceError>`
+  - `findLatestRate(currency: CurrencyCode): Effect<Option<SystemExchangeRate>, PersistenceError>`
+  - `findClosestRate(currency: CurrencyCode, date: string): Effect<Option<SystemExchangeRate>, PersistenceError>`
+  - `findByDate(date: string): Effect<ReadonlyArray<SystemExchangeRate>, PersistenceError>`
+  - `findByDateRange(startDate: string, endDate: string): Effect<ReadonlyArray<SystemExchangeRate>, PersistenceError>`
+  - `upsert(rate: Omit<SystemExchangeRate, "id" | "createdAt" | "updatedAt">): Effect<SystemExchangeRate, PersistenceError>`
+  - `bulkUpsert(rates: ReadonlyArray<...>): Effect<number, PersistenceError>`
+  - `getAvailableCurrencies: Effect<ReadonlyArray<CurrencyCode>, PersistenceError>`
+  - `getDateRange: Effect<Option<{ minDate: string; maxDate: string }>, PersistenceError>`
+- [ ] **3.4** Create `SystemExchangeRateRepository` Context.Tag class
+- [ ] **3.5** Run `pnpm typecheck` in `packages/persistence`
+
+**Verification**: `pnpm typecheck` passes in `packages/persistence`
+
+---
+
+### Phase 4: Repository Implementation
+
+**Goal**: Implement `SystemExchangeRateRepositoryLive` with all repository methods.
+
+**Files to create/modify**:
+- `packages/persistence/src/Layers/SystemExchangeRateRepositoryLive.ts` (new)
+
+**Tasks**:
+- [ ] **4.1** Create `SystemExchangeRateRow` schema matching database columns (snake_case):
+  - `id: Schema.String`
+  - `currency: Schema.String`
+  - `rate: Schema.String` (NUMERIC comes as string from pg)
+  - `effective_date: Schema.DateFromSelf`
+  - `source: Schema.String`
+  - `fetched_at: Schema.NullOr(Schema.DateFromSelf)`
+  - `created_at: Schema.DateFromSelf`
+  - `updated_at: Schema.DateFromSelf`
+- [ ] **4.2** Create `rowToSystemExchangeRate` pure function to convert row to domain entity
+- [ ] **4.3** Create `CountRow` schema: `{ count: Schema.NumberFromString }`
+- [ ] **4.4** Create `DateRangeRow` schema: `{ min_date: Schema.NullOr(...), max_date: Schema.NullOr(...) }`
+- [ ] **4.5** Implement `make` using `Effect.gen()`:
+  - Get `SqlClient.SqlClient`
+  - Create `SqlSchema.findOne` for `findRate` query
+  - Create `SqlSchema.findOne` for `findLatestRate` query (ORDER BY effective_date DESC LIMIT 1)
+  - Create `SqlSchema.findOne` for `findClosestRate` query (uses ABS date difference, ORDER BY, LIMIT 1)
+  - Create `SqlSchema.findAll` for `findByDate` query
+  - Create `SqlSchema.findAll` for `findByDateRange` query
+- [ ] **4.6** Implement `upsert` using `INSERT ... ON CONFLICT (currency, effective_date) DO UPDATE`
+- [ ] **4.7** Implement `bulkUpsert` using `UNNEST` arrays for batch insert with ON CONFLICT
+- [ ] **4.8** Implement `getAvailableCurrencies` with `SELECT DISTINCT currency`
+- [ ] **4.9** Implement `getDateRange` with `SELECT MIN(effective_date), MAX(effective_date)`
+- [ ] **4.10** Use `wrapSqlError()` pattern for all queries
+- [ ] **4.11** Export as `Layer.effect(SystemExchangeRateRepository, make)`
+- [ ] **4.12** Run `pnpm typecheck` in `packages/persistence`
+
+**Verification**: `pnpm typecheck` passes in `packages/persistence`
+
+---
+
+### Phase 5: Frankfurter HTTP Client
+
+**Goal**: Create HTTP client for Frankfurter API with typed responses.
+
+**Files to create/modify**:
+- `packages/core/src/Clients/FrankfurterClient.ts` (new)
+- `packages/core/src/Clients/index.ts` (create if needed, or add export)
+
+**Tasks**:
+- [ ] **5.1** Define `BASE_URL = "https://api.frankfurter.dev/v1"`
+- [ ] **5.2** Create `CurrenciesResponse` schema: `Schema.Record({ key: Schema.String, value: Schema.String })`
+- [ ] **5.3** Create `RatesResponse` schema:
+  ```typescript
+  Schema.Struct({
+    base: Schema.String,
+    date: Schema.String,
+    rates: Schema.Record({ key: Schema.String, value: Schema.Number })
+  })
+  ```
+- [ ] **5.4** Create `TimeSeriesResponse` schema for date range responses (nested records)
+- [ ] **5.5** Create `FrankfurterError` extending `Schema.TaggedError` with `message` and optional `cause`
+- [ ] **5.6** Define `FrankfurterClientService` interface with methods:
+  - `fetchCurrencies: Effect<Record<string, string>, FrankfurterError>`
+  - `fetchLatest: Effect<RatesResponse.Type, FrankfurterError>`
+  - `fetchHistorical(date: string): Effect<RatesResponse.Type, FrankfurterError>`
+  - `fetchRange(startDate: string, endDate: string): Effect<TimeSeriesResponse.Type, FrankfurterError>`
+- [ ] **5.7** Create `FrankfurterClient` Context.Tag class
+- [ ] **5.8** Implement `FrankfurterClientLive` Layer:
+  - Get `HttpClient.HttpClient` from context
+  - Create generic `fetch` helper that does GET request and parses response with schema
+  - Map errors to `FrankfurterError`
+  - Use `Effect.scoped` for request lifecycle
+- [ ] **5.9** Add retry logic with exponential backoff (3 attempts) using `Effect.retry`
+- [ ] **5.10** Run `pnpm typecheck` in `packages/core`
+
+**Verification**: `pnpm typecheck` passes in `packages/core`
+
+---
+
+### Phase 6: Exchange Rate Sync Service
+
+**Goal**: Create service that orchestrates fetching from Frankfurter and storing in database.
+
+**Files to create/modify**:
+- `packages/core/src/Services/ExchangeRateSyncService.ts` (new)
+
+**Tasks**:
+- [ ] **6.1** Define result types as `Schema.Class`:
+  - `SyncResult`: `{ date, currenciesCount, upsertedCount, duration }`
+  - `SyncRangeResult`: `{ startDate, endDate, daysProcessed, totalRatesUpserted, duration }`
+- [ ] **6.2** Create `SyncError` extending `Schema.TaggedError` with `message` and optional `cause`
+- [ ] **6.3** Define `ExchangeRateSyncServiceShape` interface:
+  - `syncLatest: Effect<SyncResult, SyncError>`
+  - `syncDate(date: string): Effect<SyncResult, SyncError>`
+  - `syncRange(startDate: string, endDate: string): Effect<SyncRangeResult, SyncError>`
+  - `getSupportedCurrencies: Effect<Array<{ code: string; name: string }>, SyncError>`
+- [ ] **6.4** Create `ExchangeRateSyncService` Context.Tag class
+- [ ] **6.5** Implement `ExchangeRateSyncServiceLive` Layer:
+  - Depend on `FrankfurterClient` and `SystemExchangeRateRepository`
+  - Create `syncFromResponse` helper that converts API response to domain entities and calls `bulkUpsert`
+  - Implement `syncLatest`: fetch latest, transform, upsert, track duration
+  - Implement `syncDate`: fetch historical date, transform, upsert
+  - Implement `syncRange`: fetch range, iterate dates, batch upsert
+  - Implement `getSupportedCurrencies`: fetch currencies, transform to array of {code, name}
+- [ ] **6.6** Map `FrankfurterError` and `PersistenceError` to `SyncError`
+- [ ] **6.7** Run `pnpm typecheck` in `packages/core`
+
+**Verification**: `pnpm typecheck` passes in `packages/core`
+
+---
+
+### Phase 7: Cross Rate Service
+
+**Goal**: Create service for rate lookups with triangulation logic.
+
+**Files to create/modify**:
+- `packages/core/src/Services/CrossRateService.ts` (new)
+
+**Tasks**:
+- [ ] **7.1** Define `RateResult` as `Schema.Class`:
+  - `from: CurrencyCode`
+  - `to: CurrencyCode`
+  - `rate: Schema.BigDecimal`
+  - `effectiveDate: Schema.String`
+  - `source: Schema.Literal("direct", "triangulated", "organization")`
+  - `intermediateRates: Schema.OptionFromNullOr(Schema.Struct({ eurToFrom: Schema.BigDecimal, eurToTo: Schema.BigDecimal }))`
+- [ ] **7.2** Create `RateNotFoundError` extending `Schema.TaggedError` with `from`, `to`, `date`, `message`
+- [ ] **7.3** Define `CrossRateServiceShape` interface:
+  - `getRate(params: { from, to, date, organizationId? }): Effect<RateResult, RateNotFoundError>`
+  - `getLatestRate(params: { from, to, organizationId? }): Effect<RateResult, RateNotFoundError>`
+  - `getClosestRate(params: { from, to, date, organizationId? }): Effect<RateResult, RateNotFoundError>`
+- [ ] **7.4** Create `CrossRateService` Context.Tag class
+- [ ] **7.5** Implement `triangulate` helper function:
+  - Same currency → return rate 1
+  - EUR → XXX → direct lookup from system repo
+  - XXX → EUR → inverse (1 / system rate)
+  - XXX → YYY → fetch both EUR rates, compute `eurToTo / eurToFrom`
+- [ ] **7.6** Implement `CrossRateServiceLive` Layer:
+  - Depend on `SystemExchangeRateRepository` and `ExchangeRateRepository` (existing org rates)
+  - Implement `getRate`: check org rate first (if orgId provided), then triangulate
+  - Implement `getLatestRate`: get date range, call getRate with max date
+  - Implement `getClosestRate`: try exact date, fallback to closest rate from repo
+- [ ] **7.7** Use `BigDecimal.divide` for rate calculations (handle division properly)
+- [ ] **7.8** Run `pnpm typecheck` in `packages/core`
+
+**Verification**: `pnpm typecheck` passes in `packages/core`
+
+---
+
+### Phase 8: API Definition
+
+**Goal**: Define HTTP API endpoints for system exchange rates.
+
+**Files to create/modify**:
+- `packages/api/src/Definitions/SystemExchangeRateApi.ts` (new)
+
+**Tasks**:
+- [ ] **8.1** Create request/response schemas as `Schema.Class`:
+  - `SyncRequest`: `{ date?: string }`
+  - `SyncRangeRequest`: `{ startDate: string, endDate: string }`
+  - `SyncResponse`: `{ date, currenciesCount, upsertedCount, duration }`
+  - `SyncRangeResponse`: `{ startDate, endDate, daysProcessed, totalRatesUpserted, duration }`
+  - `RateRequest`: `{ from: CurrencyCode, to: CurrencyCode, date?: string }`
+  - `RateResponse`: `{ from, to, rate: string, effectiveDate, source }`
+  - `CurrencyInfo`: `{ code: string, name: string }`
+  - `SystemExchangeRateStatusResponse`: `{ availableCurrencies, dateRange?, totalRates }`
+- [ ] **8.2** Create `SystemExchangeRateListParams` query schema with pagination and filters
+- [ ] **8.3** Define endpoints using `HttpApiEndpoint`:
+  - `GET /system/exchange-rates` - list with pagination
+  - `GET /system/exchange-rates/rate` - get rate with triangulation
+  - `POST /system/exchange-rates/sync` - trigger sync (cron)
+  - `POST /system/exchange-rates/sync/range` - backfill range (admin)
+  - `GET /system/exchange-rates/currencies` - supported currencies
+  - `GET /system/exchange-rates/status` - sync status
+- [ ] **8.4** Add appropriate error types to each endpoint (NotFoundError, ValidationError, etc.)
+- [ ] **8.5** Add OpenAPI annotations with descriptions
+- [ ] **8.6** Create `SystemExchangeRateApi` class extending `HttpApiGroup.make()` with prefix `/v1`
+- [ ] **8.7** Run `pnpm typecheck` in `packages/api`
+
+**Verification**: `pnpm typecheck` passes in `packages/api`
+
+---
+
+### Phase 9: API Implementation
+
+**Goal**: Implement HTTP API handlers.
+
+**Files to create/modify**:
+- `packages/api/src/Layers/SystemExchangeRateApiLive.ts` (new)
+- `packages/api/src/AppApi.ts` (add new API group)
+- `packages/api/src/Layers/AppApiLive.ts` (add new handler layer)
+
+**Tasks**:
+- [ ] **9.1** Create error mapping helpers:
+  - `mapSyncErrorToApiError`
+  - `mapRateNotFoundToApiError`
+  - `mapPersistenceErrorToApiError`
+- [ ] **9.2** Implement handlers using `HttpApiBuilder.group()`:
+  - `list` handler: call repository `findByDate` or `findByDateRange` with pagination
+  - `getRate` handler: call `CrossRateService.getRate` or `getLatestRate`
+  - `sync` handler: call `ExchangeRateSyncService.syncLatest` or `syncDate`
+  - `syncRange` handler: call `ExchangeRateSyncService.syncRange`
+  - `currencies` handler: call `ExchangeRateSyncService.getSupportedCurrencies`
+  - `status` handler: call repository methods for stats
+- [ ] **9.3** Add `SystemExchangeRateApi` to `AppApi` definition in `AppApi.ts`
+- [ ] **9.4** Add `SystemExchangeRateApiLive` to the API layer composition in `AppApiLive.ts`
+- [ ] **9.5** Wire up dependencies (repositories, services) in layer composition
+- [ ] **9.6** Run `pnpm typecheck` in `packages/api`
+
+**Verification**: `pnpm typecheck` passes in `packages/api`
+
+---
+
+### Phase 10: Layer Wiring & Integration
+
+**Goal**: Wire all layers together and ensure services are available in the runtime.
+
+**Files to create/modify**:
+- `packages/persistence/src/Layers/index.ts` (add new export)
+- `packages/core/src/Services/index.ts` (add new exports)
+- `packages/core/src/Clients/index.ts` (add new export if needed)
+- `packages/api/src/Layers/index.ts` (add new export)
+
+**Tasks**:
+- [ ] **10.1** Export `SystemExchangeRateRepositoryLive` from persistence package
+- [ ] **10.2** Export `FrankfurterClientLive` from core package
+- [ ] **10.3** Export `ExchangeRateSyncServiceLive` from core package
+- [ ] **10.4** Export `CrossRateServiceLive` from core package
+- [ ] **10.5** Create composed layer that provides all dependencies:
+  ```typescript
+  const SystemExchangeRateLive = Layer.mergeAll(
+    SystemExchangeRateRepositoryLive,
+    FrankfurterClientLive.pipe(Layer.provide(HttpClientLive)),
+    ExchangeRateSyncServiceLive,
+    CrossRateServiceLive
+  )
+  ```
+- [ ] **10.6** Add layers to main API runtime composition
+- [ ] **10.7** Run `pnpm typecheck` across all packages
+- [ ] **10.8** Run `pnpm test` to ensure no regressions
+
+**Verification**: `pnpm typecheck && pnpm test` passes
+
+---
+
+### Phase 11: Unit Tests
+
+**Goal**: Write unit tests for all new services.
+
+**Files to create**:
+- `packages/core/src/Clients/FrankfurterClient.test.ts`
+- `packages/core/src/Services/ExchangeRateSyncService.test.ts`
+- `packages/core/src/Services/CrossRateService.test.ts`
+- `packages/persistence/src/Layers/SystemExchangeRateRepositoryLive.test.ts`
+
+**Tasks**:
+- [ ] **11.1** Create `FrankfurterClient` tests:
+  - Mock HTTP responses using `@effect/platform` test utilities
+  - Test `fetchCurrencies` returns parsed record
+  - Test `fetchLatest` returns parsed rates
+  - Test `fetchHistorical` returns rates for specific date
+  - Test `fetchRange` returns time series data
+  - Test error handling for network failures
+- [ ] **11.2** Create `CrossRateService` tests:
+  - Test same currency returns rate 1.0
+  - Test EUR → XXX direct lookup
+  - Test XXX → EUR inverse calculation
+  - Test XXX → YYY triangulation
+  - Test triangulation: `A → B → A ≈ 1.0`
+  - Test inverse: `rate(A, B) * rate(B, A) ≈ 1.0`
+  - Test org rate priority over system rate
+  - Test error when rates not found
+- [ ] **11.3** Create `ExchangeRateSyncService` tests:
+  - Mock FrankfurterClient and repository
+  - Test `syncLatest` calls API and upserts
+  - Test `syncDate` with specific date
+  - Test `syncRange` processes multiple dates
+  - Test error propagation from API failures
+- [ ] **11.4** Create repository integration tests (using testcontainers):
+  - Test `upsert` creates new rate
+  - Test `upsert` updates existing rate on conflict
+  - Test `bulkUpsert` with multiple rates
+  - Test `findRate` returns correct rate
+  - Test `findClosestRate` finds nearest date
+  - Test `getDateRange` returns min/max
+- [ ] **11.5** Run `pnpm test` to verify all tests pass
+
+**Verification**: `pnpm test` passes with new tests
+
+---
+
+### Phase 12: Integration Tests
+
+**Goal**: Write API integration tests.
+
+**Files to create**:
+- `packages/api/src/Layers/SystemExchangeRateApiLive.test.ts`
+
+**Tasks**:
+- [ ] **12.1** Create API integration tests:
+  - Test `GET /system/exchange-rates` returns list
+  - Test `GET /system/exchange-rates/rate` returns triangulated rate
+  - Test `POST /system/exchange-rates/sync` triggers sync
+  - Test `POST /system/exchange-rates/sync/range` backfills
+  - Test `GET /system/exchange-rates/currencies` returns list
+  - Test `GET /system/exchange-rates/status` returns status
+- [ ] **12.2** Test error responses:
+  - Test 404 for rate not found
+  - Test validation errors for invalid currency codes
+- [ ] **12.3** Run `pnpm test` to verify all tests pass
+
+**Verification**: `pnpm test` passes
+
+---
+
+### Phase 13: OpenAPI Client Generation
+
+**Goal**: Regenerate typed API client for frontend.
+
+**Tasks**:
+- [ ] **13.1** Run `pnpm generate:api` in `packages/web` to regenerate OpenAPI client
+- [ ] **13.2** Verify new endpoints are available in generated types
+- [ ] **13.3** Run `pnpm typecheck` in `packages/web`
+
+**Verification**: `pnpm typecheck` passes in `packages/web`
+
+---
+
+### Phase 14: Frontend Admin UI (Optional)
+
+**Goal**: Create admin page for exchange rate sync management.
+
+**Files to create**:
+- `packages/web/app/routes/admin/exchange-rates.tsx` (new)
+
+**Tasks**:
+- [ ] **14.1** Create route file with loader:
+  - Fetch status from `/api/v1/system/exchange-rates/status`
+  - Fetch supported currencies
+- [ ] **14.2** Create page component with:
+  - Status display (last sync date, available date range, total rates)
+  - "Sync Latest" button calling POST `/sync`
+  - Date range picker for backfill with "Backfill" button calling POST `/sync/range`
+  - Supported currencies list
+  - System rates table with date/currency filters
+- [ ] **14.3** Add page to admin navigation
+- [ ] **14.4** Run `pnpm typecheck` and `pnpm dev` to test
+
+**Verification**: Page renders correctly, sync operations work
+
+---
+
+### Phase 15: Final Verification
+
+**Goal**: Ensure everything works end-to-end.
+
+**Tasks**:
+- [ ] **15.1** Run full test suite: `pnpm test`
+- [ ] **15.2** Run type check: `pnpm typecheck`
+- [ ] **15.3** Run linter: `pnpm lint`
+- [ ] **15.4** Start dev server and test API endpoints manually
+- [ ] **15.5** Test sync operation with real Frankfurter API
+- [ ] **15.6** Verify triangulation works correctly for various currency pairs
+
+**Verification**: All checks pass, manual testing confirms functionality
+
+---
+
 ## Overview
 
 Integrate the [Frankfurter API](https://frankfurter.dev) to provide automatic exchange rate data from the European Central Bank (ECB). Rates are stored globally (not per-organization) and support on-demand cross-rate calculation to minimize storage.
