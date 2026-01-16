@@ -18,11 +18,22 @@ import { Button } from "@/components/ui/Button"
 import { Tooltip } from "@/components/ui/Tooltip"
 import {
   ArrowLeft,
-  Download,
+  FileSpreadsheet,
+  FileText,
   Printer,
   AlertTriangle,
   RefreshCw
 } from "lucide-react"
+import {
+  exportMultiSectionToExcel,
+  exportMultiSectionToPdf,
+  printReport,
+  generateFilename,
+  formatAmount,
+  type ReportSection,
+  type ReportRow,
+  type ReportMetadata
+} from "@/utils/report-export"
 
 // =============================================================================
 // Types
@@ -438,7 +449,7 @@ function CashFlowReportDisplay({
 }: {
   readonly report: ConsolidatedCashFlowReport
 }) {
-  const formatAmount = (amount: number): string => {
+  const formatAmountLocal = (amount: number): string => {
     if (amount === 0) return "—"
     return new Intl.NumberFormat("en-US", {
       style: "decimal",
@@ -447,10 +458,88 @@ function CashFlowReportDisplay({
     }).format(amount)
   }
 
+  // Convert report sections to export format
+  const convertSectionToExport = (
+    title: string,
+    section: ConsolidatedReportSection,
+    subtotalLabel: string
+  ): ReportSection => {
+    const rows: ReportRow[] = section.lineItems.map((item) => ({
+      cells: [item.description, formatAmount(item.amount)],
+      style: item.style === "Header" ? "header" : item.style === "Subtotal" ? "subtotal" : item.style === "Total" ? "total" : "normal"
+    }))
+
+    rows.push({
+      cells: [subtotalLabel, formatAmount(section.subtotal)],
+      style: "subtotal"
+    })
+
+    return { title, rows }
+  }
+
+  // Export handlers
+  const handlePrint = () => {
+    printReport()
+  }
+
+  const handleExportExcel = () => {
+    const metadata: ReportMetadata = {
+      title: "Consolidated Statement of Cash Flows",
+      subtitle: report.groupName,
+      asOfDate: `${report.periodRef.year} Period ${report.periodRef.period}`,
+      currency: report.currency,
+      generatedAt: new Date().toISOString()
+    }
+
+    const sections: ReportSection[] = [
+      convertSectionToExport("CASH FLOWS FROM OPERATING ACTIVITIES", report.operatingActivities, "Net Cash Provided by Operating Activities"),
+      convertSectionToExport("CASH FLOWS FROM INVESTING ACTIVITIES", report.investingActivities, "Net Cash Used in Investing Activities"),
+      convertSectionToExport("CASH FLOWS FROM FINANCING ACTIVITIES", report.financingActivities, "Net Cash Used in Financing Activities"),
+      { title: "", rows: [{ cells: ["NET INCREASE (DECREASE) IN CASH", formatAmount(report.netChangeInCash)], style: "total" }] },
+      {
+        title: "",
+        rows: [
+          { cells: ["Cash at Beginning of Period", formatAmount(report.beginningCash)], style: "normal" },
+          { cells: ["CASH AT END OF PERIOD", formatAmount(report.endingCash)], style: "total" }
+        ]
+      }
+    ]
+
+    const filename = generateFilename(`${report.groupName}-consolidated-cash-flow`, report.asOfDate)
+    exportMultiSectionToExcel(sections, metadata, filename)
+  }
+
+  const handleExportPdf = () => {
+    const metadata: ReportMetadata = {
+      title: "Consolidated Statement of Cash Flows",
+      subtitle: report.groupName,
+      asOfDate: `${report.periodRef.year} Period ${report.periodRef.period}`,
+      currency: report.currency,
+      generatedAt: new Date().toISOString()
+    }
+
+    const sections: ReportSection[] = [
+      convertSectionToExport("CASH FLOWS FROM OPERATING ACTIVITIES", report.operatingActivities, "Net Cash Provided by Operating Activities"),
+      convertSectionToExport("CASH FLOWS FROM INVESTING ACTIVITIES", report.investingActivities, "Net Cash Used in Investing Activities"),
+      convertSectionToExport("CASH FLOWS FROM FINANCING ACTIVITIES", report.financingActivities, "Net Cash Used in Financing Activities"),
+      { title: "", rows: [{ cells: ["NET INCREASE (DECREASE) IN CASH", formatAmount(report.netChangeInCash)], style: "total" }] },
+      {
+        title: "",
+        rows: [
+          { cells: ["Cash at Beginning of Period", formatAmount(report.beginningCash)], style: "normal" },
+          { cells: ["CASH AT END OF PERIOD", formatAmount(report.endingCash)], style: "total" }
+        ]
+      }
+    ]
+
+    const filename = generateFilename(`${report.groupName}-consolidated-cash-flow`, report.asOfDate)
+    exportMultiSectionToPdf(sections, metadata, filename)
+  }
+
   return (
     <div className="rounded-lg border border-gray-200 bg-white" data-testid="cash-flow-report">
       {/* Report Header */}
-      <div className="border-b border-gray-200 px-6 py-4">
+      <div className="border-b border-gray-200 px-6 py-4 print-hide">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">
@@ -463,6 +552,7 @@ function CashFlowReportDisplay({
           </div>
           <div className="flex gap-2">
             <button
+              onClick={handlePrint}
               className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
               data-testid="print-button"
             >
@@ -470,11 +560,20 @@ function CashFlowReportDisplay({
               Print
             </button>
             <button
+              onClick={handleExportExcel}
               className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-              data-testid="export-button"
+              data-testid="export-excel-button"
             >
-              <Download className="h-4 w-4" />
-              Export
+              <FileSpreadsheet className="h-4 w-4" />
+              Excel
+            </button>
+            <button
+              onClick={handleExportPdf}
+              className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+              data-testid="export-pdf-button"
+            >
+              <FileText className="h-4 w-4" />
+              PDF
             </button>
           </div>
         </div>
@@ -504,13 +603,13 @@ function CashFlowReportDisplay({
               <LineItemRow
                 key={`operating-${idx}`}
                 item={item}
-                formatAmount={formatAmount}
+                formatAmount={formatAmountLocal}
               />
             ))}
             <SubtotalRow
               label="Net Cash Provided by Operating Activities"
               amount={report.operatingActivities.subtotal}
-              formatAmount={formatAmount}
+              formatAmount={formatAmountLocal}
             />
 
             {/* Spacer */}
@@ -522,13 +621,13 @@ function CashFlowReportDisplay({
               <LineItemRow
                 key={`investing-${idx}`}
                 item={item}
-                formatAmount={formatAmount}
+                formatAmount={formatAmountLocal}
               />
             ))}
             <SubtotalRow
               label="Net Cash Used in Investing Activities"
               amount={report.investingActivities.subtotal}
-              formatAmount={formatAmount}
+              formatAmount={formatAmountLocal}
             />
 
             {/* Spacer */}
@@ -540,13 +639,13 @@ function CashFlowReportDisplay({
               <LineItemRow
                 key={`financing-${idx}`}
                 item={item}
-                formatAmount={formatAmount}
+                formatAmount={formatAmountLocal}
               />
             ))}
             <SubtotalRow
               label="Net Cash Used in Financing Activities"
               amount={report.financingActivities.subtotal}
-              formatAmount={formatAmount}
+              formatAmount={formatAmountLocal}
             />
 
             {/* Spacer */}
@@ -556,7 +655,7 @@ function CashFlowReportDisplay({
             <TotalRow
               label="NET INCREASE (DECREASE) IN CASH"
               amount={report.netChangeInCash}
-              formatAmount={formatAmount}
+              formatAmount={formatAmountLocal}
             />
 
             {/* Beginning/Ending Cash */}
@@ -565,14 +664,14 @@ function CashFlowReportDisplay({
                 Cash at Beginning of Period
               </td>
               <td className="whitespace-nowrap px-6 py-2 text-right font-mono text-sm text-gray-900">
-                {formatAmount(report.beginningCash)}
+                {formatAmountLocal(report.beginningCash)}
               </td>
             </tr>
 
             <TotalRow
               label="CASH AT END OF PERIOD"
               amount={report.endingCash}
-              formatAmount={formatAmount}
+              formatAmount={formatAmountLocal}
               highlight
             />
           </tbody>

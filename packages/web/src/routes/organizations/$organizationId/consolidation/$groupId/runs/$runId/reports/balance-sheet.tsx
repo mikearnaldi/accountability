@@ -18,12 +18,23 @@ import { Button } from "@/components/ui/Button"
 import { Tooltip } from "@/components/ui/Tooltip"
 import {
   ArrowLeft,
-  Download,
+  FileSpreadsheet,
+  FileText,
   Printer,
   AlertTriangle,
   CheckCircle,
   RefreshCw
 } from "lucide-react"
+import {
+  exportMultiSectionToExcel,
+  exportMultiSectionToPdf,
+  printReport,
+  generateFilename,
+  formatAmount,
+  type ReportSection,
+  type ReportRow,
+  type ReportMetadata
+} from "@/utils/report-export"
 
 // =============================================================================
 // Types
@@ -442,7 +453,7 @@ function BalanceSheetReportDisplay({
 }: {
   readonly report: ConsolidatedBalanceSheetReport
 }) {
-  const formatAmount = (amount: number): string => {
+  const formatAmountLocal = (amount: number): string => {
     if (amount === 0) return "—"
     return new Intl.NumberFormat("en-US", {
       style: "decimal",
@@ -454,10 +465,98 @@ function BalanceSheetReportDisplay({
   // Check if balanced
   const isBalanced = Math.abs(report.totalAssets - report.totalLiabilitiesAndEquity) < 0.01
 
+  // Convert report sections to export format
+  const convertSectionToExport = (
+    title: string,
+    section: ConsolidatedReportSection,
+    includeSubtotal = true
+  ): ReportSection => {
+    const rows: ReportRow[] = section.lineItems.map((item) => ({
+      cells: [item.description, formatAmount(item.amount)],
+      style: item.style === "Header" ? "header" : item.style === "Subtotal" ? "subtotal" : item.style === "Total" ? "total" : "normal"
+    }))
+
+    if (includeSubtotal) {
+      rows.push({
+        cells: [`Total ${section.title}`, formatAmount(section.subtotal)],
+        style: "subtotal"
+      })
+    }
+
+    return { title, rows }
+  }
+
+  // Export handlers
+  const handlePrint = () => {
+    printReport()
+  }
+
+  const handleExportExcel = () => {
+    const metadata: ReportMetadata = {
+      title: "Consolidated Balance Sheet",
+      subtitle: report.groupName,
+      asOfDate: report.asOfDate,
+      currency: report.currency,
+      generatedAt: new Date().toISOString()
+    }
+
+    const sections: ReportSection[] = [
+      convertSectionToExport("ASSETS - Current Assets", report.currentAssets),
+      convertSectionToExport("ASSETS - Non-Current Assets", report.nonCurrentAssets),
+      { title: "", rows: [{ cells: ["TOTAL ASSETS", formatAmount(report.totalAssets)], style: "total" }] },
+      convertSectionToExport("LIABILITIES - Current Liabilities", report.currentLiabilities),
+      convertSectionToExport("LIABILITIES - Non-Current Liabilities", report.nonCurrentLiabilities),
+      { title: "", rows: [{ cells: ["TOTAL LIABILITIES", formatAmount(report.totalLiabilities)], style: "total" }] },
+      convertSectionToExport("EQUITY", report.equity, false),
+      {
+        title: "",
+        rows: [
+          { cells: ["Non-Controlling Interest", formatAmount(report.nonControllingInterest)], style: "normal" },
+          { cells: ["TOTAL EQUITY", formatAmount(report.totalEquity)], style: "total" },
+          { cells: ["TOTAL LIABILITIES AND EQUITY", formatAmount(report.totalLiabilitiesAndEquity)], style: "total" }
+        ]
+      }
+    ]
+
+    const filename = generateFilename(`${report.groupName}-consolidated-balance-sheet`, report.asOfDate)
+    exportMultiSectionToExcel(sections, metadata, filename)
+  }
+
+  const handleExportPdf = () => {
+    const metadata: ReportMetadata = {
+      title: "Consolidated Balance Sheet",
+      subtitle: report.groupName,
+      asOfDate: report.asOfDate,
+      currency: report.currency,
+      generatedAt: new Date().toISOString()
+    }
+
+    const sections: ReportSection[] = [
+      convertSectionToExport("ASSETS - Current Assets", report.currentAssets),
+      convertSectionToExport("ASSETS - Non-Current Assets", report.nonCurrentAssets),
+      { title: "", rows: [{ cells: ["TOTAL ASSETS", formatAmount(report.totalAssets)], style: "total" }] },
+      convertSectionToExport("LIABILITIES - Current Liabilities", report.currentLiabilities),
+      convertSectionToExport("LIABILITIES - Non-Current Liabilities", report.nonCurrentLiabilities),
+      { title: "", rows: [{ cells: ["TOTAL LIABILITIES", formatAmount(report.totalLiabilities)], style: "total" }] },
+      convertSectionToExport("EQUITY", report.equity, false),
+      {
+        title: "",
+        rows: [
+          { cells: ["Non-Controlling Interest", formatAmount(report.nonControllingInterest)], style: "normal" },
+          { cells: ["TOTAL EQUITY", formatAmount(report.totalEquity)], style: "total" },
+          { cells: ["TOTAL LIABILITIES AND EQUITY", formatAmount(report.totalLiabilitiesAndEquity)], style: "total" }
+        ]
+      }
+    ]
+
+    const filename = generateFilename(`${report.groupName}-consolidated-balance-sheet`, report.asOfDate)
+    exportMultiSectionToPdf(sections, metadata, filename)
+  }
+
   return (
     <div className="rounded-lg border border-gray-200 bg-white" data-testid="balance-sheet-report">
       {/* Report Header */}
-      <div className="border-b border-gray-200 px-6 py-4">
+      <div className="border-b border-gray-200 px-6 py-4 print-hide">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">
@@ -470,6 +569,7 @@ function BalanceSheetReportDisplay({
           </div>
           <div className="flex gap-2">
             <button
+              onClick={handlePrint}
               className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
               data-testid="print-button"
             >
@@ -477,11 +577,20 @@ function BalanceSheetReportDisplay({
               Print
             </button>
             <button
+              onClick={handleExportExcel}
               className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-              data-testid="export-button"
+              data-testid="export-excel-button"
             >
-              <Download className="h-4 w-4" />
-              Export
+              <FileSpreadsheet className="h-4 w-4" />
+              Excel
+            </button>
+            <button
+              onClick={handleExportPdf}
+              className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+              data-testid="export-pdf-button"
+            >
+              <FileText className="h-4 w-4" />
+              PDF
             </button>
           </div>
         </div>
@@ -535,13 +644,13 @@ function BalanceSheetReportDisplay({
               <LineItemRow
                 key={`current-asset-${idx}`}
                 item={item}
-                formatAmount={formatAmount}
+                formatAmount={formatAmountLocal}
               />
             ))}
             <SubtotalRow
               label={`Total ${report.currentAssets.title}`}
               amount={report.currentAssets.subtotal}
-              formatAmount={formatAmount}
+              formatAmount={formatAmountLocal}
             />
 
             {/* Non-Current Assets */}
@@ -550,20 +659,20 @@ function BalanceSheetReportDisplay({
               <LineItemRow
                 key={`non-current-asset-${idx}`}
                 item={item}
-                formatAmount={formatAmount}
+                formatAmount={formatAmountLocal}
               />
             ))}
             <SubtotalRow
               label={`Total ${report.nonCurrentAssets.title}`}
               amount={report.nonCurrentAssets.subtotal}
-              formatAmount={formatAmount}
+              formatAmount={formatAmountLocal}
             />
 
             {/* Total Assets */}
             <TotalRow
               label="TOTAL ASSETS"
               amount={report.totalAssets}
-              formatAmount={formatAmount}
+              formatAmount={formatAmountLocal}
             />
 
             {/* Spacer */}

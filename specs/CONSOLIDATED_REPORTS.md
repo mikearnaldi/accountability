@@ -25,10 +25,12 @@ Implement standard financial reports for consolidation runs, transforming the co
 - Consolidated Statement of Changes in Equity report generation - `ConsolidatedReportService.generateEquityStatement()`
 - API endpoints now call the service methods instead of returning NOT_IMPLEMENTED
 
-**Remaining Work (Phase 3):**
-- PDF export
-- Excel export
-- Print styling
+**Phase 3 (Export & Print) ✅ COMPLETE (2026-01-16):**
+- PDF export - Implemented via `jspdf` + `jspdf-autotable`
+- Excel export - Implemented via `xlsx` library
+- Print styling - Browser print dialog trigger via `window.print()`
+- Export utilities in `packages/web/src/utils/report-export.ts`
+- All 5 report pages have Print, Excel, PDF export buttons
 
 ---
 
@@ -411,11 +413,23 @@ For the income statement:
    - Reports hub shows 4 report type cards
    - Each report has "Back to Reports" link and proper breadcrumbs
 
-### Phase 3: Export & Print
+### Phase 3: Export & Print ✅ COMPLETE (2026-01-16)
 
-1. **PDF export** - Generate printable PDF versions
-2. **Excel export** - Download as spreadsheet
-3. **Print styling** - CSS for print media
+1. **PDF export** ✅ - Generate printable PDF versions via `jspdf` + `jspdf-autotable`
+2. **Excel export** ✅ - Download as spreadsheet via `xlsx` library
+3. **Print styling** ✅ - Browser print dialog via `window.print()`, `.print-hide` class hides export buttons during print
+
+**Implementation:**
+- Export utilities in `packages/web/src/utils/report-export.ts`:
+  - `exportToExcel()` - Table-based Excel export with metadata headers
+  - `exportMultiSectionToExcel()` - Multi-section report Excel export
+  - `exportToPdf()` - Table-based PDF export with autoTable formatting
+  - `exportMultiSectionToPdf()` - Multi-section report PDF export
+  - `printReport()` - Triggers browser print dialog
+  - `formatAmount()` - Formats numbers for export
+  - `generateFilename()` - Creates sanitized filenames with dates
+- All consolidated report pages have Print, Excel, PDF buttons that call these utilities
+- Trial balance page also has full export functionality
 
 ---
 

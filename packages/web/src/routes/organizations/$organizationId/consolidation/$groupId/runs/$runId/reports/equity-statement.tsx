@@ -18,11 +18,21 @@ import { Button } from "@/components/ui/Button"
 import { Tooltip } from "@/components/ui/Tooltip"
 import {
   ArrowLeft,
-  Download,
+  FileSpreadsheet,
+  FileText,
   Printer,
   AlertTriangle,
   RefreshCw
 } from "lucide-react"
+import {
+  exportToExcel,
+  exportToPdf,
+  printReport,
+  generateFilename,
+  formatAmount,
+  type TableExportConfig,
+  type ReportMetadata
+} from "@/utils/report-export"
 
 // =============================================================================
 // Types
@@ -432,7 +442,7 @@ function EquityStatementReportDisplay({
 }: {
   readonly report: ConsolidatedEquityStatementReport
 }) {
-  const formatAmount = (amount: number): string => {
+  const formatAmountLocal = (amount: number): string => {
     if (amount === 0) return "—"
     return new Intl.NumberFormat("en-US", {
       style: "decimal",
@@ -441,10 +451,72 @@ function EquityStatementReportDisplay({
     }).format(amount)
   }
 
+  // Convert a row to export format
+  const rowToExportArray = (label: string, row: EquityMovementRow): (string | number)[] => [
+    label,
+    row.commonStock || "",
+    row.additionalPaidInCapital || "",
+    row.retainedEarnings || "",
+    row.accumulatedOCI || "",
+    row.nonControllingInterest || "",
+    row.total || ""
+  ]
+
+  // Export handlers
+  const handlePrint = () => {
+    printReport()
+  }
+
+  const handleExportExcel = () => {
+    const metadata: ReportMetadata = {
+      title: "Consolidated Statement of Changes in Equity",
+      subtitle: report.groupName,
+      asOfDate: `${report.periodRef.year} Period ${report.periodRef.period}`,
+      currency: report.currency,
+      generatedAt: new Date().toISOString()
+    }
+
+    const config: TableExportConfig = {
+      headers: ["Description", "Common Stock", "APIC", "Retained Earnings", "AOCI", "NCI", "Total"],
+      rows: [
+        rowToExportArray("Balance at Beginning of Period", report.openingBalance),
+        ...report.movements.map((m) => rowToExportArray(m.description, m)),
+        rowToExportArray("Balance at End of Period", report.closingBalance)
+      ],
+      metadata
+    }
+
+    const filename = generateFilename(`${report.groupName}-consolidated-equity-statement`, report.asOfDate)
+    exportToExcel(config, filename)
+  }
+
+  const handleExportPdf = () => {
+    const metadata: ReportMetadata = {
+      title: "Consolidated Statement of Changes in Equity",
+      subtitle: report.groupName,
+      asOfDate: `${report.periodRef.year} Period ${report.periodRef.period}`,
+      currency: report.currency,
+      generatedAt: new Date().toISOString()
+    }
+
+    const config: TableExportConfig = {
+      headers: ["Description", "Common Stock", "APIC", "Retained Earnings", "AOCI", "NCI", "Total"],
+      rows: [
+        ["Balance at Beginning of Period", formatAmount(report.openingBalance.commonStock), formatAmount(report.openingBalance.additionalPaidInCapital), formatAmount(report.openingBalance.retainedEarnings), formatAmount(report.openingBalance.accumulatedOCI), formatAmount(report.openingBalance.nonControllingInterest), formatAmount(report.openingBalance.total)],
+        ...report.movements.map((m) => [m.description, formatAmount(m.commonStock), formatAmount(m.additionalPaidInCapital), formatAmount(m.retainedEarnings), formatAmount(m.accumulatedOCI), formatAmount(m.nonControllingInterest), formatAmount(m.total)]),
+        ["Balance at End of Period", formatAmount(report.closingBalance.commonStock), formatAmount(report.closingBalance.additionalPaidInCapital), formatAmount(report.closingBalance.retainedEarnings), formatAmount(report.closingBalance.accumulatedOCI), formatAmount(report.closingBalance.nonControllingInterest), formatAmount(report.closingBalance.total)]
+      ],
+      metadata
+    }
+
+    const filename = generateFilename(`${report.groupName}-consolidated-equity-statement`, report.asOfDate)
+    exportToPdf(config, filename)
+  }
+
   return (
     <div className="rounded-lg border border-gray-200 bg-white" data-testid="equity-statement-report">
       {/* Report Header */}
-      <div className="border-b border-gray-200 px-6 py-4">
+      <div className="border-b border-gray-200 px-6 py-4 print-hide">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">
@@ -457,6 +529,7 @@ function EquityStatementReportDisplay({
           </div>
           <div className="flex gap-2">
             <button
+              onClick={handlePrint}
               className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
               data-testid="print-button"
             >
@@ -464,11 +537,20 @@ function EquityStatementReportDisplay({
               Print
             </button>
             <button
+              onClick={handleExportExcel}
               className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-              data-testid="export-button"
+              data-testid="export-excel-button"
             >
-              <Download className="h-4 w-4" />
-              Export
+              <FileSpreadsheet className="h-4 w-4" />
+              Excel
+            </button>
+            <button
+              onClick={handleExportPdf}
+              className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+              data-testid="export-pdf-button"
+            >
+              <FileText className="h-4 w-4" />
+              PDF
             </button>
           </div>
         </div>
@@ -520,7 +602,7 @@ function EquityStatementReportDisplay({
             {/* Opening Balance */}
             <EquityMovementRowComponent
               row={report.openingBalance}
-              formatAmount={formatAmount}
+              formatAmount={formatAmountLocal}
               isTotal
               label="Balance at Beginning of Period"
             />
@@ -530,14 +612,14 @@ function EquityStatementReportDisplay({
               <EquityMovementRowComponent
                 key={`movement-${idx}`}
                 row={movement}
-                formatAmount={formatAmount}
+                formatAmount={formatAmountLocal}
               />
             ))}
 
             {/* Closing Balance */}
             <EquityMovementRowComponent
               row={report.closingBalance}
-              formatAmount={formatAmount}
+              formatAmount={formatAmountLocal}
               isTotal
               highlight
               label="Balance at End of Period"

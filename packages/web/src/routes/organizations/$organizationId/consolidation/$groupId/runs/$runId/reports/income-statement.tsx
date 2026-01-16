@@ -18,11 +18,22 @@ import { Button } from "@/components/ui/Button"
 import { Tooltip } from "@/components/ui/Tooltip"
 import {
   ArrowLeft,
-  Download,
+  FileSpreadsheet,
+  FileText,
   Printer,
   AlertTriangle,
   RefreshCw
 } from "lucide-react"
+import {
+  exportMultiSectionToExcel,
+  exportMultiSectionToPdf,
+  printReport,
+  generateFilename,
+  formatAmount,
+  type ReportSection,
+  type ReportRow,
+  type ReportMetadata
+} from "@/utils/report-export"
 
 // =============================================================================
 // Types
@@ -443,7 +454,7 @@ function IncomeStatementReportDisplay({
 }: {
   readonly report: ConsolidatedIncomeStatementReport
 }) {
-  const formatAmount = (amount: number): string => {
+  const formatAmountLocal = (amount: number): string => {
     if (amount === 0) return "—"
     return new Intl.NumberFormat("en-US", {
       style: "decimal",
@@ -452,10 +463,100 @@ function IncomeStatementReportDisplay({
     }).format(amount)
   }
 
+  // Convert report sections to export format
+  const convertSectionToExport = (
+    title: string,
+    section: ConsolidatedReportSection,
+    includeSubtotal = true
+  ): ReportSection => {
+    const rows: ReportRow[] = section.lineItems.map((item) => ({
+      cells: [item.description, formatAmount(item.amount)],
+      style: item.style === "Header" ? "header" : item.style === "Subtotal" ? "subtotal" : item.style === "Total" ? "total" : "normal"
+    }))
+
+    if (includeSubtotal) {
+      rows.push({
+        cells: [`Total ${section.title}`, formatAmount(section.subtotal)],
+        style: "subtotal"
+      })
+    }
+
+    return { title, rows }
+  }
+
+  // Export handlers
+  const handlePrint = () => {
+    printReport()
+  }
+
+  const handleExportExcel = () => {
+    const metadata: ReportMetadata = {
+      title: "Consolidated Income Statement",
+      subtitle: report.groupName,
+      asOfDate: `${report.periodRef.year} Period ${report.periodRef.period}`,
+      currency: report.currency,
+      generatedAt: new Date().toISOString()
+    }
+
+    const sections: ReportSection[] = [
+      convertSectionToExport("REVENUE", report.revenue),
+      convertSectionToExport("COST OF SALES", report.costOfSales),
+      { title: "", rows: [{ cells: ["GROSS PROFIT", formatAmount(report.grossProfit)], style: "total" }] },
+      convertSectionToExport("OPERATING EXPENSES", report.operatingExpenses),
+      { title: "", rows: [{ cells: ["OPERATING INCOME", formatAmount(report.operatingIncome)], style: "total" }] },
+      convertSectionToExport("OTHER INCOME (EXPENSE)", report.otherIncomeExpense),
+      { title: "", rows: [{ cells: ["INCOME BEFORE INCOME TAX", formatAmount(report.incomeBeforeTax)], style: "total" }] },
+      { title: "", rows: [{ cells: ["Income Tax Expense", `(${formatAmount(report.taxExpense)})`], style: "normal" }] },
+      { title: "", rows: [{ cells: ["NET INCOME", formatAmount(report.netIncome)], style: "total" }] },
+      {
+        title: "NET INCOME ATTRIBUTABLE TO:",
+        rows: [
+          { cells: ["Parent Company Shareholders", formatAmount(report.netIncomeAttributableToParent)], style: "normal" },
+          { cells: ["Non-Controlling Interest", formatAmount(report.netIncomeAttributableToNCI)], style: "normal" }
+        ]
+      }
+    ]
+
+    const filename = generateFilename(`${report.groupName}-consolidated-income-statement`, report.asOfDate)
+    exportMultiSectionToExcel(sections, metadata, filename)
+  }
+
+  const handleExportPdf = () => {
+    const metadata: ReportMetadata = {
+      title: "Consolidated Income Statement",
+      subtitle: report.groupName,
+      asOfDate: `${report.periodRef.year} Period ${report.periodRef.period}`,
+      currency: report.currency,
+      generatedAt: new Date().toISOString()
+    }
+
+    const sections: ReportSection[] = [
+      convertSectionToExport("REVENUE", report.revenue),
+      convertSectionToExport("COST OF SALES", report.costOfSales),
+      { title: "", rows: [{ cells: ["GROSS PROFIT", formatAmount(report.grossProfit)], style: "total" }] },
+      convertSectionToExport("OPERATING EXPENSES", report.operatingExpenses),
+      { title: "", rows: [{ cells: ["OPERATING INCOME", formatAmount(report.operatingIncome)], style: "total" }] },
+      convertSectionToExport("OTHER INCOME (EXPENSE)", report.otherIncomeExpense),
+      { title: "", rows: [{ cells: ["INCOME BEFORE INCOME TAX", formatAmount(report.incomeBeforeTax)], style: "total" }] },
+      { title: "", rows: [{ cells: ["Income Tax Expense", `(${formatAmount(report.taxExpense)})`], style: "normal" }] },
+      { title: "", rows: [{ cells: ["NET INCOME", formatAmount(report.netIncome)], style: "total" }] },
+      {
+        title: "NET INCOME ATTRIBUTABLE TO:",
+        rows: [
+          { cells: ["Parent Company Shareholders", formatAmount(report.netIncomeAttributableToParent)], style: "normal" },
+          { cells: ["Non-Controlling Interest", formatAmount(report.netIncomeAttributableToNCI)], style: "normal" }
+        ]
+      }
+    ]
+
+    const filename = generateFilename(`${report.groupName}-consolidated-income-statement`, report.asOfDate)
+    exportMultiSectionToPdf(sections, metadata, filename)
+  }
+
   return (
     <div className="rounded-lg border border-gray-200 bg-white" data-testid="income-statement-report">
       {/* Report Header */}
-      <div className="border-b border-gray-200 px-6 py-4">
+      <div className="border-b border-gray-200 px-6 py-4 print-hide">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">
@@ -468,6 +569,7 @@ function IncomeStatementReportDisplay({
           </div>
           <div className="flex gap-2">
             <button
+              onClick={handlePrint}
               className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
               data-testid="print-button"
             >
@@ -475,11 +577,20 @@ function IncomeStatementReportDisplay({
               Print
             </button>
             <button
+              onClick={handleExportExcel}
               className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-              data-testid="export-button"
+              data-testid="export-excel-button"
             >
-              <Download className="h-4 w-4" />
-              Export
+              <FileSpreadsheet className="h-4 w-4" />
+              Excel
+            </button>
+            <button
+              onClick={handleExportPdf}
+              className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+              data-testid="export-pdf-button"
+            >
+              <FileText className="h-4 w-4" />
+              PDF
             </button>
           </div>
         </div>
@@ -509,13 +620,13 @@ function IncomeStatementReportDisplay({
               <LineItemRow
                 key={`revenue-${idx}`}
                 item={item}
-                formatAmount={formatAmount}
+                formatAmount={formatAmountLocal}
               />
             ))}
             <SubtotalRow
               label={`Total ${report.revenue.title}`}
               amount={report.revenue.subtotal}
-              formatAmount={formatAmount}
+              formatAmount={formatAmountLocal}
             />
 
             {/* Cost of Sales */}
@@ -524,20 +635,20 @@ function IncomeStatementReportDisplay({
               <LineItemRow
                 key={`cost-${idx}`}
                 item={item}
-                formatAmount={formatAmount}
+                formatAmount={formatAmountLocal}
               />
             ))}
             <SubtotalRow
               label={`Total ${report.costOfSales.title}`}
               amount={report.costOfSales.subtotal}
-              formatAmount={formatAmount}
+              formatAmount={formatAmountLocal}
             />
 
             {/* Gross Profit */}
             <TotalRow
               label="GROSS PROFIT"
               amount={report.grossProfit}
-              formatAmount={formatAmount}
+              formatAmount={formatAmountLocal}
             />
 
             {/* Operating Expenses */}
@@ -546,20 +657,20 @@ function IncomeStatementReportDisplay({
               <LineItemRow
                 key={`opex-${idx}`}
                 item={item}
-                formatAmount={formatAmount}
+                formatAmount={formatAmountLocal}
               />
             ))}
             <SubtotalRow
               label={`Total ${report.operatingExpenses.title}`}
               amount={report.operatingExpenses.subtotal}
-              formatAmount={formatAmount}
+              formatAmount={formatAmountLocal}
             />
 
             {/* Operating Income */}
             <TotalRow
               label="OPERATING INCOME"
               amount={report.operatingIncome}
-              formatAmount={formatAmount}
+              formatAmount={formatAmountLocal}
             />
 
             {/* Other Income/Expense */}
@@ -568,20 +679,20 @@ function IncomeStatementReportDisplay({
               <LineItemRow
                 key={`other-${idx}`}
                 item={item}
-                formatAmount={formatAmount}
+                formatAmount={formatAmountLocal}
               />
             ))}
             <SubtotalRow
               label={`Total ${report.otherIncomeExpense.title}`}
               amount={report.otherIncomeExpense.subtotal}
-              formatAmount={formatAmount}
+              formatAmount={formatAmountLocal}
             />
 
             {/* Income Before Tax */}
             <TotalRow
               label="INCOME BEFORE INCOME TAX"
               amount={report.incomeBeforeTax}
-              formatAmount={formatAmount}
+              formatAmount={formatAmountLocal}
             />
 
             {/* Tax Expense */}
@@ -590,7 +701,7 @@ function IncomeStatementReportDisplay({
                 Income Tax Expense
               </td>
               <td className="whitespace-nowrap px-6 py-2 text-right font-mono text-sm text-gray-900">
-                ({formatAmount(report.taxExpense)})
+                ({formatAmountLocal(report.taxExpense)})
               </td>
             </tr>
 
@@ -598,7 +709,7 @@ function IncomeStatementReportDisplay({
             <TotalRow
               label="NET INCOME"
               amount={report.netIncome}
-              formatAmount={formatAmount}
+              formatAmount={formatAmountLocal}
               highlight
             />
 
@@ -612,7 +723,7 @@ function IncomeStatementReportDisplay({
                 Parent Company Shareholders
               </td>
               <td className="whitespace-nowrap px-6 py-2 text-right font-mono text-sm text-gray-900">
-                {formatAmount(report.netIncomeAttributableToParent)}
+                {formatAmountLocal(report.netIncomeAttributableToParent)}
               </td>
             </tr>
             <tr className="hover:bg-gray-50">
@@ -620,7 +731,7 @@ function IncomeStatementReportDisplay({
                 Non-Controlling Interest
               </td>
               <td className="whitespace-nowrap px-6 py-2 text-right font-mono text-sm text-gray-900">
-                {formatAmount(report.netIncomeAttributableToNCI)}
+                {formatAmountLocal(report.netIncomeAttributableToNCI)}
               </td>
             </tr>
           </tbody>

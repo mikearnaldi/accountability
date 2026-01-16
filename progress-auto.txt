@@ -300,3 +300,8 @@
 ## Iteration 5 - 2026-01-16 13:51
 **Task**: Partial work (no explicit completion signal)
 ---
+
+## Iteration 2 - 2026-01-16 15:08
+**Task**: Added PDF, Excel, and Print export functionality to all 3 remaining consolidated report pages (income-statement.tsx, cash-flow.tsx, equity-statement.tsx). Each page now has functional Print, Excel, and PDF export buttons that use the report-export.ts utilities. Updated CONSOLIDATED_REPORTS.md spec to mark Phase 3 (Export & Print) as complete.
+**Status**: complete
+---

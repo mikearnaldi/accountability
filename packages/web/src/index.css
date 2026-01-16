@@ -55,3 +55,153 @@
     color: var(--color-balance);
   }
 }
+
+/* Print styles for financial reports */
+@media print {
+  /* Hide non-essential UI elements */
+  nav,
+  header,
+  aside,
+  footer,
+  .sidebar,
+  .no-print,
+  [data-testid="sidebar"],
+  [data-testid="header"],
+  button:not(.print-include),
+  .print-hide {
+    display: none !important;
+  }
+
+  /* Reset body and page styles */
+  body {
+    @apply bg-white text-black;
+    font-size: 10pt;
+    line-height: 1.4;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Main content takes full width */
+  main,
+  .main-content,
+  [data-testid*="page"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0.5cm !important;
+  }
+
+  /* Report container styles */
+  .report-container,
+  [data-testid*="report"] {
+    border: none !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Report header styling */
+  .report-header {
+    page-break-after: avoid;
+    margin-bottom: 1cm;
+  }
+
+  /* Table styles for financial reports */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 9pt;
+    page-break-inside: auto;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+
+  th,
+  td {
+    padding: 4pt 8pt;
+    border-bottom: 0.5pt solid #ccc;
+  }
+
+  th {
+    background-color: #f3f4f6 !important;
+    font-weight: bold;
+    text-align: left;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Total and subtotal row styling */
+  tr.total-row,
+  tr.subtotal-row,
+  .bg-gray-100,
+  .bg-gray-50 {
+    background-color: #f3f4f6 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .font-bold {
+    font-weight: bold;
+  }
+
+  .font-semibold {
+    font-weight: 600;
+  }
+
+  /* Amount columns right-aligned */
+  td.amount,
+  th.amount,
+  .text-right {
+    text-align: right;
+  }
+
+  /* Monospace for numbers */
+  .font-mono {
+    font-family: "Courier New", Courier, monospace;
+  }
+
+  /* Page margins and breaks */
+  @page {
+    size: A4;
+    margin: 1.5cm 1cm;
+  }
+
+  @page :first {
+    margin-top: 1cm;
+  }
+
+  /* Force page breaks where needed */
+  .page-break {
+    page-break-after: always;
+  }
+
+  .page-break-before {
+    page-break-before: always;
+  }
+
+  /* Avoid orphan headers */
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+  }
+
+  /* Print-specific link styles (remove underlines, show URLs) */
+  a {
+    text-decoration: none;
+    color: inherit;
+  }
+
+  /* Hide decorative elements */
+  .rounded-lg,
+  .shadow,
+  .hover\:bg-gray-50:hover {
+    border-radius: 0;
+    box-shadow: none;
+  }
+}

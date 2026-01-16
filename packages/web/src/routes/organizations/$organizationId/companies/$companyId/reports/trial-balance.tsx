@@ -22,7 +22,15 @@ import {
   DateInput
 } from "@/components/reports/ReportParameterForm"
 import { Tooltip } from "@/components/ui/Tooltip"
-import { ArrowLeft, Download, Printer } from "lucide-react"
+import { ArrowLeft, FileSpreadsheet, FileText, Printer } from "lucide-react"
+import {
+  exportToExcel,
+  exportToPdf,
+  printReport,
+  generateFilename,
+  type TableExportConfig,
+  type ReportMetadata
+} from "@/utils/report-export"
 
 // =============================================================================
 // Types
@@ -386,17 +394,88 @@ function TrialBalanceReport({
     )
   }
 
+  const asOfDateStr = formatDate(trialBalance.asOfDate)
+
+  // Export handlers
+  const handlePrint = () => {
+    printReport()
+  }
+
+  const handleExportExcel = () => {
+    const metadata: ReportMetadata = {
+      title: "Trial Balance",
+      company: company.name,
+      asOfDate: asOfDateStr,
+      currency: trialBalance.currency,
+      generatedAt: new Date().toISOString()
+    }
+
+    const config: TableExportConfig = {
+      headers: ["Account Number", "Account Name", "Type", "Debit", "Credit"],
+      rows: [
+        ...trialBalance.lineItems.map((item) => [
+          item.accountNumber,
+          item.accountName,
+          item.accountType,
+          parseFloat(item.debitBalance.amount) || "",
+          parseFloat(item.creditBalance.amount) || ""
+        ]),
+        // Total row
+        ["", "Total", "", parseFloat(trialBalance.totalDebits.amount), parseFloat(trialBalance.totalCredits.amount)]
+      ],
+      metadata
+    }
+
+    const filename = generateFilename(
+      `${company.name}-trial-balance`,
+      `${trialBalance.asOfDate.year}-${trialBalance.asOfDate.month}-${trialBalance.asOfDate.day}`
+    )
+    exportToExcel(config, filename)
+  }
+
+  const handleExportPdf = () => {
+    const metadata: ReportMetadata = {
+      title: "Trial Balance",
+      company: company.name,
+      asOfDate: asOfDateStr,
+      currency: trialBalance.currency,
+      generatedAt: new Date().toISOString()
+    }
+
+    const config: TableExportConfig = {
+      headers: ["Account Number", "Account Name", "Type", "Debit", "Credit"],
+      rows: [
+        ...trialBalance.lineItems.map((item) => [
+          item.accountNumber,
+          item.accountName,
+          item.accountType,
+          parseFloat(item.debitBalance.amount) || "—",
+          parseFloat(item.creditBalance.amount) || "—"
+        ]),
+        // Total row
+        ["", "Total", "", parseFloat(trialBalance.totalDebits.amount), parseFloat(trialBalance.totalCredits.amount)]
+      ],
+      metadata
+    }
+
+    const filename = generateFilename(
+      `${company.name}-trial-balance`,
+      `${trialBalance.asOfDate.year}-${trialBalance.asOfDate.month}-${trialBalance.asOfDate.day}`
+    )
+    exportToPdf(config, filename)
+  }
+
   return (
     <div className="rounded-lg border border-gray-200 bg-white" data-testid="trial-balance-report">
       {/* Report Header */}
-      <div className="border-b border-gray-200 px-6 py-4">
+      <div className="border-b border-gray-200 px-6 py-4 print-hide">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">
               Trial Balance
             </h2>
             <p className="text-sm text-gray-500">
-              {company.name} - As of {formatDate(trialBalance.asOfDate)}
+              {company.name} - As of {asOfDateStr}
             </p>
             <p className="text-sm text-gray-500">
               Currency: {trialBalance.currency}
@@ -404,6 +483,7 @@ function TrialBalanceReport({
           </div>
           <div className="flex gap-2">
             <button
+              onClick={handlePrint}
               className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
               data-testid="trial-balance-print"
             >
@@ -411,11 +491,20 @@ function TrialBalanceReport({
               Print
             </button>
             <button
+              onClick={handleExportExcel}
               className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-              data-testid="trial-balance-export"
+              data-testid="trial-balance-export-excel"
             >
-              <Download className="h-4 w-4" />
-              Export
+              <FileSpreadsheet className="h-4 w-4" />
+              Excel
+            </button>
+            <button
+              onClick={handleExportPdf}
+              className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+              data-testid="trial-balance-export-pdf"
+            >
+              <FileText className="h-4 w-4" />
+              PDF
             </button>
           </div>
         </div>
