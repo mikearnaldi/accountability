@@ -150,6 +150,8 @@ NOTHING_LEFT_TO_DO
 
 This is iteration {{ITERATION}} of the autonomous loop.
 
+{{FOCUS}}
+
 {{CI_ERRORS}}
 
 {{PROGRESS}}

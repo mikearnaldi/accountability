@@ -6,31 +6,32 @@ Implement standard financial reports for consolidation runs, transforming the co
 
 ## Current State
 
-**Implemented:**
-- Consolidated Trial Balance (displayed on run detail page)
-- Individual company reports: Balance Sheet, Income Statement, Cash Flow, Equity Statement
-- **Phase 1 (Backend API):** API endpoints exist with stub implementations that return NOT_IMPLEMENTED error
-- **Phase 2 (Frontend Routes):** All 5 consolidated report routes created with full UI:
-  - Reports hub page (`/consolidation/:groupId/runs/:runId/reports/`)
-  - Consolidated Balance Sheet (`/consolidation/:groupId/runs/:runId/reports/balance-sheet`)
-  - Consolidated Income Statement (`/consolidation/:groupId/runs/:runId/reports/income-statement`)
-  - Consolidated Cash Flow Statement (`/consolidation/:groupId/runs/:runId/reports/cash-flow`)
-  - Consolidated Statement of Changes in Equity (`/consolidation/:groupId/runs/:runId/reports/equity-statement`)
-  - "View Reports" navigation button on run detail page (visible when run is Completed)
+### ✅ ALL PHASES COMPLETE (2026-01-16)
 
-**Implemented (Backend Logic) ✅:**
-- Consolidated Balance Sheet report generation - `ConsolidatedReportService.generateBalanceSheet()`
-- Consolidated Income Statement report generation - `ConsolidatedReportService.generateIncomeStatement()`
-- Consolidated Cash Flow Statement report generation - `ConsolidatedReportService.generateCashFlow()`
-- Consolidated Statement of Changes in Equity report generation - `ConsolidatedReportService.generateEquityStatement()`
-- API endpoints now call the service methods instead of returning NOT_IMPLEMENTED
+**Phase 1 (Backend API) ✅ COMPLETE:**
+- `ConsolidatedReportService` implemented in `packages/core/src/Services/ConsolidatedReportService.ts`
+- Four report generation methods: `generateBalanceSheet()`, `generateIncomeStatement()`, `generateCashFlow()`, `generateEquityStatement()`
+- API endpoints in `ConsolidationApiLive.ts` call the service methods
+- `accountCategory` field added to `ConsolidatedTrialBalanceLineItem` for proper report section grouping
 
-**Phase 3 (Export & Print) ✅ COMPLETE (2026-01-16):**
-- PDF export - Implemented via `jspdf` + `jspdf-autotable`
-- Excel export - Implemented via `xlsx` library
-- Print styling - Browser print dialog trigger via `window.print()`
+**Phase 2 (Frontend Routes) ✅ COMPLETE:**
+- Reports hub page (`/consolidation/:groupId/runs/:runId/reports/`)
+- Consolidated Balance Sheet (`/consolidation/:groupId/runs/:runId/reports/balance-sheet`)
+- Consolidated Income Statement (`/consolidation/:groupId/runs/:runId/reports/income-statement`)
+- Consolidated Cash Flow Statement (`/consolidation/:groupId/runs/:runId/reports/cash-flow`)
+- Consolidated Statement of Changes in Equity (`/consolidation/:groupId/runs/:runId/reports/equity-statement`)
+- "View Reports" navigation button on run detail page (visible when run is Completed)
+
+**Phase 3 (Export & Print) ✅ COMPLETE:**
+- PDF export via `jspdf` + `jspdf-autotable`
+- Excel export via `xlsx` library
+- Print styling via browser print dialog (`window.print()`)
 - Export utilities in `packages/web/src/utils/report-export.ts`
 - All 5 report pages have Print, Excel, PDF export buttons
+
+**Also Implemented:**
+- Consolidated Trial Balance (displayed on run detail page)
+- Individual company reports: Balance Sheet, Income Statement, Cash Flow, Equity Statement
 
 ---
 
@@ -505,10 +506,12 @@ type AccountSubtype =
 
 ## Dependencies
 
-- Consolidated Trial Balance (exists)
-- Account type classification (exists)
-- Account subtype classification (needs implementation or mapping)
-- Prior period data for comparative/cash flow (may need additional queries)
+All dependencies are satisfied:
+
+- ✅ Consolidated Trial Balance (exists - displayed on run detail page)
+- ✅ Account type classification (exists - `accountType` field on line items)
+- ✅ Account subtype classification (exists - `accountCategory` field added 2026-01-16)
+- ✅ Prior period data for comparative/cash flow (service accepts optional `priorTrialBalance` parameter)
 
 ---
 
@@ -545,21 +548,20 @@ type AccountSubtype =
 
 ## Implementation Priority
 
-Based on the domain model analysis, the recommended implementation order is:
+All implementation work is complete:
 
 1. ~~**Add `accountCategory` to `ConsolidatedTrialBalanceLineItem`** (BLOCKING)~~
    ✅ **COMPLETED 2026-01-16** - Schema updated, GenerateTB step populates category, all tests pass
 
-2. **Implement `ConsolidatedReportService`** (NEXT PRIORITY)
-   - Balance Sheet (simplest - just grouping/filtering)
-   - Income Statement (similar to balance sheet)
-   - Equity Statement (needs period comparison)
-   - Cash Flow Statement (most complex - needs prior period)
+2. ~~**Implement `ConsolidatedReportService`**~~
+   ✅ **COMPLETED 2026-01-16** - All four report generation methods implemented:
+   - `generateBalanceSheet()` - Groups line items by accountCategory into Current/Non-Current Assets, Liabilities, Equity
+   - `generateIncomeStatement()` - Revenue, Cost of Sales, Operating Expenses, Other Income/Expense, Tax
+   - `generateCashFlow()` - Operating, Investing, Financing activities (simplified implementation)
+   - `generateEquityStatement()` - Opening/Closing balance with movement rows for Net Income
 
-3. **Wire up API endpoints**
-   - Endpoints already exist with NOT_IMPLEMENTED stubs
-   - Just need to call the new service methods
+3. ~~**Wire up API endpoints**~~
+   ✅ **COMPLETED 2026-01-16** - `ConsolidationApiLive.ts` updated to call service methods
 
-4. **Frontend already complete**
-   - Routes and UI exist
-   - Will automatically work once API returns real data
+4. ~~**Frontend already complete**~~
+   ✅ **COMPLETED** - All routes work with real API data, Export & Print buttons functional

@@ -78,9 +78,8 @@ accountability/
 
 | Spec File | Description |
 |-----------|-------------|
-| [specs/CONSOLIDATED_REPORTS.md](specs/CONSOLIDATED_REPORTS.md) | **IMPLEMENT** - Consolidated financial reports (Balance Sheet, Income Statement, Cash Flow, Equity) |
-| [specs/E2E_TEST_COVERAGE.md](specs/E2E_TEST_COVERAGE.md) | **IMPLEMENT** - E2E test coverage gaps and implementation plan |
 | [specs/EXCHANGE_RATE_SYNC.md](specs/EXCHANGE_RATE_SYNC.md) | **IMPLEMENT** - ECB exchange rate sync and cross-rate triangulation |
+| [specs/SYNTHETIC_DATA_GENERATOR.md](specs/SYNTHETIC_DATA_GENERATOR.md) | **IMPLEMENT** - Playwright script to generate synthetic demo data |
 
 ## Context Documentation (context/)
 
@@ -90,7 +89,9 @@ accountability/
 | [context/API_BEST_PRACTICES.md](context/API_BEST_PRACTICES.md) | API layer conventions |
 | [context/AUTHENTICATION.md](context/AUTHENTICATION.md) | Multi-provider auth system, session management |
 | [context/CONSOLIDATION_METHOD_CLEANUP.md](context/CONSOLIDATION_METHOD_CLEANUP.md) | Consolidation method field cleanup notes |
+| [context/CONSOLIDATED_REPORTS.md](context/CONSOLIDATED_REPORTS.md) | Consolidated financial reports (Balance Sheet, Income Statement, Cash Flow, Equity) |
 | [context/DOMAIN_MODEL.md](context/DOMAIN_MODEL.md) | Complete domain model documentation |
+| [context/E2E_TEST_COVERAGE.md](context/E2E_TEST_COVERAGE.md) | E2E test coverage status and implementation notes |
 | [context/E2E_TESTING.md](context/E2E_TESTING.md) | Playwright E2E testing patterns |
 | [context/EFFECT_BEST_PRACTICES.md](context/EFFECT_BEST_PRACTICES.md) | **Critical rules** for backend Effect code |
 | [context/EFFECT_LAYERS.md](context/EFFECT_LAYERS.md) | Layer composition, memoization, service patterns |

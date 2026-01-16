@@ -10,10 +10,16 @@
 # 5. Update the spec (mark issues resolved, etc.)
 # 6. Repeat until all specs are fully implemented
 #
-# Usage: ./ralph-auto.sh [options]
+# Usage: ./ralph-auto.sh [options] [focus prompt]
 #
 # Options:
-#   --e2e    Run E2E tests as part of CI checks (slower but more thorough)
+#   --e2e              Run E2E tests as part of CI checks (slower but more thorough)
+#   --focus <prompt>   Focus on a specific task (can also be passed as positional arg)
+#
+# Examples:
+#   ./ralph-auto.sh --focus "Fix the authentication bug in login flow"
+#   ./ralph-auto.sh "Implement the exchange rate sync feature"
+#   ./ralph-auto.sh --e2e --focus "Add E2E tests for consolidated reports"
 #
 # The loop continues until Claude outputs "NOTHING_LEFT_TO_DO"
 # COMMITS ARE HANDLED BY THIS SCRIPT, NOT THE AGENT.
@@ -23,6 +29,7 @@ set -o pipefail  # Propagate exit status through pipelines (important for tee)
 
 # Parse arguments
 RUN_E2E=false
+FOCUS_PROMPT=""
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -30,9 +37,43 @@ while [[ $# -gt 0 ]]; do
             RUN_E2E=true
             shift
             ;;
-        *)
+        --focus)
+            if [[ -n "$2" && "$2" != --* ]]; then
+                FOCUS_PROMPT="$2"
+                shift 2
+            else
+                echo "Error: --focus requires a prompt argument"
+                exit 1
+            fi
+            ;;
+        --help|-h)
+            echo "Usage: ./ralph-auto.sh [options] [focus prompt]"
+            echo ""
+            echo "Options:"
+            echo "  --e2e              Run E2E tests as part of CI checks"
+            echo "  --focus <prompt>   Focus on a specific task"
+            echo "  --help, -h         Show this help message"
+            echo ""
+            echo "Examples:"
+            echo "  ./ralph-auto.sh --focus \"Fix the authentication bug\""
+            echo "  ./ralph-auto.sh \"Implement exchange rate sync\""
+            echo "  ./ralph-auto.sh --e2e --focus \"Add E2E tests\""
+            exit 0
+            ;;
+        -*)
             echo "Unknown option: $1"
+            echo "Use --help for usage information"
             exit 1
+            ;;
+        *)
+            # Positional argument - treat as focus prompt
+            if [[ -z "$FOCUS_PROMPT" ]]; then
+                FOCUS_PROMPT="$1"
+            else
+                echo "Error: Multiple focus prompts provided"
+                exit 1
+            fi
+            shift
             ;;
     esac
 done
@@ -370,6 +411,7 @@ build_prompt() {
     local iteration=$1
     local ci_errors=""
     local progress_content=""
+    local focus_section=""
 
     if [ -f "$OUTPUT_DIR/ci_errors.txt" ]; then
         ci_errors="## Previous Iteration Errors
@@ -387,6 +429,19 @@ $(cat "$PROGRESS_FILE")
 "
     fi
 
+    # Build focus section if a focus prompt was provided
+    if [ -n "$FOCUS_PROMPT" ]; then
+        focus_section="## 🎯 PRIORITY FOCUS (User-Specified)
+
+**The user has specified that you should focus on the following task:**
+
+> $FOCUS_PROMPT
+
+This takes priority over the normal task selection process. After addressing any CI errors, work on this specific task. If this task is already complete or not applicable, proceed with normal task selection from the specs.
+
+"
+    fi
+
     # Get list of specs and context files
     local specs_list=$(find specs -name "*.md" -type f | sort | while read f; do echo "- \`$f\`"; done)
     local context_list=""
@@ -401,6 +456,7 @@ $(cat "$PROGRESS_FILE")
     prompt="${prompt//\{\{ITERATION\}\}/$iteration}"
     prompt="${prompt//\{\{CI_ERRORS\}\}/$ci_errors}"
     prompt="${prompt//\{\{PROGRESS\}\}/$progress_content}"
+    prompt="${prompt//\{\{FOCUS\}\}/$focus_section}"
 
     echo "$prompt"
 }
@@ -522,6 +578,10 @@ main() {
     log "INFO" "=========================================="
     log "INFO" "Starting Ralph Auto Loop"
     log "INFO" "=========================================="
+
+    if [ -n "$FOCUS_PROMPT" ]; then
+        log "INFO" "Focus: $FOCUS_PROMPT"
+    fi
 
     check_prerequisites
 
