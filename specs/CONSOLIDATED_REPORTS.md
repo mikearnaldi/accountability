@@ -9,12 +9,20 @@ Implement standard financial reports for consolidation runs, transforming the co
 **Implemented:**
 - Consolidated Trial Balance (displayed on run detail page)
 - Individual company reports: Balance Sheet, Income Statement, Cash Flow, Equity Statement
+- **Phase 1 (Backend API):** API endpoints exist with stub implementations that return NOT_IMPLEMENTED error
+- **Phase 2 (Frontend Routes):** All 5 consolidated report routes created with full UI:
+  - Reports hub page (`/consolidation/:groupId/runs/:runId/reports/`)
+  - Consolidated Balance Sheet (`/consolidation/:groupId/runs/:runId/reports/balance-sheet`)
+  - Consolidated Income Statement (`/consolidation/:groupId/runs/:runId/reports/income-statement`)
+  - Consolidated Cash Flow Statement (`/consolidation/:groupId/runs/:runId/reports/cash-flow`)
+  - Consolidated Statement of Changes in Equity (`/consolidation/:groupId/runs/:runId/reports/equity-statement`)
+  - "View Reports" navigation button on run detail page (visible when run is Completed)
 
-**Not Implemented:**
-- Consolidated Balance Sheet
-- Consolidated Income Statement
-- Consolidated Cash Flow Statement
-- Consolidated Statement of Changes in Equity
+**Not Implemented (Backend Logic):**
+- Consolidated Balance Sheet report generation
+- Consolidated Income Statement report generation
+- Consolidated Cash Flow Statement report generation
+- Consolidated Statement of Changes in Equity report generation
 
 ---
 
@@ -129,26 +137,29 @@ Implement standard financial reports for consolidation runs, transforming the co
    - Define typed schemas for each report structure
    - Include metadata (period, currency, group name)
 
-### Phase 2: Frontend Routes
+### Phase 2: Frontend Routes ✅ COMPLETE
 
-1. **Create report routes**
+1. **Create report routes** ✅
    ```
    packages/web/src/routes/organizations/$organizationId/
      consolidation/$groupId/runs/$runId/reports/
-       index.tsx           # Report selection page
-       balance-sheet.tsx
-       income-statement.tsx
-       cash-flow.tsx
-       equity-statement.tsx
+       index.tsx           # Report selection hub page
+       balance-sheet.tsx   # Consolidated balance sheet with ASC 810 NCI presentation
+       income-statement.tsx # Consolidated P&L with NCI attribution per ASC 220
+       cash-flow.tsx       # Consolidated cash flow per ASC 230
+       equity-statement.tsx # Statement of changes in equity with columnar layout
    ```
 
-2. **Reuse existing components**
-   - Adapt `ReportParameterForm` for consolidated reports
-   - Create shared report layout component
+2. **Components used** ✅
+   - AppLayout with sidebar and breadcrumbs
+   - Button, Tooltip components for UI
+   - Professional table display with tooltips on column headers
+   - Loading states, error handling, "not implemented" messages
 
-3. **Add navigation**
-   - Link from run detail page to reports
-   - Report selector on consolidated reports index
+3. **Navigation** ✅
+   - "View Reports" button on run detail page (visible when run is Completed)
+   - Reports hub shows 4 report type cards
+   - Each report has "Back to Reports" link and proper breadcrumbs
 
 ### Phase 3: Export & Print
 

@@ -1311,6 +1311,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/consolidation/runs/{id}/reports/balance-sheet": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get consolidated balance sheet
+         * @description Generate a consolidated balance sheet from a completed consolidation run per ASC 210.
+         */
+        get: operations["consolidation.getConsolidatedBalanceSheet"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/consolidation/runs/{id}/reports/income-statement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get consolidated income statement
+         * @description Generate a consolidated income statement from a completed consolidation run per ASC 220.
+         */
+        get: operations["consolidation.getConsolidatedIncomeStatement"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/consolidation/runs/{id}/reports/cash-flow": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get consolidated cash flow statement
+         * @description Generate a consolidated cash flow statement from a completed consolidation run per ASC 230.
+         */
+        get: operations["consolidation.getConsolidatedCashFlowStatement"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/consolidation/runs/{id}/reports/equity-statement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get consolidated equity statement
+         * @description Generate a consolidated statement of changes in equity from a completed consolidation run.
+         */
+        get: operations["consolidation.getConsolidatedEquityStatement"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/consolidation/groups/{groupId}/latest-run": {
         parameters: {
             query?: never;
@@ -2958,7 +3038,7 @@ export interface components {
             companyId: components["schemas"]["CompanyId"];
             ownershipPercentage: components["schemas"]["Percentage"];
             consolidationMethod: components["schemas"]["ConsolidationMethod"];
-            acquisitionDate: components["schemas"]["LocalDate"];
+            acquisitionDate: components["schemas"]["LocalDateFromString"];
             /**
              * Goodwill Amount
              * @description Goodwill recognized at acquisition, if any
@@ -3132,6 +3212,88 @@ export interface components {
             continueOnWarnings: boolean;
             includeEquityMethodInvestments: boolean;
             forceRegeneration: boolean;
+        };
+        ConsolidatedBalanceSheetReport: {
+            runId: components["schemas"]["ConsolidationRunId"];
+            groupName: components["schemas"]["NonEmptyTrimmedString"];
+            asOfDate: components["schemas"]["LocalDateFromString"];
+            currency: components["schemas"]["CurrencyCode"];
+            currentAssets: components["schemas"]["ConsolidatedReportSection"];
+            nonCurrentAssets: components["schemas"]["ConsolidatedReportSection"];
+            totalAssets: number;
+            currentLiabilities: components["schemas"]["ConsolidatedReportSection"];
+            nonCurrentLiabilities: components["schemas"]["ConsolidatedReportSection"];
+            totalLiabilities: number;
+            equity: components["schemas"]["ConsolidatedReportSection"];
+            nonControllingInterest: number;
+            totalEquity: number;
+            totalLiabilitiesAndEquity: number;
+        };
+        ConsolidatedReportSection: {
+            title: components["schemas"]["NonEmptyTrimmedString"];
+            lineItems: components["schemas"]["ConsolidatedReportLineItem"][];
+            subtotal: number;
+        };
+        ConsolidatedReportLineItem: {
+            description: components["schemas"]["NonEmptyTrimmedString"];
+            amount: number;
+            /** @enum {string} */
+            style: "Normal" | "Subtotal" | "Total" | "Header";
+            /**
+             * greaterThanOrEqualTo(0)
+             * @description a non-negative number
+             */
+            indentLevel: number;
+        };
+        ConsolidatedIncomeStatementReport: {
+            runId: components["schemas"]["ConsolidationRunId"];
+            groupName: components["schemas"]["NonEmptyTrimmedString"];
+            periodRef: components["schemas"]["FiscalPeriodRef"];
+            asOfDate: components["schemas"]["LocalDateFromString"];
+            currency: components["schemas"]["CurrencyCode"];
+            revenue: components["schemas"]["ConsolidatedReportSection"];
+            costOfSales: components["schemas"]["ConsolidatedReportSection"];
+            grossProfit: number;
+            operatingExpenses: components["schemas"]["ConsolidatedReportSection"];
+            operatingIncome: number;
+            otherIncomeExpense: components["schemas"]["ConsolidatedReportSection"];
+            incomeBeforeTax: number;
+            taxExpense: number;
+            netIncome: number;
+            netIncomeAttributableToParent: number;
+            netIncomeAttributableToNCI: number;
+        };
+        ConsolidatedCashFlowReport: {
+            runId: components["schemas"]["ConsolidationRunId"];
+            groupName: components["schemas"]["NonEmptyTrimmedString"];
+            periodRef: components["schemas"]["FiscalPeriodRef"];
+            asOfDate: components["schemas"]["LocalDateFromString"];
+            currency: components["schemas"]["CurrencyCode"];
+            operatingActivities: components["schemas"]["ConsolidatedReportSection"];
+            investingActivities: components["schemas"]["ConsolidatedReportSection"];
+            financingActivities: components["schemas"]["ConsolidatedReportSection"];
+            netChangeInCash: number;
+            beginningCash: number;
+            endingCash: number;
+        };
+        ConsolidatedEquityStatementReport: {
+            runId: components["schemas"]["ConsolidationRunId"];
+            groupName: components["schemas"]["NonEmptyTrimmedString"];
+            periodRef: components["schemas"]["FiscalPeriodRef"];
+            asOfDate: components["schemas"]["LocalDateFromString"];
+            currency: components["schemas"]["CurrencyCode"];
+            openingBalance: components["schemas"]["EquityMovementRow"];
+            movements: components["schemas"]["EquityMovementRow"][];
+            closingBalance: components["schemas"]["EquityMovementRow"];
+        };
+        EquityMovementRow: {
+            description: components["schemas"]["NonEmptyTrimmedString"];
+            commonStock: number;
+            additionalPaidInCapital: number;
+            retainedEarnings: number;
+            accumulatedOCI: number;
+            nonControllingInterest: number;
+            total: number;
         };
         /**
          * Elimination Type
@@ -7778,6 +7940,238 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ConsolidatedTrialBalance"];
+                };
+            };
+            /** @description The request did not match the expected schema */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpApiDecodeError"];
+                };
+            };
+            /** @description UnauthorizedError */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description NotFoundError */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
+                };
+            };
+            /** @description BusinessRuleError */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BusinessRuleError"];
+                };
+            };
+        };
+    };
+    "consolidation.getConsolidatedBalanceSheet": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["schemas"]["ConsolidationRunId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ConsolidatedBalanceSheetReport */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsolidatedBalanceSheetReport"];
+                };
+            };
+            /** @description The request did not match the expected schema */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpApiDecodeError"];
+                };
+            };
+            /** @description UnauthorizedError */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description NotFoundError */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
+                };
+            };
+            /** @description BusinessRuleError */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BusinessRuleError"];
+                };
+            };
+        };
+    };
+    "consolidation.getConsolidatedIncomeStatement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["schemas"]["ConsolidationRunId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ConsolidatedIncomeStatementReport */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsolidatedIncomeStatementReport"];
+                };
+            };
+            /** @description The request did not match the expected schema */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpApiDecodeError"];
+                };
+            };
+            /** @description UnauthorizedError */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description NotFoundError */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
+                };
+            };
+            /** @description BusinessRuleError */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BusinessRuleError"];
+                };
+            };
+        };
+    };
+    "consolidation.getConsolidatedCashFlowStatement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["schemas"]["ConsolidationRunId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ConsolidatedCashFlowReport */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsolidatedCashFlowReport"];
+                };
+            };
+            /** @description The request did not match the expected schema */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpApiDecodeError"];
+                };
+            };
+            /** @description UnauthorizedError */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description NotFoundError */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
+                };
+            };
+            /** @description BusinessRuleError */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BusinessRuleError"];
+                };
+            };
+        };
+    };
+    "consolidation.getConsolidatedEquityStatement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["schemas"]["ConsolidationRunId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ConsolidatedEquityStatementReport */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsolidatedEquityStatementReport"];
                 };
             };
             /** @description The request did not match the expected schema */

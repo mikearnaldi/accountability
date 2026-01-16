@@ -276,3 +276,8 @@
 **Task**: Fixed CI errors by adding 4 missing consolidated report endpoints (getConsolidatedBalanceSheet, getConsolidatedIncomeStatement, getConsolidatedCashFlowStatement, getConsolidatedEquityStatement) to ConsolidationApi group and implementing stub handlers in ConsolidationApiLive that return NOT_IMPLEMENTED BusinessRuleError until full report generation is implemented.
 **Status**: complete
 ---
+
+## Iteration 3 - 2026-01-16 12:43
+**Task**: Fixed 8 lint errors in consolidated report pages (balance-sheet.tsx, cash-flow.tsx, equity-statement.tsx, income-statement.tsx) by replacing type assertions with proper type guards. Created `isErrorWithMessage` and `getErrorMessage` helper functions that use the `in` operator for type-safe property checking without any type assertions. All 3587 unit tests pass, typecheck is clean, and lint passes.
+**Status**: complete
+---

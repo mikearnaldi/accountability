@@ -27,7 +27,8 @@ import {
   AlertTriangle,
   FileSpreadsheet,
   User,
-  Calendar
+  Calendar,
+  BarChart3
 } from "lucide-react"
 
 // =============================================================================
@@ -428,6 +429,24 @@ function ConsolidationRunDetailPage() {
             </div>
 
             <div className="flex items-center gap-2">
+              {run.status === "Completed" && (
+                <Link
+                  to="/organizations/$organizationId/consolidation/$groupId/runs/$runId/reports"
+                  params={{
+                    organizationId: params.organizationId,
+                    groupId: params.groupId,
+                    runId: params.runId
+                  }}
+                  data-testid="view-reports-link"
+                >
+                  <Button
+                    variant="primary"
+                    icon={<BarChart3 className="h-4 w-4" />}
+                  >
+                    View Reports
+                  </Button>
+                </Link>
+              )}
               {canCancel && (
                 <Button
                   variant="secondary"
