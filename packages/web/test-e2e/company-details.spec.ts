@@ -708,9 +708,8 @@ test.describe("Company Details Page", () => {
     // 5. Navigate to non-existent company (use valid UUID format to trigger 404 not decode error)
     await page.goto(`/organizations/${orgData.id}/companies/00000000-0000-0000-0000-000000000000`)
 
-    // 6. Should show error message - h2 with "Error" text
-    await expect(page.getByRole("heading", { level: 2, name: /Error/i })).toBeVisible()
-    await expect(page.getByText(/Company not found|not found/i)).toBeVisible()
+    // 6. Should show error message - h2 with "Something went wrong" text
+    await expect(page.getByRole("heading", { level: 2, name: /Something went wrong/i })).toBeVisible()
 
     // 7. Should have link back to Organizations
     await expect(page.getByRole("link", { name: /Back to Organizations/i })).toBeVisible()

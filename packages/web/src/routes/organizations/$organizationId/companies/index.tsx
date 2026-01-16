@@ -1,4 +1,4 @@
-import { createFileRoute, redirect, useRouter, Link } from "@tanstack/react-router"
+import { createFileRoute, redirect, useRouter } from "@tanstack/react-router"
 import { createServerFn } from "@tanstack/react-start"
 import { getCookie } from "@tanstack/react-start/server"
 import { useState, useMemo } from "react"
@@ -11,6 +11,7 @@ import type { JurisdictionOption } from "@/components/ui/JurisdictionSelect"
 import { NoCompaniesEmptyState } from "@/components/ui/EmptyState"
 import { Button } from "@/components/ui/Button"
 import { AppLayout } from "@/components/layout/AppLayout"
+import { MinimalRouteError } from "@/components/ui/RouteError"
 
 // =============================================================================
 // Server Functions: Fetch organization and companies from API with cookie auth
@@ -165,33 +166,7 @@ export const Route = createFileRoute("/organizations/$organizationId/companies/"
     }
   },
   errorComponent: ({ error }) => (
-    <div className="min-h-screen bg-gray-50">
-      <header className="border-b border-gray-200 bg-white">
-        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-4">
-            <Link to="/" className="text-xl font-bold text-gray-900">
-              Accountability
-            </Link>
-            <span className="text-gray-400">/</span>
-            <Link to="/organizations" className="text-xl text-gray-600 hover:text-gray-900">
-              Organizations
-            </Link>
-          </div>
-        </div>
-      </header>
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-center">
-          <h2 className="text-lg font-medium text-red-800">Error</h2>
-          <p className="mt-2 text-red-700">{error.message}</p>
-          <Link
-            to="/organizations"
-            className="mt-4 inline-block rounded-lg bg-red-600 px-4 py-2 font-medium text-white hover:bg-red-700"
-          >
-            Back to Organizations
-          </Link>
-        </div>
-      </main>
-    </div>
+    <MinimalRouteError error={error} />
   ),
   component: CompaniesListPage
 })

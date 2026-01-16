@@ -224,17 +224,21 @@ pnpm test:e2e:report
 
 ## Known Issues
 
-### Server Error Display
+### Server Error Display ✅ RESOLVED (2026-01-16)
 **Issue:** Server errors show raw JSON: `{"status":500,"unhandled":true,"message":"HTTPError"}`
 
 **Expected:** User-friendly error message with retry option
 
-**Affected areas:**
-- Route error boundaries
-- API error handling in loaders
-- Form submission error states
-
-**Fix needed:** Update error components to parse and display friendly messages
+**Resolution:**
+- Created `packages/web/src/utils/errors.ts` with error formatting utilities:
+  - `getErrorMessage()` - extracts readable message from any error type
+  - `formatApiError()` - strips technical details and JSON artifacts
+  - `getErrorInfo()` - returns title/description based on HTTP status codes
+- Created `packages/web/src/components/ui/RouteError.tsx` with reusable error components:
+  - `RouteError` - full-page error with retry and navigation
+  - `MinimalRouteError` - styled error card with back link
+- Updated all 30 route files to use `MinimalRouteError` instead of inline error rendering
+- Errors now show "Something went wrong" with user-friendly descriptions instead of raw JSON
 
 ---
 

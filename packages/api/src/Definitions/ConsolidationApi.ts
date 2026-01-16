@@ -392,6 +392,171 @@ const getLatestCompletedRun = HttpApiEndpoint.get("getLatestCompletedRun", "/gro
   }))
 
 // =============================================================================
+// Consolidated Report Types
+// =============================================================================
+
+/**
+ * ConsolidatedReportLineItem - A line item in a consolidated financial report
+ */
+export class ConsolidatedReportLineItem extends Schema.Class<ConsolidatedReportLineItem>("ConsolidatedReportLineItem")({
+  description: Schema.NonEmptyTrimmedString,
+  amount: Schema.Number,
+  style: Schema.Literal("Normal", "Subtotal", "Total", "Header"),
+  indentLevel: Schema.Number.pipe(Schema.int(), Schema.greaterThanOrEqualTo(0))
+}) {}
+
+/**
+ * ConsolidatedReportSection - A section of a consolidated financial report
+ */
+export class ConsolidatedReportSection extends Schema.Class<ConsolidatedReportSection>("ConsolidatedReportSection")({
+  title: Schema.NonEmptyTrimmedString,
+  lineItems: Schema.Array(ConsolidatedReportLineItem),
+  subtotal: Schema.Number
+}) {}
+
+/**
+ * ConsolidatedBalanceSheetReport - Consolidated balance sheet from a completed run
+ */
+export class ConsolidatedBalanceSheetReport extends Schema.Class<ConsolidatedBalanceSheetReport>("ConsolidatedBalanceSheetReport")({
+  runId: ConsolidationRunId,
+  groupName: Schema.NonEmptyTrimmedString,
+  asOfDate: LocalDateFromString,
+  currency: CurrencyCode,
+  currentAssets: ConsolidatedReportSection,
+  nonCurrentAssets: ConsolidatedReportSection,
+  totalAssets: Schema.Number,
+  currentLiabilities: ConsolidatedReportSection,
+  nonCurrentLiabilities: ConsolidatedReportSection,
+  totalLiabilities: Schema.Number,
+  equity: ConsolidatedReportSection,
+  nonControllingInterest: Schema.Number,
+  totalEquity: Schema.Number,
+  totalLiabilitiesAndEquity: Schema.Number
+}) {}
+
+/**
+ * ConsolidatedIncomeStatementReport - Consolidated income statement from a completed run
+ */
+export class ConsolidatedIncomeStatementReport extends Schema.Class<ConsolidatedIncomeStatementReport>("ConsolidatedIncomeStatementReport")({
+  runId: ConsolidationRunId,
+  groupName: Schema.NonEmptyTrimmedString,
+  periodRef: FiscalPeriodRef,
+  asOfDate: LocalDateFromString,
+  currency: CurrencyCode,
+  revenue: ConsolidatedReportSection,
+  costOfSales: ConsolidatedReportSection,
+  grossProfit: Schema.Number,
+  operatingExpenses: ConsolidatedReportSection,
+  operatingIncome: Schema.Number,
+  otherIncomeExpense: ConsolidatedReportSection,
+  incomeBeforeTax: Schema.Number,
+  taxExpense: Schema.Number,
+  netIncome: Schema.Number,
+  netIncomeAttributableToParent: Schema.Number,
+  netIncomeAttributableToNCI: Schema.Number
+}) {}
+
+/**
+ * ConsolidatedCashFlowReport - Consolidated cash flow statement from a completed run
+ */
+export class ConsolidatedCashFlowReport extends Schema.Class<ConsolidatedCashFlowReport>("ConsolidatedCashFlowReport")({
+  runId: ConsolidationRunId,
+  groupName: Schema.NonEmptyTrimmedString,
+  periodRef: FiscalPeriodRef,
+  asOfDate: LocalDateFromString,
+  currency: CurrencyCode,
+  operatingActivities: ConsolidatedReportSection,
+  investingActivities: ConsolidatedReportSection,
+  financingActivities: ConsolidatedReportSection,
+  netChangeInCash: Schema.Number,
+  beginningCash: Schema.Number,
+  endingCash: Schema.Number
+}) {}
+
+/**
+ * EquityMovementRow - A row in the equity statement showing movements
+ */
+export class EquityMovementRow extends Schema.Class<EquityMovementRow>("EquityMovementRow")({
+  description: Schema.NonEmptyTrimmedString,
+  commonStock: Schema.Number,
+  additionalPaidInCapital: Schema.Number,
+  retainedEarnings: Schema.Number,
+  accumulatedOCI: Schema.Number,
+  nonControllingInterest: Schema.Number,
+  total: Schema.Number
+}) {}
+
+/**
+ * ConsolidatedEquityStatementReport - Consolidated statement of changes in equity
+ */
+export class ConsolidatedEquityStatementReport extends Schema.Class<ConsolidatedEquityStatementReport>("ConsolidatedEquityStatementReport")({
+  runId: ConsolidationRunId,
+  groupName: Schema.NonEmptyTrimmedString,
+  periodRef: FiscalPeriodRef,
+  asOfDate: LocalDateFromString,
+  currency: CurrencyCode,
+  openingBalance: EquityMovementRow,
+  movements: Schema.Array(EquityMovementRow),
+  closingBalance: EquityMovementRow
+}) {}
+
+// =============================================================================
+// Consolidated Report Endpoints
+// =============================================================================
+
+/**
+ * Get consolidated balance sheet from a completed run
+ */
+const getConsolidatedBalanceSheet = HttpApiEndpoint.get("getConsolidatedBalanceSheet", "/runs/:id/reports/balance-sheet")
+  .setPath(Schema.Struct({ id: ConsolidationRunId }))
+  .addSuccess(ConsolidatedBalanceSheetReport)
+  .addError(NotFoundError)
+  .addError(BusinessRuleError)
+  .annotateContext(OpenApi.annotations({
+    summary: "Get consolidated balance sheet",
+    description: "Generate a consolidated balance sheet from a completed consolidation run per ASC 210."
+  }))
+
+/**
+ * Get consolidated income statement from a completed run
+ */
+const getConsolidatedIncomeStatement = HttpApiEndpoint.get("getConsolidatedIncomeStatement", "/runs/:id/reports/income-statement")
+  .setPath(Schema.Struct({ id: ConsolidationRunId }))
+  .addSuccess(ConsolidatedIncomeStatementReport)
+  .addError(NotFoundError)
+  .addError(BusinessRuleError)
+  .annotateContext(OpenApi.annotations({
+    summary: "Get consolidated income statement",
+    description: "Generate a consolidated income statement from a completed consolidation run per ASC 220."
+  }))
+
+/**
+ * Get consolidated cash flow statement from a completed run
+ */
+const getConsolidatedCashFlowStatement = HttpApiEndpoint.get("getConsolidatedCashFlowStatement", "/runs/:id/reports/cash-flow")
+  .setPath(Schema.Struct({ id: ConsolidationRunId }))
+  .addSuccess(ConsolidatedCashFlowReport)
+  .addError(NotFoundError)
+  .addError(BusinessRuleError)
+  .annotateContext(OpenApi.annotations({
+    summary: "Get consolidated cash flow statement",
+    description: "Generate a consolidated cash flow statement from a completed consolidation run per ASC 230."
+  }))
+
+/**
+ * Get consolidated statement of changes in equity from a completed run
+ */
+const getConsolidatedEquityStatement = HttpApiEndpoint.get("getConsolidatedEquityStatement", "/runs/:id/reports/equity-statement")
+  .setPath(Schema.Struct({ id: ConsolidationRunId }))
+  .addSuccess(ConsolidatedEquityStatementReport)
+  .addError(NotFoundError)
+  .addError(BusinessRuleError)
+  .annotateContext(OpenApi.annotations({
+    summary: "Get consolidated equity statement",
+    description: "Generate a consolidated statement of changes in equity from a completed consolidation run."
+  }))
+
+// =============================================================================
 // API Group
 // =============================================================================
 

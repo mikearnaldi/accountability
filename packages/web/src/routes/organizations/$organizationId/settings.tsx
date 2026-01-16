@@ -10,7 +10,7 @@
  * Route: /organizations/:organizationId/settings
  */
 
-import { createFileRoute, redirect, useRouter, useNavigate, Link } from "@tanstack/react-router"
+import { createFileRoute, redirect, useRouter, useNavigate } from "@tanstack/react-router"
 import { createServerFn } from "@tanstack/react-start"
 import { getCookie } from "@tanstack/react-start/server"
 import { useState } from "react"
@@ -18,6 +18,7 @@ import { Settings, Trash2, AlertTriangle } from "lucide-react"
 import { api } from "@/api/client"
 import { createServerApi } from "@/api/server"
 import { AppLayout } from "@/components/layout/AppLayout"
+import { MinimalRouteError } from "@/components/ui/RouteError"
 import { Input } from "@/components/ui/Input"
 import { Select } from "@/components/ui/Select"
 import { Button } from "@/components/ui/Button"
@@ -158,33 +159,7 @@ export const Route = createFileRoute("/organizations/$organizationId/settings")(
     }
   },
   errorComponent: ({ error }) => (
-    <div className="min-h-screen bg-gray-50">
-      <header className="border-b border-gray-200 bg-white">
-        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-4">
-            <Link to="/" className="text-xl font-bold text-gray-900">
-              Accountability
-            </Link>
-            <span className="text-gray-400">/</span>
-            <Link to="/organizations" className="text-xl text-gray-600 hover:text-gray-900">
-              Organizations
-            </Link>
-          </div>
-        </div>
-      </header>
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-center">
-          <h2 className="text-lg font-medium text-red-800">Error</h2>
-          <p className="mt-2 text-red-700">{error.message}</p>
-          <Link
-            to="/organizations"
-            className="mt-4 inline-block rounded-lg bg-red-600 px-4 py-2 font-medium text-white hover:bg-red-700"
-          >
-            Back to Organizations
-          </Link>
-        </div>
-      </main>
-    </div>
+    <MinimalRouteError error={error} />
   ),
   component: OrganizationSettingsPage
 })
