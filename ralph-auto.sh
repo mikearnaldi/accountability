@@ -529,6 +529,17 @@ main() {
     local iteration=1
     local completed=false
 
+    # Run initial CI checks before first iteration
+    # This ensures the agent knows about any pre-existing errors
+    log "INFO" "Running initial CI checks..."
+    if ! run_ci_checks; then
+        log "WARN" "Initial CI checks failed - errors will be included in prompt for agent to fix"
+    else
+        log "SUCCESS" "Initial CI checks passed - starting with clean slate"
+        # Clear any stale error file
+        rm -f "$OUTPUT_DIR/ci_errors.txt"
+    fi
+
     while true; do
         log "INFO" "------------------------------------------"
         log "INFO" "ITERATION $iteration"
