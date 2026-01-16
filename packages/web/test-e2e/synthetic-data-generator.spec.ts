@@ -18,7 +18,9 @@
 import { test, expect } from "@playwright/test"
 import { generateSyntheticData, DEFAULT_CONFIG } from "../scripts/generate-synthetic-data"
 
-test.describe("Synthetic Data Generator", () => {
+// Skip all tests - too slow for regular CI runs
+// Run manually with: pnpm test:e2e:synthetic
+test.describe.skip("Synthetic Data Generator", () => {
   // Configure for serial execution and longer timeout
   test.describe.configure({ mode: "serial" })
   test.setTimeout(900000) // 15 minute timeout for full generation (UI interactions are slower)

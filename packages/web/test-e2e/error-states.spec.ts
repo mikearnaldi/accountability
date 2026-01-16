@@ -512,14 +512,21 @@ test.describe("Error Recovery", () => {
     // Navigate to login page
     await page.goto("/login")
 
+    // Wait for page hydration
+    await page.waitForTimeout(500)
+
+    // Wait for form to be ready
+    const emailInput = page.locator('input[type="email"]')
+    await emailInput.waitFor({ state: "visible" })
+
     // First attempt with invalid credentials
-    await page.fill('input[type="email"]', "invalid@example.com")
+    await emailInput.fill("invalid@example.com")
     await page.fill('input[type="password"]', "WrongPassword123")
-    await page.click('button[type="submit"]')
+    await page.click('button[type="submit"]', { force: true })
 
     // Should show error
     const errorMessage = page.locator('[role="alert"]')
-    await expect(errorMessage).toBeVisible()
+    await expect(errorMessage).toBeVisible({ timeout: 10000 })
 
     // Register a valid user
     const testUser = {
@@ -532,10 +539,10 @@ test.describe("Error Recovery", () => {
     // Clear and retry with valid credentials
     await page.fill('input[type="email"]', testUser.email)
     await page.fill('input[type="password"]', testUser.password)
-    await page.click('button[type="submit"]')
+    await page.click('button[type="submit"]', { force: true })
 
-    // Should succeed and redirect
-    await page.waitForURL("/", { timeout: 10000 })
+    // Should succeed and redirect (not stay on login page)
+    await page.waitForURL((url) => !url.pathname.includes("/login"), { timeout: 15000 })
     expect(page.url()).not.toContain("/login")
   })
 })

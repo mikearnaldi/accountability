@@ -79,18 +79,20 @@ Look for tasks in this priority order:
 
 1. **Check CI status FIRST** - if `{{CI_ERRORS}}` shows errors, fix them before anything else
 2. **Read ALL files in `specs/`** - understand what needs to be implemented
-3. **Read relevant files in `context/`** - understand best practices for each layer
-4. **Explore the codebase** to understand current state
-5. **Compare** what exists vs what the specs require
-6. **Pick** the highest priority gap you find (CI errors > Known Issues > Features)
-7. **Plan** the implementation across all affected layers
-8. **Implement** following the patterns from context/
-9. **Verify CI is green** - run `pnpm typecheck && pnpm test` and FIX ANY ERRORS
-10. **Only after CI is green**: Update the spec - mark issues as RESOLVED
-11. **Only after CI is green**: Signal - output `TASK_COMPLETE: <what you did>`
-12. **STOP** - Do not continue. The script handles the next iteration.
+3. **Check if ALL specs are complete** - if every spec has all checkboxes `[x]` checked and no Known Issues, signal `NOTHING_LEFT_TO_DO` and STOP
+4. **Read relevant files in `context/`** - understand best practices for each layer
+5. **Explore the codebase** to understand current state
+6. **Compare** what exists vs what the specs require
+7. **Pick** the highest priority unchecked `[ ]` item you find
+8. **Plan** the implementation across all affected layers
+9. **Implement** following the patterns from context/
+10. **Verify CI is green** - run `pnpm typecheck && pnpm test` and FIX ANY ERRORS
+11. **Only after CI is green**: Update the spec - mark the checkbox as `[x]`
+12. **Only after CI is green**: Signal - output `TASK_COMPLETE: <what you did>`
+13. **STOP** - Do not continue. The script handles the next iteration.
 
-**DO NOT skip steps 9-12. DO NOT signal completion if step 9 fails. DO NOT continue after step 11.**
+**DO NOT skip steps 10-13. DO NOT signal completion if step 10 fails. DO NOT continue after step 12.**
+**DO NOT skip step 3 - if all specs are complete, you MUST signal NOTHING_LEFT_TO_DO.**
 
 ## Signaling
 
@@ -126,11 +128,26 @@ Then STOP. Do not continue.
 
 ### NOTHING_LEFT_TO_DO
 
-When ALL specs are fully implemented (no more Known Issues, all features complete) AND CI is green:
+When ALL specs are fully implemented AND CI is green, output:
 
 ```
 NOTHING_LEFT_TO_DO
 ```
+
+**How to determine if all specs are complete:**
+1. Read every `.md` file in the `specs/` directory
+2. For each spec, check:
+   - All implementation phases are marked with ✅ or all checkboxes are `[x]`
+   - No "Known Issues" section exists, OR all known issues are marked resolved
+   - No unchecked `[ ]` items remain in implementation phases
+3. If ANY spec has uncompleted work, pick the highest priority task and work on it
+4. If ALL specs are fully complete, signal `NOTHING_LEFT_TO_DO`
+
+**CRITICAL: You MUST signal NOTHING_LEFT_TO_DO when there is genuinely no more work.**
+- Do NOT invent new tasks that aren't in the specs
+- Do NOT add "nice to have" improvements unless specified in the spec
+- Do NOT keep iterating if all checkboxes are checked
+- If in doubt, check if there are any `[ ]` unchecked boxes - if none, you're DONE
 
 **After outputting NOTHING_LEFT_TO_DO, STOP IMMEDIATELY.** The loop is complete.
 

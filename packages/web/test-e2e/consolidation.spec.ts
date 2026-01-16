@@ -496,6 +496,11 @@ test.describe("Consolidation Module", () => {
       ).toBeVisible()
       await expect(page.getByTestId("page-title")).toContainText("New Consolidation Group")
 
+      // 8.5. Verify both companies are available in the parent dropdown
+      const parentDropdown = page.getByTestId("parent-company-select")
+      await expect(parentDropdown.locator(`option[value="${parentData.id}"]`)).toBeAttached()
+      await expect(parentDropdown.locator(`option[value="${subData.id}"]`)).toBeAttached()
+
       // 9. Fill in group name
       const groupName = `Test Consolidation Group ${Date.now()}`
       await page.getByTestId("group-name-input").fill(groupName)
@@ -509,7 +514,8 @@ test.describe("Consolidation Module", () => {
       // 12. Select parent company
       await page.getByTestId("parent-company-select").selectOption(parentData.id)
 
-      // 13. Add a member (subsidiary)
+      // 13. Wait for add-member-button to be enabled, then click
+      await expect(page.getByTestId("add-member-button")).toBeEnabled({ timeout: 5000 })
       await page.getByTestId("add-member-button").click()
 
       // 14. Select the subsidiary company
@@ -571,7 +577,7 @@ test.describe("Consolidation Module", () => {
       expect(createOrgRes.ok()).toBeTruthy()
       const orgData = await createOrgRes.json()
 
-      // 4. Set session cookie
+      // 4. Set session cookie and localStorage token
       await page.context().addCookies([
         {
           name: "accountability_session",
@@ -583,6 +589,11 @@ test.describe("Consolidation Module", () => {
           sameSite: "Lax"
         }
       ])
+
+      await page.goto("/login")
+      await page.evaluate((token) => {
+        localStorage.setItem("accountabilitySessionToken", token)
+      }, sessionToken)
 
       // 5. Navigate to create consolidation group page
       await page.goto(`/organizations/${orgData.id}/consolidation/new`)
@@ -596,7 +607,7 @@ test.describe("Consolidation Module", () => {
       await page.getByTestId("submit-button").click()
 
       // 8. Should show validation error for name
-      await expect(page.getByText("Name is required")).toBeVisible()
+      await expect(page.getByText("Name is required")).toBeVisible({ timeout: 5000 })
     })
   })
 

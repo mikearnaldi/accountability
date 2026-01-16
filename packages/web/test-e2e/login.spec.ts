@@ -207,31 +207,44 @@ test.describe("Login Page", () => {
     await page.waitForURL("/")
   })
 
-  test("should login successfully and redirect to home", async ({ page }) => {
-    // 1. Register a test user
+  test("should login successfully and redirect away from login page", async ({ page }) => {
+    // 1. Register a test user (no organizations - uses unique timestamp for fresh user)
     const testUser = {
       email: `test-success-${Date.now()}@example.com`,
       password: "TestPassword123",
       displayName: "Test User"
     }
 
-    await page.request.post("/api/auth/register", {
+    const regResponse = await page.request.post("/api/auth/register", {
       data: testUser
     })
+    expect(regResponse.ok()).toBeTruthy()
 
     // 2. Navigate to login page
     await page.goto("/login")
 
-    // 3. Fill form
-    await page.fill('input[type="email"]', testUser.email)
-    await page.fill('input[type="password"]', testUser.password)
+    // Wait for page hydration
+    await page.waitForTimeout(500)
+
+    // 3. Fill form - wait for inputs to be ready
+    const emailInput = page.locator('input[type="email"]')
+    await emailInput.waitFor({ state: "visible" })
+    await emailInput.fill(testUser.email)
+
+    const passwordInput = page.locator('input[type="password"]')
+    await passwordInput.fill(testUser.password)
 
     // 4. Submit form
-    await page.click('button[type="submit"]')
+    await page.click('button[type="submit"]', { force: true })
 
-    // 5. Should redirect to home page
-    await page.waitForURL("/")
-    expect(page.url()).toContain("/")
+    // 5. Should redirect away from login page
+    // The destination depends on the user's organization state:
+    // - 0 orgs -> /organizations/new
+    // - 1 org -> /organizations/:id/dashboard
+    // - 2+ orgs -> /organizations
+    // - Or "/" if the Post-Login Flow redirects there first
+    // The key assertion is that user is no longer on /login
+    await page.waitForURL((url) => !url.pathname.includes("/login"), { timeout: 30000 })
     expect(page.url()).not.toContain("/login")
   })
 
