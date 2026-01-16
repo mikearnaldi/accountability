@@ -251,3 +251,8 @@
 **Task**: Implemented comprehensive E2E test suite for exchange rates module (11 tests covering list page empty state, sidebar navigation, new rate page form, cancel/back navigation, sidebar quick actions, create rate modal opening/closing, and client-side validation for same currencies). All 200 E2E tests pass (up from 190), 3587 unit tests pass, typecheck is clean. Updated E2E_TEST_COVERAGE.md spec to mark exchange rates as resolved. Note: Rate creation/edit/delete functionality cannot be fully tested due to a backend bug - the ExchangeRate domain entity is missing organizationId but the database requires it.
 **Status**: complete
 ---
+
+## Iteration 3 - 2026-01-16 11:31
+**Task**: Implemented comprehensive E2E test suite for intercompany transactions module (12 tests covering list page empty state, no-companies state, sidebar navigation, create page form fields, form validation for required fields and same company error, cancel/back navigation, transaction type dropdown options, and JE linking section visibility). All 212 E2E tests pass (up from 201), typecheck is clean. Updated E2E_TEST_COVERAGE.md spec to mark intercompany as resolved. Note: Full transaction creation/edit/delete functionality cannot be tested due to backend API limitations - tests verify UI components work correctly.
+**Status**: complete
+---
