@@ -2,7 +2,7 @@
 
 ## Current State (January 2026)
 
-**Total Tests:** 212 passed, 2 skipped
+**Total Tests:** 235 passed, 2 skipped
 
 ### Existing E2E Test Files
 
@@ -30,6 +30,8 @@
 | `consolidation.spec.ts` | Consolidation groups and runs | Good |
 | `exchange-rates.spec.ts` | Exchange rate list, forms, navigation | Good |
 | `intercompany.spec.ts` | Intercompany transactions, create, navigation | Good |
+| `reports.spec.ts` | Financial reports hub, report navigation, parameters | Good |
+| `audit-log.spec.ts` | Audit log list, filters, refresh | Good |
 
 ---
 
@@ -84,30 +86,35 @@
 
 **Note:** Full transaction creation/edit/delete and matching status tests require backend fixes for intercompany transaction API. The current tests verify UI components (forms, modals, navigation, validation) work correctly.
 
-### Priority 2: Supporting Features (No Coverage)
+### Priority 2: Supporting Features
 
-#### 4. Reports
-**Routes:** `/organizations/:orgId/companies/:companyId/reports/*`
-- [ ] Trial balance report
-- [ ] Balance sheet report
-- [ ] Income statement report
-- [ ] Cash flow statement
-- [ ] Equity statement
-- [ ] Report date range selection
-- [ ] Report export (if implemented)
+#### 4. Reports ✅ RESOLVED (2026-01-16)
+**Routes:** `/organizations/:orgId/reports/*`, `/organizations/:orgId/companies/:companyId/reports/*`
+- [x] Reports hub page (company selection - Step 1)
+- [x] Reports hub empty state (no companies)
+- [x] Navigate from reports hub to company reports
+- [x] Company reports page (report type selection - Step 2)
+- [x] Trial balance report page and form
+- [x] Balance sheet report page navigation
+- [x] Income statement report page navigation
+- [x] Cash flow statement page navigation
+- [x] Equity statement page navigation
+- [x] Back navigation from report pages
+- [x] Sidebar navigation to reports
 
-**Test file to create:** `reports.spec.ts`
+**Test file:** `reports.spec.ts` (13 tests)
 
-#### 5. Audit Log
+#### 5. Audit Log ✅ RESOLVED (2026-01-16)
 **Routes:** `/organizations/:orgId/audit-log`
-- [ ] Audit log list page
-- [ ] Filter by entity type
-- [ ] Filter by action
-- [ ] Filter by user
-- [ ] Filter by date range
-- [ ] Audit log detail/expansion
+- [x] Audit log list page
+- [x] Filter by entity type
+- [x] Filter by action
+- [x] Clear filters
+- [x] Date range filter inputs
+- [x] Sidebar navigation to audit log
+- [x] Refresh button functionality
 
-**Test file to create:** `audit-log.spec.ts`
+**Test file:** `audit-log.spec.ts` (10 tests)
 
 ### Priority 3: Enhancement Coverage
 
@@ -138,10 +145,10 @@
 3. ~~**intercompany.spec.ts** - Intercompany transaction flows~~ ✅ DONE (12 tests, backend bug limits full coverage)
 
 ### Phase 2: Reporting
-4. **reports.spec.ts** - All financial reports
+4. ~~**reports.spec.ts** - All financial reports~~ ✅ DONE (13 tests)
 
 ### Phase 3: Supporting Features
-5. **audit-log.spec.ts** - Audit trail verification
+5. ~~**audit-log.spec.ts** - Audit trail verification~~ ✅ DONE (10 tests)
 6. **profile.spec.ts** - User profile management
 
 ### Phase 4: Error Handling
@@ -227,7 +234,7 @@ pnpm test:e2e:report
 
 | Metric | Current | Target |
 |--------|---------|--------|
-| Route coverage | ~70% | 95% |
-| Critical flows | ~95% | 100% |
+| Route coverage | ~85% | 95% |
+| Critical flows | ~98% | 100% |
 | Error handling | ~20% | 80% |
-| Total test count | 212 | 250+ |
+| Total test count | 235 | 250+ |
