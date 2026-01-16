@@ -20,6 +20,7 @@
 import * as Schema from "effect/Schema"
 import * as Chunk from "effect/Chunk"
 import * as Option from "effect/Option"
+import { AccountCategory } from "./Account.ts"
 import { ConsolidationGroupId } from "./ConsolidationGroup.ts"
 import { CurrencyCode } from "./CurrencyCode.ts"
 import { FiscalPeriodRef } from "./FiscalPeriodRef.ts"
@@ -468,6 +469,13 @@ export class ConsolidatedTrialBalanceLineItem extends Schema.Class<ConsolidatedT
    * Account type
    */
   accountType: Schema.Literal("Asset", "Liability", "Equity", "Revenue", "Expense"),
+
+  /**
+   * Account category - detailed subcategory for report section classification
+   * Required for generating proper financial statements (Balance Sheet sections,
+   * Income Statement sections, etc.)
+   */
+  accountCategory: AccountCategory,
 
   /**
    * Aggregated balance from all members (before eliminations)

@@ -23,6 +23,7 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
+import { type AccountCategory, isAccountCategory } from "../Domains/Account.ts"
 import type { CompanyId } from "../Domains/Company.ts"
 import {
   ConsolidationGroupId,
@@ -236,6 +237,11 @@ export class AggregatedBalance extends Schema.Class<AggregatedBalance>("Aggregat
    * Account type
    */
   accountType: Schema.Literal("Asset", "Liability", "Equity", "Revenue", "Expense"),
+
+  /**
+   * Account category - detailed subcategory for report section classification
+   */
+  accountCategory: Schema.String,
 
   /**
    * Aggregated balance from all members
@@ -783,12 +789,32 @@ const make = Effect.gen(function* () {
 
         // ==== Generate Consolidated Trial Balance ====
 
+        // Helper to convert string to AccountCategory with fallback based on account type
+        const toAccountCategory = (
+          category: string,
+          accountType: "Asset" | "Liability" | "Equity" | "Revenue" | "Expense"
+        ): AccountCategory => {
+          if (isAccountCategory(category)) {
+            return category
+          }
+          // Fallback mapping for backward compatibility
+          const fallbacks: Record<typeof accountType, AccountCategory> = {
+            Asset: "CurrentAsset",
+            Liability: "CurrentLiability",
+            Equity: "RetainedEarnings",
+            Revenue: "OperatingRevenue",
+            Expense: "OperatingExpense"
+          }
+          return fallbacks[accountType]
+        }
+
         const generatedAt = yield* timestampNowEffect
         const lineItems = Chunk.map(aggregatedBalances, (balance) =>
           ConsolidatedTrialBalanceLineItem.make({
             accountNumber: balance.accountNumber,
             accountName: balance.accountName,
             accountType: balance.accountType,
+            accountCategory: toAccountCategory(balance.accountCategory, balance.accountType),
             aggregatedBalance: balance.balance,
             eliminationAmount: MonetaryAmount.zero(group.reportingCurrency),
             nciAmount: Option.none(),
@@ -1038,6 +1064,7 @@ const executeAggregateStep = (
       accountNumber: string
       accountName: string
       accountType: "Asset" | "Liability" | "Equity" | "Revenue" | "Expense"
+      accountCategory: string
       balance: BigDecimal.BigDecimal
       memberCount: number
     }>()
@@ -1056,6 +1083,7 @@ const executeAggregateStep = (
             accountNumber: line.accountNumber,
             accountName: line.accountName,
             accountType: line.accountType,
+            accountCategory: line.accountCategory,
             balance: line.netBalance.amount,
             memberCount: 1
           })
@@ -1069,6 +1097,7 @@ const executeAggregateStep = (
           accountNumber: Schema.NonEmptyTrimmedString.make(entry.accountNumber),
           accountName: Schema.NonEmptyTrimmedString.make(entry.accountName),
           accountType: entry.accountType,
+          accountCategory: entry.accountCategory,
           balance: MonetaryAmount.fromBigDecimal(entry.balance, group.reportingCurrency),
           memberCount: entry.memberCount
         })

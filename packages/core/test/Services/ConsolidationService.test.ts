@@ -95,6 +95,18 @@ const createMember = (
   })
 }
 
+// Map account types to default categories for test fixtures
+const accountTypeToDefaultCategory: Record<
+  "Asset" | "Liability" | "Equity" | "Revenue" | "Expense",
+  string
+> = {
+  Asset: "CurrentAsset",
+  Liability: "CurrentLiability",
+  Equity: "RetainedEarnings",
+  Revenue: "OperatingRevenue",
+  Expense: "OperatingExpense"
+}
+
 const createTrialBalanceLineItem = (
   accountNumber: string,
   accountName: string,
@@ -107,7 +119,7 @@ const createTrialBalanceLineItem = (
     accountNumber: Schema.NonEmptyTrimmedString.make(accountNumber),
     accountName: Schema.NonEmptyTrimmedString.make(accountName),
     accountType,
-    accountCategory: "General",
+    accountCategory: accountTypeToDefaultCategory[accountType],
     normalBalance: accountType === "Asset" || accountType === "Expense" ? "Debit" : "Credit",
     debitBalance: MonetaryAmount.unsafeFromString(debitAmount, "USD"),
     creditBalance: MonetaryAmount.unsafeFromString(creditAmount, "USD")
@@ -352,6 +364,7 @@ describe("AggregatedBalance", () => {
       accountNumber: "1000",
       accountName: "Cash",
       accountType: "Asset",
+      accountCategory: "CurrentAsset",
       balance: MonetaryAmount.unsafeFromString("25000", "USD"),
       memberCount: 3
     })
@@ -366,6 +379,7 @@ describe("AggregatedBalance", () => {
       accountNumber: "2000",
       accountName: "Liabilities",
       accountType: "Liability",
+      accountCategory: "CurrentLiability",
       balance: MonetaryAmount.zero(testCurrency),
       memberCount: 2
     })
@@ -379,6 +393,7 @@ describe("AggregatedBalance", () => {
         accountNumber: "1000",
         accountName: "Cash",
         accountType: "Asset",
+        accountCategory: "CurrentAsset",
         balance: MonetaryAmount.unsafeFromString("25000", "USD"),
         memberCount: 3
       })

@@ -26,6 +26,247 @@ Implement standard financial reports for consolidation runs, transforming the co
 
 ---
 
+## Domain Model Analysis
+
+This section documents how consolidated reports can be generated based on the existing domain model.
+
+### What Already Exists
+
+The consolidation pipeline already performs all the heavy lifting. After a `ConsolidationRun` completes, the `ConsolidatedTrialBalance` contains fully processed data:
+
+| Domain Entity | Location | Purpose |
+|---------------|----------|---------|
+| `ConsolidationGroup` | `packages/core/src/Domains/ConsolidationGroup.ts` | Parent + member companies, ownership %, consolidation methods |
+| `ConsolidationRun` | `packages/core/src/Domains/ConsolidationRun.ts` | 7-step pipeline execution, stores final trial balance |
+| `ConsolidatedTrialBalance` | `packages/core/src/Domains/ConsolidationRun.ts` | Line items with aggregated, elimination, NCI, and final balances |
+| `EliminationRule` | `packages/core/src/Domains/EliminationRule.ts` | 6 elimination types per ASC 810 |
+| `BalanceSheetService` | `packages/core/src/Services/BalanceSheetService.ts` | Single-company balance sheet (pattern to follow) |
+
+### The 7-Step Consolidation Pipeline
+
+The `ConsolidationRun` executes these steps in order:
+
+```
+1. Validate    → Ensures all members have closed periods, balanced trial balances
+2. Translate   → Converts each member's balances to reporting currency (ASC 830)
+3. Aggregate   → Sums all member account balances
+4. MatchIC     → Identifies intercompany transactions for elimination
+5. Eliminate   → Applies elimination rules (AR/AP, revenue/expense, investments, etc.)
+6. NCI         → Calculates non-controlling interest share
+7. GenerateTB  → Produces final ConsolidatedTrialBalance
+```
+
+### ConsolidatedTrialBalanceLineItem Structure
+
+Each line item in the consolidated trial balance contains:
+
+```typescript
+ConsolidatedTrialBalanceLineItem {
+  accountNumber: string
+  accountName: string
+  accountType: "Asset" | "Liability" | "Equity" | "Revenue" | "Expense"
+  accountCategory: AccountCategory     // ✅ ADDED 2026-01-16: Detailed subcategory for report sections
+  aggregatedBalance: MonetaryAmount    // Sum of all members (after translation)
+  eliminationAmount: MonetaryAmount    // Intercompany eliminations applied
+  nciAmount: Option<MonetaryAmount>    // Non-controlling interest portion
+  consolidatedBalance: MonetaryAmount  // Final = aggregated - eliminations
+}
+```
+
+### Data Flow: Trial Balance → Balance Sheet
+
+```
+ConsolidationRun (status: "Completed")
+        │
+        ▼
+ConsolidatedTrialBalance.lineItems
+        │
+        │  Filter by accountType + accountCategory
+        │
+        ├─► "Asset" lines ────────► Current Assets + Non-Current Assets
+        │                           ✅ UNBLOCKED: accountCategory distinguishes CurrentAsset, NonCurrentAsset, etc.
+        │
+        ├─► "Liability" lines ────► Current Liabilities + Non-Current Liabilities
+        │                           ✅ UNBLOCKED: accountCategory distinguishes CurrentLiability, NonCurrentLiability
+        │
+        └─► "Equity" lines ───────► Parent Equity sections
+                │                   ✅ UNBLOCKED: accountCategory distinguishes ContributedCapital, RetainedEarnings, etc.
+                └─► nciAmount fields ──► Non-Controlling Interest (separate line per ASC 810)
+        │
+        ▼
+ConsolidatedBalanceSheetReport
+        │
+        └─► Validate: Total Assets === Total Liabilities + Total Equity
+```
+
+### ~~The Blocking Issue: Account Classification~~ ✅ RESOLVED 2026-01-16
+
+**Resolution:** Added `accountCategory` field to `ConsolidatedTrialBalanceLineItem` and updated the consolidation pipeline to propagate the category from source accounts during aggregation.
+
+**Changes made:**
+1. Added `accountCategory: AccountCategory` to `ConsolidatedTrialBalanceLineItem` schema in `packages/core/src/Domains/ConsolidationRun.ts`
+2. Added `accountCategory` to `AggregatedBalance` in `ConsolidationService.ts` to propagate during aggregation
+3. Updated `executeAggregateStep` to copy `accountCategory` from trial balance line items
+4. Updated `GenerateTB` step to populate `accountCategory` in final line items
+5. Added backward compatibility handling in persistence layer for data stored before this field was added
+6. Updated all tests to include `accountCategory` in test fixtures
+
+**Original issue description (for reference):**
+
+~~**Verified in code (2025-01-16):**~~
+
+~~The `Account` domain model **HAS** `accountCategory`, but `ConsolidatedTrialBalanceLineItem` **does NOT** include it.~~
+
+#### What `Account` has (packages/core/src/Domains/Account.ts, line 308):
+
+```typescript
+export class Account extends Schema.Class<Account>("Account")({
+  // ...
+  accountType: AccountType,        // ← "Asset" | "Liability" | "Equity" | "Revenue" | "Expense"
+  accountCategory: AccountCategory, // ← DETAILED CLASSIFICATION EXISTS HERE
+  // ...
+})
+```
+
+The `AccountCategory` type (lines 95-123) includes:
+```typescript
+AccountCategory =
+  // Assets
+  | "CurrentAsset" | "NonCurrentAsset" | "FixedAsset" | "IntangibleAsset"
+  // Liabilities
+  | "CurrentLiability" | "NonCurrentLiability"
+  // Equity
+  | "ContributedCapital" | "RetainedEarnings" | "OtherComprehensiveIncome" | "TreasuryStock"
+  // Revenue
+  | "OperatingRevenue" | "OtherRevenue"
+  // Expenses
+  | "CostOfGoodsSold" | "OperatingExpense" | "DepreciationAmortization"
+  | "InterestExpense" | "TaxExpense" | "OtherExpense"
+```
+
+#### What `ConsolidatedTrialBalanceLineItem` has (packages/core/src/Domains/ConsolidationRun.ts, lines 454-505):
+
+```typescript
+export class ConsolidatedTrialBalanceLineItem extends Schema.Class<ConsolidatedTrialBalanceLineItem>(
+  "ConsolidatedTrialBalanceLineItem"
+)({
+  accountNumber: Schema.NonEmptyTrimmedString,
+  accountName: Schema.NonEmptyTrimmedString,
+  accountType: Schema.Literal("Asset", "Liability", "Equity", "Revenue", "Expense"), // ← Only type, NO category
+  aggregatedBalance: MonetaryAmount,
+  eliminationAmount: MonetaryAmount,
+  nciAmount: Schema.OptionFromNullOr(MonetaryAmount),
+  consolidatedBalance: MonetaryAmount,
+}) {}
+```
+
+**The Gap:** When accounts from multiple companies are aggregated during the `GenerateTB` consolidation step, the `accountCategory` information is **lost**. Only `accountType` is preserved.
+
+**Impact:** Cannot generate proper balance sheet sections because we can't distinguish:
+- Current Assets vs Non-Current Assets
+- Current Liabilities vs Non-Current Liabilities
+- Different equity components (Contributed Capital, Retained Earnings, AOCI, Treasury Stock)
+- Revenue/Expense subtypes for income statement formatting
+
+#### Solution Options
+
+1. **Option A (Recommended):** Add `accountCategory` to `ConsolidatedTrialBalanceLineItem`
+   - Small schema change in `ConsolidationRun.ts`
+   - Update `GenerateTB` step to populate category from source accounts
+   - Category should be consistent across members (same logical account)
+
+2. **Option B:** Join with Account data during report generation
+   - No schema change needed
+   - But requires looking up accounts by number across all member companies
+   - More complex, potential performance issues
+
+3. **Option C:** Use account number ranges as heuristic
+   - E.g., 1000-1499 = Current Assets per numbering convention
+   - Fragile, not recommended
+
+### Implementation Approach (Option A - Recommended)
+
+**Step 1:** Add `accountCategory` to `ConsolidatedTrialBalanceLineItem` in `packages/core/src/Domains/ConsolidationRun.ts`:
+
+```typescript
+import { AccountCategory } from "./Account.ts"  // ← Import the domain type
+
+export class ConsolidatedTrialBalanceLineItem extends Schema.Class<ConsolidatedTrialBalanceLineItem>(
+  "ConsolidatedTrialBalanceLineItem"
+)({
+  accountNumber: Schema.NonEmptyTrimmedString,
+  accountName: Schema.NonEmptyTrimmedString,
+  accountType: Schema.Literal("Asset", "Liability", "Equity", "Revenue", "Expense"),
+  accountCategory: AccountCategory,  // ← USE AccountCategory schema, NOT Schema.String
+  aggregatedBalance: MonetaryAmount,
+  eliminationAmount: MonetaryAmount,
+  nciAmount: Schema.OptionFromNullOr(MonetaryAmount),
+  consolidatedBalance: MonetaryAmount,
+}) {}
+```
+
+**IMPORTANT:** Use the `AccountCategory` schema from `Account.ts`, NOT `Schema.String`. This preserves type safety and ensures only valid categories can be assigned. See CLAUDE.md guideline #9: "ALWAYS use precise domain schemas".
+
+**Step 2:** Update the `GenerateTB` consolidation step to populate `accountCategory` from source accounts. Location: find where `ConsolidatedTrialBalanceLineItem` instances are created (likely in `packages/core/src/Services/ConsolidationService.ts` or similar).
+
+**Step 3:** Check if the consolidated trial balance is persisted to database (JSONB column). If so, no migration needed since JSONB is flexible. If stored in normalized tables, add column.
+
+**Step 4:** Once `accountCategory` is available, report generation becomes straightforward grouping:
+
+```typescript
+// Balance Sheet sections
+const currentAssets = lineItems.filter(l =>
+  l.accountType === "Asset" && l.accountCategory === "CurrentAsset")
+const nonCurrentAssets = lineItems.filter(l =>
+  l.accountType === "Asset" && ["NonCurrentAsset", "FixedAsset", "IntangibleAsset"].includes(l.accountCategory))
+// etc.
+```
+
+### Report Generation Service Pattern
+
+Follow the existing `BalanceSheetService` pattern:
+
+```typescript
+// packages/core/src/Services/ConsolidatedReportService.ts
+
+export class ConsolidatedReportService extends Context.Tag("ConsolidatedReportService")<
+  ConsolidatedReportService,
+  {
+    readonly generateBalanceSheet: (
+      runId: ConsolidationRunId
+    ) => Effect.Effect<ConsolidatedBalanceSheetReport, ReportGenerationError>
+
+    readonly generateIncomeStatement: (
+      runId: ConsolidationRunId
+    ) => Effect.Effect<ConsolidatedIncomeStatementReport, ReportGenerationError>
+
+    readonly generateCashFlow: (
+      runId: ConsolidationRunId,
+      priorRunId: Option<ConsolidationRunId>  // Needed for period-over-period changes
+    ) => Effect.Effect<ConsolidatedCashFlowReport, ReportGenerationError>
+
+    readonly generateEquityStatement: (
+      runId: ConsolidationRunId,
+      priorRunId: Option<ConsolidationRunId>
+    ) => Effect.Effect<ConsolidatedEquityStatementReport, ReportGenerationError>
+  }
+>() {}
+```
+
+### NCI Handling
+
+The consolidated trial balance already has `nciAmount` on each line item (calculated in the NCI step). For the balance sheet:
+
+- Sum all `nciAmount` values from equity line items
+- Present as a separate line in the Equity section per ASC 810
+- Label: "Non-controlling interests" or "Minority interests"
+
+For the income statement:
+- Sum all `nciAmount` values from revenue/expense line items
+- Present as "Net income attributable to non-controlling interests"
+
+---
+
 ## Requirements
 
 ### 1. Consolidated Balance Sheet
@@ -268,10 +509,34 @@ type AccountSubtype =
 
 1. **Comparative periods** - Show prior period column? Requires storing/accessing prior run data.
 
-2. **Account subtype** - Add to Account schema or use a separate mapping configuration?
+2. ~~**Account subtype** - Add to Account schema or use a separate mapping configuration?~~
+   **RESOLVED:** The `Account` domain already has `accountCategory`. The issue is that `ConsolidatedTrialBalanceLineItem` doesn't include it. **Solution: Add `accountCategory` to line items during GenerateTB step.** See "Domain Model Analysis" section above.
 
 3. **Cash flow method** - Direct or indirect method? Indirect is more common but requires different data.
 
 4. **Segment reporting** - Show breakdown by subsidiary? Or just consolidated totals?
 
 5. **Currency display** - Show in thousands/millions? Configurable precision?
+
+---
+
+## Implementation Priority
+
+Based on the domain model analysis, the recommended implementation order is:
+
+1. ~~**Add `accountCategory` to `ConsolidatedTrialBalanceLineItem`** (BLOCKING)~~
+   ✅ **COMPLETED 2026-01-16** - Schema updated, GenerateTB step populates category, all tests pass
+
+2. **Implement `ConsolidatedReportService`** (NEXT PRIORITY)
+   - Balance Sheet (simplest - just grouping/filtering)
+   - Income Statement (similar to balance sheet)
+   - Equity Statement (needs period comparison)
+   - Cash Flow Statement (most complex - needs prior period)
+
+3. **Wire up API endpoints**
+   - Endpoints already exist with NOT_IMPLEMENTED stubs
+   - Just need to call the new service methods
+
+4. **Frontend already complete**
+   - Routes and UI exist
+   - Will automatically work once API returns real data

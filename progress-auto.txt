@@ -286,3 +286,8 @@
 **Task**: Updated E2E_TEST_COVERAGE.md spec with accurate test counts (261 tests: 259 passed, 2 skipped) and documented why the 2 tests are intentionally skipped (require user-scoped organization visibility - architectural change). Added summary section confirming E2E coverage is complete. All CI checks pass.
 **Status**: complete
 ---
+
+## Iteration 1 - 2026-01-16 13:10
+**Task**: Added `accountCategory` field to `ConsolidatedTrialBalanceLineItem` schema (the blocking issue for consolidated reports). Changes made:
+**Status**: complete
+---

@@ -1,6 +1,7 @@
 import { describe, it, expect } from "@effect/vitest"
 import { Chunk, Effect, Exit, Option } from "effect"
 import * as Schema from "effect/Schema"
+import type { AccountCategory } from "../../src/Domains/Account.ts"
 import {
   ConsolidationRunId,
   ConsolidationRunStatus,
@@ -516,6 +517,7 @@ describe("ConsolidatedTrialBalanceLineItem", () => {
       accountNumber: "1000",
       accountName: "Cash",
       accountType: "Asset",
+      accountCategory: "CurrentAsset",
       aggregatedBalance: amount,
       eliminationAmount: elimAmount,
       nciAmount: Option.some(nciAmount),
@@ -524,6 +526,7 @@ describe("ConsolidatedTrialBalanceLineItem", () => {
 
     expect(item.hasEliminations).toBe(true)
     expect(item.hasNCI).toBe(true)
+    expect(item.accountCategory).toBe("CurrentAsset")
   })
 
   it("creates line item without eliminations", () => {
@@ -531,6 +534,7 @@ describe("ConsolidatedTrialBalanceLineItem", () => {
       accountNumber: "1000",
       accountName: "Cash",
       accountType: "Asset",
+      accountCategory: "CurrentAsset",
       aggregatedBalance: amount,
       eliminationAmount: zeroAmount,
       nciAmount: Option.none(),
@@ -547,6 +551,7 @@ describe("ConsolidatedTrialBalanceLineItem", () => {
         accountNumber: "1000",
         accountName: "Cash",
         accountType: "Asset",
+        accountCategory: "CurrentAsset",
         aggregatedBalance: amount,
         eliminationAmount: zeroAmount,
         nciAmount: Option.none(),
@@ -571,11 +576,21 @@ describe("ConsolidatedTrialBalance", () => {
   const amount = MonetaryAmount.unsafeFromString("10000", "USD")
   const zeroAmount = MonetaryAmount.zero(testCurrency)
 
+  // Map account types to their default categories for testing
+  const accountTypeToCategory: Record<"Asset" | "Liability" | "Equity" | "Revenue" | "Expense", AccountCategory> = {
+    Asset: "CurrentAsset",
+    Liability: "CurrentLiability",
+    Equity: "RetainedEarnings",
+    Revenue: "OperatingRevenue",
+    Expense: "OperatingExpense"
+  }
+
   const createLineItem = (accountType: "Asset" | "Liability" | "Equity" | "Revenue" | "Expense") =>
     ConsolidatedTrialBalanceLineItem.make({
       accountNumber: "1000",
       accountName: "Test Account",
       accountType,
+      accountCategory: accountTypeToCategory[accountType],
       aggregatedBalance: amount,
       eliminationAmount: zeroAmount,
       nciAmount: Option.none(),

@@ -1300,6 +1300,7 @@ describe("Repositories", () => {
           accountNumber: "1000",
           accountName: "Cash",
           accountType: "Asset",
+          accountCategory: "CurrentAsset",
           aggregatedBalance: MonetaryAmount.make({
             amount: BigDecimal.unsafeFromString("100000.00"),
             currency: CurrencyCode.make("USD")
@@ -1408,6 +1409,7 @@ describe("Repositories", () => {
           accountNumber: "2000",
           accountName: "Accounts Payable",
           accountType: "Liability",
+          accountCategory: "CurrentLiability",
           aggregatedBalance: MonetaryAmount.make({
             amount: BigDecimal.unsafeFromString("50000.00"),
             currency: CurrencyCode.make("USD")

@@ -18,6 +18,7 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
+import { type AccountCategory, isAccountCategory } from "@accountability/core/Domains/Account"
 import { CompanyId, ConsolidationMethod } from "@accountability/core/Domains/Company"
 import {
   ConsolidationGroup,
@@ -368,15 +369,36 @@ const make = Effect.gen(function* () {
     )
 
   // Schema for line items in trial balance JSONB
+  // accountCategory is optional for backward compatibility with data stored before this field was added
   const LineItemSchema = Schema.Struct({
     accountNumber: Schema.String,
     accountName: Schema.String,
     accountType: Schema.Literal("Asset", "Liability", "Equity", "Revenue", "Expense"),
+    accountCategory: Schema.optional(Schema.String),
     aggregatedBalance: MonetaryAmount,
     eliminationAmount: MonetaryAmount,
     nciAmount: Schema.NullOr(MonetaryAmount),
     consolidatedBalance: MonetaryAmount
   })
+
+  // Helper to convert string to AccountCategory with fallback based on account type
+  const toAccountCategory = (
+    category: string | undefined,
+    accountType: "Asset" | "Liability" | "Equity" | "Revenue" | "Expense"
+  ): AccountCategory => {
+    if (category && isAccountCategory(category)) {
+      return category
+    }
+    // Fallback mapping for backward compatibility with data stored before accountCategory was added
+    const fallbacks: Record<typeof accountType, AccountCategory> = {
+      Asset: "CurrentAsset",
+      Liability: "CurrentLiability",
+      Equity: "RetainedEarnings",
+      Revenue: "OperatingRevenue",
+      Expense: "OperatingExpense"
+    }
+    return fallbacks[accountType]
+  }
 
   // Helper to load consolidated trial balance for a run
   const loadConsolidatedTrialBalance = (
@@ -396,6 +418,8 @@ const make = Effect.gen(function* () {
               accountNumber: li.accountNumber,
               accountName: li.accountName,
               accountType: li.accountType,
+              // Use stored accountCategory if valid, otherwise default based on accountType for backward compatibility
+              accountCategory: toAccountCategory(li.accountCategory, li.accountType),
               aggregatedBalance: li.aggregatedBalance,
               eliminationAmount: li.eliminationAmount,
               nciAmount: Option.fromNullable(li.nciAmount),

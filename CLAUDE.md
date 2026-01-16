@@ -208,6 +208,7 @@ pnpm clean              # Clean build outputs
 6. **Use BigDecimal** for all monetary calculations
 7. **Use Layer.effect or Layer.scoped** - avoid Layer.succeed and Tag.of
 8. **Write tests** alongside implementation using `@effect/vitest`
+9. **ALWAYS use precise domain schemas** - if a field can be `AccountCategory` or `Schema.String`, ALWAYS use `AccountCategory`. Never lose type precision by using primitives when a richer domain type exists. This applies to all schemas - domain entities, API requests/responses, and intermediate data structures.
 
 ### Frontend (packages/web)
 
