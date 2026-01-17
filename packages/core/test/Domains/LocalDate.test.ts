@@ -54,6 +54,46 @@ describe("LocalDate", () => {
       })
     )
 
+    it.effect("accepts dates from previous years (historical data entry)", () =>
+      Effect.gen(function* () {
+        const decode = Schema.decodeUnknown(LocalDate)
+
+        // 2024 - previous year relative to current date (2026)
+        const pastDate2024 = yield* decode({ year: 2024, month: 1, day: 15 })
+        expect(pastDate2024.year).toBe(2024)
+        expect(pastDate2024.month).toBe(1)
+        expect(pastDate2024.day).toBe(15)
+
+        // 2020 - 6 years ago
+        const pastDate2020 = yield* decode({ year: 2020, month: 6, day: 30 })
+        expect(pastDate2020.year).toBe(2020)
+        expect(pastDate2020.month).toBe(6)
+        expect(pastDate2020.day).toBe(30)
+      })
+    )
+
+    it.effect("accepts dates far in the past (year 2000, 1900)", () =>
+      Effect.gen(function* () {
+        const decode = Schema.decodeUnknown(LocalDate)
+
+        // Y2K date
+        const y2k = yield* decode({ year: 2000, month: 1, day: 1 })
+        expect(y2k.year).toBe(2000)
+        expect(y2k.month).toBe(1)
+        expect(y2k.day).toBe(1)
+
+        // Very old date (1900)
+        const old1900 = yield* decode({ year: 1900, month: 12, day: 31 })
+        expect(old1900.year).toBe(1900)
+        expect(old1900.month).toBe(12)
+        expect(old1900.day).toBe(31)
+
+        // Minimum allowed year (1)
+        const minYear = yield* decode({ year: 1, month: 1, day: 1 })
+        expect(minYear.year).toBe(1)
+      })
+    )
+
     it.effect("rejects invalid month", () =>
       Effect.gen(function* () {
         const decode = Schema.decodeUnknown(LocalDate)
@@ -500,6 +540,34 @@ describe("LocalDate", () => {
           expect(dec31.year).toBe(2024)
           expect(dec31.month).toBe(12)
           expect(dec31.day).toBe(31)
+        })
+      )
+
+      it.effect("parses past dates from previous years (historical data entry)", () =>
+        Effect.gen(function* () {
+          // 2024 - 2 years ago relative to current date (2026)
+          const date2024 = yield* Schema.decodeUnknown(LocalDateFromString)("2024-01-15")
+          expect(date2024.year).toBe(2024)
+          expect(date2024.month).toBe(1)
+          expect(date2024.day).toBe(15)
+
+          // 2020 - 6 years ago
+          const date2020 = yield* Schema.decodeUnknown(LocalDateFromString)("2020-06-30")
+          expect(date2020.year).toBe(2020)
+          expect(date2020.month).toBe(6)
+          expect(date2020.day).toBe(30)
+
+          // Y2K date (2000)
+          const y2k = yield* Schema.decodeUnknown(LocalDateFromString)("2000-01-01")
+          expect(y2k.year).toBe(2000)
+          expect(y2k.month).toBe(1)
+          expect(y2k.day).toBe(1)
+
+          // Very old date (1900)
+          const date1900 = yield* Schema.decodeUnknown(LocalDateFromString)("1900-12-31")
+          expect(date1900.year).toBe(1900)
+          expect(date1900.month).toBe(12)
+          expect(date1900.day).toBe(31)
         })
       )
 

@@ -41,7 +41,7 @@ Accountability is a multi-company, multi-currency accounting application using:
 2. **ALWAYS update both layers** - packages/web AND packages/core, packages/api, packages/persistence
 3. **Frontend workarounds are NOT acceptable** - if the spec says "update API", update the API
 4. **Run tests** - `pnpm test && pnpm typecheck` MUST pass before marking work complete
-5. **Read context/UI_ARCHITECTURE.md** - See "MANDATORY: BACKEND AND FRONTEND MUST STAY ALIGNED" section
+5. **Read specs/UI_ARCHITECTURE.md** - See "MANDATORY: BACKEND AND FRONTEND MUST STAY ALIGNED" section
 
 **Data flow**: Frontend → API → Service → Repository → Database
 **All layers must be consistent.**
@@ -55,54 +55,40 @@ accountability/
 │   ├── persistence/    # Database layer (@effect/sql + PostgreSQL) ← BACKEND
 │   ├── api/            # Effect HttpApi server + OpenAPI export ← BACKEND
 │   └── web/            # React UI (NO Effect - loaders + openapi-fetch client) ← FRONTEND
-├── specs/              # ACTIONABLE specs - ralph-auto.sh implements these automatically
-├── context/            # Reference documentation - provides context to agents
+├── specs/              # All specs and context - use focus mode to select relevant files
 └── repos/              # Reference repositories (git subtrees)
     ├── effect/         # Effect-TS source
     └── tanstack-router/# TanStack Router/Start source
 ```
 
-## Specs vs Context
+## Specs Directory
 
-**`specs/`** - Contains ACTIONABLE specifications that should be implemented:
-- `ralph-auto.sh` automatically implements everything in this folder
-- Each spec file defines features/UI/behavior that needs to be built
-- Specs should be updated as work is completed (mark issues resolved, etc.)
-
-**`context/`** - Contains REFERENCE documentation for agents:
-- Best practices, conventions, patterns
-- Domain knowledge and research
-- Not directly actionable - provides guidance and context
-
-## Actionable Specs (specs/)
-
-| Spec File | Description |
-|-----------|-------------|
-| [specs/EXCHANGE_RATE_SYNC.md](specs/EXCHANGE_RATE_SYNC.md) | **IMPLEMENT** - ECB exchange rate sync and cross-rate triangulation |
-| [specs/SYNTHETIC_DATA_GENERATOR.md](specs/SYNTHETIC_DATA_GENERATOR.md) | **IMPLEMENT** - Playwright script to generate synthetic demo data |
-
-## Context Documentation (context/)
+All specifications and context documentation live in `specs/`. Use focus mode to select relevant files for your task.
 
 | File | Description |
 |------|-------------|
-| [context/ACCOUNTING_RESEARCH.md](context/ACCOUNTING_RESEARCH.md) | Domain specifications (entities, services, reports) |
-| [context/API_BEST_PRACTICES.md](context/API_BEST_PRACTICES.md) | API layer conventions |
-| [context/AUTHENTICATION.md](context/AUTHENTICATION.md) | Multi-provider auth system, session management |
-| [context/CONSOLIDATION_METHOD_CLEANUP.md](context/CONSOLIDATION_METHOD_CLEANUP.md) | Consolidation method field cleanup notes |
-| [context/CONSOLIDATED_REPORTS.md](context/CONSOLIDATED_REPORTS.md) | Consolidated financial reports (Balance Sheet, Income Statement, Cash Flow, Equity) |
-| [context/DOMAIN_MODEL.md](context/DOMAIN_MODEL.md) | Complete domain model documentation |
-| [context/E2E_TEST_COVERAGE.md](context/E2E_TEST_COVERAGE.md) | E2E test coverage status and implementation notes |
-| [context/E2E_TESTING.md](context/E2E_TESTING.md) | Playwright E2E testing patterns |
-| [context/EFFECT_BEST_PRACTICES.md](context/EFFECT_BEST_PRACTICES.md) | **Critical rules** for backend Effect code |
-| [context/EFFECT_LAYERS.md](context/EFFECT_LAYERS.md) | Layer composition, memoization, service patterns |
-| [context/EFFECT_SQL.md](context/EFFECT_SQL.md) | SqlSchema, Model.Class, repository patterns |
-| [context/EFFECT_TESTING.md](context/EFFECT_TESTING.md) | @effect/vitest, testcontainers, property testing |
-| [context/HTTP_API_TANSTACK.md](context/HTTP_API_TANSTACK.md) | Effect HttpApi + TanStack Start SSR + openapi-fetch |
-| [context/REACT_BEST_PRACTICES.md](context/REACT_BEST_PRACTICES.md) | React patterns, loaders, mutations, Tailwind |
-| [context/REFERENCE_REPOS.md](context/REFERENCE_REPOS.md) | Reference repository documentation |
-| [context/TYPESCRIPT_CONVENTIONS.md](context/TYPESCRIPT_CONVENTIONS.md) | Project refs, imports, module structure |
-| [context/UI_ARCHITECTURE.md](context/UI_ARCHITECTURE.md) | Layout, navigation, page templates, component patterns |
-| [context/USABILITY_BEST_PRACTICES.md](context/USABILITY_BEST_PRACTICES.md) | UX patterns, navigation, forms, states |
+| [specs/ACCOUNTING_RESEARCH.md](specs/ACCOUNTING_RESEARCH.md) | Domain specifications (entities, services, reports) |
+| [specs/API_BEST_PRACTICES.md](specs/API_BEST_PRACTICES.md) | API layer conventions |
+| [specs/AUTHENTICATION.md](specs/AUTHENTICATION.md) | Multi-provider auth system, session management |
+| [specs/AUTHORIZATION.md](specs/AUTHORIZATION.md) | Role-based access control and permissions |
+| [specs/CONSOLIDATION_METHOD_CLEANUP.md](specs/CONSOLIDATION_METHOD_CLEANUP.md) | Consolidation method field cleanup notes |
+| [specs/CONSOLIDATED_REPORTS.md](specs/CONSOLIDATED_REPORTS.md) | Consolidated financial reports (Balance Sheet, Income Statement, Cash Flow, Equity) |
+| [specs/DOMAIN_MODEL.md](specs/DOMAIN_MODEL.md) | Complete domain model documentation |
+| [specs/E2E_TEST_COVERAGE.md](specs/E2E_TEST_COVERAGE.md) | E2E test coverage status and implementation notes |
+| [specs/E2E_TESTING.md](specs/E2E_TESTING.md) | Playwright E2E testing patterns |
+| [specs/EFFECT_BEST_PRACTICES.md](specs/EFFECT_BEST_PRACTICES.md) | **Critical rules** for backend Effect code |
+| [specs/EFFECT_LAYERS.md](specs/EFFECT_LAYERS.md) | Layer composition, memoization, service patterns |
+| [specs/EFFECT_SQL.md](specs/EFFECT_SQL.md) | SqlSchema, Model.Class, repository patterns |
+| [specs/EFFECT_TESTING.md](specs/EFFECT_TESTING.md) | @effect/vitest, testcontainers, property testing |
+| [specs/EXCHANGE_RATE_SYNC.md](specs/EXCHANGE_RATE_SYNC.md) | ECB exchange rate sync and cross-rate triangulation |
+| [specs/HTTP_API_TANSTACK.md](specs/HTTP_API_TANSTACK.md) | Effect HttpApi + TanStack Start SSR + openapi-fetch |
+| [specs/PAST_DATE_JOURNAL_ENTRIES.md](specs/PAST_DATE_JOURNAL_ENTRIES.md) | Fix for creating journal entries with past dates |
+| [specs/REACT_BEST_PRACTICES.md](specs/REACT_BEST_PRACTICES.md) | React patterns, loaders, mutations, Tailwind |
+| [specs/REFERENCE_REPOS.md](specs/REFERENCE_REPOS.md) | Reference repository documentation |
+| [specs/SYNTHETIC_DATA_GENERATOR.md](specs/SYNTHETIC_DATA_GENERATOR.md) | Playwright script to generate synthetic demo data |
+| [specs/TYPESCRIPT_CONVENTIONS.md](specs/TYPESCRIPT_CONVENTIONS.md) | Project refs, imports, module structure |
+| [specs/UI_ARCHITECTURE.md](specs/UI_ARCHITECTURE.md) | Layout, navigation, page templates, component patterns |
+| [specs/USABILITY_BEST_PRACTICES.md](specs/USABILITY_BEST_PRACTICES.md) | UX patterns, navigation, forms, states |
 
 ## Key Files
 
@@ -118,7 +104,7 @@ accountability/
 
 ### Backend (Effect code in core, persistence, api)
 
-**Read [context/EFFECT_BEST_PRACTICES.md](context/EFFECT_BEST_PRACTICES.md) first.** Key rules:
+**Read [specs/EFFECT_BEST_PRACTICES.md](specs/EFFECT_BEST_PRACTICES.md) first.** Key rules:
 
 1. **NEVER use `any` or type casts** - use Schema.make(), decodeUnknown, identity
 2. **NEVER use global `Error`** - use Schema.TaggedError for all domain errors
@@ -140,7 +126,7 @@ accountability/
 
 ### UI Architecture (CRITICAL)
 
-**Read [context/UI_ARCHITECTURE.md](context/UI_ARCHITECTURE.md) for all UI work.** Key rules:
+**Read [specs/UI_ARCHITECTURE.md](specs/UI_ARCHITECTURE.md) for all UI work.** Key rules:
 
 1. **ALL pages use AppLayout** - sidebar + header on EVERY authenticated page
 2. **NO manual breadcrumb HTML** - use the Breadcrumbs component
@@ -195,10 +181,10 @@ pnpm clean              # Clean build outputs
 
 **Effect-based** - functional, type-safe, composable. Services in `core/`, repositories in `persistence/`, endpoints in `api/`.
 
-**Read these context files:**
-- [context/EFFECT_BEST_PRACTICES.md](context/EFFECT_BEST_PRACTICES.md) - critical rules for Effect code
-- [context/EFFECT_SQL.md](context/EFFECT_SQL.md) - repository patterns, SqlSchema
-- [context/API_BEST_PRACTICES.md](context/API_BEST_PRACTICES.md) - API layer conventions
+**Read these specs:**
+- [specs/EFFECT_BEST_PRACTICES.md](specs/EFFECT_BEST_PRACTICES.md) - critical rules for Effect code
+- [specs/EFFECT_SQL.md](specs/EFFECT_SQL.md) - repository patterns, SqlSchema
+- [specs/API_BEST_PRACTICES.md](specs/API_BEST_PRACTICES.md) - API layer conventions
 
 **Guidelines:**
 1. **Flat modules, no barrel files** - `CurrencyCode.ts` not `domain/currency/index.ts`
@@ -215,9 +201,9 @@ pnpm clean              # Clean build outputs
 
 **NO Effect code** - use openapi-fetch client for API calls. Use loaders for SSR data fetching, useState for UI state.
 
-**Read these context files:**
-- [context/REACT_BEST_PRACTICES.md](context/REACT_BEST_PRACTICES.md) - React patterns
-- [context/UI_ARCHITECTURE.md](context/UI_ARCHITECTURE.md) - layout, navigation, components
+**Read these specs:**
+- [specs/REACT_BEST_PRACTICES.md](specs/REACT_BEST_PRACTICES.md) - React patterns
+- [specs/UI_ARCHITECTURE.md](specs/UI_ARCHITECTURE.md) - layout, navigation, components
 
 **Guidelines:**
 1. **Use openapi-fetch client** - `api.GET()`, `api.POST()` for type-safe calls
@@ -243,9 +229,8 @@ When implementing a feature that spans layers:
 
 When running autonomously via `ralph-auto.sh`:
 
-1. **Read all files in `specs/`** - these are actionable specs to implement
-2. **Use `context/` for reference** - best practices, conventions, patterns
-3. **Implement specs fully** - each spec file defines work to be done
-4. **Update specs as you work** - mark issues resolved, remove completed items
-5. **Signal TASK_COMPLETE** when a task is done
-6. **Signal NOTHING_LEFT_TO_DO** when all specs are fully implemented
+1. **Read relevant files in `specs/`** - use focus mode to select specs for your task
+2. **Implement specs fully** - each spec file defines work to be done
+3. **Update specs as you work** - mark issues resolved, remove completed items
+4. **Signal TASK_COMPLETE** when a task is done
+5. **Signal NOTHING_LEFT_TO_DO** when all specs are fully implemented

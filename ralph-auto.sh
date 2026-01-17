@@ -2,26 +2,20 @@
 
 # Ralph Auto Loop - Autonomous AI coding agent that implements specs
 #
-# This script automatically implements everything in the specs/ directory:
-# 1. Read all actionable specs from specs/ folder
-# 2. Read context from context/ folder for best practices
-# 3. Select a high priority task from the specs
-# 4. Implement it
-# 5. Update the spec (mark issues resolved, etc.)
-# 6. Repeat until all specs are fully implemented
+# This script runs an autonomous agent to implement a specific task.
+# A focus prompt is REQUIRED - the agent will only do what you ask.
 #
-# Usage: ./ralph-auto.sh [options] [focus prompt]
+# Usage: ./ralph-auto.sh <focus prompt> [options]
 #
 # Options:
 #   --e2e              Run E2E tests as part of CI checks (slower but more thorough)
-#   --focus <prompt>   Focus on a specific task (can also be passed as positional arg)
 #
 # Examples:
-#   ./ralph-auto.sh --focus "Fix the authentication bug in login flow"
+#   ./ralph-auto.sh "Fix the authentication bug in login flow"
 #   ./ralph-auto.sh "Implement the exchange rate sync feature"
-#   ./ralph-auto.sh --e2e --focus "Add E2E tests for consolidated reports"
+#   ./ralph-auto.sh "Add E2E tests for consolidated reports" --e2e
 #
-# The loop continues until Claude outputs "NOTHING_LEFT_TO_DO"
+# The loop continues until the task is complete (TASK_COMPLETE signal)
 # COMMITS ARE HANDLED BY THIS SCRIPT, NOT THE AGENT.
 
 set -e
@@ -37,27 +31,19 @@ while [[ $# -gt 0 ]]; do
             RUN_E2E=true
             shift
             ;;
-        --focus)
-            if [[ -n "$2" && "$2" != --* ]]; then
-                FOCUS_PROMPT="$2"
-                shift 2
-            else
-                echo "Error: --focus requires a prompt argument"
-                exit 1
-            fi
-            ;;
         --help|-h)
-            echo "Usage: ./ralph-auto.sh [options] [focus prompt]"
+            echo "Usage: ./ralph-auto.sh <focus prompt> [options]"
+            echo ""
+            echo "A focus prompt is REQUIRED. The agent will only do what you ask."
             echo ""
             echo "Options:"
             echo "  --e2e              Run E2E tests as part of CI checks"
-            echo "  --focus <prompt>   Focus on a specific task"
             echo "  --help, -h         Show this help message"
             echo ""
             echo "Examples:"
-            echo "  ./ralph-auto.sh --focus \"Fix the authentication bug\""
+            echo "  ./ralph-auto.sh \"Fix the authentication bug\""
             echo "  ./ralph-auto.sh \"Implement exchange rate sync\""
-            echo "  ./ralph-auto.sh --e2e --focus \"Add E2E tests\""
+            echo "  ./ralph-auto.sh \"Add E2E tests\" --e2e"
             exit 0
             ;;
         -*)
@@ -77,6 +63,20 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+# Focus prompt is required
+if [[ -z "$FOCUS_PROMPT" ]]; then
+    echo "Error: A focus prompt is required"
+    echo ""
+    echo "Usage: ./ralph-auto.sh <focus prompt> [options]"
+    echo ""
+    echo "Examples:"
+    echo "  ./ralph-auto.sh \"Fix the authentication bug\""
+    echo "  ./ralph-auto.sh \"Implement exchange rate sync\""
+    echo ""
+    echo "Use --help for more information"
+    exit 1
+fi
 
 # Configuration
 PROGRESS_FILE="progress-auto.txt"
@@ -431,28 +431,23 @@ $(cat "$PROGRESS_FILE")
 
     # Build focus section if a focus prompt was provided
     if [ -n "$FOCUS_PROMPT" ]; then
-        focus_section="## 🎯 PRIORITY FOCUS (User-Specified)
+        focus_section="## 🎯 FOCUS MODE (User-Specified)
 
-**The user has specified that you should focus on the following task:**
+**The user has specified that you should ONLY work on the following task:**
 
 > $FOCUS_PROMPT
 
-This takes priority over the normal task selection process. After addressing any CI errors, work on this specific task. If this task is already complete or not applicable, proceed with normal task selection from the specs.
+Work exclusively on this task. When the task is complete, signal TASK_COMPLETE. Do NOT select other tasks from specs - only do what is specified above.
 
 "
     fi
 
-    # Get list of specs and context files
+    # Get list of specs files
     local specs_list=$(find specs -name "*.md" -type f | sort | while read f; do echo "- \`$f\`"; done)
-    local context_list=""
-    if [ -d "context" ]; then
-        context_list=$(find context -name "*.md" -type f | sort | while read f; do echo "- \`$f\`"; done)
-    fi
 
     # Read template and substitute placeholders
     local prompt=$(cat "$PROMPT_TEMPLATE")
     prompt="${prompt//\{\{SPECS_LIST\}\}/$specs_list}"
-    prompt="${prompt//\{\{CONTEXT_LIST\}\}/$context_list}"
     prompt="${prompt//\{\{ITERATION\}\}/$iteration}"
     prompt="${prompt//\{\{CI_ERRORS\}\}/$ci_errors}"
     prompt="${prompt//\{\{PROGRESS\}\}/$progress_content}"

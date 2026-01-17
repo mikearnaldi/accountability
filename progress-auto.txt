@@ -325,3 +325,8 @@
 **Task**: Verified synthetic data generator spec is fully implemented with UI-only interactions (no apiPost/apiGet) - all 9 phases complete, 11 E2E tests pass, CI green
 **Status**: complete
 ---
+
+## Iteration 1 - 2026-01-17 08:33
+**Task**: Implemented and verified past date journal entries spec - Added 6 E2E tests and 3 unit tests confirming the system accepts any valid past date (year 1-9999) for journal entries. Updated spec to mark all tasks complete. Investigation found no restrictions on past dates in any layer (domain, API, repository, database, or frontend).
+**Status**: complete
+---
