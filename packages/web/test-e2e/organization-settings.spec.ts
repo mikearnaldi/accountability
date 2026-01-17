@@ -699,6 +699,7 @@ test.describe("Organization Settings Page", () => {
         reportingCurrency: "USD",
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
+        incorporationDate: null,
         parentCompanyId: null,
         ownershipPercentage: null
       }

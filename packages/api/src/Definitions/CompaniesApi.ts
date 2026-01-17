@@ -13,6 +13,7 @@ import {
   CompanyId,
   FiscalYearEnd
 } from "@accountability/core/Domains/Company"
+import { LocalDate } from "@accountability/core/Domains/LocalDate"
 import { Organization, OrganizationId, OrganizationSettings } from "@accountability/core/Domains/Organization"
 import { CurrencyCode } from "@accountability/core/Domains/CurrencyCode"
 import { JurisdictionCode } from "@accountability/core/Domains/JurisdictionCode"
@@ -68,6 +69,7 @@ export class CreateCompanyRequest extends Schema.Class<CreateCompanyRequest>("Cr
   legalName: Schema.NonEmptyTrimmedString,
   jurisdiction: JurisdictionCode,
   taxId: Schema.OptionFromNullOr(Schema.NonEmptyTrimmedString),
+  incorporationDate: Schema.OptionFromNullOr(LocalDate),
   functionalCurrency: CurrencyCode,
   reportingCurrency: CurrencyCode,
   fiscalYearEnd: FiscalYearEnd,
@@ -82,6 +84,7 @@ export class UpdateCompanyRequest extends Schema.Class<UpdateCompanyRequest>("Up
   name: Schema.OptionFromNullOr(Schema.NonEmptyTrimmedString),
   legalName: Schema.OptionFromNullOr(Schema.NonEmptyTrimmedString),
   taxId: Schema.OptionFromNullOr(Schema.NonEmptyTrimmedString),
+  incorporationDate: Schema.OptionFromNullOr(LocalDate),
   reportingCurrency: Schema.OptionFromNullOr(CurrencyCode),
   fiscalYearEnd: Schema.OptionFromNullOr(FiscalYearEnd),
   parentCompanyId: Schema.OptionFromNullOr(CompanyId),

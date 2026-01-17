@@ -83,6 +83,7 @@ test.describe("Company Details Page", () => {
         reportingCurrency: "EUR",
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: "12-3456789",
+        incorporationDate: null,
         parentCompanyId: null,
         ownershipPercentage: null
       }
@@ -197,6 +198,7 @@ test.describe("Company Details Page", () => {
         reportingCurrency: "USD",
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
+        incorporationDate: null,
         parentCompanyId: null,
         ownershipPercentage: null
       }
@@ -291,6 +293,7 @@ test.describe("Company Details Page", () => {
         reportingCurrency: "USD",
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
+        incorporationDate: null,
         parentCompanyId: null,
         ownershipPercentage: null
       }
@@ -416,6 +419,7 @@ test.describe("Company Details Page", () => {
         reportingCurrency: "USD",
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
+        incorporationDate: null,
         parentCompanyId: null,
         ownershipPercentage: null
       }
@@ -517,6 +521,7 @@ test.describe("Company Details Page", () => {
         reportingCurrency: "USD",
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
+        incorporationDate: null,
         parentCompanyId: null,
         ownershipPercentage: null
       }
@@ -606,6 +611,7 @@ test.describe("Company Details Page", () => {
         reportingCurrency: "USD",
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
+        incorporationDate: null,
         parentCompanyId: null,
         ownershipPercentage: null
       }
@@ -766,6 +772,7 @@ test.describe("Company Details Page", () => {
         reportingCurrency: "GBP",
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
+        incorporationDate: null,
         parentCompanyId: null,
         ownershipPercentage: null
       }
@@ -851,6 +858,7 @@ test.describe("Company Details Page", () => {
         reportingCurrency: "USD",
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
+        incorporationDate: null,
         parentCompanyId: null,
         ownershipPercentage: null
       }
@@ -942,6 +950,7 @@ test.describe("Company Details Page", () => {
         reportingCurrency: "USD",
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
+        incorporationDate: null,
         parentCompanyId: null,
         ownershipPercentage: null
       }
@@ -1036,6 +1045,7 @@ test.describe("Company Details Page", () => {
         reportingCurrency: "USD",
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
+        incorporationDate: null,
         parentCompanyId: null,
         ownershipPercentage: null
       }
@@ -1056,6 +1066,7 @@ test.describe("Company Details Page", () => {
         reportingCurrency: "USD",
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
+        incorporationDate: null,
         parentCompanyId: parentData.id,
         ownershipPercentage: 80
       }
@@ -1147,6 +1158,7 @@ test.describe("Company Details Page", () => {
         reportingCurrency: "USD",
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
+        incorporationDate: null,
         parentCompanyId: null,
         ownershipPercentage: null
       }
@@ -1167,6 +1179,7 @@ test.describe("Company Details Page", () => {
         reportingCurrency: "USD",
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
+        incorporationDate: null,
         parentCompanyId: parentData.id,
         ownershipPercentage: 100
       }
@@ -1186,6 +1199,7 @@ test.describe("Company Details Page", () => {
         reportingCurrency: "USD",
         fiscalYearEnd: { month: 3, day: 31 },
         taxId: null,
+        incorporationDate: null,
         parentCompanyId: parentData.id,
         ownershipPercentage: 60
       }

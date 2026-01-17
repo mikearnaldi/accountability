@@ -151,6 +151,7 @@ test.describe("Consolidation Module", () => {
           reportingCurrency: "USD",
           fiscalYearEnd: { month: 12, day: 31 },
           taxId: null,
+        incorporationDate: null,
           parentCompanyId: null,
           ownershipPercentage: null
         }
@@ -170,6 +171,7 @@ test.describe("Consolidation Module", () => {
           reportingCurrency: "USD",
           fiscalYearEnd: { month: 12, day: 31 },
           taxId: null,
+        incorporationDate: null,
           parentCompanyId: parentData.id,
           ownershipPercentage: 80
         }
@@ -292,6 +294,7 @@ test.describe("Consolidation Module", () => {
           reportingCurrency: "USD",
           fiscalYearEnd: { month: 12, day: 31 },
           taxId: null,
+        incorporationDate: null,
           parentCompanyId: null,
           ownershipPercentage: null
         }
@@ -442,6 +445,7 @@ test.describe("Consolidation Module", () => {
           reportingCurrency: "USD",
           fiscalYearEnd: { month: 12, day: 31 },
           taxId: null,
+        incorporationDate: null,
           parentCompanyId: null,
           ownershipPercentage: null
         }
@@ -462,6 +466,7 @@ test.describe("Consolidation Module", () => {
           reportingCurrency: "USD",
           fiscalYearEnd: { month: 12, day: 31 },
           taxId: null,
+        incorporationDate: null,
           parentCompanyId: parentData.id,
           ownershipPercentage: 75
         }
@@ -667,6 +672,7 @@ test.describe("Consolidation Module", () => {
           reportingCurrency: "USD",
           fiscalYearEnd: { month: 12, day: 31 },
           taxId: null,
+        incorporationDate: null,
           parentCompanyId: null,
           ownershipPercentage: null
         }
@@ -687,6 +693,7 @@ test.describe("Consolidation Module", () => {
           reportingCurrency: "USD",
           fiscalYearEnd: { month: 12, day: 31 },
           taxId: null,
+        incorporationDate: null,
           parentCompanyId: parentData.id,
           ownershipPercentage: 60
         }
@@ -817,6 +824,7 @@ test.describe("Consolidation Module", () => {
           reportingCurrency: "USD",
           fiscalYearEnd: { month: 12, day: 31 },
           taxId: null,
+        incorporationDate: null,
           parentCompanyId: null,
           ownershipPercentage: null
         }
@@ -943,6 +951,7 @@ test.describe("Consolidation Module", () => {
           reportingCurrency: "USD",
           fiscalYearEnd: { month: 12, day: 31 },
           taxId: null,
+        incorporationDate: null,
           parentCompanyId: null,
           ownershipPercentage: null
         }
@@ -1053,6 +1062,7 @@ test.describe("Consolidation Module", () => {
           reportingCurrency: "USD",
           fiscalYearEnd: { month: 12, day: 31 },
           taxId: null,
+        incorporationDate: null,
           parentCompanyId: null,
           ownershipPercentage: null
         }
@@ -1151,6 +1161,7 @@ test.describe("Consolidation Module", () => {
           reportingCurrency: "USD",
           fiscalYearEnd: { month: 12, day: 31 },
           taxId: null,
+        incorporationDate: null,
           parentCompanyId: null,
           ownershipPercentage: null
         }
@@ -1277,6 +1288,7 @@ test.describe("Consolidation Module", () => {
           reportingCurrency: "USD",
           fiscalYearEnd: { month: 12, day: 31 },
           taxId: null,
+        incorporationDate: null,
           parentCompanyId: null,
           ownershipPercentage: null
         }

@@ -15,6 +15,7 @@ import * as Schema from "effect/Schema"
 import { Company, CompanyId, FiscalYearEnd } from "@accountability/core/Domains/Company"
 import { CurrencyCode } from "@accountability/core/Domains/CurrencyCode"
 import { JurisdictionCode } from "@accountability/core/Domains/JurisdictionCode"
+import { LocalDate } from "@accountability/core/Domains/LocalDate"
 import { OrganizationId } from "@accountability/core/Domains/Organization"
 import { Percentage } from "@accountability/core/Domains/Percentage"
 import { Timestamp } from "@accountability/core/Domains/Timestamp"
@@ -32,6 +33,7 @@ const CompanyRow = Schema.Struct({
   legal_name: Schema.String,
   jurisdiction: Schema.String,
   tax_id: Schema.NullOr(Schema.String),
+  incorporation_date: Schema.NullOr(Schema.DateFromSelf),
   functional_currency: Schema.String,
   reporting_currency: Schema.String,
   fiscal_year_end_month: Schema.Number,
@@ -62,6 +64,13 @@ const rowToCompany = (row: CompanyRow): Company =>
     legalName: row.legal_name,
     jurisdiction: JurisdictionCode.make(row.jurisdiction),
     taxId: Option.fromNullable(row.tax_id),
+    incorporationDate: Option.fromNullable(row.incorporation_date).pipe(
+      Option.map((d) => LocalDate.make({
+        year: d.getUTCFullYear(),
+        month: d.getUTCMonth() + 1,
+        day: d.getUTCDate()
+      }))
+    ),
     functionalCurrency: CurrencyCode.make(row.functional_currency),
     reportingCurrency: CurrencyCode.make(row.reporting_currency),
     fiscalYearEnd: FiscalYearEnd.make({
@@ -139,10 +148,16 @@ const make = Effect.gen(function* () {
 
   const create: CompanyRepositoryService["create"] = (company) =>
     Effect.gen(function* () {
+      // Convert incorporationDate Option<LocalDate> to Date | null for SQL
+      const incorporationDateValue = Option.getOrNull(
+        Option.map(company.incorporationDate, (ld) => ld.toDate())
+      )
+
       yield* sql`
         INSERT INTO companies (
           id, organization_id, name, legal_name, jurisdiction, tax_id,
-          functional_currency, reporting_currency, fiscal_year_end_month, fiscal_year_end_day,
+          incorporation_date, functional_currency, reporting_currency,
+          fiscal_year_end_month, fiscal_year_end_day,
           parent_company_id, ownership_percentage, is_active, created_at
         ) VALUES (
           ${company.id},
@@ -151,6 +166,7 @@ const make = Effect.gen(function* () {
           ${company.legalName},
           ${company.jurisdiction},
           ${Option.getOrNull(company.taxId)},
+          ${incorporationDateValue},
           ${company.functionalCurrency},
           ${company.reportingCurrency},
           ${company.fiscalYearEnd.month},
@@ -175,12 +191,18 @@ const make = Effect.gen(function* () {
         )
       }
 
+      // Convert incorporationDate Option<LocalDate> to Date | null for SQL
+      const incorporationDateValue = Option.getOrNull(
+        Option.map(company.incorporationDate, (ld) => ld.toDate())
+      )
+
       yield* sql`
         UPDATE companies SET
           name = ${company.name},
           legal_name = ${company.legalName},
           jurisdiction = ${company.jurisdiction},
           tax_id = ${Option.getOrNull(company.taxId)},
+          incorporation_date = ${incorporationDateValue},
           functional_currency = ${company.functionalCurrency},
           reporting_currency = ${company.reportingCurrency},
           fiscal_year_end_month = ${company.fiscalYearEnd.month},

@@ -82,6 +82,7 @@ test.describe("Chart of Accounts Page", () => {
         reportingCurrency: "USD",
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
+        incorporationDate: null,
         parentCompanyId: null,
         ownershipPercentage: null
       }
@@ -225,6 +226,7 @@ test.describe("Chart of Accounts Page", () => {
         reportingCurrency: "USD",
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
+        incorporationDate: null,
         parentCompanyId: null,
         ownershipPercentage: null
       }
@@ -309,6 +311,7 @@ test.describe("Chart of Accounts Page", () => {
         reportingCurrency: "USD",
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
+        incorporationDate: null,
         parentCompanyId: null,
         ownershipPercentage: null
       }
@@ -421,6 +424,7 @@ test.describe("Chart of Accounts Page", () => {
         reportingCurrency: "USD",
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
+        incorporationDate: null,
         parentCompanyId: null,
         ownershipPercentage: null
       }
@@ -549,6 +553,7 @@ test.describe("Chart of Accounts Page", () => {
         reportingCurrency: "USD",
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
+        incorporationDate: null,
         parentCompanyId: null,
         ownershipPercentage: null
       }
@@ -737,6 +742,7 @@ test.describe("Chart of Accounts Page", () => {
         reportingCurrency: "USD",
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
+        incorporationDate: null,
         parentCompanyId: null,
         ownershipPercentage: null
       }
@@ -907,6 +913,7 @@ test.describe("Chart of Accounts Page", () => {
         reportingCurrency: "USD",
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
+        incorporationDate: null,
         parentCompanyId: null,
         ownershipPercentage: null
       }
@@ -1015,6 +1022,7 @@ test.describe("Chart of Accounts Page", () => {
         reportingCurrency: "USD",
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
+        incorporationDate: null,
         parentCompanyId: null,
         ownershipPercentage: null
       }
@@ -1122,6 +1130,7 @@ test.describe("Chart of Accounts Page", () => {
         reportingCurrency: "USD",
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
+        incorporationDate: null,
         parentCompanyId: null,
         ownershipPercentage: null
       }
@@ -1216,6 +1225,7 @@ test.describe("Chart of Accounts Page", () => {
         reportingCurrency: "USD",
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
+        incorporationDate: null,
         parentCompanyId: null,
         ownershipPercentage: null
       }
@@ -1389,6 +1399,7 @@ test.describe("Chart of Accounts Page", () => {
         reportingCurrency: "USD",
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
+        incorporationDate: null,
         parentCompanyId: null,
         ownershipPercentage: null
       }
@@ -1530,6 +1541,7 @@ test.describe("Chart of Accounts Page", () => {
         reportingCurrency: "USD",
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
+        incorporationDate: null,
         parentCompanyId: null,
         ownershipPercentage: null
       }
@@ -1675,6 +1687,7 @@ test.describe("Chart of Accounts Page", () => {
         reportingCurrency: "USD",
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
+        incorporationDate: null,
         parentCompanyId: null,
         ownershipPercentage: null
       }
@@ -1783,6 +1796,7 @@ test.describe("Chart of Accounts Page", () => {
         reportingCurrency: "USD",
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
+        incorporationDate: null,
         parentCompanyId: null,
         ownershipPercentage: null
       }

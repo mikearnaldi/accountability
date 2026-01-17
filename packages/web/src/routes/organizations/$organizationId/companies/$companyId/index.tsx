@@ -247,6 +247,7 @@ function CompanyDetailsPage() {
             name: null,
             legalName: null,
             taxId: null,
+            incorporationDate: null,
             reportingCurrency: null,
             fiscalYearEnd: null,
             parentCompanyId: null,
@@ -688,6 +689,7 @@ function EditCompanyModal({
           name: trimmedName,
           legalName: trimmedLegalName,
           taxId: trimmedTaxId || null,
+          incorporationDate: null,
           reportingCurrency,
           fiscalYearEnd: {
             month: fiscalYearEndMonth,

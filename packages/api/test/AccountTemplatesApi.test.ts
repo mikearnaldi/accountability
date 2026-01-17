@@ -98,12 +98,12 @@ const createTestCompanyViaApi = (httpClient: HttpClient.HttpClient, organization
         legalName: `Test Company Legal ${Date.now()}`,
         jurisdiction: "US",
         taxId: null,
+        incorporationDate: null,
         functionalCurrency: "USD",
         reportingCurrency: "USD",
         fiscalYearEnd: { month: 12, day: 31 },
         parentCompanyId: null,
-        ownershipPercentage: null,
-        consolidationMethod: null
+        ownershipPercentage: null
       }),
       httpClient.execute,
       Effect.scoped

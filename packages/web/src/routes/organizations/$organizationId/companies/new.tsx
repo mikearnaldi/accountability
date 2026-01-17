@@ -208,6 +208,13 @@ function NewCompanyPage() {
     setIsSubmitting(true)
     setApiError(null)
 
+    // Convert ISO date string to LocalDate object for API
+    let incorporationDate: { year: number; month: number; day: number } | null = null
+    if (formData.incorporationDate) {
+      const [year, month, day] = formData.incorporationDate.split("-").map(Number)
+      incorporationDate = { year, month, day }
+    }
+
     try {
       const { error } = await api.POST("/api/v1/companies", {
         body: {
@@ -216,6 +223,7 @@ function NewCompanyPage() {
           legalName: formData.legalName,
           jurisdiction: formData.jurisdiction,
           taxId: formData.taxId,
+          incorporationDate,
           functionalCurrency: formData.functionalCurrency,
           reportingCurrency: formData.reportingCurrency,
           fiscalYearEnd: formData.fiscalYearEnd,

@@ -840,6 +840,7 @@ test.describe("Organization Selection Flow", () => {
         legalName: "Test Company Inc.",
         jurisdiction: "US",
         taxId: null,
+        incorporationDate: null,
         functionalCurrency: "EUR",
         reportingCurrency: "EUR",
         fiscalYearEnd: { month: 12, day: 31 },

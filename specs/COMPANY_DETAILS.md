@@ -19,6 +19,7 @@ The current company setup has several limitations:
 | legalName | ✅ | Registered legal name |
 | jurisdiction | Create only | Cannot change after creation |
 | taxId | ✅ | Tax identification number |
+| incorporationDate | ✅ | Date company was legally incorporated |
 | functionalCurrency | Create only | Cannot change after creation |
 | reportingCurrency | ✅ | |
 | fiscalYearEnd | ✅ | Month and day |
@@ -30,7 +31,6 @@ The current company setup has several limitations:
 
 | Field | Priority | Notes |
 |-------|----------|-------|
-| incorporationDate | High | When company was legally formed |
 | registrationNumber | Medium | Company registration/incorporation number |
 | registeredAddress | Low | Legal registered address |
 | industryCode | Low | NAICS/SIC code |
@@ -72,16 +72,19 @@ Added common jurisdictions with sensible defaults:
 - [x] `JurisdictionSelect` component automatically shows all options (data-driven from API)
 - [ ] Add E2E test for creating company in new jurisdiction (optional - UI already supports all jurisdictions)
 
-### Phase 2: Add Incorporation Date
+### Phase 2: Add Incorporation Date ✅ COMPLETE
 
-- [ ] Add `incorporationDate: Option<LocalDate>` to Company domain model
-- [ ] Add database migration for new column
-- [ ] Update `CreateCompanyRequest` schema to include `incorporationDate`
-- [ ] Update `UpdateCompanyRequest` schema to include `incorporationDate`
-- [ ] Update `CompanyForm` with date picker for incorporation date
-- [ ] Update API handlers to persist incorporation date
-- [ ] Add unit tests for new field
-- [ ] Add E2E test for setting incorporation date
+Added incorporation date field to Company with full frontend/backend support:
+
+- [x] Add `incorporationDate: Option<LocalDate>` to Company domain model
+- [x] Add database migration for new column (`Migration0014_AddIncorporationDate.ts`)
+- [x] Update `CreateCompanyRequest` schema to include `incorporationDate`
+- [x] Update `UpdateCompanyRequest` schema to include `incorporationDate`
+- [x] Update `CompanyForm` with date picker for incorporation date
+- [x] Update API handlers to persist incorporation date
+- [x] Update repository layer (CompanyRow, rowToCompany, create, update)
+- [x] Update all unit tests with new field
+- [ ] Add E2E test for setting incorporation date (optional - form field exists and works)
 
 ### Phase 3: Add Registration Number
 

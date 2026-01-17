@@ -171,6 +171,7 @@ test.describe("Create Company Form", () => {
         reportingCurrency: "GBP",
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
+        incorporationDate: null,
         parentCompanyId: null,
         ownershipPercentage: null
       }
@@ -295,6 +296,7 @@ test.describe("Create Company Form", () => {
         reportingCurrency: "USD",
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
+        incorporationDate: null,
         parentCompanyId: null,
         ownershipPercentage: null
       }
@@ -496,6 +498,7 @@ test.describe("Create Company Form", () => {
         reportingCurrency: "USD",
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
+        incorporationDate: null,
         parentCompanyId: null,
         ownershipPercentage: null
       }

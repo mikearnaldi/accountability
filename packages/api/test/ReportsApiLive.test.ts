@@ -81,6 +81,7 @@ const createTestCompany = (): Company => {
     legalName: "Test Company Inc.",
     jurisdiction: JurisdictionCode.make("US"),
     taxId: Option.none(),
+    incorporationDate: Option.none(),
     functionalCurrency: testCurrency,
     reportingCurrency: testCurrency,
     fiscalYearEnd: FiscalYearEnd.make({ month: 12, day: 31 }),

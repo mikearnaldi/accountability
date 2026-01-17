@@ -14,6 +14,7 @@ import { JurisdictionCode } from "./JurisdictionCode.ts"
 import { Timestamp } from "./Timestamp.ts"
 import { Percentage } from "./Percentage.ts"
 import { OrganizationId } from "./Organization.ts"
+import { LocalDate } from "./LocalDate.ts"
 
 /**
  * CompanyId - Branded UUID string for company identification
@@ -173,6 +174,14 @@ export class Company extends Schema.Class<Company>("Company")({
   taxId: Schema.OptionFromNullOr(Schema.NonEmptyTrimmedString).annotations({
     title: "Tax ID",
     description: "Tax identification number (EIN, VAT number, etc.)"
+  }),
+
+  /**
+   * Date when the company was legally incorporated (optional)
+   */
+  incorporationDate: Schema.OptionFromNullOr(LocalDate).annotations({
+    title: "Incorporation Date",
+    description: "The date when the company was legally incorporated"
   }),
 
   /**
