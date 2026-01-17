@@ -68,6 +68,7 @@ test.describe("Apply Account Template", () => {
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
         incorporationDate: null,
+        registrationNumber: null,
         parentCompanyId: null,
         ownershipPercentage: null
       }
@@ -153,6 +154,7 @@ test.describe("Apply Account Template", () => {
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
         incorporationDate: null,
+        registrationNumber: null,
         parentCompanyId: null,
         ownershipPercentage: null
       }
@@ -261,6 +263,7 @@ test.describe("Apply Account Template", () => {
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
         incorporationDate: null,
+        registrationNumber: null,
         parentCompanyId: null,
         ownershipPercentage: null
       }
@@ -374,6 +377,7 @@ test.describe("Apply Account Template", () => {
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
         incorporationDate: null,
+        registrationNumber: null,
         parentCompanyId: null,
         ownershipPercentage: null
       }
@@ -497,6 +501,7 @@ test.describe("Apply Account Template", () => {
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
         incorporationDate: null,
+        registrationNumber: null,
         parentCompanyId: null,
         ownershipPercentage: null
       }
@@ -594,6 +599,7 @@ test.describe("Apply Account Template", () => {
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
         incorporationDate: null,
+        registrationNumber: null,
         parentCompanyId: null,
         ownershipPercentage: null
       }

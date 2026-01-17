@@ -66,6 +66,7 @@ test.describe("Journal Entry Past Dates", () => {
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
         incorporationDate: null,
+        registrationNumber: null,
         parentCompanyId: null,
         ownershipPercentage: null
       }
@@ -241,6 +242,7 @@ test.describe("Journal Entry Past Dates", () => {
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
         incorporationDate: null,
+        registrationNumber: null,
         parentCompanyId: null,
         ownershipPercentage: null
       }
@@ -390,6 +392,7 @@ test.describe("Journal Entry Past Dates", () => {
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
         incorporationDate: null,
+        registrationNumber: null,
         parentCompanyId: null,
         ownershipPercentage: null
       }
@@ -543,6 +546,7 @@ test.describe("Journal Entry Past Dates", () => {
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
         incorporationDate: null,
+        registrationNumber: null,
         parentCompanyId: null,
         ownershipPercentage: null
       }
@@ -696,6 +700,7 @@ test.describe("Journal Entry Past Dates", () => {
         fiscalYearEnd: { month: 6, day: 30 }, // Non-calendar fiscal year
         taxId: null,
         incorporationDate: null,
+        registrationNumber: null,
         parentCompanyId: null,
         ownershipPercentage: null
       }
@@ -853,6 +858,7 @@ test.describe("Journal Entry Past Dates", () => {
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
         incorporationDate: null,
+        registrationNumber: null,
         parentCompanyId: null,
         ownershipPercentage: null
       }

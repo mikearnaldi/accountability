@@ -34,6 +34,7 @@ const CompanyRow = Schema.Struct({
   jurisdiction: Schema.String,
   tax_id: Schema.NullOr(Schema.String),
   incorporation_date: Schema.NullOr(Schema.DateFromSelf),
+  registration_number: Schema.NullOr(Schema.String),
   functional_currency: Schema.String,
   reporting_currency: Schema.String,
   fiscal_year_end_month: Schema.Number,
@@ -71,6 +72,7 @@ const rowToCompany = (row: CompanyRow): Company =>
         day: d.getUTCDate()
       }))
     ),
+    registrationNumber: Option.fromNullable(row.registration_number),
     functionalCurrency: CurrencyCode.make(row.functional_currency),
     reportingCurrency: CurrencyCode.make(row.reporting_currency),
     fiscalYearEnd: FiscalYearEnd.make({
@@ -156,7 +158,7 @@ const make = Effect.gen(function* () {
       yield* sql`
         INSERT INTO companies (
           id, organization_id, name, legal_name, jurisdiction, tax_id,
-          incorporation_date, functional_currency, reporting_currency,
+          incorporation_date, registration_number, functional_currency, reporting_currency,
           fiscal_year_end_month, fiscal_year_end_day,
           parent_company_id, ownership_percentage, is_active, created_at
         ) VALUES (
@@ -167,6 +169,7 @@ const make = Effect.gen(function* () {
           ${company.jurisdiction},
           ${Option.getOrNull(company.taxId)},
           ${incorporationDateValue},
+          ${Option.getOrNull(company.registrationNumber)},
           ${company.functionalCurrency},
           ${company.reportingCurrency},
           ${company.fiscalYearEnd.month},
@@ -203,6 +206,7 @@ const make = Effect.gen(function* () {
           jurisdiction = ${company.jurisdiction},
           tax_id = ${Option.getOrNull(company.taxId)},
           incorporation_date = ${incorporationDateValue},
+          registration_number = ${Option.getOrNull(company.registrationNumber)},
           functional_currency = ${company.functionalCurrency},
           reporting_currency = ${company.reportingCurrency},
           fiscal_year_end_month = ${company.fiscalYearEnd.month},

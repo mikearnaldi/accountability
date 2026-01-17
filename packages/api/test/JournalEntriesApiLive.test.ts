@@ -60,6 +60,7 @@ const createTestCompany = (overrides: Partial<{
     jurisdiction: JurisdictionCode.make("US"),
     taxId: Option.none(),
     incorporationDate: Option.none(),
+    registrationNumber: Option.none(),
     functionalCurrency: CurrencyCode.make(functionalCurrency),
     reportingCurrency: CurrencyCode.make("USD"),
     fiscalYearEnd: FiscalYearEnd.make({ month: 12, day: 31 }),

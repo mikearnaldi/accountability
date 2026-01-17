@@ -149,6 +149,7 @@ test.describe("Audit Log Module", () => {
           fiscalYearEnd: { month: 12, day: 31 },
           taxId: null,
         incorporationDate: null,
+        registrationNumber: null,
           parentCompanyId: null,
           ownershipPercentage: null
         }

@@ -185,6 +185,15 @@ export class Company extends Schema.Class<Company>("Company")({
   }),
 
   /**
+   * Company registration/incorporation number (optional)
+   * Format varies by jurisdiction (e.g., EIN in US, Companies House number in UK)
+   */
+  registrationNumber: Schema.OptionFromNullOr(Schema.NonEmptyTrimmedString).annotations({
+    title: "Registration Number",
+    description: "Company registration or incorporation number for the jurisdiction"
+  }),
+
+  /**
    * Functional currency per ASC 830
    * The currency of the primary economic environment in which the entity operates
    */

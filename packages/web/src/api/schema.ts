@@ -2262,6 +2262,16 @@ export interface components {
              * @description Tax identification number (EIN, VAT number, etc.)
              */
             taxId: components["schemas"]["NonEmptyTrimmedString"] | null;
+            /**
+             * Incorporation Date
+             * @description The date when the company was legally incorporated
+             */
+            incorporationDate: components["schemas"]["LocalDate"] | null;
+            /**
+             * Registration Number
+             * @description Company registration or incorporation number for the jurisdiction
+             */
+            registrationNumber: components["schemas"]["NonEmptyTrimmedString"] | null;
             functionalCurrency: components["schemas"]["CurrencyCode"];
             reportingCurrency: components["schemas"]["CurrencyCode"];
             fiscalYearEnd: components["schemas"]["FiscalYearEnd"];
@@ -2287,6 +2297,23 @@ export interface components {
          * @description An ISO 3166-1 alpha-2 country code (2 uppercase letters)
          */
         JurisdictionCode: string;
+        LocalDate: {
+            /**
+             * lessThanOrEqualTo(9999)
+             * @description a number less than or equal to 9999
+             */
+            year: number;
+            /**
+             * lessThanOrEqualTo(12)
+             * @description a number less than or equal to 12
+             */
+            month: number;
+            /**
+             * lessThanOrEqualTo(31)
+             * @description a number less than or equal to 31
+             */
+            day: number;
+        };
         FiscalYearEnd: {
             /**
              * lessThanOrEqualTo(12)
@@ -2310,6 +2337,8 @@ export interface components {
             legalName: components["schemas"]["NonEmptyTrimmedString"];
             jurisdiction: components["schemas"]["JurisdictionCode"];
             taxId: components["schemas"]["NonEmptyTrimmedString"] | null;
+            incorporationDate: components["schemas"]["LocalDate"] | null;
+            registrationNumber: components["schemas"]["NonEmptyTrimmedString"] | null;
             functionalCurrency: components["schemas"]["CurrencyCode"];
             reportingCurrency: components["schemas"]["CurrencyCode"];
             fiscalYearEnd: components["schemas"]["FiscalYearEnd"];
@@ -2320,6 +2349,8 @@ export interface components {
             name: components["schemas"]["NonEmptyTrimmedString"] | null;
             legalName: components["schemas"]["NonEmptyTrimmedString"] | null;
             taxId: components["schemas"]["NonEmptyTrimmedString"] | null;
+            incorporationDate: components["schemas"]["LocalDate"] | null;
+            registrationNumber: components["schemas"]["NonEmptyTrimmedString"] | null;
             reportingCurrency: components["schemas"]["CurrencyCode"] | null;
             fiscalYearEnd: components["schemas"]["FiscalYearEnd"] | null;
             parentCompanyId: components["schemas"]["CompanyId"] | null;
@@ -2452,23 +2483,6 @@ export interface components {
          * @description Sequential entry number for tracking (e.g., 'JE-2025-00001')
          */
         EntryNumber: string;
-        LocalDate: {
-            /**
-             * lessThanOrEqualTo(9999)
-             * @description a number less than or equal to 9999
-             */
-            year: number;
-            /**
-             * lessThanOrEqualTo(12)
-             * @description a number less than or equal to 12
-             */
-            month: number;
-            /**
-             * lessThanOrEqualTo(31)
-             * @description a number less than or equal to 31
-             */
-            day: number;
-        };
         FiscalPeriodRef: {
             /**
              * lessThanOrEqualTo(2999)
@@ -3130,7 +3144,7 @@ export interface components {
             id: components["schemas"]["ConsolidationRunId"];
             groupId: components["schemas"]["ConsolidationGroupId"];
             periodRef: components["schemas"]["FiscalPeriodRef"];
-            asOfDate: components["schemas"]["LocalDate"];
+            asOfDate: components["schemas"]["LocalDateFromString"];
             status: components["schemas"]["ConsolidationRunStatus"];
             steps: components["schemas"]["ConsolidationStep"][];
             validationResult: components["schemas"]["ValidationResult"] | null;

@@ -20,6 +20,7 @@ The current company setup has several limitations:
 | jurisdiction | Create only | Cannot change after creation |
 | taxId | ✅ | Tax identification number |
 | incorporationDate | ✅ | Date company was legally incorporated |
+| registrationNumber | ✅ | Company registration/incorporation number |
 | functionalCurrency | Create only | Cannot change after creation |
 | reportingCurrency | ✅ | |
 | fiscalYearEnd | ✅ | Month and day |
@@ -27,13 +28,13 @@ The current company setup has several limitations:
 | ownershipPercentage | ✅ | Required if parent is set |
 | isActive | Via deactivate | Cannot directly edit |
 
-### Missing Fields
+### Missing Fields (Lower Priority)
 
 | Field | Priority | Notes |
 |-------|----------|-------|
-| registrationNumber | Medium | Company registration/incorporation number |
 | registeredAddress | Low | Legal registered address |
 | industryCode | Low | NAICS/SIC code |
+| companyType | Low | Corporation, LLC, Partnership, etc. |
 
 ### Jurisdiction Limitations
 
@@ -86,14 +87,21 @@ Added incorporation date field to Company with full frontend/backend support:
 - [x] Update all unit tests with new field
 - [ ] Add E2E test for setting incorporation date (optional - form field exists and works)
 
-### Phase 3: Add Registration Number
+### Phase 3: Add Registration Number ✅ COMPLETE
 
-- [ ] Add `registrationNumber: Option<NonEmptyTrimmedString>` to Company domain model
-- [ ] Add database migration for new column
-- [ ] Update API schemas
-- [ ] Update `CompanyForm` with input field
-- [ ] Add validation (format varies by jurisdiction)
-- [ ] Add tests
+Added registration number field to Company with full frontend/backend support:
+
+- [x] Add `registrationNumber: Option<NonEmptyTrimmedString>` to Company domain model
+- [x] Add database migration for new column (`Migration0015_AddRegistrationNumber.ts`)
+- [x] Update `CreateCompanyRequest` schema to include `registrationNumber`
+- [x] Update `UpdateCompanyRequest` schema to include `registrationNumber`
+- [x] Update `CompanyForm` with registration number input field
+- [x] Update `EditCompanyModal` with registration number input field
+- [x] Update API handlers (CompaniesApiLive) to persist registration number
+- [x] Update repository layer (CompanyRow, rowToCompany, create, update)
+- [x] Generate new API client with updated schema
+- [x] Update all unit tests with new field
+- [ ] Add E2E test for setting registration number (optional - form field exists and works)
 
 ### Phase 4: Improve Subsidiary Setup UX
 

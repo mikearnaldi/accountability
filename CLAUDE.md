@@ -46,6 +46,14 @@ Accountability is a multi-company, multi-currency accounting application using:
 **Data flow**: Frontend → API → Service → Repository → Database
 **All layers must be consistent.**
 
+## 🚫 NEVER RUN DOCKER
+
+**NEVER run docker commands.** The database and infrastructure are managed externally. Tests use testcontainers which handle their own containers automatically. Do not run:
+- `docker run`
+- `docker compose`
+- `docker-compose`
+- Any docker-related commands
+
 ## Project Structure
 
 ```

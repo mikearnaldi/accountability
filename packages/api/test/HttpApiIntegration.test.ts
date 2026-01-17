@@ -457,6 +457,7 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
               jurisdiction: "US",
               taxId: null,
               incorporationDate: null,
+              registrationNumber: null,
               functionalCurrency: "USD",
               reportingCurrency: "USD",
               fiscalYearEnd: { month: 12, day: 31 },

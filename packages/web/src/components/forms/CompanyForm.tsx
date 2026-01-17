@@ -49,6 +49,7 @@ export interface CompanyFormData {
   readonly jurisdiction: string
   readonly taxId: string | null
   readonly incorporationDate: string | null // ISO date string YYYY-MM-DD
+  readonly registrationNumber: string | null
   readonly functionalCurrency: string
   readonly reportingCurrency: string
   readonly fiscalYearEnd: {
@@ -117,6 +118,7 @@ export function CompanyForm({
   const [jurisdiction, setJurisdiction] = useState("")
   const [taxId, setTaxId] = useState("")
   const [incorporationDate, setIncorporationDate] = useState("")
+  const [registrationNumber, setRegistrationNumber] = useState("")
 
   // Currency section
   const [functionalCurrency, setFunctionalCurrency] = useState(defaultCurrency)
@@ -301,6 +303,7 @@ export function CompanyForm({
       jurisdiction,
       taxId: taxId.trim() || null,
       incorporationDate: incorporationDate.trim() || null,
+      registrationNumber: registrationNumber.trim() || null,
       functionalCurrency,
       reportingCurrency,
       fiscalYearEnd: {
@@ -414,6 +417,19 @@ export function CompanyForm({
           disabled={isSubmitting}
           helperText="Date when the company was legally incorporated"
           data-testid="company-incorporation-date-input"
+        />
+
+        {/* Registration Number (optional) */}
+        <Input
+          id="company-registration-number"
+          label="Registration Number (optional)"
+          type="text"
+          value={registrationNumber}
+          onChange={(e) => setRegistrationNumber(e.target.value)}
+          disabled={isSubmitting}
+          placeholder="e.g. 12345678"
+          helperText="Company registration or incorporation number for this jurisdiction"
+          data-testid="company-registration-number-input"
         />
       </fieldset>
 

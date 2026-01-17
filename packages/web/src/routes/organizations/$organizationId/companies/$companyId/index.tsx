@@ -144,6 +144,7 @@ interface Company {
   readonly legalName: string
   readonly jurisdiction: string
   readonly taxId: string | null
+  readonly registrationNumber: string | null
   readonly functionalCurrency: string
   readonly reportingCurrency: string
   readonly fiscalYearEnd: {
@@ -248,6 +249,7 @@ function CompanyDetailsPage() {
             legalName: null,
             taxId: null,
             incorporationDate: null,
+            registrationNumber: null,
             reportingCurrency: null,
             fiscalYearEnd: null,
             parentCompanyId: null,
@@ -654,6 +656,7 @@ function EditCompanyModal({
   const [name, setName] = useState(company.name)
   const [legalName, setLegalName] = useState(company.legalName)
   const [taxId, setTaxId] = useState(company.taxId ?? "")
+  const [registrationNumber, setRegistrationNumber] = useState(company.registrationNumber ?? "")
   const [reportingCurrency, setReportingCurrency] = useState(company.reportingCurrency)
   const [fiscalYearEndMonth, setFiscalYearEndMonth] = useState(company.fiscalYearEnd.month)
   const [fiscalYearEndDay, setFiscalYearEndDay] = useState(company.fiscalYearEnd.day)
@@ -669,6 +672,7 @@ function EditCompanyModal({
     const trimmedName = name.trim()
     const trimmedLegalName = legalName.trim()
     const trimmedTaxId = taxId.trim()
+    const trimmedRegistrationNumber = registrationNumber.trim()
 
     if (!trimmedName) {
       setError("Company name is required")
@@ -690,6 +694,7 @@ function EditCompanyModal({
           legalName: trimmedLegalName,
           taxId: trimmedTaxId || null,
           incorporationDate: null,
+          registrationNumber: trimmedRegistrationNumber || null,
           reportingCurrency,
           fiscalYearEnd: {
             month: fiscalYearEndMonth,
@@ -770,6 +775,18 @@ function EditCompanyModal({
             disabled={isSubmitting}
             placeholder="EIN, VAT number, etc."
             data-testid="edit-company-tax-id-input"
+          />
+
+          {/* Registration Number Field */}
+          <Input
+            id="edit-company-registration-number"
+            label="Registration Number (optional)"
+            type="text"
+            value={registrationNumber}
+            onChange={(e) => setRegistrationNumber(e.target.value)}
+            disabled={isSubmitting}
+            placeholder="Company registration number"
+            data-testid="edit-company-registration-number-input"
           />
 
           {/* Functional Currency Field (Read-only - ASC 830) */}

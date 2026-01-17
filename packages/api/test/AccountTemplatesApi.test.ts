@@ -99,6 +99,7 @@ const createTestCompanyViaApi = (httpClient: HttpClient.HttpClient, organization
         jurisdiction: "US",
         taxId: null,
         incorporationDate: null,
+        registrationNumber: null,
         functionalCurrency: "USD",
         reportingCurrency: "USD",
         fiscalYearEnd: { month: 12, day: 31 },

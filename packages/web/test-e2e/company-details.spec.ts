@@ -84,6 +84,7 @@ test.describe("Company Details Page", () => {
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: "12-3456789",
         incorporationDate: null,
+        registrationNumber: null,
         parentCompanyId: null,
         ownershipPercentage: null
       }
@@ -199,6 +200,7 @@ test.describe("Company Details Page", () => {
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
         incorporationDate: null,
+        registrationNumber: null,
         parentCompanyId: null,
         ownershipPercentage: null
       }
@@ -294,6 +296,7 @@ test.describe("Company Details Page", () => {
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
         incorporationDate: null,
+        registrationNumber: null,
         parentCompanyId: null,
         ownershipPercentage: null
       }
@@ -420,6 +423,7 @@ test.describe("Company Details Page", () => {
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
         incorporationDate: null,
+        registrationNumber: null,
         parentCompanyId: null,
         ownershipPercentage: null
       }
@@ -522,6 +526,7 @@ test.describe("Company Details Page", () => {
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
         incorporationDate: null,
+        registrationNumber: null,
         parentCompanyId: null,
         ownershipPercentage: null
       }
@@ -612,6 +617,7 @@ test.describe("Company Details Page", () => {
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
         incorporationDate: null,
+        registrationNumber: null,
         parentCompanyId: null,
         ownershipPercentage: null
       }
@@ -773,6 +779,7 @@ test.describe("Company Details Page", () => {
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
         incorporationDate: null,
+        registrationNumber: null,
         parentCompanyId: null,
         ownershipPercentage: null
       }
@@ -859,6 +866,7 @@ test.describe("Company Details Page", () => {
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
         incorporationDate: null,
+        registrationNumber: null,
         parentCompanyId: null,
         ownershipPercentage: null
       }
@@ -951,6 +959,7 @@ test.describe("Company Details Page", () => {
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
         incorporationDate: null,
+        registrationNumber: null,
         parentCompanyId: null,
         ownershipPercentage: null
       }
@@ -1046,6 +1055,7 @@ test.describe("Company Details Page", () => {
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
         incorporationDate: null,
+        registrationNumber: null,
         parentCompanyId: null,
         ownershipPercentage: null
       }
@@ -1067,6 +1077,7 @@ test.describe("Company Details Page", () => {
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
         incorporationDate: null,
+        registrationNumber: null,
         parentCompanyId: parentData.id,
         ownershipPercentage: 80
       }
@@ -1159,6 +1170,7 @@ test.describe("Company Details Page", () => {
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
         incorporationDate: null,
+        registrationNumber: null,
         parentCompanyId: null,
         ownershipPercentage: null
       }
@@ -1180,6 +1192,7 @@ test.describe("Company Details Page", () => {
         fiscalYearEnd: { month: 12, day: 31 },
         taxId: null,
         incorporationDate: null,
+        registrationNumber: null,
         parentCompanyId: parentData.id,
         ownershipPercentage: 100
       }
@@ -1200,6 +1213,7 @@ test.describe("Company Details Page", () => {
         fiscalYearEnd: { month: 3, day: 31 },
         taxId: null,
         incorporationDate: null,
+        registrationNumber: null,
         parentCompanyId: parentData.id,
         ownershipPercentage: 60
       }

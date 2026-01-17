@@ -250,6 +250,7 @@ function CompaniesListPage() {
           jurisdiction: formData.jurisdiction,
           taxId: formData.taxId,
           incorporationDate,
+          registrationNumber: formData.registrationNumber,
           functionalCurrency: formData.functionalCurrency,
           reportingCurrency: formData.reportingCurrency,
           fiscalYearEnd: formData.fiscalYearEnd,
