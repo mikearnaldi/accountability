@@ -174,7 +174,11 @@ test.describe("Create Company Form", () => {
         incorporationDate: null,
         registrationNumber: null,
         parentCompanyId: null,
-        ownershipPercentage: null
+        ownershipPercentage: null,
+        registeredAddress: null,
+        industryCode: null,
+        companyType: null,
+        incorporationJurisdiction: null
       }
     })
     expect(createParentRes.ok()).toBeTruthy()
@@ -300,7 +304,11 @@ test.describe("Create Company Form", () => {
         incorporationDate: null,
         registrationNumber: null,
         parentCompanyId: null,
-        ownershipPercentage: null
+        ownershipPercentage: null,
+        registeredAddress: null,
+        industryCode: null,
+        companyType: null,
+        incorporationJurisdiction: null
       }
     })
     expect(createParentRes.ok()).toBeTruthy()
@@ -503,7 +511,11 @@ test.describe("Create Company Form", () => {
         incorporationDate: null,
         registrationNumber: null,
         parentCompanyId: null,
-        ownershipPercentage: null
+        ownershipPercentage: null,
+        registeredAddress: null,
+        industryCode: null,
+        companyType: null,
+        incorporationJurisdiction: null
       }
     })
     expect(createParentRes.ok()).toBeTruthy()

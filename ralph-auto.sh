@@ -104,16 +104,44 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Cleanup function - removes output directory on exit
+# Track child processes for cleanup
+CHILD_PIDS=""
+
+# Cleanup function - kills children and removes output directory
 cleanup() {
+    # Kill any tracked child processes
+    if [ -n "$CHILD_PIDS" ]; then
+        for pid in $CHILD_PIDS; do
+            if kill -0 "$pid" 2>/dev/null; then
+                kill -TERM "$pid" 2>/dev/null || true
+                sleep 0.5
+                if kill -0 "$pid" 2>/dev/null; then
+                    kill -9 "$pid" 2>/dev/null || true
+                fi
+            fi
+        done
+    fi
+
+    # Also kill any child processes of this script
+    pkill -P $$ 2>/dev/null || true
+
     if [ -d "$OUTPUT_DIR" ]; then
         rm -rf "$OUTPUT_DIR"
         echo -e "${BLUE}[$(date '+%Y-%m-%d %H:%M:%S')]${NC} Cleaned up $OUTPUT_DIR"
     fi
 }
 
-# Set trap to clean up on exit (normal exit, errors, or signals)
+# Signal handler for graceful shutdown
+handle_signal() {
+    echo ""
+    echo -e "${YELLOW}[$(date '+%Y-%m-%d %H:%M:%S')]${NC} Received interrupt signal, shutting down..."
+    cleanup
+    exit 130
+}
+
+# Set traps for cleanup on exit and signals
 trap cleanup EXIT
+trap handle_signal INT TERM
 
 # Create output directory for logs
 mkdir -p "$OUTPUT_DIR"
@@ -423,7 +451,9 @@ build_prompt() {
     if [ -f "$OUTPUT_DIR/ci_errors.txt" ]; then
         ci_errors="## Previous Iteration Errors
 
-$(cat "$OUTPUT_DIR/ci_errors.txt")
+**CI checks failed in the previous iteration. You MUST fix these errors.**
+
+Read the error details from: \`$OUTPUT_DIR/ci_errors.txt\`
 "
     fi
 
@@ -503,13 +533,31 @@ run_iteration() {
     echo ""  # Blank line before agent output
 
     # Use stream-json for real-time output, filter for readability
-    if cat "$prompt_file" | $AGENT_CMD --print --output-format stream-json 2>&1 | tee "$output_file" | stream_filter; then
+    # Run in subshell and track PID for cleanup on Ctrl+C
+    local agent_exit_code=0
+    (
+        cat "$prompt_file" | $AGENT_CMD --print --output-format stream-json 2>&1 | tee "$output_file" | stream_filter
+    ) &
+    local agent_pid=$!
+    CHILD_PIDS="$CHILD_PIDS $agent_pid"
+
+    # Wait for the agent to complete
+    if wait $agent_pid; then
         echo ""  # Blank line after agent output
         log "SUCCESS" "Agent completed iteration $iteration"
     else
+        agent_exit_code=$?
         echo ""
-        log "WARN" "Agent exited with non-zero status"
+        if [ $agent_exit_code -eq 130 ] || [ $agent_exit_code -eq 143 ]; then
+            log "INFO" "Agent interrupted by user"
+            CHILD_PIDS="${CHILD_PIDS/ $agent_pid/}"
+            return 1
+        fi
+        log "WARN" "Agent exited with non-zero status ($agent_exit_code)"
     fi
+
+    # Remove from tracked PIDs
+    CHILD_PIDS="${CHILD_PIDS/ $agent_pid/}"
 
     # Extract only assistant text content from stream-json (excludes prompt)
     local assistant_text

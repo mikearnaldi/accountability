@@ -8,11 +8,13 @@
 
 import { HttpApiEndpoint, HttpApiGroup, HttpApiSchema, OpenApi } from "@effect/platform"
 import * as Schema from "effect/Schema"
+import { Address } from "@accountability/core/Domains/Address"
 import {
   Company,
   CompanyId,
   FiscalYearEnd
 } from "@accountability/core/Domains/Company"
+import { CompanyType } from "@accountability/core/Domains/CompanyType"
 import { LocalDate } from "@accountability/core/Domains/LocalDate"
 import { Organization, OrganizationId, OrganizationSettings } from "@accountability/core/Domains/Organization"
 import { CurrencyCode } from "@accountability/core/Domains/CurrencyCode"
@@ -71,6 +73,10 @@ export class CreateCompanyRequest extends Schema.Class<CreateCompanyRequest>("Cr
   taxId: Schema.OptionFromNullOr(Schema.NonEmptyTrimmedString),
   incorporationDate: Schema.OptionFromNullOr(LocalDate),
   registrationNumber: Schema.OptionFromNullOr(Schema.NonEmptyTrimmedString),
+  registeredAddress: Schema.OptionFromNullOr(Address),
+  industryCode: Schema.OptionFromNullOr(Schema.NonEmptyTrimmedString),
+  companyType: Schema.OptionFromNullOr(CompanyType),
+  incorporationJurisdiction: Schema.OptionFromNullOr(JurisdictionCode),
   functionalCurrency: CurrencyCode,
   reportingCurrency: CurrencyCode,
   fiscalYearEnd: FiscalYearEnd,
@@ -87,6 +93,10 @@ export class UpdateCompanyRequest extends Schema.Class<UpdateCompanyRequest>("Up
   taxId: Schema.OptionFromNullOr(Schema.NonEmptyTrimmedString),
   incorporationDate: Schema.OptionFromNullOr(LocalDate),
   registrationNumber: Schema.OptionFromNullOr(Schema.NonEmptyTrimmedString),
+  registeredAddress: Schema.OptionFromNullOr(Address),
+  industryCode: Schema.OptionFromNullOr(Schema.NonEmptyTrimmedString),
+  companyType: Schema.OptionFromNullOr(CompanyType),
+  incorporationJurisdiction: Schema.OptionFromNullOr(JurisdictionCode),
   reportingCurrency: Schema.OptionFromNullOr(CurrencyCode),
   fiscalYearEnd: Schema.OptionFromNullOr(FiscalYearEnd),
   parentCompanyId: Schema.OptionFromNullOr(CompanyId),

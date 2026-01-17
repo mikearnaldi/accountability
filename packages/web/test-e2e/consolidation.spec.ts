@@ -154,7 +154,11 @@ test.describe("Consolidation Module", () => {
         incorporationDate: null,
         registrationNumber: null,
           parentCompanyId: null,
-          ownershipPercentage: null
+          ownershipPercentage: null,
+        registeredAddress: null,
+        industryCode: null,
+        companyType: null,
+        incorporationJurisdiction: null
         }
       })
       expect(createParentRes.ok()).toBeTruthy()
@@ -172,10 +176,14 @@ test.describe("Consolidation Module", () => {
           reportingCurrency: "USD",
           fiscalYearEnd: { month: 12, day: 31 },
           taxId: null,
-        incorporationDate: null,
-        registrationNumber: null,
+          incorporationDate: null,
+          registrationNumber: null,
           parentCompanyId: parentData.id,
-          ownershipPercentage: 80
+          ownershipPercentage: 80,
+          registeredAddress: null,
+          industryCode: null,
+          companyType: null,
+          incorporationJurisdiction: null
         }
       })
       expect(createSubRes.ok()).toBeTruthy()
@@ -299,7 +307,11 @@ test.describe("Consolidation Module", () => {
         incorporationDate: null,
         registrationNumber: null,
           parentCompanyId: null,
-          ownershipPercentage: null
+          ownershipPercentage: null,
+        registeredAddress: null,
+        industryCode: null,
+        companyType: null,
+        incorporationJurisdiction: null
         }
       })
       expect(createParentRes.ok()).toBeTruthy()
@@ -451,7 +463,11 @@ test.describe("Consolidation Module", () => {
         incorporationDate: null,
         registrationNumber: null,
           parentCompanyId: null,
-          ownershipPercentage: null
+          ownershipPercentage: null,
+        registeredAddress: null,
+        industryCode: null,
+        companyType: null,
+        incorporationJurisdiction: null
         }
       })
       expect(createParentRes.ok()).toBeTruthy()
@@ -470,10 +486,14 @@ test.describe("Consolidation Module", () => {
           reportingCurrency: "USD",
           fiscalYearEnd: { month: 12, day: 31 },
           taxId: null,
-        incorporationDate: null,
-        registrationNumber: null,
+          incorporationDate: null,
+          registrationNumber: null,
           parentCompanyId: parentData.id,
-          ownershipPercentage: 75
+          ownershipPercentage: 75,
+          registeredAddress: null,
+          industryCode: null,
+          companyType: null,
+          incorporationJurisdiction: null
         }
       })
       expect(createSubRes.ok()).toBeTruthy()
@@ -680,7 +700,11 @@ test.describe("Consolidation Module", () => {
         incorporationDate: null,
         registrationNumber: null,
           parentCompanyId: null,
-          ownershipPercentage: null
+          ownershipPercentage: null,
+        registeredAddress: null,
+        industryCode: null,
+        companyType: null,
+        incorporationJurisdiction: null
         }
       })
       expect(createParentRes.ok()).toBeTruthy()
@@ -699,10 +723,14 @@ test.describe("Consolidation Module", () => {
           reportingCurrency: "USD",
           fiscalYearEnd: { month: 12, day: 31 },
           taxId: null,
-        incorporationDate: null,
-        registrationNumber: null,
+          incorporationDate: null,
+          registrationNumber: null,
           parentCompanyId: parentData.id,
-          ownershipPercentage: 60
+          ownershipPercentage: 60,
+          registeredAddress: null,
+          industryCode: null,
+          companyType: null,
+          incorporationJurisdiction: null
         }
       })
       expect(createSubRes.ok()).toBeTruthy()
@@ -834,7 +862,11 @@ test.describe("Consolidation Module", () => {
         incorporationDate: null,
         registrationNumber: null,
           parentCompanyId: null,
-          ownershipPercentage: null
+          ownershipPercentage: null,
+        registeredAddress: null,
+        industryCode: null,
+        companyType: null,
+        incorporationJurisdiction: null
         }
       })
       expect(createParentRes.ok()).toBeTruthy()
@@ -962,7 +994,11 @@ test.describe("Consolidation Module", () => {
         incorporationDate: null,
         registrationNumber: null,
           parentCompanyId: null,
-          ownershipPercentage: null
+          ownershipPercentage: null,
+        registeredAddress: null,
+        industryCode: null,
+        companyType: null,
+        incorporationJurisdiction: null
         }
       })
       expect(createParentRes.ok()).toBeTruthy()
@@ -1074,7 +1110,11 @@ test.describe("Consolidation Module", () => {
         incorporationDate: null,
         registrationNumber: null,
           parentCompanyId: null,
-          ownershipPercentage: null
+          ownershipPercentage: null,
+        registeredAddress: null,
+        industryCode: null,
+        companyType: null,
+        incorporationJurisdiction: null
         }
       })
       expect(createParentRes.ok()).toBeTruthy()
@@ -1174,7 +1214,11 @@ test.describe("Consolidation Module", () => {
         incorporationDate: null,
         registrationNumber: null,
           parentCompanyId: null,
-          ownershipPercentage: null
+          ownershipPercentage: null,
+        registeredAddress: null,
+        industryCode: null,
+        companyType: null,
+        incorporationJurisdiction: null
         }
       })
       expect(createParentRes.ok()).toBeTruthy()
@@ -1302,7 +1346,11 @@ test.describe("Consolidation Module", () => {
         incorporationDate: null,
         registrationNumber: null,
           parentCompanyId: null,
-          ownershipPercentage: null
+          ownershipPercentage: null,
+        registeredAddress: null,
+        industryCode: null,
+        companyType: null,
+        incorporationJurisdiction: null
         }
       })
       expect(createParentRes.ok()).toBeTruthy()

@@ -2272,6 +2272,26 @@ export interface components {
              * @description Company registration or incorporation number for the jurisdiction
              */
             registrationNumber: components["schemas"]["NonEmptyTrimmedString"] | null;
+            /**
+             * Registered Address
+             * @description Official legal address where the company is registered
+             */
+            registeredAddress: components["schemas"]["Address"] | null;
+            /**
+             * Industry Code
+             * @description NAICS or SIC industry classification code
+             */
+            industryCode: components["schemas"]["NonEmptyTrimmedString"] | null;
+            /**
+             * Company Type
+             * @description Legal structure of the company (Corporation, LLC, etc.)
+             */
+            companyType: components["schemas"]["CompanyType"] | null;
+            /**
+             * Incorporation Jurisdiction
+             * @description Jurisdiction where the company was legally incorporated (if different from operating jurisdiction)
+             */
+            incorporationJurisdiction: components["schemas"]["JurisdictionCode"] | null;
             functionalCurrency: components["schemas"]["CurrencyCode"];
             reportingCurrency: components["schemas"]["CurrencyCode"];
             fiscalYearEnd: components["schemas"]["FiscalYearEnd"];
@@ -2314,6 +2334,44 @@ export interface components {
              */
             day: number;
         };
+        Address: {
+            /**
+             * Street Address Line 1
+             * @description Primary street address
+             */
+            street1: components["schemas"]["NonEmptyTrimmedString"] | null;
+            /**
+             * Street Address Line 2
+             * @description Secondary street address (apartment, suite, etc.)
+             */
+            street2: components["schemas"]["NonEmptyTrimmedString"] | null;
+            /**
+             * City
+             * @description City or locality
+             */
+            city: components["schemas"]["NonEmptyTrimmedString"] | null;
+            /**
+             * State/Province
+             * @description State, province, or region
+             */
+            state: components["schemas"]["NonEmptyTrimmedString"] | null;
+            /**
+             * Postal Code
+             * @description Postal or ZIP code
+             */
+            postalCode: components["schemas"]["NonEmptyTrimmedString"] | null;
+            /**
+             * Country
+             * @description Country (ISO 3166-1 alpha-2 code or full name)
+             */
+            country: components["schemas"]["NonEmptyTrimmedString"] | null;
+        };
+        /**
+         * Company Type
+         * @description The legal structure of the company
+         * @enum {string}
+         */
+        CompanyType: "Corporation" | "LLC" | "Partnership" | "SoleProprietorship" | "NonProfit" | "Cooperative" | "Branch" | "Other";
         FiscalYearEnd: {
             /**
              * lessThanOrEqualTo(12)
@@ -2339,6 +2397,10 @@ export interface components {
             taxId: components["schemas"]["NonEmptyTrimmedString"] | null;
             incorporationDate: components["schemas"]["LocalDate"] | null;
             registrationNumber: components["schemas"]["NonEmptyTrimmedString"] | null;
+            registeredAddress: components["schemas"]["Address"] | null;
+            industryCode: components["schemas"]["NonEmptyTrimmedString"] | null;
+            companyType: components["schemas"]["CompanyType"] | null;
+            incorporationJurisdiction: components["schemas"]["JurisdictionCode"] | null;
             functionalCurrency: components["schemas"]["CurrencyCode"];
             reportingCurrency: components["schemas"]["CurrencyCode"];
             fiscalYearEnd: components["schemas"]["FiscalYearEnd"];
@@ -2351,6 +2413,10 @@ export interface components {
             taxId: components["schemas"]["NonEmptyTrimmedString"] | null;
             incorporationDate: components["schemas"]["LocalDate"] | null;
             registrationNumber: components["schemas"]["NonEmptyTrimmedString"] | null;
+            registeredAddress: components["schemas"]["Address"] | null;
+            industryCode: components["schemas"]["NonEmptyTrimmedString"] | null;
+            companyType: components["schemas"]["CompanyType"] | null;
+            incorporationJurisdiction: components["schemas"]["JurisdictionCode"] | null;
             reportingCurrency: components["schemas"]["CurrencyCode"] | null;
             fiscalYearEnd: components["schemas"]["FiscalYearEnd"] | null;
             parentCompanyId: components["schemas"]["CompanyId"] | null;

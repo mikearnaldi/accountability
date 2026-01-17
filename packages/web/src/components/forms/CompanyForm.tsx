@@ -43,6 +43,15 @@ export interface ParentCompanyOption {
   readonly name: string
 }
 
+export interface AddressFormData {
+  readonly street1: string | null
+  readonly street2: string | null
+  readonly city: string | null
+  readonly state: string | null
+  readonly postalCode: string | null
+  readonly country: string | null
+}
+
 export interface CompanyFormData {
   readonly name: string
   readonly legalName: string
@@ -50,6 +59,10 @@ export interface CompanyFormData {
   readonly taxId: string | null
   readonly incorporationDate: string | null // ISO date string YYYY-MM-DD
   readonly registrationNumber: string | null
+  readonly registeredAddress: AddressFormData | null
+  readonly industryCode: string | null
+  readonly companyType: string | null
+  readonly incorporationJurisdiction: string | null
   readonly functionalCurrency: string
   readonly reportingCurrency: string
   readonly fiscalYearEnd: {
@@ -119,6 +132,17 @@ export function CompanyForm({
   const [taxId, setTaxId] = useState("")
   const [incorporationDate, setIncorporationDate] = useState("")
   const [registrationNumber, setRegistrationNumber] = useState("")
+
+  // Optional details section
+  const [addressStreet1, setAddressStreet1] = useState("")
+  const [addressStreet2, setAddressStreet2] = useState("")
+  const [addressCity, setAddressCity] = useState("")
+  const [addressState, setAddressState] = useState("")
+  const [addressPostalCode, setAddressPostalCode] = useState("")
+  const [addressCountry, setAddressCountry] = useState("")
+  const [industryCode, setIndustryCode] = useState("")
+  const [companyType, setCompanyType] = useState("")
+  const [incorporationJurisdiction, setIncorporationJurisdiction] = useState("")
 
   // Currency section
   const [functionalCurrency, setFunctionalCurrency] = useState(defaultCurrency)
@@ -297,6 +321,22 @@ export function CompanyForm({
       return
     }
 
+    // Build registered address if any fields are filled
+    const hasAddressData = addressStreet1.trim() || addressStreet2.trim() ||
+      addressCity.trim() || addressState.trim() ||
+      addressPostalCode.trim() || addressCountry.trim()
+
+    const registeredAddress: AddressFormData | null = hasAddressData
+      ? {
+          street1: addressStreet1.trim() || null,
+          street2: addressStreet2.trim() || null,
+          city: addressCity.trim() || null,
+          state: addressState.trim() || null,
+          postalCode: addressPostalCode.trim() || null,
+          country: addressCountry.trim() || null
+        }
+      : null
+
     const formData: CompanyFormData = {
       name: name.trim(),
       legalName: legalName.trim(),
@@ -304,6 +344,10 @@ export function CompanyForm({
       taxId: taxId.trim() || null,
       incorporationDate: incorporationDate.trim() || null,
       registrationNumber: registrationNumber.trim() || null,
+      registeredAddress,
+      industryCode: industryCode.trim() || null,
+      companyType: companyType || null,
+      incorporationJurisdiction: incorporationJurisdiction || null,
       functionalCurrency,
       reportingCurrency,
       fiscalYearEnd: {
@@ -431,6 +475,150 @@ export function CompanyForm({
           helperText="Company registration or incorporation number for this jurisdiction"
           data-testid="company-registration-number-input"
         />
+      </fieldset>
+
+      {/* ====================================================================
+        Additional Details Section (Optional)
+      ==================================================================== */}
+      <fieldset className="space-y-4 border-t border-gray-200 pt-4">
+        <legend className="text-sm font-medium text-gray-900 mb-3">
+          Additional Details (Optional)
+        </legend>
+
+        <div className="grid grid-cols-2 gap-4">
+          {/* Company Type */}
+          <Select
+            id="company-type"
+            label="Company Type"
+            value={companyType}
+            onChange={(e) => setCompanyType(e.target.value)}
+            disabled={isSubmitting}
+            helperText="Legal structure of the company"
+            data-testid="company-type-select"
+          >
+            <option value="">Select type...</option>
+            <option value="Corporation">Corporation</option>
+            <option value="LLC">Limited Liability Company (LLC)</option>
+            <option value="Partnership">Partnership</option>
+            <option value="SoleProprietorship">Sole Proprietorship</option>
+            <option value="NonProfit">Non-Profit Organization</option>
+            <option value="Cooperative">Cooperative</option>
+            <option value="Branch">Branch Office</option>
+            <option value="Other">Other</option>
+          </Select>
+
+          {/* Incorporation Jurisdiction */}
+          <JurisdictionSelect
+            id="company-incorporation-jurisdiction"
+            label="Incorporation Jurisdiction"
+            jurisdictions={jurisdictions}
+            isLoading={isLoading}
+            value={incorporationJurisdiction}
+            onChange={(e) => setIncorporationJurisdiction(e.target.value)}
+            disabled={isSubmitting}
+            placeholder="Same as operating..."
+            helperText="If different from operating jurisdiction"
+            data-testid="company-incorporation-jurisdiction-select"
+          />
+        </div>
+
+        {/* Industry Code */}
+        <Input
+          id="company-industry-code"
+          label="Industry Code"
+          type="text"
+          value={industryCode}
+          onChange={(e) => setIndustryCode(e.target.value)}
+          disabled={isSubmitting}
+          placeholder="e.g. 541512 (NAICS)"
+          helperText="NAICS or SIC industry classification code"
+          data-testid="company-industry-code-input"
+        />
+      </fieldset>
+
+      {/* ====================================================================
+        Registered Address Section (Optional)
+      ==================================================================== */}
+      <fieldset className="space-y-4 border-t border-gray-200 pt-4">
+        <legend className="text-sm font-medium text-gray-900 mb-3">
+          Registered Address (Optional)
+        </legend>
+
+        {/* Street Address */}
+        <Input
+          id="company-address-street1"
+          label="Street Address"
+          type="text"
+          value={addressStreet1}
+          onChange={(e) => setAddressStreet1(e.target.value)}
+          disabled={isSubmitting}
+          placeholder="e.g. 123 Main Street"
+          data-testid="company-address-street1-input"
+        />
+
+        {/* Street Address Line 2 */}
+        <Input
+          id="company-address-street2"
+          label="Address Line 2"
+          type="text"
+          value={addressStreet2}
+          onChange={(e) => setAddressStreet2(e.target.value)}
+          disabled={isSubmitting}
+          placeholder="e.g. Suite 100"
+          data-testid="company-address-street2-input"
+        />
+
+        <div className="grid grid-cols-2 gap-4">
+          {/* City */}
+          <Input
+            id="company-address-city"
+            label="City"
+            type="text"
+            value={addressCity}
+            onChange={(e) => setAddressCity(e.target.value)}
+            disabled={isSubmitting}
+            placeholder="e.g. San Francisco"
+            data-testid="company-address-city-input"
+          />
+
+          {/* State/Province */}
+          <Input
+            id="company-address-state"
+            label="State/Province"
+            type="text"
+            value={addressState}
+            onChange={(e) => setAddressState(e.target.value)}
+            disabled={isSubmitting}
+            placeholder="e.g. California"
+            data-testid="company-address-state-input"
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          {/* Postal Code */}
+          <Input
+            id="company-address-postal"
+            label="Postal Code"
+            type="text"
+            value={addressPostalCode}
+            onChange={(e) => setAddressPostalCode(e.target.value)}
+            disabled={isSubmitting}
+            placeholder="e.g. 94102"
+            data-testid="company-address-postal-input"
+          />
+
+          {/* Country */}
+          <Input
+            id="company-address-country"
+            label="Country"
+            type="text"
+            value={addressCountry}
+            onChange={(e) => setAddressCountry(e.target.value)}
+            disabled={isSubmitting}
+            placeholder="e.g. United States"
+            data-testid="company-address-country-input"
+          />
+        </div>
       </fieldset>
 
       {/* ====================================================================

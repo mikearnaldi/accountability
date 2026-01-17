@@ -86,7 +86,11 @@ test.describe("Company Details Page", () => {
         incorporationDate: null,
         registrationNumber: null,
         parentCompanyId: null,
-        ownershipPercentage: null
+        ownershipPercentage: null,
+        registeredAddress: null,
+        industryCode: null,
+        companyType: null,
+        incorporationJurisdiction: null
       }
     })
     expect(createCompanyRes.ok()).toBeTruthy()
@@ -202,7 +206,11 @@ test.describe("Company Details Page", () => {
         incorporationDate: null,
         registrationNumber: null,
         parentCompanyId: null,
-        ownershipPercentage: null
+        ownershipPercentage: null,
+        registeredAddress: null,
+        industryCode: null,
+        companyType: null,
+        incorporationJurisdiction: null
       }
     })
     expect(createCompanyRes.ok()).toBeTruthy()
@@ -298,7 +306,11 @@ test.describe("Company Details Page", () => {
         incorporationDate: null,
         registrationNumber: null,
         parentCompanyId: null,
-        ownershipPercentage: null
+        ownershipPercentage: null,
+        registeredAddress: null,
+        industryCode: null,
+        companyType: null,
+        incorporationJurisdiction: null
       }
     })
     expect(createCompanyRes.ok()).toBeTruthy()
@@ -425,7 +437,11 @@ test.describe("Company Details Page", () => {
         incorporationDate: null,
         registrationNumber: null,
         parentCompanyId: null,
-        ownershipPercentage: null
+        ownershipPercentage: null,
+        registeredAddress: null,
+        industryCode: null,
+        companyType: null,
+        incorporationJurisdiction: null
       }
     })
     expect(createCompanyRes.ok()).toBeTruthy()
@@ -528,7 +544,11 @@ test.describe("Company Details Page", () => {
         incorporationDate: null,
         registrationNumber: null,
         parentCompanyId: null,
-        ownershipPercentage: null
+        ownershipPercentage: null,
+        registeredAddress: null,
+        industryCode: null,
+        companyType: null,
+        incorporationJurisdiction: null
       }
     })
     expect(createCompanyRes.ok()).toBeTruthy()
@@ -619,7 +639,11 @@ test.describe("Company Details Page", () => {
         incorporationDate: null,
         registrationNumber: null,
         parentCompanyId: null,
-        ownershipPercentage: null
+        ownershipPercentage: null,
+        registeredAddress: null,
+        industryCode: null,
+        companyType: null,
+        incorporationJurisdiction: null
       }
     })
     expect(createCompanyRes.ok()).toBeTruthy()
@@ -781,7 +805,11 @@ test.describe("Company Details Page", () => {
         incorporationDate: null,
         registrationNumber: null,
         parentCompanyId: null,
-        ownershipPercentage: null
+        ownershipPercentage: null,
+        registeredAddress: null,
+        industryCode: null,
+        companyType: null,
+        incorporationJurisdiction: null
       }
     })
     expect(createCompanyRes.ok()).toBeTruthy()
@@ -868,7 +896,11 @@ test.describe("Company Details Page", () => {
         incorporationDate: null,
         registrationNumber: null,
         parentCompanyId: null,
-        ownershipPercentage: null
+        ownershipPercentage: null,
+        registeredAddress: null,
+        industryCode: null,
+        companyType: null,
+        incorporationJurisdiction: null
       }
     })
     expect(createCompanyRes.ok()).toBeTruthy()
@@ -961,7 +993,11 @@ test.describe("Company Details Page", () => {
         incorporationDate: null,
         registrationNumber: null,
         parentCompanyId: null,
-        ownershipPercentage: null
+        ownershipPercentage: null,
+        registeredAddress: null,
+        industryCode: null,
+        companyType: null,
+        incorporationJurisdiction: null
       }
     })
     expect(createCompanyRes.ok()).toBeTruthy()
@@ -1057,7 +1093,11 @@ test.describe("Company Details Page", () => {
         incorporationDate: null,
         registrationNumber: null,
         parentCompanyId: null,
-        ownershipPercentage: null
+        ownershipPercentage: null,
+        registeredAddress: null,
+        industryCode: null,
+        companyType: null,
+        incorporationJurisdiction: null
       }
     })
     expect(createParentRes.ok()).toBeTruthy()
@@ -1079,7 +1119,11 @@ test.describe("Company Details Page", () => {
         incorporationDate: null,
         registrationNumber: null,
         parentCompanyId: parentData.id,
-        ownershipPercentage: 80
+        ownershipPercentage: 80,
+        registeredAddress: null,
+        industryCode: null,
+        companyType: null,
+        incorporationJurisdiction: null
       }
     })
     expect(createSubsidiaryRes.ok()).toBeTruthy()
@@ -1172,7 +1216,11 @@ test.describe("Company Details Page", () => {
         incorporationDate: null,
         registrationNumber: null,
         parentCompanyId: null,
-        ownershipPercentage: null
+        ownershipPercentage: null,
+        registeredAddress: null,
+        industryCode: null,
+        companyType: null,
+        incorporationJurisdiction: null
       }
     })
     expect(createParentRes.ok()).toBeTruthy()
@@ -1194,7 +1242,11 @@ test.describe("Company Details Page", () => {
         incorporationDate: null,
         registrationNumber: null,
         parentCompanyId: parentData.id,
-        ownershipPercentage: 100
+        ownershipPercentage: 100,
+        registeredAddress: null,
+        industryCode: null,
+        companyType: null,
+        incorporationJurisdiction: null
       }
     })
     expect(sub1Res.ok()).toBeTruthy()
@@ -1215,7 +1267,11 @@ test.describe("Company Details Page", () => {
         incorporationDate: null,
         registrationNumber: null,
         parentCompanyId: parentData.id,
-        ownershipPercentage: 60
+        ownershipPercentage: 60,
+        registeredAddress: null,
+        industryCode: null,
+        companyType: null,
+        incorporationJurisdiction: null
       }
     })
     expect(sub2Res.ok()).toBeTruthy()

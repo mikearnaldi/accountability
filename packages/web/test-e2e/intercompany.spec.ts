@@ -148,7 +148,11 @@ test.describe("Intercompany Transactions Module", () => {
         incorporationDate: null,
         registrationNumber: null,
           parentCompanyId: null,
-          ownershipPercentage: null
+          ownershipPercentage: null,
+        registeredAddress: null,
+        industryCode: null,
+        companyType: null,
+        incorporationJurisdiction: null
         }
       })
       expect(createCompany1Res.ok()).toBeTruthy()
@@ -168,7 +172,11 @@ test.describe("Intercompany Transactions Module", () => {
         incorporationDate: null,
         registrationNumber: null,
           parentCompanyId: null,
-          ownershipPercentage: null
+          ownershipPercentage: null,
+        registeredAddress: null,
+        industryCode: null,
+        companyType: null,
+        incorporationJurisdiction: null
         }
       })
       expect(createCompany2Res.ok()).toBeTruthy()
@@ -330,7 +338,11 @@ test.describe("Intercompany Transactions Module", () => {
         incorporationDate: null,
         registrationNumber: null,
           parentCompanyId: null,
-          ownershipPercentage: null
+          ownershipPercentage: null,
+        registeredAddress: null,
+        industryCode: null,
+        companyType: null,
+        incorporationJurisdiction: null
         }
       })
 
@@ -348,7 +360,11 @@ test.describe("Intercompany Transactions Module", () => {
         incorporationDate: null,
         registrationNumber: null,
           parentCompanyId: null,
-          ownershipPercentage: null
+          ownershipPercentage: null,
+        registeredAddress: null,
+        industryCode: null,
+        companyType: null,
+        incorporationJurisdiction: null
         }
       })
 
@@ -437,7 +453,11 @@ test.describe("Intercompany Transactions Module", () => {
         incorporationDate: null,
         registrationNumber: null,
           parentCompanyId: null,
-          ownershipPercentage: null
+          ownershipPercentage: null,
+        registeredAddress: null,
+        industryCode: null,
+        companyType: null,
+        incorporationJurisdiction: null
         }
       })
 
@@ -455,7 +475,11 @@ test.describe("Intercompany Transactions Module", () => {
         incorporationDate: null,
         registrationNumber: null,
           parentCompanyId: null,
-          ownershipPercentage: null
+          ownershipPercentage: null,
+        registeredAddress: null,
+        industryCode: null,
+        companyType: null,
+        incorporationJurisdiction: null
         }
       })
 
@@ -552,7 +576,11 @@ test.describe("Intercompany Transactions Module", () => {
         incorporationDate: null,
         registrationNumber: null,
           parentCompanyId: null,
-          ownershipPercentage: null
+          ownershipPercentage: null,
+        registeredAddress: null,
+        industryCode: null,
+        companyType: null,
+        incorporationJurisdiction: null
         }
       })
 
@@ -570,7 +598,11 @@ test.describe("Intercompany Transactions Module", () => {
         incorporationDate: null,
         registrationNumber: null,
           parentCompanyId: null,
-          ownershipPercentage: null
+          ownershipPercentage: null,
+        registeredAddress: null,
+        industryCode: null,
+        companyType: null,
+        incorporationJurisdiction: null
         }
       })
 
@@ -662,7 +694,11 @@ test.describe("Intercompany Transactions Module", () => {
         incorporationDate: null,
         registrationNumber: null,
           parentCompanyId: null,
-          ownershipPercentage: null
+          ownershipPercentage: null,
+        registeredAddress: null,
+        industryCode: null,
+        companyType: null,
+        incorporationJurisdiction: null
         }
       })
       expect(company1Res.ok()).toBeTruthy()
@@ -682,7 +718,11 @@ test.describe("Intercompany Transactions Module", () => {
         incorporationDate: null,
         registrationNumber: null,
           parentCompanyId: null,
-          ownershipPercentage: null
+          ownershipPercentage: null,
+        registeredAddress: null,
+        industryCode: null,
+        companyType: null,
+        incorporationJurisdiction: null
         }
       })
 
@@ -775,7 +815,11 @@ test.describe("Intercompany Transactions Module", () => {
         incorporationDate: null,
         registrationNumber: null,
           parentCompanyId: null,
-          ownershipPercentage: null
+          ownershipPercentage: null,
+        registeredAddress: null,
+        industryCode: null,
+        companyType: null,
+        incorporationJurisdiction: null
         }
       })
 
@@ -793,7 +837,11 @@ test.describe("Intercompany Transactions Module", () => {
         incorporationDate: null,
         registrationNumber: null,
           parentCompanyId: null,
-          ownershipPercentage: null
+          ownershipPercentage: null,
+        registeredAddress: null,
+        industryCode: null,
+        companyType: null,
+        incorporationJurisdiction: null
         }
       })
 
@@ -881,7 +929,11 @@ test.describe("Intercompany Transactions Module", () => {
         incorporationDate: null,
         registrationNumber: null,
           parentCompanyId: null,
-          ownershipPercentage: null
+          ownershipPercentage: null,
+        registeredAddress: null,
+        industryCode: null,
+        companyType: null,
+        incorporationJurisdiction: null
         }
       })
 
@@ -899,7 +951,11 @@ test.describe("Intercompany Transactions Module", () => {
         incorporationDate: null,
         registrationNumber: null,
           parentCompanyId: null,
-          ownershipPercentage: null
+          ownershipPercentage: null,
+        registeredAddress: null,
+        industryCode: null,
+        companyType: null,
+        incorporationJurisdiction: null
         }
       })
 
@@ -992,7 +1048,11 @@ test.describe("Intercompany Transactions Module", () => {
         incorporationDate: null,
         registrationNumber: null,
           parentCompanyId: null,
-          ownershipPercentage: null
+          ownershipPercentage: null,
+        registeredAddress: null,
+        industryCode: null,
+        companyType: null,
+        incorporationJurisdiction: null
         }
       })
 
@@ -1010,7 +1070,11 @@ test.describe("Intercompany Transactions Module", () => {
         incorporationDate: null,
         registrationNumber: null,
           parentCompanyId: null,
-          ownershipPercentage: null
+          ownershipPercentage: null,
+        registeredAddress: null,
+        industryCode: null,
+        companyType: null,
+        incorporationJurisdiction: null
         }
       })
 
@@ -1108,7 +1172,11 @@ test.describe("Intercompany Transactions Module", () => {
         incorporationDate: null,
         registrationNumber: null,
           parentCompanyId: null,
-          ownershipPercentage: null
+          ownershipPercentage: null,
+        registeredAddress: null,
+        industryCode: null,
+        companyType: null,
+        incorporationJurisdiction: null
         }
       })
       expect(company1Res.ok()).toBeTruthy()
@@ -1128,7 +1196,11 @@ test.describe("Intercompany Transactions Module", () => {
         incorporationDate: null,
         registrationNumber: null,
           parentCompanyId: null,
-          ownershipPercentage: null
+          ownershipPercentage: null,
+        registeredAddress: null,
+        industryCode: null,
+        companyType: null,
+        incorporationJurisdiction: null
         }
       })
       expect(company2Res.ok()).toBeTruthy()

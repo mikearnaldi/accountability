@@ -3,12 +3,28 @@ import { createServerFn } from "@tanstack/react-start"
 import { getCookie } from "@tanstack/react-start/server"
 import { useState, useMemo } from "react"
 import { api } from "@/api/client"
+import type { paths } from "@/api/schema"
 import { createServerApi } from "@/api/server"
 import { AppLayout } from "@/components/layout/AppLayout"
 import { MinimalRouteError } from "@/components/ui/RouteError"
 import { Input } from "@/components/ui/Input"
 import { Select } from "@/components/ui/Select"
 import { Button } from "@/components/ui/Button"
+
+// Type for CompanyType from the API schema
+type CompanyType = NonNullable<paths["/api/v1/companies/{id}"]["put"]["requestBody"]["content"]["application/json"]["companyType"]>
+
+// Valid company types lookup for type-safe conversion
+const VALID_COMPANY_TYPES: Record<string, CompanyType> = {
+  Corporation: "Corporation",
+  LLC: "LLC",
+  Partnership: "Partnership",
+  SoleProprietorship: "SoleProprietorship",
+  NonProfit: "NonProfit",
+  Cooperative: "Cooperative",
+  Branch: "Branch",
+  Other: "Other"
+}
 
 // =============================================================================
 // Server Functions: Fetch company from API with cookie auth
@@ -137,6 +153,15 @@ export const Route = createFileRoute("/organizations/$organizationId/companies/$
 // Types (extracted from API response schema)
 // =============================================================================
 
+interface AddressData {
+  readonly street1: string | null
+  readonly street2: string | null
+  readonly city: string | null
+  readonly state: string | null
+  readonly postalCode: string | null
+  readonly country: string | null
+}
+
 interface Company {
   readonly id: string
   readonly organizationId: string
@@ -145,6 +170,10 @@ interface Company {
   readonly jurisdiction: string
   readonly taxId: string | null
   readonly registrationNumber: string | null
+  readonly registeredAddress: AddressData | null
+  readonly industryCode: string | null
+  readonly companyType: string | null
+  readonly incorporationJurisdiction: string | null
   readonly functionalCurrency: string
   readonly reportingCurrency: string
   readonly fiscalYearEnd: {
@@ -250,6 +279,10 @@ function CompanyDetailsPage() {
             taxId: null,
             incorporationDate: null,
             registrationNumber: null,
+            registeredAddress: null,
+            industryCode: null,
+            companyType: null,
+            incorporationJurisdiction: null,
             reportingCurrency: null,
             fiscalYearEnd: null,
             parentCompanyId: null,
@@ -673,6 +706,14 @@ function EditCompanyModal({
   const [legalName, setLegalName] = useState(company.legalName)
   const [taxId, setTaxId] = useState(company.taxId ?? "")
   const [registrationNumber, setRegistrationNumber] = useState(company.registrationNumber ?? "")
+  const [industryCode, setIndustryCode] = useState(company.industryCode ?? "")
+  const [companyType, setCompanyType] = useState(company.companyType ?? "")
+  const [addressStreet1, setAddressStreet1] = useState(company.registeredAddress?.street1 ?? "")
+  const [addressStreet2, setAddressStreet2] = useState(company.registeredAddress?.street2 ?? "")
+  const [addressCity, setAddressCity] = useState(company.registeredAddress?.city ?? "")
+  const [addressState, setAddressState] = useState(company.registeredAddress?.state ?? "")
+  const [addressPostalCode, setAddressPostalCode] = useState(company.registeredAddress?.postalCode ?? "")
+  const [addressCountry, setAddressCountry] = useState(company.registeredAddress?.country ?? "")
   const [reportingCurrency, setReportingCurrency] = useState(company.reportingCurrency)
   const [fiscalYearEndMonth, setFiscalYearEndMonth] = useState(company.fiscalYearEnd.month)
   const [fiscalYearEndDay, setFiscalYearEndDay] = useState(company.fiscalYearEnd.day)
@@ -689,6 +730,7 @@ function EditCompanyModal({
     const trimmedLegalName = legalName.trim()
     const trimmedTaxId = taxId.trim()
     const trimmedRegistrationNumber = registrationNumber.trim()
+    const trimmedIndustryCode = industryCode.trim()
 
     if (!trimmedName) {
       setError("Company name is required")
@@ -702,6 +744,22 @@ function EditCompanyModal({
     setIsSubmitting(true)
     setError(null)
 
+    // Build registered address if any fields are filled
+    const hasAddressData = addressStreet1.trim() || addressStreet2.trim() ||
+      addressCity.trim() || addressState.trim() ||
+      addressPostalCode.trim() || addressCountry.trim()
+
+    const registeredAddress = hasAddressData
+      ? {
+          street1: addressStreet1.trim() || null,
+          street2: addressStreet2.trim() || null,
+          city: addressCity.trim() || null,
+          state: addressState.trim() || null,
+          postalCode: addressPostalCode.trim() || null,
+          country: addressCountry.trim() || null
+        }
+      : null
+
     try {
       const { error: apiError } = await api.PUT("/api/v1/companies/{id}", {
         params: { path: { id: company.id } },
@@ -711,6 +769,10 @@ function EditCompanyModal({
           taxId: trimmedTaxId || null,
           incorporationDate: null,
           registrationNumber: trimmedRegistrationNumber || null,
+          registeredAddress,
+          industryCode: trimmedIndustryCode || null,
+          companyType: VALID_COMPANY_TYPES[companyType] ?? null,
+          incorporationJurisdiction: null,
           reportingCurrency,
           fiscalYearEnd: {
             month: fiscalYearEndMonth,
@@ -804,6 +866,113 @@ function EditCompanyModal({
             placeholder="Company registration number"
             data-testid="edit-company-registration-number-input"
           />
+
+          {/* Company Type Field */}
+          <Select
+            id="edit-company-type"
+            label="Company Type (optional)"
+            value={companyType}
+            onChange={(e) => setCompanyType(e.target.value)}
+            disabled={isSubmitting}
+            data-testid="edit-company-type-select"
+          >
+            <option value="">Select type...</option>
+            <option value="Corporation">Corporation</option>
+            <option value="LLC">Limited Liability Company (LLC)</option>
+            <option value="Partnership">Partnership</option>
+            <option value="SoleProprietorship">Sole Proprietorship</option>
+            <option value="NonProfit">Non-Profit Organization</option>
+            <option value="Cooperative">Cooperative</option>
+            <option value="Branch">Branch Office</option>
+            <option value="Other">Other</option>
+          </Select>
+
+          {/* Industry Code Field */}
+          <Input
+            id="edit-company-industry-code"
+            label="Industry Code (optional)"
+            type="text"
+            value={industryCode}
+            onChange={(e) => setIndustryCode(e.target.value)}
+            disabled={isSubmitting}
+            placeholder="e.g. 541512 (NAICS)"
+            data-testid="edit-company-industry-code-input"
+          />
+
+          {/* Registered Address Section */}
+          <div className="space-y-3 rounded-lg border border-gray-200 p-4">
+            <h3 className="text-sm font-medium text-gray-700">Registered Address (optional)</h3>
+
+            <Input
+              id="edit-address-street1"
+              label="Street Address"
+              type="text"
+              value={addressStreet1}
+              onChange={(e) => setAddressStreet1(e.target.value)}
+              disabled={isSubmitting}
+              placeholder="e.g. 123 Main Street"
+              data-testid="edit-address-street1-input"
+            />
+
+            <Input
+              id="edit-address-street2"
+              label="Address Line 2"
+              type="text"
+              value={addressStreet2}
+              onChange={(e) => setAddressStreet2(e.target.value)}
+              disabled={isSubmitting}
+              placeholder="e.g. Suite 100"
+              data-testid="edit-address-street2-input"
+            />
+
+            <div className="grid grid-cols-2 gap-3">
+              <Input
+                id="edit-address-city"
+                label="City"
+                type="text"
+                value={addressCity}
+                onChange={(e) => setAddressCity(e.target.value)}
+                disabled={isSubmitting}
+                placeholder="e.g. San Francisco"
+                data-testid="edit-address-city-input"
+              />
+
+              <Input
+                id="edit-address-state"
+                label="State/Province"
+                type="text"
+                value={addressState}
+                onChange={(e) => setAddressState(e.target.value)}
+                disabled={isSubmitting}
+                placeholder="e.g. California"
+                data-testid="edit-address-state-input"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Input
+                id="edit-address-postal"
+                label="Postal Code"
+                type="text"
+                value={addressPostalCode}
+                onChange={(e) => setAddressPostalCode(e.target.value)}
+                disabled={isSubmitting}
+                placeholder="e.g. 94102"
+                data-testid="edit-address-postal-input"
+              />
+
+              <Input
+                id="edit-address-country"
+                label="Country"
+                type="text"
+                value={addressCountry}
+                onChange={(e) => setAddressCountry(e.target.value)}
+                disabled={isSubmitting}
+                placeholder="e.g. United States"
+                data-testid="edit-address-country-input"
+              />
+            </div>
+          </div>
 
           {/* Functional Currency Field (Read-only - ASC 830) */}
           <Input

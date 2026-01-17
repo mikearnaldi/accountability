@@ -328,6 +328,10 @@ export const CompaniesApiLive = HttpApiBuilder.group(AppApi, "companies", (handl
             taxId: req.taxId,
             incorporationDate: req.incorporationDate,
             registrationNumber: req.registrationNumber,
+            registeredAddress: req.registeredAddress,
+            industryCode: req.industryCode,
+            companyType: req.companyType,
+            incorporationJurisdiction: req.incorporationJurisdiction,
             functionalCurrency: req.functionalCurrency,
             reportingCurrency: req.reportingCurrency,
             fiscalYearEnd: req.fiscalYearEnd,
@@ -420,6 +424,18 @@ export const CompaniesApiLive = HttpApiBuilder.group(AppApi, "companies", (handl
             registrationNumber: Option.isSome(req.registrationNumber)
               ? req.registrationNumber
               : existing.registrationNumber,
+            registeredAddress: Option.isSome(req.registeredAddress)
+              ? req.registeredAddress
+              : existing.registeredAddress,
+            industryCode: Option.isSome(req.industryCode)
+              ? req.industryCode
+              : existing.industryCode,
+            companyType: Option.isSome(req.companyType)
+              ? req.companyType
+              : existing.companyType,
+            incorporationJurisdiction: Option.isSome(req.incorporationJurisdiction)
+              ? req.incorporationJurisdiction
+              : existing.incorporationJurisdiction,
             reportingCurrency: Option.isSome(req.reportingCurrency)
               ? req.reportingCurrency.value
               : existing.reportingCurrency,

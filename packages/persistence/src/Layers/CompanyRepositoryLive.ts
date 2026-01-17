@@ -12,7 +12,9 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
+import { Address } from "@accountability/core/Domains/Address"
 import { Company, CompanyId, FiscalYearEnd } from "@accountability/core/Domains/Company"
+import type { CompanyType } from "@accountability/core/Domains/CompanyType"
 import { CurrencyCode } from "@accountability/core/Domains/CurrencyCode"
 import { JurisdictionCode } from "@accountability/core/Domains/JurisdictionCode"
 import { LocalDate } from "@accountability/core/Domains/LocalDate"
@@ -35,6 +37,15 @@ const CompanyRow = Schema.Struct({
   tax_id: Schema.NullOr(Schema.String),
   incorporation_date: Schema.NullOr(Schema.DateFromSelf),
   registration_number: Schema.NullOr(Schema.String),
+  registered_address_street1: Schema.NullOr(Schema.String),
+  registered_address_street2: Schema.NullOr(Schema.String),
+  registered_address_city: Schema.NullOr(Schema.String),
+  registered_address_state: Schema.NullOr(Schema.String),
+  registered_address_postal_code: Schema.NullOr(Schema.String),
+  registered_address_country: Schema.NullOr(Schema.String),
+  industry_code: Schema.NullOr(Schema.String),
+  company_type: Schema.NullOr(Schema.String),
+  incorporation_jurisdiction: Schema.NullOr(Schema.String),
   functional_currency: Schema.String,
   reporting_currency: Schema.String,
   fiscal_year_end_month: Schema.Number,
@@ -57,6 +68,44 @@ const CountRow = Schema.Struct({
  * Convert database row to Company domain entity
  * Pure function - no Effect wrapping needed
  */
+/**
+ * Check if any address field has a value
+ */
+const hasAddressData = (row: CompanyRow): boolean =>
+  row.registered_address_street1 !== null ||
+  row.registered_address_street2 !== null ||
+  row.registered_address_city !== null ||
+  row.registered_address_state !== null ||
+  row.registered_address_postal_code !== null ||
+  row.registered_address_country !== null
+
+/**
+ * Build address from row fields
+ */
+const buildAddress = (row: CompanyRow): Address =>
+  Address.make({
+    street1: Option.fromNullable(row.registered_address_street1),
+    street2: Option.fromNullable(row.registered_address_street2),
+    city: Option.fromNullable(row.registered_address_city),
+    state: Option.fromNullable(row.registered_address_state),
+    postalCode: Option.fromNullable(row.registered_address_postal_code),
+    country: Option.fromNullable(row.registered_address_country)
+  })
+
+/**
+ * Map company type string to CompanyType literal
+ */
+const COMPANY_TYPE_MAP: Record<string, CompanyType> = {
+  "Corporation": "Corporation",
+  "LLC": "LLC",
+  "Partnership": "Partnership",
+  "SoleProprietorship": "SoleProprietorship",
+  "NonProfit": "NonProfit",
+  "Cooperative": "Cooperative",
+  "Branch": "Branch",
+  "Other": "Other"
+}
+
 const rowToCompany = (row: CompanyRow): Company =>
   Company.make({
     id: CompanyId.make(row.id),
@@ -73,6 +122,14 @@ const rowToCompany = (row: CompanyRow): Company =>
       }))
     ),
     registrationNumber: Option.fromNullable(row.registration_number),
+    registeredAddress: hasAddressData(row) ? Option.some(buildAddress(row)) : Option.none(),
+    industryCode: Option.fromNullable(row.industry_code),
+    companyType: Option.fromNullable(row.company_type).pipe(
+      Option.flatMap((t) => Option.fromNullable(COMPANY_TYPE_MAP[t]))
+    ),
+    incorporationJurisdiction: Option.fromNullable(row.incorporation_jurisdiction).pipe(
+      Option.map(JurisdictionCode.make)
+    ),
     functionalCurrency: CurrencyCode.make(row.functional_currency),
     reportingCurrency: CurrencyCode.make(row.reporting_currency),
     fiscalYearEnd: FiscalYearEnd.make({
@@ -155,10 +212,18 @@ const make = Effect.gen(function* () {
         Option.map(company.incorporationDate, (ld) => ld.toDate())
       )
 
+      // Extract address fields
+      const address = Option.getOrNull(company.registeredAddress)
+
       yield* sql`
         INSERT INTO companies (
           id, organization_id, name, legal_name, jurisdiction, tax_id,
-          incorporation_date, registration_number, functional_currency, reporting_currency,
+          incorporation_date, registration_number,
+          registered_address_street1, registered_address_street2,
+          registered_address_city, registered_address_state,
+          registered_address_postal_code, registered_address_country,
+          industry_code, company_type, incorporation_jurisdiction,
+          functional_currency, reporting_currency,
           fiscal_year_end_month, fiscal_year_end_day,
           parent_company_id, ownership_percentage, is_active, created_at
         ) VALUES (
@@ -170,6 +235,15 @@ const make = Effect.gen(function* () {
           ${Option.getOrNull(company.taxId)},
           ${incorporationDateValue},
           ${Option.getOrNull(company.registrationNumber)},
+          ${address ? Option.getOrNull(address.street1) : null},
+          ${address ? Option.getOrNull(address.street2) : null},
+          ${address ? Option.getOrNull(address.city) : null},
+          ${address ? Option.getOrNull(address.state) : null},
+          ${address ? Option.getOrNull(address.postalCode) : null},
+          ${address ? Option.getOrNull(address.country) : null},
+          ${Option.getOrNull(company.industryCode)},
+          ${Option.getOrNull(company.companyType)},
+          ${Option.getOrNull(company.incorporationJurisdiction)},
           ${company.functionalCurrency},
           ${company.reportingCurrency},
           ${company.fiscalYearEnd.month},
@@ -199,6 +273,9 @@ const make = Effect.gen(function* () {
         Option.map(company.incorporationDate, (ld) => ld.toDate())
       )
 
+      // Extract address fields
+      const address = Option.getOrNull(company.registeredAddress)
+
       yield* sql`
         UPDATE companies SET
           name = ${company.name},
@@ -207,6 +284,15 @@ const make = Effect.gen(function* () {
           tax_id = ${Option.getOrNull(company.taxId)},
           incorporation_date = ${incorporationDateValue},
           registration_number = ${Option.getOrNull(company.registrationNumber)},
+          registered_address_street1 = ${address ? Option.getOrNull(address.street1) : null},
+          registered_address_street2 = ${address ? Option.getOrNull(address.street2) : null},
+          registered_address_city = ${address ? Option.getOrNull(address.city) : null},
+          registered_address_state = ${address ? Option.getOrNull(address.state) : null},
+          registered_address_postal_code = ${address ? Option.getOrNull(address.postalCode) : null},
+          registered_address_country = ${address ? Option.getOrNull(address.country) : null},
+          industry_code = ${Option.getOrNull(company.industryCode)},
+          company_type = ${Option.getOrNull(company.companyType)},
+          incorporation_jurisdiction = ${Option.getOrNull(company.incorporationJurisdiction)},
           functional_currency = ${company.functionalCurrency},
           reporting_currency = ${company.reportingCurrency},
           fiscal_year_end_month = ${company.fiscalYearEnd.month},

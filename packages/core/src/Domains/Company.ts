@@ -9,6 +9,8 @@
 
 import * as Schema from "effect/Schema"
 import * as Option from "effect/Option"
+import { Address } from "./Address.ts"
+import { CompanyType } from "./CompanyType.ts"
 import { CurrencyCode } from "./CurrencyCode.ts"
 import { JurisdictionCode } from "./JurisdictionCode.ts"
 import { Timestamp } from "./Timestamp.ts"
@@ -191,6 +193,42 @@ export class Company extends Schema.Class<Company>("Company")({
   registrationNumber: Schema.OptionFromNullOr(Schema.NonEmptyTrimmedString).annotations({
     title: "Registration Number",
     description: "Company registration or incorporation number for the jurisdiction"
+  }),
+
+  /**
+   * Registered address of the company (optional)
+   * The official legal address where the company is registered
+   */
+  registeredAddress: Schema.OptionFromNullOr(Address).annotations({
+    title: "Registered Address",
+    description: "Official legal address where the company is registered"
+  }),
+
+  /**
+   * Industry classification code (optional)
+   * NAICS (North American) or SIC code
+   */
+  industryCode: Schema.OptionFromNullOr(Schema.NonEmptyTrimmedString).annotations({
+    title: "Industry Code",
+    description: "NAICS or SIC industry classification code"
+  }),
+
+  /**
+   * Legal structure of the company (optional)
+   * Corporation, LLC, Partnership, etc.
+   */
+  companyType: Schema.OptionFromNullOr(CompanyType).annotations({
+    title: "Company Type",
+    description: "Legal structure of the company (Corporation, LLC, etc.)"
+  }),
+
+  /**
+   * Jurisdiction where the company was incorporated (optional)
+   * May differ from operating jurisdiction
+   */
+  incorporationJurisdiction: Schema.OptionFromNullOr(JurisdictionCode).annotations({
+    title: "Incorporation Jurisdiction",
+    description: "Jurisdiction where the company was legally incorporated (if different from operating jurisdiction)"
   }),
 
   /**

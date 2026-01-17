@@ -1,5 +1,16 @@
 # Company Details Improvements
 
+## Status: ✅ ALL PHASES COMPLETE
+
+All 5 phases of company details improvements have been implemented:
+- **Phase 1**: Added 10 new jurisdictions (CA, AU, DE, FR, JP, SG, HK, CH, NL, IE)
+- **Phase 2**: Added incorporation date field
+- **Phase 3**: Added registration number field
+- **Phase 4**: Improved subsidiary setup UX with helper text and links
+- **Phase 5**: Added optional enhancements (registeredAddress, industryCode, companyType, incorporationJurisdiction)
+
+---
+
 ## Problem Statement
 
 The current company setup has several limitations:
@@ -21,6 +32,10 @@ The current company setup has several limitations:
 | taxId | ✅ | Tax identification number |
 | incorporationDate | ✅ | Date company was legally incorporated |
 | registrationNumber | ✅ | Company registration/incorporation number |
+| registeredAddress | ✅ | Legal registered address (street1, street2, city, state, postalCode, country) |
+| industryCode | ✅ | NAICS/SIC industry classification code |
+| companyType | ✅ | Corporation, LLC, Partnership, etc. |
+| incorporationJurisdiction | ✅ | Jurisdiction where company was incorporated (if different) |
 | functionalCurrency | Create only | Cannot change after creation |
 | reportingCurrency | ✅ | |
 | fiscalYearEnd | ✅ | Month and day |
@@ -28,13 +43,14 @@ The current company setup has several limitations:
 | ownershipPercentage | ✅ | Required if parent is set |
 | isActive | Via deactivate | Cannot directly edit |
 
-### Missing Fields (Lower Priority)
+### Additional Fields ✅ IMPLEMENTED (Phase 5)
 
-| Field | Priority | Notes |
-|-------|----------|-------|
-| registeredAddress | Low | Legal registered address |
-| industryCode | Low | NAICS/SIC code |
-| companyType | Low | Corporation, LLC, Partnership, etc. |
+| Field | Type | Notes |
+|-------|------|-------|
+| registeredAddress | Option<Address> | Legal registered address (street1, street2, city, state, postalCode, country) |
+| industryCode | Option<string> | NAICS/SIC code |
+| companyType | Option<CompanyType> | Corporation, LLC, Partnership, SoleProprietorship, NonProfit, Cooperative, Branch, Other |
+| incorporationJurisdiction | Option<JurisdictionCode> | If different from operating jurisdiction |
 
 ### Jurisdiction Limitations
 
@@ -118,12 +134,30 @@ UX improvements implemented:
 - [x] Consider showing acquisition date (read-only) if company is in a consolidation group
   - **Decision: Not implemented** - Would require additional API calls to fetch all consolidation groups and find memberships. The helper text + link already guides users to the right place. A company can be in multiple consolidation groups with different acquisition dates, making read-only display confusing. Users can click the link to see full consolidation details.
 
-### Phase 5: Optional Enhancements
+### Phase 5: Optional Enhancements ✅ COMPLETE
 
-- [ ] Add `registeredAddress` fields (street, city, state, postal, country)
-- [ ] Add `industryCode` for NAICS/SIC classification
-- [ ] Add `companyType` (Corporation, LLC, Partnership, etc.)
-- [ ] Add `incorporationJurisdiction` if different from operating jurisdiction
+Added all optional enhancement fields to Company with full frontend/backend support:
+
+- [x] Add `registeredAddress` fields (street1, street2, city, state, postalCode, country)
+  - Created `Address` value object in `packages/core/src/Domains/Address.ts`
+  - Added `registeredAddress: Option<Address>` to Company domain model
+  - Added database migration for address columns (`Migration0016_AddCompanyOptionalFields.ts`)
+  - Updated API schemas, handlers, and repository layer
+  - Updated CompanyForm with "Registered Address" section
+  - Updated EditCompanyModal with address fields
+
+- [x] Add `industryCode` for NAICS/SIC classification
+  - Added `industryCode: Option<NonEmptyTrimmedString>` to Company domain model
+  - Added input field in CompanyForm and EditCompanyModal
+
+- [x] Add `companyType` (Corporation, LLC, Partnership, etc.)
+  - Created `CompanyType` schema in `packages/core/src/Domains/CompanyType.ts`
+  - Added `companyType: Option<CompanyType>` to Company domain model
+  - Added select dropdown in CompanyForm and EditCompanyModal with 8 company types
+
+- [x] Add `incorporationJurisdiction` if different from operating jurisdiction
+  - Added `incorporationJurisdiction: Option<JurisdictionCode>` to Company domain model
+  - Added JurisdictionSelect in CompanyForm for incorporation jurisdiction (optional)
 
 ---
 

@@ -29,6 +29,7 @@ import Migration0012 from "../Migrations/Migration0012_CreateAuthSessions.ts"
 import Migration0013 from "../Migrations/Migration0013_CreateAuditLog.ts"
 import Migration0014 from "../Migrations/Migration0014_AddIncorporationDate.ts"
 import Migration0015 from "../Migrations/Migration0015_AddRegistrationNumber.ts"
+import Migration0016 from "../Migrations/Migration0016_AddCompanyOptionalFields.ts"
 
 /**
  * Migration loader with all migrations defined inline.
@@ -55,7 +56,8 @@ const loader = Migrator.fromRecord({
   "12_CreateAuthSessions": Migration0012,
   "13_CreateAuditLog": Migration0013,
   "14_AddIncorporationDate": Migration0014,
-  "15_AddRegistrationNumber": Migration0015
+  "15_AddRegistrationNumber": Migration0015,
+  "16_AddCompanyOptionalFields": Migration0016
 })
 
 /**

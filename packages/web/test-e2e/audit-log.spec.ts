@@ -151,7 +151,11 @@ test.describe("Audit Log Module", () => {
         incorporationDate: null,
         registrationNumber: null,
           parentCompanyId: null,
-          ownershipPercentage: null
+          ownershipPercentage: null,
+        registeredAddress: null,
+        industryCode: null,
+        companyType: null,
+        incorporationJurisdiction: null
         }
       })
 
