@@ -19,8 +19,8 @@
  */
 
 import { useState, useMemo } from "react"
-import { clsx } from "clsx"
 import { Input } from "@/components/ui/Input"
+import { Select } from "@/components/ui/Select"
 import { CurrencySelect } from "@/components/ui/CurrencySelect"
 import { JurisdictionSelect, type JurisdictionOption } from "@/components/ui/JurisdictionSelect"
 import { FiscalYearEndPicker } from "@/components/ui/FiscalYearEndPicker"
@@ -476,37 +476,22 @@ export function CompanyForm({
           </legend>
 
           {/* Parent Company Select */}
-          <div>
-            <label
-              htmlFor="company-parent"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Parent Company
-            </label>
-            <select
-              id="company-parent"
-              value={parentCompanyId ?? ""}
-              onChange={(e) => handleParentChange(e.target.value === "" ? null : e.target.value)}
-              disabled={isSubmitting}
-              className={clsx(
-                "w-full rounded-lg border px-3 py-2 text-gray-900 bg-white",
-                "focus:outline-none focus:ring-2 focus:ring-offset-0",
-                "disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed",
-                "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-              )}
-              data-testid="company-parent-select"
-            >
-              <option value="">None (Top-level company)</option>
-              {availableParents.map((parent) => (
-                <option key={parent.id} value={parent.id}>
-                  {parent.name}
-                </option>
-              ))}
-            </select>
-            <p className="mt-1 text-sm text-gray-500">
-              Leave empty for a top-level company, or select a parent for a subsidiary
-            </p>
-          </div>
+          <Select
+            id="company-parent"
+            label="Parent Company"
+            value={parentCompanyId ?? ""}
+            onChange={(e) => handleParentChange(e.target.value === "" ? null : e.target.value)}
+            disabled={isSubmitting}
+            helperText="Leave empty for a top-level company, or select a parent for a subsidiary"
+            data-testid="company-parent-select"
+          >
+            <option value="">None (Top-level company)</option>
+            {availableParents.map((parent) => (
+              <option key={parent.id} value={parent.id}>
+                {parent.name}
+              </option>
+            ))}
+          </Select>
 
           {/* Subsidiary Fields (shown when parent is selected) */}
           {showSubsidiaryFields && (
@@ -516,57 +501,26 @@ export function CompanyForm({
               </p>
 
               {/* Ownership Percentage */}
-              <div>
-                <label
-                  htmlFor="company-ownership"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  Ownership %
-                </label>
-                <input
-                  id="company-ownership"
-                  type="number"
-                  min="0.01"
-                  max="100"
-                  step="0.01"
-                  required
-                  value={ownershipPercentage ?? ""}
-                  onChange={(e) => {
-                    const value = e.target.value
-                    handleOwnershipChange(value === "" ? null : Number(value))
-                  }}
-                  onBlur={() => handleFieldBlur("ownershipPercentage", ownershipPercentage)}
-                  disabled={isSubmitting}
-                  placeholder="e.g. 100"
-                  className={clsx(
-                    "w-full rounded-lg border px-3 py-2 text-gray-900 placeholder-gray-500",
-                    "focus:outline-none focus:ring-2 focus:ring-offset-0",
-                    "disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed",
-                    touched.ownershipPercentage && fieldErrors.ownershipPercentage
-                      ? "border-red-300 focus:border-red-500 focus:ring-red-500"
-                      : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                  )}
-                  aria-describedby={
-                    touched.ownershipPercentage && fieldErrors.ownershipPercentage
-                      ? "company-ownership-error"
-                      : undefined
-                  }
-                  aria-invalid={touched.ownershipPercentage && Boolean(fieldErrors.ownershipPercentage)}
-                  data-testid="company-ownership-input"
-                />
-                {touched.ownershipPercentage && fieldErrors.ownershipPercentage && (
-                  <p
-                    id="company-ownership-error"
-                    className="mt-1 text-sm text-red-600"
-                    data-testid="company-ownership-error"
-                  >
-                    {fieldErrors.ownershipPercentage}
-                  </p>
-                )}
-                <p className="mt-1 text-sm text-gray-500">
-                  Consolidation method is configured in Consolidation Groups
-                </p>
-              </div>
+              <Input
+                id="company-ownership"
+                label="Ownership %"
+                type="number"
+                min={0.01}
+                max={100}
+                step={0.01}
+                required
+                value={ownershipPercentage ?? ""}
+                onChange={(e) => {
+                  const value = e.target.value
+                  handleOwnershipChange(value === "" ? null : Number(value))
+                }}
+                onBlur={() => handleFieldBlur("ownershipPercentage", ownershipPercentage)}
+                disabled={isSubmitting}
+                placeholder="e.g. 100"
+                helperText="Consolidation method is configured in Consolidation Groups"
+                data-testid="company-ownership-input"
+                {...(touched.ownershipPercentage && fieldErrors.ownershipPercentage ? { error: fieldErrors.ownershipPercentage } : {})}
+              />
             </div>
           )}
         </fieldset>

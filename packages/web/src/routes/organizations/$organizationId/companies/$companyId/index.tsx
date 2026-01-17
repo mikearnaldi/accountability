@@ -6,6 +6,9 @@ import { api } from "@/api/client"
 import { createServerApi } from "@/api/server"
 import { AppLayout } from "@/components/layout/AppLayout"
 import { MinimalRouteError } from "@/components/ui/RouteError"
+import { Input } from "@/components/ui/Input"
+import { Select } from "@/components/ui/Select"
+import { Button } from "@/components/ui/Button"
 
 // =============================================================================
 // Server Functions: Fetch company from API with cookie auth
@@ -731,189 +734,129 @@ function EditCompanyModal({
           )}
 
           {/* Name Field */}
-          <div>
-            <label htmlFor="edit-company-name" className="block text-sm font-medium text-gray-700">
-              Company Name
-            </label>
-            <input
-              id="edit-company-name"
-              data-testid="edit-company-name-input"
-              type="text"
-              autoFocus
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              disabled={isSubmitting}
-              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
-            />
-          </div>
+          <Input
+            id="edit-company-name"
+            label="Company Name"
+            type="text"
+            autoFocus
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            disabled={isSubmitting}
+            data-testid="edit-company-name-input"
+          />
 
           {/* Legal Name Field */}
-          <div>
-            <label htmlFor="edit-company-legal-name" className="block text-sm font-medium text-gray-700">
-              Legal Name
-            </label>
-            <input
-              id="edit-company-legal-name"
-              data-testid="edit-company-legal-name-input"
-              type="text"
-              required
-              value={legalName}
-              onChange={(e) => setLegalName(e.target.value)}
-              disabled={isSubmitting}
-              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
-            />
-          </div>
+          <Input
+            id="edit-company-legal-name"
+            label="Legal Name"
+            type="text"
+            required
+            value={legalName}
+            onChange={(e) => setLegalName(e.target.value)}
+            disabled={isSubmitting}
+            data-testid="edit-company-legal-name-input"
+          />
 
           {/* Tax ID Field */}
-          <div>
-            <label htmlFor="edit-company-tax-id" className="block text-sm font-medium text-gray-700">
-              Tax ID (optional)
-            </label>
-            <input
-              id="edit-company-tax-id"
-              data-testid="edit-company-tax-id-input"
-              type="text"
-              value={taxId}
-              onChange={(e) => setTaxId(e.target.value)}
-              disabled={isSubmitting}
-              placeholder="EIN, VAT number, etc."
-              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
-            />
-          </div>
+          <Input
+            id="edit-company-tax-id"
+            label="Tax ID (optional)"
+            type="text"
+            value={taxId}
+            onChange={(e) => setTaxId(e.target.value)}
+            disabled={isSubmitting}
+            placeholder="EIN, VAT number, etc."
+            data-testid="edit-company-tax-id-input"
+          />
 
           {/* Functional Currency Field (Read-only - ASC 830) */}
-          <div>
-            <label htmlFor="edit-company-functional-currency" className="block text-sm font-medium text-gray-700">
-              Functional Currency
-            </label>
-            <input
-              id="edit-company-functional-currency"
-              data-testid="edit-company-functional-currency-input"
-              type="text"
-              value={company.functionalCurrency}
-              disabled
-              className="mt-1 w-full rounded-lg border border-gray-200 bg-gray-100 px-3 py-2 text-gray-600 cursor-not-allowed"
-            />
-            <p className="mt-1 text-xs text-gray-500" data-testid="functional-currency-note">
-              Functional currency cannot be changed after creation (ASC 830)
-            </p>
-          </div>
+          <Input
+            id="edit-company-functional-currency"
+            label="Functional Currency"
+            type="text"
+            value={company.functionalCurrency}
+            disabled
+            helperText="Functional currency cannot be changed after creation (ASC 830)"
+            data-testid="edit-company-functional-currency-input"
+          />
 
           {/* Reporting Currency Field */}
-          <div>
-            <label htmlFor="edit-company-currency" className="block text-sm font-medium text-gray-700">
-              Reporting Currency
-            </label>
-            <select
-              id="edit-company-currency"
-              data-testid="edit-company-currency-select"
-              value={reportingCurrency}
-              onChange={(e) => setReportingCurrency(e.target.value)}
-              disabled={isSubmitting}
-              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
-            >
-              <option value="USD">USD - US Dollar</option>
-              <option value="EUR">EUR - Euro</option>
-              <option value="GBP">GBP - British Pound</option>
-              <option value="JPY">JPY - Japanese Yen</option>
-              <option value="CHF">CHF - Swiss Franc</option>
-              <option value="CAD">CAD - Canadian Dollar</option>
-              <option value="AUD">AUD - Australian Dollar</option>
-            </select>
-          </div>
+          <Select
+            id="edit-company-currency"
+            label="Reporting Currency"
+            value={reportingCurrency}
+            onChange={(e) => setReportingCurrency(e.target.value)}
+            disabled={isSubmitting}
+            data-testid="edit-company-currency-select"
+          >
+            <option value="USD">USD - US Dollar</option>
+            <option value="EUR">EUR - Euro</option>
+            <option value="GBP">GBP - British Pound</option>
+            <option value="JPY">JPY - Japanese Yen</option>
+            <option value="CHF">CHF - Swiss Franc</option>
+            <option value="CAD">CAD - Canadian Dollar</option>
+            <option value="AUD">AUD - Australian Dollar</option>
+          </Select>
 
           {/* Fiscal Year End */}
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="edit-company-fy-month" className="block text-sm font-medium text-gray-700">
-                Fiscal Year End Month
-              </label>
-              <select
-                id="edit-company-fy-month"
-                value={fiscalYearEndMonth}
-                onChange={(e) => setFiscalYearEndMonth(Number(e.target.value))}
-                disabled={isSubmitting}
-                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
-              >
-                <option value={1}>January</option>
-                <option value={2}>February</option>
-                <option value={3}>March</option>
-                <option value={4}>April</option>
-                <option value={5}>May</option>
-                <option value={6}>June</option>
-                <option value={7}>July</option>
-                <option value={8}>August</option>
-                <option value={9}>September</option>
-                <option value={10}>October</option>
-                <option value={11}>November</option>
-                <option value={12}>December</option>
-              </select>
-            </div>
-            <div>
-              <label htmlFor="edit-company-fy-day" className="block text-sm font-medium text-gray-700">
-                Fiscal Year End Day
-              </label>
-              <select
-                id="edit-company-fy-day"
-                value={fiscalYearEndDay}
-                onChange={(e) => setFiscalYearEndDay(Number(e.target.value))}
-                disabled={isSubmitting}
-                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
-              >
-                {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
-                  <option key={day} value={day}>
-                    {day}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <Select
+              id="edit-company-fy-month"
+              label="Fiscal Year End Month"
+              value={fiscalYearEndMonth}
+              onChange={(e) => setFiscalYearEndMonth(Number(e.target.value))}
+              disabled={isSubmitting}
+            >
+              <option value={1}>January</option>
+              <option value={2}>February</option>
+              <option value={3}>March</option>
+              <option value={4}>April</option>
+              <option value={5}>May</option>
+              <option value={6}>June</option>
+              <option value={7}>July</option>
+              <option value={8}>August</option>
+              <option value={9}>September</option>
+              <option value={10}>October</option>
+              <option value={11}>November</option>
+              <option value={12}>December</option>
+            </Select>
+            <Select
+              id="edit-company-fy-day"
+              label="Fiscal Year End Day"
+              value={fiscalYearEndDay}
+              onChange={(e) => setFiscalYearEndDay(Number(e.target.value))}
+              disabled={isSubmitting}
+            >
+              {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                <option key={day} value={day}>
+                  {day}
+                </option>
+              ))}
+            </Select>
           </div>
 
           {/* Form Actions */}
           <div className="flex gap-3 pt-2">
-            <button
+            <Button
               type="button"
+              variant="secondary"
               onClick={onClose}
               disabled={isSubmitting}
+              className="flex-1"
               data-testid="company-form-cancel-button"
-              className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 font-medium text-gray-700 hover:bg-gray-50 disabled:bg-gray-50 disabled:text-gray-400"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
+              variant="primary"
+              loading={isSubmitting}
               disabled={isSubmitting}
-              className="flex-1 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-400"
+              className="flex-1"
             >
-              {isSubmitting ? (
-                <span className="flex items-center justify-center">
-                  <svg
-                    className="mr-2 h-4 w-4 animate-spin"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                      fill="none"
-                      opacity="0.25"
-                    />
-                    <path
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    />
-                  </svg>
-                  Saving...
-                </span>
-              ) : (
-                "Save Changes"
-              )}
-            </button>
+              Save Changes
+            </Button>
           </div>
         </form>
       </div>

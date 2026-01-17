@@ -8,6 +8,9 @@
 import { useState, useEffect, useMemo } from "react"
 import { useRouter } from "@tanstack/react-router"
 import { api } from "@/api/client"
+import { Input } from "@/components/ui/Input"
+import { Select } from "@/components/ui/Select"
+import { Button } from "@/components/ui/Button"
 
 // =============================================================================
 // Types
@@ -460,7 +463,6 @@ export function AccountForm({
 
   const isCreateMode = mode === "create"
   const submitLabel = isCreateMode ? "Create Account" : "Save Changes"
-  const submittingLabel = isCreateMode ? "Creating..." : "Saving..."
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4" data-testid="account-form">
@@ -504,92 +506,56 @@ export function AccountForm({
       {/* Account Number & Name (create mode) */}
       {isCreateMode && (
         <div className="grid grid-cols-3 gap-4">
-          <div>
-            <label
-              htmlFor="account-number"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Account Number
-            </label>
-            <input
-              id="account-number"
-              type="text"
-              autoFocus
-              required
-              maxLength={4}
-              value={accountNumber}
-              onChange={(e) => handleAccountNumberChange(e.target.value)}
-              disabled={isSubmitting}
-              placeholder="1000"
-              data-testid="account-number-input"
-              className={`mt-1 w-full rounded-lg border px-3 py-2 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-1 disabled:bg-gray-50 disabled:text-gray-500 ${
-                accountNumberError
-                  ? "border-red-300 focus:border-red-500 focus:ring-red-500"
-                  : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-              }`}
-            />
-            {accountNumberError && (
-              <p
-                className="mt-1 text-sm text-red-600"
-                data-testid="account-number-error"
-              >
-                {accountNumberError}
-              </p>
-            )}
-            <p className="mt-1 text-xs text-gray-500" data-testid="account-number-hint">
-              1xxx=Asset, 2xxx=Liability, 3xxx=Equity, 4xxx=Revenue, 5xxx-9xxx=Expense
-            </p>
-          </div>
-          <div className="col-span-2">
-            <label
-              htmlFor="account-name"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Account Name
-            </label>
-            <input
-              id="account-name"
-              type="text"
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              disabled={isSubmitting}
-              placeholder="Cash and Cash Equivalents"
-              data-testid="account-name-input"
-              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
-            />
-          </div>
+          <Input
+            id="account-number"
+            label="Account Number"
+            type="text"
+            autoFocus
+            required
+            maxLength={4}
+            value={accountNumber}
+            onChange={(e) => handleAccountNumberChange(e.target.value)}
+            disabled={isSubmitting}
+            placeholder="1000"
+            helperText="1xxx=Asset, 2xxx=Liability, 3xxx=Equity, 4xxx=Revenue, 5xxx-9xxx=Expense"
+            data-testid="account-number-input"
+            {...(accountNumberError ? { error: accountNumberError } : {})}
+          />
+          <Input
+            id="account-name"
+            label="Account Name"
+            type="text"
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            disabled={isSubmitting}
+            placeholder="Cash and Cash Equivalents"
+            containerClassName="col-span-2"
+            data-testid="account-name-input"
+          />
         </div>
       )}
 
       {/* Name field (edit mode only) */}
       {!isCreateMode && (
-        <div>
-          <label
-            htmlFor="account-name"
-            className="block text-sm font-medium text-gray-700"
-          >
-            Account Name
-          </label>
-          <input
-            id="account-name"
-            type="text"
-            autoFocus
-            required
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            disabled={isSubmitting}
-            data-testid="account-name-input"
-            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
-          />
-        </div>
+        <Input
+          id="account-name"
+          label="Account Name"
+          type="text"
+          autoFocus
+          required
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          disabled={isSubmitting}
+          data-testid="account-name-input"
+        />
       )}
 
       {/* Description */}
       <div>
         <label
           htmlFor="account-description"
-          className="block text-sm font-medium text-gray-700"
+          className="block text-sm font-medium text-gray-700 mb-1"
         >
           Description (optional)
         </label>
@@ -601,124 +567,90 @@ export function AccountForm({
           rows={2}
           placeholder="Describe the purpose of this account..."
           data-testid="account-description-input"
-          className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
+          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-offset-0 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed"
         />
       </div>
 
       {/* Type, Category, Normal Balance (create mode only) */}
       {isCreateMode && (
         <div className="grid grid-cols-3 gap-4">
-          <div>
-            <label
-              htmlFor="account-type"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Account Type
-            </label>
-            <select
-              id="account-type"
-              value={accountType}
-              onChange={(e) => {
-                const value = e.target.value
-                if (isAccountType(value)) {
-                  handleTypeChange(value)
-                }
-              }}
-              disabled={isSubmitting}
-              data-testid="account-type-select"
-              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
-            >
-              <option value="Asset">Asset</option>
-              <option value="Liability">Liability</option>
-              <option value="Equity">Equity</option>
-              <option value="Revenue">Revenue</option>
-              <option value="Expense">Expense</option>
-            </select>
-          </div>
-          <div>
-            <label
-              htmlFor="account-category"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Category
-            </label>
-            <select
-              id="account-category"
-              value={accountCategory}
-              onChange={(e) => {
-                const value = e.target.value
-                const found = availableCategories.find((cat) => cat === value)
-                if (found) {
-                  setAccountCategory(found)
-                }
-              }}
-              disabled={isSubmitting}
-              data-testid="account-category-select"
-              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
-            >
-              {availableCategories.map((cat) => (
-                <option key={cat} value={cat}>
-                  {formatAccountCategory(cat)}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label
-              htmlFor="account-normal-balance"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Normal Balance
-            </label>
-            <select
-              id="account-normal-balance"
-              value={normalBalance}
-              onChange={(e) => {
-                const value = e.target.value
-                if (isNormalBalance(value)) {
-                  setNormalBalance(value)
-                }
-              }}
-              disabled={isSubmitting}
-              data-testid="account-normal-balance-select"
-              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
-            >
-              <option value="Debit">Debit</option>
-              <option value="Credit">Credit</option>
-            </select>
-            <p className="mt-1 text-xs text-gray-500">
-              Can override for contra accounts
-            </p>
-          </div>
+          <Select
+            id="account-type"
+            label="Account Type"
+            value={accountType}
+            onChange={(e) => {
+              const value = e.target.value
+              if (isAccountType(value)) {
+                handleTypeChange(value)
+              }
+            }}
+            disabled={isSubmitting}
+            data-testid="account-type-select"
+          >
+            <option value="Asset">Asset</option>
+            <option value="Liability">Liability</option>
+            <option value="Equity">Equity</option>
+            <option value="Revenue">Revenue</option>
+            <option value="Expense">Expense</option>
+          </Select>
+          <Select
+            id="account-category"
+            label="Category"
+            value={accountCategory}
+            onChange={(e) => {
+              const value = e.target.value
+              const found = availableCategories.find((cat) => cat === value)
+              if (found) {
+                setAccountCategory(found)
+              }
+            }}
+            disabled={isSubmitting}
+            data-testid="account-category-select"
+          >
+            {availableCategories.map((cat) => (
+              <option key={cat} value={cat}>
+                {formatAccountCategory(cat)}
+              </option>
+            ))}
+          </Select>
+          <Select
+            id="account-normal-balance"
+            label="Normal Balance"
+            value={normalBalance}
+            onChange={(e) => {
+              const value = e.target.value
+              if (isNormalBalance(value)) {
+                setNormalBalance(value)
+              }
+            }}
+            disabled={isSubmitting}
+            helperText="Can override for contra accounts"
+            data-testid="account-normal-balance-select"
+          >
+            <option value="Debit">Debit</option>
+            <option value="Credit">Credit</option>
+          </Select>
         </div>
       )}
 
       {/* Parent Account */}
-      <div>
-        <label
-          htmlFor="account-parent"
-          className="block text-sm font-medium text-gray-700"
-        >
-          Parent Account (optional)
-        </label>
-        <select
-          id="account-parent"
-          value={parentAccountId}
-          onChange={(e) => setParentAccountId(e.target.value)}
-          disabled={isSubmitting}
-          data-testid="account-parent-select"
-          className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
-        >
-          <option value="">None (Top-level account)</option>
-          {availableParents
-            .sort((a, b) => a.accountNumber.localeCompare(b.accountNumber))
-            .map((acc) => (
-              <option key={acc.id} value={acc.id}>
-                {acc.accountNumber} - {acc.name}
-              </option>
-            ))}
-        </select>
-      </div>
+      <Select
+        id="account-parent"
+        label="Parent Account (optional)"
+        value={parentAccountId}
+        onChange={(e) => setParentAccountId(e.target.value)}
+        disabled={isSubmitting}
+        data-testid="account-parent-select"
+      >
+        <option value="">None (Top-level account)</option>
+        {availableParents
+          .sort((a, b) => a.accountNumber.localeCompare(b.accountNumber))
+          .map((acc) => (
+            <option key={acc.id} value={acc.id}>
+              {acc.accountNumber} - {acc.name}
+            </option>
+          ))}
+      </Select>
 
       {/* Checkboxes Row 1 */}
       <div className="grid grid-cols-2 gap-4">
@@ -773,80 +705,50 @@ export function AccountForm({
 
       {/* Cash Flow Category (conditional) */}
       {isCashFlowRelevant && (
-        <div>
-          <label
-            htmlFor="account-cash-flow-category"
-            className="block text-sm font-medium text-gray-700"
-          >
-            Cash Flow Category
-          </label>
-          <select
-            id="account-cash-flow-category"
-            value={cashFlowCategory}
-            onChange={(e) => {
-              const value = e.target.value
-              if (value === "" || isCashFlowCategory(value)) {
-                setCashFlowCategory(value)
-              }
-            }}
-            disabled={isSubmitting}
-            data-testid="account-cash-flow-category-select"
-            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
-          >
-            <option value="">Select category...</option>
-            <option value="Operating">Operating</option>
-            <option value="Investing">Investing</option>
-            <option value="Financing">Financing</option>
-            <option value="NonCash">Non-Cash</option>
-          </select>
-        </div>
+        <Select
+          id="account-cash-flow-category"
+          label="Cash Flow Category"
+          value={cashFlowCategory}
+          onChange={(e) => {
+            const value = e.target.value
+            if (value === "" || isCashFlowCategory(value)) {
+              setCashFlowCategory(value)
+            }
+          }}
+          disabled={isSubmitting}
+          placeholder="Select category..."
+          data-testid="account-cash-flow-category-select"
+        >
+          <option value="">Select category...</option>
+          <option value="Operating">Operating</option>
+          <option value="Investing">Investing</option>
+          <option value="Financing">Financing</option>
+          <option value="NonCash">Non-Cash</option>
+        </Select>
       )}
 
       {/* Form Actions */}
       <div className="flex gap-3 pt-2">
-        <button
+        <Button
           type="button"
+          variant="secondary"
           onClick={onCancel}
           disabled={isSubmitting}
+          className="flex-1"
           data-testid="account-form-cancel-button"
-          className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 font-medium text-gray-700 hover:bg-gray-50 disabled:bg-gray-50 disabled:text-gray-400"
         >
           Cancel
-        </button>
-        <button
+        </Button>
+        <Button
           type="submit"
+          variant="primary"
+          loading={isSubmitting}
           disabled={isSubmitting || (isCreateMode && !!accountNumberError)}
+          className="flex-1"
           data-testid="account-form-submit-button"
-          className="flex-1 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-400"
         >
-          {isSubmitting ? (
-            <span className="flex items-center justify-center">
-              <svg
-                className="mr-2 h-4 w-4 animate-spin"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                  fill="none"
-                  opacity="0.25"
-                />
-                <path
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                />
-              </svg>
-              {submittingLabel}
-            </span>
-          ) : (
-            submitLabel
-          )}
-        </button>
+          {submitLabel}
+        </Button>
       </div>
     </form>
   )

@@ -886,9 +886,9 @@ test.describe("Company Details Page", () => {
     await expect(functionalCurrencyInput).toBeDisabled()
     await expect(functionalCurrencyInput).toHaveValue("EUR")
 
-    // 10. Should show ASC 830 note
-    await expect(page.getByTestId("functional-currency-note")).toBeVisible()
-    await expect(page.getByTestId("functional-currency-note")).toContainText("ASC 830")
+    // 10. Should show ASC 830 note (helper text with Input component)
+    await expect(page.getByTestId("edit-company-functional-currency-helper")).toBeVisible()
+    await expect(page.getByTestId("edit-company-functional-currency-helper")).toContainText("ASC 830")
   })
 
   test("should deactivate and reactivate a company", async ({ page, request }) => {

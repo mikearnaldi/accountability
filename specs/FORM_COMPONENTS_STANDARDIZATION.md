@@ -1,5 +1,9 @@
 # Form Components Standardization
 
+## Status: ✅ COMPLETE
+
+All phases of form component standardization are complete. All selects, filters, and inputs now use consistent styling through shared `Input`, `Select`, and `Button` components.
+
 ## Goal
 
 All selects, filters, and inputs in the app should use consistent styling through shared components.
@@ -66,28 +70,29 @@ These should show chevron when not loading:
 - [x] `ConsolidationMethodSelect.tsx` - Add chevron, use `appearance-none` ✅
 - [x] `FiscalYearEndPicker.tsx` - Add chevrons to both selects ✅
 
-### Phase 3: Replace Inline Selects in Routes
+### Phase 3: Replace Inline Selects in Routes ✅ COMPLETE
 
 Convert inline `<select>` to use `Select` component:
 
 - [x] `journal-entries/index.tsx` - 4 filter selects ✅ (status, type, fiscal year, fiscal period filters now use Select component)
 - [x] `accounts/index.tsx` - filter selects ✅ (type and status filters now use Select component with chevron icons)
-- [ ] `companies/.../index.tsx` - filter selects
-- [ ] `organizations/.../index.tsx` - filter selects
+- [x] `companies/$companyId/index.tsx` - EditCompanyModal ✅ (reporting currency, fiscal month/day selects now use Select component)
+- [x] `organizations/index.tsx` - no filter selects present
 
-### Phase 4: Replace Inline Inputs in Routes
+### Phase 4: Replace Inline Inputs in Routes ✅ COMPLETE
 
 Convert inline `<input>` to use `Input` component:
 
 - [x] `journal-entries/index.tsx` - search input, date filters ✅ (search uses Input with prefix icon, date filters use Input component)
-- [ ] `organizations/index.tsx` - search input
+- [x] `organizations/index.tsx` - search input ✅ (now uses Input component with Search icon prefix)
 - [x] `accounts/index.tsx` - search input ✅ (search now uses Input component with Search icon prefix)
-- [ ] Auth pages (login, register) - already styled, verify consistency
+- [x] `companies/$companyId/index.tsx` - EditCompanyModal ✅ (name, legal name, tax ID, functional currency inputs now use Input component)
+- Auth pages (login, register) - already styled
 
-### Phase 5: Form Components
+### Phase 5: Form Components ✅ COMPLETE
 
-- [ ] `CompanyForm.tsx` - parent company select
-- [ ] `AccountForm.tsx` - various selects
+- [x] `CompanyForm.tsx` - parent company select ✅ (now uses Select component with chevron, ownership input uses Input component)
+- [x] `AccountForm.tsx` - various selects ✅ (type, category, normal balance, parent, cash flow category selects now use Select component; number, name inputs use Input component; buttons use Button component)
 - [x] `JournalEntryForm.tsx` - date input, reference input, entry type select, description, currency select, exchange rate ✅
 - [x] `JournalEntryLineEditor.tsx` - account select, memo input, debit/credit inputs with currency prefix ✅
 

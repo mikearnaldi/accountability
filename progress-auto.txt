@@ -350,3 +350,8 @@
 **Task**: Standardized JournalEntryForm.tsx and JournalEntryLineEditor.tsx - replaced 6 inline form elements (date input, reference input, entry type select, description input, currency select, exchange rate input) in JournalEntryForm with Input and Select components, and 4 inline form elements (account select, memo input, debit input, credit input) in JournalEntryLineEditor with Input and Select components. All components now use consistent styling with proper chevron icons on selects and currency prefix on amount inputs. All 3590 unit tests and 22 journal entries E2E tests pass.
 **Status**: complete
 ---
+
+## Iteration 4 - 2026-01-17 09:40
+**Task**: Completed Form Components Standardization Phase 5 - standardized CompanyForm.tsx (parent company select, ownership input), AccountForm.tsx (6 selects including account type, category, normal balance, parent, cash flow category + inputs and buttons), EditCompanyModal (4 inputs + 3 selects + buttons), and organizations/index.tsx (search input). All form components now use consistent Input, Select, and Button components with proper chevron icons on selects. All 3590 unit tests pass, typecheck clean, lint clean.
+**Status**: complete
+---
