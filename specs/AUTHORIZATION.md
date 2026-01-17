@@ -15,7 +15,7 @@ This specification defines the authorization system for Accountability, implemen
 
 Each phase is sized for **1-2 hours of agent work**. Complete phases in order within each track. Run `pnpm test && pnpm typecheck` after each phase.
 
-### Track A: Foundation (Backend)
+### Track A: Foundation (Backend) ✅ COMPLETE
 
 #### Phase A1: Database Migration
 **File**: `packages/persistence/src/Migrations/Migration00XX_CreateAuthorizationTables.ts`
@@ -113,7 +113,7 @@ Create TaggedError classes:
 
 ---
 
-### Track B: Repositories (Backend)
+### Track B: Repositories (Backend) ✅ COMPLETE
 
 #### Phase B1: OrganizationMemberRepository
 **Files**:

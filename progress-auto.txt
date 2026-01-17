@@ -404,3 +404,8 @@
 **Task**: Implemented Track A Foundation (Phases A1-A7) - Database migration and all authorization domain models including membership, invitation, policy schemas and error types
 **Status**: complete
 ---
+
+## Iteration 3 - 2026-01-17 21:44
+**Task**: Fixed CI type error in PolicyRepositoryLive.ts by replacing type assertion with type-safe lookup table (RESOURCE_TYPE_MAP) for ResourceCondition.type parsing from JSONB
+**Status**: complete
+---
