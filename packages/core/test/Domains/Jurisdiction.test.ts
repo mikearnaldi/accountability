@@ -12,11 +12,21 @@ import {
   GB_TAX_SETTINGS,
   US_JURISDICTION,
   GB_JURISDICTION,
+  CA_JURISDICTION,
+  AU_JURISDICTION,
+  DE_JURISDICTION,
+  FR_JURISDICTION,
+  JP_JURISDICTION,
+  SG_JURISDICTION,
+  HK_JURISDICTION,
+  CH_JURISDICTION,
+  NL_JURISDICTION,
+  IE_JURISDICTION,
   PREDEFINED_JURISDICTIONS,
   JURISDICTIONS_BY_CODE,
   getJurisdictionByCode
 } from "../../src/Domains/Jurisdiction.ts"
-import { JurisdictionCode, US, GB } from "../../src/Domains/JurisdictionCode.ts"
+import { JurisdictionCode, US, GB, CA, AU, DE, FR, JP, SG, HK, CH, NL, IE } from "../../src/Domains/JurisdictionCode.ts"
 import { CurrencyCode, USD, GBP } from "../../src/Domains/CurrencyCode.ts"
 
 describe("TaxRule", () => {
@@ -906,11 +916,192 @@ describe("Predefined Jurisdictions", () => {
     })
   })
 
+  describe("CA_JURISDICTION", () => {
+    it("has correct properties", () => {
+      expect(CA_JURISDICTION.code).toBe("CA")
+      expect(CA_JURISDICTION.name).toBe("Canada")
+      expect(CA_JURISDICTION.defaultCurrency).toBe("CAD")
+    })
+
+    it("has CA tax settings", () => {
+      expect(CA_JURISDICTION.taxSettings.defaultFiscalYearEndMonth).toBe(12)
+      expect(CA_JURISDICTION.taxSettings.hasVat).toBe(true)
+    })
+
+    it("is valid Jurisdiction", () => {
+      expect(isJurisdiction(CA_JURISDICTION)).toBe(true)
+    })
+  })
+
+  describe("AU_JURISDICTION", () => {
+    it("has correct properties", () => {
+      expect(AU_JURISDICTION.code).toBe("AU")
+      expect(AU_JURISDICTION.name).toBe("Australia")
+      expect(AU_JURISDICTION.defaultCurrency).toBe("AUD")
+    })
+
+    it("has AU tax settings with June fiscal year end", () => {
+      expect(AU_JURISDICTION.taxSettings.defaultFiscalYearEndMonth).toBe(6)
+      expect(AU_JURISDICTION.taxSettings.hasVat).toBe(true)
+    })
+
+    it("is valid Jurisdiction", () => {
+      expect(isJurisdiction(AU_JURISDICTION)).toBe(true)
+    })
+  })
+
+  describe("DE_JURISDICTION", () => {
+    it("has correct properties", () => {
+      expect(DE_JURISDICTION.code).toBe("DE")
+      expect(DE_JURISDICTION.name).toBe("Germany")
+      expect(DE_JURISDICTION.defaultCurrency).toBe("EUR")
+    })
+
+    it("has DE tax settings", () => {
+      expect(DE_JURISDICTION.taxSettings.defaultFiscalYearEndMonth).toBe(12)
+      expect(DE_JURISDICTION.taxSettings.hasVat).toBe(true)
+    })
+
+    it("is valid Jurisdiction", () => {
+      expect(isJurisdiction(DE_JURISDICTION)).toBe(true)
+    })
+  })
+
+  describe("FR_JURISDICTION", () => {
+    it("has correct properties", () => {
+      expect(FR_JURISDICTION.code).toBe("FR")
+      expect(FR_JURISDICTION.name).toBe("France")
+      expect(FR_JURISDICTION.defaultCurrency).toBe("EUR")
+    })
+
+    it("has FR tax settings", () => {
+      expect(FR_JURISDICTION.taxSettings.defaultFiscalYearEndMonth).toBe(12)
+      expect(FR_JURISDICTION.taxSettings.hasVat).toBe(true)
+    })
+
+    it("is valid Jurisdiction", () => {
+      expect(isJurisdiction(FR_JURISDICTION)).toBe(true)
+    })
+  })
+
+  describe("JP_JURISDICTION", () => {
+    it("has correct properties", () => {
+      expect(JP_JURISDICTION.code).toBe("JP")
+      expect(JP_JURISDICTION.name).toBe("Japan")
+      expect(JP_JURISDICTION.defaultCurrency).toBe("JPY")
+    })
+
+    it("has JP tax settings with March fiscal year end", () => {
+      expect(JP_JURISDICTION.taxSettings.defaultFiscalYearEndMonth).toBe(3)
+      expect(JP_JURISDICTION.taxSettings.hasVat).toBe(true)
+    })
+
+    it("is valid Jurisdiction", () => {
+      expect(isJurisdiction(JP_JURISDICTION)).toBe(true)
+    })
+  })
+
+  describe("SG_JURISDICTION", () => {
+    it("has correct properties", () => {
+      expect(SG_JURISDICTION.code).toBe("SG")
+      expect(SG_JURISDICTION.name).toBe("Singapore")
+      expect(SG_JURISDICTION.defaultCurrency).toBe("SGD")
+    })
+
+    it("has SG tax settings", () => {
+      expect(SG_JURISDICTION.taxSettings.defaultFiscalYearEndMonth).toBe(12)
+      expect(SG_JURISDICTION.taxSettings.hasVat).toBe(true)
+    })
+
+    it("is valid Jurisdiction", () => {
+      expect(isJurisdiction(SG_JURISDICTION)).toBe(true)
+    })
+  })
+
+  describe("HK_JURISDICTION", () => {
+    it("has correct properties", () => {
+      expect(HK_JURISDICTION.code).toBe("HK")
+      expect(HK_JURISDICTION.name).toBe("Hong Kong")
+      expect(HK_JURISDICTION.defaultCurrency).toBe("HKD")
+    })
+
+    it("has HK tax settings with March fiscal year end and no VAT", () => {
+      expect(HK_JURISDICTION.taxSettings.defaultFiscalYearEndMonth).toBe(3)
+      expect(HK_JURISDICTION.taxSettings.hasVat).toBe(false)
+      expect(HK_JURISDICTION.taxSettings.hasWithholdingTax).toBe(false)
+    })
+
+    it("is valid Jurisdiction", () => {
+      expect(isJurisdiction(HK_JURISDICTION)).toBe(true)
+    })
+  })
+
+  describe("CH_JURISDICTION", () => {
+    it("has correct properties", () => {
+      expect(CH_JURISDICTION.code).toBe("CH")
+      expect(CH_JURISDICTION.name).toBe("Switzerland")
+      expect(CH_JURISDICTION.defaultCurrency).toBe("CHF")
+    })
+
+    it("has CH tax settings", () => {
+      expect(CH_JURISDICTION.taxSettings.defaultFiscalYearEndMonth).toBe(12)
+      expect(CH_JURISDICTION.taxSettings.hasVat).toBe(true)
+    })
+
+    it("is valid Jurisdiction", () => {
+      expect(isJurisdiction(CH_JURISDICTION)).toBe(true)
+    })
+  })
+
+  describe("NL_JURISDICTION", () => {
+    it("has correct properties", () => {
+      expect(NL_JURISDICTION.code).toBe("NL")
+      expect(NL_JURISDICTION.name).toBe("Netherlands")
+      expect(NL_JURISDICTION.defaultCurrency).toBe("EUR")
+    })
+
+    it("has NL tax settings", () => {
+      expect(NL_JURISDICTION.taxSettings.defaultFiscalYearEndMonth).toBe(12)
+      expect(NL_JURISDICTION.taxSettings.hasVat).toBe(true)
+    })
+
+    it("is valid Jurisdiction", () => {
+      expect(isJurisdiction(NL_JURISDICTION)).toBe(true)
+    })
+  })
+
+  describe("IE_JURISDICTION", () => {
+    it("has correct properties", () => {
+      expect(IE_JURISDICTION.code).toBe("IE")
+      expect(IE_JURISDICTION.name).toBe("Ireland")
+      expect(IE_JURISDICTION.defaultCurrency).toBe("EUR")
+    })
+
+    it("has IE tax settings", () => {
+      expect(IE_JURISDICTION.taxSettings.defaultFiscalYearEndMonth).toBe(12)
+      expect(IE_JURISDICTION.taxSettings.hasVat).toBe(true)
+    })
+
+    it("is valid Jurisdiction", () => {
+      expect(isJurisdiction(IE_JURISDICTION)).toBe(true)
+    })
+  })
+
   describe("PREDEFINED_JURISDICTIONS", () => {
-    it("contains US and GB jurisdictions", () => {
-      expect(PREDEFINED_JURISDICTIONS.length).toBe(2)
+    it("contains all 12 predefined jurisdictions", () => {
+      expect(PREDEFINED_JURISDICTIONS.length).toBe(12)
       expect(PREDEFINED_JURISDICTIONS).toContain(US_JURISDICTION)
       expect(PREDEFINED_JURISDICTIONS).toContain(GB_JURISDICTION)
+      expect(PREDEFINED_JURISDICTIONS).toContain(CA_JURISDICTION)
+      expect(PREDEFINED_JURISDICTIONS).toContain(AU_JURISDICTION)
+      expect(PREDEFINED_JURISDICTIONS).toContain(DE_JURISDICTION)
+      expect(PREDEFINED_JURISDICTIONS).toContain(FR_JURISDICTION)
+      expect(PREDEFINED_JURISDICTIONS).toContain(JP_JURISDICTION)
+      expect(PREDEFINED_JURISDICTIONS).toContain(SG_JURISDICTION)
+      expect(PREDEFINED_JURISDICTIONS).toContain(HK_JURISDICTION)
+      expect(PREDEFINED_JURISDICTIONS).toContain(CH_JURISDICTION)
+      expect(PREDEFINED_JURISDICTIONS).toContain(NL_JURISDICTION)
+      expect(PREDEFINED_JURISDICTIONS).toContain(IE_JURISDICTION)
     })
 
     it("all jurisdictions are valid Jurisdiction instances", () => {
@@ -924,10 +1115,20 @@ describe("Predefined Jurisdictions", () => {
     it("provides lookup by jurisdiction code", () => {
       expect(JURISDICTIONS_BY_CODE.get(US)).toBe(US_JURISDICTION)
       expect(JURISDICTIONS_BY_CODE.get(GB)).toBe(GB_JURISDICTION)
+      expect(JURISDICTIONS_BY_CODE.get(CA)).toBe(CA_JURISDICTION)
+      expect(JURISDICTIONS_BY_CODE.get(AU)).toBe(AU_JURISDICTION)
+      expect(JURISDICTIONS_BY_CODE.get(DE)).toBe(DE_JURISDICTION)
+      expect(JURISDICTIONS_BY_CODE.get(FR)).toBe(FR_JURISDICTION)
+      expect(JURISDICTIONS_BY_CODE.get(JP)).toBe(JP_JURISDICTION)
+      expect(JURISDICTIONS_BY_CODE.get(SG)).toBe(SG_JURISDICTION)
+      expect(JURISDICTIONS_BY_CODE.get(HK)).toBe(HK_JURISDICTION)
+      expect(JURISDICTIONS_BY_CODE.get(CH)).toBe(CH_JURISDICTION)
+      expect(JURISDICTIONS_BY_CODE.get(NL)).toBe(NL_JURISDICTION)
+      expect(JURISDICTIONS_BY_CODE.get(IE)).toBe(IE_JURISDICTION)
     })
 
     it("returns undefined for unknown jurisdiction codes", () => {
-      expect(JURISDICTIONS_BY_CODE.get(JurisdictionCode.make("CA"))).toBeUndefined()
+      expect(JURISDICTIONS_BY_CODE.get(JurisdictionCode.make("ZZ"))).toBeUndefined()
     })
 
     it("has the same size as PREDEFINED_JURISDICTIONS", () => {
@@ -939,11 +1140,21 @@ describe("Predefined Jurisdictions", () => {
     it("returns jurisdiction for known codes", () => {
       expect(getJurisdictionByCode(US)).toBe(US_JURISDICTION)
       expect(getJurisdictionByCode(GB)).toBe(GB_JURISDICTION)
+      expect(getJurisdictionByCode(CA)).toBe(CA_JURISDICTION)
+      expect(getJurisdictionByCode(AU)).toBe(AU_JURISDICTION)
+      expect(getJurisdictionByCode(DE)).toBe(DE_JURISDICTION)
+      expect(getJurisdictionByCode(FR)).toBe(FR_JURISDICTION)
+      expect(getJurisdictionByCode(JP)).toBe(JP_JURISDICTION)
+      expect(getJurisdictionByCode(SG)).toBe(SG_JURISDICTION)
+      expect(getJurisdictionByCode(HK)).toBe(HK_JURISDICTION)
+      expect(getJurisdictionByCode(CH)).toBe(CH_JURISDICTION)
+      expect(getJurisdictionByCode(NL)).toBe(NL_JURISDICTION)
+      expect(getJurisdictionByCode(IE)).toBe(IE_JURISDICTION)
     })
 
     it("returns undefined for unknown codes", () => {
-      expect(getJurisdictionByCode(JurisdictionCode.make("CA"))).toBeUndefined()
-      expect(getJurisdictionByCode(JurisdictionCode.make("AU"))).toBeUndefined()
+      expect(getJurisdictionByCode(JurisdictionCode.make("ZZ"))).toBeUndefined()
+      expect(getJurisdictionByCode(JurisdictionCode.make("XX"))).toBeUndefined()
     })
   })
 })

@@ -9,8 +9,8 @@
 
 import * as Schema from "effect/Schema"
 import * as Chunk from "effect/Chunk"
-import { JurisdictionCode, US, GB } from "./JurisdictionCode.ts"
-import { CurrencyCode, USD, GBP } from "./CurrencyCode.ts"
+import { JurisdictionCode, US, GB, CA, AU, DE, FR, JP, SG, HK, CH, NL, IE } from "./JurisdictionCode.ts"
+import { CurrencyCode, USD, GBP, CAD, AUD, EUR, JPY, SGD, HKD, CHF } from "./CurrencyCode.ts"
 
 // =============================================================================
 // TaxSettings - Configurable tax rules for a jurisdiction
@@ -309,11 +309,351 @@ export const GB_JURISDICTION: Jurisdiction = Jurisdiction.make({
 })
 
 /**
+ * Tax settings for Canada
+ */
+export const CA_TAX_SETTINGS: TaxSettings = TaxSettings.make({
+  taxRules: Chunk.make(
+    TaxRule.make({
+      name: "Federal Corporate Income Tax",
+      rate: 0.15,
+      isApplicable: true,
+      description: "Federal corporate income tax rate"
+    }),
+    TaxRule.make({
+      name: "Goods and Services Tax (GST)",
+      rate: 0.05,
+      isApplicable: true,
+      description: "Federal GST rate"
+    })
+  ),
+  defaultFiscalYearEndMonth: 12,
+  hasVat: true,
+  hasWithholdingTax: true
+})
+
+/**
+ * Canada jurisdiction
+ */
+export const CA_JURISDICTION: Jurisdiction = Jurisdiction.make({
+  code: CA,
+  name: "Canada",
+  defaultCurrency: CAD,
+  taxSettings: CA_TAX_SETTINGS
+})
+
+/**
+ * Tax settings for Australia
+ */
+export const AU_TAX_SETTINGS: TaxSettings = TaxSettings.make({
+  taxRules: Chunk.make(
+    TaxRule.make({
+      name: "Corporate Income Tax",
+      rate: 0.30,
+      isApplicable: true,
+      description: "Standard corporate tax rate"
+    }),
+    TaxRule.make({
+      name: "Goods and Services Tax (GST)",
+      rate: 0.10,
+      isApplicable: true,
+      description: "Australian GST rate"
+    })
+  ),
+  defaultFiscalYearEndMonth: 6,
+  hasVat: true,
+  hasWithholdingTax: true
+})
+
+/**
+ * Australia jurisdiction
+ */
+export const AU_JURISDICTION: Jurisdiction = Jurisdiction.make({
+  code: AU,
+  name: "Australia",
+  defaultCurrency: AUD,
+  taxSettings: AU_TAX_SETTINGS
+})
+
+/**
+ * Tax settings for Germany
+ */
+export const DE_TAX_SETTINGS: TaxSettings = TaxSettings.make({
+  taxRules: Chunk.make(
+    TaxRule.make({
+      name: "Corporate Income Tax (Körperschaftsteuer)",
+      rate: 0.15,
+      isApplicable: true,
+      description: "German corporate income tax"
+    }),
+    TaxRule.make({
+      name: "Solidarity Surcharge",
+      rate: 0.055,
+      isApplicable: true,
+      description: "5.5% surcharge on corporate tax"
+    }),
+    TaxRule.make({
+      name: "Value Added Tax (Mehrwertsteuer)",
+      rate: 0.19,
+      isApplicable: true,
+      description: "Standard VAT rate"
+    })
+  ),
+  defaultFiscalYearEndMonth: 12,
+  hasVat: true,
+  hasWithholdingTax: true
+})
+
+/**
+ * Germany jurisdiction
+ */
+export const DE_JURISDICTION: Jurisdiction = Jurisdiction.make({
+  code: DE,
+  name: "Germany",
+  defaultCurrency: EUR,
+  taxSettings: DE_TAX_SETTINGS
+})
+
+/**
+ * Tax settings for France
+ */
+export const FR_TAX_SETTINGS: TaxSettings = TaxSettings.make({
+  taxRules: Chunk.make(
+    TaxRule.make({
+      name: "Corporate Income Tax (Impôt sur les sociétés)",
+      rate: 0.25,
+      isApplicable: true,
+      description: "Standard corporate tax rate"
+    }),
+    TaxRule.make({
+      name: "Value Added Tax (TVA)",
+      rate: 0.20,
+      isApplicable: true,
+      description: "Standard VAT rate"
+    })
+  ),
+  defaultFiscalYearEndMonth: 12,
+  hasVat: true,
+  hasWithholdingTax: true
+})
+
+/**
+ * France jurisdiction
+ */
+export const FR_JURISDICTION: Jurisdiction = Jurisdiction.make({
+  code: FR,
+  name: "France",
+  defaultCurrency: EUR,
+  taxSettings: FR_TAX_SETTINGS
+})
+
+/**
+ * Tax settings for Japan
+ */
+export const JP_TAX_SETTINGS: TaxSettings = TaxSettings.make({
+  taxRules: Chunk.make(
+    TaxRule.make({
+      name: "Corporate Income Tax",
+      rate: 0.232,
+      isApplicable: true,
+      description: "National corporate tax rate"
+    }),
+    TaxRule.make({
+      name: "Consumption Tax",
+      rate: 0.10,
+      isApplicable: true,
+      description: "Japanese consumption tax"
+    })
+  ),
+  defaultFiscalYearEndMonth: 3,
+  hasVat: true,
+  hasWithholdingTax: true
+})
+
+/**
+ * Japan jurisdiction
+ */
+export const JP_JURISDICTION: Jurisdiction = Jurisdiction.make({
+  code: JP,
+  name: "Japan",
+  defaultCurrency: JPY,
+  taxSettings: JP_TAX_SETTINGS
+})
+
+/**
+ * Tax settings for Singapore
+ */
+export const SG_TAX_SETTINGS: TaxSettings = TaxSettings.make({
+  taxRules: Chunk.make(
+    TaxRule.make({
+      name: "Corporate Income Tax",
+      rate: 0.17,
+      isApplicable: true,
+      description: "Singapore corporate tax rate"
+    }),
+    TaxRule.make({
+      name: "Goods and Services Tax (GST)",
+      rate: 0.09,
+      isApplicable: true,
+      description: "Singapore GST rate"
+    })
+  ),
+  defaultFiscalYearEndMonth: 12,
+  hasVat: true,
+  hasWithholdingTax: true
+})
+
+/**
+ * Singapore jurisdiction
+ */
+export const SG_JURISDICTION: Jurisdiction = Jurisdiction.make({
+  code: SG,
+  name: "Singapore",
+  defaultCurrency: SGD,
+  taxSettings: SG_TAX_SETTINGS
+})
+
+/**
+ * Tax settings for Hong Kong
+ */
+export const HK_TAX_SETTINGS: TaxSettings = TaxSettings.make({
+  taxRules: Chunk.make(
+    TaxRule.make({
+      name: "Profits Tax",
+      rate: 0.165,
+      isApplicable: true,
+      description: "Hong Kong profits tax rate for corporations"
+    })
+  ),
+  defaultFiscalYearEndMonth: 3,
+  hasVat: false,
+  hasWithholdingTax: false
+})
+
+/**
+ * Hong Kong jurisdiction
+ */
+export const HK_JURISDICTION: Jurisdiction = Jurisdiction.make({
+  code: HK,
+  name: "Hong Kong",
+  defaultCurrency: HKD,
+  taxSettings: HK_TAX_SETTINGS
+})
+
+/**
+ * Tax settings for Switzerland
+ */
+export const CH_TAX_SETTINGS: TaxSettings = TaxSettings.make({
+  taxRules: Chunk.make(
+    TaxRule.make({
+      name: "Federal Corporate Income Tax",
+      rate: 0.085,
+      isApplicable: true,
+      description: "Federal corporate tax rate"
+    }),
+    TaxRule.make({
+      name: "Value Added Tax (Mehrwertsteuer)",
+      rate: 0.077,
+      isApplicable: true,
+      description: "Standard VAT rate"
+    })
+  ),
+  defaultFiscalYearEndMonth: 12,
+  hasVat: true,
+  hasWithholdingTax: true
+})
+
+/**
+ * Switzerland jurisdiction
+ */
+export const CH_JURISDICTION: Jurisdiction = Jurisdiction.make({
+  code: CH,
+  name: "Switzerland",
+  defaultCurrency: CHF,
+  taxSettings: CH_TAX_SETTINGS
+})
+
+/**
+ * Tax settings for Netherlands
+ */
+export const NL_TAX_SETTINGS: TaxSettings = TaxSettings.make({
+  taxRules: Chunk.make(
+    TaxRule.make({
+      name: "Corporate Income Tax (Vennootschapsbelasting)",
+      rate: 0.257,
+      isApplicable: true,
+      description: "Dutch corporate tax rate for profits over €200,000"
+    }),
+    TaxRule.make({
+      name: "Value Added Tax (BTW)",
+      rate: 0.21,
+      isApplicable: true,
+      description: "Standard VAT rate"
+    })
+  ),
+  defaultFiscalYearEndMonth: 12,
+  hasVat: true,
+  hasWithholdingTax: true
+})
+
+/**
+ * Netherlands jurisdiction
+ */
+export const NL_JURISDICTION: Jurisdiction = Jurisdiction.make({
+  code: NL,
+  name: "Netherlands",
+  defaultCurrency: EUR,
+  taxSettings: NL_TAX_SETTINGS
+})
+
+/**
+ * Tax settings for Ireland
+ */
+export const IE_TAX_SETTINGS: TaxSettings = TaxSettings.make({
+  taxRules: Chunk.make(
+    TaxRule.make({
+      name: "Corporation Tax",
+      rate: 0.125,
+      isApplicable: true,
+      description: "Standard corporation tax rate"
+    }),
+    TaxRule.make({
+      name: "Value Added Tax (VAT)",
+      rate: 0.23,
+      isApplicable: true,
+      description: "Standard VAT rate"
+    })
+  ),
+  defaultFiscalYearEndMonth: 12,
+  hasVat: true,
+  hasWithholdingTax: true
+})
+
+/**
+ * Ireland jurisdiction
+ */
+export const IE_JURISDICTION: Jurisdiction = Jurisdiction.make({
+  code: IE,
+  name: "Ireland",
+  defaultCurrency: EUR,
+  taxSettings: IE_TAX_SETTINGS
+})
+
+/**
  * Collection of predefined jurisdictions
  */
 export const PREDEFINED_JURISDICTIONS: ReadonlyArray<Jurisdiction> = [
   US_JURISDICTION,
-  GB_JURISDICTION
+  GB_JURISDICTION,
+  CA_JURISDICTION,
+  AU_JURISDICTION,
+  DE_JURISDICTION,
+  FR_JURISDICTION,
+  JP_JURISDICTION,
+  SG_JURISDICTION,
+  HK_JURISDICTION,
+  CH_JURISDICTION,
+  NL_JURISDICTION,
+  IE_JURISDICTION
 ]
 
 /**
