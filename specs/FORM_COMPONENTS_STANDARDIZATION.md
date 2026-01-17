@@ -96,6 +96,13 @@ Convert inline `<input>` to use `Input` component:
 - [x] `JournalEntryForm.tsx` - date input, reference input, entry type select, description, currency select, exchange rate ✅
 - [x] `JournalEntryLineEditor.tsx` - account select, memo input, debit/credit inputs with currency prefix ✅
 
+### Phase 6: Action Buttons and Edit Page ✅ COMPLETE
+
+- [x] `JournalEntryForm.tsx` - action buttons ✅ (Cancel, Save Draft, Submit buttons now use Button component with loading prop)
+- [x] `journal-entries/$entryId/edit.tsx` - all form elements ✅ (date, reference, type selects now use Input/Select; currency select and exchange rate use Select/Input; action buttons use Button component with loading prop)
+- [x] `journal-entries/$entryId/index.tsx` - workflow action buttons ✅ (Submit, Approve, Reject, Post, Delete, Reverse buttons now use Button component with loading prop)
+- [x] `journal-entries/$entryId/index.tsx` - modals ✅ (RejectModal uses Input for reason and Button for actions; ConfirmDialog uses Button for actions)
+
 ## Target Styling
 
 All form elements should have:

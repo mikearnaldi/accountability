@@ -838,56 +838,30 @@ export function JournalEntryForm({
 
       {/* Form Actions */}
       <div className="flex items-center justify-between border-t border-gray-200 pt-4">
-        <button
-          type="button"
+        <Button
+          variant="secondary"
           onClick={onCancel}
           disabled={isSubmitting}
           data-testid="journal-entry-cancel"
-          className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
         >
           Cancel
-        </button>
+        </Button>
 
         <div className="flex gap-3">
-          <button
-            type="button"
+          <Button
+            variant="secondary"
             onClick={() => handleSubmit("draft")}
+            loading={isSubmitting && submitAction === "draft"}
             disabled={isSubmitting}
             data-testid="journal-entry-save-draft"
-            className="rounded-lg border border-blue-600 bg-white px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50"
+            className="border-blue-600 text-blue-600 hover:bg-blue-50"
           >
-            {isSubmitting && submitAction === "draft" ? (
-              <span className="flex items-center gap-2">
-                <svg
-                  className="h-4 w-4 animate-spin"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                    fill="none"
-                    opacity="0.25"
-                  />
-                  <path
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  />
-                </svg>
-                Saving...
-              </span>
-            ) : (
-              "Save as Draft"
-            )}
-          </button>
+            Save as Draft
+          </Button>
 
-          <button
-            type="button"
+          <Button
             onClick={() => handleSubmit("submit")}
+            loading={isSubmitting && submitAction === "submit"}
             disabled={isSubmitting || !isBalanced}
             data-testid="journal-entry-submit"
             title={
@@ -895,36 +869,9 @@ export function JournalEntryForm({
                 ? "Entry must be balanced to submit for approval"
                 : "Submit for approval"
             }
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-400"
           >
-            {isSubmitting && submitAction === "submit" ? (
-              <span className="flex items-center gap-2">
-                <svg
-                  className="h-4 w-4 animate-spin"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                    fill="none"
-                    opacity="0.25"
-                  />
-                  <path
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  />
-                </svg>
-                Submitting...
-              </span>
-            ) : (
-              "Submit for Approval"
-            )}
-          </button>
+            Submit for Approval
+          </Button>
         </div>
       </div>
     </form>

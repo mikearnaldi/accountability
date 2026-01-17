@@ -23,6 +23,8 @@ import { clsx } from "clsx"
 import { AppLayout } from "@/components/layout/AppLayout"
 import { MinimalRouteError } from "@/components/ui/RouteError"
 import { Tooltip } from "@/components/ui/Tooltip"
+import { Button } from "@/components/ui/Button"
+import { Input } from "@/components/ui/Input"
 
 // =============================================================================
 // Types (extracted from API response schema)
@@ -711,75 +713,84 @@ function WorkflowActions({
               </svg>
               Edit
             </Link>
-            <button
+            <Button
               onClick={handleSubmitForApproval}
+              loading={isSubmitting}
               disabled={isSubmitting}
-              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
               data-testid="submit-button"
             >
-              {isSubmitting ? "Submitting..." : "Submit for Approval"}
-            </button>
-            <button
+              Submit for Approval
+            </Button>
+            <Button
+              variant="danger"
               onClick={() => setShowDeleteConfirm(true)}
               disabled={isSubmitting}
-              className="inline-flex items-center gap-2 rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
               data-testid="delete-button"
+              icon={
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              }
+              className="border border-red-300 bg-white text-red-700 hover:bg-red-50"
             >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
               Delete
-            </button>
+            </Button>
           </>
         )}
 
         {/* PendingApproval actions */}
         {entry.status === "PendingApproval" && (
           <>
-            <button
+            <Button
               onClick={handleApprove}
+              loading={isSubmitting}
               disabled={isSubmitting}
-              className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
+              className="bg-green-600 hover:bg-green-700"
               data-testid="approve-button"
             >
-              {isSubmitting ? "Approving..." : "Approve"}
-            </button>
-            <button
+              Approve
+            </Button>
+            <Button
+              variant="secondary"
               onClick={() => setShowRejectModal(true)}
               disabled={isSubmitting}
-              className="inline-flex items-center gap-2 rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
+              className="border-red-300 text-red-700 hover:bg-red-50"
               data-testid="reject-button"
             >
               Reject
-            </button>
+            </Button>
           </>
         )}
 
         {/* Approved actions */}
         {entry.status === "Approved" && (
-          <button
+          <Button
             onClick={handlePost}
+            loading={isSubmitting}
             disabled={isSubmitting}
-            className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
+            className="bg-green-600 hover:bg-green-700"
             data-testid="post-button"
           >
-            {isSubmitting ? "Posting..." : "Post to Ledger"}
-          </button>
+            Post to Ledger
+          </Button>
         )}
 
         {/* Posted actions */}
         {entry.status === "Posted" && (
-          <button
+          <Button
+            variant="secondary"
             onClick={() => setShowReverseConfirm(true)}
             disabled={isSubmitting}
-            className="inline-flex items-center gap-2 rounded-lg border border-orange-300 bg-white px-4 py-2 text-sm font-medium text-orange-700 hover:bg-orange-50 disabled:opacity-50"
+            className="border-orange-300 text-orange-700 hover:bg-orange-50"
             data-testid="reverse-button"
+            icon={
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+              </svg>
+            }
           >
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
-            </svg>
             Create Reversal
-          </button>
+          </Button>
         )}
 
         {/* Reversed - view only */}
@@ -850,31 +861,31 @@ function RejectModal({
         <p className="mb-4 text-sm text-gray-600">
           Please provide a reason for rejecting this entry. The entry will be returned to draft status.
         </p>
-        <textarea
+        <Input
           value={reason}
           onChange={(e) => setReason(e.target.value)}
           placeholder="Enter rejection reason (optional)"
-          className="mb-4 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          rows={3}
           data-testid="reject-reason-input"
+          className="mb-4 text-sm"
         />
         <div className="flex justify-end gap-3">
-          <button
+          <Button
+            variant="secondary"
             onClick={onCancel}
             disabled={isSubmitting}
-            className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
             data-testid="reject-cancel-button"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="danger"
             onClick={() => onReject(reason)}
+            loading={isSubmitting}
             disabled={isSubmitting}
-            className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
             data-testid="reject-confirm-button"
           >
-            {isSubmitting ? "Rejecting..." : "Reject Entry"}
-          </button>
+            Reject Entry
+          </Button>
         </div>
       </div>
     </div>
@@ -912,25 +923,23 @@ function ConfirmDialog({
         <h3 className="mb-4 text-lg font-medium text-gray-900">{title}</h3>
         <p className="mb-4 text-sm text-gray-600">{message}</p>
         <div className="flex justify-end gap-3">
-          <button
+          <Button
+            variant="secondary"
             onClick={onCancel}
             disabled={isSubmitting}
-            className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
             data-testid="confirm-cancel-button"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={onConfirm}
+            loading={isSubmitting}
             disabled={isSubmitting}
-            className={clsx(
-              "rounded-lg px-4 py-2 text-sm font-medium text-white disabled:opacity-50",
-              buttonClass
-            )}
+            className={buttonClass}
             data-testid="confirm-button"
           >
-            {isSubmitting ? "Processing..." : confirmLabel}
-          </button>
+            {confirmLabel}
+          </Button>
         </div>
       </div>
     </div>

@@ -18,6 +18,8 @@ import { api } from "@/api/client"
 import { AppLayout } from "@/components/layout/AppLayout"
 import { MinimalRouteError } from "@/components/ui/RouteError"
 import { Button } from "@/components/ui/Button"
+import { Input } from "@/components/ui/Input"
+import { Select } from "@/components/ui/Select"
 import {
   JournalEntryLineEditor,
   type Account,
@@ -946,54 +948,39 @@ function EditJournalEntryPage() {
             <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
               {/* Transaction Date */}
               <div>
-                <label
-                  htmlFor="transaction-date"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Date *
-                </label>
-                <input
+                <Input
                   id="transaction-date"
                   type="date"
+                  label="Date *"
                   required
                   value={transactionDate}
                   onChange={(e) => setTransactionDate(e.target.value)}
                   disabled={isSubmitting}
                   data-testid="journal-entry-date"
-                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100"
+                  className="text-sm"
                 />
               </div>
 
               {/* Reference Number */}
               <div>
-                <label
-                  htmlFor="reference-number"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Reference
-                </label>
-                <input
+                <Input
                   id="reference-number"
                   type="text"
+                  label="Reference"
                   value={referenceNumber}
                   onChange={(e) => setReferenceNumber(e.target.value)}
                   disabled={isSubmitting}
                   placeholder="e.g., INV-001"
                   data-testid="journal-entry-reference"
-                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100"
+                  className="text-sm"
                 />
               </div>
 
               {/* Entry Type */}
               <div>
-                <label
-                  htmlFor="entry-type"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Type *
-                </label>
-                <select
+                <Select
                   id="entry-type"
+                  label="Type *"
                   value={entryType}
                   onChange={(e) => {
                     const value = e.target.value
@@ -1003,7 +990,7 @@ function EditJournalEntryPage() {
                   }}
                   disabled={isSubmitting}
                   data-testid="journal-entry-type"
-                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100"
+                  className="text-sm"
                 >
                   <option value="Standard">Standard</option>
                   <option value="Adjusting">Adjusting</option>
@@ -1013,7 +1000,7 @@ function EditJournalEntryPage() {
                   <option value="Recurring">Recurring</option>
                   <option value="Intercompany">Intercompany</option>
                   <option value="Revaluation">Revaluation</option>
-                </select>
+                </Select>
               </div>
 
               {/* Computed Fiscal Period (Read-only) */}
@@ -1036,22 +1023,17 @@ function EditJournalEntryPage() {
 
             {/* Description */}
             <div className="mt-4">
-              <label
-                htmlFor="description"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Description *
-              </label>
-              <input
+              <Input
                 id="description"
                 type="text"
+                label="Description *"
                 required
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 disabled={isSubmitting}
                 placeholder="Enter a description for this journal entry"
                 data-testid="journal-entry-description"
-                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100"
+                className="text-sm"
               />
             </div>
 
@@ -1079,37 +1061,27 @@ function EditJournalEntryPage() {
                 {showMultiCurrency && (
                   <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2">
-                      <label
-                        htmlFor="currency-select"
-                        className="text-sm text-gray-500"
-                      >
-                        Currency:
-                      </label>
-                      <select
+                      <span className="text-sm text-gray-500">Currency:</span>
+                      <Select
                         id="currency-select"
                         value={currency}
                         onChange={(e) => handleCurrencyChange(e.target.value)}
                         disabled={isSubmitting}
                         data-testid="journal-entry-currency"
-                        className="rounded-lg border border-gray-300 px-2 py-1 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100"
+                        className="py-1 text-sm"
                       >
                         {currencies.map((c) => (
                           <option key={c.code} value={c.code}>
                             {c.code} - {c.name}
                           </option>
                         ))}
-                      </select>
+                      </Select>
                     </div>
 
                     {currency !== functionalCurrency && (
                       <div className="flex items-center gap-2">
-                        <label
-                          htmlFor="exchange-rate"
-                          className="text-sm text-gray-500"
-                        >
-                          Rate:
-                        </label>
-                        <input
+                        <span className="text-sm text-gray-500">Rate:</span>
+                        <Input
                           id="exchange-rate"
                           type="text"
                           inputMode="decimal"
@@ -1117,7 +1089,7 @@ function EditJournalEntryPage() {
                           onChange={(e) => setExchangeRate(e.target.value)}
                           disabled={isSubmitting}
                           data-testid="journal-entry-exchange-rate"
-                          className="w-24 rounded-lg border border-gray-300 px-2 py-1 text-right text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100"
+                          className="w-24 py-1 text-right text-sm"
                         />
                         <span className="text-xs text-gray-500">
                           1 {currency} = {exchangeRate} {functionalCurrency}
@@ -1215,50 +1187,23 @@ function EditJournalEntryPage() {
 
           {/* Form Actions */}
           <div className="flex items-center justify-between border-t border-gray-200 pt-4">
-            <button
-              type="button"
+            <Button
+              variant="secondary"
               onClick={handleCancel}
               disabled={isSubmitting}
               data-testid="journal-entry-cancel"
-              className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Cancel
-            </button>
+            </Button>
 
-            <button
+            <Button
               type="submit"
+              loading={isSubmitting}
               disabled={isSubmitting || !isBalanced}
               data-testid="journal-entry-save"
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {isSubmitting ? (
-                <span className="flex items-center gap-2">
-                  <svg
-                    className="h-4 w-4 animate-spin"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                      className="opacity-25"
-                    />
-                    <path
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      className="opacity-75"
-                    />
-                  </svg>
-                  Saving...
-                </span>
-              ) : (
-                "Save Changes"
-              )}
-            </button>
+              Save Changes
+            </Button>
           </div>
         </form>
       </div>
