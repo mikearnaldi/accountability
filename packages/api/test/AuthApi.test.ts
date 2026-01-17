@@ -43,6 +43,7 @@ import { InvitationApiLive } from "@accountability/api/Layers/InvitationApiLive"
 import { JournalEntriesApiLive } from "@accountability/api/Layers/JournalEntriesApiLive"
 import { MembershipApiLive } from "@accountability/api/Layers/MembershipApiLive"
 import { ReportsApiLive } from "@accountability/api/Layers/ReportsApiLive"
+import { UserOrganizationsApiLive } from "@accountability/api/Layers/UserOrganizationsApiLive"
 
 // =============================================================================
 // Test Layer Setup
@@ -102,6 +103,7 @@ const AppApiLiveWithSessionAuth = HttpApiBuilder.api(AppApi)
   .pipe(Layer.provide(ConsolidationApiLive))
   .pipe(Layer.provide(ConsolidatedReportServiceLive))  
   .pipe(Layer.provide(EliminationRulesApiLive))
+  .pipe(Layer.provide(UserOrganizationsApiLive))
   .pipe(Layer.provide(AuthMiddlewareWithSessionValidation))
 
 /**

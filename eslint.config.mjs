@@ -316,6 +316,90 @@ const noDirectFetchRule = {
 }
 
 /**
+ * Custom ESLint rule to warn when .pipe() has too many arguments.
+ * Long pipes are hard to read and should be split into multiple .pipe() calls.
+ */
+const pipeMaxArgumentsRule = {
+  meta: {
+    type: "problem",
+    docs: {
+      description: "Disallow .pipe() with more than 20 arguments"
+    },
+    messages: {
+      tooManyArgs: ".pipe() has {{count}} arguments. Consider splitting into multiple .pipe() calls for readability (max 20)."
+    },
+    schema: []
+  },
+  create(context) {
+    return {
+      CallExpression(node) {
+        const callee = node.callee
+        // Check for .pipe() method call
+        if (
+          callee.type === "MemberExpression" &&
+          callee.property.type === "Identifier" &&
+          callee.property.name === "pipe"
+        ) {
+          if (node.arguments.length > 20) {
+            context.report({
+              node,
+              messageId: "tooManyArgs",
+              data: { count: node.arguments.length }
+            })
+          }
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Custom ESLint rule to warn when Layer.provide is nested inside another Layer.provide.
+ * Nested Layer.provide calls are confusing and should be refactored.
+ */
+const noNestedLayerProvideRule = {
+  meta: {
+    type: "problem",
+    docs: {
+      description: "Disallow nested Layer.provide calls"
+    },
+    messages: {
+      nestedProvide: "Nested Layer.provide detected. Extract the inner Layer.provide to a separate variable or use Layer.provideMerge."
+    },
+    schema: []
+  },
+  create(context) {
+    function isLayerProvide(node) {
+      if (node.type !== "CallExpression") return false
+      const callee = node.callee
+      return (
+        callee.type === "MemberExpression" &&
+        callee.object.type === "Identifier" &&
+        callee.object.name === "Layer" &&
+        callee.property.type === "Identifier" &&
+        callee.property.name === "provide"
+      )
+    }
+
+    return {
+      CallExpression(node) {
+        if (!isLayerProvide(node)) return
+
+        // Check if any argument is also a Layer.provide call
+        for (const arg of node.arguments) {
+          if (isLayerProvide(arg)) {
+            context.report({
+              node: arg,
+              messageId: "nestedProvide"
+            })
+          }
+        }
+      }
+    }
+  }
+}
+
+/**
  * Custom ESLint rule to ban window.location.href for navigation/redirects.
  * Use TanStack Router's navigate() or useNavigate() instead.
  * Direct location manipulation breaks SPA routing and loses app state.
@@ -373,7 +457,9 @@ const localPlugin = {
     "prefer-option-from-nullable": preferOptionFromNullableRule,
     "no-location-href-redirect": noLocationHrefRedirectRule,
     "no-direct-fetch": noDirectFetchRule,
-    "no-localstorage": noLocalStorageRule
+    "no-localstorage": noLocalStorageRule,
+    "pipe-max-arguments": pipeMaxArgumentsRule,
+    "no-nested-layer-provide": noNestedLayerProvideRule
   }
 }
 
@@ -444,6 +530,10 @@ export default [
       "local/no-direct-fetch": "error",
       // localStorage is forbidden - use httpOnly cookies for auth, React state for app state
       "local/no-localstorage": "error",
+      // Error when .pipe() has too many arguments (max 20)
+      "local/pipe-max-arguments": "error",
+      // Error when Layer.provide is nested inside another Layer.provide
+      "local/no-nested-layer-provide": "error",
       // Allow unused variables starting with underscore
       "no-unused-vars": "off",
       "@typescript-eslint/no-unused-vars": [

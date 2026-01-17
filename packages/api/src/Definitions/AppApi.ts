@@ -24,6 +24,7 @@ import { InvitationApi } from "./InvitationApi.ts"
 import { JournalEntriesApi } from "./JournalEntriesApi.ts"
 import { MembershipApi } from "./MembershipApi.ts"
 import { ReportsApi } from "./ReportsApi.ts"
+import { UserOrganizationsApi } from "./UserOrganizationsApi.ts"
 
 // =============================================================================
 // Health Check Types
@@ -92,6 +93,7 @@ export class HealthApi extends HttpApiGroup.make("health")
  * - /api/v1/organizations/:orgId/members - Organization membership management (protected)
  * - /api/v1/users/me/invitations - User's pending invitations (protected)
  * - /api/v1/invitations/:token/* - Invitation accept/decline (protected)
+ * - /api/v1/users/me/organizations - User's organizations with roles/permissions (protected)
  */
 export class AppApi extends HttpApi.make("AppApi")
   .add(HealthApi)
@@ -111,6 +113,7 @@ export class AppApi extends HttpApi.make("AppApi")
   .add(IntercompanyTransactionsApi)
   .add(ConsolidationApi)
   .add(EliminationRulesApi)
+  .add(UserOrganizationsApi)
   .prefix("/api")
   .annotateContext(OpenApi.annotations({
     title: "Accountability API",

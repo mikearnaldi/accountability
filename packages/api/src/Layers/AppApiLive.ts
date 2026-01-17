@@ -29,6 +29,7 @@ import { InvitationApiLive } from "./InvitationApiLive.ts"
 import { JournalEntriesApiLive } from "./JournalEntriesApiLive.ts"
 import { MembershipApiLive } from "./MembershipApiLive.ts"
 import { ReportsApiLive } from "./ReportsApiLive.ts"
+import { UserOrganizationsApiLive } from "./UserOrganizationsApiLive.ts"
 
 // =============================================================================
 // Health API Implementation
@@ -54,6 +55,14 @@ const HealthApiLive = HttpApiBuilder.group(AppApi, "health", (handlers) =>
   )
 )
 
+/**
+ * ConsolidationApiWithDependencies - ConsolidationApiLive with its required services
+ */
+const ConsolidationApiWithDependencies = Layer.provide(
+  ConsolidationApiLive,
+  ConsolidatedReportServiceLive
+)
+
 // =============================================================================
 // Complete API Layer
 // =============================================================================
@@ -77,6 +86,7 @@ const HealthApiLive = HttpApiBuilder.group(AppApi, "health", (handlers) =>
  * - Audit log API (protected)
  * - Membership API (protected)
  * - Invitation API (protected)
+ * - User Organizations API (protected)
  *
  * Dependencies (required from consumer):
  * - AccountRepository
@@ -106,8 +116,9 @@ export const AppApiLive = HttpApiBuilder.api(AppApi).pipe(
   Layer.provide(JurisdictionsApiLive),
   Layer.provide(CurrencyApiLive),
   Layer.provide(IntercompanyTransactionsApiLive),
-  Layer.provide(Layer.provide(ConsolidationApiLive, ConsolidatedReportServiceLive)),
+  Layer.provide(ConsolidationApiWithDependencies),
   Layer.provide(EliminationRulesApiLive),
+  Layer.provide(UserOrganizationsApiLive),
   // AuthMiddlewareLive requires TokenValidator to be provided externally
   // - For production: use SessionTokenValidatorLive (validates against database)
   // - For testing: use SimpleTokenValidatorLive (user_<id>_<role> format)

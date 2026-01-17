@@ -254,7 +254,7 @@ Create Context.Tag pattern (like CurrentUser):
 
 ---
 
-### Track D: API Endpoints (Backend)
+### Track D: API Endpoints (Backend) ✅ COMPLETE
 
 #### Phase D1: Membership API Definition ✅ COMPLETE
 **File**: `packages/api/src/Definitions/MembershipApi.ts`
@@ -300,18 +300,18 @@ Implement handlers using MemberService, InvitationService.
 
 ---
 
-#### Phase D4: User Organizations API
+#### Phase D4: User Organizations API ✅ COMPLETE
 **Files**:
 - `packages/api/src/Definitions/UserOrganizationsApi.ts`
 - `packages/api/src/Layers/UserOrganizationsApiLive.ts`
 
 **Endpoint**: `GET /v1/users/me/organizations` - List user's orgs with roles
 
-**Test**: Integration test.
+**Completed**: UserOrganizationsApi.ts created with GET /v1/users/me/organizations endpoint that returns UserOrganizationsResponse containing array of UserOrganizationInfo objects (id, name, role, functionalRoles, effectivePermissions). UserOrganizationsApiLive.ts implemented using OrganizationMemberRepository and OrganizationRepository to fetch active memberships and compute effective permissions using PermissionMatrix. Added to AppApi and AppApiLive, updated test layer in AuthApi.test.ts.
 
 ---
 
-#### Phase D5: Organization Context Middleware
+#### Phase D5: Organization Context Middleware ✅ COMPLETE
 **File**: `packages/api/src/Layers/OrganizationContextMiddlewareLive.ts`
 
 Middleware that:
@@ -321,7 +321,16 @@ Middleware that:
 4. Provides `CurrentOrganizationMembership`
 5. Returns 403 `ForbiddenError` if not a member
 
-**Test**: Integration test for middleware.
+**Completed**: Created OrganizationContextMiddlewareLive.ts with helper functions for API handlers:
+- `validateOrganizationId(orgIdString)` - Decode and validate organization ID from path
+- `loadOrganizationMembership(organizationId)` - Load and validate membership for current user
+- `withOrganizationContext(organizationId, effect)` - Wrapper that loads membership and provides it as context
+- `requireOrganizationContext(orgIdString, effect)` - Convenience function combining validation and context
+- `requireAdminOrOwner` - Check if current user is admin/owner
+- `requireOwner` - Check if current user is owner
+- `requireFunctionalRole(role)` - Check if current user has a specific functional role
+
+Since Effect HttpApiMiddleware doesn't have direct access to path parameters, this uses a helper function pattern where handlers call these functions at the start to load membership context. Also fixed nested Layer.provide lint error in AppApiLive.ts.
 
 ---
 
