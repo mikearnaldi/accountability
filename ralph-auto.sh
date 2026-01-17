@@ -158,11 +158,6 @@ check_prerequisites() {
         exit 1
     fi
 
-    # Check for context directory (optional but recommended)
-    if [ ! -d "context" ]; then
-        log "WARN" "context/ directory not found - context documentation unavailable"
-    fi
-
     # Create progress file if it doesn't exist
     if [ ! -f "$PROGRESS_FILE" ]; then
         echo "# Ralph Auto Progress Log" > "$PROGRESS_FILE"
