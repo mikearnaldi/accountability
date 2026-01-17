@@ -8,6 +8,8 @@ import { AppLayout } from "@/components/layout/AppLayout"
 import { MinimalRouteError } from "@/components/ui/RouteError"
 import { Button } from "@/components/ui/Button"
 import { Tooltip } from "@/components/ui/Tooltip"
+import { Select } from "@/components/ui/Select"
+import { Input } from "@/components/ui/Input"
 
 // =============================================================================
 // Types (extracted from API response schema)
@@ -445,17 +447,16 @@ function JournalEntriesPage() {
           {/* Search and Count Row */}
           <div className="flex flex-wrap items-center justify-between gap-4">
             {/* Search */}
-            <div className="relative">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search entries..."
-                data-testid="journal-entries-search-input"
-                className="w-64 rounded-lg border border-gray-300 py-2 pl-10 pr-4 text-sm text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-            </div>
+            <Input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search entries..."
+              id="journal-entries-search-input"
+              data-testid="journal-entries-search-input"
+              inputPrefix={<Search className="h-4 w-4" />}
+              className="w-64 text-sm"
+            />
 
             <span className="text-sm text-gray-500" data-testid="journal-entries-count">
               {filteredEntries.length} of {total} entries
@@ -465,7 +466,7 @@ function JournalEntriesPage() {
           {/* Filter Row */}
           <div className="flex flex-wrap items-center gap-4" data-testid="journal-entries-filters">
             {/* Filter by Status */}
-            <select
+            <Select
               value={filterStatus}
               onChange={(e) => {
                 const value = e.target.value
@@ -473,19 +474,21 @@ function JournalEntriesPage() {
                   setFilterStatus(value)
                 }
               }}
+              id="journal-entries-filter-status"
               data-testid="journal-entries-filter-status"
-              className="rounded-lg border border-gray-300 py-2 pl-3 pr-8 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            >
-              <option value="All">All Statuses</option>
-              <option value="Draft">Draft</option>
-              <option value="PendingApproval">Pending Approval</option>
-              <option value="Approved">Approved</option>
-              <option value="Posted">Posted</option>
-              <option value="Reversed">Reversed</option>
-            </select>
+              className="text-sm"
+              options={[
+                { value: "All", label: "All Statuses" },
+                { value: "Draft", label: "Draft" },
+                { value: "PendingApproval", label: "Pending Approval" },
+                { value: "Approved", label: "Approved" },
+                { value: "Posted", label: "Posted" },
+                { value: "Reversed", label: "Reversed" }
+              ]}
+            />
 
             {/* Filter by Entry Type */}
-            <select
+            <Select
               value={filterType}
               onChange={(e) => {
                 const value = e.target.value
@@ -493,31 +496,34 @@ function JournalEntriesPage() {
                   setFilterType(value)
                 }
               }}
+              id="journal-entries-filter-type"
               data-testid="journal-entries-filter-type"
-              className="rounded-lg border border-gray-300 py-2 pl-3 pr-8 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            >
-              <option value="All">All Types</option>
-              <option value="Standard">Standard</option>
-              <option value="Adjusting">Adjusting</option>
-              <option value="Closing">Closing</option>
-              <option value="Opening">Opening</option>
-              <option value="Reversing">Reversing</option>
-              <option value="Recurring">Recurring</option>
-              <option value="Intercompany">Intercompany</option>
-              <option value="Revaluation">Revaluation</option>
-              <option value="Elimination">Elimination</option>
-              <option value="System">System</option>
-            </select>
+              className="text-sm"
+              options={[
+                { value: "All", label: "All Types" },
+                { value: "Standard", label: "Standard" },
+                { value: "Adjusting", label: "Adjusting" },
+                { value: "Closing", label: "Closing" },
+                { value: "Opening", label: "Opening" },
+                { value: "Reversing", label: "Reversing" },
+                { value: "Recurring", label: "Recurring" },
+                { value: "Intercompany", label: "Intercompany" },
+                { value: "Revaluation", label: "Revaluation" },
+                { value: "Elimination", label: "Elimination" },
+                { value: "System", label: "System" }
+              ]}
+            />
 
             {/* Filter by Fiscal Year */}
-            <select
+            <Select
               value={filterFiscalYear}
               onChange={(e) => {
                 setFilterFiscalYear(e.target.value)
                 setFilterFiscalPeriod("All") // Reset period when year changes
               }}
+              id="journal-entries-filter-fiscal-year"
               data-testid="journal-entries-filter-fiscal-year"
-              className="rounded-lg border border-gray-300 py-2 pl-3 pr-8 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="text-sm"
             >
               <option value="All">All Fiscal Years</option>
               {availableFiscalYears.map((year) => (
@@ -525,15 +531,16 @@ function JournalEntriesPage() {
                   FY {year}
                 </option>
               ))}
-            </select>
+            </Select>
 
             {/* Filter by Fiscal Period */}
-            <select
+            <Select
               value={filterFiscalPeriod}
               onChange={(e) => setFilterFiscalPeriod(e.target.value)}
               disabled={filterFiscalYear === "All"}
+              id="journal-entries-filter-fiscal-period"
               data-testid="journal-entries-filter-fiscal-period"
-              className="rounded-lg border border-gray-300 py-2 pl-3 pr-8 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-400"
+              className="text-sm"
             >
               <option value="All">All Periods</option>
               {availablePeriods.map((periodNum) => (
@@ -541,39 +548,41 @@ function JournalEntriesPage() {
                   P{periodNum}
                 </option>
               ))}
-            </select>
+            </Select>
 
             {/* Date Range Filters */}
             <div className="flex items-center gap-2">
               <label className="text-sm text-gray-500">From:</label>
-              <input
+              <Input
                 type="date"
                 value={filterFromDate}
                 onChange={(e) => setFilterFromDate(e.target.value)}
+                id="journal-entries-filter-from-date"
                 data-testid="journal-entries-filter-from-date"
-                className="rounded-lg border border-gray-300 py-2 pl-3 pr-8 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="text-sm"
               />
             </div>
             <div className="flex items-center gap-2">
               <label className="text-sm text-gray-500">To:</label>
-              <input
+              <Input
                 type="date"
                 value={filterToDate}
                 onChange={(e) => setFilterToDate(e.target.value)}
+                id="journal-entries-filter-to-date"
                 data-testid="journal-entries-filter-to-date"
-                className="rounded-lg border border-gray-300 py-2 pl-3 pr-8 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="text-sm"
               />
             </div>
 
             {/* Clear Filters */}
             {hasActiveFilters && (
-              <button
+              <Button
+                variant="secondary"
                 onClick={clearFilters}
                 data-testid="journal-entries-clear-filters"
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
               >
                 Clear Filters
-              </button>
+              </Button>
             )}
           </div>
         </div>

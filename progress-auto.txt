@@ -335,3 +335,8 @@
 **Task**: Standardized 4 specialized select components (CurrencySelect, JurisdictionSelect, ConsolidationMethodSelect, FiscalYearEndPicker) to use consistent chevron icons, appearance-none, and proper padding matching the base Select component. Phase 2 of form components standardization is now complete.
 **Status**: complete
 ---
+
+## Iteration 1 - 2026-01-17 09:22
+**Task**: Standardized journal-entries/index.tsx form components - replaced 4 inline filter selects (status, type, fiscal year, fiscal period) with Select component having proper chevron icons, and replaced search input and 2 date inputs with Input component. Also standardized Clear Filters button to use Button component. All 3590 unit tests and 22 journal entries E2E tests pass.
+**Status**: complete
+---

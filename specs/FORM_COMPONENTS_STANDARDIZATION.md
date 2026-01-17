@@ -70,7 +70,7 @@ These should show chevron when not loading:
 
 Convert inline `<select>` to use `Select` component:
 
-- [ ] `journal-entries/index.tsx` - 4 filter selects
+- [x] `journal-entries/index.tsx` - 4 filter selects ✅ (status, type, fiscal year, fiscal period filters now use Select component)
 - [ ] `accounts/index.tsx` - filter selects
 - [ ] `companies/.../index.tsx` - filter selects
 - [ ] `organizations/.../index.tsx` - filter selects
@@ -79,7 +79,7 @@ Convert inline `<select>` to use `Select` component:
 
 Convert inline `<input>` to use `Input` component:
 
-- [ ] `journal-entries/index.tsx` - search input, date filters
+- [x] `journal-entries/index.tsx` - search input, date filters ✅ (search uses Input with prefix icon, date filters use Input component)
 - [ ] `organizations/index.tsx` - search input
 - [ ] `accounts/index.tsx` - search input
 - [ ] Auth pages (login, register) - already styled, verify consistency

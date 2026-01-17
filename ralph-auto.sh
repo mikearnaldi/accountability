@@ -8,11 +8,12 @@
 # Usage: ./ralph-auto.sh <focus prompt> [options]
 #
 # Options:
-#   --e2e              Run E2E tests as part of CI checks (slower but more thorough)
+#   --e2e                    Run E2E tests as part of CI checks (slower but more thorough)
+#   --max-iterations <n>     Stop after n iterations (default: unlimited)
 #
 # Examples:
 #   ./ralph-auto.sh "Fix the authentication bug in login flow"
-#   ./ralph-auto.sh "Implement the exchange rate sync feature"
+#   ./ralph-auto.sh "Implement the exchange rate sync feature" --max-iterations 5
 #   ./ralph-auto.sh "Add E2E tests for consolidated reports" --e2e
 #
 # The loop continues until the task is complete (TASK_COMPLETE signal)
@@ -24,6 +25,7 @@ set -o pipefail  # Propagate exit status through pipelines (important for tee)
 # Parse arguments
 RUN_E2E=false
 FOCUS_PROMPT=""
+MAX_ITERATIONS=0  # 0 means unlimited
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -31,18 +33,28 @@ while [[ $# -gt 0 ]]; do
             RUN_E2E=true
             shift
             ;;
+        --max-iterations)
+            if [[ -n "$2" && "$2" =~ ^[0-9]+$ ]]; then
+                MAX_ITERATIONS="$2"
+                shift 2
+            else
+                echo "Error: --max-iterations requires a positive integer"
+                exit 1
+            fi
+            ;;
         --help|-h)
             echo "Usage: ./ralph-auto.sh <focus prompt> [options]"
             echo ""
             echo "A focus prompt is REQUIRED. The agent will only do what you ask."
             echo ""
             echo "Options:"
-            echo "  --e2e              Run E2E tests as part of CI checks"
-            echo "  --help, -h         Show this help message"
+            echo "  --e2e                    Run E2E tests as part of CI checks"
+            echo "  --max-iterations <n>     Stop after n iterations (default: unlimited)"
+            echo "  --help, -h               Show this help message"
             echo ""
             echo "Examples:"
             echo "  ./ralph-auto.sh \"Fix the authentication bug\""
-            echo "  ./ralph-auto.sh \"Implement exchange rate sync\""
+            echo "  ./ralph-auto.sh \"Implement exchange rate sync\" --max-iterations 5"
             echo "  ./ralph-auto.sh \"Add E2E tests\" --e2e"
             exit 0
             ;;
@@ -572,6 +584,9 @@ main() {
     if [ -n "$FOCUS_PROMPT" ]; then
         log "INFO" "Focus: $FOCUS_PROMPT"
     fi
+    if [ "$MAX_ITERATIONS" -gt 0 ]; then
+        log "INFO" "Max iterations: $MAX_ITERATIONS"
+    fi
 
     check_prerequisites
 
@@ -593,12 +608,21 @@ main() {
     while true; do
         log "INFO" "------------------------------------------"
         log "INFO" "ITERATION $iteration"
+        if [ "$MAX_ITERATIONS" -gt 0 ]; then
+            log "INFO" "(max: $MAX_ITERATIONS)"
+        fi
         log "INFO" "------------------------------------------"
 
         # Run the agent
         if run_iteration $iteration; then
             log "SUCCESS" "Nothing left to do!"
             completed=true
+            break
+        fi
+
+        # Check max iterations
+        if [ "$MAX_ITERATIONS" -gt 0 ] && [ "$iteration" -ge "$MAX_ITERATIONS" ]; then
+            log "WARN" "Reached max iterations ($MAX_ITERATIONS) - stopping"
             break
         fi
 
