@@ -143,11 +143,11 @@ const fetchRunData = createServerFn({ method: "GET" })
           headers: { Authorization }
         }),
         serverApi.GET("/api/v1/consolidation/groups/{id}", {
-          params: { path: { id: groupId } },
+          params: { path: { id: groupId }, query: { organizationId } },
           headers: { Authorization }
         }),
         serverApi.GET("/api/v1/consolidation/runs/{id}", {
-          params: { path: { id: runId } },
+          params: { path: { id: runId }, query: { organizationId } },
           headers: { Authorization }
         })
       ])
@@ -168,7 +168,7 @@ const fetchRunData = createServerFn({ method: "GET" })
       let trialBalance = null
       if (runResult.data?.status === "Completed") {
         const tbResult = await serverApi.GET("/api/v1/consolidation/runs/{id}/trial-balance", {
-          params: { path: { id: runId } },
+          params: { path: { id: runId }, query: { organizationId } },
           headers: { Authorization }
         })
         if (!tbResult.error) {
@@ -346,7 +346,7 @@ function ConsolidationRunDetailPage() {
 
     try {
       const { error } = await api.POST("/api/v1/consolidation/runs/{id}/cancel", {
-        params: { path: { id: run.id } }
+        params: { path: { id: run.id }, query: { organizationId: params.organizationId } }
       })
 
       if (error) {
@@ -369,7 +369,7 @@ function ConsolidationRunDetailPage() {
 
     try {
       const { error } = await api.DELETE("/api/v1/consolidation/runs/{id}", {
-        params: { path: { id: run.id } }
+        params: { path: { id: run.id }, query: { organizationId: params.organizationId } }
       })
 
       if (error) {

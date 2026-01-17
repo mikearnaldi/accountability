@@ -34,23 +34,27 @@ export interface ConsolidationRepositoryService {
   // =========================================================================
 
   /**
-   * Find a consolidation group by its unique identifier
+   * Find a consolidation group by its unique identifier within an organization
    *
+   * @param organizationId - The organization ID for authorization
    * @param id - The consolidation group ID to search for
-   * @returns Effect containing Option of ConsolidationGroup (None if not found)
+   * @returns Effect containing Option of ConsolidationGroup (None if not found or not in org)
    */
   readonly findGroup: (
+    organizationId: OrganizationId,
     id: ConsolidationGroupId
   ) => Effect.Effect<Option.Option<ConsolidationGroup>, PersistenceError>
 
   /**
    * Find a consolidation group by its unique identifier, throwing if not found
    *
+   * @param organizationId - The organization ID for authorization
    * @param id - The consolidation group ID to search for
    * @returns Effect containing the ConsolidationGroup
-   * @throws EntityNotFoundError if group doesn't exist
+   * @throws EntityNotFoundError if group doesn't exist or not in org
    */
   readonly getGroup: (
+    organizationId: OrganizationId,
     id: ConsolidationGroupId
   ) => Effect.Effect<ConsolidationGroup, EntityNotFoundError | PersistenceError>
 
@@ -85,23 +89,27 @@ export interface ConsolidationRepositoryService {
   ) => Effect.Effect<ConsolidationGroup, PersistenceError>
 
   /**
-   * Update an existing consolidation group
+   * Update an existing consolidation group within an organization
    *
+   * @param organizationId - The organization ID for authorization
    * @param group - The consolidation group entity with updated values
    * @returns Effect containing the updated consolidation group
-   * @throws EntityNotFoundError if group doesn't exist
+   * @throws EntityNotFoundError if group doesn't exist or not in org
    */
   readonly updateGroup: (
+    organizationId: OrganizationId,
     group: ConsolidationGroup
   ) => Effect.Effect<ConsolidationGroup, EntityNotFoundError | PersistenceError>
 
   /**
-   * Check if a consolidation group exists
+   * Check if a consolidation group exists within an organization
    *
+   * @param organizationId - The organization ID for authorization
    * @param id - The consolidation group ID to check
    * @returns Effect containing boolean indicating existence
    */
   readonly groupExists: (
+    organizationId: OrganizationId,
     id: ConsolidationGroupId
   ) => Effect.Effect<boolean, PersistenceError>
 
@@ -110,23 +118,27 @@ export interface ConsolidationRepositoryService {
   // =========================================================================
 
   /**
-   * Find a consolidation run by its unique identifier
+   * Find a consolidation run by its unique identifier within an organization
    *
+   * @param organizationId - The organization ID for authorization
    * @param id - The consolidation run ID to search for
-   * @returns Effect containing Option of ConsolidationRun (None if not found)
+   * @returns Effect containing Option of ConsolidationRun (None if not found or not in org)
    */
   readonly findRun: (
+    organizationId: OrganizationId,
     id: ConsolidationRunId
   ) => Effect.Effect<Option.Option<ConsolidationRun>, PersistenceError>
 
   /**
    * Find a consolidation run by its unique identifier, throwing if not found
    *
+   * @param organizationId - The organization ID for authorization
    * @param id - The consolidation run ID to search for
    * @returns Effect containing the ConsolidationRun
-   * @throws EntityNotFoundError if run doesn't exist
+   * @throws EntityNotFoundError if run doesn't exist or not in org
    */
   readonly getRun: (
+    organizationId: OrganizationId,
     id: ConsolidationRunId
   ) => Effect.Effect<ConsolidationRun, EntityNotFoundError | PersistenceError>
 
@@ -141,102 +153,120 @@ export interface ConsolidationRepositoryService {
   ) => Effect.Effect<ConsolidationRun, PersistenceError>
 
   /**
-   * Update an existing consolidation run
+   * Update an existing consolidation run within an organization
    *
+   * @param organizationId - The organization ID for authorization
    * @param run - The consolidation run entity with updated values
    * @returns Effect containing the updated consolidation run
-   * @throws EntityNotFoundError if run doesn't exist
+   * @throws EntityNotFoundError if run doesn't exist or not in org
    */
   readonly updateRun: (
+    organizationId: OrganizationId,
     run: ConsolidationRun
   ) => Effect.Effect<ConsolidationRun, EntityNotFoundError | PersistenceError>
 
   /**
-   * Find all consolidation runs for a group
+   * Find all consolidation runs for a group within an organization
    *
+   * @param organizationId - The organization ID for authorization
    * @param groupId - The consolidation group ID to filter by
    * @returns Effect containing array of consolidation runs ordered by date descending
    */
   readonly findRunsByGroup: (
+    organizationId: OrganizationId,
     groupId: ConsolidationGroupId
   ) => Effect.Effect<ReadonlyArray<ConsolidationRun>, PersistenceError>
 
   /**
-   * Find consolidation run for a specific group and period
+   * Find consolidation run for a specific group and period within an organization
    *
+   * @param organizationId - The organization ID for authorization
    * @param groupId - The consolidation group ID
    * @param period - The fiscal period reference
    * @returns Effect containing Option of ConsolidationRun
    */
   readonly findRunByGroupAndPeriod: (
+    organizationId: OrganizationId,
     groupId: ConsolidationGroupId,
     period: FiscalPeriodRef
   ) => Effect.Effect<Option.Option<ConsolidationRun>, PersistenceError>
 
   /**
-   * Find consolidation runs by status
+   * Find consolidation runs by status within an organization
    *
+   * @param organizationId - The organization ID for authorization
    * @param groupId - The consolidation group ID to filter by
    * @param status - The run status to filter by
    * @returns Effect containing array of consolidation runs
    */
   readonly findRunsByStatus: (
+    organizationId: OrganizationId,
     groupId: ConsolidationGroupId,
     status: ConsolidationRunStatus
   ) => Effect.Effect<ReadonlyArray<ConsolidationRun>, PersistenceError>
 
   /**
-   * Find the latest completed consolidation run for a group
+   * Find the latest completed consolidation run for a group within an organization
    *
+   * @param organizationId - The organization ID for authorization
    * @param groupId - The consolidation group ID
    * @returns Effect containing Option of the latest completed ConsolidationRun
    */
   readonly findLatestCompletedRun: (
+    organizationId: OrganizationId,
     groupId: ConsolidationGroupId
   ) => Effect.Effect<Option.Option<ConsolidationRun>, PersistenceError>
 
   /**
-   * Find all in-progress consolidation runs for a group
+   * Find all in-progress consolidation runs for a group within an organization
    *
+   * @param organizationId - The organization ID for authorization
    * @param groupId - The consolidation group ID
    * @returns Effect containing array of in-progress consolidation runs
    */
   readonly findInProgressRuns: (
+    organizationId: OrganizationId,
     groupId: ConsolidationGroupId
   ) => Effect.Effect<ReadonlyArray<ConsolidationRun>, PersistenceError>
 
   /**
-   * Find consolidation runs within a period range
+   * Find consolidation runs within a period range for a group within an organization
    *
+   * @param organizationId - The organization ID for authorization
    * @param groupId - The consolidation group ID
    * @param startPeriod - The start fiscal period (inclusive)
    * @param endPeriod - The end fiscal period (inclusive)
    * @returns Effect containing array of consolidation runs
    */
   readonly findRunsByPeriodRange: (
+    organizationId: OrganizationId,
     groupId: ConsolidationGroupId,
     startPeriod: FiscalPeriodRef,
     endPeriod: FiscalPeriodRef
   ) => Effect.Effect<ReadonlyArray<ConsolidationRun>, PersistenceError>
 
   /**
-   * Check if a consolidation run exists
+   * Check if a consolidation run exists within an organization
    *
+   * @param organizationId - The organization ID for authorization
    * @param id - The consolidation run ID to check
    * @returns Effect containing boolean indicating existence
    */
   readonly runExists: (
+    organizationId: OrganizationId,
     id: ConsolidationRunId
   ) => Effect.Effect<boolean, PersistenceError>
 
   /**
-   * Delete a consolidation run
+   * Delete a consolidation run within an organization
    *
+   * @param organizationId - The organization ID for authorization
    * @param id - The consolidation run ID to delete
    * @returns Effect indicating success
-   * @throws EntityNotFoundError if run doesn't exist
+   * @throws EntityNotFoundError if run doesn't exist or not in org
    */
   readonly deleteRun: (
+    organizationId: OrganizationId,
     id: ConsolidationRunId
   ) => Effect.Effect<void, EntityNotFoundError | PersistenceError>
 }

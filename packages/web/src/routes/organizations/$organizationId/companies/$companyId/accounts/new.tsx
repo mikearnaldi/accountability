@@ -55,11 +55,11 @@ const fetchNewAccountData = createServerFn({ method: "GET" })
 
       const [accountsResult, companyResult, orgResult] = await Promise.all([
         serverApi.GET("/api/v1/accounts", {
-          params: { query: { companyId: data.companyId, limit: "1000" } },
+          params: { query: { organizationId: data.organizationId, companyId: data.companyId, limit: "1000" } },
           headers: { Authorization }
         }),
-        serverApi.GET("/api/v1/companies/{id}", {
-          params: { path: { id: data.companyId } },
+        serverApi.GET("/api/v1/organizations/{organizationId}/companies/{id}", {
+          params: { path: { organizationId: data.organizationId, id: data.companyId } },
           headers: { Authorization }
         }),
         serverApi.GET("/api/v1/organizations/{id}", {
@@ -253,6 +253,7 @@ function NewAccountPage() {
         <div className="max-w-3xl rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
           <AccountForm
             mode="create"
+            organizationId={params.organizationId}
             companyId={params.companyId}
             accounts={accounts}
             onSuccess={handleSuccess}

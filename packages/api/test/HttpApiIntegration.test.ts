@@ -179,19 +179,28 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
     })
 
     describe("Authorized access", () => {
-      it.effect("valid token allows access to protected endpoints", () =>
+      // Test user UUID for authorization tests - this user is not a member of any organization
+      const testUserId = "550e8400-e29b-41d4-a716-446655440099"
+
+      it.effect("valid token allows access to protected endpoints (but 403 if not org member)", () =>
         Effect.gen(function* () {
           const httpClient = yield* HttpClient.HttpClient
           // Token format: user_<id>_<role>
           const response = yield* HttpClientRequest.get("/api/v1/accounts").pipe(
-            HttpClientRequest.setUrlParams({ companyId: "550e8400-e29b-41d4-a716-446655440001" }),
-            HttpClientRequest.bearerToken("user_123_admin"),
+            HttpClientRequest.setUrlParams({
+              organizationId: "550e8400-e29b-41d4-a716-446655440000",
+              companyId: "550e8400-e29b-41d4-a716-446655440001"
+            }),
+            // Use valid UUID as userId so the database query works correctly
+            HttpClientRequest.bearerToken(`user_${testUserId}_admin`),
             httpClient.execute,
             Effect.scoped
           )
 
-          // With real database, company doesn't exist so we get 404
-          expect(response.status).toBe(404)
+          // Authorization check runs before business logic - user is not a member of the organization
+          expect(response.status).toBe(403)
+          const body = yield* response.json
+          expect(body).toHaveProperty("_tag", "ForbiddenError")
         })
       )
 
@@ -243,45 +252,55 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
 
   describe("Accounts API", () => {
     describe("Account endpoints", () => {
-      it.effect("GET /api/v1/accounts returns 404 for non-existent company", () =>
+      // Test user UUID for authorization tests - this user is not a member of any organization
+      const testUserId = "550e8400-e29b-41d4-a716-446655440099"
+
+      it.effect("GET /api/v1/accounts returns 403 for non-member of organization", () =>
         Effect.gen(function* () {
           const httpClient = yield* HttpClient.HttpClient
           const response = yield* HttpClientRequest.get("/api/v1/accounts").pipe(
-            HttpClientRequest.setUrlParams({ companyId: "550e8400-e29b-41d4-a716-446655440001" }),
-            HttpClientRequest.bearerToken("user_123_admin"),
+            HttpClientRequest.setUrlParams({
+              organizationId: "550e8400-e29b-41d4-a716-446655440000",
+              companyId: "550e8400-e29b-41d4-a716-446655440001"
+            }),
+            // Use valid UUID as userId so the database query works correctly
+            HttpClientRequest.bearerToken(`user_${testUserId}_admin`),
             httpClient.execute,
             Effect.scoped
           )
 
-          expect(response.status).toBe(404)
+          // Authorization check runs before business logic - user is not a member of the organization
+          expect(response.status).toBe(403)
           const body = yield* response.json
-          expect(body).toHaveProperty("_tag", "NotFoundError")
-          expect(body).toHaveProperty("resource", "Company")
+          expect(body).toHaveProperty("_tag", "ForbiddenError")
         })
       )
 
-      it.effect("GET /api/v1/accounts/:id returns 404 for non-existent account", () =>
+      it.effect("GET /api/v1/accounts/organizations/:organizationId/accounts/:id returns 403 for non-member of organization", () =>
         Effect.gen(function* () {
           const httpClient = yield* HttpClient.HttpClient
-          const response = yield* HttpClientRequest.get("/api/v1/accounts/550e8400-e29b-41d4-a716-446655440002").pipe(
-            HttpClientRequest.bearerToken("user_123_admin"),
+          const response = yield* HttpClientRequest.get("/api/v1/accounts/organizations/550e8400-e29b-41d4-a716-446655440000/accounts/550e8400-e29b-41d4-a716-446655440002").pipe(
+            // Use valid UUID as userId so the database query works correctly
+            HttpClientRequest.bearerToken(`user_${testUserId}_admin`),
             httpClient.execute,
             Effect.scoped
           )
 
-          expect(response.status).toBe(404)
+          // Authorization check runs before business logic - user is not a member of the organization
+          expect(response.status).toBe(403)
           const body = yield* response.json
-          expect(body).toHaveProperty("_tag", "NotFoundError")
-          expect(body).toHaveProperty("resource", "Account")
+          expect(body).toHaveProperty("_tag", "ForbiddenError")
         })
       )
 
-      it.effect("POST /api/v1/accounts returns 422 for non-existent company", () =>
+      it.effect("POST /api/v1/accounts returns 403 for non-member of organization", () =>
         Effect.gen(function* () {
           const httpClient = yield* HttpClient.HttpClient
           const response = yield* HttpClientRequest.post("/api/v1/accounts").pipe(
-            HttpClientRequest.bearerToken("user_123_admin"),
+            // Use valid UUID as userId so the database query works correctly
+            HttpClientRequest.bearerToken(`user_${testUserId}_admin`),
             HttpClientRequest.bodyUnsafeJson({
+              organizationId: "550e8400-e29b-41d4-a716-446655440000",
               companyId: "550e8400-e29b-41d4-a716-446655440001",
               accountNumber: "1000",
               name: "Cash",
@@ -301,19 +320,19 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
             Effect.scoped
           )
 
-          // Company not found is a business rule error (422)
-          expect(response.status).toBe(422)
+          // Authorization check runs before business logic - user is not a member of the organization
+          expect(response.status).toBe(403)
           const body = yield* response.json
-          expect(body).toHaveProperty("_tag", "BusinessRuleError")
-          expect(body).toHaveProperty("code", "COMPANY_NOT_FOUND")
+          expect(body).toHaveProperty("_tag", "ForbiddenError")
         })
       )
 
-      it.effect("PUT /api/v1/accounts/:id returns 404 for non-existent account", () =>
+      it.effect("PUT /api/v1/accounts/organizations/:organizationId/accounts/:id returns 403 for non-member of organization", () =>
         Effect.gen(function* () {
           const httpClient = yield* HttpClient.HttpClient
-          const response = yield* HttpClientRequest.put("/api/v1/accounts/550e8400-e29b-41d4-a716-446655440002").pipe(
-            HttpClientRequest.bearerToken("user_123_admin"),
+          const response = yield* HttpClientRequest.put("/api/v1/accounts/organizations/550e8400-e29b-41d4-a716-446655440000/accounts/550e8400-e29b-41d4-a716-446655440002").pipe(
+            // Use valid UUID as userId so the database query works correctly
+            HttpClientRequest.bearerToken(`user_${testUserId}_admin`),
             HttpClientRequest.bodyUnsafeJson({
               name: null,
               description: null,
@@ -330,20 +349,27 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
             Effect.scoped
           )
 
-          expect(response.status).toBe(404)
+          // Authorization check runs before business logic - user is not a member of the organization
+          expect(response.status).toBe(403)
+          const body = yield* response.json
+          expect(body).toHaveProperty("_tag", "ForbiddenError")
         })
       )
 
-      it.effect("DELETE /api/v1/accounts/:id returns 404 for non-existent account", () =>
+      it.effect("DELETE /api/v1/accounts/organizations/:organizationId/accounts/:id returns 403 for non-member of organization", () =>
         Effect.gen(function* () {
           const httpClient = yield* HttpClient.HttpClient
-          const response = yield* HttpClientRequest.del("/api/v1/accounts/550e8400-e29b-41d4-a716-446655440002").pipe(
-            HttpClientRequest.bearerToken("user_123_admin"),
+          const response = yield* HttpClientRequest.del("/api/v1/accounts/organizations/550e8400-e29b-41d4-a716-446655440000/accounts/550e8400-e29b-41d4-a716-446655440002").pipe(
+            // Use valid UUID as userId so the database query works correctly
+            HttpClientRequest.bearerToken(`user_${testUserId}_admin`),
             httpClient.execute,
             Effect.scoped
           )
 
-          expect(response.status).toBe(404)
+          // Authorization check runs before business logic - user is not a member of the organization
+          expect(response.status).toBe(403)
+          const body = yield* response.json
+          expect(body).toHaveProperty("_tag", "ForbiddenError")
         })
       )
     })
@@ -412,44 +438,50 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
     })
 
     describe("Companies endpoints", () => {
-      it.effect("GET /api/v1/companies returns 404 for non-existent organization", () =>
+      // Test user UUID for authorization tests - this user is not a member of any organization
+      const testUserId = "550e8400-e29b-41d4-a716-446655440099"
+
+      it.effect("GET /api/v1/companies returns 403 for non-member of organization", () =>
         Effect.gen(function* () {
           const httpClient = yield* HttpClient.HttpClient
           const response = yield* HttpClientRequest.get("/api/v1/companies").pipe(
             HttpClientRequest.setUrlParams({ organizationId: "550e8400-e29b-41d4-a716-446655440000" }),
-            HttpClientRequest.bearerToken("user_123_admin"),
+            // Use valid UUID as userId so the database query works correctly
+            HttpClientRequest.bearerToken(`user_${testUserId}_admin`),
             httpClient.execute,
             Effect.scoped
           )
 
-          expect(response.status).toBe(404)
+          // Authorization check runs before business logic - user is not a member of the organization
+          expect(response.status).toBe(403)
           const body = yield* response.json
-          expect(body).toHaveProperty("_tag", "NotFoundError")
-          expect(body).toHaveProperty("resource", "Organization")
+          expect(body).toHaveProperty("_tag", "ForbiddenError")
         })
       )
 
-      it.effect("GET /api/v1/companies/:id returns 404 for non-existent company", () =>
+      it.effect("GET /api/v1/organizations/:orgId/companies/:id returns 403 for non-member of organization", () =>
         Effect.gen(function* () {
           const httpClient = yield* HttpClient.HttpClient
-          const response = yield* HttpClientRequest.get("/api/v1/companies/550e8400-e29b-41d4-a716-446655440001").pipe(
-            HttpClientRequest.bearerToken("user_123_admin"),
+          const response = yield* HttpClientRequest.get("/api/v1/organizations/550e8400-e29b-41d4-a716-446655440000/companies/550e8400-e29b-41d4-a716-446655440001").pipe(
+            // Use valid UUID as userId so the database query works correctly
+            HttpClientRequest.bearerToken(`user_${testUserId}_admin`),
             httpClient.execute,
             Effect.scoped
           )
 
-          expect(response.status).toBe(404)
+          // Authorization check runs before business logic - user is not a member of the organization
+          expect(response.status).toBe(403)
           const body = yield* response.json
-          expect(body).toHaveProperty("_tag", "NotFoundError")
-          expect(body).toHaveProperty("resource", "Company")
+          expect(body).toHaveProperty("_tag", "ForbiddenError")
         })
       )
 
-      it.effect("POST /api/v1/companies returns 422 for non-existent organization", () =>
+      it.effect("POST /api/v1/companies returns 403 for non-member of organization", () =>
         Effect.gen(function* () {
           const httpClient = yield* HttpClient.HttpClient
           const response = yield* HttpClientRequest.post("/api/v1/companies").pipe(
-            HttpClientRequest.bearerToken("user_123_admin"),
+            // Use valid UUID as userId so the database query works correctly
+            HttpClientRequest.bearerToken(`user_${testUserId}_admin`),
             HttpClientRequest.bodyUnsafeJson({
               organizationId: "550e8400-e29b-41d4-a716-446655440000",
               name: "Test Company",
@@ -472,11 +504,10 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
             Effect.scoped
           )
 
-          // Organization not found is a business rule error (422)
-          expect(response.status).toBe(422)
+          // Authorization check runs before business logic - user is not a member of the organization
+          expect(response.status).toBe(403)
           const body = yield* response.json
-          expect(body).toHaveProperty("_tag", "BusinessRuleError")
-          expect(body).toHaveProperty("code", "ORGANIZATION_NOT_FOUND")
+          expect(body).toHaveProperty("_tag", "ForbiddenError")
         })
       )
     })
@@ -492,7 +523,10 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
         Effect.gen(function* () {
           const httpClient = yield* HttpClient.HttpClient
           const response = yield* HttpClientRequest.get("/api/v1/journal-entries").pipe(
-            HttpClientRequest.setUrlParams({ companyId: "550e8400-e29b-41d4-a716-446655440001" }),
+            HttpClientRequest.setUrlParams({
+              organizationId: "550e8400-e29b-41d4-a716-446655440000",
+              companyId: "550e8400-e29b-41d4-a716-446655440001"
+            }),
             HttpClientRequest.bearerToken("user_123_admin"),
             httpClient.execute,
             Effect.scoped
@@ -509,6 +543,7 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
         Effect.gen(function* () {
           const httpClient = yield* HttpClient.HttpClient
           const response = yield* HttpClientRequest.get("/api/v1/journal-entries/550e8400-e29b-41d4-a716-446655440010").pipe(
+            HttpClientRequest.setUrlParams({ organizationId: "550e8400-e29b-41d4-a716-446655440000" }),
             HttpClientRequest.bearerToken("user_123_admin"),
             httpClient.execute,
             Effect.scoped
@@ -553,6 +588,7 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
         Effect.gen(function* () {
           const httpClient = yield* HttpClient.HttpClient
           const response = yield* HttpClientRequest.post("/api/v1/journal-entries/550e8400-e29b-41d4-a716-446655440010/submit").pipe(
+            HttpClientRequest.setUrlParams({ organizationId: "550e8400-e29b-41d4-a716-446655440000" }),
             HttpClientRequest.bearerToken("user_123_admin"),
             httpClient.execute,
             Effect.scoped
@@ -566,6 +602,7 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
         Effect.gen(function* () {
           const httpClient = yield* HttpClient.HttpClient
           const response = yield* HttpClientRequest.post("/api/v1/journal-entries/550e8400-e29b-41d4-a716-446655440010/approve").pipe(
+            HttpClientRequest.setUrlParams({ organizationId: "550e8400-e29b-41d4-a716-446655440000" }),
             HttpClientRequest.bearerToken("user_123_admin"),
             httpClient.execute,
             Effect.scoped
@@ -579,6 +616,7 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
         Effect.gen(function* () {
           const httpClient = yield* HttpClient.HttpClient
           const response = yield* HttpClientRequest.post("/api/v1/journal-entries/550e8400-e29b-41d4-a716-446655440010/reject").pipe(
+            HttpClientRequest.setUrlParams({ organizationId: "550e8400-e29b-41d4-a716-446655440000" }),
             HttpClientRequest.bearerToken("user_123_admin"),
             HttpClientRequest.bodyUnsafeJson({ reason: "Test rejection" }),
             httpClient.execute,
@@ -594,8 +632,9 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
           const httpClient = yield* HttpClient.HttpClient
           const response = yield* HttpClientRequest.post("/api/v1/journal-entries/550e8400-e29b-41d4-a716-446655440010/post").pipe(
             HttpClientRequest.bearerToken("user_123_admin"),
-            // PostJournalEntryRequest requires postedBy (UUID) and optional postingDate
+            // PostJournalEntryRequest requires organizationId, postedBy (UUID) and optional postingDate
             HttpClientRequest.bodyUnsafeJson({
+              organizationId: "550e8400-e29b-41d4-a716-446655440000",
               postedBy: "550e8400-e29b-41d4-a716-446655440100",
               postingDate: null
             }),
@@ -612,8 +651,9 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
           const httpClient = yield* HttpClient.HttpClient
           const response = yield* HttpClientRequest.post("/api/v1/journal-entries/550e8400-e29b-41d4-a716-446655440010/reverse").pipe(
             HttpClientRequest.bearerToken("user_123_admin"),
-            // ReverseJournalEntryRequest schema - reversedBy is a UUID, reversalDate is ISO string (YYYY-MM-DD)
+            // ReverseJournalEntryRequest schema - organizationId, reversedBy is a UUID, reversalDate is ISO string (YYYY-MM-DD)
             HttpClientRequest.bodyUnsafeJson({
+              organizationId: "550e8400-e29b-41d4-a716-446655440000",
               reversalDate: "2024-02-01",
               reversalDescription: null,
               reversedBy: "550e8400-e29b-41d4-a716-446655440100"
@@ -639,6 +679,7 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
           const httpClient = yield* HttpClient.HttpClient
           const response = yield* HttpClientRequest.get("/api/v1/reports/trial-balance").pipe(
             HttpClientRequest.setUrlParams({
+              organizationId: "550e8400-e29b-41d4-a716-446655440000",
               companyId: "550e8400-e29b-41d4-a716-446655440001",
               asOfDate: "2024-01-31"
             }),
@@ -659,6 +700,7 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
           const httpClient = yield* HttpClient.HttpClient
           const response = yield* HttpClientRequest.get("/api/v1/reports/balance-sheet").pipe(
             HttpClientRequest.setUrlParams({
+              organizationId: "550e8400-e29b-41d4-a716-446655440000",
               companyId: "550e8400-e29b-41d4-a716-446655440001",
               asOfDate: "2024-01-31"
             }),
@@ -679,6 +721,7 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
           const httpClient = yield* HttpClient.HttpClient
           const response = yield* HttpClientRequest.get("/api/v1/reports/income-statement").pipe(
             HttpClientRequest.setUrlParams({
+              organizationId: "550e8400-e29b-41d4-a716-446655440000",
               companyId: "550e8400-e29b-41d4-a716-446655440001",
               periodStartDate: "2024-01-01",
               periodEndDate: "2024-01-31"
@@ -700,6 +743,7 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
           const httpClient = yield* HttpClient.HttpClient
           const response = yield* HttpClientRequest.get("/api/v1/reports/cash-flow").pipe(
             HttpClientRequest.setUrlParams({
+              organizationId: "550e8400-e29b-41d4-a716-446655440000",
               companyId: "550e8400-e29b-41d4-a716-446655440001",
               periodStartDate: "2024-01-01",
               periodEndDate: "2024-01-31"
@@ -721,6 +765,7 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
           const httpClient = yield* HttpClient.HttpClient
           const response = yield* HttpClientRequest.get("/api/v1/reports/equity-statement").pipe(
             HttpClientRequest.setUrlParams({
+              organizationId: "550e8400-e29b-41d4-a716-446655440000",
               companyId: "550e8400-e29b-41d4-a716-446655440001",
               periodStartDate: "2024-01-01",
               periodEndDate: "2024-01-31"
@@ -745,21 +790,23 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
 
   describe("Error Responses", () => {
     describe("Error serialization", () => {
-      it.effect("NotFoundError has correct structure", () =>
+      // Test user UUID for authorization tests - this user is not a member of any organization
+      const testUserId = "550e8400-e29b-41d4-a716-446655440099"
+
+      it.effect("ForbiddenError has correct structure (authorization check before business logic)", () =>
         Effect.gen(function* () {
           const httpClient = yield* HttpClient.HttpClient
-          const response = yield* HttpClientRequest.get("/api/v1/accounts/550e8400-e29b-41d4-a716-446655440099").pipe(
-            HttpClientRequest.bearerToken("user_123_admin"),
+          const response = yield* HttpClientRequest.get("/api/v1/accounts/organizations/550e8400-e29b-41d4-a716-446655440000/accounts/550e8400-e29b-41d4-a716-446655440099").pipe(
+            // Use valid UUID as userId so the database query works correctly
+            HttpClientRequest.bearerToken(`user_${testUserId}_admin`),
             httpClient.execute,
             Effect.scoped
           )
 
-          expect(response.status).toBe(404)
+          // Authorization check runs before business logic - user is not a member of the organization
+          expect(response.status).toBe(403)
           const body = yield* response.json
-          expect(body).toHaveProperty("_tag", "NotFoundError")
-          expect(body).toHaveProperty("resource")
-          expect(body).toHaveProperty("id")
-          // Note: message is a getter, not a schema field, so it's not serialized
+          expect(body).toHaveProperty("_tag", "ForbiddenError")
         })
       )
 
@@ -779,37 +826,21 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
         })
       )
 
-      it.effect("BusinessRuleError has correct structure", () =>
+      it.effect("NotFoundError has correct structure (for organizations without permission checks)", () =>
         Effect.gen(function* () {
           const httpClient = yield* HttpClient.HttpClient
-          // Create account for non-existent company triggers BusinessRuleError
-          const response = yield* HttpClientRequest.post("/api/v1/accounts").pipe(
-            HttpClientRequest.bearerToken("user_123_admin"),
-            HttpClientRequest.bodyUnsafeJson({
-              companyId: "550e8400-e29b-41d4-a716-446655440001",
-              accountNumber: "1000",
-              name: "Cash",
-              description: null,
-              accountType: "Asset",
-              accountCategory: "CurrentAsset",
-              normalBalance: "Debit",
-              parentAccountId: null,
-              isPostable: true,
-              isCashFlowRelevant: true,
-              cashFlowCategory: "Operating",
-              isIntercompany: false,
-              intercompanyPartnerId: null,
-              currencyRestriction: null
-            }),
+          // Use organizations endpoint which doesn't require org membership
+          const response = yield* HttpClientRequest.get("/api/v1/organizations/550e8400-e29b-41d4-a716-446655440000").pipe(
+            HttpClientRequest.bearerToken(`user_${testUserId}_admin`),
             httpClient.execute,
             Effect.scoped
           )
 
-          expect(response.status).toBe(422)
+          expect(response.status).toBe(404)
           const body = yield* response.json
-          expect(body).toHaveProperty("_tag", "BusinessRuleError")
-          expect(body).toHaveProperty("code")
-          expect(body).toHaveProperty("message")
+          expect(body).toHaveProperty("_tag", "NotFoundError")
+          expect(body).toHaveProperty("resource", "Organization")
+          expect(body).toHaveProperty("id")
         })
       )
     })
@@ -862,25 +893,26 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
 
       it.effect("error responses are properly typed via Effect.flip", () =>
         Effect.gen(function* () {
+          // Test user UUID for authorization tests - this user is not a member of any organization
+          const testUserId = "550e8400-e29b-41d4-a716-446655440099"
+
           // Use HttpApiClient.makeWith with custom httpClient that adds bearer token
           const client = yield* HttpApiClient.makeWith(AppApi, {
             httpClient: (yield* HttpClient.HttpClient).pipe(
-              HttpClient.mapRequest(HttpClientRequest.bearerToken("user_123_admin"))
+              // Use valid UUID as userId so the database query works correctly
+              HttpClient.mapRequest(HttpClientRequest.bearerToken(`user_${testUserId}_admin`))
             )
           })
 
           // Use Effect.flip to get the error from the API
+          const testOrganizationId = "550e8400-e29b-41d4-a716-446655440000"
           const testAccountId = AccountId.make("550e8400-e29b-41d4-a716-446655440099")
           const error = yield* client.accounts.getAccount({
-            path: { id: testAccountId }
+            path: { organizationId: testOrganizationId, id: testAccountId }
           }).pipe(Effect.flip)
 
-          // The live implementation returns the actual account id in the error
-          expect(error._tag).toBe("NotFoundError")
-          if (error._tag === "NotFoundError") {
-            expect(error.resource).toBe("Account")
-            expect(error.id).toBe(testAccountId)
-          }
+          // Authorization check runs before business logic - user is not a member of the organization
+          expect(error._tag).toBe("ForbiddenError")
         })
       )
 

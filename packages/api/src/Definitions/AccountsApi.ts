@@ -18,10 +18,12 @@ import {
 } from "@accountability/core/Domains/Account"
 import { AccountNumber } from "@accountability/core/Domains/AccountNumber"
 import { CompanyId } from "@accountability/core/Domains/Company"
+import { OrganizationId } from "@accountability/core/Domains/Organization"
 import { CurrencyCode } from "@accountability/core/Domains/CurrencyCode"
 import {
   BusinessRuleError,
   ConflictError,
+  ForbiddenError,
   NotFoundError,
   ValidationError
 } from "./ApiErrors.ts"
@@ -35,6 +37,7 @@ import { AuthMiddleware } from "./AuthMiddleware.ts"
  * CreateAccountRequest - Request body for creating a new account
  */
 export class CreateAccountRequest extends Schema.Class<CreateAccountRequest>("CreateAccountRequest")({
+  organizationId: OrganizationId,
   companyId: CompanyId,
   accountNumber: AccountNumber,
   name: Schema.NonEmptyTrimmedString,
@@ -84,6 +87,7 @@ export class AccountListResponse extends Schema.Class<AccountListResponse>("Acco
  * Uses strings for URL params - validation happens at handler level
  */
 export const AccountListParams = Schema.Struct({
+  organizationId: Schema.String,
   companyId: Schema.String,
   accountType: Schema.optional(AccountType),
   accountCategory: Schema.optional(AccountCategory),
@@ -111,21 +115,33 @@ const listAccounts = HttpApiEndpoint.get("listAccounts", "/")
   .addSuccess(AccountListResponse)
   .addError(NotFoundError)
   .addError(ValidationError)
+  .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "List accounts",
     description: "Retrieve a paginated list of accounts for a company. Supports filtering by account type, category, status, and parent account."
   }))
 
 /**
- * Get a single account by ID
+ * Path params for single account operations
  */
-const getAccount = HttpApiEndpoint.get("getAccount", "/:id")
-  .setPath(Schema.Struct({ id: Schema.String }))
+export const AccountPathParams = Schema.Struct({
+  organizationId: Schema.String,
+  id: Schema.String
+})
+
+export type AccountPathParams = typeof AccountPathParams.Type
+
+/**
+ * Get a single account by ID within an organization
+ */
+const getAccount = HttpApiEndpoint.get("getAccount", "/organizations/:organizationId/accounts/:id")
+  .setPath(AccountPathParams)
   .addSuccess(Account)
   .addError(NotFoundError)
+  .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "Get account",
-    description: "Retrieve a single account by its unique identifier."
+    description: "Retrieve a single account by its unique identifier within an organization."
   }))
 
 /**
@@ -137,35 +153,39 @@ const createAccount = HttpApiEndpoint.post("createAccount", "/")
   .addError(ValidationError)
   .addError(ConflictError)
   .addError(BusinessRuleError)
+  .addError(ForbiddenError)
+  .addError(NotFoundError)
   .annotateContext(OpenApi.annotations({
     summary: "Create account",
     description: "Create a new account in the Chart of Accounts. The account number must be unique within the company."
   }))
 
 /**
- * Update an existing account
+ * Update an existing account within an organization
  */
-const updateAccount = HttpApiEndpoint.put("updateAccount", "/:id")
-  .setPath(Schema.Struct({ id: Schema.String }))
+const updateAccount = HttpApiEndpoint.put("updateAccount", "/organizations/:organizationId/accounts/:id")
+  .setPath(AccountPathParams)
   .setPayload(UpdateAccountRequest)
   .addSuccess(Account)
   .addError(NotFoundError)
   .addError(ValidationError)
   .addError(ConflictError)
   .addError(BusinessRuleError)
+  .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "Update account",
     description: "Update an existing account. Only provided fields will be updated. Account type and category cannot be changed after creation."
   }))
 
 /**
- * Deactivate an account (soft delete)
+ * Deactivate an account (soft delete) within an organization
  */
-const deactivateAccount = HttpApiEndpoint.del("deactivateAccount", "/:id")
-  .setPath(Schema.Struct({ id: Schema.String }))
+const deactivateAccount = HttpApiEndpoint.del("deactivateAccount", "/organizations/:organizationId/accounts/:id")
+  .setPath(AccountPathParams)
   .addSuccess(HttpApiSchema.NoContent)
   .addError(NotFoundError)
   .addError(BusinessRuleError)
+  .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "Deactivate account",
     description: "Deactivate an account (soft delete). Accounts with posted transactions cannot be deactivated."

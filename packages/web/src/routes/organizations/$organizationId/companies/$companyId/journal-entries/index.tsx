@@ -142,11 +142,11 @@ const fetchJournalEntriesData = createServerFn({ method: "GET" })
       // Note: Fiscal periods are now computed automatically, no longer persisted (Issue 33/34)
       const [entriesResult, companyResult, orgResult] = await Promise.all([
         serverApi.GET("/api/v1/journal-entries", {
-          params: { query: { companyId: data.companyId, limit: "1000" } },
+          params: { query: { organizationId: data.organizationId, companyId: data.companyId, limit: "1000" } },
           headers: { Authorization }
         }),
-        serverApi.GET("/api/v1/companies/{id}", {
-          params: { path: { id: data.companyId } },
+        serverApi.GET("/api/v1/organizations/{organizationId}/companies/{id}", {
+          params: { path: { organizationId: data.organizationId, id: data.companyId } },
           headers: { Authorization }
         }),
         serverApi.GET("/api/v1/organizations/{id}", {

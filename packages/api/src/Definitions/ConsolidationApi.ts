@@ -133,7 +133,7 @@ export class ConsolidationRunListResponse extends Schema.Class<ConsolidationRunL
  * Query parameters for listing consolidation groups
  */
 export const ConsolidationGroupListParams = Schema.Struct({
-  organizationId: Schema.optional(OrganizationId),
+  organizationId: OrganizationId,
   isActive: Schema.optional(Schema.BooleanFromString),
   limit: Schema.optional(Schema.NumberFromString.pipe(Schema.int(), Schema.greaterThan(0))),
   offset: Schema.optional(Schema.NumberFromString.pipe(Schema.int(), Schema.greaterThanOrEqualTo(0)))
@@ -142,9 +142,19 @@ export const ConsolidationGroupListParams = Schema.Struct({
 export type ConsolidationGroupListParams = typeof ConsolidationGroupListParams.Type
 
 /**
+ * URL parameters with organization ID for single-resource endpoints
+ */
+export const OrganizationIdUrlParam = Schema.Struct({
+  organizationId: OrganizationId
+})
+
+export type OrganizationIdUrlParam = typeof OrganizationIdUrlParam.Type
+
+/**
  * Query parameters for listing consolidation runs
  */
 export const ConsolidationRunListParams = Schema.Struct({
+  organizationId: OrganizationId,
   groupId: Schema.optional(ConsolidationGroupId),
   status: Schema.optional(ConsolidationRunStatus),
   year: Schema.optional(Schema.NumberFromString.pipe(Schema.int())),
@@ -176,6 +186,7 @@ const listConsolidationGroups = HttpApiEndpoint.get("listConsolidationGroups", "
  */
 const getConsolidationGroup = HttpApiEndpoint.get("getConsolidationGroup", "/groups/:id")
   .setPath(Schema.Struct({ id: ConsolidationGroupId }))
+  .setUrlParams(OrganizationIdUrlParam)
   .addSuccess(ConsolidationGroupWithMembersResponse)
   .addError(NotFoundError)
   .annotateContext(OpenApi.annotations({
@@ -202,6 +213,7 @@ const createConsolidationGroup = HttpApiEndpoint.post("createConsolidationGroup"
  */
 const updateConsolidationGroup = HttpApiEndpoint.put("updateConsolidationGroup", "/groups/:id")
   .setPath(Schema.Struct({ id: ConsolidationGroupId }))
+  .setUrlParams(OrganizationIdUrlParam)
   .setPayload(UpdateConsolidationGroupRequest)
   .addSuccess(ConsolidationGroup)
   .addError(NotFoundError)
@@ -217,6 +229,7 @@ const updateConsolidationGroup = HttpApiEndpoint.put("updateConsolidationGroup",
  */
 const deleteConsolidationGroup = HttpApiEndpoint.del("deleteConsolidationGroup", "/groups/:id")
   .setPath(Schema.Struct({ id: ConsolidationGroupId }))
+  .setUrlParams(OrganizationIdUrlParam)
   .addSuccess(HttpApiSchema.NoContent)
   .addError(NotFoundError)
   .addError(BusinessRuleError)
@@ -230,6 +243,7 @@ const deleteConsolidationGroup = HttpApiEndpoint.del("deleteConsolidationGroup",
  */
 const activateConsolidationGroup = HttpApiEndpoint.post("activateConsolidationGroup", "/groups/:id/activate")
   .setPath(Schema.Struct({ id: ConsolidationGroupId }))
+  .setUrlParams(OrganizationIdUrlParam)
   .addSuccess(ConsolidationGroup)
   .addError(NotFoundError)
   .addError(BusinessRuleError)
@@ -243,6 +257,7 @@ const activateConsolidationGroup = HttpApiEndpoint.post("activateConsolidationGr
  */
 const deactivateConsolidationGroup = HttpApiEndpoint.post("deactivateConsolidationGroup", "/groups/:id/deactivate")
   .setPath(Schema.Struct({ id: ConsolidationGroupId }))
+  .setUrlParams(OrganizationIdUrlParam)
   .addSuccess(ConsolidationGroup)
   .addError(NotFoundError)
   .addError(BusinessRuleError)
@@ -260,6 +275,7 @@ const deactivateConsolidationGroup = HttpApiEndpoint.post("deactivateConsolidati
  */
 const addGroupMember = HttpApiEndpoint.post("addGroupMember", "/groups/:id/members")
   .setPath(Schema.Struct({ id: ConsolidationGroupId }))
+  .setUrlParams(OrganizationIdUrlParam)
   .setPayload(AddMemberRequest)
   .addSuccess(ConsolidationGroupWithMembersResponse)
   .addError(NotFoundError)
@@ -276,6 +292,7 @@ const addGroupMember = HttpApiEndpoint.post("addGroupMember", "/groups/:id/membe
  */
 const updateGroupMember = HttpApiEndpoint.put("updateGroupMember", "/groups/:id/members/:companyId")
   .setPath(Schema.Struct({ id: ConsolidationGroupId, companyId: CompanyId }))
+  .setUrlParams(OrganizationIdUrlParam)
   .setPayload(UpdateMemberRequest)
   .addSuccess(ConsolidationGroupWithMembersResponse)
   .addError(NotFoundError)
@@ -291,6 +308,7 @@ const updateGroupMember = HttpApiEndpoint.put("updateGroupMember", "/groups/:id/
  */
 const removeGroupMember = HttpApiEndpoint.del("removeGroupMember", "/groups/:id/members/:companyId")
   .setPath(Schema.Struct({ id: ConsolidationGroupId, companyId: CompanyId }))
+  .setUrlParams(OrganizationIdUrlParam)
   .addSuccess(ConsolidationGroupWithMembersResponse)
   .addError(NotFoundError)
   .addError(BusinessRuleError)
@@ -320,6 +338,7 @@ const listConsolidationRuns = HttpApiEndpoint.get("listConsolidationRuns", "/run
  */
 const getConsolidationRun = HttpApiEndpoint.get("getConsolidationRun", "/runs/:id")
   .setPath(Schema.Struct({ id: ConsolidationRunId }))
+  .setUrlParams(OrganizationIdUrlParam)
   .addSuccess(ConsolidationRun)
   .addError(NotFoundError)
   .annotateContext(OpenApi.annotations({
@@ -332,6 +351,7 @@ const getConsolidationRun = HttpApiEndpoint.get("getConsolidationRun", "/runs/:i
  */
 const initiateConsolidationRun = HttpApiEndpoint.post("initiateConsolidationRun", "/groups/:groupId/runs")
   .setPath(Schema.Struct({ groupId: ConsolidationGroupId }))
+  .setUrlParams(OrganizationIdUrlParam)
   .setPayload(InitiateConsolidationRunRequest)
   .addSuccess(ConsolidationRun, { status: 201 })
   .addError(NotFoundError)
@@ -348,6 +368,7 @@ const initiateConsolidationRun = HttpApiEndpoint.post("initiateConsolidationRun"
  */
 const cancelConsolidationRun = HttpApiEndpoint.post("cancelConsolidationRun", "/runs/:id/cancel")
   .setPath(Schema.Struct({ id: ConsolidationRunId }))
+  .setUrlParams(OrganizationIdUrlParam)
   .addSuccess(ConsolidationRun)
   .addError(NotFoundError)
   .addError(BusinessRuleError)
@@ -361,6 +382,7 @@ const cancelConsolidationRun = HttpApiEndpoint.post("cancelConsolidationRun", "/
  */
 const deleteConsolidationRun = HttpApiEndpoint.del("deleteConsolidationRun", "/runs/:id")
   .setPath(Schema.Struct({ id: ConsolidationRunId }))
+  .setUrlParams(OrganizationIdUrlParam)
   .addSuccess(HttpApiSchema.NoContent)
   .addError(NotFoundError)
   .addError(BusinessRuleError)
@@ -374,6 +396,7 @@ const deleteConsolidationRun = HttpApiEndpoint.del("deleteConsolidationRun", "/r
  */
 const getConsolidatedTrialBalance = HttpApiEndpoint.get("getConsolidatedTrialBalance", "/runs/:id/trial-balance")
   .setPath(Schema.Struct({ id: ConsolidationRunId }))
+  .setUrlParams(OrganizationIdUrlParam)
   .addSuccess(ConsolidatedTrialBalance)
   .addError(NotFoundError)
   .addError(BusinessRuleError)
@@ -387,6 +410,7 @@ const getConsolidatedTrialBalance = HttpApiEndpoint.get("getConsolidatedTrialBal
  */
 const getLatestCompletedRun = HttpApiEndpoint.get("getLatestCompletedRun", "/groups/:groupId/latest-run")
   .setPath(Schema.Struct({ groupId: ConsolidationGroupId }))
+  .setUrlParams(OrganizationIdUrlParam)
   .addSuccess(Schema.OptionFromNullOr(ConsolidationRun))
   .addError(NotFoundError)
   .annotateContext(OpenApi.annotations({
@@ -512,6 +536,7 @@ export class ConsolidatedEquityStatementReport extends Schema.Class<Consolidated
  */
 const getConsolidatedBalanceSheet = HttpApiEndpoint.get("getConsolidatedBalanceSheet", "/runs/:id/reports/balance-sheet")
   .setPath(Schema.Struct({ id: ConsolidationRunId }))
+  .setUrlParams(OrganizationIdUrlParam)
   .addSuccess(ConsolidatedBalanceSheetReport)
   .addError(NotFoundError)
   .addError(BusinessRuleError)
@@ -525,6 +550,7 @@ const getConsolidatedBalanceSheet = HttpApiEndpoint.get("getConsolidatedBalanceS
  */
 const getConsolidatedIncomeStatement = HttpApiEndpoint.get("getConsolidatedIncomeStatement", "/runs/:id/reports/income-statement")
   .setPath(Schema.Struct({ id: ConsolidationRunId }))
+  .setUrlParams(OrganizationIdUrlParam)
   .addSuccess(ConsolidatedIncomeStatementReport)
   .addError(NotFoundError)
   .addError(BusinessRuleError)
@@ -538,6 +564,7 @@ const getConsolidatedIncomeStatement = HttpApiEndpoint.get("getConsolidatedIncom
  */
 const getConsolidatedCashFlowStatement = HttpApiEndpoint.get("getConsolidatedCashFlowStatement", "/runs/:id/reports/cash-flow")
   .setPath(Schema.Struct({ id: ConsolidationRunId }))
+  .setUrlParams(OrganizationIdUrlParam)
   .addSuccess(ConsolidatedCashFlowReport)
   .addError(NotFoundError)
   .addError(BusinessRuleError)
@@ -551,6 +578,7 @@ const getConsolidatedCashFlowStatement = HttpApiEndpoint.get("getConsolidatedCas
  */
 const getConsolidatedEquityStatement = HttpApiEndpoint.get("getConsolidatedEquityStatement", "/runs/:id/reports/equity-statement")
   .setPath(Schema.Struct({ id: ConsolidationRunId }))
+  .setUrlParams(OrganizationIdUrlParam)
   .addSuccess(ConsolidatedEquityStatementReport)
   .addError(NotFoundError)
   .addError(BusinessRuleError)

@@ -143,11 +143,11 @@ const fetchJournalEntryData = createServerFn({ method: "GET" })
       // Fetch journal entry, company, organization, accounts, and companies in parallel
       const [entryResult, companyResult, orgResult, accountsResult, companiesResult] = await Promise.all([
         serverApi.GET("/api/v1/journal-entries/{id}", {
-          params: { path: { id: data.entryId } },
+          params: { path: { id: data.entryId }, query: { organizationId: data.organizationId } },
           headers: { Authorization }
         }),
-        serverApi.GET("/api/v1/companies/{id}", {
-          params: { path: { id: data.companyId } },
+        serverApi.GET("/api/v1/organizations/{organizationId}/companies/{id}", {
+          params: { path: { organizationId: data.organizationId, id: data.companyId } },
           headers: { Authorization }
         }),
         serverApi.GET("/api/v1/organizations/{id}", {
@@ -155,7 +155,7 @@ const fetchJournalEntryData = createServerFn({ method: "GET" })
           headers: { Authorization }
         }),
         serverApi.GET("/api/v1/accounts", {
-          params: { query: { companyId: data.companyId, limit: "1000" } },
+          params: { query: { organizationId: data.organizationId, companyId: data.companyId, limit: "1000" } },
           headers: { Authorization }
         }),
         serverApi.GET("/api/v1/companies", {
@@ -531,7 +531,7 @@ function WorkflowActions({
 
     try {
       const { error: apiError } = await api.POST("/api/v1/journal-entries/{id}/submit", {
-        params: { path: { id: entry.id } }
+        params: { path: { id: entry.id }, query: { organizationId } }
       })
 
       if (apiError) {
@@ -553,7 +553,7 @@ function WorkflowActions({
 
     try {
       const { error: apiError } = await api.POST("/api/v1/journal-entries/{id}/approve", {
-        params: { path: { id: entry.id } }
+        params: { path: { id: entry.id }, query: { organizationId } }
       })
 
       if (apiError) {
@@ -574,7 +574,7 @@ function WorkflowActions({
 
     try {
       const { error: apiError } = await api.POST("/api/v1/journal-entries/{id}/reject", {
-        params: { path: { id: entry.id } },
+        params: { path: { id: entry.id }, query: { organizationId } },
         body: { reason: reason || null }
       })
 
@@ -599,6 +599,7 @@ function WorkflowActions({
       const { error: apiError } = await api.POST("/api/v1/journal-entries/{id}/post", {
         params: { path: { id: entry.id } },
         body: {
+          organizationId,
           postedBy: entry.createdBy,
           postingDate: null
         }
@@ -627,6 +628,7 @@ function WorkflowActions({
       const { data, error: apiError } = await api.POST("/api/v1/journal-entries/{id}/reverse", {
         params: { path: { id: entry.id } },
         body: {
+          organizationId,
           reversalDate,
           reversalDescription: null,
           reversedBy: entry.createdBy
@@ -662,7 +664,7 @@ function WorkflowActions({
 
     try {
       const { error: apiError } = await api.DELETE("/api/v1/journal-entries/{id}", {
-        params: { path: { id: entry.id } }
+        params: { path: { id: entry.id }, query: { organizationId } }
       })
 
       if (apiError) {

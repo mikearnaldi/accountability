@@ -64,6 +64,7 @@ export interface Account {
 
 interface AccountFormProps {
   readonly mode: "create" | "edit"
+  readonly organizationId: string
   readonly companyId: string
   readonly accounts: readonly Account[]
   readonly initialData?: Account
@@ -236,6 +237,7 @@ export function formatAccountCategory(category: AccountCategory): string {
 
 export function AccountForm({
   mode,
+  organizationId,
   companyId,
   accounts,
   initialData,
@@ -397,6 +399,7 @@ export function AccountForm({
       if (mode === "create") {
         const { error: apiError } = await api.POST("/api/v1/accounts", {
           body: {
+            organizationId,
             companyId,
             accountNumber: trimmedNumber,
             name: trimmedName,
@@ -419,8 +422,8 @@ export function AccountForm({
           return
         }
       } else if (initialData) {
-        const { error: apiError } = await api.PUT("/api/v1/accounts/{id}", {
-          params: { path: { id: initialData.id } },
+        const { error: apiError } = await api.PUT("/api/v1/accounts/organizations/{organizationId}/accounts/{id}", {
+          params: { path: { organizationId, id: initialData.id } },
           body: {
             name: trimmedName,
             description: description.trim() || null,
@@ -760,6 +763,7 @@ export function AccountForm({
 
 interface AccountFormModalProps {
   readonly mode: "create" | "edit"
+  readonly organizationId: string
   readonly companyId: string
   readonly accounts: readonly Account[]
   readonly initialData?: Account
@@ -768,6 +772,7 @@ interface AccountFormModalProps {
 
 export function AccountFormModal({
   mode,
+  organizationId,
   companyId,
   accounts,
   initialData,
@@ -784,6 +789,7 @@ export function AccountFormModal({
         <h2 className="mb-4 text-lg font-semibold text-gray-900">{title}</h2>
         <AccountForm
           mode={mode}
+          organizationId={organizationId}
           companyId={companyId}
           accounts={accounts}
           {...(initialData !== undefined ? { initialData } : {})}

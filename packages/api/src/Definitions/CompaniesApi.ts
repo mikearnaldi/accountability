@@ -23,6 +23,7 @@ import { Percentage } from "@accountability/core/Domains/Percentage"
 import {
   BusinessRuleError,
   ConflictError,
+  ForbiddenError,
   NotFoundError,
   ValidationError
 } from "./ApiErrors.ts"
@@ -210,21 +211,23 @@ const listCompanies = HttpApiEndpoint.get("listCompanies", "/companies")
   .addSuccess(CompanyListResponse)
   .addError(NotFoundError)
   .addError(ValidationError)
+  .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "List companies",
     description: "Retrieve a paginated list of companies for an organization. Supports filtering by status, parent company, and jurisdiction."
   }))
 
 /**
- * Get a single company by ID
+ * Get a single company by ID within an organization
  */
-const getCompany = HttpApiEndpoint.get("getCompany", "/companies/:id")
-  .setPath(Schema.Struct({ id: Schema.String }))
+const getCompany = HttpApiEndpoint.get("getCompany", "/organizations/:organizationId/companies/:id")
+  .setPath(Schema.Struct({ organizationId: Schema.String, id: Schema.String }))
   .addSuccess(Company)
   .addError(NotFoundError)
+  .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "Get company",
-    description: "Retrieve a single company by its unique identifier."
+    description: "Retrieve a single company by its unique identifier within an organization."
   }))
 
 /**
@@ -236,38 +239,42 @@ const createCompany = HttpApiEndpoint.post("createCompany", "/companies")
   .addError(ValidationError)
   .addError(ConflictError)
   .addError(BusinessRuleError)
+  .addError(ForbiddenError)
+  .addError(NotFoundError)
   .annotateContext(OpenApi.annotations({
     summary: "Create company",
     description: "Create a new company within an organization. Companies can have parent-child relationships for consolidation purposes."
   }))
 
 /**
- * Update an existing company
+ * Update an existing company within an organization
  */
-const updateCompany = HttpApiEndpoint.put("updateCompany", "/companies/:id")
-  .setPath(Schema.Struct({ id: Schema.String }))
+const updateCompany = HttpApiEndpoint.put("updateCompany", "/organizations/:organizationId/companies/:id")
+  .setPath(Schema.Struct({ organizationId: Schema.String, id: Schema.String }))
   .setPayload(UpdateCompanyRequest)
   .addSuccess(Company)
   .addError(NotFoundError)
   .addError(ValidationError)
   .addError(ConflictError)
   .addError(BusinessRuleError)
+  .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "Update company",
-    description: "Update an existing company. Only provided fields will be updated."
+    description: "Update an existing company within an organization. Only provided fields will be updated."
   }))
 
 /**
- * Deactivate a company (soft delete)
+ * Deactivate a company within an organization (soft delete)
  */
-const deactivateCompany = HttpApiEndpoint.del("deactivateCompany", "/companies/:id")
-  .setPath(Schema.Struct({ id: Schema.String }))
+const deactivateCompany = HttpApiEndpoint.del("deactivateCompany", "/organizations/:organizationId/companies/:id")
+  .setPath(Schema.Struct({ organizationId: Schema.String, id: Schema.String }))
   .addSuccess(HttpApiSchema.NoContent)
   .addError(NotFoundError)
   .addError(BusinessRuleError)
+  .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "Deactivate company",
-    description: "Deactivate a company (soft delete). Companies with active subsidiaries or unposted entries cannot be deactivated."
+    description: "Deactivate a company within an organization (soft delete). Companies with active subsidiaries or unposted entries cannot be deactivated."
   }))
 
 // =============================================================================

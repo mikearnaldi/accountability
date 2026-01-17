@@ -275,7 +275,7 @@ const fetchOrganizationDashboard = createServerFn({ method: "GET" })
       for (const company of companies.slice(0, 10)) {
         try {
           const accountsResult = await serverApi.GET("/api/v1/accounts", {
-            params: { query: { companyId: company.id } },
+            params: { query: { organizationId, companyId: company.id } },
             headers
           })
           accountsCount += accountsResult.data?.total ?? 0
@@ -289,7 +289,7 @@ const fetchOrganizationDashboard = createServerFn({ method: "GET" })
       for (const company of companies.slice(0, 10)) {
         try {
           const entriesResult = await serverApi.GET("/api/v1/journal-entries", {
-            params: { query: { companyId: company.id, status: "PendingApproval", limit: "1" } },
+            params: { query: { organizationId, companyId: company.id, status: "PendingApproval", limit: "1" } },
             headers
           })
           pendingEntriesCount += entriesResult.data?.total ?? 0

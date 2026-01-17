@@ -12,7 +12,7 @@ import { Select } from "@/components/ui/Select"
 import { Button } from "@/components/ui/Button"
 
 // Type for CompanyType from the API schema
-type CompanyType = NonNullable<paths["/api/v1/companies/{id}"]["put"]["requestBody"]["content"]["application/json"]["companyType"]>
+type CompanyType = NonNullable<paths["/api/v1/organizations/{organizationId}/companies/{id}"]["put"]["requestBody"]["content"]["application/json"]["companyType"]>
 
 // Valid company types lookup for type-safe conversion
 const VALID_COMPANY_TYPES: Record<string, CompanyType> = {
@@ -46,8 +46,8 @@ const fetchCompanyData = createServerFn({ method: "GET" })
       const Authorization = `Bearer ${sessionToken}`
       // Fetch company, organization, and all companies in parallel
       const [companyResult, orgResult, allCompaniesResult] = await Promise.all([
-        serverApi.GET("/api/v1/companies/{id}", {
-          params: { path: { id: data.companyId } },
+        serverApi.GET("/api/v1/organizations/{organizationId}/companies/{id}", {
+          params: { path: { organizationId: data.organizationId, id: data.companyId } },
           headers: { Authorization }
         }),
         serverApi.GET("/api/v1/organizations/{id}", {
@@ -87,8 +87,8 @@ const fetchCompanyData = createServerFn({ method: "GET" })
       let parentCompany = null
       const company = companyResult.data
       if (company?.parentCompanyId) {
-        const parentResult = await serverApi.GET("/api/v1/companies/{id}", {
-          params: { path: { id: company.parentCompanyId } },
+        const parentResult = await serverApi.GET("/api/v1/organizations/{organizationId}/companies/{id}", {
+          params: { path: { organizationId: data.organizationId, id: company.parentCompanyId } },
           headers: { Authorization }
         })
         if (!parentResult.error) {
@@ -268,8 +268,8 @@ function CompanyDetailsPage() {
     try {
       if (company.isActive) {
         // Deactivate using DELETE endpoint
-        const { error } = await api.DELETE("/api/v1/companies/{id}", {
-          params: { path: { id: company.id } }
+        const { error } = await api.DELETE("/api/v1/organizations/{organizationId}/companies/{id}", {
+          params: { path: { organizationId: params.organizationId, id: company.id } }
         })
 
         if (error) {
@@ -283,8 +283,8 @@ function CompanyDetailsPage() {
         }
       } else {
         // Activate using PUT endpoint
-        const { error } = await api.PUT("/api/v1/companies/{id}", {
-          params: { path: { id: company.id } },
+        const { error } = await api.PUT("/api/v1/organizations/{organizationId}/companies/{id}", {
+          params: { path: { organizationId: params.organizationId, id: company.id } },
           body: {
             isActive: true,
             name: null,
@@ -559,6 +559,7 @@ function CompanyDetailsPage() {
           {isEditing && (
             <EditCompanyModal
               company={company}
+              organizationId={params.organizationId}
               onClose={() => setIsEditing(false)}
             />
           )}
@@ -720,9 +721,11 @@ function NavigationCard({
 
 function EditCompanyModal({
   company,
+  organizationId,
   onClose
 }: {
   readonly company: Company
+  readonly organizationId: string
   readonly onClose: () => void
 }) {
   const router = useRouter()
@@ -786,8 +789,8 @@ function EditCompanyModal({
       : null
 
     try {
-      const { error: apiError } = await api.PUT("/api/v1/companies/{id}", {
-        params: { path: { id: company.id } },
+      const { error: apiError } = await api.PUT("/api/v1/organizations/{organizationId}/companies/{id}", {
+        params: { path: { organizationId, id: company.id } },
         body: {
           name: trimmedName,
           legalName: trimmedLegalName,

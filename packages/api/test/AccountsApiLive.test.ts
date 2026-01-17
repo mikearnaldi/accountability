@@ -115,39 +115,39 @@ const createMockAccountRepository = (initialAccounts: ReadonlyArray<Account> = [
     const accountsRef = yield* Ref.make<ReadonlyArray<Account>>(initialAccounts)
 
     const service: AccountRepositoryService = {
-      findById: (id) =>
+      findById: (_organizationId, id) =>
         Effect.gen(function* () {
           const accounts = yield* Ref.get(accountsRef)
           return Option.fromNullable(accounts.find((a) => a.id === id))
         }),
-      findByCompany: (companyId) =>
+      findByCompany: (_organizationId, companyId) =>
         Effect.gen(function* () {
           const accounts = yield* Ref.get(accountsRef)
           return accounts.filter((a) => a.companyId === companyId)
         }),
-      findByNumber: (companyId, accountNumber) =>
+      findByNumber: (_organizationId, companyId, accountNumber) =>
         Effect.gen(function* () {
           const accounts = yield* Ref.get(accountsRef)
           return Option.fromNullable(
             accounts.find((a) => a.companyId === companyId && a.accountNumber === accountNumber)
           )
         }),
-      findByType: (companyId, accountType) =>
+      findByType: (_organizationId, companyId, accountType) =>
         Effect.gen(function* () {
           const accounts = yield* Ref.get(accountsRef)
           return accounts.filter((a) => a.companyId === companyId && a.accountType === accountType)
         }),
-      findActiveByCompany: (companyId) =>
+      findActiveByCompany: (_organizationId, companyId) =>
         Effect.gen(function* () {
           const accounts = yield* Ref.get(accountsRef)
           return accounts.filter((a) => a.companyId === companyId && a.isActive)
         }),
-      findChildren: (parentId) =>
+      findChildren: (_organizationId, parentId) =>
         Effect.gen(function* () {
           const accounts = yield* Ref.get(accountsRef)
           return accounts.filter((a) => Option.isSome(a.parentAccountId) && a.parentAccountId.value === parentId)
         }),
-      findIntercompanyAccounts: (companyId) =>
+      findIntercompanyAccounts: (_organizationId, companyId) =>
         Effect.gen(function* () {
           const accounts = yield* Ref.get(accountsRef)
           return accounts.filter((a) => a.companyId === companyId && a.isIntercompany)
@@ -157,7 +157,7 @@ const createMockAccountRepository = (initialAccounts: ReadonlyArray<Account> = [
           yield* Ref.update(accountsRef, (accounts) => [...accounts, account])
           return account
         }),
-      update: (account) =>
+      update: (_organizationId, account) =>
         Effect.gen(function* () {
           const accounts = yield* Ref.get(accountsRef)
           const exists = accounts.some((a) => a.id === account.id)
@@ -172,7 +172,7 @@ const createMockAccountRepository = (initialAccounts: ReadonlyArray<Account> = [
           )
           return account
         }),
-      getById: (id) =>
+      getById: (_organizationId, id) =>
         Effect.gen(function* () {
           const accounts = yield* Ref.get(accountsRef)
           const account = accounts.find((a) => a.id === id)
@@ -184,12 +184,12 @@ const createMockAccountRepository = (initialAccounts: ReadonlyArray<Account> = [
           }
           return account
         }),
-      exists: (id) =>
+      exists: (_organizationId, id) =>
         Effect.gen(function* () {
           const accounts = yield* Ref.get(accountsRef)
           return accounts.some((a) => a.id === id)
         }),
-      isAccountNumberTaken: (companyId, accountNumber) =>
+      isAccountNumberTaken: (_organizationId, companyId, accountNumber) =>
         Effect.gen(function* () {
           const accounts = yield* Ref.get(accountsRef)
           return accounts.some((a) => a.companyId === companyId && a.accountNumber === accountNumber)
@@ -206,10 +206,10 @@ const createMockCompanyRepository = (
     const companiesRef = yield* Ref.make<ReadonlyArray<Company>>(companies)
 
     const service: CompanyRepositoryService = {
-      findById: (id) =>
+      findById: (organizationId, id) =>
         Effect.gen(function* () {
           const allCompanies = yield* Ref.get(companiesRef)
-          return Option.fromNullable(allCompanies.find((c) => c.id === id))
+          return Option.fromNullable(allCompanies.find((c) => c.id === id && c.organizationId === organizationId))
         }),
       findByOrganization: (orgId) =>
         Effect.gen(function* () {
@@ -221,10 +221,11 @@ const createMockCompanyRepository = (
           const allCompanies = yield* Ref.get(companiesRef)
           return allCompanies.filter((c) => c.organizationId === orgId && c.isActive)
         }),
-      findSubsidiaries: (parentId) =>
+      findSubsidiaries: (organizationId, parentId) =>
         Effect.gen(function* () {
           const allCompanies = yield* Ref.get(companiesRef)
           return allCompanies.filter((c) =>
+            c.organizationId === organizationId &&
             Option.isSome(c.parentCompanyId) && c.parentCompanyId.value === parentId
           )
         }),
@@ -233,10 +234,10 @@ const createMockCompanyRepository = (
           yield* Ref.update(companiesRef, (cs) => [...cs, company])
           return company
         }),
-      update: (company) =>
+      update: (organizationId, company) =>
         Effect.gen(function* () {
           const allCompanies = yield* Ref.get(companiesRef)
-          const exists = allCompanies.some((c) => c.id === company.id)
+          const exists = allCompanies.some((c) => c.id === company.id && c.organizationId === organizationId)
           if (!exists) {
             return yield* Effect.fail(new EntityNotFoundError({
               entityType: "Company",
@@ -248,10 +249,10 @@ const createMockCompanyRepository = (
           )
           return company
         }),
-      getById: (id) =>
+      getById: (organizationId, id) =>
         Effect.gen(function* () {
           const allCompanies = yield* Ref.get(companiesRef)
-          const company = allCompanies.find((c) => c.id === id)
+          const company = allCompanies.find((c) => c.id === id && c.organizationId === organizationId)
           if (!company) {
             return yield* Effect.fail(new EntityNotFoundError({
               entityType: "Company",
@@ -260,10 +261,10 @@ const createMockCompanyRepository = (
           }
           return company
         }),
-      exists: (id) =>
+      exists: (organizationId, id) =>
         Effect.gen(function* () {
           const allCompanies = yield* Ref.get(companiesRef)
-          return allCompanies.some((c) => c.id === id)
+          return allCompanies.some((c) => c.id === id && c.organizationId === organizationId)
         })
     }
 
@@ -302,7 +303,7 @@ describe("AccountsApiLive", () => {
         const testLayer = createTestLayer([account1, account2])
 
         const accountRepo = yield* AccountRepository.pipe(Effect.provide(testLayer))
-        const accounts = yield* accountRepo.findByCompany(testCompanyId)
+        const accounts = yield* accountRepo.findByCompany(testOrganizationId, testCompanyId)
 
         expect(accounts.length).toBe(2)
       })
@@ -322,7 +323,7 @@ describe("AccountsApiLive", () => {
         const testLayer = createTestLayer([assetAccount, liabilityAccount])
 
         const accountRepo = yield* AccountRepository.pipe(Effect.provide(testLayer))
-        const assets = yield* accountRepo.findByType(testCompanyId, "Asset")
+        const assets = yield* accountRepo.findByType(testOrganizationId, testCompanyId, "Asset")
 
         expect(assets.length).toBe(1)
         expect(assets[0].accountType).toBe("Asset")
@@ -340,7 +341,7 @@ describe("AccountsApiLive", () => {
         const testLayer = createTestLayer([activeAccount, inactiveAccount])
 
         const accountRepo = yield* AccountRepository.pipe(Effect.provide(testLayer))
-        const active = yield* accountRepo.findActiveByCompany(testCompanyId)
+        const active = yield* accountRepo.findActiveByCompany(testOrganizationId, testCompanyId)
 
         expect(active.length).toBe(1)
         expect(active[0].isActive).toBe(true)
@@ -364,7 +365,7 @@ describe("AccountsApiLive", () => {
         const testLayer = createTestLayer([parentAccount, childAccount])
 
         const accountRepo = yield* AccountRepository.pipe(Effect.provide(testLayer))
-        const children = yield* accountRepo.findChildren(testParentAccountId)
+        const children = yield* accountRepo.findChildren(testOrganizationId, testParentAccountId)
 
         expect(children.length).toBe(1)
         expect(children[0].name).toBe("Child")
@@ -379,7 +380,7 @@ describe("AccountsApiLive", () => {
         const testLayer = createTestLayer([account])
 
         const accountRepo = yield* AccountRepository.pipe(Effect.provide(testLayer))
-        const result = yield* accountRepo.findById(testAccountId)
+        const result = yield* accountRepo.findById(testOrganizationId, testAccountId)
 
         expect(Option.isSome(result)).toBe(true)
         if (Option.isSome(result)) {
@@ -393,7 +394,7 @@ describe("AccountsApiLive", () => {
         const testLayer = createTestLayer([])
 
         const accountRepo = yield* AccountRepository.pipe(Effect.provide(testLayer))
-        const result = yield* accountRepo.findById(testAccountId)
+        const result = yield* accountRepo.findById(testOrganizationId, testAccountId)
 
         expect(Option.isNone(result)).toBe(true)
       })
@@ -404,7 +405,7 @@ describe("AccountsApiLive", () => {
         const testLayer = createTestLayer([])
 
         const accountRepo = yield* AccountRepository.pipe(Effect.provide(testLayer))
-        const result = yield* accountRepo.getById(testAccountId).pipe(Effect.either)
+        const result = yield* accountRepo.getById(testOrganizationId, testAccountId).pipe(Effect.either)
 
         expect(result._tag).toBe("Left")
         if (result._tag === "Left") {
@@ -425,7 +426,7 @@ describe("AccountsApiLive", () => {
 
         expect(created.id).toBe(testAccountId)
 
-        const found = yield* accountRepo.findById(testAccountId)
+        const found = yield* accountRepo.findById(testOrganizationId, testAccountId)
         expect(Option.isSome(found)).toBe(true)
       })
     )
@@ -436,7 +437,7 @@ describe("AccountsApiLive", () => {
         const testLayer = createTestLayer([existingAccount])
 
         const accountRepo = yield* AccountRepository.pipe(Effect.provide(testLayer))
-        const duplicate = yield* accountRepo.findByNumber(testCompanyId, AccountNumber.make("1000"))
+        const duplicate = yield* accountRepo.findByNumber(testOrganizationId, testCompanyId, AccountNumber.make("1000"))
 
         expect(Option.isSome(duplicate)).toBe(true)
       })
@@ -448,11 +449,11 @@ describe("AccountsApiLive", () => {
         const testLayer = createTestLayer([existingAccount])
 
         const accountRepo = yield* AccountRepository.pipe(Effect.provide(testLayer))
-        const isTaken = yield* accountRepo.isAccountNumberTaken(testCompanyId, AccountNumber.make("1000"))
+        const isTaken = yield* accountRepo.isAccountNumberTaken(testOrganizationId, testCompanyId, AccountNumber.make("1000"))
 
         expect(isTaken).toBe(true)
 
-        const isNotTaken = yield* accountRepo.isAccountNumberTaken(testCompanyId, AccountNumber.make("9999"))
+        const isNotTaken = yield* accountRepo.isAccountNumberTaken(testOrganizationId, testCompanyId, AccountNumber.make("9999"))
         expect(isNotTaken).toBe(false)
       })
     )
@@ -466,7 +467,7 @@ describe("AccountsApiLive", () => {
         const testLayer = createTestLayer([parentAccount])
 
         const accountRepo = yield* AccountRepository.pipe(Effect.provide(testLayer))
-        const parent = yield* accountRepo.findById(testParentAccountId)
+        const parent = yield* accountRepo.findById(testOrganizationId, testParentAccountId)
 
         expect(Option.isSome(parent)).toBe(true)
       })
@@ -484,9 +485,9 @@ describe("AccountsApiLive", () => {
           ...account,
           name: "New Name"
         })
-        yield* accountRepo.update(updated)
+        yield* accountRepo.update(testOrganizationId, updated)
 
-        const found = yield* accountRepo.findById(testAccountId)
+        const found = yield* accountRepo.findById(testOrganizationId, testAccountId)
         expect(Option.isSome(found)).toBe(true)
         if (Option.isSome(found)) {
           expect(found.value.name).toBe("New Name")
@@ -500,7 +501,7 @@ describe("AccountsApiLive", () => {
 
         const accountRepo = yield* AccountRepository.pipe(Effect.provide(testLayer))
         const nonExistent = createTestAccount({ name: "Non-existent" })
-        const result = yield* accountRepo.update(nonExistent).pipe(Effect.either)
+        const result = yield* accountRepo.update(testOrganizationId, nonExistent).pipe(Effect.either)
 
         expect(result._tag).toBe("Left")
       })
@@ -527,9 +528,9 @@ describe("AccountsApiLive", () => {
           parentAccountId: Option.some(testParentAccountId),
           hierarchyLevel: 2
         })
-        yield* accountRepo.update(updated)
+        yield* accountRepo.update(testOrganizationId, updated)
 
-        const found = yield* accountRepo.findById(testAccountId)
+        const found = yield* accountRepo.findById(testOrganizationId, testAccountId)
         expect(Option.isSome(found)).toBe(true)
         if (Option.isSome(found)) {
           expect(Option.isSome(found.value.parentAccountId)).toBe(true)
@@ -548,9 +549,9 @@ describe("AccountsApiLive", () => {
           isActive: false,
           deactivatedAt: Option.some(timestampNow())
         })
-        yield* accountRepo.update(deactivated)
+        yield* accountRepo.update(testOrganizationId, deactivated)
 
-        const found = yield* accountRepo.findById(testAccountId)
+        const found = yield* accountRepo.findById(testOrganizationId, testAccountId)
         expect(Option.isSome(found)).toBe(true)
         if (Option.isSome(found)) {
           expect(found.value.isActive).toBe(false)
@@ -575,7 +576,7 @@ describe("AccountsApiLive", () => {
         const testLayer = createTestLayer([parentAccount, childAccount])
 
         const accountRepo = yield* AccountRepository.pipe(Effect.provide(testLayer))
-        const children = yield* accountRepo.findChildren(testParentAccountId)
+        const children = yield* accountRepo.findChildren(testOrganizationId, testParentAccountId)
         const activeChildren = children.filter((c) => c.isActive)
 
         expect(activeChildren.length).toBe(1)
@@ -597,7 +598,7 @@ describe("AccountsApiLive", () => {
         const testLayer = createTestLayer([parentAccount, inactiveChild])
 
         const accountRepo = yield* AccountRepository.pipe(Effect.provide(testLayer))
-        const children = yield* accountRepo.findChildren(testParentAccountId)
+        const children = yield* accountRepo.findChildren(testOrganizationId, testParentAccountId)
         const activeChildren = children.filter((c) => c.isActive)
 
         expect(activeChildren.length).toBe(0)
@@ -611,7 +612,7 @@ describe("AccountsApiLive", () => {
         const testLayer = createTestLayer([], [createTestCompany()])
 
         const companyRepo = yield* CompanyRepository.pipe(Effect.provide(testLayer))
-        const exists = yield* companyRepo.exists(testCompanyId)
+        const exists = yield* companyRepo.exists(testOrganizationId, testCompanyId)
 
         expect(exists).toBe(true)
       })
@@ -622,7 +623,7 @@ describe("AccountsApiLive", () => {
         const testLayer = createTestLayer([], [])
 
         const companyRepo = yield* CompanyRepository.pipe(Effect.provide(testLayer))
-        const exists = yield* companyRepo.exists(testCompanyId)
+        const exists = yield* companyRepo.exists(testOrganizationId, testCompanyId)
 
         expect(exists).toBe(false)
       })
@@ -660,7 +661,7 @@ describe("AccountsApiLive", () => {
         const testLayer = createTestLayer([regularAccount, intercompanyAccount])
 
         const accountRepo = yield* AccountRepository.pipe(Effect.provide(testLayer))
-        const icAccounts = yield* accountRepo.findIntercompanyAccounts(testCompanyId)
+        const icAccounts = yield* accountRepo.findIntercompanyAccounts(testOrganizationId, testCompanyId)
 
         expect(icAccounts.length).toBe(1)
         expect(icAccounts[0].isIntercompany).toBe(true)

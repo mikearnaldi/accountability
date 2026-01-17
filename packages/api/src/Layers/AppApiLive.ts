@@ -12,6 +12,7 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import { ConsolidatedReportServiceLive } from "@accountability/core/Services/ConsolidatedReportService"
+import { AuthorizationServiceLive } from "@accountability/persistence/Layers/AuthorizationServiceLive"
 import { AppApi, HealthCheckResponse } from "../Definitions/AppApi.ts"
 import { AuthMiddlewareLive } from "./AuthMiddlewareLive.ts"
 import { AccountsApiLive } from "./AccountsApiLive.ts"
@@ -119,6 +120,8 @@ export const AppApiLive = HttpApiBuilder.api(AppApi).pipe(
   Layer.provide(ConsolidationApiWithDependencies),
   Layer.provide(EliminationRulesApiLive),
   Layer.provide(UserOrganizationsApiLive),
+  // AuthorizationServiceLive provides RBAC permission checking
+  Layer.provide(AuthorizationServiceLive),
   // AuthMiddlewareLive requires TokenValidator to be provided externally
   // - For production: use SessionTokenValidatorLive (validates against database)
   // - For testing: use SimpleTokenValidatorLive (user_<id>_<role> format)

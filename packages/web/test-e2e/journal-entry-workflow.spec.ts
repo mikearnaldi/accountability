@@ -81,6 +81,7 @@ test.describe("Journal Entry Detail and Workflow", () => {
     const createAccount1Res = await request.post("/api/v1/accounts", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         accountNumber: "1000",
         name: "Cash",
@@ -103,6 +104,7 @@ test.describe("Journal Entry Detail and Workflow", () => {
     const createAccount2Res = await request.post("/api/v1/accounts", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         accountNumber: "4000",
         name: "Revenue",
@@ -128,6 +130,7 @@ test.describe("Journal Entry Detail and Workflow", () => {
     const createJournalEntryRes = await request.post("/api/v1/journal-entries", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         description: "Workflow test entry",
         transactionDate: "2026-01-15",
@@ -281,6 +284,7 @@ test.describe("Journal Entry Detail and Workflow", () => {
     const createAccount1Res = await request.post("/api/v1/accounts", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         accountNumber: "1000",
         name: "Cash",
@@ -303,6 +307,7 @@ test.describe("Journal Entry Detail and Workflow", () => {
     const createAccount2Res = await request.post("/api/v1/accounts", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         accountNumber: "4000",
         name: "Revenue",
@@ -328,6 +333,7 @@ test.describe("Journal Entry Detail and Workflow", () => {
     const createJournalEntryRes = await request.post("/api/v1/journal-entries", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         description: "Entry to be rejected",
         transactionDate: "2026-01-20",
@@ -361,7 +367,7 @@ test.describe("Journal Entry Detail and Workflow", () => {
     const entryData = await createJournalEntryRes.json()
 
     // 8. Submit the entry via API
-    const submitRes = await request.post(`/api/v1/journal-entries/${entryData.entry.id}/submit`, {
+    const submitRes = await request.post(`/api/v1/journal-entries/${entryData.entry.id}/submit?organizationId=${orgData.id}`, {
       headers: { Authorization: `Bearer ${sessionToken}` }
     })
     expect(submitRes.ok()).toBeTruthy()
@@ -486,6 +492,7 @@ test.describe("Journal Entry Detail and Workflow", () => {
     const createAccount1Res = await request.post("/api/v1/accounts", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         accountNumber: "1000",
         name: "Cash",
@@ -508,6 +515,7 @@ test.describe("Journal Entry Detail and Workflow", () => {
     const createAccount2Res = await request.post("/api/v1/accounts", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         accountNumber: "4000",
         name: "Revenue",
@@ -533,6 +541,7 @@ test.describe("Journal Entry Detail and Workflow", () => {
     const createJournalEntryRes = await request.post("/api/v1/journal-entries", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         description: "Entry to be reversed",
         transactionDate: "2026-01-10",
@@ -566,15 +575,15 @@ test.describe("Journal Entry Detail and Workflow", () => {
     const entryData = await createJournalEntryRes.json()
 
     // 8. Submit, approve, and post the entry via API
-    await request.post(`/api/v1/journal-entries/${entryData.entry.id}/submit`, {
+    await request.post(`/api/v1/journal-entries/${entryData.entry.id}/submit?organizationId=${orgData.id}`, {
       headers: { Authorization: `Bearer ${sessionToken}` }
     })
-    await request.post(`/api/v1/journal-entries/${entryData.entry.id}/approve`, {
+    await request.post(`/api/v1/journal-entries/${entryData.entry.id}/approve?organizationId=${orgData.id}`, {
       headers: { Authorization: `Bearer ${sessionToken}` }
     })
     const postRes = await request.post(`/api/v1/journal-entries/${entryData.entry.id}/post`, {
       headers: { Authorization: `Bearer ${sessionToken}`, "Content-Type": "application/json" },
-      data: { postedBy: userId, postingDate: null }
+      data: { organizationId: orgData.id, postedBy: userId, postingDate: null }
     })
     expect(postRes.ok()).toBeTruthy()
 
@@ -697,6 +706,7 @@ test.describe("Journal Entry Detail and Workflow", () => {
     const createAccount1Res = await request.post("/api/v1/accounts", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         accountNumber: "1000",
         name: "Cash",
@@ -719,6 +729,7 @@ test.describe("Journal Entry Detail and Workflow", () => {
     const createAccount2Res = await request.post("/api/v1/accounts", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         accountNumber: "4000",
         name: "Revenue",
@@ -744,6 +755,7 @@ test.describe("Journal Entry Detail and Workflow", () => {
     const createJournalEntryRes = await request.post("/api/v1/journal-entries", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         description: "Detailed test entry",
         transactionDate: "2026-01-15",
@@ -890,6 +902,7 @@ test.describe("Journal Entry Detail and Workflow", () => {
     const createAccount1Res = await request.post("/api/v1/accounts", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         accountNumber: "1000",
         name: "Cash",
@@ -912,6 +925,7 @@ test.describe("Journal Entry Detail and Workflow", () => {
     const createAccount2Res = await request.post("/api/v1/accounts", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         accountNumber: "4000",
         name: "Revenue",
@@ -937,6 +951,7 @@ test.describe("Journal Entry Detail and Workflow", () => {
     const createJournalEntryRes = await request.post("/api/v1/journal-entries", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         description: "Navigation test entry",
         transactionDate: "2026-01-15",

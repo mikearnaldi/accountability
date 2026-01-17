@@ -102,6 +102,7 @@ test.describe("Journal Entries List Page", () => {
     const createAccount1Res = await request.post("/api/v1/accounts", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         accountNumber: "1000",
         name: "Cash",
@@ -124,6 +125,7 @@ test.describe("Journal Entries List Page", () => {
     const createAccount2Res = await request.post("/api/v1/accounts", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         accountNumber: "4000",
         name: "Revenue",
@@ -150,6 +152,7 @@ test.describe("Journal Entries List Page", () => {
     const createJournalEntry1Res = await request.post("/api/v1/journal-entries", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         description: "Cash sale to customer",
         transactionDate: "2025-01-15",
@@ -184,6 +187,7 @@ test.describe("Journal Entries List Page", () => {
     const createJournalEntry2Res = await request.post("/api/v1/journal-entries", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         description: "Adjusting entry",
         transactionDate: "2025-01-31",
@@ -424,6 +428,7 @@ test.describe("Journal Entries List Page", () => {
     const createAccount1Res = await request.post("/api/v1/accounts", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         accountNumber: "1000",
         name: "Cash",
@@ -446,6 +451,7 @@ test.describe("Journal Entries List Page", () => {
     const createAccount2Res = await request.post("/api/v1/accounts", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         accountNumber: "4000",
         name: "Revenue",
@@ -471,6 +477,7 @@ test.describe("Journal Entries List Page", () => {
     await request.post("/api/v1/journal-entries", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         description: "Draft Entry 1",
         transactionDate: "2025-01-15",
@@ -504,6 +511,7 @@ test.describe("Journal Entries List Page", () => {
     await request.post("/api/v1/journal-entries", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         description: "Draft Entry 2",
         transactionDate: "2025-01-20",
@@ -648,6 +656,7 @@ test.describe("Journal Entries List Page", () => {
     const createAccount1Res = await request.post("/api/v1/accounts", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         accountNumber: "1000",
         name: "Cash",
@@ -670,6 +679,7 @@ test.describe("Journal Entries List Page", () => {
     const createAccount2Res = await request.post("/api/v1/accounts", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         accountNumber: "4000",
         name: "Revenue",
@@ -695,6 +705,7 @@ test.describe("Journal Entries List Page", () => {
     await request.post("/api/v1/journal-entries", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         description: "Standard Entry",
         transactionDate: "2025-01-15",
@@ -728,6 +739,7 @@ test.describe("Journal Entries List Page", () => {
     await request.post("/api/v1/journal-entries", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         description: "Adjusting Entry",
         transactionDate: "2025-01-31",
@@ -971,6 +983,7 @@ test.describe("Journal Entries List Page", () => {
     const createAccount1Res = await request.post("/api/v1/accounts", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         accountNumber: "1000",
         name: "Cash",
@@ -992,6 +1005,7 @@ test.describe("Journal Entries List Page", () => {
     const createAccount2Res = await request.post("/api/v1/accounts", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         accountNumber: "4000",
         name: "Revenue",
@@ -1144,6 +1158,7 @@ test.describe("Journal Entries List Page", () => {
     await request.post("/api/v1/accounts", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         accountNumber: "1000",
         name: "Cash",
@@ -1164,6 +1179,7 @@ test.describe("Journal Entries List Page", () => {
     await request.post("/api/v1/accounts", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         accountNumber: "4000",
         name: "Revenue",
@@ -1520,6 +1536,7 @@ test.describe("Journal Entries List Page", () => {
     const createAccount1Res = await request.post("/api/v1/accounts", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         accountNumber: "1000",
         name: "Cash",
@@ -1542,6 +1559,7 @@ test.describe("Journal Entries List Page", () => {
     const createAccount2Res = await request.post("/api/v1/accounts", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         accountNumber: "4000",
         name: "Revenue",
@@ -1567,6 +1585,7 @@ test.describe("Journal Entries List Page", () => {
     await request.post("/api/v1/journal-entries", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         description: "Office supplies purchase",
         transactionDate: "2025-01-15",
@@ -1600,6 +1619,7 @@ test.describe("Journal Entries List Page", () => {
     await request.post("/api/v1/journal-entries", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         description: "Customer payment received",
         transactionDate: "2025-01-20",

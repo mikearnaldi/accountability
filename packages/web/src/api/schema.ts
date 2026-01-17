@@ -287,7 +287,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/accounts/{id}": {
+    "/api/v1/accounts/organizations/{organizationId}/accounts/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -296,7 +296,7 @@ export interface paths {
         };
         /**
          * Get account
-         * @description Retrieve a single account by its unique identifier.
+         * @description Retrieve a single account by its unique identifier within an organization.
          */
         get: operations["accounts.getAccount"];
         /**
@@ -471,7 +471,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/companies/{id}": {
+    "/api/v1/organizations/{organizationId}/companies/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -480,20 +480,120 @@ export interface paths {
         };
         /**
          * Get company
-         * @description Retrieve a single company by its unique identifier.
+         * @description Retrieve a single company by its unique identifier within an organization.
          */
         get: operations["companies.getCompany"];
         /**
          * Update company
-         * @description Update an existing company. Only provided fields will be updated.
+         * @description Update an existing company within an organization. Only provided fields will be updated.
          */
         put: operations["companies.updateCompany"];
         post?: never;
         /**
          * Deactivate company
-         * @description Deactivate a company (soft delete). Companies with active subsidiaries or unposted entries cannot be deactivated.
+         * @description Deactivate a company within an organization (soft delete). Companies with active subsidiaries or unposted entries cannot be deactivated.
          */
         delete: operations["companies.deactivateCompany"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/me/invitations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List user's pending invitations
+         * @description Retrieve all pending invitations for the current user.
+         */
+        get: operations["invitation.listUserInvitations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invitations/{token}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Accept invitation
+         * @description Accept an invitation to join an organization. The user will become a member with the role specified in the invitation.
+         */
+        post: operations["invitation.acceptInvitation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invitations/{token}/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decline invitation
+         * @description Decline an invitation to join an organization.
+         */
+        post: operations["invitation.declineInvitation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{orgId}/invitations/{invitationId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Revoke invitation
+         * @description Revoke a pending invitation. Only organization admins can perform this action.
+         */
+        delete: operations["invitation.revokeInvitation"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{orgId}/invitations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List organization invitations
+         * @description List all pending invitations for an organization. Only organization admins can view this.
+         */
+        get: operations["invitation.listOrgInvitations"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -645,6 +745,110 @@ export interface paths {
          * @description Reverse a posted journal entry by creating a new entry with opposite debits and credits.
          */
         post: operations["journal-entries.reverseJournalEntry"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{orgId}/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List organization members
+         * @description Retrieve all members of an organization, including their roles and status.
+         */
+        get: operations["membership.listMembers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{orgId}/members/invite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Invite new member
+         * @description Send an invitation to join the organization. An email will be sent with an invitation link.
+         */
+        post: operations["membership.inviteMember"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{orgId}/members/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove member
+         * @description Remove a member from the organization (soft delete). The owner cannot be removed.
+         */
+        delete: operations["membership.removeMember"];
+        options?: never;
+        head?: never;
+        /**
+         * Update member role
+         * @description Update a member's base role and/or functional roles.
+         */
+        patch: operations["membership.updateMember"];
+        trace?: never;
+    };
+    "/api/v1/organizations/{orgId}/members/{userId}/reinstate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reinstate member
+         * @description Reinstate a previously removed member, restoring their previous role and access.
+         */
+        post: operations["membership.reinstateMember"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{orgId}/transfer-ownership": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Transfer ownership
+         * @description Transfer organization ownership to another admin member. Only the current owner can perform this action.
+         */
+        post: operations["membership.transferOwnership"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1563,6 +1767,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/users/me/organizations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List user's organizations
+         * @description Retrieve all organizations the current user is a member of, including their roles and effective permissions.
+         */
+        get: operations["userOrganizations.listUserOrganizations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2030,7 +2254,17 @@ export interface components {
             /** @enum {string} */
             _tag: "NotFoundError";
         };
+        ForbiddenError: {
+            message: string;
+            /** @description The resource access was denied to */
+            resource: string | null;
+            /** @description The action that was denied */
+            action: string | null;
+            /** @enum {string} */
+            _tag: "ForbiddenError";
+        };
         CreateAccountRequest: {
+            organizationId: components["schemas"]["OrganizationId"];
             companyId: components["schemas"]["CompanyId"];
             accountNumber: components["schemas"]["AccountNumber"];
             name: components["schemas"]["NonEmptyTrimmedString"];
@@ -2046,6 +2280,12 @@ export interface components {
             intercompanyPartnerId: components["schemas"]["CompanyId"] | null;
             currencyRestriction: components["schemas"]["CurrencyCode"] | null;
         };
+        /**
+         * Organization ID
+         * Format: uuid
+         * @description A unique identifier for an organization (UUID format)
+         */
+        OrganizationId: string;
         ConflictError: {
             /** @description A human-readable description of the conflict */
             message: string;
@@ -2118,6 +2358,7 @@ export interface components {
             isIntercompany: boolean;
         };
         ApplyTemplateRequest: {
+            organizationId: components["schemas"]["UUID"];
             companyId: components["schemas"]["UUID"];
         };
         /**
@@ -2200,12 +2441,6 @@ export interface components {
             createdAt: components["schemas"]["Timestamp"];
             settings: components["schemas"]["OrganizationSettings"];
         };
-        /**
-         * Organization ID
-         * Format: uuid
-         * @description A unique identifier for an organization (UUID format)
-         */
-        OrganizationId: string;
         OrganizationSettings: {
             defaultLocale: string;
             defaultTimezone: string;
@@ -2423,6 +2658,70 @@ export interface components {
             ownershipPercentage: components["schemas"]["Percentage"] | null;
             isActive: boolean | null;
         };
+        UserInvitationsResponse: {
+            invitations: components["schemas"]["PendingInvitationInfo"][];
+        };
+        PendingInvitationInfo: {
+            id: components["schemas"]["InvitationId"];
+            organizationId: components["schemas"]["OrganizationId"];
+            organizationName: components["schemas"]["NonEmptyTrimmedString"];
+            /** @enum {string} */
+            role: "admin" | "member" | "viewer";
+            functionalRoles: components["schemas"]["FunctionalRoles"];
+            invitedBy: components["schemas"]["InviterInfo"];
+            createdAt: components["schemas"]["Timestamp"];
+        };
+        /**
+         * Invitation ID
+         * Format: uuid
+         * @description A unique identifier for an organization invitation (UUID format)
+         */
+        InvitationId: string;
+        /**
+         * Functional Roles
+         * @description An array of functional roles assigned to a user
+         */
+        FunctionalRoles: components["schemas"]["FunctionalRole"][];
+        /**
+         * Functional Role
+         * @description A functional role that grants specific capabilities within an organization
+         * @enum {string}
+         */
+        FunctionalRole: "controller" | "finance_manager" | "accountant" | "period_admin" | "consolidation_manager";
+        InviterInfo: {
+            email: components["schemas"]["Email"];
+            displayName: components["schemas"]["NonEmptyTrimmedString"];
+        };
+        AcceptInvitationResponse: {
+            organizationId: components["schemas"]["OrganizationId"];
+            organizationName: components["schemas"]["NonEmptyTrimmedString"];
+            role: components["schemas"]["BaseRole"];
+        };
+        /**
+         * Base Role
+         * @description The base role assigned to a user within an organization, determining their default permissions
+         * @enum {string}
+         */
+        BaseRole: "owner" | "admin" | "member" | "viewer";
+        OrgInvitationsResponse: {
+            invitations: components["schemas"]["OrgInvitationInfo"][];
+        };
+        OrgInvitationInfo: {
+            id: components["schemas"]["InvitationId"];
+            email: components["schemas"]["Email"];
+            /** @enum {string} */
+            role: "admin" | "member" | "viewer";
+            functionalRoles: components["schemas"]["FunctionalRoles"];
+            status: components["schemas"]["InvitationStatus"];
+            invitedBy: components["schemas"]["InviterInfo"];
+            createdAt: components["schemas"]["Timestamp"];
+        };
+        /**
+         * Invitation Status
+         * @description The status of an organization invitation
+         * @enum {string}
+         */
+        InvitationStatus: "pending" | "accepted" | "revoked";
         /**
          * Journal Entry Status
          * @description Status in the journal entry workflow
@@ -2646,6 +2945,7 @@ export interface components {
             [key: string]: string;
         };
         CreateJournalEntryRequest: {
+            organizationId: components["schemas"]["OrganizationId"];
             companyId: components["schemas"]["CompanyId"];
             description: components["schemas"]["NonEmptyTrimmedString"];
             transactionDate: components["schemas"]["LocalDateFromString"];
@@ -2672,6 +2972,7 @@ export interface components {
             intercompanyPartnerId: components["schemas"]["CompanyId"] | null;
         };
         UpdateJournalEntryRequest: {
+            organizationId: components["schemas"]["OrganizationId"];
             description: components["schemas"]["NonEmptyTrimmedString"] | null;
             transactionDate: components["schemas"]["LocalDateFromString"] | null;
             documentDate: components["schemas"]["LocalDateFromString"] | null;
@@ -2681,13 +2982,51 @@ export interface components {
             lines: components["schemas"]["CreateJournalEntryLineRequest"][] | null;
         };
         PostJournalEntryRequest: {
+            organizationId: components["schemas"]["OrganizationId"];
             postedBy: components["schemas"]["UserId"];
             postingDate: components["schemas"]["LocalDateFromString"] | null;
         };
         ReverseJournalEntryRequest: {
+            organizationId: components["schemas"]["OrganizationId"];
             reversalDate: components["schemas"]["LocalDateFromString"];
             reversalDescription: components["schemas"]["NonEmptyTrimmedString"] | null;
             reversedBy: components["schemas"]["UserId"];
+        };
+        MemberListResponse: {
+            members: components["schemas"]["MemberInfo"][];
+        };
+        MemberInfo: {
+            userId: components["schemas"]["AuthUserId"];
+            email: components["schemas"]["Email"];
+            displayName: components["schemas"]["NonEmptyTrimmedString"];
+            role: components["schemas"]["BaseRole"];
+            functionalRoles: components["schemas"]["FunctionalRoles"];
+            status: components["schemas"]["MembershipStatus"];
+            joinedAt: components["schemas"]["Timestamp"];
+        };
+        /**
+         * Membership Status
+         * @description The status of a user's membership in an organization
+         * @enum {string}
+         */
+        MembershipStatus: "active" | "suspended" | "removed";
+        InviteMemberResponse: {
+            invitationId: components["schemas"]["InvitationId"];
+        };
+        UpdateMemberRequest: {
+            role: components["schemas"]["BaseRole"] | null;
+            functionalRoles: components["schemas"]["FunctionalRoles"] | null;
+        };
+        RemoveMemberRequest: {
+            reason: string | null;
+        };
+        TransferOwnershipRequest: {
+            toUserId: components["schemas"]["AuthUserId"];
+            /**
+             * @description The role the current owner will have after transfer
+             * @enum {string}
+             */
+            myNewRole: "admin" | "member" | "viewer";
         };
         /**
          * Report Format
@@ -3035,6 +3374,7 @@ export interface components {
          */
         IntercompanyTransactionId: string;
         CreateIntercompanyTransactionRequest: {
+            organizationId: components["schemas"]["OrganizationId"];
             fromCompanyId: components["schemas"]["CompanyId"];
             toCompanyId: components["schemas"]["CompanyId"];
             transactionType: components["schemas"]["IntercompanyTransactionType"];
@@ -3172,11 +3512,6 @@ export interface components {
             name: components["schemas"]["NonEmptyTrimmedString"] | null;
             consolidationMethod: components["schemas"]["ConsolidationMethod"] | null;
             reportingCurrency: components["schemas"]["CurrencyCode"] | null;
-        };
-        UpdateMemberRequest: {
-            ownershipPercentage: components["schemas"]["Percentage"] | null;
-            consolidationMethod: components["schemas"]["ConsolidationMethod"] | null;
-            acquisitionDate: components["schemas"]["LocalDateFromString"] | null;
         };
         /**
          * Consolidation Run Status
@@ -3490,6 +3825,7 @@ export interface components {
         };
         BulkCreateEliminationRulesRequest: {
             rules: {
+                organizationId: components["schemas"]["OrganizationId"];
                 consolidationGroupId: components["schemas"]["ConsolidationGroupId"];
                 name: components["schemas"]["NonEmptyTrimmedString"];
                 description: components["schemas"]["NonEmptyTrimmedString"] | null;
@@ -3533,6 +3869,22 @@ export interface components {
              */
             priority: number;
         };
+        UserOrganizationsResponse: {
+            organizations: components["schemas"]["UserOrganizationInfo"][];
+        };
+        UserOrganizationInfo: {
+            id: components["schemas"]["OrganizationId"];
+            name: components["schemas"]["NonEmptyTrimmedString"];
+            role: components["schemas"]["BaseRole"];
+            functionalRoles: components["schemas"]["FunctionalRoles"];
+            effectivePermissions: components["schemas"]["Action"][];
+        };
+        /**
+         * Authorization Action
+         * @description An authorization action that can be performed in the system
+         * @enum {string}
+         */
+        Action: "organization:manage_settings" | "organization:manage_members" | "organization:delete" | "organization:transfer_ownership" | "company:create" | "company:read" | "company:update" | "company:delete" | "account:create" | "account:read" | "account:update" | "account:deactivate" | "journal_entry:create" | "journal_entry:read" | "journal_entry:update" | "journal_entry:post" | "journal_entry:reverse" | "fiscal_period:read" | "fiscal_period:open" | "fiscal_period:soft_close" | "fiscal_period:close" | "fiscal_period:lock" | "fiscal_period:reopen" | "consolidation_group:create" | "consolidation_group:read" | "consolidation_group:update" | "consolidation_group:delete" | "consolidation_group:run" | "elimination:create" | "report:read" | "report:export" | "exchange_rate:read" | "exchange_rate:manage" | "audit_log:read" | "*";
     };
     responses: never;
     parameters: never;
@@ -4171,6 +4523,7 @@ export interface operations {
     "accounts.listAccounts": {
         parameters: {
             query: {
+                organizationId: string;
                 companyId: string;
                 accountType?: components["schemas"]["AccountType"];
                 accountCategory?: components["schemas"]["AccountCategory"];
@@ -4213,6 +4566,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
                 };
             };
             /** @description NotFoundError */
@@ -4266,6 +4628,24 @@ export interface operations {
                     "application/json": components["schemas"]["UnauthorizedError"];
                 };
             };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
+            /** @description NotFoundError */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
+                };
+            };
             /** @description ConflictError */
             409: {
                 headers: {
@@ -4291,6 +4671,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                organizationId: string;
                 id: string;
             };
             cookie?: never;
@@ -4324,6 +4705,15 @@ export interface operations {
                     "application/json": components["schemas"]["UnauthorizedError"];
                 };
             };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
             /** @description NotFoundError */
             404: {
                 headers: {
@@ -4340,6 +4730,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                organizationId: string;
                 id: string;
             };
             cookie?: never;
@@ -4377,6 +4768,15 @@ export interface operations {
                     "application/json": components["schemas"]["UnauthorizedError"];
                 };
             };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
             /** @description NotFoundError */
             404: {
                 headers: {
@@ -4411,6 +4811,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                organizationId: string;
                 id: string;
             };
             cookie?: never;
@@ -4440,6 +4841,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
                 };
             };
             /** @description NotFoundError */
@@ -4952,6 +5362,15 @@ export interface operations {
                     "application/json": components["schemas"]["UnauthorizedError"];
                 };
             };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
             /** @description NotFoundError */
             404: {
                 headers: {
@@ -5003,6 +5422,24 @@ export interface operations {
                     "application/json": components["schemas"]["UnauthorizedError"];
                 };
             };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
+            /** @description NotFoundError */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
+                };
+            };
             /** @description ConflictError */
             409: {
                 headers: {
@@ -5028,6 +5465,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                organizationId: string;
                 id: string;
             };
             cookie?: never;
@@ -5061,6 +5499,15 @@ export interface operations {
                     "application/json": components["schemas"]["UnauthorizedError"];
                 };
             };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
             /** @description NotFoundError */
             404: {
                 headers: {
@@ -5077,6 +5524,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                organizationId: string;
                 id: string;
             };
             cookie?: never;
@@ -5114,6 +5562,15 @@ export interface operations {
                     "application/json": components["schemas"]["UnauthorizedError"];
                 };
             };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
             /** @description NotFoundError */
             404: {
                 headers: {
@@ -5148,6 +5605,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                organizationId: string;
                 id: string;
             };
             cookie?: never;
@@ -5179,6 +5637,15 @@ export interface operations {
                     "application/json": components["schemas"]["UnauthorizedError"];
                 };
             };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
             /** @description NotFoundError */
             404: {
                 headers: {
@@ -5199,9 +5666,295 @@ export interface operations {
             };
         };
     };
+    "invitation.listUserInvitations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description UserInvitationsResponse */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserInvitationsResponse"];
+                };
+            };
+            /** @description The request did not match the expected schema */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpApiDecodeError"];
+                };
+            };
+            /** @description UnauthorizedError */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
+        };
+    };
+    "invitation.acceptInvitation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description AcceptInvitationResponse */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcceptInvitationResponse"];
+                };
+            };
+            /** @description The request did not match the expected schema */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpApiDecodeError"] | components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description UnauthorizedError */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description NotFoundError */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
+                };
+            };
+            /** @description BusinessRuleError */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BusinessRuleError"];
+                };
+            };
+        };
+    };
+    "invitation.declineInvitation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The request did not match the expected schema */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpApiDecodeError"] | components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description UnauthorizedError */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description NotFoundError */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
+                };
+            };
+            /** @description BusinessRuleError */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BusinessRuleError"];
+                };
+            };
+        };
+    };
+    "invitation.revokeInvitation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: string;
+                invitationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The request did not match the expected schema */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpApiDecodeError"];
+                };
+            };
+            /** @description UnauthorizedError */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
+            /** @description NotFoundError */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
+                };
+            };
+            /** @description BusinessRuleError */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BusinessRuleError"];
+                };
+            };
+        };
+    };
+    "invitation.listOrgInvitations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OrgInvitationsResponse */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgInvitationsResponse"];
+                };
+            };
+            /** @description The request did not match the expected schema */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpApiDecodeError"];
+                };
+            };
+            /** @description UnauthorizedError */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
+            /** @description NotFoundError */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
+                };
+            };
+        };
+    };
     "journal-entries.listJournalEntries": {
         parameters: {
             query: {
+                organizationId: string;
                 companyId: string;
                 status?: components["schemas"]["JournalEntryStatus"];
                 entryType?: components["schemas"]["JournalEntryType"];
@@ -5314,7 +6067,9 @@ export interface operations {
     };
     "journal-entries.getJournalEntry": {
         parameters: {
-            query?: never;
+            query: {
+                organizationId: string;
+            };
             header?: never;
             path: {
                 id: components["schemas"]["JournalEntryId"];
@@ -5434,7 +6189,9 @@ export interface operations {
     };
     "journal-entries.deleteJournalEntry": {
         parameters: {
-            query?: never;
+            query: {
+                organizationId: string;
+            };
             header?: never;
             path: {
                 id: components["schemas"]["JournalEntryId"];
@@ -5490,7 +6247,9 @@ export interface operations {
     };
     "journal-entries.submitForApproval": {
         parameters: {
-            query?: never;
+            query: {
+                organizationId: string;
+            };
             header?: never;
             path: {
                 id: components["schemas"]["JournalEntryId"];
@@ -5548,7 +6307,9 @@ export interface operations {
     };
     "journal-entries.approveJournalEntry": {
         parameters: {
-            query?: never;
+            query: {
+                organizationId: string;
+            };
             header?: never;
             path: {
                 id: components["schemas"]["JournalEntryId"];
@@ -5606,7 +6367,9 @@ export interface operations {
     };
     "journal-entries.rejectJournalEntry": {
         parameters: {
-            query?: never;
+            query: {
+                organizationId: string;
+            };
             header?: never;
             path: {
                 id: components["schemas"]["JournalEntryId"];
@@ -5792,9 +6555,426 @@ export interface operations {
             };
         };
     };
+    "membership.listMembers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description MemberListResponse */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberListResponse"];
+                };
+            };
+            /** @description The request did not match the expected schema */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpApiDecodeError"];
+                };
+            };
+            /** @description UnauthorizedError */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
+            /** @description NotFoundError */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
+                };
+            };
+        };
+    };
+    "membership.inviteMember": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    email: components["schemas"]["Email"];
+                    /**
+                     * @description The role to assign. Owner cannot be assigned via invitation.
+                     * @enum {string}
+                     */
+                    role: "admin" | "member" | "viewer";
+                    functionalRoles?: components["schemas"]["FunctionalRoles"];
+                };
+            };
+        };
+        responses: {
+            /** @description InviteMemberResponse */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InviteMemberResponse"];
+                };
+            };
+            /** @description The request did not match the expected schema */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpApiDecodeError"] | components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description UnauthorizedError */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
+            /** @description NotFoundError */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
+                };
+            };
+            /** @description BusinessRuleError */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BusinessRuleError"];
+                };
+            };
+        };
+    };
+    "membership.removeMember": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: string;
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RemoveMemberRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The request did not match the expected schema */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpApiDecodeError"];
+                };
+            };
+            /** @description UnauthorizedError */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
+            /** @description NotFoundError */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
+                };
+            };
+            /** @description BusinessRuleError */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BusinessRuleError"];
+                };
+            };
+        };
+    };
+    "membership.updateMember": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: string;
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateMemberRequest"];
+            };
+        };
+        responses: {
+            /** @description MemberInfo */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberInfo"];
+                };
+            };
+            /** @description The request did not match the expected schema */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpApiDecodeError"] | components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description UnauthorizedError */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
+            /** @description NotFoundError */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
+                };
+            };
+            /** @description BusinessRuleError */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BusinessRuleError"];
+                };
+            };
+        };
+    };
+    "membership.reinstateMember": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: string;
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description MemberInfo */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberInfo"];
+                };
+            };
+            /** @description The request did not match the expected schema */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpApiDecodeError"];
+                };
+            };
+            /** @description UnauthorizedError */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
+            /** @description NotFoundError */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
+                };
+            };
+            /** @description BusinessRuleError */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BusinessRuleError"];
+                };
+            };
+        };
+    };
+    "membership.transferOwnership": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransferOwnershipRequest"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The request did not match the expected schema */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpApiDecodeError"] | components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description UnauthorizedError */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
+            /** @description NotFoundError */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
+                };
+            };
+            /** @description BusinessRuleError */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BusinessRuleError"];
+                };
+            };
+        };
+    };
     "reports.generateTrialBalance": {
         parameters: {
             query: {
+                organizationId: string;
                 companyId: string;
                 asOfDate: components["schemas"]["LocalDateFromString"];
                 periodStartDate?: components["schemas"]["LocalDateFromString"];
@@ -5857,6 +7037,7 @@ export interface operations {
     "reports.generateBalanceSheet": {
         parameters: {
             query: {
+                organizationId: string;
                 companyId: string;
                 asOfDate: components["schemas"]["LocalDateFromString"];
                 comparativeDate?: components["schemas"]["LocalDateFromString"];
@@ -5919,6 +7100,7 @@ export interface operations {
     "reports.generateIncomeStatement": {
         parameters: {
             query: {
+                organizationId: string;
                 companyId: string;
                 periodStartDate: components["schemas"]["LocalDateFromString"];
                 periodEndDate: components["schemas"]["LocalDateFromString"];
@@ -5982,6 +7164,7 @@ export interface operations {
     "reports.generateCashFlowStatement": {
         parameters: {
             query: {
+                organizationId: string;
                 companyId: string;
                 periodStartDate: components["schemas"]["LocalDateFromString"];
                 periodEndDate: components["schemas"]["LocalDateFromString"];
@@ -6044,6 +7227,7 @@ export interface operations {
     "reports.generateEquityStatement": {
         parameters: {
             query: {
+                organizationId: string;
                 companyId: string;
                 periodStartDate: components["schemas"]["LocalDateFromString"];
                 periodEndDate: components["schemas"]["LocalDateFromString"];
@@ -7129,8 +8313,8 @@ export interface operations {
     };
     "consolidation.listConsolidationGroups": {
         parameters: {
-            query?: {
-                organizationId?: components["schemas"]["OrganizationId"];
+            query: {
+                organizationId: components["schemas"]["OrganizationId"];
                 isActive?: components["schemas"]["BooleanFromString"];
                 /** @description a string to be decoded into a number */
                 limit?: string;
@@ -7234,7 +8418,9 @@ export interface operations {
     };
     "consolidation.getConsolidationGroup": {
         parameters: {
-            query?: never;
+            query: {
+                organizationId: components["schemas"]["OrganizationId"];
+            };
             header?: never;
             path: {
                 id: components["schemas"]["ConsolidationGroupId"];
@@ -7283,7 +8469,9 @@ export interface operations {
     };
     "consolidation.updateConsolidationGroup": {
         parameters: {
-            query?: never;
+            query: {
+                organizationId: components["schemas"]["OrganizationId"];
+            };
             header?: never;
             path: {
                 id: components["schemas"]["ConsolidationGroupId"];
@@ -7345,7 +8533,9 @@ export interface operations {
     };
     "consolidation.deleteConsolidationGroup": {
         parameters: {
-            query?: never;
+            query: {
+                organizationId: components["schemas"]["OrganizationId"];
+            };
             header?: never;
             path: {
                 id: components["schemas"]["ConsolidationGroupId"];
@@ -7401,7 +8591,9 @@ export interface operations {
     };
     "consolidation.activateConsolidationGroup": {
         parameters: {
-            query?: never;
+            query: {
+                organizationId: components["schemas"]["OrganizationId"];
+            };
             header?: never;
             path: {
                 id: components["schemas"]["ConsolidationGroupId"];
@@ -7459,7 +8651,9 @@ export interface operations {
     };
     "consolidation.deactivateConsolidationGroup": {
         parameters: {
-            query?: never;
+            query: {
+                organizationId: components["schemas"]["OrganizationId"];
+            };
             header?: never;
             path: {
                 id: components["schemas"]["ConsolidationGroupId"];
@@ -7517,7 +8711,9 @@ export interface operations {
     };
     "consolidation.addGroupMember": {
         parameters: {
-            query?: never;
+            query: {
+                organizationId: components["schemas"]["OrganizationId"];
+            };
             header?: never;
             path: {
                 id: components["schemas"]["ConsolidationGroupId"];
@@ -7593,7 +8789,9 @@ export interface operations {
     };
     "consolidation.updateGroupMember": {
         parameters: {
-            query?: never;
+            query: {
+                organizationId: components["schemas"]["OrganizationId"];
+            };
             header?: never;
             path: {
                 id: components["schemas"]["ConsolidationGroupId"];
@@ -7656,7 +8854,9 @@ export interface operations {
     };
     "consolidation.removeGroupMember": {
         parameters: {
-            query?: never;
+            query: {
+                organizationId: components["schemas"]["OrganizationId"];
+            };
             header?: never;
             path: {
                 id: components["schemas"]["ConsolidationGroupId"];
@@ -7715,7 +8915,8 @@ export interface operations {
     };
     "consolidation.listConsolidationRuns": {
         parameters: {
-            query?: {
+            query: {
+                organizationId: components["schemas"]["OrganizationId"];
                 groupId?: components["schemas"]["ConsolidationGroupId"];
                 status?: components["schemas"]["ConsolidationRunStatus"];
                 /** @description a string to be decoded into a number */
@@ -7764,7 +8965,9 @@ export interface operations {
     };
     "consolidation.getConsolidationRun": {
         parameters: {
-            query?: never;
+            query: {
+                organizationId: components["schemas"]["OrganizationId"];
+            };
             header?: never;
             path: {
                 id: components["schemas"]["ConsolidationRunId"];
@@ -7813,7 +9016,9 @@ export interface operations {
     };
     "consolidation.deleteConsolidationRun": {
         parameters: {
-            query?: never;
+            query: {
+                organizationId: components["schemas"]["OrganizationId"];
+            };
             header?: never;
             path: {
                 id: components["schemas"]["ConsolidationRunId"];
@@ -7869,7 +9074,9 @@ export interface operations {
     };
     "consolidation.initiateConsolidationRun": {
         parameters: {
-            query?: never;
+            query: {
+                organizationId: components["schemas"]["OrganizationId"];
+            };
             header?: never;
             path: {
                 groupId: components["schemas"]["ConsolidationGroupId"];
@@ -7952,7 +9159,9 @@ export interface operations {
     };
     "consolidation.cancelConsolidationRun": {
         parameters: {
-            query?: never;
+            query: {
+                organizationId: components["schemas"]["OrganizationId"];
+            };
             header?: never;
             path: {
                 id: components["schemas"]["ConsolidationRunId"];
@@ -8010,7 +9219,9 @@ export interface operations {
     };
     "consolidation.getConsolidatedTrialBalance": {
         parameters: {
-            query?: never;
+            query: {
+                organizationId: components["schemas"]["OrganizationId"];
+            };
             header?: never;
             path: {
                 id: components["schemas"]["ConsolidationRunId"];
@@ -8068,7 +9279,9 @@ export interface operations {
     };
     "consolidation.getConsolidatedBalanceSheet": {
         parameters: {
-            query?: never;
+            query: {
+                organizationId: components["schemas"]["OrganizationId"];
+            };
             header?: never;
             path: {
                 id: components["schemas"]["ConsolidationRunId"];
@@ -8126,7 +9339,9 @@ export interface operations {
     };
     "consolidation.getConsolidatedIncomeStatement": {
         parameters: {
-            query?: never;
+            query: {
+                organizationId: components["schemas"]["OrganizationId"];
+            };
             header?: never;
             path: {
                 id: components["schemas"]["ConsolidationRunId"];
@@ -8184,7 +9399,9 @@ export interface operations {
     };
     "consolidation.getConsolidatedCashFlowStatement": {
         parameters: {
-            query?: never;
+            query: {
+                organizationId: components["schemas"]["OrganizationId"];
+            };
             header?: never;
             path: {
                 id: components["schemas"]["ConsolidationRunId"];
@@ -8242,7 +9459,9 @@ export interface operations {
     };
     "consolidation.getConsolidatedEquityStatement": {
         parameters: {
-            query?: never;
+            query: {
+                organizationId: components["schemas"]["OrganizationId"];
+            };
             header?: never;
             path: {
                 id: components["schemas"]["ConsolidationRunId"];
@@ -8300,7 +9519,9 @@ export interface operations {
     };
     "consolidation.getLatestCompletedRun": {
         parameters: {
-            query?: never;
+            query: {
+                organizationId: components["schemas"]["OrganizationId"];
+            };
             header?: never;
             path: {
                 groupId: components["schemas"]["ConsolidationGroupId"];
@@ -8405,6 +9626,7 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
+                    organizationId: components["schemas"]["OrganizationId"];
                     consolidationGroupId: components["schemas"]["ConsolidationGroupId"];
                     name: components["schemas"]["NonEmptyTrimmedString"];
                     description: components["schemas"]["NonEmptyTrimmedString"] | null;
@@ -8905,6 +10127,53 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+        };
+    };
+    "userOrganizations.listUserOrganizations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description UserOrganizationsResponse */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserOrganizationsResponse"];
+                };
+            };
+            /** @description The request did not match the expected schema */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpApiDecodeError"];
+                };
+            };
+            /** @description UnauthorizedError */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
                 };
             };
         };

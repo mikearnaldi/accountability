@@ -15,6 +15,7 @@ import {
   AccountSelector
 } from "@accountability/core/Domains/EliminationRule"
 import { ConsolidationGroupId, EliminationRuleId } from "@accountability/core/Domains/ConsolidationGroup"
+import { OrganizationId } from "@accountability/core/Domains/Organization"
 import { AccountId } from "@accountability/core/Domains/Account"
 import {
   BusinessRuleError,
@@ -41,6 +42,7 @@ export class TriggerConditionInput extends Schema.Class<TriggerConditionInput>("
  * CreateEliminationRuleRequest - Request body for creating a new elimination rule
  */
 export class CreateEliminationRuleRequest extends Schema.Class<CreateEliminationRuleRequest>("CreateEliminationRuleRequest")({
+  organizationId: OrganizationId,
   consolidationGroupId: ConsolidationGroupId,
   name: Schema.NonEmptyTrimmedString,
   description: Schema.OptionFromNullOr(Schema.NonEmptyTrimmedString),

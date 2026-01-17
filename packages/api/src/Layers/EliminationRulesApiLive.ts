@@ -163,7 +163,7 @@ export const EliminationRulesApiLive = HttpApiBuilder.group(AppApi, "elimination
           const req = _.payload
 
           // Validate consolidation group exists
-          const groupExists = yield* consolidationRepo.groupExists(req.consolidationGroupId).pipe(
+          const groupExists = yield* consolidationRepo.groupExists(req.organizationId, req.consolidationGroupId).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
           if (!groupExists) {
@@ -212,9 +212,16 @@ export const EliminationRulesApiLive = HttpApiBuilder.group(AppApi, "elimination
           const req = _.payload
 
           // Validate all consolidation groups exist
-          const uniqueGroupIds = new Set(req.rules.map((r) => r.consolidationGroupId))
-          for (const groupId of uniqueGroupIds) {
-            const groupExists = yield* consolidationRepo.groupExists(groupId).pipe(
+          // Build a map of org+group pairs to check
+          const uniquePairs = new Map<string, { organizationId: typeof req.rules[0]["organizationId"]; groupId: typeof req.rules[0]["consolidationGroupId"] }>()
+          for (const r of req.rules) {
+            const key = `${r.organizationId}:${r.consolidationGroupId}`
+            if (!uniquePairs.has(key)) {
+              uniquePairs.set(key, { organizationId: r.organizationId, groupId: r.consolidationGroupId })
+            }
+          }
+          for (const { organizationId, groupId } of uniquePairs.values()) {
+            const groupExists = yield* consolidationRepo.groupExists(organizationId, groupId).pipe(
               Effect.mapError((e) => mapPersistenceToBusinessRule(e))
             )
             if (!groupExists) {

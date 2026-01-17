@@ -4,6 +4,9 @@
  * Uses Effect Context.Tag pattern for dependency injection.
  * All operations return Effect with typed errors.
  *
+ * IMPORTANT: All methods require organizationId for authorization enforcement.
+ * This ensures data isolation - users can only access companies within their organization.
+ *
  * @module CompanyRepository
  */
 
@@ -18,15 +21,18 @@ import type { EntityNotFoundError, PersistenceError } from "../Errors/Repository
  * CompanyRepository - Service interface for Company persistence
  *
  * Provides CRUD operations for Company entities with typed error handling.
+ * All methods require organizationId to enforce data isolation.
  */
 export interface CompanyRepositoryService {
   /**
-   * Find a company by its unique identifier
+   * Find a company by its unique identifier within an organization
    *
+   * @param organizationId - The organization ID for authorization
    * @param id - The company ID to search for
-   * @returns Effect containing Option of Company (None if not found)
+   * @returns Effect containing Option of Company (None if not found or not in org)
    */
   readonly findById: (
+    organizationId: OrganizationId,
     id: CompanyId
   ) => Effect.Effect<Option.Option<Company>, PersistenceError>
 
@@ -51,24 +57,28 @@ export interface CompanyRepositoryService {
   ) => Effect.Effect<Company, PersistenceError>
 
   /**
-   * Update an existing company
+   * Update an existing company within an organization
    *
+   * @param organizationId - The organization ID for authorization
    * @param company - The company entity with updated values
    * @returns Effect containing the updated company
-   * @throws EntityNotFoundError if company doesn't exist
+   * @throws EntityNotFoundError if company doesn't exist or not in org
    */
   readonly update: (
+    organizationId: OrganizationId,
     company: Company
   ) => Effect.Effect<Company, EntityNotFoundError | PersistenceError>
 
   /**
-   * Find a company by its unique identifier, throwing if not found
+   * Find a company by its unique identifier within an organization, throwing if not found
    *
+   * @param organizationId - The organization ID for authorization
    * @param id - The company ID to search for
    * @returns Effect containing the Company
-   * @throws EntityNotFoundError if company doesn't exist
+   * @throws EntityNotFoundError if company doesn't exist or not in org
    */
   readonly getById: (
+    organizationId: OrganizationId,
     id: CompanyId
   ) => Effect.Effect<Company, EntityNotFoundError | PersistenceError>
 
@@ -83,22 +93,26 @@ export interface CompanyRepositoryService {
   ) => Effect.Effect<ReadonlyArray<Company>, PersistenceError>
 
   /**
-   * Find all subsidiary companies of a parent company
+   * Find all subsidiary companies of a parent company within an organization
    *
+   * @param organizationId - The organization ID for authorization
    * @param parentCompanyId - The parent company ID
    * @returns Effect containing array of subsidiary companies
    */
   readonly findSubsidiaries: (
+    organizationId: OrganizationId,
     parentCompanyId: CompanyId
   ) => Effect.Effect<ReadonlyArray<Company>, PersistenceError>
 
   /**
-   * Check if a company exists
+   * Check if a company exists within an organization
    *
+   * @param organizationId - The organization ID for authorization
    * @param id - The company ID to check
    * @returns Effect containing boolean indicating existence
    */
   readonly exists: (
+    organizationId: OrganizationId,
     id: CompanyId
   ) => Effect.Effect<boolean, PersistenceError>
 }

@@ -351,7 +351,7 @@ test.describe("Consolidation Module", () => {
 
       // Deactivate the second group
       const deactivateRes = await request.post(
-        `/api/v1/consolidation/groups/${inactiveGroupData.group.id}/deactivate`,
+        `/api/v1/consolidation/groups/${inactiveGroupData.group.id}/deactivate?organizationId=${orgData.id}`,
         {
           headers: { Authorization: `Bearer ${sessionToken}` }
         }

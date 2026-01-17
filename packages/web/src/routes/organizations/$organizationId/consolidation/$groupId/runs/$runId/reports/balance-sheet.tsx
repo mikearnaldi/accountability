@@ -151,11 +151,11 @@ const fetchBalanceSheetData = createServerFn({ method: "GET" })
           headers: { Authorization }
         }),
         serverApi.GET("/api/v1/consolidation/groups/{id}", {
-          params: { path: { id: groupId } },
+          params: { path: { id: groupId }, query: { organizationId } },
           headers: { Authorization }
         }),
         serverApi.GET("/api/v1/consolidation/runs/{id}", {
-          params: { path: { id: runId } },
+          params: { path: { id: runId }, query: { organizationId } },
           headers: { Authorization }
         })
       ])
@@ -185,8 +185,8 @@ const fetchBalanceSheetData = createServerFn({ method: "GET" })
   })
 
 const fetchBalanceSheetReport = createServerFn({ method: "GET" })
-  .inputValidator((data: { runId: string }) => data)
-  .handler(async ({ data: { runId } }) => {
+  .inputValidator((data: { organizationId: string; runId: string }) => data)
+  .handler(async ({ data: { organizationId, runId } }) => {
     const sessionToken = getCookie("accountability_session")
 
     if (!sessionToken) {
@@ -198,7 +198,7 @@ const fetchBalanceSheetReport = createServerFn({ method: "GET" })
       const Authorization = `Bearer ${sessionToken}`
 
       const result = await serverApi.GET("/api/v1/consolidation/runs/{id}/reports/balance-sheet", {
-        params: { path: { id: runId } },
+        params: { path: { id: runId }, query: { organizationId } },
         headers: { Authorization }
       })
 
@@ -331,7 +331,7 @@ function ConsolidatedBalanceSheetPage() {
 
     try {
       const result = await fetchBalanceSheetReport({
-        data: { runId: params.runId }
+        data: { organizationId: params.organizationId, runId: params.runId }
       })
 
       if (result.error === "not_implemented") {

@@ -23,6 +23,7 @@ import {
 } from "@accountability/core/Domains/JournalEntry"
 import { JournalEntryLine, JournalEntryLineId } from "@accountability/core/Domains/JournalEntryLine"
 import { CurrencyCode } from "@accountability/core/Domains/CurrencyCode"
+import { OrganizationId } from "@accountability/core/Domains/Organization"
 import { MonetaryAmount } from "@accountability/core/Domains/MonetaryAmount"
 import { now as timestampNow } from "@accountability/core/Domains/Timestamp"
 import { FiscalPeriodRef } from "@accountability/core/Domains/FiscalPeriodRef"
@@ -164,8 +165,11 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
             offset: paramOffset
           } = _.urlParams
 
-          // Check company exists
-          const companyExists = yield* companyRepo.exists(companyId).pipe(
+          // Get organizationId from URL params
+          const organizationId = OrganizationId.make(_.urlParams.organizationId)
+
+          // Check company exists within organization
+          const companyExists = yield* companyRepo.exists(organizationId, companyId).pipe(
             Effect.mapError((e) => mapPersistenceToValidation(e))
           )
           if (!companyExists) {
@@ -176,20 +180,20 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
           let entries: ReadonlyArray<JournalEntry>
 
           if (status !== undefined) {
-            entries = yield* entryRepo.findByStatus(companyId, status).pipe(
+            entries = yield* entryRepo.findByStatus(organizationId, companyId, status).pipe(
               Effect.mapError((e) => mapPersistenceToValidation(e))
             )
           } else if (entryType !== undefined) {
-            entries = yield* entryRepo.findByType(companyId, entryType).pipe(
+            entries = yield* entryRepo.findByType(organizationId, companyId, entryType).pipe(
               Effect.mapError((e) => mapPersistenceToValidation(e))
             )
           } else if (fiscalYear !== undefined && fiscalPeriod !== undefined) {
             const period = FiscalPeriodRef.make({ year: fiscalYear, period: fiscalPeriod })
-            entries = yield* entryRepo.findByPeriod(companyId, period).pipe(
+            entries = yield* entryRepo.findByPeriod(organizationId, companyId, period).pipe(
               Effect.mapError((e) => mapPersistenceToValidation(e))
             )
           } else {
-            entries = yield* entryRepo.findByCompany(companyId).pipe(
+            entries = yield* entryRepo.findByCompany(organizationId, companyId).pipe(
               Effect.mapError((e) => mapPersistenceToValidation(e))
             )
           }
@@ -211,8 +215,9 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
       .handle("getJournalEntry", (_) =>
         Effect.gen(function* () {
           const entryId = _.path.id
+          const organizationId = OrganizationId.make(_.urlParams.organizationId)
 
-          const maybeEntry = yield* entryRepo.findById(entryId).pipe(
+          const maybeEntry = yield* entryRepo.findById(organizationId, entryId).pipe(
             Effect.mapError((e) => mapPersistenceToNotFound("JournalEntry", entryId, e))
           )
 
@@ -232,8 +237,8 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
         Effect.gen(function* () {
           const req = _.payload
 
-          // Validate company exists and get functional currency
-          const maybeCompany = yield* companyRepo.findById(req.companyId).pipe(
+          // Validate company exists within organization and get functional currency
+          const maybeCompany = yield* companyRepo.findById(req.organizationId, req.companyId).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
           if (Option.isNone(maybeCompany)) {
@@ -260,7 +265,7 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
 
           // Generate entry ID and entry number
           const entryId = JournalEntryId.make(crypto.randomUUID())
-          const entryNumber = yield* entryRepo.getNextEntryNumber(req.companyId).pipe(
+          const entryNumber = yield* entryRepo.getNextEntryNumber(req.organizationId, req.companyId).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
 
@@ -349,9 +354,10 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
         Effect.gen(function* () {
           const entryId = _.path.id
           const req = _.payload
+          const organizationId = req.organizationId
 
           // Get existing entry
-          const maybeExisting = yield* entryRepo.findById(entryId).pipe(
+          const maybeExisting = yield* entryRepo.findById(organizationId, entryId).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
           if (Option.isNone(maybeExisting)) {
@@ -368,8 +374,8 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
             }))
           }
 
-          // Get company for functional currency
-          const maybeCompany = yield* companyRepo.findById(existing.companyId).pipe(
+          // Get company for functional currency (using org ID from request for authorization)
+          const maybeCompany = yield* companyRepo.findById(organizationId, existing.companyId).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
           const functionalCurrency = Option.isSome(maybeCompany)
@@ -445,7 +451,7 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
           }
 
           // Update entry
-          yield* entryRepo.update(updatedEntry).pipe(
+          yield* entryRepo.update(organizationId, updatedEntry).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
 
@@ -455,9 +461,10 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
       .handle("deleteJournalEntry", (_) =>
         Effect.gen(function* () {
           const entryId = _.path.id
+          const organizationId = OrganizationId.make(_.urlParams.organizationId)
 
           // Get existing entry
-          const maybeExisting = yield* entryRepo.findById(entryId).pipe(
+          const maybeExisting = yield* entryRepo.findById(organizationId, entryId).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
           if (Option.isNone(maybeExisting)) {
@@ -487,8 +494,9 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
       .handle("submitForApproval", (_) =>
         Effect.gen(function* () {
           const entryId = _.path.id
+          const organizationId = OrganizationId.make(_.urlParams.organizationId)
 
-          const maybeExisting = yield* entryRepo.findById(entryId).pipe(
+          const maybeExisting = yield* entryRepo.findById(organizationId, entryId).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
           if (Option.isNone(maybeExisting)) {
@@ -509,7 +517,7 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
             status: "PendingApproval"
           })
 
-          yield* entryRepo.update(updated).pipe(
+          yield* entryRepo.update(organizationId, updated).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
 
@@ -519,8 +527,9 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
       .handle("approveJournalEntry", (_) =>
         Effect.gen(function* () {
           const entryId = _.path.id
+          const organizationId = OrganizationId.make(_.urlParams.organizationId)
 
-          const maybeExisting = yield* entryRepo.findById(entryId).pipe(
+          const maybeExisting = yield* entryRepo.findById(organizationId, entryId).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
           if (Option.isNone(maybeExisting)) {
@@ -541,7 +550,7 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
             status: "Approved"
           })
 
-          yield* entryRepo.update(updated).pipe(
+          yield* entryRepo.update(organizationId, updated).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
 
@@ -551,8 +560,9 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
       .handle("rejectJournalEntry", (_) =>
         Effect.gen(function* () {
           const entryId = _.path.id
+          const organizationId = OrganizationId.make(_.urlParams.organizationId)
 
-          const maybeExisting = yield* entryRepo.findById(entryId).pipe(
+          const maybeExisting = yield* entryRepo.findById(organizationId, entryId).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
           if (Option.isNone(maybeExisting)) {
@@ -573,7 +583,7 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
             status: "Draft"
           })
 
-          yield* entryRepo.update(updated).pipe(
+          yield* entryRepo.update(organizationId, updated).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
 
@@ -584,8 +594,9 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
         Effect.gen(function* () {
           const entryId = _.path.id
           const req = _.payload
+          const organizationId = req.organizationId
 
-          const maybeExisting = yield* entryRepo.findById(entryId).pipe(
+          const maybeExisting = yield* entryRepo.findById(organizationId, entryId).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
           if (Option.isNone(maybeExisting)) {
@@ -617,7 +628,7 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
             postedAt: Option.some(now)
           })
 
-          yield* entryRepo.update(updated).pipe(
+          yield* entryRepo.update(organizationId, updated).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
 
@@ -628,8 +639,9 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
         Effect.gen(function* () {
           const entryId = _.path.id
           const req = _.payload
+          const organizationId = req.organizationId
 
-          const maybeExisting = yield* entryRepo.findById(entryId).pipe(
+          const maybeExisting = yield* entryRepo.findById(organizationId, entryId).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
           if (Option.isNone(maybeExisting)) {
@@ -660,7 +672,7 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
 
           // Generate reversal entry
           const reversalId = JournalEntryId.make(crypto.randomUUID())
-          const reversalNumber = yield* entryRepo.getNextEntryNumber(existing.companyId).pipe(
+          const reversalNumber = yield* entryRepo.getNextEntryNumber(organizationId, existing.companyId).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
 
@@ -727,7 +739,7 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
           // Update original entry to mark as reversed (now the reversalEntry exists for FK reference)
-          yield* entryRepo.update(updatedOriginal).pipe(
+          yield* entryRepo.update(organizationId, updatedOriginal).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
 

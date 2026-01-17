@@ -18,6 +18,7 @@ import {
 } from "@accountability/core/Domains/AccountTemplate"
 import { AccountId } from "@accountability/core/Domains/Account"
 import { CompanyId } from "@accountability/core/Domains/Company"
+import { OrganizationId } from "@accountability/core/Domains/Organization"
 import { AccountRepository } from "@accountability/persistence/Services/AccountRepository"
 import { CompanyRepository } from "@accountability/persistence/Services/CompanyRepository"
 import {
@@ -93,11 +94,12 @@ export const AccountTemplatesApiLive = HttpApiBuilder.group(AppApi, "accountTemp
       )
       .handle("applyAccountTemplate", (_) =>
         Effect.gen(function* () {
-          const { companyId: companyIdString } = _.payload
+          const { organizationId: orgIdString, companyId: companyIdString } = _.payload
+          const organizationId = OrganizationId.make(orgIdString)
           const companyId = CompanyId.make(companyIdString)
 
-          // Validate company exists
-          const maybeCompany = yield* companyRepo.findById(companyId).pipe(
+          // Validate company exists within organization
+          const maybeCompany = yield* companyRepo.findById(organizationId, companyId).pipe(
             Effect.mapError(mapPersistenceToBusinessRule)
           )
           if (Option.isNone(maybeCompany)) {
@@ -108,7 +110,7 @@ export const AccountTemplatesApiLive = HttpApiBuilder.group(AppApi, "accountTemp
           }
 
           // Check if company already has accounts
-          const existingAccounts = yield* accountRepo.findByCompany(companyId).pipe(
+          const existingAccounts = yield* accountRepo.findByCompany(organizationId, companyId).pipe(
             Effect.mapError(mapPersistenceToBusinessRule)
           )
           if (existingAccounts.length > 0) {

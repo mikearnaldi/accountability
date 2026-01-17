@@ -201,11 +201,25 @@ const rowToConsolidationStep = (row: ConsolidationRunStepRow): ConsolidationStep
 const make = Effect.gen(function* () {
   const sql = yield* SqlClient.SqlClient
 
+  // Request schemas for queries with organizationId
+  const OrgAndIdRequest = Schema.Struct({
+    organizationId: Schema.String,
+    id: Schema.String
+  })
+
+  const OrgAndGroupIdRequest = Schema.Struct({
+    organizationId: Schema.String,
+    groupId: Schema.String
+  })
+
   // SqlSchema query builders for ConsolidationGroup
-  const findGroupById = SqlSchema.findOne({
-    Request: Schema.String,
+  const findGroupByOrgAndId = SqlSchema.findOne({
+    Request: OrgAndIdRequest,
     Result: ConsolidationGroupRow,
-    execute: (id) => sql`SELECT * FROM consolidation_groups WHERE id = ${id}`
+    execute: ({ organizationId, id }) => sql`
+      SELECT * FROM consolidation_groups
+      WHERE id = ${id} AND organization_id = ${organizationId}
+    `
   })
 
   const findGroupsByOrganization = SqlSchema.findAll({
@@ -228,97 +242,138 @@ const make = Effect.gen(function* () {
     `
   })
 
-  const countGroupById = SqlSchema.single({
-    Request: Schema.String,
+  const countGroupByOrgAndId = SqlSchema.single({
+    Request: OrgAndIdRequest,
     Result: CountRow,
-    execute: (id) => sql`SELECT COUNT(*) as count FROM consolidation_groups WHERE id = ${id}`
-  })
-
-  // SqlSchema query builders for ConsolidationRun
-  const findRunById = SqlSchema.findOne({
-    Request: Schema.String,
-    Result: ConsolidationRunRow,
-    execute: (id) => sql`SELECT * FROM consolidation_runs WHERE id = ${id}`
-  })
-
-  const findRunsByGroup = SqlSchema.findAll({
-    Request: Schema.String,
-    Result: ConsolidationRunRow,
-    execute: (groupId) => sql`
-      SELECT * FROM consolidation_runs
-      WHERE consolidation_group_id = ${groupId}
-      ORDER BY initiated_at DESC
+    execute: ({ organizationId, id }) => sql`
+      SELECT COUNT(*) as count FROM consolidation_groups
+      WHERE id = ${id} AND organization_id = ${organizationId}
     `
   })
 
-  const findRunByGroupAndPeriod = SqlSchema.findOne({
-    Request: Schema.Struct({ groupId: Schema.String, year: Schema.Number, period: Schema.Number }),
+  // SqlSchema query builders for ConsolidationRun (with org filtering via join)
+  const findRunByOrgAndId = SqlSchema.findOne({
+    Request: OrgAndIdRequest,
     Result: ConsolidationRunRow,
-    execute: ({ groupId, year, period }) => sql`
-      SELECT * FROM consolidation_runs
-      WHERE consolidation_group_id = ${groupId}
-        AND fiscal_year = ${year}
-        AND fiscal_period = ${period}
-      ORDER BY initiated_at DESC
+    execute: ({ organizationId, id }) => sql`
+      SELECT cr.* FROM consolidation_runs cr
+      INNER JOIN consolidation_groups cg ON cr.consolidation_group_id = cg.id
+      WHERE cr.id = ${id} AND cg.organization_id = ${organizationId}
+    `
+  })
+
+  const OrgAndGroupIdYearPeriodRequest = Schema.Struct({
+    organizationId: Schema.String,
+    groupId: Schema.String,
+    year: Schema.Number,
+    period: Schema.Number
+  })
+
+  const OrgAndGroupIdStatusRequest = Schema.Struct({
+    organizationId: Schema.String,
+    groupId: Schema.String,
+    status: Schema.String
+  })
+
+  const OrgAndGroupIdPeriodRangeRequest = Schema.Struct({
+    organizationId: Schema.String,
+    groupId: Schema.String,
+    startYear: Schema.Number,
+    startPeriod: Schema.Number,
+    endYear: Schema.Number,
+    endPeriod: Schema.Number
+  })
+
+  const findRunsByOrgAndGroup = SqlSchema.findAll({
+    Request: OrgAndGroupIdRequest,
+    Result: ConsolidationRunRow,
+    execute: ({ organizationId, groupId }) => sql`
+      SELECT cr.* FROM consolidation_runs cr
+      INNER JOIN consolidation_groups cg ON cr.consolidation_group_id = cg.id
+      WHERE cr.consolidation_group_id = ${groupId} AND cg.organization_id = ${organizationId}
+      ORDER BY cr.initiated_at DESC
+    `
+  })
+
+  const findRunByOrgGroupAndPeriod = SqlSchema.findOne({
+    Request: OrgAndGroupIdYearPeriodRequest,
+    Result: ConsolidationRunRow,
+    execute: ({ organizationId, groupId, year, period }) => sql`
+      SELECT cr.* FROM consolidation_runs cr
+      INNER JOIN consolidation_groups cg ON cr.consolidation_group_id = cg.id
+      WHERE cr.consolidation_group_id = ${groupId}
+        AND cg.organization_id = ${organizationId}
+        AND cr.fiscal_year = ${year}
+        AND cr.fiscal_period = ${period}
+      ORDER BY cr.initiated_at DESC
       LIMIT 1
     `
   })
 
-  const findRunsByGroupAndStatus = SqlSchema.findAll({
-    Request: Schema.Struct({ groupId: Schema.String, status: Schema.String }),
+  const findRunsByOrgGroupAndStatus = SqlSchema.findAll({
+    Request: OrgAndGroupIdStatusRequest,
     Result: ConsolidationRunRow,
-    execute: ({ groupId, status }) => sql`
-      SELECT * FROM consolidation_runs
-      WHERE consolidation_group_id = ${groupId} AND status = ${status}
-      ORDER BY initiated_at DESC
+    execute: ({ organizationId, groupId, status }) => sql`
+      SELECT cr.* FROM consolidation_runs cr
+      INNER JOIN consolidation_groups cg ON cr.consolidation_group_id = cg.id
+      WHERE cr.consolidation_group_id = ${groupId}
+        AND cg.organization_id = ${organizationId}
+        AND cr.status = ${status}
+      ORDER BY cr.initiated_at DESC
     `
   })
 
   const findLatestCompletedRunQuery = SqlSchema.findOne({
-    Request: Schema.String,
+    Request: OrgAndGroupIdRequest,
     Result: ConsolidationRunRow,
-    execute: (groupId) => sql`
-      SELECT * FROM consolidation_runs
-      WHERE consolidation_group_id = ${groupId} AND status = 'Completed'
-      ORDER BY completed_at DESC
+    execute: ({ organizationId, groupId }) => sql`
+      SELECT cr.* FROM consolidation_runs cr
+      INNER JOIN consolidation_groups cg ON cr.consolidation_group_id = cg.id
+      WHERE cr.consolidation_group_id = ${groupId}
+        AND cg.organization_id = ${organizationId}
+        AND cr.status = 'Completed'
+      ORDER BY cr.completed_at DESC
       LIMIT 1
     `
   })
 
   const findInProgressRunsQuery = SqlSchema.findAll({
-    Request: Schema.String,
+    Request: OrgAndGroupIdRequest,
     Result: ConsolidationRunRow,
-    execute: (groupId) => sql`
-      SELECT * FROM consolidation_runs
-      WHERE consolidation_group_id = ${groupId} AND status = 'InProgress'
-      ORDER BY initiated_at DESC
+    execute: ({ organizationId, groupId }) => sql`
+      SELECT cr.* FROM consolidation_runs cr
+      INNER JOIN consolidation_groups cg ON cr.consolidation_group_id = cg.id
+      WHERE cr.consolidation_group_id = ${groupId}
+        AND cg.organization_id = ${organizationId}
+        AND cr.status = 'InProgress'
+      ORDER BY cr.initiated_at DESC
     `
   })
 
   const findRunsByPeriodRangeQuery = SqlSchema.findAll({
-    Request: Schema.Struct({
-      groupId: Schema.String,
-      startYear: Schema.Number,
-      startPeriod: Schema.Number,
-      endYear: Schema.Number,
-      endPeriod: Schema.Number
-    }),
+    Request: OrgAndGroupIdPeriodRangeRequest,
     Result: ConsolidationRunRow,
-    execute: ({ groupId, startYear, startPeriod, endYear, endPeriod }) => sql`
-      SELECT * FROM consolidation_runs
-      WHERE consolidation_group_id = ${groupId}
-        AND (fiscal_year > ${startYear}
-             OR (fiscal_year = ${startYear} AND fiscal_period >= ${startPeriod}))
-        AND (fiscal_year < ${endYear}
-             OR (fiscal_year = ${endYear} AND fiscal_period <= ${endPeriod}))
-      ORDER BY fiscal_year, fiscal_period
+    execute: ({ organizationId, groupId, startYear, startPeriod, endYear, endPeriod }) => sql`
+      SELECT cr.* FROM consolidation_runs cr
+      INNER JOIN consolidation_groups cg ON cr.consolidation_group_id = cg.id
+      WHERE cr.consolidation_group_id = ${groupId}
+        AND cg.organization_id = ${organizationId}
+        AND (cr.fiscal_year > ${startYear}
+             OR (cr.fiscal_year = ${startYear} AND cr.fiscal_period >= ${startPeriod}))
+        AND (cr.fiscal_year < ${endYear}
+             OR (cr.fiscal_year = ${endYear} AND cr.fiscal_period <= ${endPeriod}))
+      ORDER BY cr.fiscal_year, cr.fiscal_period
     `
   })
 
-  const countRunById = SqlSchema.single({
-    Request: Schema.String,
+  const countRunByOrgAndId = SqlSchema.single({
+    Request: OrgAndIdRequest,
     Result: CountRow,
-    execute: (id) => sql`SELECT COUNT(*) as count FROM consolidation_runs WHERE id = ${id}`
+    execute: ({ organizationId, id }) => sql`
+      SELECT COUNT(*) as count FROM consolidation_runs cr
+      INNER JOIN consolidation_groups cg ON cr.consolidation_group_id = cg.id
+      WHERE cr.id = ${id} AND cg.organization_id = ${organizationId}
+    `
   })
 
   // SqlSchema query builders for consolidation run steps
@@ -589,8 +644,8 @@ const make = Effect.gen(function* () {
     })
 
   // ConsolidationGroup operations
-  const findGroup: ConsolidationRepositoryService["findGroup"] = (id) =>
-    findGroupById(id).pipe(
+  const findGroup: ConsolidationRepositoryService["findGroup"] = (organizationId, id) =>
+    findGroupByOrgAndId({ organizationId, id }).pipe(
       Effect.flatMap(Option.match({
         onNone: () => Effect.succeed(Option.none<ConsolidationGroup>()),
         onSome: (row) => rowToConsolidationGroup(row).pipe(Effect.map(Option.some))
@@ -598,9 +653,9 @@ const make = Effect.gen(function* () {
       wrapSqlError("findGroup")
     )
 
-  const getGroup: ConsolidationRepositoryService["getGroup"] = (id) =>
+  const getGroup: ConsolidationRepositoryService["getGroup"] = (organizationId, id) =>
     Effect.gen(function* () {
-      const maybeGroup = yield* findGroup(id)
+      const maybeGroup = yield* findGroup(organizationId, id)
       return yield* Option.match(maybeGroup, {
         onNone: () => Effect.fail(new EntityNotFoundError({ entityType: "ConsolidationGroup", entityId: id })),
         onSome: Effect.succeed
@@ -661,7 +716,7 @@ const make = Effect.gen(function* () {
       return group
     })
 
-  const updateGroup: ConsolidationRepositoryService["updateGroup"] = (group) =>
+  const updateGroup: ConsolidationRepositoryService["updateGroup"] = (organizationId, group) =>
     Effect.gen(function* () {
       const result = yield* sql`
         UPDATE consolidation_groups SET
@@ -670,7 +725,7 @@ const make = Effect.gen(function* () {
           consolidation_method = ${group.consolidationMethod},
           parent_company_id = ${group.parentCompanyId},
           is_active = ${group.isActive}
-        WHERE id = ${group.id}
+        WHERE id = ${group.id} AND organization_id = ${organizationId}
         RETURNING id
       `.pipe(wrapSqlError("updateGroup"))
 
@@ -708,15 +763,15 @@ const make = Effect.gen(function* () {
       return group
     })
 
-  const groupExists: ConsolidationRepositoryService["groupExists"] = (id) =>
-    countGroupById(id).pipe(
+  const groupExists: ConsolidationRepositoryService["groupExists"] = (organizationId, id) =>
+    countGroupByOrgAndId({ organizationId, id }).pipe(
       Effect.map((row) => parseInt(row.count, 10) > 0),
       wrapSqlError("groupExists")
     )
 
   // ConsolidationRun operations
-  const findRun: ConsolidationRepositoryService["findRun"] = (id) =>
-    findRunById(id).pipe(
+  const findRun: ConsolidationRepositoryService["findRun"] = (organizationId, id) =>
+    findRunByOrgAndId({ organizationId, id }).pipe(
       Effect.flatMap(Option.match({
         onNone: () => Effect.succeed(Option.none<ConsolidationRun>()),
         onSome: (row) => rowToConsolidationRun(row).pipe(Effect.map(Option.some))
@@ -724,9 +779,9 @@ const make = Effect.gen(function* () {
       wrapSqlError("findRun")
     )
 
-  const getRun: ConsolidationRepositoryService["getRun"] = (id) =>
+  const getRun: ConsolidationRepositoryService["getRun"] = (organizationId, id) =>
     Effect.gen(function* () {
-      const maybeRun = yield* findRun(id)
+      const maybeRun = yield* findRun(organizationId, id)
       return yield* Option.match(maybeRun, {
         onNone: () => Effect.fail(new EntityNotFoundError({ entityType: "ConsolidationRun", entityId: id })),
         onSome: Effect.succeed
@@ -842,17 +897,17 @@ const make = Effect.gen(function* () {
       return run
     })
 
-  const updateRun: ConsolidationRepositoryService["updateRun"] = (run) =>
+  const updateRun: ConsolidationRepositoryService["updateRun"] = (organizationId, run) =>
     Effect.gen(function* () {
-      // Check if run exists
-      const exists = yield* runExists(run.id)
+      // Check if run exists in the organization (via its group)
+      const exists = yield* runExists(organizationId, run.id)
       if (!exists) {
         return yield* Effect.fail(
           new EntityNotFoundError({ entityType: "ConsolidationRun", entityId: run.id })
         )
       }
 
-      // Update main run record
+      // Update main run record (join with consolidation_groups to verify org ownership)
       yield* sql`
         UPDATE consolidation_runs SET
           status = ${run.status},
@@ -862,6 +917,11 @@ const make = Effect.gen(function* () {
           total_duration_ms = ${Option.getOrNull(run.totalDurationMs)},
           error_message = ${Option.getOrNull(run.errorMessage)}
         WHERE id = ${run.id}
+          AND EXISTS (
+            SELECT 1 FROM consolidation_groups cg
+            WHERE cg.id = consolidation_runs.consolidation_group_id
+              AND cg.organization_id = ${organizationId}
+          )
       `.pipe(wrapSqlError("updateRun"))
 
       // Delete and re-insert steps
@@ -959,14 +1019,14 @@ const make = Effect.gen(function* () {
       return run
     })
 
-  const findRunsByGroupOp: ConsolidationRepositoryService["findRunsByGroup"] = (groupId) =>
-    findRunsByGroup(groupId).pipe(
+  const findRunsByGroupOp: ConsolidationRepositoryService["findRunsByGroup"] = (organizationId, groupId) =>
+    findRunsByOrgAndGroup({ organizationId, groupId }).pipe(
       Effect.flatMap((rows) => Effect.forEach(rows, rowToConsolidationRun)),
       wrapSqlError("findRunsByGroup")
     )
 
-  const findRunByGroupAndPeriodOp: ConsolidationRepositoryService["findRunByGroupAndPeriod"] = (groupId, period) =>
-    findRunByGroupAndPeriod({ groupId, year: period.year, period: period.period }).pipe(
+  const findRunByGroupAndPeriodOp: ConsolidationRepositoryService["findRunByGroupAndPeriod"] = (organizationId, groupId, period) =>
+    findRunByOrgGroupAndPeriod({ organizationId, groupId, year: period.year, period: period.period }).pipe(
       Effect.flatMap(Option.match({
         onNone: () => Effect.succeed(Option.none<ConsolidationRun>()),
         onSome: (row) => rowToConsolidationRun(row).pipe(Effect.map(Option.some))
@@ -974,14 +1034,14 @@ const make = Effect.gen(function* () {
       wrapSqlError("findRunByGroupAndPeriod")
     )
 
-  const findRunsByStatus: ConsolidationRepositoryService["findRunsByStatus"] = (groupId, status) =>
-    findRunsByGroupAndStatus({ groupId, status }).pipe(
+  const findRunsByStatusOp: ConsolidationRepositoryService["findRunsByStatus"] = (organizationId, groupId, status) =>
+    findRunsByOrgGroupAndStatus({ organizationId, groupId, status }).pipe(
       Effect.flatMap((rows) => Effect.forEach(rows, rowToConsolidationRun)),
       wrapSqlError("findRunsByStatus")
     )
 
-  const findLatestCompletedRun: ConsolidationRepositoryService["findLatestCompletedRun"] = (groupId) =>
-    findLatestCompletedRunQuery(groupId).pipe(
+  const findLatestCompletedRunOp: ConsolidationRepositoryService["findLatestCompletedRun"] = (organizationId, groupId) =>
+    findLatestCompletedRunQuery({ organizationId, groupId }).pipe(
       Effect.flatMap(Option.match({
         onNone: () => Effect.succeed(Option.none<ConsolidationRun>()),
         onSome: (row) => rowToConsolidationRun(row).pipe(Effect.map(Option.some))
@@ -989,18 +1049,20 @@ const make = Effect.gen(function* () {
       wrapSqlError("findLatestCompletedRun")
     )
 
-  const findInProgressRuns: ConsolidationRepositoryService["findInProgressRuns"] = (groupId) =>
-    findInProgressRunsQuery(groupId).pipe(
+  const findInProgressRunsOp: ConsolidationRepositoryService["findInProgressRuns"] = (organizationId, groupId) =>
+    findInProgressRunsQuery({ organizationId, groupId }).pipe(
       Effect.flatMap((rows) => Effect.forEach(rows, rowToConsolidationRun)),
       wrapSqlError("findInProgressRuns")
     )
 
-  const findRunsByPeriodRange: ConsolidationRepositoryService["findRunsByPeriodRange"] = (
+  const findRunsByPeriodRangeOp: ConsolidationRepositoryService["findRunsByPeriodRange"] = (
+    organizationId,
     groupId,
     startPeriod,
     endPeriod
   ) =>
     findRunsByPeriodRangeQuery({
+      organizationId,
       groupId,
       startYear: startPeriod.year,
       startPeriod: startPeriod.period,
@@ -1011,23 +1073,30 @@ const make = Effect.gen(function* () {
       wrapSqlError("findRunsByPeriodRange")
     )
 
-  const runExists: ConsolidationRepositoryService["runExists"] = (id) =>
-    countRunById(id).pipe(
+  const runExists: ConsolidationRepositoryService["runExists"] = (organizationId, id) =>
+    countRunByOrgAndId({ organizationId, id }).pipe(
       Effect.map((row) => parseInt(row.count, 10) > 0),
       wrapSqlError("runExists")
     )
 
-  const deleteRun: ConsolidationRepositoryService["deleteRun"] = (id) =>
+  const deleteRun: ConsolidationRepositoryService["deleteRun"] = (organizationId, id) =>
     Effect.gen(function* () {
-      const exists = yield* runExists(id)
+      const exists = yield* runExists(organizationId, id)
       if (!exists) {
         return yield* Effect.fail(
           new EntityNotFoundError({ entityType: "ConsolidationRun", entityId: id })
         )
       }
 
+      // Delete via join with consolidation_groups to verify org ownership
       yield* sql`
-        DELETE FROM consolidation_runs WHERE id = ${id}
+        DELETE FROM consolidation_runs
+        WHERE id = ${id}
+          AND EXISTS (
+            SELECT 1 FROM consolidation_groups cg
+            WHERE cg.id = consolidation_runs.consolidation_group_id
+              AND cg.organization_id = ${organizationId}
+          )
       `.pipe(wrapSqlError("deleteRun"))
     })
 
@@ -1045,10 +1114,10 @@ const make = Effect.gen(function* () {
     updateRun,
     findRunsByGroup: findRunsByGroupOp,
     findRunByGroupAndPeriod: findRunByGroupAndPeriodOp,
-    findRunsByStatus,
-    findLatestCompletedRun,
-    findInProgressRuns,
-    findRunsByPeriodRange,
+    findRunsByStatus: findRunsByStatusOp,
+    findLatestCompletedRun: findLatestCompletedRunOp,
+    findInProgressRuns: findInProgressRunsOp,
+    findRunsByPeriodRange: findRunsByPeriodRangeOp,
     runExists,
     deleteRun
   } satisfies ConsolidationRepositoryService

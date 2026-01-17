@@ -80,11 +80,11 @@ const fetchConsolidatedReportsData = createServerFn({ method: "GET" })
           headers: { Authorization }
         }),
         serverApi.GET("/api/v1/consolidation/groups/{id}", {
-          params: { path: { id: groupId } },
+          params: { path: { id: groupId }, query: { organizationId } },
           headers: { Authorization }
         }),
         serverApi.GET("/api/v1/consolidation/runs/{id}", {
-          params: { path: { id: runId } },
+          params: { path: { id: runId }, query: { organizationId } },
           headers: { Authorization }
         })
       ])

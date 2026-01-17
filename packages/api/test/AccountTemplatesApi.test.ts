@@ -27,6 +27,9 @@ import { AppApiLive } from "@accountability/api/Layers/AppApiLive"
 import { SimpleTokenValidatorLive } from "@accountability/api/Layers/AuthMiddlewareLive"
 import { RepositoriesWithAuthLive } from "@accountability/persistence/Layers/RepositoriesLive"
 import { MigrationLayer } from "@accountability/persistence/Layers/MigrationsLive"
+import { UserRepository } from "@accountability/persistence/Services/UserRepository"
+import { AuthUserId } from "@accountability/core/Auth/AuthUserId"
+import { Email } from "@accountability/core/Auth/Email"
 import {
   getAllTemplates,
   getTemplateByType
@@ -47,11 +50,12 @@ const DatabaseLayer = MigrationLayer.pipe(
 
 /**
  * HttpLive - Complete test layer for API integration tests
+ * Uses provideMerge for DatabaseLayer to expose repositories to tests
  */
 const HttpLive = HttpApiBuilder.serve().pipe(
   Layer.provide(AppApiLive),
   Layer.provide(SimpleTokenValidatorLive),
-  Layer.provide(DatabaseLayer),
+  Layer.provideMerge(DatabaseLayer),
   Layer.provideMerge(NodeHttpServer.layerTest)
 )
 
@@ -60,17 +64,47 @@ const HttpLive = HttpApiBuilder.serve().pipe(
 // =============================================================================
 
 /**
+ * Test user UUID - used for authentication tokens that need valid UUID format
+ * This is required because organization membership checks validate UUID format
+ */
+const TEST_USER_UUID = "550e8400-e29b-41d4-a716-446655440000"
+const TEST_TOKEN = `user_${TEST_USER_UUID}_admin`
+
+/**
  * Schema for extracting id from API response
  */
 const EntityWithIdSchema = Schema.Struct({ id: Schema.String })
 
 /**
+ * Ensures the test user exists in the database
+ * Required for organization membership to be created successfully
+ */
+const ensureTestUserExists = Effect.gen(function* () {
+  const userRepo = yield* UserRepository
+  const userId = AuthUserId.make(TEST_USER_UUID)
+  const existingUser = yield* userRepo.findById(userId)
+  if (existingUser._tag === "None") {
+    yield* userRepo.create({
+      id: userId,
+      email: Email.make("test@example.com"),
+      displayName: "Test User",
+      role: "admin",
+      primaryProvider: "local"
+    })
+  }
+})
+
+/**
  * Create a test organization via API
+ * Also ensures the test user exists first so membership can be created
  */
 const createTestOrganizationViaApi = (httpClient: HttpClient.HttpClient) =>
   Effect.gen(function* () {
+    // Ensure test user exists in database for membership creation
+    yield* ensureTestUserExists
+
     const response = yield* HttpClientRequest.post("/api/v1/organizations").pipe(
-      HttpClientRequest.bearerToken("user_123_admin"),
+      HttpClientRequest.bearerToken(TEST_TOKEN),
       HttpClientRequest.bodyUnsafeJson({
         name: `Test Org ${Date.now()}`,
         reportingCurrency: "USD",
@@ -91,7 +125,7 @@ const createTestOrganizationViaApi = (httpClient: HttpClient.HttpClient) =>
 const createTestCompanyViaApi = (httpClient: HttpClient.HttpClient, organizationId: string) =>
   Effect.gen(function* () {
     const response = yield* HttpClientRequest.post("/api/v1/companies").pipe(
-      HttpClientRequest.bearerToken("user_123_admin"),
+      HttpClientRequest.bearerToken(TEST_TOKEN),
       HttpClientRequest.bodyUnsafeJson({
         organizationId,
         name: `Test Company ${Date.now()}`,
@@ -129,7 +163,7 @@ layer(HttpLive, { timeout: "120 seconds" })("AccountTemplatesApi", (it) => {
       Effect.gen(function* () {
         const httpClient = yield* HttpClient.HttpClient
         const response = yield* HttpClientRequest.get("/api/v1/account-templates").pipe(
-          HttpClientRequest.bearerToken("user_123_admin"),
+          HttpClientRequest.bearerToken(TEST_TOKEN),
           httpClient.execute,
           Effect.scoped
         )
@@ -147,7 +181,7 @@ layer(HttpLive, { timeout: "120 seconds" })("AccountTemplatesApi", (it) => {
       Effect.gen(function* () {
         const client = yield* HttpApiClient.makeWith(AppApi, {
           httpClient: (yield* HttpClient.HttpClient).pipe(
-            HttpClient.mapRequest(HttpClientRequest.bearerToken("user_123_admin"))
+            HttpClient.mapRequest(HttpClientRequest.bearerToken(TEST_TOKEN))
           )
         })
 
@@ -168,7 +202,7 @@ layer(HttpLive, { timeout: "120 seconds" })("AccountTemplatesApi", (it) => {
       Effect.gen(function* () {
         const client = yield* HttpApiClient.makeWith(AppApi, {
           httpClient: (yield* HttpClient.HttpClient).pipe(
-            HttpClient.mapRequest(HttpClientRequest.bearerToken("user_123_admin"))
+            HttpClient.mapRequest(HttpClientRequest.bearerToken(TEST_TOKEN))
           )
         })
 
@@ -190,7 +224,7 @@ layer(HttpLive, { timeout: "120 seconds" })("AccountTemplatesApi", (it) => {
       Effect.gen(function* () {
         const client = yield* HttpApiClient.makeWith(AppApi, {
           httpClient: (yield* HttpClient.HttpClient).pipe(
-            HttpClient.mapRequest(HttpClientRequest.bearerToken("user_123_admin"))
+            HttpClient.mapRequest(HttpClientRequest.bearerToken(TEST_TOKEN))
           )
         })
 
@@ -210,7 +244,7 @@ layer(HttpLive, { timeout: "120 seconds" })("AccountTemplatesApi", (it) => {
       Effect.gen(function* () {
         const client = yield* HttpApiClient.makeWith(AppApi, {
           httpClient: (yield* HttpClient.HttpClient).pipe(
-            HttpClient.mapRequest(HttpClientRequest.bearerToken("user_123_admin"))
+            HttpClient.mapRequest(HttpClientRequest.bearerToken(TEST_TOKEN))
           )
         })
 
@@ -238,7 +272,7 @@ layer(HttpLive, { timeout: "120 seconds" })("AccountTemplatesApi", (it) => {
       Effect.gen(function* () {
         const client = yield* HttpApiClient.makeWith(AppApi, {
           httpClient: (yield* HttpClient.HttpClient).pipe(
-            HttpClient.mapRequest(HttpClientRequest.bearerToken("user_123_admin"))
+            HttpClient.mapRequest(HttpClientRequest.bearerToken(TEST_TOKEN))
           )
         })
 
@@ -257,7 +291,7 @@ layer(HttpLive, { timeout: "120 seconds" })("AccountTemplatesApi", (it) => {
       Effect.gen(function* () {
         const client = yield* HttpApiClient.makeWith(AppApi, {
           httpClient: (yield* HttpClient.HttpClient).pipe(
-            HttpClient.mapRequest(HttpClientRequest.bearerToken("user_123_admin"))
+            HttpClient.mapRequest(HttpClientRequest.bearerToken(TEST_TOKEN))
           )
         })
 
@@ -274,7 +308,7 @@ layer(HttpLive, { timeout: "120 seconds" })("AccountTemplatesApi", (it) => {
       Effect.gen(function* () {
         const client = yield* HttpApiClient.makeWith(AppApi, {
           httpClient: (yield* HttpClient.HttpClient).pipe(
-            HttpClient.mapRequest(HttpClientRequest.bearerToken("user_123_admin"))
+            HttpClient.mapRequest(HttpClientRequest.bearerToken(TEST_TOKEN))
           )
         })
 
@@ -291,7 +325,7 @@ layer(HttpLive, { timeout: "120 seconds" })("AccountTemplatesApi", (it) => {
       Effect.gen(function* () {
         const httpClient = yield* HttpClient.HttpClient
         const response = yield* HttpClientRequest.get("/api/v1/account-templates/InvalidType").pipe(
-          HttpClientRequest.bearerToken("user_123_admin"),
+          HttpClientRequest.bearerToken(TEST_TOKEN),
           httpClient.execute,
           Effect.scoped
         )
@@ -313,14 +347,14 @@ layer(HttpLive, { timeout: "120 seconds" })("AccountTemplatesApi", (it) => {
 
         const client = yield* HttpApiClient.makeWith(AppApi, {
           httpClient: httpClient.pipe(
-            HttpClient.mapRequest(HttpClientRequest.bearerToken("user_123_admin"))
+            HttpClient.mapRequest(HttpClientRequest.bearerToken(TEST_TOKEN))
           )
         })
 
         // Apply template
         const response = yield* client.accountTemplates.applyAccountTemplate({
           path: { type: "GeneralBusiness" },
-          payload: { companyId: company.id }
+          payload: { organizationId: org.id, companyId: company.id }
         })
 
         expect(response.templateType).toBe("GeneralBusiness")
@@ -336,10 +370,11 @@ layer(HttpLive, { timeout: "120 seconds" })("AccountTemplatesApi", (it) => {
       Effect.gen(function* () {
         const httpClient = yield* HttpClient.HttpClient
         const fakeCompanyId = crypto.randomUUID()
+        const fakeOrgId = crypto.randomUUID()
 
         const response = yield* HttpClientRequest.post("/api/v1/account-templates/GeneralBusiness/apply").pipe(
-          HttpClientRequest.bearerToken("user_123_admin"),
-          HttpClientRequest.bodyUnsafeJson({ companyId: fakeCompanyId }),
+          HttpClientRequest.bearerToken(TEST_TOKEN),
+          HttpClientRequest.bodyUnsafeJson({ organizationId: fakeOrgId, companyId: fakeCompanyId }),
           httpClient.execute,
           Effect.scoped
         )
@@ -360,20 +395,20 @@ layer(HttpLive, { timeout: "120 seconds" })("AccountTemplatesApi", (it) => {
 
         const client = yield* HttpApiClient.makeWith(AppApi, {
           httpClient: httpClient.pipe(
-            HttpClient.mapRequest(HttpClientRequest.bearerToken("user_123_admin"))
+            HttpClient.mapRequest(HttpClientRequest.bearerToken(TEST_TOKEN))
           )
         })
 
         // Apply template first time - should succeed
         yield* client.accountTemplates.applyAccountTemplate({
           path: { type: "GeneralBusiness" },
-          payload: { companyId: company.id }
+          payload: { organizationId: org.id, companyId: company.id }
         })
 
         // Try to apply template second time - should fail
         const response = yield* HttpClientRequest.post("/api/v1/account-templates/GeneralBusiness/apply").pipe(
-          HttpClientRequest.bearerToken("user_123_admin"),
-          HttpClientRequest.bodyUnsafeJson({ companyId: company.id }),
+          HttpClientRequest.bearerToken(TEST_TOKEN),
+          HttpClientRequest.bodyUnsafeJson({ organizationId: org.id, companyId: company.id }),
           httpClient.execute,
           Effect.scoped
         )
@@ -395,14 +430,14 @@ layer(HttpLive, { timeout: "120 seconds" })("AccountTemplatesApi", (it) => {
 
         const client = yield* HttpApiClient.makeWith(AppApi, {
           httpClient: httpClient.pipe(
-            HttpClient.mapRequest(HttpClientRequest.bearerToken("user_123_admin"))
+            HttpClient.mapRequest(HttpClientRequest.bearerToken(TEST_TOKEN))
           )
         })
 
         // Apply ServiceBusiness template
         const response = yield* client.accountTemplates.applyAccountTemplate({
           path: { type: "ServiceBusiness" },
-          payload: { companyId: company.id }
+          payload: { organizationId: org.id, companyId: company.id }
         })
 
         expect(response.templateType).toBe("ServiceBusiness")
@@ -492,7 +527,7 @@ layer(HttpLive, { timeout: "120 seconds" })("AccountTemplatesApi", (it) => {
       Effect.gen(function* () {
         const client = yield* HttpApiClient.makeWith(AppApi, {
           httpClient: (yield* HttpClient.HttpClient).pipe(
-            HttpClient.mapRequest(HttpClientRequest.bearerToken("user_123_admin"))
+            HttpClient.mapRequest(HttpClientRequest.bearerToken(TEST_TOKEN))
           )
         })
 
@@ -513,7 +548,7 @@ layer(HttpLive, { timeout: "120 seconds" })("AccountTemplatesApi", (it) => {
       Effect.gen(function* () {
         const client = yield* HttpApiClient.makeWith(AppApi, {
           httpClient: (yield* HttpClient.HttpClient).pipe(
-            HttpClient.mapRequest(HttpClientRequest.bearerToken("user_123_admin"))
+            HttpClient.mapRequest(HttpClientRequest.bearerToken(TEST_TOKEN))
           )
         })
 

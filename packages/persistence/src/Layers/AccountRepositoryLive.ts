@@ -103,95 +103,117 @@ const rowToAccount = (row: AccountRow): Account =>
 const make = Effect.gen(function* () {
   const sql = yield* SqlClient.SqlClient
 
-  // SqlSchema query builders for type-safe queries
-  const findAccountById = SqlSchema.findOne({
-    Request: Schema.String,
-    Result: AccountRow,
-    execute: (id) => sql`SELECT * FROM accounts WHERE id = ${id}`
-  })
+  // Request schemas for queries with organizationId
+  const FindByOrgAndIdRequest = Schema.Struct({ organizationId: Schema.String, id: Schema.String })
+  const FindByOrgAndCompanyRequest = Schema.Struct({ organizationId: Schema.String, companyId: Schema.String })
+  const FindByOrgCompanyAndNumberRequest = Schema.Struct({ organizationId: Schema.String, companyId: Schema.String, accountNumber: Schema.String })
+  const FindByOrgCompanyAndTypeRequest = Schema.Struct({ organizationId: Schema.String, companyId: Schema.String, accountType: Schema.String })
+  const FindChildrenRequest = Schema.Struct({ organizationId: Schema.String, parentAccountId: Schema.String })
 
-  const findAccountsByCompany = SqlSchema.findAll({
-    Request: Schema.String,
+  // SqlSchema query builders for type-safe queries with organization filtering
+  const findAccountByOrgAndId = SqlSchema.findOne({
+    Request: FindByOrgAndIdRequest,
     Result: AccountRow,
-    execute: (companyId) => sql`
-      SELECT * FROM accounts
-      WHERE company_id = ${companyId}
-      ORDER BY account_number
+    execute: ({ organizationId, id }) => sql`
+      SELECT a.* FROM accounts a
+      INNER JOIN companies c ON a.company_id = c.id
+      WHERE a.id = ${id} AND c.organization_id = ${organizationId}
     `
   })
 
-  const findAccountByNumber = SqlSchema.findOne({
-    Request: Schema.Struct({ companyId: Schema.String, accountNumber: Schema.String }),
+  const findAccountsByOrgAndCompany = SqlSchema.findAll({
+    Request: FindByOrgAndCompanyRequest,
     Result: AccountRow,
-    execute: ({ companyId, accountNumber }) => sql`
-      SELECT * FROM accounts
-      WHERE company_id = ${companyId} AND account_number = ${accountNumber}
+    execute: ({ organizationId, companyId }) => sql`
+      SELECT a.* FROM accounts a
+      INNER JOIN companies c ON a.company_id = c.id
+      WHERE a.company_id = ${companyId} AND c.organization_id = ${organizationId}
+      ORDER BY a.account_number
     `
   })
 
-  const findActiveAccountsByCompany = SqlSchema.findAll({
-    Request: Schema.String,
+  const findAccountByOrgCompanyNumber = SqlSchema.findOne({
+    Request: FindByOrgCompanyAndNumberRequest,
     Result: AccountRow,
-    execute: (companyId) => sql`
-      SELECT * FROM accounts
-      WHERE company_id = ${companyId} AND is_active = true
-      ORDER BY account_number
+    execute: ({ organizationId, companyId, accountNumber }) => sql`
+      SELECT a.* FROM accounts a
+      INNER JOIN companies c ON a.company_id = c.id
+      WHERE a.company_id = ${companyId} AND a.account_number = ${accountNumber} AND c.organization_id = ${organizationId}
     `
   })
 
-  const findAccountsByType = SqlSchema.findAll({
-    Request: Schema.Struct({ companyId: Schema.String, accountType: Schema.String }),
+  const findActiveAccountsByOrgAndCompany = SqlSchema.findAll({
+    Request: FindByOrgAndCompanyRequest,
     Result: AccountRow,
-    execute: ({ companyId, accountType }) => sql`
-      SELECT * FROM accounts
-      WHERE company_id = ${companyId} AND account_type = ${accountType}
-      ORDER BY account_number
+    execute: ({ organizationId, companyId }) => sql`
+      SELECT a.* FROM accounts a
+      INNER JOIN companies c ON a.company_id = c.id
+      WHERE a.company_id = ${companyId} AND a.is_active = true AND c.organization_id = ${organizationId}
+      ORDER BY a.account_number
     `
   })
 
-  const findAccountChildren = SqlSchema.findAll({
-    Request: Schema.String,
+  const findAccountsByOrgCompanyType = SqlSchema.findAll({
+    Request: FindByOrgCompanyAndTypeRequest,
     Result: AccountRow,
-    execute: (parentAccountId) => sql`
-      SELECT * FROM accounts
-      WHERE parent_account_id = ${parentAccountId}
-      ORDER BY account_number
+    execute: ({ organizationId, companyId, accountType }) => sql`
+      SELECT a.* FROM accounts a
+      INNER JOIN companies c ON a.company_id = c.id
+      WHERE a.company_id = ${companyId} AND a.account_type = ${accountType} AND c.organization_id = ${organizationId}
+      ORDER BY a.account_number
     `
   })
 
-  const findIntercompany = SqlSchema.findAll({
-    Request: Schema.String,
+  const findAccountChildrenByOrg = SqlSchema.findAll({
+    Request: FindChildrenRequest,
     Result: AccountRow,
-    execute: (companyId) => sql`
-      SELECT * FROM accounts
-      WHERE company_id = ${companyId} AND is_intercompany = true
-      ORDER BY account_number
+    execute: ({ organizationId, parentAccountId }) => sql`
+      SELECT a.* FROM accounts a
+      INNER JOIN companies c ON a.company_id = c.id
+      WHERE a.parent_account_id = ${parentAccountId} AND c.organization_id = ${organizationId}
+      ORDER BY a.account_number
     `
   })
 
-  const countById = SqlSchema.single({
-    Request: Schema.String,
+  const findIntercompanyByOrg = SqlSchema.findAll({
+    Request: FindByOrgAndCompanyRequest,
+    Result: AccountRow,
+    execute: ({ organizationId, companyId }) => sql`
+      SELECT a.* FROM accounts a
+      INNER JOIN companies c ON a.company_id = c.id
+      WHERE a.company_id = ${companyId} AND a.is_intercompany = true AND c.organization_id = ${organizationId}
+      ORDER BY a.account_number
+    `
+  })
+
+  const countByOrgAndId = SqlSchema.single({
+    Request: FindByOrgAndIdRequest,
     Result: CountRow,
-    execute: (id) => sql`SELECT COUNT(*) as count FROM accounts WHERE id = ${id}`
-  })
-
-  const countByCompanyAndNumber = SqlSchema.single({
-    Request: Schema.Struct({ companyId: Schema.String, accountNumber: Schema.String }),
-    Result: CountRow,
-    execute: ({ companyId, accountNumber }) => sql`
-      SELECT COUNT(*) as count FROM accounts
-      WHERE company_id = ${companyId} AND account_number = ${accountNumber}
+    execute: ({ organizationId, id }) => sql`
+      SELECT COUNT(*) as count FROM accounts a
+      INNER JOIN companies c ON a.company_id = c.id
+      WHERE a.id = ${id} AND c.organization_id = ${organizationId}
     `
   })
 
-  const findById: AccountRepositoryService["findById"] = (id) =>
-    findAccountById(id).pipe(
+  const countByOrgCompanyAndNumber = SqlSchema.single({
+    Request: FindByOrgCompanyAndNumberRequest,
+    Result: CountRow,
+    execute: ({ organizationId, companyId, accountNumber }) => sql`
+      SELECT COUNT(*) as count FROM accounts a
+      INNER JOIN companies c ON a.company_id = c.id
+      WHERE a.company_id = ${companyId} AND a.account_number = ${accountNumber} AND c.organization_id = ${organizationId}
+    `
+  })
+
+  const findById: AccountRepositoryService["findById"] = (organizationId, id) =>
+    findAccountByOrgAndId({ organizationId, id }).pipe(
       Effect.map(Option.map(rowToAccount)),
       wrapSqlError("findById")
     )
 
-  const findByCompany: AccountRepositoryService["findByCompany"] = (companyId) =>
-    findAccountsByCompany(companyId).pipe(
+  const findByCompany: AccountRepositoryService["findByCompany"] = (organizationId, companyId) =>
+    findAccountsByOrgAndCompany({ organizationId, companyId }).pipe(
       Effect.map((rows) => rows.map(rowToAccount)),
       wrapSqlError("findByCompany")
     )
@@ -232,11 +254,11 @@ const make = Effect.gen(function* () {
       return account
     })
 
-  const update: AccountRepositoryService["update"] = (account) =>
+  const update: AccountRepositoryService["update"] = (organizationId, account) =>
     Effect.gen(function* () {
-      // Use RETURNING to verify the row was updated
+      // Use RETURNING to verify the row was updated and belongs to the org
       const result = yield* sql`
-        UPDATE accounts SET
+        UPDATE accounts a SET
           name = ${account.name},
           description = ${Option.getOrNull(account.description)},
           account_type = ${account.accountType},
@@ -252,8 +274,11 @@ const make = Effect.gen(function* () {
           currency_restriction = ${Option.getOrNull(account.currencyRestriction)},
           is_active = ${account.isActive},
           deactivated_at = ${Option.match(account.deactivatedAt, { onNone: () => null, onSome: (t) => t.toDate() })}
-        WHERE id = ${account.id}
-        RETURNING id
+        FROM companies c
+        WHERE a.id = ${account.id}
+          AND a.company_id = c.id
+          AND c.organization_id = ${organizationId}
+        RETURNING a.id
       `.pipe(wrapSqlError("update"))
 
       if (result.length === 0) {
@@ -265,53 +290,53 @@ const make = Effect.gen(function* () {
       return account
     })
 
-  const findByNumber: AccountRepositoryService["findByNumber"] = (companyId, accountNumber) =>
-    findAccountByNumber({ companyId, accountNumber }).pipe(
+  const findByNumber: AccountRepositoryService["findByNumber"] = (organizationId, companyId, accountNumber) =>
+    findAccountByOrgCompanyNumber({ organizationId, companyId, accountNumber }).pipe(
       Effect.map(Option.map(rowToAccount)),
       wrapSqlError("findByNumber")
     )
 
-  const getById: AccountRepositoryService["getById"] = (id) =>
+  const getById: AccountRepositoryService["getById"] = (organizationId, id) =>
     Effect.gen(function* () {
-      const maybeAccount = yield* findById(id)
+      const maybeAccount = yield* findById(organizationId, id)
       return yield* Option.match(maybeAccount, {
         onNone: () => Effect.fail(new EntityNotFoundError({ entityType: "Account", entityId: id })),
         onSome: Effect.succeed
       })
     })
 
-  const findActiveByCompany: AccountRepositoryService["findActiveByCompany"] = (companyId) =>
-    findActiveAccountsByCompany(companyId).pipe(
+  const findActiveByCompany: AccountRepositoryService["findActiveByCompany"] = (organizationId, companyId) =>
+    findActiveAccountsByOrgAndCompany({ organizationId, companyId }).pipe(
       Effect.map((rows) => rows.map(rowToAccount)),
       wrapSqlError("findActiveByCompany")
     )
 
-  const findByType: AccountRepositoryService["findByType"] = (companyId, accountType) =>
-    findAccountsByType({ companyId, accountType }).pipe(
+  const findByType: AccountRepositoryService["findByType"] = (organizationId, companyId, accountType) =>
+    findAccountsByOrgCompanyType({ organizationId, companyId, accountType }).pipe(
       Effect.map((rows) => rows.map(rowToAccount)),
       wrapSqlError("findByType")
     )
 
-  const findChildren: AccountRepositoryService["findChildren"] = (parentAccountId) =>
-    findAccountChildren(parentAccountId).pipe(
+  const findChildren: AccountRepositoryService["findChildren"] = (organizationId, parentAccountId) =>
+    findAccountChildrenByOrg({ organizationId, parentAccountId }).pipe(
       Effect.map((rows) => rows.map(rowToAccount)),
       wrapSqlError("findChildren")
     )
 
-  const findIntercompanyAccounts: AccountRepositoryService["findIntercompanyAccounts"] = (companyId) =>
-    findIntercompany(companyId).pipe(
+  const findIntercompanyAccounts: AccountRepositoryService["findIntercompanyAccounts"] = (organizationId, companyId) =>
+    findIntercompanyByOrg({ organizationId, companyId }).pipe(
       Effect.map((rows) => rows.map(rowToAccount)),
       wrapSqlError("findIntercompanyAccounts")
     )
 
-  const exists: AccountRepositoryService["exists"] = (id) =>
-    countById(id).pipe(
+  const exists: AccountRepositoryService["exists"] = (organizationId, id) =>
+    countByOrgAndId({ organizationId, id }).pipe(
       Effect.map((row) => parseInt(row.count, 10) > 0),
       wrapSqlError("exists")
     )
 
-  const isAccountNumberTaken: AccountRepositoryService["isAccountNumberTaken"] = (companyId, accountNumber) =>
-    countByCompanyAndNumber({ companyId, accountNumber }).pipe(
+  const isAccountNumberTaken: AccountRepositoryService["isAccountNumberTaken"] = (organizationId, companyId, accountNumber) =>
+    countByOrgCompanyAndNumber({ organizationId, companyId, accountNumber }).pipe(
       Effect.map((row) => parseInt(row.count, 10) > 0),
       wrapSqlError("isAccountNumberTaken")
     )

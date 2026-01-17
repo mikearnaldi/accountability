@@ -588,6 +588,7 @@ function IntercompanyTransactionDetailPage() {
             isOpen={showLinkFromModal}
             onClose={() => setShowLinkFromModal(false)}
             onSubmit={handleLinkFromJournalEntry}
+            organizationId={params.organizationId}
             companyId={transaction.fromCompanyId}
             companyName={fromCompany.name}
             side="from"
@@ -600,6 +601,7 @@ function IntercompanyTransactionDetailPage() {
             isOpen={showLinkToModal}
             onClose={() => setShowLinkToModal(false)}
             onSubmit={handleLinkToJournalEntry}
+            organizationId={params.organizationId}
             companyId={transaction.toCompanyId}
             companyName={toCompany.name}
             side="to"

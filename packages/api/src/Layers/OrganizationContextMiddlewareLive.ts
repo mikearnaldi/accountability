@@ -24,6 +24,8 @@ import {
   CurrentOrganizationMembership,
   withOrganizationMembership
 } from "@accountability/core/Auth/CurrentOrganizationMembership"
+import { AuthorizationService } from "@accountability/core/Auth/AuthorizationService"
+import type { Action } from "@accountability/core/Auth/Action"
 import { CurrentUser } from "../Definitions/AuthMiddleware.ts"
 import { ForbiddenError, NotFoundError } from "../Definitions/ApiErrors.ts"
 
@@ -74,7 +76,17 @@ export const loadOrganizationMembership = (organizationId: OrganizationId) =>
   Effect.gen(function* () {
     // Get current authenticated user
     const currentUser = yield* CurrentUser
-    const userId = AuthUserId.make(currentUser.userId)
+
+    // Parse user ID as AuthUserId (validates UUID format)
+    const userId = yield* Schema.decodeUnknown(AuthUserId)(currentUser.userId).pipe(
+      Effect.mapError(() =>
+        new ForbiddenError({
+          message: "Invalid user ID format",
+          resource: Option.some("User"),
+          action: Option.none()
+        })
+      )
+    )
 
     // Load membership from repository
     const memberRepo = yield* OrganizationMemberRepository
@@ -282,4 +294,45 @@ export const requireFunctionalRole = (
     }
 
     return membership
+  })
+
+/**
+ * requirePermission - Require the current user to have permission for an action
+ *
+ * Uses the AuthorizationService to check if the user has permission based on
+ * their role and functional roles. This enables fine-grained RBAC permission
+ * checking.
+ *
+ * @param action - The action to check permission for
+ * @returns Effect that fails with ForbiddenError if user doesn't have permission
+ *
+ * Requires: CurrentOrganizationMembership, AuthorizationService
+ *
+ * @example
+ * ```typescript
+ * .handle("createAccount", ({ payload }) =>
+ *   requireOrganizationContext(payload.organizationId,
+ *     Effect.gen(function* () {
+ *       yield* requirePermission("account:create")
+ *       // User has permission, proceed with creation
+ *       const account = yield* accountRepo.create(...)
+ *       return account
+ *     })
+ *   )
+ * )
+ * ```
+ */
+export const requirePermission = (action: Action) =>
+  Effect.gen(function* () {
+    const authService = yield* AuthorizationService
+
+    yield* authService.checkPermission(action).pipe(
+      Effect.mapError((error) =>
+        new ForbiddenError({
+          message: error.reason,
+          resource: Option.fromNullable(error.resourceType),
+          action: Option.some(action)
+        })
+      )
+    )
   })

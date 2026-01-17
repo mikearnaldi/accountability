@@ -104,8 +104,8 @@ const fetchTrialBalanceData = createServerFn({ method: "GET" })
           params: { path: { id: data.organizationId } },
           headers: { Authorization }
         }),
-        serverApi.GET("/api/v1/companies/{id}", {
-          params: { path: { id: data.companyId } },
+        serverApi.GET("/api/v1/organizations/{organizationId}/companies/{id}", {
+          params: { path: { organizationId: data.organizationId, id: data.companyId } },
           headers: { Authorization }
         })
       ])
@@ -149,7 +149,7 @@ const fetchTrialBalanceData = createServerFn({ method: "GET" })
 
 // Server function to fetch trial balance for a specific date
 const fetchTrialBalance = createServerFn({ method: "GET" })
-  .inputValidator((data: { companyId: string; asOfDate: string }) => data)
+  .inputValidator((data: { organizationId: string; companyId: string; asOfDate: string }) => data)
   .handler(async ({ data }) => {
     const sessionToken = getCookie("accountability_session")
 
@@ -164,6 +164,7 @@ const fetchTrialBalance = createServerFn({ method: "GET" })
       const result = await serverApi.GET("/api/v1/reports/trial-balance", {
         params: {
           query: {
+            organizationId: data.organizationId,
             companyId: data.companyId,
             asOfDate: data.asOfDate
           }
@@ -255,6 +256,7 @@ function TrialBalancePage() {
     try {
       const result = await fetchTrialBalance({
         data: {
+          organizationId: params.organizationId,
           companyId: company.id,
           asOfDate
         }

@@ -113,11 +113,11 @@ const fetchGroupData = createServerFn({ method: "GET" })
           headers: { Authorization }
         }),
         serverApi.GET("/api/v1/consolidation/groups/{id}", {
-          params: { path: { id: groupId } },
+          params: { path: { id: groupId }, query: { organizationId } },
           headers: { Authorization }
         }),
         serverApi.GET("/api/v1/consolidation/runs", {
-          params: { query: { groupId } },
+          params: { query: { organizationId, groupId } },
           headers: { Authorization }
         })
       ])
@@ -297,7 +297,7 @@ function ConsolidationGroupDetailPage() {
       setIsDeactivating(true)
       try {
         const { error } = await api.POST("/api/v1/consolidation/groups/{id}/deactivate", {
-          params: { path: { id: group.id } }
+          params: { path: { id: group.id }, query: { organizationId: params.organizationId } }
         })
 
         if (error) {
@@ -315,7 +315,7 @@ function ConsolidationGroupDetailPage() {
       setIsActivating(true)
       try {
         const { error } = await api.POST("/api/v1/consolidation/groups/{id}/activate", {
-          params: { path: { id: group.id } }
+          params: { path: { id: group.id }, query: { organizationId: params.organizationId } }
         })
 
         if (error) {
@@ -341,7 +341,7 @@ function ConsolidationGroupDetailPage() {
 
     try {
       const { error } = await api.DELETE("/api/v1/consolidation/groups/{id}", {
-        params: { path: { id: group.id } }
+        params: { path: { id: group.id }, query: { organizationId: params.organizationId } }
       })
 
       if (error) {
@@ -788,7 +788,7 @@ function InitiateRunModal({
     try {
       // Note: initiatedBy would normally come from user context/session
       const { data, error: apiError } = await api.POST("/api/v1/consolidation/groups/{groupId}/runs", {
-        params: { path: { groupId } },
+        params: { path: { groupId }, query: { organizationId } },
         body: {
           periodRef: {
             year: parseInt(fiscalYear, 10),

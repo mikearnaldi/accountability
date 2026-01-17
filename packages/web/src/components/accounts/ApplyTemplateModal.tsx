@@ -24,6 +24,7 @@ interface AccountTemplateItem {
 }
 
 interface ApplyTemplateModalProps {
+  readonly organizationId: string
   readonly companyId: string
   readonly onClose: () => void
 }
@@ -55,7 +56,7 @@ const TEMPLATE_INFO: Record<TemplateType, { icon: string; color: string }> = {
 // Component
 // =============================================================================
 
-export function ApplyTemplateModal({ companyId, onClose }: ApplyTemplateModalProps) {
+export function ApplyTemplateModal({ organizationId, companyId, onClose }: ApplyTemplateModalProps) {
   const router = useRouter()
 
   // State
@@ -110,7 +111,7 @@ export function ApplyTemplateModal({ companyId, onClose }: ApplyTemplateModalPro
 
     const { data, error: apiError } = await api.POST("/api/v1/account-templates/{type}/apply", {
       params: { path: { type: selectedTemplate } },
-      body: { companyId }
+      body: { organizationId, companyId }
     })
 
     if (apiError) {

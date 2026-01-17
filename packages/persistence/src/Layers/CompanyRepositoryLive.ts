@@ -153,10 +153,16 @@ const make = Effect.gen(function* () {
   const sql = yield* SqlClient.SqlClient
 
   // SqlSchema query builders for type-safe queries
-  const findCompanyById = SqlSchema.findOne({
-    Request: Schema.String,
+  // Schema for find by org and id request
+  const FindByOrgAndIdRequest = Schema.Struct({
+    organizationId: Schema.String,
+    id: Schema.String
+  })
+
+  const findCompanyByOrgAndId = SqlSchema.findOne({
+    Request: FindByOrgAndIdRequest,
     Result: CompanyRow,
-    execute: (id) => sql`SELECT * FROM companies WHERE id = ${id}`
+    execute: ({ organizationId, id }) => sql`SELECT * FROM companies WHERE id = ${id} AND organization_id = ${organizationId}`
   })
 
   const findCompaniesByOrganization = SqlSchema.findAll({
@@ -177,24 +183,36 @@ const make = Effect.gen(function* () {
     `
   })
 
-  const findSubsidiariesByParent = SqlSchema.findAll({
-    Request: Schema.String,
+  // Schema for find subsidiaries by org and parent request
+  const FindSubsidiariesRequest = Schema.Struct({
+    organizationId: Schema.String,
+    parentCompanyId: Schema.String
+  })
+
+  const findSubsidiariesByOrgAndParent = SqlSchema.findAll({
+    Request: FindSubsidiariesRequest,
     Result: CompanyRow,
-    execute: (parentCompanyId) => sql`
+    execute: ({ organizationId, parentCompanyId }) => sql`
       SELECT * FROM companies
-      WHERE parent_company_id = ${parentCompanyId}
+      WHERE parent_company_id = ${parentCompanyId} AND organization_id = ${organizationId}
       ORDER BY name
     `
   })
 
-  const countById = SqlSchema.single({
-    Request: Schema.String,
-    Result: CountRow,
-    execute: (id) => sql`SELECT COUNT(*) as count FROM companies WHERE id = ${id}`
+  // Schema for count by org and id request
+  const CountByOrgAndIdRequest = Schema.Struct({
+    organizationId: Schema.String,
+    id: Schema.String
   })
 
-  const findById: CompanyRepositoryService["findById"] = (id) =>
-    findCompanyById(id).pipe(
+  const countByOrgAndId = SqlSchema.single({
+    Request: CountByOrgAndIdRequest,
+    Result: CountRow,
+    execute: ({ organizationId, id }) => sql`SELECT COUNT(*) as count FROM companies WHERE id = ${id} AND organization_id = ${organizationId}`
+  })
+
+  const findById: CompanyRepositoryService["findById"] = (organizationId, id) =>
+    findCompanyByOrgAndId({ organizationId, id }).pipe(
       Effect.map(Option.map(rowToCompany)),
       wrapSqlError("findById")
     )
@@ -258,10 +276,10 @@ const make = Effect.gen(function* () {
       return company
     })
 
-  const update: CompanyRepositoryService["update"] = (company) =>
+  const update: CompanyRepositoryService["update"] = (organizationId, company) =>
     Effect.gen(function* () {
-      // Check if company exists first
-      const existsResult = yield* exists(company.id)
+      // Check if company exists first (with org filter for security)
+      const existsResult = yield* exists(organizationId, company.id)
       if (!existsResult) {
         return yield* Effect.fail(
           new EntityNotFoundError({ entityType: "Company", entityId: company.id })
@@ -300,15 +318,15 @@ const make = Effect.gen(function* () {
           parent_company_id = ${Option.getOrNull(company.parentCompanyId)},
           ownership_percentage = ${Option.getOrNull(company.ownershipPercentage)},
           is_active = ${company.isActive}
-        WHERE id = ${company.id}
+        WHERE id = ${company.id} AND organization_id = ${organizationId}
       `.pipe(wrapSqlError("update"))
 
       return company
     })
 
-  const getById: CompanyRepositoryService["getById"] = (id) =>
+  const getById: CompanyRepositoryService["getById"] = (organizationId, id) =>
     Effect.gen(function* () {
-      const maybeCompany = yield* findById(id)
+      const maybeCompany = yield* findById(organizationId, id)
       return yield* Option.match(maybeCompany, {
         onNone: () => Effect.fail(new EntityNotFoundError({ entityType: "Company", entityId: id })),
         onSome: Effect.succeed
@@ -321,14 +339,14 @@ const make = Effect.gen(function* () {
       wrapSqlError("findActiveByOrganization")
     )
 
-  const findSubsidiaries: CompanyRepositoryService["findSubsidiaries"] = (parentCompanyId) =>
-    findSubsidiariesByParent(parentCompanyId).pipe(
+  const findSubsidiaries: CompanyRepositoryService["findSubsidiaries"] = (organizationId, parentCompanyId) =>
+    findSubsidiariesByOrgAndParent({ organizationId, parentCompanyId }).pipe(
       Effect.map((rows) => rows.map(rowToCompany)),
       wrapSqlError("findSubsidiaries")
     )
 
-  const exists: CompanyRepositoryService["exists"] = (id) =>
-    countById(id).pipe(
+  const exists: CompanyRepositoryService["exists"] = (organizationId, id) =>
+    countByOrgAndId({ organizationId, id }).pipe(
       Effect.map((row) => parseInt(row.count, 10) > 0),
       wrapSqlError("exists")
     )

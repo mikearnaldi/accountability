@@ -99,6 +99,7 @@ test.describe("Chart of Accounts Page", () => {
     const createAccountRes1 = await request.post("/api/v1/accounts", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         accountNumber: "1000",
         name: "Cash",
@@ -120,6 +121,7 @@ test.describe("Chart of Accounts Page", () => {
     const createAccountRes2 = await request.post("/api/v1/accounts", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         accountNumber: "2000",
         name: "Accounts Payable",
@@ -456,6 +458,7 @@ test.describe("Chart of Accounts Page", () => {
     const createAccountRes = await request.post("/api/v1/accounts", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         accountNumber: "3000",
         name: "Original Name",
@@ -590,6 +593,7 @@ test.describe("Chart of Accounts Page", () => {
     await request.post("/api/v1/accounts", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         accountNumber: "1000",
         name: "Cash Account",
@@ -610,6 +614,7 @@ test.describe("Chart of Accounts Page", () => {
     await request.post("/api/v1/accounts", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         accountNumber: "4000",
         name: "Sales Revenue",
@@ -630,6 +635,7 @@ test.describe("Chart of Accounts Page", () => {
     await request.post("/api/v1/accounts", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         accountNumber: "5000",
         name: "Office Supplies",
@@ -784,6 +790,7 @@ test.describe("Chart of Accounts Page", () => {
     await request.post("/api/v1/accounts", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         accountNumber: "1100",
         name: "Bank Account - Checking",
@@ -804,6 +811,7 @@ test.describe("Chart of Accounts Page", () => {
     await request.post("/api/v1/accounts", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         accountNumber: "1200",
         name: "Accounts Receivable",
@@ -824,6 +832,7 @@ test.describe("Chart of Accounts Page", () => {
     await request.post("/api/v1/accounts", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         accountNumber: "2100",
         name: "Accounts Payable",
@@ -1287,6 +1296,7 @@ test.describe("Chart of Accounts Page", () => {
     const parentAccountRes = await request.post("/api/v1/accounts", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         accountNumber: "1000",
         name: "Current Assets",
@@ -1310,6 +1320,7 @@ test.describe("Chart of Accounts Page", () => {
     const childAccountRes = await request.post("/api/v1/accounts", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         accountNumber: "1100",
         name: "Cash",
@@ -1332,6 +1343,7 @@ test.describe("Chart of Accounts Page", () => {
     await request.post("/api/v1/accounts", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         accountNumber: "2000",
         name: "Accounts Payable",
@@ -1466,6 +1478,7 @@ test.describe("Chart of Accounts Page", () => {
     await request.post("/api/v1/accounts", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         accountNumber: "1000",
         name: "Active Cash Account",
@@ -1487,6 +1500,7 @@ test.describe("Chart of Accounts Page", () => {
     await request.post("/api/v1/accounts", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         accountNumber: "2000",
         name: "Active Payables",
@@ -1613,6 +1627,7 @@ test.describe("Chart of Accounts Page", () => {
     await request.post("/api/v1/accounts", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         accountNumber: "1000",
         name: "Summary Account",
@@ -1634,6 +1649,7 @@ test.describe("Chart of Accounts Page", () => {
     await request.post("/api/v1/accounts", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         accountNumber: "1100",
         name: "Postable Cash",
@@ -1878,6 +1894,7 @@ test.describe("Chart of Accounts Page", () => {
     const parentAccountRes = await request.post("/api/v1/accounts", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         accountNumber: "1000",
         name: "Current Assets",

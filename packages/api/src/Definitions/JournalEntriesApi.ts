@@ -20,6 +20,7 @@ import {
 import { JournalEntryLine } from "@accountability/core/Domains/JournalEntryLine"
 import { AccountId } from "@accountability/core/Domains/Account"
 import { CompanyId } from "@accountability/core/Domains/Company"
+import { OrganizationId } from "@accountability/core/Domains/Organization"
 import { FiscalPeriodRef } from "@accountability/core/Domains/FiscalPeriodRef"
 import { LocalDateFromString } from "@accountability/core/Domains/LocalDate"
 import { MonetaryAmount } from "@accountability/core/Domains/MonetaryAmount"
@@ -58,6 +59,7 @@ export class CreateJournalEntryLineRequest extends Schema.Class<CreateJournalEnt
  * transactionDate and the company's fiscalYearEnd setting.
  */
 export class CreateJournalEntryRequest extends Schema.Class<CreateJournalEntryRequest>("CreateJournalEntryRequest")({
+  organizationId: OrganizationId,
   companyId: CompanyId,
   description: Schema.NonEmptyTrimmedString,
   transactionDate: LocalDateFromString,
@@ -77,6 +79,7 @@ export class CreateJournalEntryRequest extends Schema.Class<CreateJournalEntryRe
  * Uses LocalDateFromString to automatically parse ISO date strings (YYYY-MM-DD)
  */
 export class UpdateJournalEntryRequest extends Schema.Class<UpdateJournalEntryRequest>("UpdateJournalEntryRequest")({
+  organizationId: OrganizationId,
   description: Schema.OptionFromNullOr(Schema.NonEmptyTrimmedString),
   transactionDate: Schema.OptionFromNullOr(LocalDateFromString),
   documentDate: Schema.OptionFromNullOr(LocalDateFromString),
@@ -93,6 +96,7 @@ export class UpdateJournalEntryRequest extends Schema.Class<UpdateJournalEntryRe
  * Uses LocalDateFromString to automatically parse ISO date strings (YYYY-MM-DD)
  */
 export class PostJournalEntryRequest extends Schema.Class<PostJournalEntryRequest>("PostJournalEntryRequest")({
+  organizationId: OrganizationId,
   postedBy: UserId,
   postingDate: Schema.OptionFromNullOr(LocalDateFromString)
 }) {}
@@ -102,10 +106,18 @@ export class PostJournalEntryRequest extends Schema.Class<PostJournalEntryReques
  * Uses LocalDateFromString to automatically parse ISO date strings (YYYY-MM-DD)
  */
 export class ReverseJournalEntryRequest extends Schema.Class<ReverseJournalEntryRequest>("ReverseJournalEntryRequest")({
+  organizationId: OrganizationId,
   reversalDate: LocalDateFromString,
   reversalDescription: Schema.OptionFromNullOr(Schema.NonEmptyTrimmedString),
   reversedBy: UserId
 }) {}
+
+/**
+ * Common URL params for endpoints that need organizationId
+ */
+export const OrganizationIdUrlParams = Schema.Struct({
+  organizationId: Schema.String.pipe(Schema.brand("OrganizationId"))
+})
 
 /**
  * JournalEntryWithLines - Journal entry including its line items
@@ -130,6 +142,7 @@ export class JournalEntryListResponse extends Schema.Class<JournalEntryListRespo
  * Uses LocalDateFromString to automatically parse ISO date strings to LocalDate
  */
 export const JournalEntryListParams = Schema.Struct({
+  organizationId: Schema.String.pipe(Schema.brand("OrganizationId")),
   companyId: Schema.String.pipe(Schema.brand("CompanyId")),
   status: Schema.optional(JournalEntryStatus),
   entryType: Schema.optional(JournalEntryType),
@@ -169,6 +182,7 @@ const listJournalEntries = HttpApiEndpoint.get("listJournalEntries", "/")
  */
 const getJournalEntry = HttpApiEndpoint.get("getJournalEntry", "/:id")
   .setPath(Schema.Struct({ id: JournalEntryId }))
+  .setUrlParams(OrganizationIdUrlParams)
   .addSuccess(JournalEntryWithLinesResponse)
   .addError(NotFoundError)
   .annotateContext(OpenApi.annotations({
@@ -210,6 +224,7 @@ const updateJournalEntry = HttpApiEndpoint.put("updateJournalEntry", "/:id")
  */
 const deleteJournalEntry = HttpApiEndpoint.del("deleteJournalEntry", "/:id")
   .setPath(Schema.Struct({ id: JournalEntryId }))
+  .setUrlParams(OrganizationIdUrlParams)
   .addSuccess(HttpApiSchema.NoContent)
   .addError(NotFoundError)
   .addError(BusinessRuleError)
@@ -223,6 +238,7 @@ const deleteJournalEntry = HttpApiEndpoint.del("deleteJournalEntry", "/:id")
  */
 const submitForApproval = HttpApiEndpoint.post("submitForApproval", "/:id/submit")
   .setPath(Schema.Struct({ id: JournalEntryId }))
+  .setUrlParams(OrganizationIdUrlParams)
   .addSuccess(JournalEntry)
   .addError(NotFoundError)
   .addError(BusinessRuleError)
@@ -236,6 +252,7 @@ const submitForApproval = HttpApiEndpoint.post("submitForApproval", "/:id/submit
  */
 const approveJournalEntry = HttpApiEndpoint.post("approveJournalEntry", "/:id/approve")
   .setPath(Schema.Struct({ id: JournalEntryId }))
+  .setUrlParams(OrganizationIdUrlParams)
   .addSuccess(JournalEntry)
   .addError(NotFoundError)
   .addError(BusinessRuleError)
@@ -249,6 +266,7 @@ const approveJournalEntry = HttpApiEndpoint.post("approveJournalEntry", "/:id/ap
  */
 const rejectJournalEntry = HttpApiEndpoint.post("rejectJournalEntry", "/:id/reject")
   .setPath(Schema.Struct({ id: JournalEntryId }))
+  .setUrlParams(OrganizationIdUrlParams)
   .setPayload(Schema.Struct({
     reason: Schema.OptionFromNullOr(Schema.String)
   }))

@@ -68,8 +68,8 @@ const fetchCompanyReportsData = createServerFn({ method: "GET" })
           params: { path: { id: data.organizationId } },
           headers: { Authorization }
         }),
-        serverApi.GET("/api/v1/companies/{id}", {
-          params: { path: { id: data.companyId } },
+        serverApi.GET("/api/v1/organizations/{organizationId}/companies/{id}", {
+          params: { path: { organizationId: data.organizationId, id: data.companyId } },
           headers: { Authorization }
         })
       ])

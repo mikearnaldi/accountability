@@ -197,7 +197,7 @@ describe("CompanyRepository", () => {
     it.effect("findById: returns Some for existing company", () =>
       Effect.gen(function* () {
         const repo = yield* CompanyRepository
-        const result = yield* repo.findById(testCompanyId)
+        const result = yield* repo.findById(testOrgId, testCompanyId)
         expect(Option.isSome(result)).toBe(true)
         if (Option.isSome(result)) {
           expect(result.value.name).toBe("Test Company")
@@ -209,7 +209,7 @@ describe("CompanyRepository", () => {
     it.effect("findById: returns None for non-existing company", () =>
       Effect.gen(function* () {
         const repo = yield* CompanyRepository
-        const result = yield* repo.findById(CompanyId.make(nonExistentId))
+        const result = yield* repo.findById(testOrgId, CompanyId.make(nonExistentId))
         expect(Option.isNone(result)).toBe(true)
       })
     )
@@ -220,7 +220,7 @@ describe("CompanyRepository", () => {
     it.effect("getById: returns company for existing id", () =>
       Effect.gen(function* () {
         const repo = yield* CompanyRepository
-        const company = yield* repo.getById(testCompanyId)
+        const company = yield* repo.getById(testOrgId, testCompanyId)
         expect(company.name).toBe("Test Company")
       })
     )
@@ -228,7 +228,7 @@ describe("CompanyRepository", () => {
     it.effect("getById: throws EntityNotFoundError for non-existing company", () =>
       Effect.gen(function* () {
         const repo = yield* CompanyRepository
-        const result = yield* Effect.either(repo.getById(CompanyId.make(nonExistentId)))
+        const result = yield* Effect.either(repo.getById(testOrgId, CompanyId.make(nonExistentId)))
         expect(result._tag).toBe("Left")
         if (result._tag === "Left") {
           expect(result.left._tag).toBe("EntityNotFoundError")
@@ -276,7 +276,7 @@ describe("CompanyRepository", () => {
     it.effect("findSubsidiaries: returns subsidiaries of parent company", () =>
       Effect.gen(function* () {
         const repo = yield* CompanyRepository
-        const subsidiaries = yield* repo.findSubsidiaries(testCompanyId)
+        const subsidiaries = yield* repo.findSubsidiaries(testOrgId, testCompanyId)
         expect(subsidiaries.length).toBeGreaterThanOrEqual(1)
         const subsidiary = subsidiaries.find(c => c.id === testSubsidiaryId)
         expect(subsidiary).toBeDefined()
@@ -289,7 +289,7 @@ describe("CompanyRepository", () => {
     it.effect("findSubsidiaries: returns empty array for company with no subsidiaries", () =>
       Effect.gen(function* () {
         const repo = yield* CompanyRepository
-        const subsidiaries = yield* repo.findSubsidiaries(testSubsidiaryId)
+        const subsidiaries = yield* repo.findSubsidiaries(testOrgId, testSubsidiaryId)
         expect(subsidiaries.length).toBe(0)
       })
     )
@@ -300,7 +300,7 @@ describe("CompanyRepository", () => {
     it.effect("exists: returns true for existing company", () =>
       Effect.gen(function* () {
         const repo = yield* CompanyRepository
-        const exists = yield* repo.exists(testCompanyId)
+        const exists = yield* repo.exists(testOrgId, testCompanyId)
         expect(exists).toBe(true)
       })
     )
@@ -308,7 +308,7 @@ describe("CompanyRepository", () => {
     it.effect("exists: returns false for non-existing company", () =>
       Effect.gen(function* () {
         const repo = yield* CompanyRepository
-        const exists = yield* repo.exists(CompanyId.make(nonExistentId))
+        const exists = yield* repo.exists(testOrgId, CompanyId.make(nonExistentId))
         expect(exists).toBe(false)
       })
     )
@@ -319,16 +319,16 @@ describe("CompanyRepository", () => {
     it.effect("update: updates company name", () =>
       Effect.gen(function* () {
         const repo = yield* CompanyRepository
-        const company = yield* repo.getById(testCompanyId)
+        const company = yield* repo.getById(testOrgId, testCompanyId)
         const updated = Company.make({
           ...company,
           name: "Updated Test Company"
         })
-        const result = yield* repo.update(updated)
+        const result = yield* repo.update(testOrgId, updated)
         expect(result.name).toBe("Updated Test Company")
 
         // Verify persisted
-        const fetched = yield* repo.getById(testCompanyId)
+        const fetched = yield* repo.getById(testOrgId, testCompanyId)
         expect(fetched.name).toBe("Updated Test Company")
       })
     )
@@ -336,12 +336,12 @@ describe("CompanyRepository", () => {
     it.effect("update: updates company legal name", () =>
       Effect.gen(function* () {
         const repo = yield* CompanyRepository
-        const company = yield* repo.getById(testCompanyId)
+        const company = yield* repo.getById(testOrgId, testCompanyId)
         const updated = Company.make({
           ...company,
           legalName: "Updated Test Company LLC"
         })
-        const result = yield* repo.update(updated)
+        const result = yield* repo.update(testOrgId, updated)
         expect(result.legalName).toBe("Updated Test Company LLC")
       })
     )
@@ -349,12 +349,12 @@ describe("CompanyRepository", () => {
     it.effect("update: updates company currency", () =>
       Effect.gen(function* () {
         const repo = yield* CompanyRepository
-        const company = yield* repo.getById(testCompanyId2)
+        const company = yield* repo.getById(testOrgId, testCompanyId2)
         const updated = Company.make({
           ...company,
           reportingCurrency: CurrencyCode.make("CHF")
         })
-        const result = yield* repo.update(updated)
+        const result = yield* repo.update(testOrgId, updated)
         expect(result.reportingCurrency).toBe("CHF")
         expect(result.hasSameFunctionalAndReportingCurrency).toBe(false)
       })
@@ -363,12 +363,12 @@ describe("CompanyRepository", () => {
     it.effect("update: deactivates company", () =>
       Effect.gen(function* () {
         const repo = yield* CompanyRepository
-        const company = yield* repo.getById(testCompanyId3)
+        const company = yield* repo.getById(testOrgId, testCompanyId3)
         const updated = Company.make({
           ...company,
           isActive: false
         })
-        const result = yield* repo.update(updated)
+        const result = yield* repo.update(testOrgId, updated)
         expect(result.isActive).toBe(false)
       })
     )
@@ -397,7 +397,7 @@ describe("CompanyRepository", () => {
           isActive: true,
           createdAt: Timestamp.make({ epochMillis: Date.now() })
         })
-        const result = yield* Effect.either(repo.update(nonExistent))
+        const result = yield* Effect.either(repo.update(testOrgId, nonExistent))
         expect(result._tag).toBe("Left")
         if (result._tag === "Left") {
           expect(result.left._tag).toBe("EntityNotFoundError")
@@ -413,12 +413,12 @@ describe("CompanyRepository", () => {
         const repo = yield* CompanyRepository
 
         // Calendar year end company
-        const usCompany = yield* repo.getById(testCompanyId)
+        const usCompany = yield* repo.getById(testOrgId, testCompanyId)
         expect(usCompany.fiscalYearEnd.isCalendarYearEnd).toBe(true)
         expect(usCompany.fiscalYearEnd.toDisplayString()).toBe("December 31")
 
         // March year end company (reactivate if needed first)
-        const jpCompany = yield* repo.getById(testCompanyId3)
+        const jpCompany = yield* repo.getById(testOrgId, testCompanyId3)
         expect(jpCompany.fiscalYearEnd.isCalendarYearEnd).toBe(false)
         expect(jpCompany.fiscalYearEnd.toDisplayString()).toBe("March 31")
       })
@@ -427,7 +427,7 @@ describe("CompanyRepository", () => {
     it.effect("business: non-controlling interest calculation", () =>
       Effect.gen(function* () {
         const repo = yield* CompanyRepository
-        const subsidiary = yield* repo.getById(testSubsidiaryId)
+        const subsidiary = yield* repo.getById(testOrgId, testSubsidiaryId)
 
         // Subsidiary has 80% ownership, so NCI is 20%
         const nci = subsidiary.nonControllingInterestPercentage
@@ -443,12 +443,12 @@ describe("CompanyRepository", () => {
         const repo = yield* CompanyRepository
 
         // Top-level company
-        const topLevel = yield* repo.getById(testCompanyId)
+        const topLevel = yield* repo.getById(testOrgId, testCompanyId)
         expect(topLevel.isTopLevel).toBe(true)
         expect(topLevel.isSubsidiary).toBe(false)
 
         // Subsidiary
-        const subsidiary = yield* repo.getById(testSubsidiaryId)
+        const subsidiary = yield* repo.getById(testOrgId, testSubsidiaryId)
         expect(subsidiary.isTopLevel).toBe(false)
         expect(subsidiary.isSubsidiary).toBe(true)
       })
@@ -459,11 +459,11 @@ describe("CompanyRepository", () => {
         const repo = yield* CompanyRepository
 
         // Same currency
-        const usCompany = yield* repo.getById(testCompanyId)
+        const usCompany = yield* repo.getById(testOrgId, testCompanyId)
         expect(usCompany.hasSameFunctionalAndReportingCurrency).toBe(true)
 
         // Different currency (EUR company was updated to CHF reporting)
-        const eurCompany = yield* repo.getById(testCompanyId2)
+        const eurCompany = yield* repo.getById(testOrgId, testCompanyId2)
         expect(eurCompany.hasSameFunctionalAndReportingCurrency).toBe(false)
       })
     )

@@ -113,8 +113,8 @@ const fetchCashFlowData = createServerFn({ method: "GET" })
           params: { path: { id: data.organizationId } },
           headers: { Authorization }
         }),
-        serverApi.GET("/api/v1/companies/{id}", {
-          params: { path: { id: data.companyId } },
+        serverApi.GET("/api/v1/organizations/{organizationId}/companies/{id}", {
+          params: { path: { organizationId: data.organizationId, id: data.companyId } },
           headers: { Authorization }
         })
       ])
@@ -158,6 +158,7 @@ const fetchCashFlowData = createServerFn({ method: "GET" })
 
 const fetchCashFlowStatement = createServerFn({ method: "GET" })
   .inputValidator((data: {
+    organizationId: string
     companyId: string
     periodStartDate: string
     periodEndDate: string
@@ -175,11 +176,13 @@ const fetchCashFlowStatement = createServerFn({ method: "GET" })
       const Authorization = `Bearer ${sessionToken}`
 
       const queryParams: {
+        organizationId: string
         companyId: string
         periodStartDate: string
         periodEndDate: string
         method?: "direct" | "indirect"
       } = {
+        organizationId: data.organizationId,
         companyId: data.companyId,
         periodStartDate: data.periodStartDate,
         periodEndDate: data.periodEndDate
@@ -280,6 +283,7 @@ function CashFlowStatementPage() {
     try {
       const result = await fetchCashFlowStatement({
         data: {
+          organizationId: params.organizationId,
           companyId: company.id,
           periodStartDate,
           periodEndDate,

@@ -81,11 +81,11 @@ const fetchAccountsData = createServerFn({ method: "GET" })
       // Fetch accounts, company, and organization in parallel using api client with Bearer auth
       const [accountsResult, companyResult, orgResult] = await Promise.all([
         serverApi.GET("/api/v1/accounts", {
-          params: { query: { companyId: data.companyId, limit: "1000" } },
+          params: { query: { organizationId: data.organizationId, companyId: data.companyId, limit: "1000" } },
           headers: { Authorization }
         }),
-        serverApi.GET("/api/v1/companies/{id}", {
-          params: { path: { id: data.companyId } },
+        serverApi.GET("/api/v1/organizations/{organizationId}/companies/{id}", {
+          params: { path: { organizationId: data.organizationId, id: data.companyId } },
           headers: { Authorization }
         }),
         serverApi.GET("/api/v1/organizations/{id}", {
@@ -425,6 +425,7 @@ function ChartOfAccountsPage() {
         {showCreateForm && (
           <AccountFormModal
             mode="create"
+            organizationId={params.organizationId}
             companyId={params.companyId}
             accounts={accounts}
             onClose={() => setShowCreateForm(false)}
@@ -435,6 +436,7 @@ function ChartOfAccountsPage() {
         {editingAccount && (
           <AccountFormModal
             mode="edit"
+            organizationId={params.organizationId}
             companyId={params.companyId}
             accounts={accounts}
             initialData={editingAccount}
@@ -445,6 +447,7 @@ function ChartOfAccountsPage() {
         {/* Apply Template Modal */}
         {showApplyTemplate && (
           <ApplyTemplateModal
+            organizationId={params.organizationId}
             companyId={params.companyId}
             onClose={() => setShowApplyTemplate(false)}
           />

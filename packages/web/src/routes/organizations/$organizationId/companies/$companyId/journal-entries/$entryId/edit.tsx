@@ -285,11 +285,11 @@ const fetchEditJournalEntryData = createServerFn({ method: "GET" })
       // Fetch journal entry, company, organization, accounts, and currencies in parallel
       const [entryResult, companyResult, orgResult, accountsResult, currenciesResult] = await Promise.all([
         serverApi.GET("/api/v1/journal-entries/{id}", {
-          params: { path: { id: data.entryId } },
+          params: { path: { id: data.entryId }, query: { organizationId: data.organizationId } },
           headers: { Authorization }
         }),
-        serverApi.GET("/api/v1/companies/{id}", {
-          params: { path: { id: data.companyId } },
+        serverApi.GET("/api/v1/organizations/{organizationId}/companies/{id}", {
+          params: { path: { organizationId: data.organizationId, id: data.companyId } },
           headers: { Authorization }
         }),
         serverApi.GET("/api/v1/organizations/{id}", {
@@ -297,7 +297,7 @@ const fetchEditJournalEntryData = createServerFn({ method: "GET" })
           headers: { Authorization }
         }),
         serverApi.GET("/api/v1/accounts", {
-          params: { query: { companyId: data.companyId, isPostable: "true", limit: "1000" } },
+          params: { query: { organizationId: data.organizationId, companyId: data.companyId, isPostable: "true", limit: "1000" } },
           headers: { Authorization }
         }),
         serverApi.GET("/api/v1/currencies", {
@@ -770,6 +770,7 @@ function EditJournalEntryPage() {
       const { error: apiError } = await api.PUT("/api/v1/journal-entries/{id}", {
         params: { path: { id: entry.id } },
         body: {
+          organizationId: params.organizationId,
           description: description.trim(),
           transactionDate,
           documentDate: null,

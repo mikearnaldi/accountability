@@ -147,11 +147,11 @@ const fetchCashFlowData = createServerFn({ method: "GET" })
           headers: { Authorization }
         }),
         serverApi.GET("/api/v1/consolidation/groups/{id}", {
-          params: { path: { id: groupId } },
+          params: { path: { id: groupId }, query: { organizationId } },
           headers: { Authorization }
         }),
         serverApi.GET("/api/v1/consolidation/runs/{id}", {
-          params: { path: { id: runId } },
+          params: { path: { id: runId }, query: { organizationId } },
           headers: { Authorization }
         })
       ])
@@ -181,8 +181,8 @@ const fetchCashFlowData = createServerFn({ method: "GET" })
   })
 
 const fetchCashFlowReport = createServerFn({ method: "GET" })
-  .inputValidator((data: { runId: string }) => data)
-  .handler(async ({ data: { runId } }) => {
+  .inputValidator((data: { organizationId: string; runId: string }) => data)
+  .handler(async ({ data: { organizationId, runId } }) => {
     const sessionToken = getCookie("accountability_session")
 
     if (!sessionToken) {
@@ -194,7 +194,7 @@ const fetchCashFlowReport = createServerFn({ method: "GET" })
       const Authorization = `Bearer ${sessionToken}`
 
       const result = await serverApi.GET("/api/v1/consolidation/runs/{id}/reports/cash-flow", {
-        params: { path: { id: runId } },
+        params: { path: { id: runId }, query: { organizationId } },
         headers: { Authorization }
       })
 
@@ -327,7 +327,7 @@ function ConsolidatedCashFlowPage() {
 
     try {
       const result = await fetchCashFlowReport({
-        data: { runId: params.runId }
+        data: { organizationId: params.organizationId, runId: params.runId }
       })
 
       if (result.error === "not_implemented") {

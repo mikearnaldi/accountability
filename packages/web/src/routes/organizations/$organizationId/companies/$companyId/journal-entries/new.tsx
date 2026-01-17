@@ -83,8 +83,8 @@ const fetchNewJournalEntryData = createServerFn({ method: "GET" })
       // Fetch company, organization, accounts, and currencies in parallel
       // No need to fetch fiscal periods - they are computed from company's fiscalYearEnd
       const [companyResult, orgResult, accountsResult, currenciesResult] = await Promise.all([
-        serverApi.GET("/api/v1/companies/{id}", {
-          params: { path: { id: data.companyId } },
+        serverApi.GET("/api/v1/organizations/{organizationId}/companies/{id}", {
+          params: { path: { organizationId: data.organizationId, id: data.companyId } },
           headers: { Authorization }
         }),
         serverApi.GET("/api/v1/organizations/{id}", {
@@ -92,7 +92,7 @@ const fetchNewJournalEntryData = createServerFn({ method: "GET" })
           headers: { Authorization }
         }),
         serverApi.GET("/api/v1/accounts", {
-          params: { query: { companyId: data.companyId, isPostable: "true", limit: "1000" } },
+          params: { query: { organizationId: data.organizationId, companyId: data.companyId, isPostable: "true", limit: "1000" } },
           headers: { Authorization }
         }),
         serverApi.GET("/api/v1/currencies", {
@@ -321,6 +321,7 @@ function NewJournalEntryPage() {
         {/* Journal Entry Form */}
         {hasAccounts ? (
           <JournalEntryForm
+            organizationId={params.organizationId}
             companyId={params.companyId}
             functionalCurrency={company.functionalCurrency}
             accounts={accounts}

@@ -325,39 +325,39 @@ const createMockAccountRepository = (initialAccounts: ReadonlyArray<Account> = [
     const accountsRef = yield* Ref.make<ReadonlyArray<Account>>(initialAccounts)
 
     const service: AccountRepositoryService = {
-      findById: (id) =>
+      findById: (_organizationId, id) =>
         Effect.gen(function* () {
           const accounts = yield* Ref.get(accountsRef)
           return Option.fromNullable(accounts.find((a) => a.id === id))
         }),
-      findByCompany: (companyId) =>
+      findByCompany: (_organizationId, companyId) =>
         Effect.gen(function* () {
           const accounts = yield* Ref.get(accountsRef)
           return accounts.filter((a) => a.companyId === companyId)
         }),
-      findByNumber: (companyId, accountNumber) =>
+      findByNumber: (_organizationId, companyId, accountNumber) =>
         Effect.gen(function* () {
           const accounts = yield* Ref.get(accountsRef)
           return Option.fromNullable(
             accounts.find((a) => a.companyId === companyId && a.accountNumber === accountNumber)
           )
         }),
-      findByType: (companyId, accountType) =>
+      findByType: (_organizationId, companyId, accountType) =>
         Effect.gen(function* () {
           const accounts = yield* Ref.get(accountsRef)
           return accounts.filter((a) => a.companyId === companyId && a.accountType === accountType)
         }),
-      findActiveByCompany: (companyId) =>
+      findActiveByCompany: (_organizationId, companyId) =>
         Effect.gen(function* () {
           const accounts = yield* Ref.get(accountsRef)
           return accounts.filter((a) => a.companyId === companyId && a.isActive)
         }),
-      findChildren: (parentId) =>
+      findChildren: (_organizationId, parentId) =>
         Effect.gen(function* () {
           const accounts = yield* Ref.get(accountsRef)
           return accounts.filter((a) => Option.isSome(a.parentAccountId) && a.parentAccountId.value === parentId)
         }),
-      findIntercompanyAccounts: (companyId) =>
+      findIntercompanyAccounts: (_organizationId, companyId) =>
         Effect.gen(function* () {
           const accounts = yield* Ref.get(accountsRef)
           return accounts.filter((a) => a.companyId === companyId && a.isIntercompany)
@@ -367,14 +367,14 @@ const createMockAccountRepository = (initialAccounts: ReadonlyArray<Account> = [
           yield* Ref.update(accountsRef, (accounts) => [...accounts, account])
           return account
         }),
-      update: (account) =>
+      update: (_organizationId, account) =>
         Effect.gen(function* () {
           yield* Ref.update(accountsRef, (accts) =>
             accts.map((a) => (a.id === account.id ? account : a))
           )
           return account
         }),
-      getById: (id) =>
+      getById: (_organizationId, id) =>
         Effect.gen(function* () {
           const accounts = yield* Ref.get(accountsRef)
           const account = accounts.find((a) => a.id === id)
@@ -386,12 +386,12 @@ const createMockAccountRepository = (initialAccounts: ReadonlyArray<Account> = [
           }
           return account
         }),
-      exists: (id) =>
+      exists: (_organizationId, id) =>
         Effect.gen(function* () {
           const accounts = yield* Ref.get(accountsRef)
           return accounts.some((a) => a.id === id)
         }),
-      isAccountNumberTaken: (companyId, accountNumber) =>
+      isAccountNumberTaken: (_organizationId, companyId, accountNumber) =>
         Effect.gen(function* () {
           const accounts = yield* Ref.get(accountsRef)
           return accounts.some((a) => a.companyId === companyId && a.accountNumber === accountNumber)
@@ -406,30 +406,30 @@ const createMockCompanyRepository = (companies: ReadonlyArray<Company> = [create
     const companiesRef = yield* Ref.make<ReadonlyArray<Company>>(companies)
 
     const service: CompanyRepositoryService = {
-      findById: (id) =>
+      findById: (organizationId, id) =>
         Effect.gen(function* () {
           const allCompanies = yield* Ref.get(companiesRef)
-          return Option.fromNullable(allCompanies.find((c) => c.id === id))
+          return Option.fromNullable(allCompanies.find((c) => c.id === id && c.organizationId === organizationId))
         }),
       findByOrganization: (_orgId) => Effect.succeed([]),
       findActiveByOrganization: (_orgId) => Effect.succeed([]),
-      findSubsidiaries: (_parentId) => Effect.succeed([]),
+      findSubsidiaries: (_organizationId, _parentId) => Effect.succeed([]),
       create: (company) =>
         Effect.gen(function* () {
           yield* Ref.update(companiesRef, (cs) => [...cs, company])
           return company
         }),
-      update: (company) =>
+      update: (organizationId, company) =>
         Effect.gen(function* () {
           yield* Ref.update(companiesRef, (cs) =>
             cs.map((c) => (c.id === company.id ? company : c))
           )
           return company
         }),
-      getById: (id) =>
+      getById: (organizationId, id) =>
         Effect.gen(function* () {
           const allCompanies = yield* Ref.get(companiesRef)
-          const company = allCompanies.find((c) => c.id === id)
+          const company = allCompanies.find((c) => c.id === id && c.organizationId === organizationId)
           if (!company) {
             return yield* Effect.fail(new EntityNotFoundError({
               entityType: "Company",
@@ -438,10 +438,10 @@ const createMockCompanyRepository = (companies: ReadonlyArray<Company> = [create
           }
           return company
         }),
-      exists: (id) =>
+      exists: (organizationId, id) =>
         Effect.gen(function* () {
           const allCompanies = yield* Ref.get(companiesRef)
-          return allCompanies.some((c) => c.id === id)
+          return allCompanies.some((c) => c.id === id && c.organizationId === organizationId)
         })
     }
 
@@ -453,17 +453,17 @@ const createMockJournalEntryRepository = (initialEntries: ReadonlyArray<JournalE
     const entriesRef = yield* Ref.make<ReadonlyArray<JournalEntry>>(initialEntries)
 
     const service: JournalEntryRepositoryService = {
-      findById: (id) =>
+      findById: (_organizationId, id) =>
         Effect.gen(function* () {
           const entries = yield* Ref.get(entriesRef)
           return Option.fromNullable(entries.find((e) => e.id === id))
         }),
-      findByCompany: (companyId) =>
+      findByCompany: (_organizationId, companyId) =>
         Effect.gen(function* () {
           const entries = yield* Ref.get(entriesRef)
           return entries.filter((e) => e.companyId === companyId)
         }),
-      findByPeriod: (companyId, period) =>
+      findByPeriod: (_organizationId, companyId, period) =>
         Effect.gen(function* () {
           const entries = yield* Ref.get(entriesRef)
           return entries.filter(
@@ -473,37 +473,37 @@ const createMockJournalEntryRepository = (initialEntries: ReadonlyArray<JournalE
               e.fiscalPeriod.period === period.period
           )
         }),
-      findByStatus: (companyId, status) =>
+      findByStatus: (_organizationId, companyId, status) =>
         Effect.gen(function* () {
           const entries = yield* Ref.get(entriesRef)
           return entries.filter((e) => e.companyId === companyId && e.status === status)
         }),
-      findByType: (companyId, entryType) =>
+      findByType: (_organizationId, companyId, entryType) =>
         Effect.gen(function* () {
           const entries = yield* Ref.get(entriesRef)
           return entries.filter((e) => e.companyId === companyId && e.entryType === entryType)
         }),
-      findByPeriodRange: (_companyId, _startPeriod, _endPeriod) => Effect.succeed([]),
-      findDraftEntries: (companyId) =>
+      findByPeriodRange: (_organizationId, _companyId, _startPeriod, _endPeriod) => Effect.succeed([]),
+      findDraftEntries: (_organizationId, companyId) =>
         Effect.gen(function* () {
           const entries = yield* Ref.get(entriesRef)
           return entries.filter((e) => e.companyId === companyId && e.status === "Draft")
         }),
-      findPostedByPeriod: (_companyId, _period) => Effect.succeed([]),
-      findReversingEntry: (_entryId) => Effect.succeed(Option.none()),
-      countDraftEntriesInPeriod: (_companyId, _period) => Effect.succeed(0),
-      findIntercompanyEntries: (_companyId) => Effect.succeed([]),
+      findPostedByPeriod: (_organizationId, _companyId, _period) => Effect.succeed([]),
+      findReversingEntry: (_organizationId, _entryId) => Effect.succeed(Option.none()),
+      countDraftEntriesInPeriod: (_organizationId, _companyId, _period) => Effect.succeed(0),
+      findIntercompanyEntries: (_organizationId, _companyId) => Effect.succeed([]),
       create: (entry) =>
         Effect.gen(function* () {
           yield* Ref.update(entriesRef, (entries) => [...entries, entry])
           return entry
         }),
-      update: (entry) =>
+      update: (_organizationId, entry) =>
         Effect.gen(function* () {
           yield* Ref.update(entriesRef, (es) => es.map((e) => (e.id === entry.id ? entry : e)))
           return entry
         }),
-      getById: (id) =>
+      getById: (_organizationId, id) =>
         Effect.gen(function* () {
           const entries = yield* Ref.get(entriesRef)
           const entry = entries.find((e) => e.id === id)
@@ -515,12 +515,12 @@ const createMockJournalEntryRepository = (initialEntries: ReadonlyArray<JournalE
           }
           return entry
         }),
-      exists: (id) =>
+      exists: (_organizationId, id) =>
         Effect.gen(function* () {
           const entries = yield* Ref.get(entriesRef)
           return entries.some((e) => e.id === id)
         }),
-      getNextEntryNumber: (_companyId) => Effect.succeed("JE-0001")
+      getNextEntryNumber: (_organizationId, _companyId) => Effect.succeed("JE-0001")
     }
 
     return service
@@ -889,7 +889,7 @@ describe("ReportsApiLive", () => {
         const testLayer = createTestLayer({ companies: [] })
 
         const companyRepo = yield* CompanyRepository.pipe(Effect.provide(testLayer))
-        const exists = yield* companyRepo.exists(testCompanyId)
+        const exists = yield* companyRepo.exists(testOrganizationId, testCompanyId)
 
         expect(exists).toBe(false)
       })
@@ -927,7 +927,7 @@ describe("ReportsApiLive", () => {
         const testLayer = createTestLayer({ accounts })
 
         const accountRepo = yield* AccountRepository.pipe(Effect.provide(testLayer))
-        const fetchedAccounts = yield* accountRepo.findByCompany(testCompanyId)
+        const fetchedAccounts = yield* accountRepo.findByCompany(testOrganizationId, testCompanyId)
 
         expect(fetchedAccounts.length).toBe(6)
       })
@@ -944,7 +944,7 @@ describe("ReportsApiLive", () => {
         const entryRepo = yield* JournalEntryRepository.pipe(Effect.provide(testLayer))
         const lineRepo = yield* JournalEntryLineRepository.pipe(Effect.provide(testLayer))
 
-        const entries = yield* entryRepo.findByCompany(testCompanyId)
+        const entries = yield* entryRepo.findByCompany(testOrganizationId, testCompanyId)
         expect(entries.length).toBe(1)
 
         const linesMap = yield* lineRepo.findByJournalEntries(entries.map((e) => e.id))

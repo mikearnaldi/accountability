@@ -336,50 +336,86 @@ Since Effect HttpApiMiddleware doesn't have direct access to path parameters, th
 
 ### Track E: Enforcement (Backend)
 
-#### Phase E1: Add Org Filtering to CompanyRepository
+#### Phase E1: Add Org Filtering to CompanyRepository ✅ COMPLETE
 Update `packages/persistence/src/Services/CompanyRepository.ts` and implementation:
 - All methods require `organizationId` parameter
 - All queries filter by `organization_id`
 
 **Test**: Verify queries include filter.
 
+**Completed**: Updated CompanyRepository interface and CompanyRepositoryLive implementation to require organizationId on all methods (findById, getById, update, findSubsidiaries, exists). Updated all API definitions (CompaniesApi, AccountsApi, JournalEntriesApi, ReportsApi, IntercompanyTransactionsApi, AccountTemplatesApi) to include organizationId parameter. Updated all API Live handlers to pass organizationId to repository methods. Updated all test files (persistence tests, API tests, integration tests) to pass organizationId. Changed GET/PUT company endpoints to use path `/organizations/:organizationId/companies/:id`. All 3620 tests pass, typecheck clean, lint clean.
+
 ---
 
-#### Phase E2: Add Org Filtering to AccountRepository
+#### Phase E2: Add Org Filtering to AccountRepository ✅ COMPLETE
 Same pattern as E1 for accounts.
 
+**Completed**: Updated AccountRepository interface and AccountRepositoryLive implementation to require organizationId on all methods (findById, getById, findByCompany, findByNumber, findActiveByCompany, findByType, findChildren, findIntercompanyAccounts, exists, isAccountNumberTaken, update). Queries now JOIN with companies table to filter by organization_id. Updated AccountsApi definition to change paths for getAccount, updateAccount, deactivateAccount to `/organizations/:organizationId/accounts/:id`. Updated AccountsApiLive, AccountTemplatesApiLive, and ReportsApiLive handlers to pass organizationId. Updated all test files (Repositories.test.ts, AccountsApiLive.test.ts, ReportsApiLive.test.ts, HttpApiIntegration.test.ts). All 3620 tests pass, typecheck clean, lint clean.
+
 ---
 
-#### Phase E3: Add Org Filtering to JournalEntryRepository
+#### Phase E3: Add Org Filtering to JournalEntryRepository ✅ COMPLETE
 Same pattern as E1 for journal entries.
 
 ---
 
-#### Phase E4: Add Org Filtering to FiscalPeriodRepository
-Same pattern as E1 for fiscal periods.
+#### Phase E4: Add Org Filtering to FiscalPeriodRepository ✅ N/A
+FiscalPeriodRepository does not exist in the codebase - fiscal periods are stored as FiscalPeriodRef value objects within JournalEntry entities, not as separate repository entities.
 
 ---
 
-#### Phase E5: Add Org Filtering to ConsolidationGroupRepository
+#### Phase E5: Add Org Filtering to ConsolidationGroupRepository ✅ COMPLETE
 Same pattern as E1 for consolidation groups.
 
----
-
-#### Phase E6: Add Org Filtering to ExchangeRateRepository
-Same pattern as E1 for exchange rates.
+**Completed**: Updated ConsolidationRepository interface to require organizationId on all group and run methods: findGroup, getGroup, updateGroup, groupExists, findRun, getRun, updateRun, runExists, deleteRun, findRunsByGroup, findRunByGroupAndPeriod, findRunsByStatus, findLatestCompletedRun, findInProgressRuns, findRunsByPeriodRange. Updated ConsolidationRepositoryLive with SQL JOINs to consolidation_groups table for org filtering. Updated ConsolidationApi definition to add OrganizationIdUrlParam to single-resource endpoints. Updated ConsolidationApiLive and EliminationRulesApiLive handlers to pass organizationId. Updated Repositories.test.ts. All 3620 tests pass, typecheck clean.
 
 ---
 
-#### Phase E7: Permission Checks in CompaniesApi
+#### Phase E6: Add Org Filtering to ExchangeRateRepository ✅ N/A
+Exchange rates are global system data (currency exchange rates from ECB), not per-organization data. They are shared across all organizations and don't require organization filtering.
+
+---
+
+#### Track E Infrastructure: Permission Check Helper ✅ COMPLETE
+Added `requirePermission(action)` helper to `OrganizationContextMiddlewareLive.ts`. This helper uses `AuthorizationService.checkPermission()` to verify permissions and maps `PermissionDeniedError` to `ForbiddenError` for API responses. Also added `AuthorizationServiceLive` to `AppApiLive` layer composition.
+
+The infrastructure is now in place for E7-E13. Handlers can use:
+```typescript
+requireOrganizationContext(orgIdString,
+  Effect.gen(function* () {
+    yield* requirePermission("company:create")
+    // User has permission, proceed with creation
+  })
+)
+```
+
+---
+
+#### Phase E7: Permission Checks in CompaniesApi ✅ COMPLETE
 Update handlers to:
 1. Get `organizationId` from `CurrentOrganizationMembership`
 2. Call `AuthorizationService.checkPermission()` before operations
 3. Pass `organizationId` to repository methods
 
+**Completed**:
+- Added permission checks to Company endpoints (listCompanies, getCompany, createCompany, updateCompany, deactivateCompany)
+- Wrapped handlers with `requireOrganizationContext` and `requirePermission`
+- Added ForbiddenError to API endpoint error types
+- Updated `createOrganization` to automatically add creating user as owner with all functional roles
+- Updated tests to use valid UUIDs for user IDs and expect ForbiddenError for unauthorized access
+- All 3620 tests pass, typecheck clean
+
 ---
 
-#### Phase E8: Permission Checks in AccountsApi
+#### Phase E8: Permission Checks in AccountsApi ✅ COMPLETE
 Same pattern as E7.
+
+**Completed**:
+- Added permission checks to Account endpoints (listAccounts, getAccount, createAccount, updateAccount, deactivateAccount)
+- Wrapped handlers with `requireOrganizationContext` and `requirePermission`
+- Added ForbiddenError to API endpoint error types
+- Updated tests to expect ForbiddenError for unauthorized access
+- All 3620 tests pass, typecheck clean
 
 ---
 

@@ -185,10 +185,10 @@ const createMockCompanyRepository = (
     const companiesRef = yield* Ref.make<ReadonlyArray<Company>>(initialCompanies)
 
     const service: CompanyRepositoryService = {
-      findById: (id) =>
+      findById: (organizationId, id) =>
         Effect.gen(function* () {
           const companies = yield* Ref.get(companiesRef)
-          return Option.fromNullable(companies.find((c) => c.id === id))
+          return Option.fromNullable(companies.find((c) => c.id === id && c.organizationId === organizationId))
         }),
       findByOrganization: (orgId) =>
         Effect.gen(function* () {
@@ -200,10 +200,11 @@ const createMockCompanyRepository = (
           const companies = yield* Ref.get(companiesRef)
           return companies.filter((c) => c.organizationId === orgId && c.isActive)
         }),
-      findSubsidiaries: (parentId) =>
+      findSubsidiaries: (organizationId, parentId) =>
         Effect.gen(function* () {
           const companies = yield* Ref.get(companiesRef)
           return companies.filter((c) =>
+            c.organizationId === organizationId &&
             Option.isSome(c.parentCompanyId) && c.parentCompanyId.value === parentId
           )
         }),
@@ -212,10 +213,10 @@ const createMockCompanyRepository = (
           yield* Ref.update(companiesRef, (cs) => [...cs, company])
           return company
         }),
-      update: (company) =>
+      update: (organizationId, company) =>
         Effect.gen(function* () {
           const companies = yield* Ref.get(companiesRef)
-          const exists = companies.some((c) => c.id === company.id)
+          const exists = companies.some((c) => c.id === company.id && c.organizationId === organizationId)
           if (!exists) {
             return yield* Effect.fail(new EntityNotFoundError({
               entityType: "Company",
@@ -227,10 +228,10 @@ const createMockCompanyRepository = (
           )
           return company
         }),
-      getById: (id) =>
+      getById: (organizationId, id) =>
         Effect.gen(function* () {
           const companies = yield* Ref.get(companiesRef)
-          const company = companies.find((c) => c.id === id)
+          const company = companies.find((c) => c.id === id && c.organizationId === organizationId)
           if (!company) {
             return yield* Effect.fail(new EntityNotFoundError({
               entityType: "Company",
@@ -239,10 +240,10 @@ const createMockCompanyRepository = (
           }
           return company
         }),
-      exists: (id) =>
+      exists: (organizationId, id) =>
         Effect.gen(function* () {
           const companies = yield* Ref.get(companiesRef)
-          return companies.some((c) => c.id === id)
+          return companies.some((c) => c.id === id && c.organizationId === organizationId)
         })
     }
 
@@ -461,7 +462,7 @@ describe("CompaniesApiLive", () => {
         const testLayer = createTestLayer([org], [parent, subsidiary])
 
         const companyRepo = yield* CompanyRepository.pipe(Effect.provide(testLayer))
-        const subsidiaries = yield* companyRepo.findSubsidiaries(testParentCompanyId)
+        const subsidiaries = yield* companyRepo.findSubsidiaries(testOrganizationId, testParentCompanyId)
 
         expect(subsidiaries.length).toBe(1)
         expect(subsidiaries[0].name).toBe("Subsidiary")
@@ -477,7 +478,7 @@ describe("CompaniesApiLive", () => {
         const testLayer = createTestLayer([org], [company])
 
         const companyRepo = yield* CompanyRepository.pipe(Effect.provide(testLayer))
-        const result = yield* companyRepo.findById(testCompanyId)
+        const result = yield* companyRepo.findById(testOrganizationId, testCompanyId)
 
         expect(Option.isSome(result)).toBe(true)
         if (Option.isSome(result)) {
@@ -494,7 +495,7 @@ describe("CompaniesApiLive", () => {
         const testLayer = createTestLayer([org], [])
 
         const companyRepo = yield* CompanyRepository.pipe(Effect.provide(testLayer))
-        const result = yield* companyRepo.findById(testCompanyId)
+        const result = yield* companyRepo.findById(testOrganizationId, testCompanyId)
 
         expect(Option.isNone(result)).toBe(true)
       })
@@ -515,7 +516,7 @@ describe("CompaniesApiLive", () => {
         expect(created.functionalCurrency).toBe("USD")
         expect(created.fiscalYearEnd.isCalendarYearEnd).toBe(true)
 
-        const found = yield* companyRepo.findById(testCompanyId)
+        const found = yield* companyRepo.findById(testOrganizationId, testCompanyId)
         expect(Option.isSome(found)).toBe(true)
       })
     )
@@ -568,9 +569,9 @@ describe("CompaniesApiLive", () => {
           name: "New Name",
           fiscalYearEnd: FiscalYearEnd.make({ month: 6, day: 30 })
         })
-        yield* companyRepo.update(updated)
+        yield* companyRepo.update(testOrganizationId, updated)
 
-        const found = yield* companyRepo.findById(testCompanyId)
+        const found = yield* companyRepo.findById(testOrganizationId, testCompanyId)
         expect(Option.isSome(found)).toBe(true)
         if (Option.isSome(found)) {
           expect(found.value.name).toBe("New Name")
@@ -592,9 +593,9 @@ describe("CompaniesApiLive", () => {
           ...company,
           reportingCurrency: CurrencyCode.make("EUR")
         })
-        yield* companyRepo.update(updated)
+        yield* companyRepo.update(testOrganizationId, updated)
 
-        const found = yield* companyRepo.findById(testCompanyId)
+        const found = yield* companyRepo.findById(testOrganizationId, testCompanyId)
         expect(Option.isSome(found)).toBe(true)
         if (Option.isSome(found)) {
           expect(found.value.reportingCurrency).toBe("EUR")
@@ -610,7 +611,7 @@ describe("CompaniesApiLive", () => {
 
         const companyRepo = yield* CompanyRepository.pipe(Effect.provide(testLayer))
         const nonExistent = createTestCompany()
-        const result = yield* companyRepo.update(nonExistent).pipe(Effect.either)
+        const result = yield* companyRepo.update(testOrganizationId, nonExistent).pipe(Effect.either)
 
         expect(result._tag).toBe("Left")
       })
@@ -642,9 +643,9 @@ describe("CompaniesApiLive", () => {
           ...subsidiary,
           parentCompanyId: Option.some(parent2.id)
         })
-        yield* companyRepo.update(updated)
+        yield* companyRepo.update(testOrganizationId, updated)
 
-        const found = yield* companyRepo.findById(testSubsidiaryId)
+        const found = yield* companyRepo.findById(testOrganizationId, testSubsidiaryId)
         expect(Option.isSome(found)).toBe(true)
         if (Option.isSome(found) && Option.isSome(found.value.parentCompanyId)) {
           expect(found.value.parentCompanyId.value).toBe(parent2.id)
@@ -665,9 +666,9 @@ describe("CompaniesApiLive", () => {
           ...company,
           isActive: false
         })
-        yield* companyRepo.update(deactivated)
+        yield* companyRepo.update(testOrganizationId, deactivated)
 
-        const found = yield* companyRepo.findById(testCompanyId)
+        const found = yield* companyRepo.findById(testOrganizationId, testCompanyId)
         expect(Option.isSome(found)).toBe(true)
         if (Option.isSome(found)) {
           expect(found.value.isActive).toBe(false)
@@ -692,7 +693,7 @@ describe("CompaniesApiLive", () => {
         const testLayer = createTestLayer([org], [parent, subsidiary])
 
         const companyRepo = yield* CompanyRepository.pipe(Effect.provide(testLayer))
-        const subsidiaries = yield* companyRepo.findSubsidiaries(testParentCompanyId)
+        const subsidiaries = yield* companyRepo.findSubsidiaries(testOrganizationId, testParentCompanyId)
         const activeSubsidiaries = subsidiaries.filter((c) => c.isActive)
 
         expect(activeSubsidiaries.length).toBe(1)
@@ -716,7 +717,7 @@ describe("CompaniesApiLive", () => {
         const testLayer = createTestLayer([org], [parent, inactiveSubsidiary])
 
         const companyRepo = yield* CompanyRepository.pipe(Effect.provide(testLayer))
-        const subsidiaries = yield* companyRepo.findSubsidiaries(testParentCompanyId)
+        const subsidiaries = yield* companyRepo.findSubsidiaries(testOrganizationId, testParentCompanyId)
         const activeSubsidiaries = subsidiaries.filter((c) => c.isActive)
 
         expect(activeSubsidiaries.length).toBe(0)
@@ -737,7 +738,7 @@ describe("CompaniesApiLive", () => {
         const testLayer = createTestLayer([org], [company])
 
         const companyRepo = yield* CompanyRepository.pipe(Effect.provide(testLayer))
-        const found = yield* companyRepo.findById(testCompanyId)
+        const found = yield* companyRepo.findById(testOrganizationId, testCompanyId)
 
         expect(Option.isSome(found)).toBe(true)
         if (Option.isSome(found)) {
@@ -755,7 +756,7 @@ describe("CompaniesApiLive", () => {
         const testLayer = createTestLayer([org], [company])
 
         const companyRepo = yield* CompanyRepository.pipe(Effect.provide(testLayer))
-        const found = yield* companyRepo.findById(testCompanyId)
+        const found = yield* companyRepo.findById(testOrganizationId, testCompanyId)
 
         expect(Option.isSome(found)).toBe(true)
         if (Option.isSome(found)) {
@@ -775,7 +776,7 @@ describe("CompaniesApiLive", () => {
         const testLayer = createTestLayer([org], [company])
 
         const companyRepo = yield* CompanyRepository.pipe(Effect.provide(testLayer))
-        const found = yield* companyRepo.findById(testCompanyId)
+        const found = yield* companyRepo.findById(testOrganizationId, testCompanyId)
 
         expect(Option.isSome(found)).toBe(true)
         if (Option.isSome(found)) {
@@ -796,7 +797,7 @@ describe("CompaniesApiLive", () => {
         const testLayer = createTestLayer([org], [parent, subsidiary])
 
         const companyRepo = yield* CompanyRepository.pipe(Effect.provide(testLayer))
-        const found = yield* companyRepo.findById(testSubsidiaryId)
+        const found = yield* companyRepo.findById(testOrganizationId, testSubsidiaryId)
 
         expect(Option.isSome(found)).toBe(true)
         if (Option.isSome(found)) {

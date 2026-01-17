@@ -132,170 +132,225 @@ const rowToJournalEntry = (row: JournalEntryRow): JournalEntry =>
 const make = Effect.gen(function* () {
   const sql = yield* SqlClient.SqlClient
 
+  // Request schemas for queries with organizationId
+  const OrgAndIdRequest = Schema.Struct({
+    organizationId: Schema.String,
+    id: Schema.String
+  })
+
+  const OrgAndCompanyRequest = Schema.Struct({
+    organizationId: Schema.String,
+    companyId: Schema.String
+  })
+
+  const OrgCompanyPeriodRequest = Schema.Struct({
+    organizationId: Schema.String,
+    companyId: Schema.String,
+    year: Schema.Number,
+    period: Schema.Number
+  })
+
+  const OrgCompanyStatusRequest = Schema.Struct({
+    organizationId: Schema.String,
+    companyId: Schema.String,
+    status: Schema.String
+  })
+
+  const OrgCompanyTypeRequest = Schema.Struct({
+    organizationId: Schema.String,
+    companyId: Schema.String,
+    entryType: Schema.String
+  })
+
+  const OrgCompanyPeriodRangeRequest = Schema.Struct({
+    organizationId: Schema.String,
+    companyId: Schema.String,
+    startYear: Schema.Number,
+    startPeriod: Schema.Number,
+    endYear: Schema.Number,
+    endPeriod: Schema.Number
+  })
+
   // SqlSchema query builders for type-safe queries
   const findEntryById = SqlSchema.findOne({
-    Request: Schema.String,
+    Request: OrgAndIdRequest,
     Result: JournalEntryRow,
-    execute: (id) => sql`SELECT * FROM journal_entries WHERE id = ${id}`
+    execute: ({ organizationId, id }) => sql`
+      SELECT je.* FROM journal_entries je
+      INNER JOIN companies c ON je.company_id = c.id
+      WHERE je.id = ${id} AND c.organization_id = ${organizationId}
+    `
   })
 
   const findEntriesByCompany = SqlSchema.findAll({
-    Request: Schema.String,
+    Request: OrgAndCompanyRequest,
     Result: JournalEntryRow,
-    execute: (companyId) => sql`
-      SELECT * FROM journal_entries
-      WHERE company_id = ${companyId}
-      ORDER BY transaction_date DESC, created_at DESC
+    execute: ({ organizationId, companyId }) => sql`
+      SELECT je.* FROM journal_entries je
+      INNER JOIN companies c ON je.company_id = c.id
+      WHERE je.company_id = ${companyId} AND c.organization_id = ${organizationId}
+      ORDER BY je.transaction_date DESC, je.created_at DESC
     `
   })
 
   const findEntriesByPeriod = SqlSchema.findAll({
-    Request: Schema.Struct({
-      companyId: Schema.String,
-      year: Schema.Number,
-      period: Schema.Number
-    }),
+    Request: OrgCompanyPeriodRequest,
     Result: JournalEntryRow,
-    execute: ({ companyId, year, period }) => sql`
-      SELECT * FROM journal_entries
-      WHERE company_id = ${companyId}
-        AND fiscal_year = ${year}
-        AND fiscal_period = ${period}
-      ORDER BY transaction_date DESC, created_at DESC
+    execute: ({ organizationId, companyId, year, period }) => sql`
+      SELECT je.* FROM journal_entries je
+      INNER JOIN companies c ON je.company_id = c.id
+      WHERE je.company_id = ${companyId}
+        AND c.organization_id = ${organizationId}
+        AND je.fiscal_year = ${year}
+        AND je.fiscal_period = ${period}
+      ORDER BY je.transaction_date DESC, je.created_at DESC
     `
   })
 
   const findEntriesByStatus = SqlSchema.findAll({
-    Request: Schema.Struct({ companyId: Schema.String, status: Schema.String }),
+    Request: OrgCompanyStatusRequest,
     Result: JournalEntryRow,
-    execute: ({ companyId, status }) => sql`
-      SELECT * FROM journal_entries
-      WHERE company_id = ${companyId} AND status = ${status}
-      ORDER BY transaction_date DESC, created_at DESC
+    execute: ({ organizationId, companyId, status }) => sql`
+      SELECT je.* FROM journal_entries je
+      INNER JOIN companies c ON je.company_id = c.id
+      WHERE je.company_id = ${companyId}
+        AND c.organization_id = ${organizationId}
+        AND je.status = ${status}
+      ORDER BY je.transaction_date DESC, je.created_at DESC
     `
   })
 
   const findEntriesByType = SqlSchema.findAll({
-    Request: Schema.Struct({ companyId: Schema.String, entryType: Schema.String }),
+    Request: OrgCompanyTypeRequest,
     Result: JournalEntryRow,
-    execute: ({ companyId, entryType }) => sql`
-      SELECT * FROM journal_entries
-      WHERE company_id = ${companyId} AND entry_type = ${entryType}
-      ORDER BY transaction_date DESC, created_at DESC
+    execute: ({ organizationId, companyId, entryType }) => sql`
+      SELECT je.* FROM journal_entries je
+      INNER JOIN companies c ON je.company_id = c.id
+      WHERE je.company_id = ${companyId}
+        AND c.organization_id = ${organizationId}
+        AND je.entry_type = ${entryType}
+      ORDER BY je.transaction_date DESC, je.created_at DESC
     `
   })
 
   const findEntriesByPeriodRange = SqlSchema.findAll({
-    Request: Schema.Struct({
-      companyId: Schema.String,
-      startYear: Schema.Number,
-      startPeriod: Schema.Number,
-      endYear: Schema.Number,
-      endPeriod: Schema.Number
-    }),
+    Request: OrgCompanyPeriodRangeRequest,
     Result: JournalEntryRow,
-    execute: ({ companyId, startYear, startPeriod, endYear, endPeriod }) => sql`
-      SELECT * FROM journal_entries
-      WHERE company_id = ${companyId}
-        AND (fiscal_year > ${startYear}
-             OR (fiscal_year = ${startYear} AND fiscal_period >= ${startPeriod}))
-        AND (fiscal_year < ${endYear}
-             OR (fiscal_year = ${endYear} AND fiscal_period <= ${endPeriod}))
-      ORDER BY fiscal_year, fiscal_period, transaction_date
+    execute: ({ organizationId, companyId, startYear, startPeriod, endYear, endPeriod }) => sql`
+      SELECT je.* FROM journal_entries je
+      INNER JOIN companies c ON je.company_id = c.id
+      WHERE je.company_id = ${companyId}
+        AND c.organization_id = ${organizationId}
+        AND (je.fiscal_year > ${startYear}
+             OR (je.fiscal_year = ${startYear} AND je.fiscal_period >= ${startPeriod}))
+        AND (je.fiscal_year < ${endYear}
+             OR (je.fiscal_year = ${endYear} AND je.fiscal_period <= ${endPeriod}))
+      ORDER BY je.fiscal_year, je.fiscal_period, je.transaction_date
     `
   })
 
   const findDraftEntriesQuery = SqlSchema.findAll({
-    Request: Schema.String,
+    Request: OrgAndCompanyRequest,
     Result: JournalEntryRow,
-    execute: (companyId) => sql`
-      SELECT * FROM journal_entries
-      WHERE company_id = ${companyId} AND status = 'Draft'
-      ORDER BY created_at DESC
+    execute: ({ organizationId, companyId }) => sql`
+      SELECT je.* FROM journal_entries je
+      INNER JOIN companies c ON je.company_id = c.id
+      WHERE je.company_id = ${companyId}
+        AND c.organization_id = ${organizationId}
+        AND je.status = 'Draft'
+      ORDER BY je.created_at DESC
     `
   })
 
   const findPostedByPeriodQuery = SqlSchema.findAll({
-    Request: Schema.Struct({
-      companyId: Schema.String,
-      year: Schema.Number,
-      period: Schema.Number
-    }),
+    Request: OrgCompanyPeriodRequest,
     Result: JournalEntryRow,
-    execute: ({ companyId, year, period }) => sql`
-      SELECT * FROM journal_entries
-      WHERE company_id = ${companyId}
-        AND status = 'Posted'
-        AND fiscal_year = ${year}
-        AND fiscal_period = ${period}
-      ORDER BY posting_date, entry_number
+    execute: ({ organizationId, companyId, year, period }) => sql`
+      SELECT je.* FROM journal_entries je
+      INNER JOIN companies c ON je.company_id = c.id
+      WHERE je.company_id = ${companyId}
+        AND c.organization_id = ${organizationId}
+        AND je.status = 'Posted'
+        AND je.fiscal_year = ${year}
+        AND je.fiscal_period = ${period}
+      ORDER BY je.posting_date, je.entry_number
     `
   })
 
   const findReversingEntryQuery = SqlSchema.findOne({
-    Request: Schema.String,
+    Request: OrgAndIdRequest,
     Result: JournalEntryRow,
-    execute: (entryId) => sql`
-      SELECT * FROM journal_entries
-      WHERE reversed_entry_id = ${entryId}
+    execute: ({ organizationId, id }) => sql`
+      SELECT je.* FROM journal_entries je
+      INNER JOIN companies c ON je.company_id = c.id
+      WHERE je.reversed_entry_id = ${id}
+        AND c.organization_id = ${organizationId}
     `
   })
 
   const countDraftEntriesQuery = SqlSchema.single({
-    Request: Schema.Struct({
-      companyId: Schema.String,
-      year: Schema.Number,
-      period: Schema.Number
-    }),
+    Request: OrgCompanyPeriodRequest,
     Result: CountRow,
-    execute: ({ companyId, year, period }) => sql`
-      SELECT COUNT(*) as count FROM journal_entries
-      WHERE company_id = ${companyId}
-        AND status = 'Draft'
-        AND fiscal_year = ${year}
-        AND fiscal_period = ${period}
+    execute: ({ organizationId, companyId, year, period }) => sql`
+      SELECT COUNT(*) as count FROM journal_entries je
+      INNER JOIN companies c ON je.company_id = c.id
+      WHERE je.company_id = ${companyId}
+        AND c.organization_id = ${organizationId}
+        AND je.status = 'Draft'
+        AND je.fiscal_year = ${year}
+        AND je.fiscal_period = ${period}
     `
   })
 
   const findIntercompanyEntriesQuery = SqlSchema.findAll({
-    Request: Schema.String,
+    Request: OrgAndCompanyRequest,
     Result: JournalEntryRow,
-    execute: (companyId) => sql`
-      SELECT * FROM journal_entries
-      WHERE company_id = ${companyId} AND entry_type = 'Intercompany'
-      ORDER BY transaction_date DESC, created_at DESC
+    execute: ({ organizationId, companyId }) => sql`
+      SELECT je.* FROM journal_entries je
+      INNER JOIN companies c ON je.company_id = c.id
+      WHERE je.company_id = ${companyId}
+        AND c.organization_id = ${organizationId}
+        AND je.entry_type = 'Intercompany'
+      ORDER BY je.transaction_date DESC, je.created_at DESC
     `
   })
 
   const countById = SqlSchema.single({
-    Request: Schema.String,
+    Request: OrgAndIdRequest,
     Result: CountRow,
-    execute: (id) => sql`SELECT COUNT(*) as count FROM journal_entries WHERE id = ${id}`
-  })
-
-  const getMaxEntryNumber = SqlSchema.single({
-    Request: Schema.String,
-    Result: MaxNumRow,
-    execute: (companyId) => sql`
-      SELECT MAX(entry_number) as max_num FROM journal_entries
-      WHERE company_id = ${companyId} AND entry_number IS NOT NULL
+    execute: ({ organizationId, id }) => sql`
+      SELECT COUNT(*) as count FROM journal_entries je
+      INNER JOIN companies c ON je.company_id = c.id
+      WHERE je.id = ${id} AND c.organization_id = ${organizationId}
     `
   })
 
-  const findById: JournalEntryRepositoryService["findById"] = (id) =>
-    findEntryById(id).pipe(
+  const getMaxEntryNumber = SqlSchema.single({
+    Request: OrgAndCompanyRequest,
+    Result: MaxNumRow,
+    execute: ({ organizationId, companyId }) => sql`
+      SELECT MAX(je.entry_number) as max_num FROM journal_entries je
+      INNER JOIN companies c ON je.company_id = c.id
+      WHERE je.company_id = ${companyId}
+        AND c.organization_id = ${organizationId}
+        AND je.entry_number IS NOT NULL
+    `
+  })
+
+  const findById: JournalEntryRepositoryService["findById"] = (organizationId, id) =>
+    findEntryById({ organizationId, id }).pipe(
       Effect.map(Option.map(rowToJournalEntry)),
       wrapSqlError("findById")
     )
 
-  const findByCompany: JournalEntryRepositoryService["findByCompany"] = (companyId) =>
-    findEntriesByCompany(companyId).pipe(
+  const findByCompany: JournalEntryRepositoryService["findByCompany"] = (organizationId, companyId) =>
+    findEntriesByCompany({ organizationId, companyId }).pipe(
       Effect.map((rows) => rows.map(rowToJournalEntry)),
       wrapSqlError("findByCompany")
     )
 
-  const findByPeriod: JournalEntryRepositoryService["findByPeriod"] = (companyId, period) =>
-    findEntriesByPeriod({ companyId, year: period.year, period: period.period }).pipe(
+  const findByPeriod: JournalEntryRepositoryService["findByPeriod"] = (organizationId, companyId, period) =>
+    findEntriesByPeriod({ organizationId, companyId, year: period.year, period: period.period }).pipe(
       Effect.map((rows) => rows.map(rowToJournalEntry)),
       wrapSqlError("findByPeriod")
     )
@@ -339,10 +394,10 @@ const make = Effect.gen(function* () {
       return entry
     })
 
-  const update: JournalEntryRepositoryService["update"] = (entry) =>
+  const update: JournalEntryRepositoryService["update"] = (organizationId, entry) =>
     Effect.gen(function* () {
       const result = yield* sql`
-        UPDATE journal_entries SET
+        UPDATE journal_entries je SET
           entry_number = ${Option.getOrNull(entry.entryNumber)},
           reference_number = ${Option.getOrNull(entry.referenceNumber)},
           description = ${entry.description},
@@ -361,8 +416,11 @@ const make = Effect.gen(function* () {
           reversing_entry_id = ${Option.getOrNull(entry.reversingEntryId)},
           posted_by = ${Option.getOrNull(entry.postedBy)},
           posted_at = ${Option.match(entry.postedAt, { onNone: () => null, onSome: (t) => t.toDate() })}
-        WHERE id = ${entry.id}
-        RETURNING id
+        FROM companies c
+        WHERE je.id = ${entry.id}
+          AND je.company_id = c.id
+          AND c.organization_id = ${organizationId}
+        RETURNING je.id
       `.pipe(wrapSqlError("update"))
 
       if (result.length === 0) {
@@ -374,33 +432,35 @@ const make = Effect.gen(function* () {
       return entry
     })
 
-  const getById: JournalEntryRepositoryService["getById"] = (id) =>
+  const getById: JournalEntryRepositoryService["getById"] = (organizationId, id) =>
     Effect.gen(function* () {
-      const maybeEntry = yield* findById(id)
+      const maybeEntry = yield* findById(organizationId, id)
       return yield* Option.match(maybeEntry, {
         onNone: () => Effect.fail(new EntityNotFoundError({ entityType: "JournalEntry", entityId: id })),
         onSome: Effect.succeed
       })
     })
 
-  const findByStatus: JournalEntryRepositoryService["findByStatus"] = (companyId, status) =>
-    findEntriesByStatus({ companyId, status }).pipe(
+  const findByStatus: JournalEntryRepositoryService["findByStatus"] = (organizationId, companyId, status) =>
+    findEntriesByStatus({ organizationId, companyId, status }).pipe(
       Effect.map((rows) => rows.map(rowToJournalEntry)),
       wrapSqlError("findByStatus")
     )
 
-  const findByType: JournalEntryRepositoryService["findByType"] = (companyId, entryType) =>
-    findEntriesByType({ companyId, entryType }).pipe(
+  const findByType: JournalEntryRepositoryService["findByType"] = (organizationId, companyId, entryType) =>
+    findEntriesByType({ organizationId, companyId, entryType }).pipe(
       Effect.map((rows) => rows.map(rowToJournalEntry)),
       wrapSqlError("findByType")
     )
 
   const findByPeriodRange: JournalEntryRepositoryService["findByPeriodRange"] = (
+    organizationId,
     companyId,
     startPeriod,
     endPeriod
   ) =>
     findEntriesByPeriodRange({
+      organizationId,
       companyId,
       startYear: startPeriod.year,
       startPeriod: startPeriod.period,
@@ -411,47 +471,48 @@ const make = Effect.gen(function* () {
       wrapSqlError("findByPeriodRange")
     )
 
-  const findDraftEntries: JournalEntryRepositoryService["findDraftEntries"] = (companyId) =>
-    findDraftEntriesQuery(companyId).pipe(
+  const findDraftEntries: JournalEntryRepositoryService["findDraftEntries"] = (organizationId, companyId) =>
+    findDraftEntriesQuery({ organizationId, companyId }).pipe(
       Effect.map((rows) => rows.map(rowToJournalEntry)),
       wrapSqlError("findDraftEntries")
     )
 
-  const findPostedByPeriod: JournalEntryRepositoryService["findPostedByPeriod"] = (companyId, period) =>
-    findPostedByPeriodQuery({ companyId, year: period.year, period: period.period }).pipe(
+  const findPostedByPeriod: JournalEntryRepositoryService["findPostedByPeriod"] = (organizationId, companyId, period) =>
+    findPostedByPeriodQuery({ organizationId, companyId, year: period.year, period: period.period }).pipe(
       Effect.map((rows) => rows.map(rowToJournalEntry)),
       wrapSqlError("findPostedByPeriod")
     )
 
-  const findReversingEntry: JournalEntryRepositoryService["findReversingEntry"] = (entryId) =>
-    findReversingEntryQuery(entryId).pipe(
+  const findReversingEntry: JournalEntryRepositoryService["findReversingEntry"] = (organizationId, entryId) =>
+    findReversingEntryQuery({ organizationId, id: entryId }).pipe(
       Effect.map(Option.map(rowToJournalEntry)),
       wrapSqlError("findReversingEntry")
     )
 
   const countDraftEntriesInPeriod: JournalEntryRepositoryService["countDraftEntriesInPeriod"] = (
+    organizationId,
     companyId,
     period
   ) =>
-    countDraftEntriesQuery({ companyId, year: period.year, period: period.period }).pipe(
+    countDraftEntriesQuery({ organizationId, companyId, year: period.year, period: period.period }).pipe(
       Effect.map((row) => parseInt(row.count, 10)),
       wrapSqlError("countDraftEntriesInPeriod")
     )
 
-  const findIntercompanyEntries: JournalEntryRepositoryService["findIntercompanyEntries"] = (companyId) =>
-    findIntercompanyEntriesQuery(companyId).pipe(
+  const findIntercompanyEntries: JournalEntryRepositoryService["findIntercompanyEntries"] = (organizationId, companyId) =>
+    findIntercompanyEntriesQuery({ organizationId, companyId }).pipe(
       Effect.map((rows) => rows.map(rowToJournalEntry)),
       wrapSqlError("findIntercompanyEntries")
     )
 
-  const exists: JournalEntryRepositoryService["exists"] = (id) =>
-    countById(id).pipe(
+  const exists: JournalEntryRepositoryService["exists"] = (organizationId, id) =>
+    countById({ organizationId, id }).pipe(
       Effect.map((row) => parseInt(row.count, 10) > 0),
       wrapSqlError("exists")
     )
 
-  const getNextEntryNumber: JournalEntryRepositoryService["getNextEntryNumber"] = (companyId) =>
-    getMaxEntryNumber(companyId).pipe(
+  const getNextEntryNumber: JournalEntryRepositoryService["getNextEntryNumber"] = (organizationId, companyId) =>
+    getMaxEntryNumber({ organizationId, companyId }).pipe(
       Effect.map((row) => {
         const maxNum = row.max_num
         if (maxNum === null) {

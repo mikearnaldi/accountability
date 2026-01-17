@@ -82,6 +82,7 @@ test.describe("Journal Entry Past Dates", () => {
     const createAccount1Res = await request.post("/api/v1/accounts", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         accountNumber: "1000",
         name: "Cash",
@@ -103,6 +104,7 @@ test.describe("Journal Entry Past Dates", () => {
     const createAccount2Res = await request.post("/api/v1/accounts", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         accountNumber: "4000",
         name: "Revenue",
@@ -262,6 +264,7 @@ test.describe("Journal Entry Past Dates", () => {
     const createAccount1Res = await request.post("/api/v1/accounts", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         accountNumber: "1000",
         name: "Cash",
@@ -284,6 +287,7 @@ test.describe("Journal Entry Past Dates", () => {
     const createAccount2Res = await request.post("/api/v1/accounts", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         accountNumber: "4000",
         name: "Revenue",
@@ -307,6 +311,7 @@ test.describe("Journal Entry Past Dates", () => {
     const createJERes = await request.post("/api/v1/journal-entries", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         description: "API test entry from 2024",
         transactionDate: "2024-06-15",
@@ -416,6 +421,7 @@ test.describe("Journal Entry Past Dates", () => {
     await request.post("/api/v1/accounts", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         accountNumber: "1000",
         name: "Cash",
@@ -436,6 +442,7 @@ test.describe("Journal Entry Past Dates", () => {
     await request.post("/api/v1/accounts", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         accountNumber: "4000",
         name: "Revenue",
@@ -574,6 +581,7 @@ test.describe("Journal Entry Past Dates", () => {
     await request.post("/api/v1/accounts", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         accountNumber: "1000",
         name: "Cash",
@@ -594,6 +602,7 @@ test.describe("Journal Entry Past Dates", () => {
     await request.post("/api/v1/accounts", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         accountNumber: "4000",
         name: "Revenue",
@@ -732,6 +741,7 @@ test.describe("Journal Entry Past Dates", () => {
     await request.post("/api/v1/accounts", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         accountNumber: "1000",
         name: "Cash",
@@ -752,6 +762,7 @@ test.describe("Journal Entry Past Dates", () => {
     await request.post("/api/v1/accounts", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         accountNumber: "4000",
         name: "Revenue",
@@ -894,6 +905,7 @@ test.describe("Journal Entry Past Dates", () => {
     const createAccount1Res = await request.post("/api/v1/accounts", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         accountNumber: "1000",
         name: "Cash",
@@ -916,6 +928,7 @@ test.describe("Journal Entry Past Dates", () => {
     const createAccount2Res = await request.post("/api/v1/accounts", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         accountNumber: "4000",
         name: "Revenue",
@@ -939,6 +952,7 @@ test.describe("Journal Entry Past Dates", () => {
     const createJERes = await request.post("/api/v1/journal-entries", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
+        organizationId: orgData.id,
         companyId: companyData.id,
         description: "Y2K historical entry",
         transactionDate: "2000-01-01",

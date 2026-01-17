@@ -22,6 +22,7 @@ interface LinkJournalEntryModalProps {
   readonly isOpen: boolean
   readonly onClose: () => void
   readonly onSubmit: (journalEntryId: string) => Promise<void>
+  readonly organizationId: string
   readonly companyId: string
   readonly companyName: string
   readonly side: "from" | "to"
@@ -32,6 +33,7 @@ export function LinkJournalEntryModal({
   isOpen,
   onClose,
   onSubmit,
+  organizationId,
   companyId,
   companyName,
   side,
@@ -53,7 +55,7 @@ export function LinkJournalEntryModal({
 
       try {
         const { data, error: apiError } = await api.GET("/api/v1/journal-entries", {
-          params: { query: { companyId, limit: "50" } }
+          params: { query: { organizationId, companyId, limit: "50" } }
         })
 
         if (apiError) {
@@ -71,7 +73,7 @@ export function LinkJournalEntryModal({
     }
 
     fetchJournalEntries()
-  }, [isOpen, companyId])
+  }, [isOpen, organizationId, companyId])
 
   // Filter entries by search query
   const filteredEntries = useMemo(() => {

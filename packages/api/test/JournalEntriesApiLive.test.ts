@@ -167,19 +167,19 @@ const createMockJournalEntryRepository = (
     const entryNumberRef = yield* Ref.make(1)
 
     const service: JournalEntryRepositoryService = {
-      findById: (id) =>
+      findById: (_organizationId, id) =>
         Effect.gen(function* () {
           const entries = yield* Ref.get(entriesRef)
           return Option.fromNullable(entries.find((e) => e.id === id))
         }),
 
-      findByCompany: (companyId) =>
+      findByCompany: (_organizationId, companyId) =>
         Effect.gen(function* () {
           const entries = yield* Ref.get(entriesRef)
           return entries.filter((e) => e.companyId === companyId)
         }),
 
-      findByPeriod: (companyId, period) =>
+      findByPeriod: (_organizationId, companyId, period) =>
         Effect.gen(function* () {
           const entries = yield* Ref.get(entriesRef)
           return entries.filter(
@@ -190,31 +190,31 @@ const createMockJournalEntryRepository = (
           )
         }),
 
-      findByStatus: (companyId, status) =>
+      findByStatus: (_organizationId, companyId, status) =>
         Effect.gen(function* () {
           const entries = yield* Ref.get(entriesRef)
           return entries.filter((e) => e.companyId === companyId && e.status === status)
         }),
 
-      findByType: (companyId, entryType) =>
+      findByType: (_organizationId, companyId, entryType) =>
         Effect.gen(function* () {
           const entries = yield* Ref.get(entriesRef)
           return entries.filter((e) => e.companyId === companyId && e.entryType === entryType)
         }),
 
-      findByPeriodRange: (_companyId, _startPeriod, _endPeriod) =>
+      findByPeriodRange: (_organizationId, _companyId, _startPeriod, _endPeriod) =>
         Effect.succeed([]),
 
-      findDraftEntries: (companyId) =>
+      findDraftEntries: (_organizationId, companyId) =>
         Effect.gen(function* () {
           const entries = yield* Ref.get(entriesRef)
           return entries.filter((e) => e.companyId === companyId && e.status === "Draft")
         }),
 
-      findPostedByPeriod: (_companyId, _period) =>
+      findPostedByPeriod: (_organizationId, _companyId, _period) =>
         Effect.succeed([]),
 
-      findReversingEntry: (entryId) =>
+      findReversingEntry: (_organizationId, entryId) =>
         Effect.gen(function* () {
           const entries = yield* Ref.get(entriesRef)
           return Option.fromNullable(
@@ -222,10 +222,10 @@ const createMockJournalEntryRepository = (
           )
         }),
 
-      countDraftEntriesInPeriod: (_companyId, _period) =>
+      countDraftEntriesInPeriod: (_organizationId, _companyId, _period) =>
         Effect.succeed(0),
 
-      findIntercompanyEntries: (_companyId) =>
+      findIntercompanyEntries: (_organizationId, _companyId) =>
         Effect.succeed([]),
 
       create: (entry) =>
@@ -234,7 +234,7 @@ const createMockJournalEntryRepository = (
           return entry
         }),
 
-      update: (entry) =>
+      update: (_organizationId, entry) =>
         Effect.gen(function* () {
           const entries = yield* Ref.get(entriesRef)
           const exists = entries.some((e) => e.id === entry.id)
@@ -247,7 +247,7 @@ const createMockJournalEntryRepository = (
           return entry
         }),
 
-      getById: (id) =>
+      getById: (_organizationId, id) =>
         Effect.gen(function* () {
           const entries = yield* Ref.get(entriesRef)
           const entry = entries.find((e) => e.id === id)
@@ -259,13 +259,13 @@ const createMockJournalEntryRepository = (
           return entry
         }),
 
-      exists: (id) =>
+      exists: (_organizationId, id) =>
         Effect.gen(function* () {
           const entries = yield* Ref.get(entriesRef)
           return entries.some((e) => e.id === id)
         }),
 
-      getNextEntryNumber: (_companyId) =>
+      getNextEntryNumber: (_organizationId, _companyId) =>
         Effect.gen(function* () {
           const num = yield* Ref.getAndUpdate(entryNumberRef, (n) => n + 1)
           return `JE-${String(num).padStart(4, "0")}`
@@ -352,10 +352,10 @@ const createMockCompanyRepository = (
     const companiesRef = yield* Ref.make<ReadonlyArray<Company>>(initialCompanies)
 
     const service: CompanyRepositoryService = {
-      findById: (id) =>
+      findById: (organizationId, id) =>
         Effect.gen(function* () {
           const companies = yield* Ref.get(companiesRef)
-          return Option.fromNullable(companies.find((c) => c.id === id))
+          return Option.fromNullable(companies.find((c) => c.id === id && c.organizationId === organizationId))
         }),
 
       findByOrganization: (_orgId) =>
@@ -364,7 +364,7 @@ const createMockCompanyRepository = (
       findActiveByOrganization: (_orgId) =>
         Effect.succeed([]),
 
-      findSubsidiaries: (_parentId) =>
+      findSubsidiaries: (_organizationId, _parentId) =>
         Effect.succeed([]),
 
       create: (company) =>
@@ -373,10 +373,10 @@ const createMockCompanyRepository = (
           return company
         }),
 
-      update: (company) =>
+      update: (organizationId, company) =>
         Effect.gen(function* () {
           const companies = yield* Ref.get(companiesRef)
-          const exists = companies.some((c) => c.id === company.id)
+          const exists = companies.some((c) => c.id === company.id && c.organizationId === organizationId)
           if (!exists) {
             return yield* Effect.fail(
               new EntityNotFoundError({ entityType: "Company", entityId: company.id })
@@ -388,10 +388,10 @@ const createMockCompanyRepository = (
           return company
         }),
 
-      getById: (id) =>
+      getById: (organizationId, id) =>
         Effect.gen(function* () {
           const companies = yield* Ref.get(companiesRef)
-          const company = companies.find((c) => c.id === id)
+          const company = companies.find((c) => c.id === id && c.organizationId === organizationId)
           if (!company) {
             return yield* Effect.fail(
               new EntityNotFoundError({ entityType: "Company", entityId: id })
@@ -400,10 +400,10 @@ const createMockCompanyRepository = (
           return company
         }),
 
-      exists: (id) =>
+      exists: (organizationId, id) =>
         Effect.gen(function* () {
           const companies = yield* Ref.get(companiesRef)
-          return companies.some((c) => c.id === id)
+          return companies.some((c) => c.id === id && c.organizationId === organizationId)
         })
     }
 
@@ -447,7 +447,7 @@ describe("JournalEntriesApiLive", () => {
         const testLayer = createTestLayer({ entries: [entry1, entry2] })
 
         const entryRepo = yield* JournalEntryRepository.pipe(Effect.provide(testLayer))
-        const entries = yield* entryRepo.findByCompany(testCompanyId)
+        const entries = yield* entryRepo.findByCompany(testOrganizationId, testCompanyId)
 
         expect(entries.length).toBe(2)
       })
@@ -464,7 +464,7 @@ describe("JournalEntriesApiLive", () => {
         const testLayer = createTestLayer({ entries: [draftEntry, postedEntry] })
 
         const entryRepo = yield* JournalEntryRepository.pipe(Effect.provide(testLayer))
-        const draftEntries = yield* entryRepo.findByStatus(testCompanyId, "Draft")
+        const draftEntries = yield* entryRepo.findByStatus(testOrganizationId, testCompanyId, "Draft")
 
         expect(draftEntries.length).toBe(1)
         expect(draftEntries[0].status).toBe("Draft")
@@ -482,7 +482,7 @@ describe("JournalEntriesApiLive", () => {
         const testLayer = createTestLayer({ entries: [standardEntry, adjustingEntry] })
 
         const entryRepo = yield* JournalEntryRepository.pipe(Effect.provide(testLayer))
-        const adjustingEntries = yield* entryRepo.findByType(testCompanyId, "Adjusting")
+        const adjustingEntries = yield* entryRepo.findByType(testOrganizationId, testCompanyId, "Adjusting")
 
         expect(adjustingEntries.length).toBe(1)
         expect(adjustingEntries[0].entryType).toBe("Adjusting")
@@ -514,7 +514,7 @@ describe("JournalEntriesApiLive", () => {
         const entryRepo = yield* JournalEntryRepository.pipe(Effect.provide(testLayer))
         const lineRepo = yield* JournalEntryLineRepository.pipe(Effect.provide(testLayer))
 
-        const maybeEntry = yield* entryRepo.findById(entry.id)
+        const maybeEntry = yield* entryRepo.findById(testOrganizationId, entry.id)
         expect(Option.isSome(maybeEntry)).toBe(true)
 
         const lines = yield* lineRepo.findByJournalEntry(entry.id)
@@ -528,6 +528,7 @@ describe("JournalEntriesApiLive", () => {
 
         const entryRepo = yield* JournalEntryRepository.pipe(Effect.provide(testLayer))
         const maybeEntry = yield* entryRepo.findById(
+          testOrganizationId,
           JournalEntryId.make("00000000-0000-0000-0000-000000000000")
         )
 
@@ -566,7 +567,7 @@ describe("JournalEntriesApiLive", () => {
         yield* lineRepo.createMany([line1, line2])
 
         // Verify
-        const maybeEntry = yield* entryRepo.findById(entryId)
+        const maybeEntry = yield* entryRepo.findById(testOrganizationId, entryId)
         expect(Option.isSome(maybeEntry)).toBe(true)
 
         const lines = yield* lineRepo.findByJournalEntry(entryId)
@@ -579,7 +580,7 @@ describe("JournalEntriesApiLive", () => {
         const testLayer = createTestLayer({ companies: [] })
 
         const companyRepo = yield* CompanyRepository.pipe(Effect.provide(testLayer))
-        const exists = yield* companyRepo.exists(testCompanyId)
+        const exists = yield* companyRepo.exists(testOrganizationId, testCompanyId)
 
         expect(exists).toBe(false)
       })
@@ -604,9 +605,9 @@ describe("JournalEntriesApiLive", () => {
           ...entry,
           description: "Updated description"
         })
-        yield* entryRepo.update(updated)
+        yield* entryRepo.update(testOrganizationId, updated)
 
-        const maybeEntry = yield* entryRepo.findById(entry.id)
+        const maybeEntry = yield* entryRepo.findById(testOrganizationId, entry.id)
         expect(Option.isSome(maybeEntry)).toBe(true)
         if (Option.isSome(maybeEntry)) {
           expect(maybeEntry.value.description).toBe("Updated description")
@@ -620,7 +621,7 @@ describe("JournalEntriesApiLive", () => {
         const testLayer = createTestLayer({ entries: [postedEntry] })
 
         const entryRepo = yield* JournalEntryRepository.pipe(Effect.provide(testLayer))
-        const maybeEntry = yield* entryRepo.findById(postedEntry.id)
+        const maybeEntry = yield* entryRepo.findById(testOrganizationId, postedEntry.id)
 
         expect(Option.isSome(maybeEntry)).toBe(true)
         if (Option.isSome(maybeEntry)) {
@@ -648,9 +649,9 @@ describe("JournalEntriesApiLive", () => {
           ...entry,
           status: "PendingApproval"
         })
-        yield* entryRepo.update(submitted)
+        yield* entryRepo.update(testOrganizationId, submitted)
 
-        const maybeEntry = yield* entryRepo.findById(entry.id)
+        const maybeEntry = yield* entryRepo.findById(testOrganizationId, entry.id)
         expect(Option.isSome(maybeEntry)).toBe(true)
         if (Option.isSome(maybeEntry)) {
           expect(maybeEntry.value.status).toBe("PendingApproval")
@@ -671,9 +672,9 @@ describe("JournalEntriesApiLive", () => {
           ...entry,
           status: "Approved"
         })
-        yield* entryRepo.update(approved)
+        yield* entryRepo.update(testOrganizationId, approved)
 
-        const maybeEntry = yield* entryRepo.findById(entry.id)
+        const maybeEntry = yield* entryRepo.findById(testOrganizationId, entry.id)
         expect(Option.isSome(maybeEntry)).toBe(true)
         if (Option.isSome(maybeEntry)) {
           expect(maybeEntry.value.status).toBe("Approved")
@@ -692,9 +693,9 @@ describe("JournalEntriesApiLive", () => {
           ...entry,
           status: "Draft"
         })
-        yield* entryRepo.update(rejected)
+        yield* entryRepo.update(testOrganizationId, rejected)
 
-        const maybeEntry = yield* entryRepo.findById(entry.id)
+        const maybeEntry = yield* entryRepo.findById(testOrganizationId, entry.id)
         expect(Option.isSome(maybeEntry)).toBe(true)
         if (Option.isSome(maybeEntry)) {
           expect(maybeEntry.value.status).toBe("Draft")
@@ -723,9 +724,9 @@ describe("JournalEntriesApiLive", () => {
           postedBy: Option.some(testUserId),
           postedAt: Option.some(timestampNow())
         })
-        yield* entryRepo.update(posted)
+        yield* entryRepo.update(testOrganizationId, posted)
 
-        const maybeEntry = yield* entryRepo.findById(entry.id)
+        const maybeEntry = yield* entryRepo.findById(testOrganizationId, entry.id)
         expect(Option.isSome(maybeEntry)).toBe(true)
         if (Option.isSome(maybeEntry)) {
           expect(maybeEntry.value.status).toBe("Posted")
@@ -740,7 +741,7 @@ describe("JournalEntriesApiLive", () => {
         const testLayer = createTestLayer({ entries: [draftEntry] })
 
         const entryRepo = yield* JournalEntryRepository.pipe(Effect.provide(testLayer))
-        const maybeEntry = yield* entryRepo.findById(draftEntry.id)
+        const maybeEntry = yield* entryRepo.findById(testOrganizationId, draftEntry.id)
 
         expect(Option.isSome(maybeEntry)).toBe(true)
         if (Option.isSome(maybeEntry)) {
@@ -809,19 +810,19 @@ describe("JournalEntriesApiLive", () => {
           reversingEntryId: Option.some(reversalId)
         })
 
-        yield* entryRepo.update(reversedOriginal)
+        yield* entryRepo.update(testOrganizationId, reversedOriginal)
         yield* entryRepo.create(reversalEntry)
         yield* lineRepo.createMany([reversalLine1, reversalLine2])
 
         // Verify
-        const maybeOriginal = yield* entryRepo.findById(entry.id)
+        const maybeOriginal = yield* entryRepo.findById(testOrganizationId, entry.id)
         expect(Option.isSome(maybeOriginal)).toBe(true)
         if (Option.isSome(maybeOriginal)) {
           expect(maybeOriginal.value.status).toBe("Reversed")
           expect(Option.isSome(maybeOriginal.value.reversingEntryId)).toBe(true)
         }
 
-        const maybeReversal = yield* entryRepo.findById(reversalId)
+        const maybeReversal = yield* entryRepo.findById(testOrganizationId, reversalId)
         expect(Option.isSome(maybeReversal)).toBe(true)
         if (Option.isSome(maybeReversal)) {
           expect(maybeReversal.value.isReversing).toBe(true)
@@ -836,7 +837,7 @@ describe("JournalEntriesApiLive", () => {
         const testLayer = createTestLayer({ entries: [draftEntry] })
 
         const entryRepo = yield* JournalEntryRepository.pipe(Effect.provide(testLayer))
-        const maybeEntry = yield* entryRepo.findById(draftEntry.id)
+        const maybeEntry = yield* entryRepo.findById(testOrganizationId, draftEntry.id)
 
         expect(Option.isSome(maybeEntry)).toBe(true)
         if (Option.isSome(maybeEntry)) {
@@ -854,7 +855,7 @@ describe("JournalEntriesApiLive", () => {
         const testLayer = createTestLayer({ entries: [reversedEntry] })
 
         const entryRepo = yield* JournalEntryRepository.pipe(Effect.provide(testLayer))
-        const maybeEntry = yield* entryRepo.findById(reversedEntry.id)
+        const maybeEntry = yield* entryRepo.findById(testOrganizationId, reversedEntry.id)
 
         expect(Option.isSome(maybeEntry)).toBe(true)
         if (Option.isSome(maybeEntry)) {
@@ -874,7 +875,7 @@ describe("JournalEntriesApiLive", () => {
         const testLayer = createTestLayer({ entries: [entry] })
 
         const entryRepo = yield* JournalEntryRepository.pipe(Effect.provide(testLayer))
-        const maybeEntry = yield* entryRepo.findById(entry.id)
+        const maybeEntry = yield* entryRepo.findById(testOrganizationId, entry.id)
 
         expect(Option.isSome(maybeEntry)).toBe(true)
         if (Option.isSome(maybeEntry)) {
@@ -890,7 +891,7 @@ describe("JournalEntriesApiLive", () => {
         const testLayer = createTestLayer({ entries: [postedEntry] })
 
         const entryRepo = yield* JournalEntryRepository.pipe(Effect.provide(testLayer))
-        const maybeEntry = yield* entryRepo.findById(postedEntry.id)
+        const maybeEntry = yield* entryRepo.findById(testOrganizationId, postedEntry.id)
 
         expect(Option.isSome(maybeEntry)).toBe(true)
         if (Option.isSome(maybeEntry)) {

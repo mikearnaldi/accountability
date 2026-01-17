@@ -14,6 +14,7 @@ import { HttpApiBuilder } from "@effect/platform"
 import * as Effect from "effect/Effect"
 import * as Option from "effect/Option"
 import { CompanyId } from "@accountability/core/Domains/Company"
+import { OrganizationId } from "@accountability/core/Domains/Organization"
 import type { LocalDate } from "@accountability/core/Domains/LocalDate"
 import { MonetaryAmount } from "@accountability/core/Domains/MonetaryAmount"
 import type { JournalEntryWithLines } from "@accountability/core/Domains/AccountBalance"
@@ -132,15 +133,15 @@ const mapInvalidPeriodToBusinessRule = (
 /**
  * Fetch all data needed for report generation
  */
-const fetchReportData = (companyId: CompanyId) =>
+const fetchReportData = (organizationId: OrganizationId, companyId: CompanyId) =>
   Effect.gen(function* () {
     const accountRepo = yield* AccountRepository
     const companyRepo = yield* CompanyRepository
     const journalEntryRepo = yield* JournalEntryRepository
     const journalEntryLineRepo = yield* JournalEntryLineRepository
 
-    // Get company to validate existence and get functional currency
-    const maybeCompany = yield* companyRepo.findById(companyId).pipe(
+    // Get company to validate existence within organization and get functional currency
+    const maybeCompany = yield* companyRepo.findById(organizationId, companyId).pipe(
       Effect.mapError((e) => mapPersistenceToNotFound("Company", companyId, e))
     )
     if (Option.isNone(maybeCompany)) {
@@ -150,12 +151,12 @@ const fetchReportData = (companyId: CompanyId) =>
     const functionalCurrency = company.functionalCurrency
 
     // Get all accounts for the company
-    const accounts = yield* accountRepo.findByCompany(companyId).pipe(
+    const accounts = yield* accountRepo.findByCompany(organizationId, companyId).pipe(
       Effect.mapError((e) => mapPersistenceToBusinessRule(e))
     )
 
     // Get all journal entries (we'll filter for posted status in the service)
-    const journalEntries = yield* journalEntryRepo.findByCompany(companyId).pipe(
+    const journalEntries = yield* journalEntryRepo.findByCompany(organizationId, companyId).pipe(
       Effect.mapError((e) => mapPersistenceToBusinessRule(e))
     )
 
@@ -521,15 +522,16 @@ export const ReportsApiLive = HttpApiBuilder.group(AppApi, "reports", (handlers)
     return handlers
       .handle("generateTrialBalance", (_) =>
         Effect.gen(function* () {
-          const { companyId: companyIdStr, asOfDate, periodStartDate, excludeZeroBalances } = _.urlParams
+          const { organizationId: orgIdStr, companyId: companyIdStr, asOfDate, periodStartDate, excludeZeroBalances } = _.urlParams
 
-          // Parse company ID (still a string in URL params)
+          // Parse IDs (still strings in URL params)
+          const organizationId = OrganizationId.make(orgIdStr)
           const companyId = CompanyId.make(companyIdStr)
           // Note: asOfDate and periodStartDate are already LocalDate instances
           // thanks to LocalDateFromString schema in URL params
 
           // Fetch data
-          const { accounts, entriesWithLines, functionalCurrency } = yield* fetchReportData(companyId)
+          const { accounts, entriesWithLines, functionalCurrency } = yield* fetchReportData(organizationId, companyId)
 
           // Generate report
           const options = periodStartDate !== undefined
@@ -557,14 +559,15 @@ export const ReportsApiLive = HttpApiBuilder.group(AppApi, "reports", (handlers)
       )
       .handle("generateBalanceSheet", (_) =>
         Effect.gen(function* () {
-          const { companyId: companyIdStr, asOfDate, comparativeDate, includeZeroBalances } = _.urlParams
+          const { organizationId: orgIdStr, companyId: companyIdStr, asOfDate, comparativeDate, includeZeroBalances } = _.urlParams
 
-          // Parse company ID (still a string in URL params)
+          // Parse IDs (still strings in URL params)
+          const organizationId = OrganizationId.make(orgIdStr)
           const companyId = CompanyId.make(companyIdStr)
           // Note: asOfDate and comparativeDate are already LocalDate instances
 
           // Fetch data
-          const { accounts, entriesWithLines, functionalCurrency } = yield* fetchReportData(companyId)
+          const { accounts, entriesWithLines, functionalCurrency } = yield* fetchReportData(organizationId, companyId)
 
           // Generate report
           const balanceSheetOptions = comparativeDate !== undefined
@@ -593,6 +596,7 @@ export const ReportsApiLive = HttpApiBuilder.group(AppApi, "reports", (handlers)
       .handle("generateIncomeStatement", (_) =>
         Effect.gen(function* () {
           const {
+            organizationId: orgIdStr,
             companyId: companyIdStr,
             periodStartDate,
             periodEndDate,
@@ -600,12 +604,13 @@ export const ReportsApiLive = HttpApiBuilder.group(AppApi, "reports", (handlers)
             comparativeEndDate
           } = _.urlParams
 
-          // Parse company ID (still a string in URL params)
+          // Parse IDs (still strings in URL params)
+          const organizationId = OrganizationId.make(orgIdStr)
           const companyId = CompanyId.make(companyIdStr)
           // Note: date params are already LocalDate instances
 
           // Fetch data
-          const { accounts, entriesWithLines, functionalCurrency } = yield* fetchReportData(companyId)
+          const { accounts, entriesWithLines, functionalCurrency } = yield* fetchReportData(organizationId, companyId)
 
           // Generate report - build options conditionally
           const incomeStatementOptions: {
@@ -638,17 +643,19 @@ export const ReportsApiLive = HttpApiBuilder.group(AppApi, "reports", (handlers)
       .handle("generateCashFlowStatement", (_) =>
         Effect.gen(function* () {
           const {
+            organizationId: orgIdStr,
             companyId: companyIdStr,
             periodStartDate,
             periodEndDate
           } = _.urlParams
 
-          // Parse company ID (still a string in URL params)
+          // Parse IDs (still strings in URL params)
+          const organizationId = OrganizationId.make(orgIdStr)
           const companyId = CompanyId.make(companyIdStr)
           // Note: date params are already LocalDate instances
 
           // Fetch data
-          const { accounts, entriesWithLines, functionalCurrency } = yield* fetchReportData(companyId)
+          const { accounts, entriesWithLines, functionalCurrency } = yield* fetchReportData(organizationId, companyId)
 
           // Generate report - indirect method is the default
           const coreReport = yield* generateCashFlowStatementFromData(
@@ -668,17 +675,19 @@ export const ReportsApiLive = HttpApiBuilder.group(AppApi, "reports", (handlers)
       .handle("generateEquityStatement", (_) =>
         Effect.gen(function* () {
           const {
+            organizationId: orgIdStr,
             companyId: companyIdStr,
             periodStartDate,
             periodEndDate
           } = _.urlParams
 
-          // Parse company ID (still a string in URL params)
+          // Parse IDs (still strings in URL params)
+          const organizationId = OrganizationId.make(orgIdStr)
           const companyId = CompanyId.make(companyIdStr)
           // Note: date params are already LocalDate instances
 
           // Fetch data
-          const { accounts, entriesWithLines, functionalCurrency } = yield* fetchReportData(companyId)
+          const { accounts, entriesWithLines, functionalCurrency } = yield* fetchReportData(organizationId, companyId)
 
           // Generate report
           const coreReport = yield* generateEquityStatementFromData(

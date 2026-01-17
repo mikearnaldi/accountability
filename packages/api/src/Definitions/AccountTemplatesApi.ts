@@ -106,6 +106,7 @@ export class AccountTemplateDetailResponse extends Schema.Class<AccountTemplateD
  * ApplyTemplateRequest - Request body for applying a template to a company
  */
 export class ApplyTemplateRequest extends Schema.Class<ApplyTemplateRequest>("ApplyTemplateRequest")({
+  organizationId: Schema.UUID,
   companyId: Schema.UUID
 }) {}
 

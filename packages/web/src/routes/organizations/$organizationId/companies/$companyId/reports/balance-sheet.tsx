@@ -119,8 +119,8 @@ const fetchBalanceSheetData = createServerFn({ method: "GET" })
           params: { path: { id: data.organizationId } },
           headers: { Authorization }
         }),
-        serverApi.GET("/api/v1/companies/{id}", {
-          params: { path: { id: data.companyId } },
+        serverApi.GET("/api/v1/organizations/{organizationId}/companies/{id}", {
+          params: { path: { organizationId: data.organizationId, id: data.companyId } },
           headers: { Authorization }
         })
       ])
@@ -164,7 +164,7 @@ const fetchBalanceSheetData = createServerFn({ method: "GET" })
 
 // Server function to fetch balance sheet for specific dates
 const fetchBalanceSheet = createServerFn({ method: "GET" })
-  .inputValidator((data: { companyId: string; asOfDate: string; comparativeDate: string; includeZeroBalances: boolean }) => data)
+  .inputValidator((data: { organizationId: string; companyId: string; asOfDate: string; comparativeDate: string; includeZeroBalances: boolean }) => data)
   .handler(async ({ data }) => {
     const sessionToken = getCookie("accountability_session")
 
@@ -177,11 +177,13 @@ const fetchBalanceSheet = createServerFn({ method: "GET" })
       const Authorization = `Bearer ${sessionToken}`
 
       const queryParams: {
+        organizationId: string
         companyId: string
         asOfDate: string
         comparativeDate?: string
         includeZeroBalances?: "true" | "false"
       } = {
+        organizationId: data.organizationId,
         companyId: data.companyId,
         asOfDate: data.asOfDate
       }
@@ -285,6 +287,7 @@ function BalanceSheetPage() {
     try {
       const result = await fetchBalanceSheet({
         data: {
+          organizationId: params.organizationId,
           companyId: company.id,
           asOfDate,
           comparativeDate: comparativeDate || "",

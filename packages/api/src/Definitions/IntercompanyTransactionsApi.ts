@@ -16,6 +16,7 @@ import {
   MatchingStatus
 } from "@accountability/core/Domains/IntercompanyTransaction"
 import { CompanyId } from "@accountability/core/Domains/Company"
+import { OrganizationId } from "@accountability/core/Domains/Organization"
 import { JournalEntryId } from "@accountability/core/Domains/JournalEntry"
 import { LocalDateFromString } from "@accountability/core/Domains/LocalDate"
 import { MonetaryAmount } from "@accountability/core/Domains/MonetaryAmount"
@@ -38,6 +39,7 @@ import { AuthMiddleware } from "./AuthMiddleware.ts"
  * instead of requiring separate link actions after the fact.
  */
 export class CreateIntercompanyTransactionRequest extends Schema.Class<CreateIntercompanyTransactionRequest>("CreateIntercompanyTransactionRequest")({
+  organizationId: OrganizationId,
   fromCompanyId: CompanyId,
   toCompanyId: CompanyId,
   transactionType: IntercompanyTransactionType,

@@ -224,7 +224,7 @@ function CreateIntercompanyTransactionPage() {
       setIsLoadingFromJEs(true)
       try {
         const { data } = await api.GET("/api/v1/journal-entries", {
-          params: { query: { companyId: fromCompanyId } }
+          params: { query: { organizationId: params.organizationId, companyId: fromCompanyId } }
         })
         if (data?.entries) {
           // Filter to only include approved/posted entries (not drafts) and map to local interface
@@ -263,7 +263,7 @@ function CreateIntercompanyTransactionPage() {
       setIsLoadingToJEs(true)
       try {
         const { data } = await api.GET("/api/v1/journal-entries", {
-          params: { query: { companyId: toCompanyId } }
+          params: { query: { organizationId: params.organizationId, companyId: toCompanyId } }
         })
         if (data?.entries) {
           // Filter to only include approved/posted entries (not drafts) and map to local interface
@@ -355,6 +355,7 @@ function CreateIntercompanyTransactionPage() {
     try {
       const { data, error } = await api.POST("/api/v1/intercompany-transactions", {
         body: {
+          organizationId: params.organizationId,
           fromCompanyId,
           toCompanyId,
           transactionType,

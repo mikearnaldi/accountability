@@ -109,24 +109,14 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
 
           let groups: ReadonlyArray<ConsolidationGroup>
 
-          if (organizationId !== undefined) {
-            if (isActive === true) {
-              groups = yield* consolidationRepo.findActiveGroups(organizationId).pipe(
-                Effect.mapError((e) => mapPersistenceToValidation(e))
-              )
-            } else {
-              groups = yield* consolidationRepo.findGroupsByOrganization(organizationId).pipe(
-                Effect.mapError((e) => mapPersistenceToValidation(e))
-              )
-            }
+          if (isActive === true) {
+            groups = yield* consolidationRepo.findActiveGroups(organizationId).pipe(
+              Effect.mapError((e) => mapPersistenceToValidation(e))
+            )
           } else {
-            // No filter - return empty for now
-            groups = []
-          }
-
-          // Apply isActive filter if provided and not already filtered
-          if (isActive !== undefined && organizationId === undefined) {
-            groups = groups.filter((g) => g.isActive === isActive)
+            groups = yield* consolidationRepo.findGroupsByOrganization(organizationId).pipe(
+              Effect.mapError((e) => mapPersistenceToValidation(e))
+            )
           }
 
           // Apply pagination
@@ -146,8 +136,9 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
       .handle("getConsolidationGroup", (_) =>
         Effect.gen(function* () {
           const groupId = _.path.id
+          const organizationId = _.urlParams.organizationId
 
-          const maybeGroup = yield* consolidationRepo.findGroup(groupId).pipe(
+          const maybeGroup = yield* consolidationRepo.findGroup(organizationId, groupId).pipe(
             Effect.mapError((e) => mapPersistenceToNotFound("ConsolidationGroup", groupId, e))
           )
 
@@ -165,8 +156,8 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
         Effect.gen(function* () {
           const req = _.payload
 
-          // Validate parent company exists
-          const parentCompanyExists = yield* companyRepo.exists(req.parentCompanyId).pipe(
+          // Validate parent company exists within organization
+          const parentCompanyExists = yield* companyRepo.exists(req.organizationId, req.parentCompanyId).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
           if (!parentCompanyExists) {
@@ -219,10 +210,11 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
       .handle("updateConsolidationGroup", (_) =>
         Effect.gen(function* () {
           const groupId = _.path.id
+          const organizationId = _.urlParams.organizationId
           const req = _.payload
 
           // Get existing group
-          const maybeExisting = yield* consolidationRepo.findGroup(groupId).pipe(
+          const maybeExisting = yield* consolidationRepo.findGroup(organizationId, groupId).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
           if (Option.isNone(maybeExisting)) {
@@ -238,7 +230,7 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
             reportingCurrency: Option.isSome(req.reportingCurrency) ? req.reportingCurrency.value : existing.reportingCurrency
           })
 
-          return yield* consolidationRepo.updateGroup(updatedGroup).pipe(
+          return yield* consolidationRepo.updateGroup(organizationId, updatedGroup).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
         })
@@ -246,9 +238,10 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
       .handle("deleteConsolidationGroup", (_) =>
         Effect.gen(function* () {
           const groupId = _.path.id
+          const organizationId = _.urlParams.organizationId
 
           // Check if exists
-          const exists = yield* consolidationRepo.groupExists(groupId).pipe(
+          const exists = yield* consolidationRepo.groupExists(organizationId, groupId).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
           if (!exists) {
@@ -256,7 +249,7 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
           }
 
           // Check for completed runs
-          const runs = yield* consolidationRepo.findRunsByGroup(groupId).pipe(
+          const runs = yield* consolidationRepo.findRunsByGroup(organizationId, groupId).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
           const completedRuns = runs.filter((r) => r.status === "Completed")
@@ -279,8 +272,9 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
       .handle("activateConsolidationGroup", (_) =>
         Effect.gen(function* () {
           const groupId = _.path.id
+          const organizationId = _.urlParams.organizationId
 
-          const maybeGroup = yield* consolidationRepo.findGroup(groupId).pipe(
+          const maybeGroup = yield* consolidationRepo.findGroup(organizationId, groupId).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
           if (Option.isNone(maybeGroup)) {
@@ -292,7 +286,7 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
             isActive: true
           })
 
-          return yield* consolidationRepo.updateGroup(updatedGroup).pipe(
+          return yield* consolidationRepo.updateGroup(organizationId, updatedGroup).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
         })
@@ -300,8 +294,9 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
       .handle("deactivateConsolidationGroup", (_) =>
         Effect.gen(function* () {
           const groupId = _.path.id
+          const organizationId = _.urlParams.organizationId
 
-          const maybeGroup = yield* consolidationRepo.findGroup(groupId).pipe(
+          const maybeGroup = yield* consolidationRepo.findGroup(organizationId, groupId).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
           if (Option.isNone(maybeGroup)) {
@@ -313,7 +308,7 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
             isActive: false
           })
 
-          return yield* consolidationRepo.updateGroup(updatedGroup).pipe(
+          return yield* consolidationRepo.updateGroup(organizationId, updatedGroup).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
         })
@@ -321,10 +316,11 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
       .handle("addGroupMember", (_) =>
         Effect.gen(function* () {
           const groupId = _.path.id
+          const organizationId = _.urlParams.organizationId
           const req = _.payload
 
           // Get existing group
-          const maybeGroup = yield* consolidationRepo.findGroup(groupId).pipe(
+          const maybeGroup = yield* consolidationRepo.findGroup(organizationId, groupId).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
           if (Option.isNone(maybeGroup)) {
@@ -360,7 +356,7 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
             members: Chunk.append(existing.members, newMember)
           })
 
-          const savedGroup = yield* consolidationRepo.updateGroup(updatedGroup).pipe(
+          const savedGroup = yield* consolidationRepo.updateGroup(organizationId, updatedGroup).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
 
@@ -374,10 +370,11 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
         Effect.gen(function* () {
           const groupId = _.path.id
           const companyId = _.path.companyId
+          const organizationId = _.urlParams.organizationId
           const req = _.payload
 
           // Get existing group
-          const maybeGroup = yield* consolidationRepo.findGroup(groupId).pipe(
+          const maybeGroup = yield* consolidationRepo.findGroup(organizationId, groupId).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
           if (Option.isNone(maybeGroup)) {
@@ -419,7 +416,7 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
             members: updatedMembers
           })
 
-          const savedGroup = yield* consolidationRepo.updateGroup(updatedGroup).pipe(
+          const savedGroup = yield* consolidationRepo.updateGroup(organizationId, updatedGroup).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
 
@@ -433,9 +430,10 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
         Effect.gen(function* () {
           const groupId = _.path.id
           const companyId = _.path.companyId
+          const organizationId = _.urlParams.organizationId
 
           // Get existing group
-          const maybeGroup = yield* consolidationRepo.findGroup(groupId).pipe(
+          const maybeGroup = yield* consolidationRepo.findGroup(organizationId, groupId).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
           if (Option.isNone(maybeGroup)) {
@@ -458,7 +456,7 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
             members: updatedMembers
           })
 
-          const savedGroup = yield* consolidationRepo.updateGroup(updatedGroup).pipe(
+          const savedGroup = yield* consolidationRepo.updateGroup(organizationId, updatedGroup).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
 
@@ -470,22 +468,22 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
       )
       .handle("listConsolidationRuns", (_) =>
         Effect.gen(function* () {
-          const { groupId, status, year, period } = _.urlParams
+          const { organizationId, groupId, status, year, period } = _.urlParams
 
           let runs: ReadonlyArray<ConsolidationRun>
 
           if (groupId !== undefined) {
             if (status !== undefined) {
-              runs = yield* consolidationRepo.findRunsByStatus(groupId, status).pipe(
+              runs = yield* consolidationRepo.findRunsByStatus(organizationId, groupId, status).pipe(
                 Effect.mapError((e) => mapPersistenceToValidation(e))
               )
             } else {
-              runs = yield* consolidationRepo.findRunsByGroup(groupId).pipe(
+              runs = yield* consolidationRepo.findRunsByGroup(organizationId, groupId).pipe(
                 Effect.mapError((e) => mapPersistenceToValidation(e))
               )
             }
           } else {
-            // No filter - return empty for now
+            // No groupId filter - return empty for now (requires groupId to scope by org)
             runs = []
           }
 
@@ -514,8 +512,9 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
       .handle("getConsolidationRun", (_) =>
         Effect.gen(function* () {
           const runId = _.path.id
+          const organizationId = _.urlParams.organizationId
 
-          const maybeRun = yield* consolidationRepo.findRun(runId).pipe(
+          const maybeRun = yield* consolidationRepo.findRun(organizationId, runId).pipe(
             Effect.mapError((e) => mapPersistenceToNotFound("ConsolidationRun", runId, e))
           )
 
@@ -528,10 +527,11 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
       .handle("initiateConsolidationRun", (_) =>
         Effect.gen(function* () {
           const groupId = _.path.groupId
+          const organizationId = _.urlParams.organizationId
           const req = _.payload
 
           // Check group exists and is active
-          const maybeGroup = yield* consolidationRepo.findGroup(groupId).pipe(
+          const maybeGroup = yield* consolidationRepo.findGroup(organizationId, groupId).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
           if (Option.isNone(maybeGroup)) {
@@ -546,7 +546,7 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
           }
 
           // Check for existing run for this period
-          const existingRun = yield* consolidationRepo.findRunByGroupAndPeriod(groupId, req.periodRef).pipe(
+          const existingRun = yield* consolidationRepo.findRunByGroupAndPeriod(organizationId, groupId, req.periodRef).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
           if (Option.isSome(existingRun) && !req.forceRegeneration) {
@@ -590,8 +590,9 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
       .handle("cancelConsolidationRun", (_) =>
         Effect.gen(function* () {
           const runId = _.path.id
+          const organizationId = _.urlParams.organizationId
 
-          const maybeRun = yield* consolidationRepo.findRun(runId).pipe(
+          const maybeRun = yield* consolidationRepo.findRun(organizationId, runId).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
           if (Option.isNone(maybeRun)) {
@@ -614,7 +615,7 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
             completedAt: Option.some(timestampNow())
           })
 
-          return yield* consolidationRepo.updateRun(updatedRun).pipe(
+          return yield* consolidationRepo.updateRun(organizationId, updatedRun).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
         })
@@ -622,8 +623,9 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
       .handle("deleteConsolidationRun", (_) =>
         Effect.gen(function* () {
           const runId = _.path.id
+          const organizationId = _.urlParams.organizationId
 
-          const maybeRun = yield* consolidationRepo.findRun(runId).pipe(
+          const maybeRun = yield* consolidationRepo.findRun(organizationId, runId).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
           if (Option.isNone(maybeRun)) {
@@ -640,7 +642,7 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
             }))
           }
 
-          yield* consolidationRepo.deleteRun(runId).pipe(
+          yield* consolidationRepo.deleteRun(organizationId, runId).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
         })
@@ -648,8 +650,9 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
       .handle("getConsolidatedTrialBalance", (_) =>
         Effect.gen(function* () {
           const runId = _.path.id
+          const organizationId = _.urlParams.organizationId
 
-          const maybeRun = yield* consolidationRepo.findRun(runId).pipe(
+          const maybeRun = yield* consolidationRepo.findRun(organizationId, runId).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
           if (Option.isNone(maybeRun)) {
@@ -679,14 +682,15 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
       .handle("getLatestCompletedRun", (_) =>
         Effect.gen(function* () {
           const groupId = _.path.groupId
+          const organizationId = _.urlParams.organizationId
 
           // Check group exists
-          const exists = yield* consolidationRepo.groupExists(groupId).pipe(Effect.orDie)
+          const exists = yield* consolidationRepo.groupExists(organizationId, groupId).pipe(Effect.orDie)
           if (!exists) {
             return yield* Effect.fail(new NotFoundError({ resource: "ConsolidationGroup", id: groupId }))
           }
 
-          const maybeRun = yield* consolidationRepo.findLatestCompletedRun(groupId).pipe(
+          const maybeRun = yield* consolidationRepo.findLatestCompletedRun(organizationId, groupId).pipe(
             Effect.orDie
           )
 
@@ -696,9 +700,10 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
       .handle("getConsolidatedBalanceSheet", (_) =>
         Effect.gen(function* () {
           const runId = _.path.id
+          const organizationId = _.urlParams.organizationId
 
           // Check run exists and is completed
-          const maybeRun = yield* consolidationRepo.findRun(runId).pipe(
+          const maybeRun = yield* consolidationRepo.findRun(organizationId, runId).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
           if (Option.isNone(maybeRun)) {
@@ -725,7 +730,7 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
           const trialBalance = run.consolidatedTrialBalance.value
 
           // Get group name
-          const maybeGroup = yield* consolidationRepo.findGroup(run.groupId).pipe(
+          const maybeGroup = yield* consolidationRepo.findGroup(organizationId, run.groupId).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
           const groupName = Option.isSome(maybeGroup) ? maybeGroup.value.name : "Consolidation Group"
@@ -757,9 +762,10 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
       .handle("getConsolidatedIncomeStatement", (_) =>
         Effect.gen(function* () {
           const runId = _.path.id
+          const organizationId = _.urlParams.organizationId
 
           // Check run exists and is completed
-          const maybeRun = yield* consolidationRepo.findRun(runId).pipe(
+          const maybeRun = yield* consolidationRepo.findRun(organizationId, runId).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
           if (Option.isNone(maybeRun)) {
@@ -786,7 +792,7 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
           const trialBalance = run.consolidatedTrialBalance.value
 
           // Get group name
-          const maybeGroup = yield* consolidationRepo.findGroup(run.groupId).pipe(
+          const maybeGroup = yield* consolidationRepo.findGroup(organizationId, run.groupId).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
           const groupName = Option.isSome(maybeGroup) ? maybeGroup.value.name : "Consolidation Group"
@@ -803,9 +809,10 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
       .handle("getConsolidatedCashFlowStatement", (_) =>
         Effect.gen(function* () {
           const runId = _.path.id
+          const organizationId = _.urlParams.organizationId
 
           // Check run exists and is completed
-          const maybeRun = yield* consolidationRepo.findRun(runId).pipe(
+          const maybeRun = yield* consolidationRepo.findRun(organizationId, runId).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
           if (Option.isNone(maybeRun)) {
@@ -832,7 +839,7 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
           const trialBalance = run.consolidatedTrialBalance.value
 
           // Get group name
-          const maybeGroup = yield* consolidationRepo.findGroup(run.groupId).pipe(
+          const maybeGroup = yield* consolidationRepo.findGroup(organizationId, run.groupId).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
           const groupName = Option.isSome(maybeGroup) ? maybeGroup.value.name : "Consolidation Group"
@@ -849,9 +856,10 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
       .handle("getConsolidatedEquityStatement", (_) =>
         Effect.gen(function* () {
           const runId = _.path.id
+          const organizationId = _.urlParams.organizationId
 
           // Check run exists and is completed
-          const maybeRun = yield* consolidationRepo.findRun(runId).pipe(
+          const maybeRun = yield* consolidationRepo.findRun(organizationId, runId).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
           if (Option.isNone(maybeRun)) {
@@ -878,7 +886,7 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
           const trialBalance = run.consolidatedTrialBalance.value
 
           // Get group name
-          const maybeGroup = yield* consolidationRepo.findGroup(run.groupId).pipe(
+          const maybeGroup = yield* consolidationRepo.findGroup(organizationId, run.groupId).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
           const groupName = Option.isSome(maybeGroup) ? maybeGroup.value.name : "Consolidation Group"

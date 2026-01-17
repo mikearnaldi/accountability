@@ -274,7 +274,7 @@ describe("Repositories", () => {
     it.effect("findById: returns Some for existing company", () =>
       Effect.gen(function* () {
         const repo = yield* CompanyRepository
-        const result = yield* repo.findById(testCompanyId)
+        const result = yield* repo.findById(testOrgId, testCompanyId)
         expect(Option.isSome(result)).toBe(true)
         if (Option.isSome(result)) {
           expect(result.value.name).toBe("Test Company")
@@ -285,7 +285,7 @@ describe("Repositories", () => {
     it.effect("findById: returns None for non-existing company", () =>
       Effect.gen(function* () {
         const repo = yield* CompanyRepository
-        const result = yield* repo.findById(CompanyId.make(nonExistentId))
+        const result = yield* repo.findById(testOrgId, CompanyId.make(nonExistentId))
         expect(Option.isNone(result)).toBe(true)
       })
     )
@@ -293,7 +293,7 @@ describe("Repositories", () => {
     it.effect("getById: throws EntityNotFoundError for non-existing company", () =>
       Effect.gen(function* () {
         const repo = yield* CompanyRepository
-        const result = yield* Effect.either(repo.getById(CompanyId.make(nonExistentId)))
+        const result = yield* Effect.either(repo.getById(testOrgId, CompanyId.make(nonExistentId)))
         expect(result._tag).toBe("Left")
         if (result._tag === "Left") {
           expect(result.left._tag).toBe("EntityNotFoundError")
@@ -304,7 +304,7 @@ describe("Repositories", () => {
     it.effect("exists: returns true for existing company", () =>
       Effect.gen(function* () {
         const repo = yield* CompanyRepository
-        const exists = yield* repo.exists(testCompanyId)
+        const exists = yield* repo.exists(testOrgId, testCompanyId)
         expect(exists).toBe(true)
       })
     )
@@ -312,7 +312,7 @@ describe("Repositories", () => {
     it.effect("exists: returns false for non-existing company", () =>
       Effect.gen(function* () {
         const repo = yield* CompanyRepository
-        const exists = yield* repo.exists(CompanyId.make(nonExistentId))
+        const exists = yield* repo.exists(testOrgId, CompanyId.make(nonExistentId))
         expect(exists).toBe(false)
       })
     )
@@ -338,7 +338,7 @@ describe("Repositories", () => {
     it.effect("findSubsidiaries: returns subsidiaries for a parent company", () =>
       Effect.gen(function* () {
         const repo = yield* CompanyRepository
-        const subsidiaries = yield* repo.findSubsidiaries(testCompanyId)
+        const subsidiaries = yield* repo.findSubsidiaries(testOrgId, testCompanyId)
         expect(subsidiaries.length).toBeGreaterThanOrEqual(1)
         expect(subsidiaries.some((c) => c.id === testCompanyId3)).toBe(true)
       })
@@ -403,7 +403,7 @@ describe("Repositories", () => {
     it.effect("findById: returns Some for existing account", () =>
       Effect.gen(function* () {
         const repo = yield* AccountRepository
-        const result = yield* repo.findById(testAccountId)
+        const result = yield* repo.findById(testOrgId, testAccountId)
         expect(Option.isSome(result)).toBe(true)
         if (Option.isSome(result)) {
           expect(result.value.name).toBe("Cash")
@@ -414,7 +414,7 @@ describe("Repositories", () => {
     it.effect("findByCompany: returns accounts for a company", () =>
       Effect.gen(function* () {
         const repo = yield* AccountRepository
-        const accounts = yield* repo.findByCompany(testCompanyId)
+        const accounts = yield* repo.findByCompany(testOrgId, testCompanyId)
         expect(accounts.length).toBeGreaterThanOrEqual(2)
       })
     )
@@ -422,7 +422,7 @@ describe("Repositories", () => {
     it.effect("findActiveByCompany: returns only active accounts", () =>
       Effect.gen(function* () {
         const repo = yield* AccountRepository
-        const accounts = yield* repo.findActiveByCompany(testCompanyId)
+        const accounts = yield* repo.findActiveByCompany(testOrgId, testCompanyId)
         expect(accounts.every((a) => a.isActive)).toBe(true)
       })
     )
@@ -430,7 +430,7 @@ describe("Repositories", () => {
     it.effect("findByType: returns accounts of specific type", () =>
       Effect.gen(function* () {
         const repo = yield* AccountRepository
-        const assets = yield* repo.findByType(testCompanyId, "Asset")
+        const assets = yield* repo.findByType(testOrgId, testCompanyId, "Asset")
         expect(assets.every((a) => a.accountType === "Asset")).toBe(true)
       })
     )
@@ -438,7 +438,7 @@ describe("Repositories", () => {
     it.effect("findByNumber: returns account with specific number", () =>
       Effect.gen(function* () {
         const repo = yield* AccountRepository
-        const result = yield* repo.findByNumber(testCompanyId, AccountNumber.make("1000"))
+        const result = yield* repo.findByNumber(testOrgId, testCompanyId, AccountNumber.make("1000"))
         expect(Option.isSome(result)).toBe(true)
         if (Option.isSome(result)) {
           expect(result.value.name).toBe("Cash")
@@ -449,7 +449,7 @@ describe("Repositories", () => {
     it.effect("findByNumber: returns None for non-existing number", () =>
       Effect.gen(function* () {
         const repo = yield* AccountRepository
-        const result = yield* repo.findByNumber(testCompanyId, AccountNumber.make("9999"))
+        const result = yield* repo.findByNumber(testOrgId, testCompanyId, AccountNumber.make("9999"))
         expect(Option.isNone(result)).toBe(true)
       })
     )
@@ -457,7 +457,7 @@ describe("Repositories", () => {
     it.effect("findChildren: returns child accounts", () =>
       Effect.gen(function* () {
         const repo = yield* AccountRepository
-        const children = yield* repo.findChildren(testAccountId)
+        const children = yield* repo.findChildren(testOrgId, testAccountId)
         expect(children.length).toBeGreaterThanOrEqual(1)
         expect(children.some((a) => a.id === testAccountId2)).toBe(true)
       })
@@ -466,7 +466,7 @@ describe("Repositories", () => {
     it.effect("findIntercompanyAccounts: returns intercompany accounts", () =>
       Effect.gen(function* () {
         const repo = yield* AccountRepository
-        const icAccounts = yield* repo.findIntercompanyAccounts(testCompanyId)
+        const icAccounts = yield* repo.findIntercompanyAccounts(testOrgId, testCompanyId)
         expect(icAccounts.length).toBeGreaterThanOrEqual(1)
         expect(icAccounts.every((a) => a.isIntercompany)).toBe(true)
       })
@@ -475,7 +475,7 @@ describe("Repositories", () => {
     it.effect("isAccountNumberTaken: returns true for existing number", () =>
       Effect.gen(function* () {
         const repo = yield* AccountRepository
-        const taken = yield* repo.isAccountNumberTaken(testCompanyId, AccountNumber.make("1000"))
+        const taken = yield* repo.isAccountNumberTaken(testOrgId, testCompanyId, AccountNumber.make("1000"))
         expect(taken).toBe(true)
       })
     )
@@ -483,7 +483,7 @@ describe("Repositories", () => {
     it.effect("isAccountNumberTaken: returns false for available number", () =>
       Effect.gen(function* () {
         const repo = yield* AccountRepository
-        const taken = yield* repo.isAccountNumberTaken(testCompanyId, AccountNumber.make("9999"))
+        const taken = yield* repo.isAccountNumberTaken(testOrgId, testCompanyId, AccountNumber.make("9999"))
         expect(taken).toBe(false)
       })
     )
@@ -491,7 +491,7 @@ describe("Repositories", () => {
     it.effect("exists: returns true for existing account", () =>
       Effect.gen(function* () {
         const repo = yield* AccountRepository
-        const exists = yield* repo.exists(testAccountId)
+        const exists = yield* repo.exists(testOrgId, testAccountId)
         expect(exists).toBe(true)
       })
     )
@@ -715,7 +715,7 @@ describe("Repositories", () => {
     it.effect("findById: returns Some for existing entry", () =>
       Effect.gen(function* () {
         const repo = yield* JournalEntryRepository
-        const result = yield* repo.findById(testEntryId)
+        const result = yield* repo.findById(testOrgId, testEntryId)
         expect(Option.isSome(result)).toBe(true)
         if (Option.isSome(result)) {
           expect(result.value.description).toBe("Test journal entry")
@@ -727,7 +727,7 @@ describe("Repositories", () => {
       Effect.gen(function* () {
         const repo = yield* JournalEntryRepository
         const result = yield* Effect.either(
-          repo.getById(JournalEntryId.make(nonExistentId))
+          repo.getById(testOrgId, JournalEntryId.make(nonExistentId))
         )
         expect(result._tag).toBe("Left")
         if (result._tag === "Left") {
@@ -739,7 +739,7 @@ describe("Repositories", () => {
     it.effect("findByCompany: returns entries for company", () =>
       Effect.gen(function* () {
         const repo = yield* JournalEntryRepository
-        const entries = yield* repo.findByCompany(testCompanyId)
+        const entries = yield* repo.findByCompany(testOrgId, testCompanyId)
         expect(entries.length).toBeGreaterThanOrEqual(2)
       })
     )
@@ -747,7 +747,7 @@ describe("Repositories", () => {
     it.effect("findByStatus: returns entries with specific status", () =>
       Effect.gen(function* () {
         const repo = yield* JournalEntryRepository
-        const drafts = yield* repo.findByStatus(testCompanyId, "Draft")
+        const drafts = yield* repo.findByStatus(testOrgId, testCompanyId, "Draft")
         expect(drafts.every((e) => e.status === "Draft")).toBe(true)
       })
     )
@@ -755,7 +755,7 @@ describe("Repositories", () => {
     it.effect("findByType: returns entries of specific type", () =>
       Effect.gen(function* () {
         const repo = yield* JournalEntryRepository
-        const standard = yield* repo.findByType(testCompanyId, "Standard")
+        const standard = yield* repo.findByType(testOrgId, testCompanyId, "Standard")
         expect(standard.every((e) => e.entryType === "Standard")).toBe(true)
       })
     )
@@ -763,7 +763,7 @@ describe("Repositories", () => {
     it.effect("findDraftEntries: returns draft entries", () =>
       Effect.gen(function* () {
         const repo = yield* JournalEntryRepository
-        const drafts = yield* repo.findDraftEntries(testCompanyId)
+        const drafts = yield* repo.findDraftEntries(testOrgId, testCompanyId)
         expect(drafts.every((e) => e.status === "Draft")).toBe(true)
       })
     )
@@ -772,7 +772,7 @@ describe("Repositories", () => {
       Effect.gen(function* () {
         const repo = yield* JournalEntryRepository
         const period = FiscalPeriodRef.make({ year: 2024, period: 1 })
-        const posted = yield* repo.findPostedByPeriod(testCompanyId, period)
+        const posted = yield* repo.findPostedByPeriod(testOrgId, testCompanyId, period)
         expect(posted.every((e) => e.status === "Posted" && e.fiscalPeriod.period === 1)).toBe(true)
       })
     )
@@ -781,7 +781,7 @@ describe("Repositories", () => {
       Effect.gen(function* () {
         const repo = yield* JournalEntryRepository
         const period = FiscalPeriodRef.make({ year: 2024, period: 1 })
-        const entries = yield* repo.findByPeriod(testCompanyId, period)
+        const entries = yield* repo.findByPeriod(testOrgId, testCompanyId, period)
         expect(entries.every((e) => e.fiscalPeriod.year === 2024 && e.fiscalPeriod.period === 1)).toBe(true)
       })
     )
@@ -791,7 +791,7 @@ describe("Repositories", () => {
         const repo = yield* JournalEntryRepository
         const startPeriod = FiscalPeriodRef.make({ year: 2024, period: 1 })
         const endPeriod = FiscalPeriodRef.make({ year: 2024, period: 2 })
-        const entries = yield* repo.findByPeriodRange(testCompanyId, startPeriod, endPeriod)
+        const entries = yield* repo.findByPeriodRange(testOrgId, testCompanyId, startPeriod, endPeriod)
         expect(entries.length).toBeGreaterThanOrEqual(2)
       })
     )
@@ -800,7 +800,7 @@ describe("Repositories", () => {
       Effect.gen(function* () {
         const repo = yield* JournalEntryRepository
         const period = FiscalPeriodRef.make({ year: 2024, period: 1 })
-        const count = yield* repo.countDraftEntriesInPeriod(testCompanyId, period)
+        const count = yield* repo.countDraftEntriesInPeriod(testOrgId, testCompanyId, period)
         expect(count).toBeGreaterThanOrEqual(1)
       })
     )
@@ -808,7 +808,7 @@ describe("Repositories", () => {
     it.effect("findIntercompanyEntries: returns intercompany entries", () =>
       Effect.gen(function* () {
         const repo = yield* JournalEntryRepository
-        const icEntries = yield* repo.findIntercompanyEntries(testCompanyId)
+        const icEntries = yield* repo.findIntercompanyEntries(testOrgId, testCompanyId)
         expect(icEntries.every((e) => e.isIntercompanyEntry)).toBe(true)
       })
     )
@@ -816,7 +816,7 @@ describe("Repositories", () => {
     it.effect("exists: returns true for existing entry", () =>
       Effect.gen(function* () {
         const repo = yield* JournalEntryRepository
-        const exists = yield* repo.exists(testEntryId)
+        const exists = yield* repo.exists(testOrgId, testEntryId)
         expect(exists).toBe(true)
       })
     )
@@ -824,7 +824,7 @@ describe("Repositories", () => {
     it.effect("getNextEntryNumber: returns sequential entry number", () =>
       Effect.gen(function* () {
         const repo = yield* JournalEntryRepository
-        const nextNum = yield* repo.getNextEntryNumber(testCompanyId)
+        const nextNum = yield* repo.getNextEntryNumber(testOrgId, testCompanyId)
         expect(nextNum).toBeDefined()
         expect(typeof nextNum).toBe("string")
       })
@@ -1157,7 +1157,7 @@ describe("Repositories", () => {
     it.effect("findGroup: returns group", () =>
       Effect.gen(function* () {
         const repo = yield* ConsolidationRepository
-        const result = yield* repo.findGroup(testGroupId)
+        const result = yield* repo.findGroup(testOrgId, testGroupId)
         expect(Option.isSome(result)).toBe(true)
         if (Option.isSome(result)) {
           expect(result.value.name).toBe("Test Consolidation Group")
@@ -1168,7 +1168,7 @@ describe("Repositories", () => {
     it.effect("findGroup: returns None for non-existing group", () =>
       Effect.gen(function* () {
         const repo = yield* ConsolidationRepository
-        const result = yield* repo.findGroup(ConsolidationGroupId.make(nonExistentId))
+        const result = yield* repo.findGroup(testOrgId, ConsolidationGroupId.make(nonExistentId))
         expect(Option.isNone(result)).toBe(true)
       })
     )
@@ -1177,7 +1177,7 @@ describe("Repositories", () => {
       Effect.gen(function* () {
         const repo = yield* ConsolidationRepository
         const result = yield* Effect.either(
-          repo.getGroup(ConsolidationGroupId.make(nonExistentId))
+          repo.getGroup(testOrgId, ConsolidationGroupId.make(nonExistentId))
         )
         expect(result._tag).toBe("Left")
       })
@@ -1203,7 +1203,7 @@ describe("Repositories", () => {
     it.effect("groupExists: returns true for existing group", () =>
       Effect.gen(function* () {
         const repo = yield* ConsolidationRepository
-        const exists = yield* repo.groupExists(testGroupId)
+        const exists = yield* repo.groupExists(testOrgId, testGroupId)
         expect(exists).toBe(true)
       })
     )
@@ -1211,7 +1211,7 @@ describe("Repositories", () => {
     it.effect("groupExists: returns false for non-existing group", () =>
       Effect.gen(function* () {
         const repo = yield* ConsolidationRepository
-        const exists = yield* repo.groupExists(ConsolidationGroupId.make(nonExistentId))
+        const exists = yield* repo.groupExists(testOrgId, ConsolidationGroupId.make(nonExistentId))
         expect(exists).toBe(false)
       })
     )
@@ -1220,7 +1220,7 @@ describe("Repositories", () => {
     it.effect("findRun: returns run", () =>
       Effect.gen(function* () {
         const repo = yield* ConsolidationRepository
-        const result = yield* repo.findRun(testRunId)
+        const result = yield* repo.findRun(testOrgId, testRunId)
         expect(Option.isSome(result)).toBe(true)
         if (Option.isSome(result)) {
           expect(result.value.periodRef.year).toBe(2024)
@@ -1232,7 +1232,7 @@ describe("Repositories", () => {
     it.effect("findRunsByGroup: returns runs for group", () =>
       Effect.gen(function* () {
         const repo = yield* ConsolidationRepository
-        const runs = yield* repo.findRunsByGroup(testGroupId)
+        const runs = yield* repo.findRunsByGroup(testOrgId, testGroupId)
         expect(runs.length).toBeGreaterThanOrEqual(2)
       })
     )
@@ -1240,7 +1240,7 @@ describe("Repositories", () => {
     it.effect("findRunsByStatus: returns runs with specific status", () =>
       Effect.gen(function* () {
         const repo = yield* ConsolidationRepository
-        const completed = yield* repo.findRunsByStatus(testGroupId, "Completed")
+        const completed = yield* repo.findRunsByStatus(testOrgId, testGroupId, "Completed")
         expect(completed.every((r) => r.status === "Completed")).toBe(true)
       })
     )
@@ -1248,7 +1248,7 @@ describe("Repositories", () => {
     it.effect("findInProgressRuns: returns in-progress runs", () =>
       Effect.gen(function* () {
         const repo = yield* ConsolidationRepository
-        const inProgress = yield* repo.findInProgressRuns(testGroupId)
+        const inProgress = yield* repo.findInProgressRuns(testOrgId, testGroupId)
         expect(inProgress.every((r) => r.status === "InProgress")).toBe(true)
       })
     )
@@ -1256,7 +1256,7 @@ describe("Repositories", () => {
     it.effect("findLatestCompletedRun: returns the most recent completed run", () =>
       Effect.gen(function* () {
         const repo = yield* ConsolidationRepository
-        const result = yield* repo.findLatestCompletedRun(testGroupId)
+        const result = yield* repo.findLatestCompletedRun(testOrgId, testGroupId)
         expect(Option.isSome(result)).toBe(true)
         if (Option.isSome(result)) {
           expect(result.value.status).toBe("Completed")
@@ -1268,7 +1268,7 @@ describe("Repositories", () => {
       Effect.gen(function* () {
         const repo = yield* ConsolidationRepository
         const period = FiscalPeriodRef.make({ year: 2024, period: 1 })
-        const result = yield* repo.findRunByGroupAndPeriod(testGroupId, period)
+        const result = yield* repo.findRunByGroupAndPeriod(testOrgId, testGroupId, period)
         expect(Option.isSome(result)).toBe(true)
       })
     )
@@ -1278,7 +1278,7 @@ describe("Repositories", () => {
         const repo = yield* ConsolidationRepository
         const startPeriod = FiscalPeriodRef.make({ year: 2024, period: 1 })
         const endPeriod = FiscalPeriodRef.make({ year: 2024, period: 2 })
-        const runs = yield* repo.findRunsByPeriodRange(testGroupId, startPeriod, endPeriod)
+        const runs = yield* repo.findRunsByPeriodRange(testOrgId, testGroupId, startPeriod, endPeriod)
         expect(runs.length).toBeGreaterThanOrEqual(2)
       })
     )
@@ -1286,7 +1286,7 @@ describe("Repositories", () => {
     it.effect("runExists: returns true for existing run", () =>
       Effect.gen(function* () {
         const repo = yield* ConsolidationRepository
-        const exists = yield* repo.runExists(testRunId)
+        const exists = yield* repo.runExists(testOrgId, testRunId)
         expect(exists).toBe(true)
       })
     )
@@ -1370,7 +1370,7 @@ describe("Repositories", () => {
     it.effect("findRun: retrieves run with consolidated trial balance", () =>
       Effect.gen(function* () {
         const repo = yield* ConsolidationRepository
-        const result = yield* repo.findRun(testRunId3)
+        const result = yield* repo.findRun(testOrgId, testRunId3)
 
         expect(Option.isSome(result)).toBe(true)
         if (Option.isSome(result)) {
@@ -1400,7 +1400,7 @@ describe("Repositories", () => {
         const repo = yield* ConsolidationRepository
 
         // First get the existing run
-        const existingResult = yield* repo.findRun(testRunId3)
+        const existingResult = yield* repo.findRun(testOrgId, testRunId3)
         expect(Option.isSome(existingResult)).toBe(true)
         const existingRun = Option.getOrThrow(existingResult)
 
@@ -1443,10 +1443,10 @@ describe("Repositories", () => {
           consolidatedTrialBalance: Option.some(updatedTrialBalance)
         })
 
-        yield* repo.updateRun(updatedRun)
+        yield* repo.updateRun(testOrgId, updatedRun)
 
         // Verify the update
-        const result = yield* repo.findRun(testRunId3)
+        const result = yield* repo.findRun(testOrgId, testRunId3)
         expect(Option.isSome(result)).toBe(true)
         if (Option.isSome(result)) {
           const tb = Option.getOrThrow(result.value.consolidatedTrialBalance)
@@ -1483,7 +1483,7 @@ describe("Repositories", () => {
         expect(Option.isNone(created.consolidatedTrialBalance)).toBe(true)
 
         // Verify it can be retrieved without trial balance
-        const result = yield* repo.findRun(testRunId4)
+        const result = yield* repo.findRun(testOrgId, testRunId4)
         expect(Option.isSome(result)).toBe(true)
         if (Option.isSome(result)) {
           expect(Option.isNone(result.value.consolidatedTrialBalance)).toBe(true)
@@ -1496,7 +1496,7 @@ describe("Repositories", () => {
         const repo = yield* ConsolidationRepository
 
         // Get run without trial balance
-        const existingResult = yield* repo.findRun(testRunId4)
+        const existingResult = yield* repo.findRun(testOrgId, testRunId4)
         const existingRun = Option.getOrThrow(existingResult)
         expect(Option.isNone(existingRun.consolidatedTrialBalance)).toBe(true)
 
@@ -1534,10 +1534,10 @@ describe("Repositories", () => {
           completedAt: Option.some(Timestamp.make({ epochMillis: Date.now() }))
         })
 
-        yield* repo.updateRun(updatedRun)
+        yield* repo.updateRun(testOrgId, updatedRun)
 
         // Verify trial balance was added
-        const result = yield* repo.findRun(testRunId4)
+        const result = yield* repo.findRun(testOrgId, testRunId4)
         expect(Option.isSome(result)).toBe(true)
         if (Option.isSome(result)) {
           expect(Option.isSome(result.value.consolidatedTrialBalance)).toBe(true)

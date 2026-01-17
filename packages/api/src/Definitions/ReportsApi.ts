@@ -100,6 +100,7 @@ export class TrialBalanceReport extends Schema.Class<TrialBalanceReport>("TrialB
  * Uses LocalDateFromString to automatically parse ISO date strings to LocalDate
  */
 export const TrialBalanceParams = Schema.Struct({
+  organizationId: Schema.String,
   companyId: Schema.String,
   asOfDate: LocalDateFromString,
   periodStartDate: Schema.optional(LocalDateFromString),
@@ -164,6 +165,7 @@ export class BalanceSheetReport extends Schema.Class<BalanceSheetReport>("Balanc
  * Uses LocalDateFromString to automatically parse ISO date strings to LocalDate
  */
 export const BalanceSheetParams = Schema.Struct({
+  organizationId: Schema.String,
   companyId: Schema.String,
   asOfDate: LocalDateFromString,
   comparativeDate: Schema.optional(LocalDateFromString),
@@ -229,6 +231,7 @@ export class IncomeStatementReport extends Schema.Class<IncomeStatementReport>("
  * Uses LocalDateFromString to automatically parse ISO date strings to LocalDate
  */
 export const IncomeStatementParams = Schema.Struct({
+  organizationId: Schema.String,
   companyId: Schema.String,
   periodStartDate: LocalDateFromString,
   periodEndDate: LocalDateFromString,
@@ -302,6 +305,7 @@ export class CashFlowStatementReport extends Schema.Class<CashFlowStatementRepor
  * Uses LocalDateFromString to automatically parse ISO date strings to LocalDate
  */
 export const CashFlowStatementParams = Schema.Struct({
+  organizationId: Schema.String,
   companyId: Schema.String,
   periodStartDate: LocalDateFromString,
   periodEndDate: LocalDateFromString,
@@ -370,6 +374,7 @@ export class EquityStatementReport extends Schema.Class<EquityStatementReport>("
  * Uses LocalDateFromString to automatically parse ISO date strings to LocalDate
  */
 export const EquityStatementParams = Schema.Struct({
+  organizationId: Schema.String,
   companyId: Schema.String,
   periodStartDate: LocalDateFromString,
   periodEndDate: LocalDateFromString,

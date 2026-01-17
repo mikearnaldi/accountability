@@ -75,6 +75,7 @@ interface ComputedPeriod {
 }
 
 interface JournalEntryFormProps {
+  readonly organizationId: string
   readonly companyId: string
   readonly functionalCurrency: string
   readonly accounts: readonly Account[]
@@ -351,6 +352,7 @@ function ComputedPeriodDisplay({
 // =============================================================================
 
 export function JournalEntryForm({
+  organizationId,
   companyId,
   functionalCurrency,
   accounts,
@@ -506,6 +508,7 @@ export function JournalEntryForm({
       // Create the journal entry
       const { error: apiError } = await api.POST("/api/v1/journal-entries", {
         body: {
+          organizationId,
           companyId,
           description: description.trim(),
           transactionDate,

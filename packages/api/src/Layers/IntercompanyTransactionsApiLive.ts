@@ -180,8 +180,8 @@ export const IntercompanyTransactionsApiLive = HttpApiBuilder.group(AppApi, "int
         Effect.gen(function* () {
           const req = _.payload
 
-          // Validate from company exists
-          const fromCompanyExists = yield* companyRepo.exists(req.fromCompanyId).pipe(
+          // Validate from company exists within organization
+          const fromCompanyExists = yield* companyRepo.exists(req.organizationId, req.fromCompanyId).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
           if (!fromCompanyExists) {
@@ -192,8 +192,8 @@ export const IntercompanyTransactionsApiLive = HttpApiBuilder.group(AppApi, "int
             }))
           }
 
-          // Validate to company exists
-          const toCompanyExists = yield* companyRepo.exists(req.toCompanyId).pipe(
+          // Validate to company exists within organization
+          const toCompanyExists = yield* companyRepo.exists(req.organizationId, req.toCompanyId).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
           if (!toCompanyExists) {

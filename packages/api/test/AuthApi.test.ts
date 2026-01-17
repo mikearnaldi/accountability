@@ -44,6 +44,7 @@ import { JournalEntriesApiLive } from "@accountability/api/Layers/JournalEntries
 import { MembershipApiLive } from "@accountability/api/Layers/MembershipApiLive"
 import { ReportsApiLive } from "@accountability/api/Layers/ReportsApiLive"
 import { UserOrganizationsApiLive } from "@accountability/api/Layers/UserOrganizationsApiLive"
+import { AuthorizationServiceLive } from "@accountability/persistence/Layers/AuthorizationServiceLive"
 
 // =============================================================================
 // Test Layer Setup
@@ -101,9 +102,10 @@ const AppApiLiveWithSessionAuth = HttpApiBuilder.api(AppApi)
   .pipe(Layer.provide(CurrencyApiLive))
   .pipe(Layer.provide(IntercompanyTransactionsApiLive))
   .pipe(Layer.provide(ConsolidationApiLive))
-  .pipe(Layer.provide(ConsolidatedReportServiceLive))  
+  .pipe(Layer.provide(ConsolidatedReportServiceLive))
   .pipe(Layer.provide(EliminationRulesApiLive))
   .pipe(Layer.provide(UserOrganizationsApiLive))
+  .pipe(Layer.provide(AuthorizationServiceLive))
   .pipe(Layer.provide(AuthMiddlewareWithSessionValidation))
 
 /**

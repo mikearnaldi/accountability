@@ -657,6 +657,9 @@ main() {
         if [ "$MAX_ITERATIONS" -gt 0 ]; then
             log "INFO" "(max: $MAX_ITERATIONS)"
         fi
+        if [ -n "$FOCUS_PROMPT" ]; then
+            log "INFO" "Focus: $FOCUS_PROMPT"
+        fi
         log "INFO" "------------------------------------------"
 
         # Run the agent
