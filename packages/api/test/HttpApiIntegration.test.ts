@@ -519,7 +519,7 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
 
   describe("Journal Entries API", () => {
     describe("Journal entry endpoints", () => {
-      it.effect("GET /api/v1/journal-entries returns 404 for non-existent company", () =>
+      it.effect("GET /api/v1/journal-entries returns 403 for unauthorized user", () =>
         Effect.gen(function* () {
           const httpClient = yield* HttpClient.HttpClient
           const response = yield* HttpClientRequest.get("/api/v1/journal-entries").pipe(
@@ -532,14 +532,14 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
             Effect.scoped
           )
 
-          expect(response.status).toBe(404)
+          // Returns 403 because user is not a member of the organization
+          expect(response.status).toBe(403)
           const body = yield* response.json
-          expect(body).toHaveProperty("_tag", "NotFoundError")
-          expect(body).toHaveProperty("resource", "Company")
+          expect(body).toHaveProperty("_tag", "ForbiddenError")
         })
       )
 
-      it.effect("GET /api/v1/journal-entries/:id returns 404 for non-existent entry", () =>
+      it.effect("GET /api/v1/journal-entries/:id returns 403 for unauthorized user", () =>
         Effect.gen(function* () {
           const httpClient = yield* HttpClient.HttpClient
           const response = yield* HttpClientRequest.get("/api/v1/journal-entries/550e8400-e29b-41d4-a716-446655440010").pipe(
@@ -549,10 +549,10 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
             Effect.scoped
           )
 
-          expect(response.status).toBe(404)
+          // Returns 403 because user is not a member of the organization
+          expect(response.status).toBe(403)
           const body = yield* response.json
-          expect(body).toHaveProperty("_tag", "NotFoundError")
-          expect(body).toHaveProperty("resource", "JournalEntry")
+          expect(body).toHaveProperty("_tag", "ForbiddenError")
         })
       )
 
@@ -584,7 +584,7 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
         })
       )
 
-      it.effect("POST /api/v1/journal-entries/:id/submit returns 404 for non-existent entry", () =>
+      it.effect("POST /api/v1/journal-entries/:id/submit returns 403 for unauthorized user", () =>
         Effect.gen(function* () {
           const httpClient = yield* HttpClient.HttpClient
           const response = yield* HttpClientRequest.post("/api/v1/journal-entries/550e8400-e29b-41d4-a716-446655440010/submit").pipe(
@@ -594,11 +594,12 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
             Effect.scoped
           )
 
-          expect(response.status).toBe(404)
+          // Returns 403 because user is not a member of the organization
+          expect(response.status).toBe(403)
         })
       )
 
-      it.effect("POST /api/v1/journal-entries/:id/approve returns 404 for non-existent entry", () =>
+      it.effect("POST /api/v1/journal-entries/:id/approve returns 403 for unauthorized user", () =>
         Effect.gen(function* () {
           const httpClient = yield* HttpClient.HttpClient
           const response = yield* HttpClientRequest.post("/api/v1/journal-entries/550e8400-e29b-41d4-a716-446655440010/approve").pipe(
@@ -608,11 +609,12 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
             Effect.scoped
           )
 
-          expect(response.status).toBe(404)
+          // Returns 403 because user is not a member of the organization
+          expect(response.status).toBe(403)
         })
       )
 
-      it.effect("POST /api/v1/journal-entries/:id/reject returns 404 for non-existent entry", () =>
+      it.effect("POST /api/v1/journal-entries/:id/reject returns 403 for unauthorized user", () =>
         Effect.gen(function* () {
           const httpClient = yield* HttpClient.HttpClient
           const response = yield* HttpClientRequest.post("/api/v1/journal-entries/550e8400-e29b-41d4-a716-446655440010/reject").pipe(
@@ -623,11 +625,12 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
             Effect.scoped
           )
 
-          expect(response.status).toBe(404)
+          // Returns 403 because user is not a member of the organization
+          expect(response.status).toBe(403)
         })
       )
 
-      it.effect("POST /api/v1/journal-entries/:id/post returns 404 for non-existent entry", () =>
+      it.effect("POST /api/v1/journal-entries/:id/post returns 403 for unauthorized user", () =>
         Effect.gen(function* () {
           const httpClient = yield* HttpClient.HttpClient
           const response = yield* HttpClientRequest.post("/api/v1/journal-entries/550e8400-e29b-41d4-a716-446655440010/post").pipe(
@@ -642,11 +645,12 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
             Effect.scoped
           )
 
-          expect(response.status).toBe(404)
+          // Returns 403 because user is not a member of the organization
+          expect(response.status).toBe(403)
         })
       )
 
-      it.effect("POST /api/v1/journal-entries/:id/reverse returns 404 for non-existent entry", () =>
+      it.effect("POST /api/v1/journal-entries/:id/reverse returns 403 for unauthorized user", () =>
         Effect.gen(function* () {
           const httpClient = yield* HttpClient.HttpClient
           const response = yield* HttpClientRequest.post("/api/v1/journal-entries/550e8400-e29b-41d4-a716-446655440010/reverse").pipe(
@@ -662,7 +666,8 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
             Effect.scoped
           )
 
-          expect(response.status).toBe(404)
+          // Returns 403 because user is not a member of the organization
+          expect(response.status).toBe(403)
         })
       )
     })

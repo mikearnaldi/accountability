@@ -37,11 +37,25 @@ Use these files as reference when implementing tasks. Read relevant specs before
 
 ### TASK_COMPLETE
 
-When you have finished a task AND verified CI is green:
+When you have finished a task AND verified CI is green, output **exactly** this format:
 
 ```
 TASK_COMPLETE: Brief description of what you implemented
 ```
+
+**FORMAT REQUIREMENTS (the script parses this for git commit):**
+- Must be on its own line
+- Must start with exactly `TASK_COMPLETE:` (with colon)
+- Description follows the colon and space
+- Description becomes the git commit message - keep it concise (one line, under 72 chars)
+- No markdown formatting, no backticks, no extra text around it
+
+**Examples:**
+- ✅ `TASK_COMPLETE: Added user authentication with JWT tokens`
+- ✅ `TASK_COMPLETE: Fixed currency conversion bug in reports`
+- ❌ `**TASK_COMPLETE**: Added feature` (no markdown)
+- ❌ `TASK_COMPLETE - Added feature` (must use colon)
+- ❌ `I have completed the task. TASK_COMPLETE: ...` (must be on its own line)
 
 **After outputting TASK_COMPLETE, STOP IMMEDIATELY.** Do not start the next task.
 
@@ -57,7 +71,7 @@ NOTHING_LEFT_TO_DO
 
 ### Completing the Last Task
 
-**IMPORTANT:** When you complete the LAST task for the focus topic, you MUST signal BOTH:
+**IMPORTANT:** When you complete the LAST task for the focus topic, you MUST signal BOTH (each on its own line):
 
 ```
 TASK_COMPLETE: Brief description of what you implemented
@@ -65,7 +79,7 @@ TASK_COMPLETE: Brief description of what you implemented
 NOTHING_LEFT_TO_DO
 ```
 
-This ensures the task gets committed AND the loop exits. Always check if there are remaining tasks before deciding which signal(s) to use.
+This ensures the task gets committed (via TASK_COMPLETE) AND the loop exits (via NOTHING_LEFT_TO_DO). Always check if there are remaining tasks before deciding which signal(s) to use.
 
 ## CI Green Requirement
 

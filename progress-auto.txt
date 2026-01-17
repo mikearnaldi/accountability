@@ -424,3 +424,8 @@
 **Task**: Autonomous improvements
 **Status**: complete
 ---
+
+## Iteration 2 - 2026-01-18 00:55
+**Task**: Implemented Phase E9 - Permission Checks in JournalEntriesApi. Added organization context and permission checks to all 10 journal entry API handlers (list, get, create, update, delete, submit, approve, reject, post, reverse). Updated JournalEntriesApi.ts to add ForbiddenError to all endpoints and NotFoundError to createJournalEntry. Updated JournalEntriesApiLive.ts to wrap all handlers with requireOrganizationContext and requirePermission. Updated HttpApiIntegration tests to expect 403 ForbiddenError for unauthorized access. All 3620 unit tests pass, typecheck clean, lint clean.
+**Status**: complete
+---

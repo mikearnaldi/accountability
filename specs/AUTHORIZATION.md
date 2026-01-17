@@ -419,8 +419,22 @@ Same pattern as E7.
 
 ---
 
-#### Phase E9: Permission Checks in JournalEntriesApi
+#### Phase E9: Permission Checks in JournalEntriesApi ✅ COMPLETE
 Same pattern as E7.
+
+**Completed**:
+- Added permission checks to all Journal Entry endpoints (listJournalEntries, getJournalEntry, createJournalEntry, updateJournalEntry, deleteJournalEntry, submitForApproval, approveJournalEntry, rejectJournalEntry, postJournalEntry, reverseJournalEntry)
+- Wrapped handlers with `requireOrganizationContext` and `requirePermission`
+- Permission mapping:
+  - `journal_entry:read` - list and get operations
+  - `journal_entry:create` - create operation
+  - `journal_entry:update` - update, delete draft, and submit operations
+  - `journal_entry:post` - approve, reject, and post operations
+  - `journal_entry:reverse` - reverse operation
+- Added ForbiddenError to all API endpoint error types
+- Added NotFoundError to createJournalEntry (required by OrganizationContextError)
+- Updated tests to expect ForbiddenError for unauthorized access
+- All 3620 tests pass, typecheck clean, lint clean
 
 ---
 
