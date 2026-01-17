@@ -340,3 +340,8 @@
 **Task**: Standardized journal-entries/index.tsx form components - replaced 4 inline filter selects (status, type, fiscal year, fiscal period) with Select component having proper chevron icons, and replaced search input and 2 date inputs with Input component. Also standardized Clear Filters button to use Button component. All 3590 unit tests and 22 journal entries E2E tests pass.
 **Status**: complete
 ---
+
+## Iteration 2 - 2026-01-17 09:27
+**Task**: Standardized accounts/index.tsx form components - replaced 2 inline filter selects (type, status) with Select component having proper chevron icons, replaced search input with Input component using inputPrefix for the Search icon, and replaced inline clear filters button with Button component. All 3590 unit tests and 15 accounts E2E tests pass.
+**Status**: complete
+---

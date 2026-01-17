@@ -15,6 +15,8 @@ import { AppLayout } from "@/components/layout/AppLayout"
 import { MinimalRouteError } from "@/components/ui/RouteError"
 import { Button } from "@/components/ui/Button"
 import { Tooltip } from "@/components/ui/Tooltip"
+import { Input } from "@/components/ui/Input"
+import { Select } from "@/components/ui/Select"
 
 // =============================================================================
 // Types
@@ -334,20 +336,18 @@ function ChartOfAccountsPage() {
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4" data-testid="accounts-toolbar">
           <div className="flex flex-wrap items-center gap-4">
             {/* Search */}
-            <div className="relative">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search accounts..."
-                data-testid="accounts-search-input"
-                className="w-64 rounded-lg border border-gray-300 py-2 pl-10 pr-4 text-sm text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-            </div>
+            <Input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search accounts..."
+              id="accounts-search-input"
+              inputPrefix={<Search className="h-4 w-4" />}
+              className="w-64 text-sm"
+            />
 
             {/* Filter by Type */}
-            <select
+            <Select
               value={filterType}
               onChange={(e) => {
                 const value = e.target.value
@@ -355,19 +355,20 @@ function ChartOfAccountsPage() {
                   setFilterType(value)
                 }
               }}
-              data-testid="accounts-filter-type"
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            >
-              <option value="All">All Types</option>
-              <option value="Asset">Assets</option>
-              <option value="Liability">Liabilities</option>
-              <option value="Equity">Equity</option>
-              <option value="Revenue">Revenue</option>
-              <option value="Expense">Expenses</option>
-            </select>
+              id="accounts-filter-type"
+              className="w-auto text-sm"
+              options={[
+                { value: "All", label: "All Types" },
+                { value: "Asset", label: "Assets" },
+                { value: "Liability", label: "Liabilities" },
+                { value: "Equity", label: "Equity" },
+                { value: "Revenue", label: "Revenue" },
+                { value: "Expense", label: "Expenses" }
+              ]}
+            />
 
             {/* Filter by Status */}
-            <select
+            <Select
               value={filterStatus}
               onChange={(e) => {
                 const value = e.target.value
@@ -375,13 +376,14 @@ function ChartOfAccountsPage() {
                   setFilterStatus(value)
                 }
               }}
-              data-testid="accounts-filter-status"
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            >
-              <option value="All">All Statuses</option>
-              <option value="Active">Active</option>
-              <option value="Inactive">Inactive</option>
-            </select>
+              id="accounts-filter-status"
+              className="w-auto text-sm"
+              options={[
+                { value: "All", label: "All Statuses" },
+                { value: "Active", label: "Active" },
+                { value: "Inactive", label: "Inactive" }
+              ]}
+            />
 
             {/* Filter by Postable */}
             <label className="flex items-center gap-2 text-sm text-gray-700" data-testid="accounts-filter-postable-label">
@@ -457,7 +459,8 @@ function ChartOfAccountsPage() {
         ) : filteredAccounts.length === 0 ? (
           <div className="rounded-lg border border-gray-200 bg-white p-8 text-center">
             <p className="text-gray-500">No accounts match your search criteria.</p>
-            <button
+            <Button
+              variant="secondary"
               onClick={() => {
                 setSearchQuery("")
                 setFilterType("All")
@@ -465,10 +468,10 @@ function ChartOfAccountsPage() {
                 setFilterPostable(false)
               }}
               data-testid="clear-filters-button"
-              className="mt-4 text-blue-600 hover:text-blue-700"
+              className="mt-4"
             >
               Clear filters
-            </button>
+            </Button>
           </div>
         ) : (
           <AccountTreeView
