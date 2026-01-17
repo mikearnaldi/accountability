@@ -37,7 +37,11 @@ import { AuditLogRepositoryLive } from "./AuditLogRepositoryLive.ts"
 import { UserRepositoryLive } from "./UserRepositoryLive.ts"
 import { IdentityRepositoryLive } from "./IdentityRepositoryLive.ts"
 import { SessionRepositoryLive } from "./SessionRepositoryLive.ts"
+import { OrganizationMemberRepositoryLive } from "./OrganizationMemberRepositoryLive.ts"
+import { InvitationRepositoryLive } from "./InvitationRepositoryLive.ts"
 import { AuthServiceLive } from "./AuthServiceLive.ts"
+import { OrganizationMemberServiceLive } from "./OrganizationMemberServiceLive.ts"
+import { InvitationServiceLive } from "./InvitationServiceLive.ts"
 import { LocalAuthProviderLive } from "./LocalAuthProviderLive.ts"
 import { LocalAuthProvider } from "../Services/LocalAuthProvider.ts"
 import { AuthServiceConfig, SessionDurationConfig } from "../Services/AuthServiceConfig.ts"
@@ -95,7 +99,9 @@ export const RepositoriesLive = Layer.mergeAll(
   AuditLogRepositoryLive,
   UserRepositoryLive,
   IdentityRepositoryLive,
-  SessionRepositoryLive
+  SessionRepositoryLive,
+  OrganizationMemberRepositoryLive,
+  InvitationRepositoryLive
 )
 
 // =============================================================================
@@ -260,6 +266,21 @@ const AuthServiceWithDeps = AuthServiceLive.pipe(
 // =============================================================================
 
 /**
+ * OrganizationMemberServiceWithDeps - OrganizationMemberService with repository
+ */
+const OrganizationMemberServiceWithDeps = OrganizationMemberServiceLive.pipe(
+  Layer.provide(OrganizationMemberRepositoryLive)
+)
+
+/**
+ * InvitationServiceWithDeps - InvitationService with repositories
+ */
+const InvitationServiceWithDeps = InvitationServiceLive.pipe(
+  Layer.provide(InvitationRepositoryLive),
+  Layer.provide(OrganizationMemberRepositoryLive)
+)
+
+/**
  * RepositoriesWithAuthLive - Repositories plus AuthService
  *
  * Includes all repository implementations plus the AuthService.
@@ -269,9 +290,13 @@ const AuthServiceWithDeps = AuthServiceLive.pipe(
  * - All repositories
  * - AuthService
  * - PasswordHasher (for password verification/hashing in API handlers)
+ * - OrganizationMemberService
+ * - InvitationService
  */
 export const RepositoriesWithAuthLive = Layer.mergeAll(
   RepositoriesLive,
   AuthServiceWithDeps,
-  PasswordHasherWithCrypto
+  PasswordHasherWithCrypto,
+  OrganizationMemberServiceWithDeps,
+  InvitationServiceWithDeps
 )

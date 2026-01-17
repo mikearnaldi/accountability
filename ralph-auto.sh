@@ -528,21 +528,23 @@ run_iteration() {
     local prompt_file="$OUTPUT_DIR/iteration_${iteration}_prompt.md"
     echo "$prompt" > "$prompt_file"
 
+    # Log prompt details
+    local prompt_lines=$(echo "$prompt" | wc -l | tr -d ' ')
+    local has_ci_errors="no"
+    if [ -f "$OUTPUT_DIR/ci_errors.txt" ]; then
+        has_ci_errors="yes"
+    fi
+    log "INFO" "Prompt: $prompt_lines lines, CI errors: $has_ci_errors"
+    log "INFO" "Prompt file: $prompt_file"
+
     # Run the agent
     log "INFO" "Running Claude Code agent..."
     echo ""  # Blank line before agent output
 
     # Use stream-json for real-time output, filter for readability
-    # Run in subshell and track PID for cleanup on Ctrl+C
+    # Run synchronously - signal handler will kill child processes on Ctrl+C
     local agent_exit_code=0
-    (
-        cat "$prompt_file" | $AGENT_CMD --print --output-format stream-json 2>&1 | tee "$output_file" | stream_filter
-    ) &
-    local agent_pid=$!
-    CHILD_PIDS="$CHILD_PIDS $agent_pid"
-
-    # Wait for the agent to complete
-    if wait $agent_pid; then
+    if cat "$prompt_file" | $AGENT_CMD --print --output-format stream-json 2>&1 | tee "$output_file" | stream_filter; then
         echo ""  # Blank line after agent output
         log "SUCCESS" "Agent completed iteration $iteration"
     else
@@ -550,14 +552,10 @@ run_iteration() {
         echo ""
         if [ $agent_exit_code -eq 130 ] || [ $agent_exit_code -eq 143 ]; then
             log "INFO" "Agent interrupted by user"
-            CHILD_PIDS="${CHILD_PIDS/ $agent_pid/}"
             return 1
         fi
         log "WARN" "Agent exited with non-zero status ($agent_exit_code)"
     fi
-
-    # Remove from tracked PIDs
-    CHILD_PIDS="${CHILD_PIDS/ $agent_pid/}"
 
     # Extract only assistant text content from stream-json (excludes prompt)
     local assistant_text

@@ -39,7 +39,9 @@ import { CurrencyApiLive } from "@accountability/api/Layers/CurrencyApiLive"
 import { JurisdictionsApiLive } from "@accountability/api/Layers/JurisdictionsApiLive"
 import { EliminationRulesApiLive } from "@accountability/api/Layers/EliminationRulesApiLive"
 import { IntercompanyTransactionsApiLive } from "@accountability/api/Layers/IntercompanyTransactionsApiLive"
+import { InvitationApiLive } from "@accountability/api/Layers/InvitationApiLive"
 import { JournalEntriesApiLive } from "@accountability/api/Layers/JournalEntriesApiLive"
+import { MembershipApiLive } from "@accountability/api/Layers/MembershipApiLive"
 import { ReportsApiLive } from "@accountability/api/Layers/ReportsApiLive"
 
 // =============================================================================
@@ -89,7 +91,9 @@ const AppApiLiveWithSessionAuth = HttpApiBuilder.api(AppApi)
   .pipe(Layer.provide(AccountTemplatesApiLive))
   .pipe(Layer.provide(AuditLogApiLive))
   .pipe(Layer.provide(CompaniesApiLive))
+  .pipe(Layer.provide(InvitationApiLive))
   .pipe(Layer.provide(JournalEntriesApiLive))
+  .pipe(Layer.provide(MembershipApiLive))
   .pipe(Layer.provide(ReportsApiLive))
   .pipe(Layer.provide(CurrenciesApiLive))
   .pipe(Layer.provide(JurisdictionsApiLive))

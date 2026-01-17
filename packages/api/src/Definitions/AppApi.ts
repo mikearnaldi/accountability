@@ -20,7 +20,9 @@ import { CurrencyApi } from "./CurrencyApi.ts"
 import { JurisdictionsApi } from "./JurisdictionsApi.ts"
 import { EliminationRulesApi } from "./EliminationRulesApi.ts"
 import { IntercompanyTransactionsApi } from "./IntercompanyTransactionsApi.ts"
+import { InvitationApi } from "./InvitationApi.ts"
 import { JournalEntriesApi } from "./JournalEntriesApi.ts"
+import { MembershipApi } from "./MembershipApi.ts"
 import { ReportsApi } from "./ReportsApi.ts"
 
 // =============================================================================
@@ -87,6 +89,9 @@ export class HealthApi extends HttpApiGroup.make("health")
  * - /api/v1/consolidation - Consolidation group and run management (protected)
  * - /api/v1/elimination-rules - Elimination rule management (protected)
  * - /api/v1/audit-log - Audit log queries (protected)
+ * - /api/v1/organizations/:orgId/members - Organization membership management (protected)
+ * - /api/v1/users/me/invitations - User's pending invitations (protected)
+ * - /api/v1/invitations/:token/* - Invitation accept/decline (protected)
  */
 export class AppApi extends HttpApi.make("AppApi")
   .add(HealthApi)
@@ -96,7 +101,9 @@ export class AppApi extends HttpApi.make("AppApi")
   .add(AccountTemplatesApi)
   .add(AuditLogApi)
   .add(CompaniesApi)
+  .add(InvitationApi)
   .add(JournalEntriesApi)
+  .add(MembershipApi)
   .add(ReportsApi)
   .add(CurrenciesApi)
   .add(JurisdictionsApi)

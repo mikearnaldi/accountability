@@ -1,0 +1,215 @@
+/**
+ * MembershipApi - HTTP API group for organization member management
+ *
+ * Provides endpoints for managing organization memberships:
+ * - List members
+ * - Invite new members
+ * - Update member roles
+ * - Remove members
+ * - Reinstate removed members
+ * - Transfer ownership
+ *
+ * @module MembershipApi
+ */
+
+import { HttpApiEndpoint, HttpApiGroup, HttpApiSchema, OpenApi } from "@effect/platform"
+import * as Schema from "effect/Schema"
+import { AuthUserId } from "@accountability/core/Auth/AuthUserId"
+import { Email } from "@accountability/core/Auth/Email"
+import { BaseRole } from "@accountability/core/Auth/BaseRole"
+import { FunctionalRoles } from "@accountability/core/Auth/FunctionalRole"
+import { MembershipStatus } from "@accountability/core/Auth/MembershipStatus"
+import { InvitationId } from "@accountability/core/Auth/InvitationId"
+import { Timestamp } from "@accountability/core/Domains/Timestamp"
+import {
+  BusinessRuleError,
+  ForbiddenError,
+  NotFoundError,
+  ValidationError
+} from "./ApiErrors.ts"
+import { AuthMiddleware } from "./AuthMiddleware.ts"
+
+// =============================================================================
+// Member Request/Response Schemas
+// =============================================================================
+
+/**
+ * MemberInfo - Information about an organization member (for list responses)
+ */
+export class MemberInfo extends Schema.Class<MemberInfo>("MemberInfo")({
+  userId: AuthUserId,
+  email: Email,
+  displayName: Schema.NonEmptyTrimmedString,
+  role: BaseRole,
+  functionalRoles: FunctionalRoles,
+  status: MembershipStatus,
+  joinedAt: Timestamp
+}) {}
+
+/**
+ * MemberListResponse - Response containing list of organization members
+ */
+export class MemberListResponse extends Schema.Class<MemberListResponse>("MemberListResponse")({
+  members: Schema.Array(MemberInfo)
+}) {}
+
+/**
+ * InviteMemberRequest - Request to invite a new member
+ */
+export class InviteMemberRequest extends Schema.Class<InviteMemberRequest>("InviteMemberRequest")({
+  email: Email,
+  role: Schema.Literal("admin", "member", "viewer").annotations({
+    description: "The role to assign. Owner cannot be assigned via invitation."
+  }),
+  functionalRoles: Schema.optionalWith(FunctionalRoles, { default: () => [] })
+}) {}
+
+/**
+ * InviteMemberResponse - Response after creating an invitation
+ */
+export class InviteMemberResponse extends Schema.Class<InviteMemberResponse>("InviteMemberResponse")({
+  invitationId: InvitationId
+}) {}
+
+/**
+ * UpdateMemberRequest - Request to update a member's role
+ */
+export class UpdateMemberRequest extends Schema.Class<UpdateMemberRequest>("UpdateMemberRequest")({
+  role: Schema.OptionFromNullOr(BaseRole),
+  functionalRoles: Schema.OptionFromNullOr(FunctionalRoles)
+}) {}
+
+/**
+ * RemoveMemberRequest - Request to remove a member
+ */
+export class RemoveMemberRequest extends Schema.Class<RemoveMemberRequest>("RemoveMemberRequest")({
+  reason: Schema.OptionFromNullOr(Schema.String)
+}) {}
+
+/**
+ * TransferOwnershipRequest - Request to transfer organization ownership
+ */
+export class TransferOwnershipRequest extends Schema.Class<TransferOwnershipRequest>("TransferOwnershipRequest")({
+  toUserId: AuthUserId,
+  myNewRole: Schema.Literal("admin", "member", "viewer").annotations({
+    description: "The role the current owner will have after transfer"
+  })
+}) {}
+
+// =============================================================================
+// Membership API Endpoints
+// =============================================================================
+
+/**
+ * List all members of an organization
+ */
+const listMembers = HttpApiEndpoint.get("listMembers", "/organizations/:orgId/members")
+  .setPath(Schema.Struct({ orgId: Schema.String }))
+  .addSuccess(MemberListResponse)
+  .addError(NotFoundError)
+  .addError(ForbiddenError)
+  .annotateContext(OpenApi.annotations({
+    summary: "List organization members",
+    description: "Retrieve all members of an organization, including their roles and status."
+  }))
+
+/**
+ * Invite a new member to the organization
+ */
+const inviteMember = HttpApiEndpoint.post("inviteMember", "/organizations/:orgId/members/invite")
+  .setPath(Schema.Struct({ orgId: Schema.String }))
+  .setPayload(InviteMemberRequest)
+  .addSuccess(InviteMemberResponse, { status: 201 })
+  .addError(NotFoundError)
+  .addError(ForbiddenError)
+  .addError(ValidationError)
+  .addError(BusinessRuleError)
+  .annotateContext(OpenApi.annotations({
+    summary: "Invite new member",
+    description: "Send an invitation to join the organization. An email will be sent with an invitation link."
+  }))
+
+/**
+ * Update a member's role
+ */
+const updateMember = HttpApiEndpoint.patch("updateMember", "/organizations/:orgId/members/:userId")
+  .setPath(Schema.Struct({ orgId: Schema.String, userId: Schema.String }))
+  .setPayload(UpdateMemberRequest)
+  .addSuccess(MemberInfo)
+  .addError(NotFoundError)
+  .addError(ForbiddenError)
+  .addError(ValidationError)
+  .addError(BusinessRuleError)
+  .annotateContext(OpenApi.annotations({
+    summary: "Update member role",
+    description: "Update a member's base role and/or functional roles."
+  }))
+
+/**
+ * Remove a member from the organization
+ */
+const removeMember = HttpApiEndpoint.del("removeMember", "/organizations/:orgId/members/:userId")
+  .setPath(Schema.Struct({ orgId: Schema.String, userId: Schema.String }))
+  .setPayload(RemoveMemberRequest)
+  .addSuccess(HttpApiSchema.NoContent)
+  .addError(NotFoundError)
+  .addError(ForbiddenError)
+  .addError(BusinessRuleError)
+  .annotateContext(OpenApi.annotations({
+    summary: "Remove member",
+    description: "Remove a member from the organization (soft delete). The owner cannot be removed."
+  }))
+
+/**
+ * Reinstate a removed member
+ */
+const reinstateMember = HttpApiEndpoint.post("reinstateMember", "/organizations/:orgId/members/:userId/reinstate")
+  .setPath(Schema.Struct({ orgId: Schema.String, userId: Schema.String }))
+  .addSuccess(MemberInfo)
+  .addError(NotFoundError)
+  .addError(ForbiddenError)
+  .addError(BusinessRuleError)
+  .annotateContext(OpenApi.annotations({
+    summary: "Reinstate member",
+    description: "Reinstate a previously removed member, restoring their previous role and access."
+  }))
+
+/**
+ * Transfer organization ownership
+ */
+const transferOwnership = HttpApiEndpoint.post("transferOwnership", "/organizations/:orgId/transfer-ownership")
+  .setPath(Schema.Struct({ orgId: Schema.String }))
+  .setPayload(TransferOwnershipRequest)
+  .addSuccess(HttpApiSchema.NoContent)
+  .addError(NotFoundError)
+  .addError(ForbiddenError)
+  .addError(ValidationError)
+  .addError(BusinessRuleError)
+  .annotateContext(OpenApi.annotations({
+    summary: "Transfer ownership",
+    description: "Transfer organization ownership to another admin member. Only the current owner can perform this action."
+  }))
+
+// =============================================================================
+// API Group
+// =============================================================================
+
+/**
+ * MembershipApi - API group for organization membership management
+ *
+ * Base path: /api/v1
+ * Protected by: AuthMiddleware (bearer token authentication)
+ */
+export class MembershipApi extends HttpApiGroup.make("membership")
+  .add(listMembers)
+  .add(inviteMember)
+  .add(updateMember)
+  .add(removeMember)
+  .add(reinstateMember)
+  .add(transferOwnership)
+  .middleware(AuthMiddleware)
+  .prefix("/v1")
+  .annotateContext(OpenApi.annotations({
+    title: "Membership",
+    description: "Manage organization memberships, roles, and invitations."
+  })) {}

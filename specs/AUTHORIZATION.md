@@ -184,7 +184,7 @@ Create TaggedError classes:
 
 ---
 
-### Track C: Services (Backend)
+### Track C: Services (Backend) ✅ COMPLETE
 
 #### Phase C1: OrganizationMemberService
 **Files**:
@@ -256,7 +256,7 @@ Create Context.Tag pattern (like CurrentUser):
 
 ### Track D: API Endpoints (Backend)
 
-#### Phase D1: Membership API Definition
+#### Phase D1: Membership API Definition ✅ COMPLETE
 **File**: `packages/api/src/Definitions/MembershipApi.ts`
 
 Define HttpApi endpoints:
@@ -269,18 +269,22 @@ Define HttpApi endpoints:
 
 **Test**: Types compile.
 
+**Completed**: MembershipApi.ts created with all endpoint definitions, request/response schemas (MemberInfo, MemberListResponse, InviteMemberRequest, InviteMemberResponse, UpdateMemberRequest, RemoveMemberRequest, TransferOwnershipRequest), and proper OpenApi annotations.
+
 ---
 
-#### Phase D2: Membership API Implementation
+#### Phase D2: Membership API Implementation ✅ COMPLETE
 **File**: `packages/api/src/Layers/MembershipApiLive.ts`
 
 Implement handlers using MemberService, InvitationService.
 
 **Test**: Integration tests for all endpoints.
 
+**Completed**: MembershipApiLive.ts created with full handler implementations for all 6 endpoints, proper error mapping to API error types, integration with OrganizationMemberService and InvitationService. Also wired into AppApi and AppApiLive, added services to RepositoriesWithAuthLive, and updated AuthApi.test.ts layer setup.
+
 ---
 
-#### Phase D3: Invitation API Definition & Implementation
+#### Phase D3: Invitation API Definition & Implementation ✅ COMPLETE
 **Files**:
 - `packages/api/src/Definitions/InvitationApi.ts`
 - `packages/api/src/Layers/InvitationApiLive.ts`
@@ -290,8 +294,9 @@ Implement handlers using MemberService, InvitationService.
 - `POST /v1/invitations/:token/accept` - Accept
 - `POST /v1/invitations/:token/decline` - Decline
 - `DELETE /v1/organizations/:orgId/invitations/:invitationId` - Revoke
+- `GET /v1/organizations/:orgId/invitations` - List org's pending invitations (admin)
 
-**Test**: Integration tests.
+**Completed**: InvitationApi.ts created with 5 endpoints (listUserInvitations, acceptInvitation, declineInvitation, revokeInvitation, listOrgInvitations) and response schemas (PendingInvitationInfo, OrgInvitationInfo, AcceptInvitationResponse). InvitationApiLive.ts implemented with full handlers using InvitationService, UserRepository, and OrganizationRepository. Added to AppApi and AppApiLive, and wired into test layer in AuthApi.test.ts.
 
 ---
 

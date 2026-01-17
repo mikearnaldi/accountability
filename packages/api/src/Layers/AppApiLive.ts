@@ -25,7 +25,9 @@ import { CurrencyApiLive } from "./CurrencyApiLive.ts"
 import { JurisdictionsApiLive } from "./JurisdictionsApiLive.ts"
 import { EliminationRulesApiLive } from "./EliminationRulesApiLive.ts"
 import { IntercompanyTransactionsApiLive } from "./IntercompanyTransactionsApiLive.ts"
+import { InvitationApiLive } from "./InvitationApiLive.ts"
 import { JournalEntriesApiLive } from "./JournalEntriesApiLive.ts"
+import { MembershipApiLive } from "./MembershipApiLive.ts"
 import { ReportsApiLive } from "./ReportsApiLive.ts"
 
 // =============================================================================
@@ -73,6 +75,8 @@ const HealthApiLive = HttpApiBuilder.group(AppApi, "health", (handlers) =>
  * - Consolidation API (protected)
  * - Elimination rules API (protected)
  * - Audit log API (protected)
+ * - Membership API (protected)
+ * - Invitation API (protected)
  *
  * Dependencies (required from consumer):
  * - AccountRepository
@@ -94,7 +98,9 @@ export const AppApiLive = HttpApiBuilder.api(AppApi).pipe(
   Layer.provide(AccountTemplatesApiLive),
   Layer.provide(AuditLogApiLive),
   Layer.provide(CompaniesApiLive),
+  Layer.provide(InvitationApiLive),
   Layer.provide(JournalEntriesApiLive),
+  Layer.provide(MembershipApiLive),
   Layer.provide(ReportsApiLive),
   Layer.provide(CurrenciesApiLive),
   Layer.provide(JurisdictionsApiLive),
