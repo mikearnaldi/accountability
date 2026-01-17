@@ -169,6 +169,11 @@ interface Company {
   readonly legalName: string
   readonly jurisdiction: string
   readonly taxId: string | null
+  readonly incorporationDate: {
+    readonly year: number
+    readonly month: number
+    readonly day: number
+  } | null
   readonly registrationNumber: string | null
   readonly registeredAddress: AddressData | null
   readonly industryCode: string | null
@@ -230,6 +235,14 @@ function CompanyDetailsPage() {
     month: "long",
     day: "numeric"
   })
+  // Format incorporation date manually to avoid timezone issues
+  // LocalDate stores {year, month, day} directly so we format without Date object
+  const formatIncorporationDate = (date: { year: number; month: number; day: number } | null): string | null => {
+    if (!date) return null
+    const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+    return `${months[date.month - 1]} ${date.day}, ${date.year}`
+  }
+  const incorporationDateFormatted = formatIncorporationDate(company.incorporationDate)
 
   // Determine hierarchy position
   const isParentCompany = subsidiaries.length > 0
@@ -399,6 +412,18 @@ function CompanyDetailsPage() {
                 <div className="mt-2">
                   <span className="text-xs text-gray-400">Tax ID</span>
                   <p className="font-mono text-sm text-gray-600" data-testid="company-tax-id">{company.taxId}</p>
+                </div>
+              )}
+              {incorporationDateFormatted && (
+                <div className="mt-2">
+                  <span className="text-xs text-gray-400">Incorporated</span>
+                  <p className="text-sm text-gray-600" data-testid="company-incorporation-date">{incorporationDateFormatted}</p>
+                </div>
+              )}
+              {company.registrationNumber && (
+                <div className="mt-2">
+                  <span className="text-xs text-gray-400">Registration Number</span>
+                  <p className="font-mono text-sm text-gray-600" data-testid="company-registration-number">{company.registrationNumber}</p>
                 </div>
               )}
             </div>

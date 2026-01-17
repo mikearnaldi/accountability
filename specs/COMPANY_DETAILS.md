@@ -87,7 +87,7 @@ Added common jurisdictions with sensible defaults:
 
 - [x] Add to `PREDEFINED_JURISDICTIONS` array (now 12 jurisdictions)
 - [x] `JurisdictionSelect` component automatically shows all options (data-driven from API)
-- [ ] Add E2E test for creating company in new jurisdiction (optional - UI already supports all jurisdictions)
+- [x] Add E2E test for creating company in new jurisdiction (test: create-company.spec.ts - "should create company in new jurisdiction (Canada)")
 
 ### Phase 2: Add Incorporation Date ✅ COMPLETE
 
@@ -101,7 +101,7 @@ Added incorporation date field to Company with full frontend/backend support:
 - [x] Update API handlers to persist incorporation date
 - [x] Update repository layer (CompanyRow, rowToCompany, create, update)
 - [x] Update all unit tests with new field
-- [ ] Add E2E test for setting incorporation date (optional - form field exists and works)
+- [x] Add E2E test for setting incorporation date (test: create-company.spec.ts - "should create company with incorporation date")
 
 ### Phase 3: Add Registration Number ✅ COMPLETE
 
@@ -117,7 +117,7 @@ Added registration number field to Company with full frontend/backend support:
 - [x] Update repository layer (CompanyRow, rowToCompany, create, update)
 - [x] Generate new API client with updated schema
 - [x] Update all unit tests with new field
-- [ ] Add E2E test for setting registration number (optional - form field exists and works)
+- [x] Add E2E test for setting registration number (test: create-company.spec.ts - "should create company with registration number")
 
 ### Phase 4: Improve Subsidiary Setup UX ✅ COMPLETE
 
