@@ -11,6 +11,7 @@
 
 import { clsx } from "clsx"
 import { forwardRef, type SelectHTMLAttributes } from "react"
+import { ChevronDown } from "lucide-react"
 
 export interface JurisdictionOption {
   readonly code: string
@@ -73,13 +74,13 @@ export const JurisdictionSelect = forwardRef<HTMLSelectElement, JurisdictionSele
             id={selectId}
             disabled={isDisabled}
             className={clsx(
-              "w-full rounded-lg border px-3 py-2 text-gray-900 bg-white",
+              "w-full rounded-lg border py-2 pl-3 pr-9 text-gray-900 bg-white",
               "focus:outline-none focus:ring-2 focus:ring-offset-0",
               "disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed",
+              "appearance-none cursor-pointer",
               hasError
                 ? "border-red-300 focus:border-red-500 focus:ring-red-500"
                 : "border-gray-300 focus:border-blue-500 focus:ring-blue-500",
-              isLoading && "pr-10",
               className
             )}
             aria-describedby={
@@ -98,8 +99,8 @@ export const JurisdictionSelect = forwardRef<HTMLSelectElement, JurisdictionSele
               </option>
             ))}
           </select>
-          {isLoading && (
-            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+          {isLoading ? (
+            <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
               <svg
                 className="h-4 w-4 animate-spin text-gray-400"
                 fill="none"
@@ -119,6 +120,11 @@ export const JurisdictionSelect = forwardRef<HTMLSelectElement, JurisdictionSele
                 />
               </svg>
             </div>
+          ) : (
+            <ChevronDown
+              className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500"
+              aria-hidden="true"
+            />
           )}
         </div>
         {error && (

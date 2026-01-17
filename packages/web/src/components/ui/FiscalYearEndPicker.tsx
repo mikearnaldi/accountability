@@ -11,6 +11,7 @@
  */
 
 import { clsx } from "clsx"
+import { ChevronDown } from "lucide-react"
 
 interface FiscalYearEndPickerProps {
   /** Component label */
@@ -153,29 +154,36 @@ export function FiscalYearEndPicker({
           >
             Month
           </label>
-          <select
-            id={`${id}-month`}
-            value={month}
-            onChange={(e) => handleMonthChange(Number(e.target.value))}
-            disabled={disabled}
-            className={clsx(
-              "w-full rounded-lg border px-3 py-2 text-gray-900 bg-white",
-              "focus:outline-none focus:ring-2 focus:ring-offset-0",
-              "disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed",
-              hasError
-                ? "border-red-300 focus:border-red-500 focus:ring-red-500"
-                : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-            )}
-            aria-describedby={hasError ? `${id}-error` : undefined}
-            aria-invalid={hasError}
-            data-testid={`${id}-month`}
-          >
-            {MONTHS.map((m) => (
-              <option key={m.value} value={m.value}>
-                {m.label}
-              </option>
-            ))}
-          </select>
+          <div className="relative">
+            <select
+              id={`${id}-month`}
+              value={month}
+              onChange={(e) => handleMonthChange(Number(e.target.value))}
+              disabled={disabled}
+              className={clsx(
+                "w-full rounded-lg border py-2 pl-3 pr-9 text-gray-900 bg-white",
+                "focus:outline-none focus:ring-2 focus:ring-offset-0",
+                "disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed",
+                "appearance-none cursor-pointer",
+                hasError
+                  ? "border-red-300 focus:border-red-500 focus:ring-red-500"
+                  : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+              )}
+              aria-describedby={hasError ? `${id}-error` : undefined}
+              aria-invalid={hasError}
+              data-testid={`${id}-month`}
+            >
+              {MONTHS.map((m) => (
+                <option key={m.value} value={m.value}>
+                  {m.label}
+                </option>
+              ))}
+            </select>
+            <ChevronDown
+              className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500"
+              aria-hidden="true"
+            />
+          </div>
         </div>
 
         {/* Day dropdown */}
@@ -186,29 +194,36 @@ export function FiscalYearEndPicker({
           >
             Day
           </label>
-          <select
-            id={`${id}-day`}
-            value={day}
-            onChange={(e) => onDayChange(Number(e.target.value))}
-            disabled={disabled}
-            className={clsx(
-              "w-full rounded-lg border px-3 py-2 text-gray-900 bg-white",
-              "focus:outline-none focus:ring-2 focus:ring-offset-0",
-              "disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed",
-              hasError
-                ? "border-red-300 focus:border-red-500 focus:ring-red-500"
-                : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-            )}
-            aria-describedby={hasError ? `${id}-error` : undefined}
-            aria-invalid={hasError}
-            data-testid={`${id}-day`}
-          >
-            {Array.from({ length: maxDays }, (_, i) => i + 1).map((d) => (
-              <option key={d} value={d}>
-                {d}
-              </option>
-            ))}
-          </select>
+          <div className="relative">
+            <select
+              id={`${id}-day`}
+              value={day}
+              onChange={(e) => onDayChange(Number(e.target.value))}
+              disabled={disabled}
+              className={clsx(
+                "w-full rounded-lg border py-2 pl-3 pr-9 text-gray-900 bg-white",
+                "focus:outline-none focus:ring-2 focus:ring-offset-0",
+                "disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed",
+                "appearance-none cursor-pointer",
+                hasError
+                  ? "border-red-300 focus:border-red-500 focus:ring-red-500"
+                  : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+              )}
+              aria-describedby={hasError ? `${id}-error` : undefined}
+              aria-invalid={hasError}
+              data-testid={`${id}-day`}
+            >
+              {Array.from({ length: maxDays }, (_, i) => i + 1).map((d) => (
+                <option key={d} value={d}>
+                  {d}
+                </option>
+              ))}
+            </select>
+            <ChevronDown
+              className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500"
+              aria-hidden="true"
+            />
+          </div>
         </div>
       </div>
 
