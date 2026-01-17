@@ -394,3 +394,8 @@
 **Task**: Fixed acquisition date setting for subsidiaries in consolidation groups - Added acquisitionDate field to API schemas (GroupMemberInput, AddMemberRequest, UpdateMemberRequest), updated ConsolidationApiLive handlers to use provided dates (defaulting to today), added acquisition date picker to consolidation group create and edit forms in the frontend, regenerated API client. All 3620 unit tests and 13 consolidation E2E tests pass, typecheck clean, lint clean.
 **Status**: complete
 ---
+
+## Iteration 2 - 2026-01-17 21:17
+**Task**: Verified acquisition date feature for consolidation group subsidiaries is fully implemented - API schemas, backend handlers, and frontend forms all support setting and updating acquisition dates for consolidation group members. All 3620 unit tests and 12 consolidation E2E tests pass.
+**Status**: complete
+---
