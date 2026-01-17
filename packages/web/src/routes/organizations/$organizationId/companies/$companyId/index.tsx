@@ -434,6 +434,22 @@ function CompanyDetailsPage() {
                   </p>
                 </div>
               </Link>
+
+              {/* Consolidation Settings Notice */}
+              <div className="mt-4 rounded-md border border-blue-200 bg-blue-50 p-3" data-testid="consolidation-notice">
+                <p className="text-sm text-blue-700">
+                  <span className="font-medium">Note:</span> Acquisition date and consolidation method are configured in{" "}
+                  <Link
+                    to="/organizations/$organizationId/consolidation"
+                    params={{ organizationId: params.organizationId }}
+                    className="font-medium underline hover:text-blue-800"
+                    data-testid="consolidation-link"
+                  >
+                    Consolidation Groups
+                  </Link>
+                  , not on the company itself.
+                </p>
+              </div>
             </div>
           )}
 

@@ -548,10 +548,18 @@ export function CompanyForm({
                 onBlur={() => handleFieldBlur("ownershipPercentage", ownershipPercentage)}
                 disabled={isSubmitting}
                 placeholder="e.g. 100"
-                helperText="Consolidation method is configured in Consolidation Groups"
                 data-testid="company-ownership-input"
                 {...(touched.ownershipPercentage && fieldErrors.ownershipPercentage ? { error: fieldErrors.ownershipPercentage } : {})}
               />
+
+              {/* Consolidation Settings Notice */}
+              <div className="rounded-md border border-blue-200 bg-blue-50 p-3">
+                <p className="text-sm text-blue-700">
+                  <span className="font-medium">Note:</span> Acquisition date and consolidation method are configured in{" "}
+                  <span className="font-medium">Consolidation Groups</span>, not on the company itself. This allows
+                  a company to be part of multiple consolidation scenarios with different settings.
+                </p>
+              </div>
             </div>
           )}
         </fieldset>

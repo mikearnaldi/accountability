@@ -103,17 +103,20 @@ Added registration number field to Company with full frontend/backend support:
 - [x] Update all unit tests with new field
 - [ ] Add E2E test for setting registration number (optional - form field exists and works)
 
-### Phase 4: Improve Subsidiary Setup UX
+### Phase 4: Improve Subsidiary Setup UX ✅ COMPLETE
 
 The acquisition date is correctly on ConsolidationMember (not Company) because:
 - A company can be acquired at different times by different parent groups
 - The acquisition date is specific to a consolidation relationship
 
-However, the UX could be clearer:
+UX improvements implemented:
 
-- [ ] Add helper text in CompanyForm explaining where to set acquisition date
-- [ ] Link to consolidation group setup from subsidiary section
-- [ ] Consider showing acquisition date (read-only) if company is in a consolidation group
+- [x] Add helper text in CompanyForm explaining where to set acquisition date
+  - Added info box in "Subsidiary Configuration" section explaining that acquisition date and consolidation method are configured in Consolidation Groups
+- [x] Link to consolidation group setup from subsidiary section
+  - Added info box with clickable link to Consolidation Groups page on company detail page (shown for subsidiaries)
+- [x] Consider showing acquisition date (read-only) if company is in a consolidation group
+  - **Decision: Not implemented** - Would require additional API calls to fetch all consolidation groups and find memberships. The helper text + link already guides users to the right place. A company can be in multiple consolidation groups with different acquisition dates, making read-only display confusing. Users can click the link to see full consolidation details.
 
 ### Phase 5: Optional Enhancements
 
