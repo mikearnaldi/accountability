@@ -88,8 +88,8 @@ Convert inline `<input>` to use `Input` component:
 
 - [ ] `CompanyForm.tsx` - parent company select
 - [ ] `AccountForm.tsx` - various selects
-- [ ] `JournalEntryForm.tsx` - date input, reference input
-- [ ] `JournalEntryLineEditor.tsx` - account select (table context)
+- [x] `JournalEntryForm.tsx` - date input, reference input, entry type select, description, currency select, exchange rate ✅
+- [x] `JournalEntryLineEditor.tsx` - account select, memo input, debit/credit inputs with currency prefix ✅
 
 ## Target Styling
 

@@ -20,6 +20,8 @@ import {
   type JournalEntryLine
 } from "@/components/journal/JournalEntryLineEditor"
 import { Button } from "@/components/ui/Button"
+import { Input } from "@/components/ui/Input"
+import { Select } from "@/components/ui/Select"
 
 // =============================================================================
 // Types
@@ -599,54 +601,39 @@ export function JournalEntryForm({
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           {/* Transaction Date */}
           <div>
-            <label
-              htmlFor="transaction-date"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Date *
-            </label>
-            <input
+            <Input
               id="transaction-date"
               type="date"
+              label="Date *"
               required
               value={transactionDate}
               onChange={(e) => setTransactionDate(e.target.value)}
               disabled={isSubmitting}
               data-testid="journal-entry-date"
-              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100"
+              className="text-sm"
             />
           </div>
 
           {/* Reference Number */}
           <div>
-            <label
-              htmlFor="reference-number"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Reference
-            </label>
-            <input
+            <Input
               id="reference-number"
               type="text"
+              label="Reference"
               value={referenceNumber}
               onChange={(e) => setReferenceNumber(e.target.value)}
               disabled={isSubmitting}
               placeholder="e.g., INV-001"
               data-testid="journal-entry-reference"
-              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100"
+              className="text-sm"
             />
           </div>
 
           {/* Entry Type */}
           <div>
-            <label
-              htmlFor="entry-type"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Type *
-            </label>
-            <select
+            <Select
               id="entry-type"
+              label="Type *"
               value={entryType}
               onChange={(e) => {
                 const value = e.target.value
@@ -656,7 +643,7 @@ export function JournalEntryForm({
               }}
               disabled={isSubmitting}
               data-testid="journal-entry-type"
-              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100"
+              className="text-sm"
             >
               <option value="Standard">Standard</option>
               <option value="Adjusting">Adjusting</option>
@@ -666,7 +653,7 @@ export function JournalEntryForm({
               <option value="Recurring">Recurring</option>
               <option value="Intercompany">Intercompany</option>
               <option value="Revaluation">Revaluation</option>
-            </select>
+            </Select>
           </div>
 
           {/* Computed Fiscal Period (Read-only) */}
@@ -687,22 +674,17 @@ export function JournalEntryForm({
 
         {/* Description */}
         <div className="mt-4">
-          <label
-            htmlFor="description"
-            className="block text-sm font-medium text-gray-700"
-          >
-            Description *
-          </label>
-          <input
+          <Input
             id="description"
             type="text"
+            label="Description *"
             required
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             disabled={isSubmitting}
             placeholder="Enter a description for this journal entry"
             data-testid="journal-entry-description"
-            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100"
+            className="text-sm"
           />
         </div>
 
@@ -730,37 +712,27 @@ export function JournalEntryForm({
             {showMultiCurrency && (
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
-                  <label
-                    htmlFor="currency-select"
-                    className="text-sm text-gray-500"
-                  >
-                    Currency:
-                  </label>
-                  <select
+                  <span className="text-sm text-gray-500">Currency:</span>
+                  <Select
                     id="currency-select"
                     value={currency}
                     onChange={(e) => handleCurrencyChange(e.target.value)}
                     disabled={isSubmitting}
                     data-testid="journal-entry-currency"
-                    className="rounded-lg border border-gray-300 px-2 py-1 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100"
+                    className="py-1 text-sm"
                   >
                     {currencies.map((c) => (
                       <option key={c.code} value={c.code}>
                         {c.code} - {c.name}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
 
                 {currency !== functionalCurrency && (
                   <div className="flex items-center gap-2">
-                    <label
-                      htmlFor="exchange-rate"
-                      className="text-sm text-gray-500"
-                    >
-                      Rate:
-                    </label>
-                    <input
+                    <span className="text-sm text-gray-500">Rate:</span>
+                    <Input
                       id="exchange-rate"
                       type="text"
                       inputMode="decimal"
@@ -768,7 +740,7 @@ export function JournalEntryForm({
                       onChange={(e) => setExchangeRate(e.target.value)}
                       disabled={isSubmitting}
                       data-testid="journal-entry-exchange-rate"
-                      className="w-24 rounded-lg border border-gray-300 px-2 py-1 text-right text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100"
+                      className="w-24 py-1 text-right text-sm"
                     />
                     <span className="text-xs text-gray-500">
                       1 {currency} = {exchangeRate} {functionalCurrency}

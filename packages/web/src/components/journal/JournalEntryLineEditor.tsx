@@ -7,6 +7,8 @@
  */
 
 import { useMemo } from "react"
+import { Select } from "@/components/ui/Select"
+import { Input } from "@/components/ui/Input"
 
 // =============================================================================
 // Types
@@ -93,12 +95,13 @@ export function JournalEntryLineEditor({
 
       {/* Account Selector */}
       <div className="col-span-4">
-        <select
+        <Select
           value={line.accountId}
           onChange={(e) => onUpdate(line.id, "accountId", e.target.value)}
           disabled={disabled}
           data-testid={`journal-entry-line-account-${lineIndex}`}
-          className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
+          placeholder="Select account..."
+          className="py-1.5 text-sm"
         >
           <option value="">Select account...</option>
           {postableAccounts
@@ -108,7 +111,7 @@ export function JournalEntryLineEditor({
                 {acc.accountNumber} - {acc.name}
               </option>
             ))}
-        </select>
+        </Select>
         {selectedAccount && (
           <span className="mt-0.5 block text-xs text-gray-500">
             {selectedAccount.accountType}
@@ -118,53 +121,45 @@ export function JournalEntryLineEditor({
 
       {/* Memo */}
       <div className="col-span-2">
-        <input
+        <Input
           type="text"
           value={line.memo}
           onChange={(e) => onUpdate(line.id, "memo", e.target.value)}
           disabled={disabled}
           placeholder="Memo"
           data-testid={`journal-entry-line-memo-${lineIndex}`}
-          className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
+          className="py-1.5 text-sm"
         />
       </div>
 
       {/* Debit Amount */}
       <div className="col-span-2">
-        <div className="relative">
-          <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2 text-sm text-gray-500">
-            {currency}
-          </span>
-          <input
-            type="text"
-            inputMode="decimal"
-            value={line.debitAmount}
-            onChange={(e) => handleDebitChange(e.target.value)}
-            disabled={disabled}
-            placeholder="0.00"
-            data-testid={`journal-entry-line-debit-${lineIndex}`}
-            className="w-full rounded-md border border-gray-300 py-1.5 pl-10 pr-2 text-right text-sm text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
-          />
-        </div>
+        <Input
+          type="text"
+          inputMode="decimal"
+          value={line.debitAmount}
+          onChange={(e) => handleDebitChange(e.target.value)}
+          disabled={disabled}
+          placeholder="0.00"
+          data-testid={`journal-entry-line-debit-${lineIndex}`}
+          inputPrefix={<span className="text-sm text-gray-500">{currency}</span>}
+          className="py-1.5 pr-2 text-right text-sm"
+        />
       </div>
 
       {/* Credit Amount */}
       <div className="col-span-2">
-        <div className="relative">
-          <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2 text-sm text-gray-500">
-            {currency}
-          </span>
-          <input
-            type="text"
-            inputMode="decimal"
-            value={line.creditAmount}
-            onChange={(e) => handleCreditChange(e.target.value)}
-            disabled={disabled}
-            placeholder="0.00"
-            data-testid={`journal-entry-line-credit-${lineIndex}`}
-            className="w-full rounded-md border border-gray-300 py-1.5 pl-10 pr-2 text-right text-sm text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
-          />
-        </div>
+        <Input
+          type="text"
+          inputMode="decimal"
+          value={line.creditAmount}
+          onChange={(e) => handleCreditChange(e.target.value)}
+          disabled={disabled}
+          placeholder="0.00"
+          data-testid={`journal-entry-line-credit-${lineIndex}`}
+          inputPrefix={<span className="text-sm text-gray-500">{currency}</span>}
+          className="py-1.5 pr-2 text-right text-sm"
+        />
       </div>
 
       {/* Delete Button */}
