@@ -9,6 +9,22 @@ All 5 phases of company details improvements have been implemented:
 - **Phase 4**: Improved subsidiary setup UX with helper text and links
 - **Phase 5**: Added optional enhancements (registeredAddress, industryCode, companyType, incorporationJurisdiction)
 
+### Phase 6: Acquisition Date for Consolidation Members ✅ COMPLETE
+
+Fixed the issue where acquisition dates for subsidiaries in consolidation groups could not be set:
+
+- **Problem**: Acquisition date was hard-coded to "today" when adding members to consolidation groups
+- **Solution**: Added `acquisitionDate` field to API request schemas and UI forms
+
+**Changes Made:**
+- Added `acquisitionDate` (optional) to `GroupMemberInput` schema - used when creating a group with initial members
+- Added `acquisitionDate` (optional) to `AddMemberRequest` schema - used when adding a member to an existing group
+- Added `acquisitionDate` to `UpdateMemberRequest` schema - used when editing a member's details
+- Updated `ConsolidationApiLive` handlers to use provided acquisition date (defaults to today if not provided)
+- Added acquisition date date picker to consolidation group create form (new.tsx)
+- Added acquisition date date picker to consolidation group edit form (edit.tsx)
+- Regenerated API client with new schema fields
+
 ---
 
 ## Problem Statement

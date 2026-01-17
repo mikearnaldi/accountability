@@ -44,7 +44,8 @@ import { AuthMiddleware } from "./AuthMiddleware.ts"
 export class GroupMemberInput extends Schema.Class<GroupMemberInput>("GroupMemberInput")({
   companyId: CompanyId,
   ownershipPercentage: Percentage,
-  consolidationMethod: ConsolidationMethod
+  consolidationMethod: ConsolidationMethod,
+  acquisitionDate: Schema.optionalWith(LocalDateFromString, { as: "Option" })
 }) {}
 
 /**
@@ -74,7 +75,8 @@ export class UpdateConsolidationGroupRequest extends Schema.Class<UpdateConsolid
 export class AddMemberRequest extends Schema.Class<AddMemberRequest>("AddMemberRequest")({
   companyId: CompanyId,
   ownershipPercentage: Percentage,
-  consolidationMethod: ConsolidationMethod
+  consolidationMethod: ConsolidationMethod,
+  acquisitionDate: Schema.optionalWith(LocalDateFromString, { as: "Option" })
 }) {}
 
 /**
@@ -82,7 +84,8 @@ export class AddMemberRequest extends Schema.Class<AddMemberRequest>("AddMemberR
  */
 export class UpdateMemberRequest extends Schema.Class<UpdateMemberRequest>("UpdateMemberRequest")({
   ownershipPercentage: Schema.OptionFromNullOr(Percentage),
-  consolidationMethod: Schema.OptionFromNullOr(ConsolidationMethod)
+  consolidationMethod: Schema.OptionFromNullOr(ConsolidationMethod),
+  acquisitionDate: Schema.OptionFromNullOr(LocalDateFromString)
 }) {}
 
 /**

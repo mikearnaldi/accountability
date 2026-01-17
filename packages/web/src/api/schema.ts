@@ -3161,26 +3161,22 @@ export interface components {
             reportingCurrency: components["schemas"]["CurrencyCode"];
             consolidationMethod: components["schemas"]["ConsolidationMethod"];
             parentCompanyId: components["schemas"]["CompanyId"];
-            members: components["schemas"]["GroupMemberInput"][];
-        };
-        GroupMemberInput: {
-            companyId: components["schemas"]["CompanyId"];
-            ownershipPercentage: components["schemas"]["Percentage"];
-            consolidationMethod: components["schemas"]["ConsolidationMethod"];
+            members: {
+                companyId: components["schemas"]["CompanyId"];
+                ownershipPercentage: components["schemas"]["Percentage"];
+                consolidationMethod: components["schemas"]["ConsolidationMethod"];
+                acquisitionDate?: components["schemas"]["LocalDateFromString"];
+            }[];
         };
         UpdateConsolidationGroupRequest: {
             name: components["schemas"]["NonEmptyTrimmedString"] | null;
             consolidationMethod: components["schemas"]["ConsolidationMethod"] | null;
             reportingCurrency: components["schemas"]["CurrencyCode"] | null;
         };
-        AddMemberRequest: {
-            companyId: components["schemas"]["CompanyId"];
-            ownershipPercentage: components["schemas"]["Percentage"];
-            consolidationMethod: components["schemas"]["ConsolidationMethod"];
-        };
         UpdateMemberRequest: {
             ownershipPercentage: components["schemas"]["Percentage"] | null;
             consolidationMethod: components["schemas"]["ConsolidationMethod"] | null;
+            acquisitionDate: components["schemas"]["LocalDateFromString"] | null;
         };
         /**
          * Consolidation Run Status
@@ -7530,7 +7526,12 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["AddMemberRequest"];
+                "application/json": {
+                    companyId: components["schemas"]["CompanyId"];
+                    ownershipPercentage: components["schemas"]["Percentage"];
+                    consolidationMethod: components["schemas"]["ConsolidationMethod"];
+                    acquisitionDate?: components["schemas"]["LocalDateFromString"];
+                };
             };
         };
         responses: {

@@ -177,7 +177,7 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
             }))
           }
 
-          // Create members from input - using current date as acquisition date default
+          // Create members from input - using provided acquisition date or default to today
           const today = LocalDate.make({ year: new Date().getFullYear(), month: new Date().getMonth() + 1, day: new Date().getDate() })
           const members = Chunk.fromIterable(
             req.members.map((m) =>
@@ -185,7 +185,7 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
                 companyId: m.companyId,
                 ownershipPercentage: m.ownershipPercentage,
                 consolidationMethod: m.consolidationMethod,
-                acquisitionDate: today,
+                acquisitionDate: Option.isSome(m.acquisitionDate) ? m.acquisitionDate.value : today,
                 goodwillAmount: Option.none(),
                 nonControllingInterestPercentage: Percentage.make(100 - m.ownershipPercentage),
                 vieDetermination: Option.none()
@@ -342,13 +342,13 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
             }))
           }
 
-          // Create new member
+          // Create new member - using provided acquisition date or default to today
           const today = LocalDate.make({ year: new Date().getFullYear(), month: new Date().getMonth() + 1, day: new Date().getDate() })
           const newMember = ConsolidationMember.make({
             companyId: req.companyId,
             ownershipPercentage: req.ownershipPercentage,
             consolidationMethod: req.consolidationMethod,
-            acquisitionDate: today,
+            acquisitionDate: Option.isSome(req.acquisitionDate) ? req.acquisitionDate.value : today,
             goodwillAmount: Option.none(),
             nonControllingInterestPercentage: Percentage.make(100 - req.ownershipPercentage),
             vieDetermination: Option.none()
@@ -405,6 +405,9 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
             consolidationMethod: Option.isSome(req.consolidationMethod)
               ? req.consolidationMethod.value
               : oldMember.consolidationMethod,
+            acquisitionDate: Option.isSome(req.acquisitionDate)
+              ? req.acquisitionDate.value
+              : oldMember.acquisitionDate,
             nonControllingInterestPercentage: Percentage.make(100 - newOwnership)
           })
 

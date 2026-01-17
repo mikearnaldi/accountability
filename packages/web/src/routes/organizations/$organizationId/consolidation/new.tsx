@@ -45,6 +45,7 @@ interface MemberInput {
   readonly companyId: string
   readonly ownershipPercentage: string
   readonly consolidationMethod: string
+  readonly acquisitionDate: string
 }
 
 // Consolidation method options
@@ -236,12 +237,17 @@ function CreateConsolidationGroupPage() {
   const handleAddMember = () => {
     if (availableCompaniesForMembers.length === 0) return
 
+    // Default acquisition date to today
+    const today = new Date()
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`
+
     setMembers([
       ...members,
       {
         companyId: "",
         ownershipPercentage: "100",
-        consolidationMethod: "FullConsolidation"
+        consolidationMethod: "FullConsolidation",
+        acquisitionDate: todayStr
       }
     ])
   }
@@ -285,11 +291,22 @@ function CreateConsolidationGroupPage() {
       // Filter out members without a company selected
       const validMembers = members
         .filter((m) => m.companyId)
-        .map((m) => ({
-          companyId: m.companyId,
-          ownershipPercentage: parseFloat(m.ownershipPercentage),
-          consolidationMethod: toMethodType(m.consolidationMethod)
-        }))
+        .map((m) => {
+          const member: {
+            companyId: string
+            ownershipPercentage: number
+            consolidationMethod: ConsolidationMethodType
+            acquisitionDate?: string
+          } = {
+            companyId: m.companyId,
+            ownershipPercentage: parseFloat(m.ownershipPercentage),
+            consolidationMethod: toMethodType(m.consolidationMethod)
+          }
+          if (m.acquisitionDate) {
+            member.acquisitionDate = m.acquisitionDate
+          }
+          return member
+        })
 
       const { data, error } = await api.POST("/api/v1/consolidation/groups", {
         body: {
@@ -513,9 +530,10 @@ function CreateConsolidationGroupPage() {
               <div className="space-y-4">
                 {/* Header */}
                 <div className="hidden sm:grid sm:grid-cols-12 gap-4 px-4 py-2 bg-gray-50 rounded-t-lg text-xs font-medium text-gray-500 uppercase">
-                  <div className="sm:col-span-5">Company</div>
+                  <div className="sm:col-span-4">Company</div>
                   <div className="sm:col-span-2">Ownership %</div>
-                  <div className="sm:col-span-4">Consolidation Method</div>
+                  <div className="sm:col-span-2">Acquisition Date</div>
+                  <div className="sm:col-span-3">Consolidation Method</div>
                   <div className="sm:col-span-1"></div>
                 </div>
 
@@ -527,7 +545,7 @@ function CreateConsolidationGroupPage() {
                     data-testid={`member-row-${index}`}
                   >
                     {/* Company Select */}
-                    <div className="sm:col-span-5">
+                    <div className="sm:col-span-4">
                       <label className="sm:hidden text-xs font-medium text-gray-500 mb-1 block">
                         Company
                       </label>
@@ -569,8 +587,21 @@ function CreateConsolidationGroupPage() {
                       />
                     </div>
 
+                    {/* Acquisition Date */}
+                    <div className="sm:col-span-2">
+                      <label className="sm:hidden text-xs font-medium text-gray-500 mb-1 block">
+                        Acquisition Date
+                      </label>
+                      <Input
+                        type="date"
+                        value={member.acquisitionDate}
+                        onChange={(e) => handleMemberChange(index, "acquisitionDate", e.target.value)}
+                        data-testid={`member-acquisition-date-${index}`}
+                      />
+                    </div>
+
                     {/* Consolidation Method */}
-                    <div className="sm:col-span-4">
+                    <div className="sm:col-span-3">
                       <label className="sm:hidden text-xs font-medium text-gray-500 mb-1 block">
                         Method
                       </label>

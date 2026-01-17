@@ -67,6 +67,7 @@ interface MemberInput {
   readonly companyId: string
   readonly ownershipPercentage: string
   readonly consolidationMethod: string
+  readonly acquisitionDate: string
   readonly isExisting: boolean // Track if member existed before edit
 }
 
@@ -218,6 +219,7 @@ function EditConsolidationGroupPage() {
           companyId: m.companyId,
           ownershipPercentage: m.ownershipPercentage,
           consolidationMethod: m.consolidationMethod,
+          acquisitionDate: m.acquisitionDate,
           isExisting: true
         }))
       )
@@ -300,12 +302,17 @@ function EditConsolidationGroupPage() {
   const handleAddMember = () => {
     if (availableCompaniesForMembers.length === 0) return
 
+    // Default acquisition date to today
+    const today = new Date()
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`
+
     setMembers([
       ...members,
       {
         companyId: "",
         ownershipPercentage: "100",
         consolidationMethod: "FullConsolidation",
+        acquisitionDate: todayStr,
         isExisting: false
       }
     ])
@@ -406,7 +413,8 @@ function EditConsolidationGroupPage() {
           const existingMember = group.members.find((m) => m.companyId === member.companyId)
           if (existingMember &&
             (existingMember.ownershipPercentage !== member.ownershipPercentage ||
-              existingMember.consolidationMethod !== member.consolidationMethod)) {
+              existingMember.consolidationMethod !== member.consolidationMethod ||
+              existingMember.acquisitionDate !== member.acquisitionDate)) {
             const { error } = await api.PUT("/api/v1/consolidation/groups/{id}/members/{companyId}", {
               params: {
                 path: {
@@ -420,6 +428,9 @@ function EditConsolidationGroupPage() {
                   : null,
                 consolidationMethod: member.consolidationMethod !== existingMember.consolidationMethod
                   ? toMethodType(member.consolidationMethod)
+                  : null,
+                acquisitionDate: member.acquisitionDate !== existingMember.acquisitionDate
+                  ? member.acquisitionDate
                   : null
               }
             })
@@ -432,13 +443,22 @@ function EditConsolidationGroupPage() {
           }
         } else if (!member.isExisting) {
           // Add new member
+          const addMemberBody: {
+            companyId: string
+            ownershipPercentage: number
+            consolidationMethod: ConsolidationMethodType
+            acquisitionDate?: string
+          } = {
+            companyId: member.companyId,
+            ownershipPercentage: parseFloat(member.ownershipPercentage),
+            consolidationMethod: toMethodType(member.consolidationMethod)
+          }
+          if (member.acquisitionDate) {
+            addMemberBody.acquisitionDate = member.acquisitionDate
+          }
           const { error } = await api.POST("/api/v1/consolidation/groups/{id}/members", {
             params: { path: { id: group.id } },
-            body: {
-              companyId: member.companyId,
-              ownershipPercentage: parseFloat(member.ownershipPercentage),
-              consolidationMethod: toMethodType(member.consolidationMethod)
-            }
+            body: addMemberBody
           })
 
           if (error) {
@@ -616,8 +636,9 @@ function EditConsolidationGroupPage() {
               <div className="space-y-4">
                 {/* Header */}
                 <div className="hidden sm:grid sm:grid-cols-12 gap-4 px-4 py-2 bg-gray-50 rounded-t-lg text-xs font-medium text-gray-500 uppercase">
-                  <div className="sm:col-span-5">Company</div>
+                  <div className="sm:col-span-3">Company</div>
                   <div className="sm:col-span-2">Ownership %</div>
+                  <div className="sm:col-span-2">Acquisition Date</div>
                   <div className="sm:col-span-4">Consolidation Method</div>
                   <div className="sm:col-span-1"></div>
                 </div>
@@ -630,7 +651,7 @@ function EditConsolidationGroupPage() {
                     data-testid={`member-row-${index}`}
                   >
                     {/* Company Select / Display */}
-                    <div className="sm:col-span-5">
+                    <div className="sm:col-span-3">
                       <label className="sm:hidden text-xs font-medium text-gray-500 mb-1 block">
                         Company
                       </label>
@@ -675,6 +696,19 @@ function EditConsolidationGroupPage() {
                         value={member.ownershipPercentage}
                         onChange={(e) => handleMemberChange(index, "ownershipPercentage", e.target.value)}
                         data-testid={`member-ownership-input-${index}`}
+                      />
+                    </div>
+
+                    {/* Acquisition Date */}
+                    <div className="sm:col-span-2">
+                      <label className="sm:hidden text-xs font-medium text-gray-500 mb-1 block">
+                        Acquisition Date
+                      </label>
+                      <Input
+                        type="date"
+                        value={member.acquisitionDate}
+                        onChange={(e) => handleMemberChange(index, "acquisitionDate", e.target.value)}
+                        data-testid={`member-acquisition-date-${index}`}
                       />
                     </div>
 
