@@ -47,13 +47,25 @@ TASK_COMPLETE: Brief description of what you implemented
 
 ### NOTHING_LEFT_TO_DO
 
-When all tasks for the focus topic are complete and the work is judged to be done:
+When all tasks for the focus topic are complete and there is no more work to do:
 
 ```
 NOTHING_LEFT_TO_DO
 ```
 
 **After outputting NOTHING_LEFT_TO_DO, STOP IMMEDIATELY.**
+
+### Completing the Last Task
+
+**IMPORTANT:** When you complete the LAST task for the focus topic, you MUST signal BOTH:
+
+```
+TASK_COMPLETE: Brief description of what you implemented
+
+NOTHING_LEFT_TO_DO
+```
+
+This ensures the task gets committed AND the loop exits. Always check if there are remaining tasks before deciding which signal(s) to use.
 
 ## CI Green Requirement
 
@@ -98,4 +110,6 @@ This is iteration {{ITERATION}} of the autonomous loop.
 
 ## Begin
 
-Review the focus topic above and select one task to work on. When the task is complete, signal TASK_COMPLETE and STOP. If all work for the focus topic is done, signal NOTHING_LEFT_TO_DO and STOP.
+Review the focus topic above and select one task to work on. When the task is complete:
+- If there are MORE tasks remaining: signal `TASK_COMPLETE: <description>` and STOP
+- If this was the LAST task: signal BOTH `TASK_COMPLETE: <description>` AND `NOTHING_LEFT_TO_DO`, then STOP
