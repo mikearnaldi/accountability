@@ -133,11 +133,16 @@ export const MembershipApiLive = HttpApiBuilder.group(AppApi, "membership", (han
             })
           )
 
-          // TODO: Send email with rawToken to invitee
-          // For now, just return the invitation ID
+          // Return the invitation ID and raw token so it can be displayed to the admin
+          // The admin can then share this link with the invitee manually
+          // Email sending is explicitly NOT implemented - the manual workflow is:
+          // 1. Admin creates invitation, sees the link
+          // 2. Admin copies and shares link via email/Slack/etc.
+          // 3. Invitee clicks link to accept
 
           return InviteMemberResponse.make({
-            invitationId: result.invitation.id
+            invitationId: result.invitation.id,
+            invitationToken: result.rawToken
           })
         })
       )

@@ -87,29 +87,30 @@ Platform admin capability exists in the database but cannot be managed:
 
 ### 4. Invitation Link Display
 
-**Status: TOKEN GENERATED - NOT SHOWN TO USER**
+**Status: IMPLEMENTED** ✓
 
-Invitations can be created and accepted, but the invitation link is not displayed for manual sharing:
+~~Invitations can be created and accepted, but the invitation link is not displayed for manual sharing~~
 
 **What's Implemented:**
 - Invitation token generation (256-bit random, base64url encoded)
 - Token hashing and storage
 - Accept/decline invitation API endpoints
 - UI to accept invitations (if you have the token URL)
-- API returns raw token in response
+- [x] **API returns raw token in response** - `InviteMemberResponse` now includes `invitationToken` field
+- [x] **Invitation link display** - After creating invitation, modal shows success view with shareable link
+- [x] **Copy to clipboard button** - One-click copy with visual "Copied" feedback
+- [x] **Link format display** - Shows `{origin}/invitations/{token}/accept`
 
-**What's Missing:**
-- [ ] **Invitation link display** - Show the shareable link after creating invitation
-- [ ] **Copy to clipboard button** - One-click copy of invitation URL
-- [ ] **Link format display** - Show `https://app.example.com/invitations/{token}`
-
-**Note:** Email integration is explicitly NOT planned. The workflow should be:
+**Workflow:**
 1. Admin creates invitation in UI
-2. UI displays the invitation link with copy button
+2. UI displays the invitation link with copy button in success dialog
 3. Admin manually shares link via email, Slack, etc.
 4. Invitee clicks link to accept
 
-**File:** `packages/web/src/routes/organizations/$organizationId/settings/members.tsx` - Update `InviteMemberModal` to show link after successful creation
+**Files Modified:**
+- `packages/api/src/Definitions/MembershipApi.ts` - Added `invitationToken` field to response
+- `packages/api/src/Layers/MembershipApiLive.ts` - Return raw token from service
+- `packages/web/src/routes/organizations/$organizationId/settings/members.tsx` - Success view with link display and copy button
 
 ---
 
@@ -311,6 +312,32 @@ Permissions are calculated and cached, but users can't see what permissions they
 ```
 
 This UI component is not implemented.
+
+---
+
+## Design Corrections
+
+### Organization Selector Role Badges
+
+**Status: IMPLEMENTED BUT SHOULD BE REMOVED**
+
+The organization selector currently shows role badges next to each organization name. This adds unnecessary visual clutter to a simple selection component.
+
+**Current Behavior:**
+- `OrganizationSelector.tsx` displays role badges (Owner, Admin, Member, Viewer) next to org names
+- Implemented in AUTHORIZATION.md Phase G3
+
+**Correct Behavior:**
+- Organization selector should simply list organization names
+- Allow selection without showing roles
+- Role information belongs on the Members page, not in the selector dropdown
+
+**What Needs to Change:**
+- [ ] Remove `RoleBadge` component usage from `OrganizationSelector.tsx`
+- [ ] Remove role field from organization list items in selector
+- [ ] Keep selector focused on its single purpose: switching organizations
+
+**File:** `packages/web/src/components/layout/OrganizationSelector.tsx`
 
 ---
 

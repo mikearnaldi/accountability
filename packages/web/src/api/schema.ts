@@ -3084,6 +3084,7 @@ export interface components {
         MembershipStatus: "active" | "suspended" | "removed";
         InviteMemberResponse: {
             invitationId: components["schemas"]["InvitationId"];
+            invitationToken: components["schemas"]["NonEmptyTrimmedString"];
         };
         UpdateMemberRequest: {
             role: components["schemas"]["BaseRole"] | null;

@@ -16,7 +16,7 @@ import { createFileRoute, redirect, useRouter } from "@tanstack/react-router"
 import { createServerFn } from "@tanstack/react-start"
 import { getCookie } from "@tanstack/react-start/server"
 import { useState } from "react"
-import { Users, Mail, MoreVertical, UserPlus, Shield, RefreshCw, UserMinus, Clock, X } from "lucide-react"
+import { Users, Mail, MoreVertical, UserPlus, Shield, RefreshCw, UserMinus, Clock, X, Copy, Check, Link } from "lucide-react"
 import { clsx } from "clsx"
 import { api } from "@/api/client"
 import { createServerApi } from "@/api/server"
@@ -771,6 +771,9 @@ function InviteMemberModal({ organizationId, onClose, onSuccess }: InviteMemberM
   const [functionalRoles, setFunctionalRoles] = useState<FunctionalRole[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Success state - stores the invitation link after successful creation
+  const [invitationLink, setInvitationLink] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
 
   const toggleFunctionalRole = (fr: FunctionalRole) => {
     setFunctionalRoles((prev) =>
@@ -790,7 +793,7 @@ function InviteMemberModal({ organizationId, onClose, onSuccess }: InviteMemberM
     setError(null)
 
     try {
-      const { error: apiError } = await api.POST("/api/v1/organizations/{orgId}/members/invite", {
+      const { data, error: apiError } = await api.POST("/api/v1/organizations/{orgId}/members/invite", {
         params: { path: { orgId: organizationId } },
         body: {
           email: email.trim(),
@@ -807,8 +810,15 @@ function InviteMemberModal({ organizationId, onClose, onSuccess }: InviteMemberM
         return
       }
 
+      // Build the invitation link using the returned token
+      // The link format is /invitations/{token}/accept
+      if (data?.invitationToken) {
+        const baseUrl = typeof window !== "undefined" ? window.location.origin : ""
+        setInvitationLink(`${baseUrl}/invitations/${data.invitationToken}/accept`)
+      }
+
+      // Refresh the members list to show the pending invitation
       onSuccess()
-      onClose()
     } catch {
       setError("An unexpected error occurred")
     } finally {
@@ -816,9 +826,116 @@ function InviteMemberModal({ organizationId, onClose, onSuccess }: InviteMemberM
     }
   }
 
+  const handleCopyLink = async () => {
+    if (!invitationLink) return
+
+    try {
+      await navigator.clipboard.writeText(invitationLink)
+      setCopied(true)
+      // Reset the copied state after 2 seconds
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // Fallback for older browsers
+      const textArea = document.createElement("textarea")
+      textArea.value = invitationLink
+      document.body.appendChild(textArea)
+      textArea.select()
+      document.execCommand("copy")
+      document.body.removeChild(textArea)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
+
+  const handleDone = () => {
+    onClose()
+  }
+
   // Show functional roles for member role
   const showFunctionalRoles = role === "member"
 
+  // Success view - show invitation link
+  if (invitationLink) {
+    return (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+        data-testid="invite-member-modal"
+      >
+        <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">Invitation Created</h2>
+            <button
+              onClick={handleDone}
+              className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"
+              data-testid="invite-modal-close"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex items-center justify-center w-12 h-12 bg-green-100 rounded-full mx-auto">
+              <Check className="h-6 w-6 text-green-600" />
+            </div>
+
+            <div className="text-center">
+              <p className="text-gray-700">
+                Invitation created for <span className="font-medium">{email}</span>
+              </p>
+              <p className="text-sm text-gray-500 mt-1">
+                Share this link with them to join the organization
+              </p>
+            </div>
+
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Link className="h-4 w-4 inline-block mr-1" />
+                Invitation Link
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={invitationLink}
+                  readOnly
+                  className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm bg-gray-50 text-gray-700"
+                  data-testid="invitation-link-input"
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={handleCopyLink}
+                  icon={copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  className={clsx(copied && "text-green-600 border-green-300")}
+                  data-testid="copy-invitation-link-button"
+                >
+                  {copied ? "Copied" : "Copy"}
+                </Button>
+              </div>
+            </div>
+
+            <div className="rounded-lg bg-yellow-50 border border-yellow-200 p-3 mt-4">
+              <p className="text-sm text-yellow-800">
+                <strong>Important:</strong> This link can only be viewed once. Make sure to copy it now before closing this dialog.
+              </p>
+            </div>
+
+            <div className="flex justify-end pt-4">
+              <Button
+                type="button"
+                variant="primary"
+                onClick={handleDone}
+                data-testid="invite-done-button"
+              >
+                Done
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Form view - create invitation
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
@@ -933,7 +1050,7 @@ function InviteMemberModal({ organizationId, onClose, onSuccess }: InviteMemberM
               disabled={isSubmitting}
               data-testid="invite-submit-button"
             >
-              Send Invitation
+              Create Invitation
             </Button>
           </div>
         </form>

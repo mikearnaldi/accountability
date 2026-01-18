@@ -66,9 +66,14 @@ export class InviteMemberRequest extends Schema.Class<InviteMemberRequest>("Invi
 
 /**
  * InviteMemberResponse - Response after creating an invitation
+ *
+ * Includes the raw invitation token which should be shared with the invitee.
+ * The token is only returned once at creation time - it cannot be retrieved later.
  */
 export class InviteMemberResponse extends Schema.Class<InviteMemberResponse>("InviteMemberResponse")({
-  invitationId: InvitationId
+  invitationId: InvitationId,
+  /** The invitation token to share with the invitee (base64url encoded) */
+  invitationToken: Schema.NonEmptyTrimmedString
 }) {}
 
 /**

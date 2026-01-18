@@ -574,3 +574,8 @@
 **Task**: Fixed CI failures - removed obsolete user-menu-settings test assertion and stabilized flaky E2E tests
 **Status**: complete
 ---
+
+## Iteration 2 - 2026-01-18 12:59
+**Task**: Implemented invitation link display with copy button after creating member invitations
+**Status**: complete
+---
