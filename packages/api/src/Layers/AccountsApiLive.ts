@@ -38,6 +38,8 @@ import {
   BusinessRuleError
 } from "../Definitions/ApiErrors.ts"
 import { requireOrganizationContext, requirePermission } from "./OrganizationContextMiddlewareLive.ts"
+import { AuditLogService } from "@accountability/core/AuditLog/AuditLogService"
+import { CurrentUserId } from "@accountability/core/AuditLog/CurrentUserId"
 
 /**
  * Convert persistence errors to NotFoundError
@@ -83,6 +85,92 @@ const mapPersistenceToValidation = (
     details: Option.none()
   })
 }
+
+/**
+ * Helper to log account creation to audit log
+ *
+ * Uses Effect.serviceOption to gracefully skip audit logging when
+ * AuditLogService or CurrentUserId is not available (e.g., in tests).
+ * Errors are caught and silently ignored to not block business operations.
+ *
+ * @param account - The created account
+ * @returns Effect that completes when audit logging is attempted
+ */
+const logAccountCreate = (
+  account: Account
+): Effect.Effect<void, never, never> =>
+  Effect.gen(function* () {
+    const maybeAuditService = yield* Effect.serviceOption(AuditLogService)
+    const maybeUserId = yield* Effect.serviceOption(CurrentUserId)
+
+    if (Option.isSome(maybeAuditService) && Option.isSome(maybeUserId)) {
+      yield* maybeAuditService.value.logCreate(
+        "Account",
+        account.id,
+        account,
+        maybeUserId.value
+      )
+    }
+  }).pipe(
+    Effect.catchAll(() => Effect.void) // Silent failure - don't block business operations
+  )
+
+/**
+ * Helper to log account update to audit log
+ *
+ * Records the before/after state of the account for auditing.
+ *
+ * @param before - The account state before the update
+ * @param after - The account state after the update
+ * @returns Effect that completes when audit logging is attempted
+ */
+const logAccountUpdate = (
+  before: Account,
+  after: Account
+): Effect.Effect<void, never, never> =>
+  Effect.gen(function* () {
+    const maybeAuditService = yield* Effect.serviceOption(AuditLogService)
+    const maybeUserId = yield* Effect.serviceOption(CurrentUserId)
+
+    if (Option.isSome(maybeAuditService) && Option.isSome(maybeUserId)) {
+      yield* maybeAuditService.value.logUpdate(
+        "Account",
+        after.id,
+        before,
+        after,
+        maybeUserId.value
+      )
+    }
+  }).pipe(
+    Effect.catchAll(() => Effect.void) // Silent failure - don't block business operations
+  )
+
+/**
+ * Helper to log account deactivation (status change) to audit log
+ *
+ * @param accountId - The account ID
+ * @returns Effect that completes when audit logging is attempted
+ */
+const logAccountDeactivate = (
+  accountId: AccountId
+): Effect.Effect<void, never, never> =>
+  Effect.gen(function* () {
+    const maybeAuditService = yield* Effect.serviceOption(AuditLogService)
+    const maybeUserId = yield* Effect.serviceOption(CurrentUserId)
+
+    if (Option.isSome(maybeAuditService) && Option.isSome(maybeUserId)) {
+      yield* maybeAuditService.value.logStatusChange(
+        "Account",
+        accountId,
+        "active",
+        "inactive",
+        maybeUserId.value,
+        "Account deactivated"
+      )
+    }
+  }).pipe(
+    Effect.catchAll(() => Effect.void) // Silent failure - don't block business operations
+  )
 
 /**
  * AccountsApiLive - Layer providing AccountsApi handlers
@@ -268,9 +356,14 @@ export const AccountsApiLive = HttpApiBuilder.group(AppApi, "accounts", (handler
               deactivatedAt: Option.none()
             })
 
-            return yield* accountRepo.create(newAccount).pipe(
+            const createdAccount = yield* accountRepo.create(newAccount).pipe(
               Effect.mapError((e) => mapPersistenceToBusinessRule(e))
             )
+
+            // Log account creation to audit log
+            yield* logAccountCreate(createdAccount)
+
+            return createdAccount
           })
         )
       )
@@ -363,9 +456,14 @@ export const AccountsApiLive = HttpApiBuilder.group(AppApi, "accounts", (handler
                 : existing.deactivatedAt
             })
 
-            return yield* accountRepo.update(organizationId, updatedAccount).pipe(
+            const savedAccount = yield* accountRepo.update(organizationId, updatedAccount).pipe(
               Effect.mapError((e) => mapPersistenceToBusinessRule(e))
             )
+
+            // Log account update to audit log with before/after state
+            yield* logAccountUpdate(existing, savedAccount)
+
+            return savedAccount
           })
         )
       )
@@ -410,6 +508,9 @@ export const AccountsApiLive = HttpApiBuilder.group(AppApi, "accounts", (handler
             yield* accountRepo.update(organizationId, deactivatedAccount).pipe(
               Effect.mapError((e) => mapPersistenceToBusinessRule(e))
             )
+
+            // Log account deactivation to audit log
+            yield* logAccountDeactivate(accountId)
           })
         )
       )

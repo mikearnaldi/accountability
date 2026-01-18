@@ -165,8 +165,18 @@ The audit log infrastructure is **100% complete** and the **AuditLogService** ha
 | `AuditLogService` | ✅ Complete | Service interface and implementation |
 | `CurrentUserId` | ✅ Complete | Context tag for passing user ID through effects |
 | **FiscalPeriodService integration** | ✅ Complete | Logs fiscal year create and period status changes |
-| **JournalEntryService integration** | ❌ Pending | Needs create/post/reverse logging |
-| **Other service integrations** | ❌ Pending | Account, Company, ExchangeRate, etc. |
+| **JournalEntriesApiLive integration** | ✅ Complete | Logs create/post/reverse operations |
+| **AccountsApiLive integration** | ✅ Complete | Logs create/update/deactivate operations |
+| **Other service integrations** | ❌ Pending | Company, ExchangeRate, etc. |
+
+**What IS Being Audited:**
+
+| Entity Type | Operations | Status |
+|-------------|------------|--------|
+| FiscalYear | Create, status changes | ✅ Complete |
+| FiscalPeriod | Open, Close, Lock, Reopen | ✅ Complete |
+| JournalEntry | Create, Post, Reverse | ✅ Complete |
+| Account | Create, Update, Deactivate | ✅ Complete |
 
 **What's NOT Being Audited:**
 
@@ -174,11 +184,7 @@ The audit log infrastructure is **100% complete** and the **AuditLogService** ha
 |-------------|------------|--------|
 | Organization | Create, Update, Delete | Cannot track org changes |
 | Company | Create, Update, Delete | Cannot track company setup |
-| Account | Create, Update, Delete | Cannot track chart of accounts changes |
-| JournalEntry | Create, Post, Reverse | Cannot track financial transactions |
 | JournalEntryLine | Create, Update, Delete | Cannot track line-level changes |
-| FiscalYear | Create, Close | Cannot track fiscal year setup |
-| FiscalPeriod | Open, Close, Lock, Reopen | Cannot track period lifecycle |
 | ExchangeRate | Create, Update, Delete | Cannot track rate changes |
 | ConsolidationGroup | Create, Update, Delete | Cannot track consolidation config |
 | IntercompanyTransaction | Create, Reconcile | Cannot track intercompany activity |
@@ -237,7 +243,7 @@ Add audit logging to services that handle sensitive data:
 
 **Priority 2: Configuration Changes**
 - [ ] `CompanyServiceLive` - Log company create/update/delete
-- [ ] `AccountServiceLive` - Log chart of accounts changes
+- [x] `AccountsApiLive` - Log chart of accounts changes ✅ Done (create/update/deactivate)
 - [ ] `ConsolidationServiceLive` - Log group/rule changes
 
 **Priority 3: User Management**
@@ -313,7 +319,7 @@ Migrate `PeriodReopenAuditEntry` to use the general audit log:
 | `packages/api/src/Layers/OrganizationContextMiddlewareLive.ts` | Add `CurrentUserId` to context | ✅ Done |
 | `packages/api/src/Layers/JournalEntriesApiLive.ts` | Add audit logging to create/post/reverse | ✅ Done |
 | `packages/persistence/src/Layers/FiscalPeriodServiceLive.ts` | Add audit logging to all operations | ✅ Done |
-| `packages/persistence/src/Layers/AccountServiceLive.ts` | Add audit logging to create/update/delete | ❌ Pending |
+| `packages/api/src/Layers/AccountsApiLive.ts` | Add audit logging to create/update/delete | ✅ Done |
 | `packages/persistence/src/Layers/CompanyServiceLive.ts` | Add audit logging to create/update/delete | ❌ Pending |
 | `packages/persistence/src/Layers/ExchangeRateServiceLive.ts` | Add audit logging to sync operations | ❌ Pending |
 | `packages/persistence/src/Layers/OrganizationMemberServiceLive.ts` | Add audit logging to member changes | ❌ Pending |
@@ -711,7 +717,7 @@ The database has this constraint and the UI now handles the duplicate invitation
 18. ~~**Add CurrentUserId context tag** - Pass authenticated user ID through Effect context~~ ✅ DONE
 19. ~~**Integrate with JournalEntriesApi** - Log create, post, reverse operations~~ ✅ DONE
 20. ~~**Integrate with FiscalPeriodService** - Log fiscal year/period lifecycle events~~ ✅ DONE
-21. **Integrate with AccountService** - Log chart of accounts changes ❌ Pending
+21. **Integrate with AccountsApi** - Log chart of accounts changes ✅ Done
 22. **Integrate with CompanyService** - Log company configuration changes ❌ Pending
 23. **Integrate with OrganizationMemberService** - Log member management events ❌ Pending
 24. **Consolidate PeriodReopenAuditEntry** - Migrate to general audit log ❌ Pending
@@ -763,7 +769,7 @@ The database has this constraint and the UI now handles the duplicate invitation
 - `packages/api/src/Layers/OrganizationContextMiddlewareLive.ts` - Add `CurrentUserId` to Effect context ✅ Done
 - `packages/api/src/Layers/JournalEntriesApiLive.ts` - Add audit logging to create/post/reverse ✅ Done
 - `packages/persistence/src/Layers/FiscalPeriodServiceLive.ts` - Add audit logging to all operations ✅ Done
-- `packages/persistence/src/Layers/AccountServiceLive.ts` - Add audit logging to create/update/delete ❌ Pending
+- `packages/api/src/Layers/AccountsApiLive.ts` - Add audit logging to create/update/delete ✅ Done
 - `packages/persistence/src/Layers/CompanyServiceLive.ts` - Add audit logging to create/update/delete ❌ Pending
 - `packages/persistence/src/Layers/ExchangeRateServiceLive.ts` - Add audit logging to sync operations ❌ Pending
 - `packages/persistence/src/Layers/OrganizationMemberServiceLive.ts` - Add audit logging to member changes ❌ Pending
