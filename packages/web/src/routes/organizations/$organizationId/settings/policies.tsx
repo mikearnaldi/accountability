@@ -15,7 +15,7 @@ import { createFileRoute, redirect, useRouter } from "@tanstack/react-router"
 import { createServerFn } from "@tanstack/react-start"
 import { getCookie } from "@tanstack/react-start/server"
 import { useState } from "react"
-import { Shield, Plus, RefreshCw, MoreVertical, Lock, Pencil, Trash2, CheckCircle, XCircle, Play } from "lucide-react"
+import { Shield, Plus, RefreshCw, MoreVertical, Lock, Pencil, Trash2, CheckCircle, XCircle, Play, Eye } from "lucide-react"
 import { clsx } from "clsx"
 import { createServerApi } from "@/api/server"
 import { api } from "@/api/client"
@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/Button"
 import { usePermissions } from "@/hooks/usePermissions"
 import { PolicyBuilderModal } from "@/components/policies/PolicyBuilderModal"
 import { PolicyTestModal } from "@/components/policies/PolicyTestModal"
+import { PolicyDetailModal } from "@/components/policies/PolicyDetailModal"
 
 // =============================================================================
 // Types
@@ -201,6 +202,45 @@ const RESOURCE_TYPE_LABELS: Record<ResourceType, string> = {
   "*": "All Resources"
 }
 
+// Short labels for actions in table summary
+const ACTION_SHORT_LABELS: Record<string, string> = {
+  "organization:manage_settings": "Manage Settings",
+  "organization:manage_members": "Manage Members",
+  "organization:delete": "Delete Org",
+  "organization:transfer_ownership": "Transfer Ownership",
+  "company:create": "Create",
+  "company:read": "Read",
+  "company:update": "Update",
+  "company:delete": "Delete",
+  "account:create": "Create",
+  "account:read": "Read",
+  "account:update": "Update",
+  "account:deactivate": "Deactivate",
+  "journal_entry:create": "Create",
+  "journal_entry:read": "Read",
+  "journal_entry:update": "Update",
+  "journal_entry:post": "Post",
+  "journal_entry:reverse": "Reverse",
+  "fiscal_period:read": "Read",
+  "fiscal_period:open": "Open",
+  "fiscal_period:soft_close": "Soft Close",
+  "fiscal_period:close": "Close",
+  "fiscal_period:lock": "Lock",
+  "fiscal_period:reopen": "Reopen",
+  "consolidation_group:create": "Create",
+  "consolidation_group:read": "Read",
+  "consolidation_group:update": "Update",
+  "consolidation_group:delete": "Delete",
+  "consolidation_group:run": "Run",
+  "elimination:create": "Create Elim",
+  "report:read": "View",
+  "report:export": "Export",
+  "exchange_rate:read": "View",
+  "exchange_rate:manage": "Manage",
+  "audit_log:read": "View",
+  "*": "All"
+}
+
 // =============================================================================
 // Route Definition
 // =============================================================================
@@ -256,6 +296,7 @@ function PoliciesPage() {
   const [actionMenuOpen, setActionMenuOpen] = useState<string | null>(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editingPolicy, setEditingPolicy] = useState<Policy | null>(null)
+  const [viewingPolicy, setViewingPolicy] = useState<Policy | null>(null)
   const [showTestModal, setShowTestModal] = useState(false)
 
   if (!organization) {
@@ -353,6 +394,7 @@ function PoliciesPage() {
           canManage={false}
           actionMenuOpen={actionMenuOpen}
           onActionMenuToggle={setActionMenuOpen}
+          onViewPolicy={setViewingPolicy}
           data-testid="system-policies-section"
         />
 
@@ -368,6 +410,7 @@ function PoliciesPage() {
           onActionMenuToggle={setActionMenuOpen}
           onRefresh={handleRefresh}
           onEditPolicy={setEditingPolicy}
+          onViewPolicy={setViewingPolicy}
           onTestPolicy={() => setShowTestModal(true)}
           organizationId={organization.id}
           data-testid="custom-policies-section"
@@ -427,6 +470,20 @@ function PoliciesPage() {
             onClose={() => setShowTestModal(false)}
           />
         )}
+
+        {/* View Policy Detail Modal */}
+        {viewingPolicy && (
+          <PolicyDetailModal
+            policy={viewingPolicy}
+            onClose={() => setViewingPolicy(null)}
+            canEdit={isAdminOrOwner}
+            onEdit={() => {
+              const policyToEdit = viewingPolicy
+              setViewingPolicy(null)
+              setEditingPolicy(policyToEdit)
+            }}
+          />
+        )}
       </div>
     </AppLayout>
   )
@@ -447,6 +504,7 @@ interface PolicyTableProps {
   readonly onActionMenuToggle: (id: string | null) => void
   readonly onRefresh?: () => void
   readonly onEditPolicy?: (policy: Policy) => void
+  readonly onViewPolicy?: (policy: Policy) => void
   readonly onTestPolicy?: () => void
   readonly organizationId?: string
   readonly "data-testid"?: string
@@ -463,6 +521,7 @@ function PolicyTable({
   onActionMenuToggle,
   onRefresh,
   onEditPolicy,
+  onViewPolicy,
   onTestPolicy,
   organizationId,
   "data-testid": testId
@@ -502,7 +561,7 @@ function PolicyTable({
                 <th className="px-6 py-3 whitespace-nowrap">Priority</th>
                 <th className="px-6 py-3 min-w-[200px]">Target</th>
                 <th className="px-6 py-3 whitespace-nowrap">Status</th>
-                {canManage && <th className="px-6 py-3 w-12"></th>}
+                <th className="px-6 py-3 w-12"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
@@ -514,9 +573,10 @@ function PolicyTable({
                   <tr
                     key={policy.id}
                     className={clsx(
-                      "hover:bg-gray-50",
+                      "hover:bg-gray-50 cursor-pointer",
                       isSystemSection && "bg-gray-50/50"
                     )}
+                    onClick={() => onViewPolicy?.(policy)}
                     data-testid={`policy-row-${policy.id}`}
                   >
                     {/* Policy Name */}
@@ -585,12 +645,29 @@ function PolicyTable({
                     </td>
 
                     {/* Actions */}
-                    {canManage && (
-                      <td className="px-6 py-4">
-                        {!isSystemSection && (
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-1">
+                        {/* View button for all policies */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onViewPolicy?.(policy)
+                          }}
+                          className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600"
+                          title="View policy details"
+                          data-testid={`policy-view-${policy.id}`}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </button>
+
+                        {/* Action menu for custom policies only */}
+                        {!isSystemSection && canManage && (
                           <div className="relative">
                             <button
-                              onClick={() => onActionMenuToggle(isMenuOpen ? null : policy.id)}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                onActionMenuToggle(isMenuOpen ? null : policy.id)
+                              }}
                               className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600"
                               data-testid={`policy-actions-${policy.id}`}
                             >
@@ -609,8 +686,8 @@ function PolicyTable({
                             )}
                           </div>
                         )}
-                      </td>
-                    )}
+                      </div>
+                    </td>
                   </tr>
                 )
               })}
@@ -630,9 +707,10 @@ function PolicyTable({
               <div
                 key={policy.id}
                 className={clsx(
-                  "p-4",
+                  "p-4 cursor-pointer hover:bg-gray-50",
                   isSystemSection && "bg-gray-50/50"
                 )}
+                onClick={() => onViewPolicy?.(policy)}
                 data-testid={`policy-card-${policy.id}`}
               >
                 {/* Header row */}
@@ -656,28 +734,47 @@ function PolicyTable({
                     </div>
                   </div>
 
-                  {canManage && !isSystemSection && (
-                    <div className="relative flex-shrink-0">
-                      <button
-                        onClick={() => onActionMenuToggle(isMenuOpen ? null : policy.id)}
-                        className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600"
-                        data-testid={`policy-actions-mobile-${policy.id}`}
-                      >
-                        <MoreVertical className="h-4 w-4" />
-                      </button>
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    {/* View button for all policies */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onViewPolicy?.(policy)
+                      }}
+                      className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600"
+                      title="View policy details"
+                      data-testid={`policy-view-mobile-${policy.id}`}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </button>
 
-                      {isMenuOpen && (
-                        <PolicyActionsMenu
-                          policy={policy}
-                          organizationId={organizationId ?? ""}
-                          onClose={() => onActionMenuToggle(null)}
-                          onEdit={onEditPolicy ? () => onEditPolicy(policy) : undefined}
-                          onTest={onTestPolicy}
-                          {...(onRefresh ? { onRefresh } : {})}
-                        />
-                      )}
-                    </div>
-                  )}
+                    {/* Action menu for custom policies only */}
+                    {canManage && !isSystemSection && (
+                      <div className="relative">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onActionMenuToggle(isMenuOpen ? null : policy.id)
+                          }}
+                          className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600"
+                          data-testid={`policy-actions-mobile-${policy.id}`}
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                        </button>
+
+                        {isMenuOpen && (
+                          <PolicyActionsMenu
+                            policy={policy}
+                            organizationId={organizationId ?? ""}
+                            onClose={() => onActionMenuToggle(null)}
+                            onEdit={onEditPolicy ? () => onEditPolicy(policy) : undefined}
+                            onTest={onTestPolicy}
+                            {...(onRefresh ? { onRefresh } : {})}
+                          />
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Badges row */}
@@ -763,14 +860,30 @@ function PolicyTargetSummary({ policy, isSystemSection }: PolicyTargetSummaryPro
   const hasAttributes = resource.attributes && Object.keys(resource.attributes).length > 0
   const resourceSummary = hasAttributes ? `${resourceType} (with conditions)` : resourceType
 
-  // Build action summary
-  const actionCount = action.actions.length
+  // Build action summary - show actual actions, not just count
   const hasWildcard = action.actions.includes("*")
-  const actionSummary = hasWildcard
-    ? "All actions"
-    : actionCount === 1
-      ? action.actions[0]
-      : `${actionCount} actions`
+  let actionDisplay: React.ReactNode
+
+  if (hasWildcard) {
+    actionDisplay = <span className="text-amber-600 font-medium">All actions (*)</span>
+  } else {
+    // Show up to 3 actions inline, then "+N more"
+    const MAX_INLINE = 3
+    const actionLabels = action.actions.map((a) => ACTION_SHORT_LABELS[a] ?? a)
+
+    if (actionLabels.length <= MAX_INLINE) {
+      actionDisplay = actionLabels.join(", ")
+    } else {
+      const shown = actionLabels.slice(0, MAX_INLINE).join(", ")
+      const remaining = actionLabels.length - MAX_INLINE
+      actionDisplay = (
+        <>
+          {shown}
+          <span className="text-gray-400 ml-1">(+{remaining} more)</span>
+        </>
+      )
+    }
+  }
 
   return (
     <div className={clsx(
@@ -787,7 +900,7 @@ function PolicyTargetSummary({ policy, isSystemSection }: PolicyTargetSummaryPro
       </div>
       <div className="flex flex-wrap items-baseline gap-x-1">
         <span className="font-medium flex-shrink-0">Can:</span>
-        <span className="break-words">{actionSummary}</span>
+        <span className="break-words">{actionDisplay}</span>
       </div>
     </div>
   )

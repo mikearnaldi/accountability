@@ -599,3 +599,8 @@
 **Task**: Fixed CI E2E tests, added IP restriction fields to policy builder, removed role badges from org selector
 **Status**: complete
 ---
+
+## Iteration 8 - 2026-01-18 13:48
+**Task**: Improved policies page UX - added PolicyDetailModal for viewing full policy details, clickable policy rows, view buttons, and actual action names instead of counts
+**Status**: complete
+---

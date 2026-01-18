@@ -508,14 +508,7 @@ function MembersTable({
 
                 {/* Role */}
                 <td className="px-6 py-4">
-                  <div className="flex items-center gap-2">
-                    <RoleBadge role={member.role} size="md" />
-                    {member.role === "owner" && (
-                      <span title="Organization Owner" data-testid="owner-indicator">
-                        <Crown className="h-4 w-4 text-amber-500" aria-label="Organization Owner" />
-                      </span>
-                    )}
-                  </div>
+                  <RoleBadge role={member.role} size="md" />
                 </td>
 
                 {/* Functional Roles */}

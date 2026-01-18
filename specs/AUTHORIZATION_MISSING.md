@@ -301,40 +301,33 @@ This UI component is not implemented.
 
 ### Policies Page UX Issues
 
-**Status: IMPLEMENTED BUT POOR UX**
+**Status: IMPLEMENTED** ✓
 
-The policies page shows policy summaries that are too vague to be useful, and system policies are listed but cannot be investigated.
+~~The policies page shows policy summaries that are too vague to be useful, and system policies are listed but cannot be investigated.~~
 
-**Current Problems:**
+**What Was Fixed:**
 
-1. **Vague action counts** - Shows "4 actions" but no way to see which actions:
-   ```
-   Who: Owner, Admin, Member, Viewer
-   What: Journal Entry (with conditions)
-   Can: 4 actions
-   ```
+1. **Action list display** - Now shows actual action names (e.g., "Create, Read, Update") instead of vague counts
+   - Shows up to 3 actions inline with "(+N more)" for additional actions
+   - "All actions (*)" shown with amber highlighting for wildcard policies
 
-2. **System policies are opaque** - Listed but:
-   - Cannot click to view details
-   - Cannot see the actual conditions
-   - Cannot understand what they do without reading code/spec
+2. **System policies viewable** - System policies are now clickable to view full details:
+   - [x] All policy rows are clickable to open detail modal
+   - [x] View button (eye icon) added to all policy rows
+   - [x] System policies open in read-only detail modal
+   - [x] Custom policies can be edited from detail modal
 
-3. **No policy detail view** - No way to expand or click into a policy to see:
-   - Full list of actions (not just count)
-   - Actual conditions (not just "with conditions")
-   - Environment restrictions if any
+3. **PolicyDetailModal** - New read-only modal showing complete policy information:
+   - Basic info (name, description, effect, priority, status)
+   - Subject conditions (roles, functional roles, user IDs)
+   - Resource conditions (type and all attributes)
+   - Full action list with human-readable labels
+   - Environment conditions (time, days, IP restrictions)
+   - Metadata (created/updated timestamps, policy ID)
 
-**What Needs to Change:**
-- [ ] **Add expandable/detail view for policies** - Click to see full policy details
-- [ ] **Show actual action list** - List the actions, not just "4 actions"
-- [ ] **Show actual conditions** - Display attribute conditions in readable format
-- [ ] **Consider removing system policies section** - Or make them viewable in read-only detail mode
-- [ ] **Simplify the page** - Focus on custom policies that users can actually manage
-
-**Alternative Approach:**
-Remove the system policies section entirely from the UI. They're immutable and documented in the spec - showing them as grayed-out unclickable rows adds no value and creates confusion.
-
-**File:** `packages/web/src/routes/organizations/$organizationId/settings/policies.tsx`
+**Files Added/Modified:**
+- `packages/web/src/components/policies/PolicyDetailModal.tsx` - New component for viewing policy details
+- `packages/web/src/routes/organizations/$organizationId/settings/policies.tsx` - Updated to use detail modal and show action names
 
 ---
 
