@@ -88,7 +88,98 @@ The AUTHORIZATION.md spec defines actions for fiscal period management. All comp
 
 ---
 
-### 2. Owner Transfer UI
+### 2. Fiscal Period Enforcement Gap
+
+**Status: NOT IMPLEMENTED** ⚠️
+
+The fiscal period workflow (Future → Open → SoftClose → Closed → Locked) is implemented, but **only "Locked" periods actually block journal entry operations**. All other statuses allow full access.
+
+**Current Behavior:**
+
+| Scenario | Can Create Journal Entry? | Expected Behavior |
+|----------|--------------------------|-------------------|
+| No fiscal period exists for the date | ✅ Yes | ❌ Should require period to exist |
+| Fiscal period exists with status "Future" | ✅ Yes | ❌ Should block (period not started) |
+| Fiscal period exists with status "Open" | ✅ Yes | ✅ Correct |
+| Fiscal period exists with status "SoftClose" | ✅ Yes | ⚠️ Should allow only with approval/special permission |
+| Fiscal period exists with status "Closed" | ✅ Yes | ❌ Should block |
+| Fiscal period exists with status "Locked" | ❌ No (blocked) | ✅ Correct |
+
+**Root Cause:**
+1. `JournalEntryService` comments state: "Fiscal periods are computed from transaction dates at runtime rather than being validated against stored periods"
+2. The only protection is the "Prevent Modifications to Locked Periods" system policy which only checks for `periodStatus: ["Locked"]`
+3. No validation exists for non-existent periods or other closed statuses
+
+**What's Needed:**
+
+1. **Require fiscal period to exist** for journal entry dates
+   - [ ] Add validation in `JournalEntryService.create()` to lookup period by date
+   - [ ] Return error `FiscalPeriodNotFoundError` if no period covers the transaction date
+   - [ ] API should return 400 with clear message: "No fiscal period exists for date {date}"
+
+2. **Block "Future" periods**
+   - [ ] Add system policy: "Prevent Entries in Future Periods" with `periodStatus: ["Future"]`
+   - [ ] Or: Add service-level validation before authorization check
+
+3. **Block "Closed" periods** (same as Locked)
+   - [ ] Update system policy to include `periodStatus: ["Closed", "Locked"]`
+   - [ ] Or: Create separate "Prevent Modifications to Closed Periods" policy
+
+4. **Restrict "SoftClose" periods**
+   - [ ] Only users with `fiscal_period:soft_close` permission should be able to post entries
+   - [ ] Add system policy: "Restrict SoftClose Period Access" allowing only controllers
+   - [ ] Consider: Should all operations be blocked, or just posting?
+
+**Implementation Options:**
+
+**Option A: Service-Level Validation (Recommended)**
+Add validation directly in `JournalEntryService` before any database operations:
+```typescript
+// In create/update/post methods:
+const period = yield* fiscalPeriodService.findPeriodByDate(companyId, transactionDate)
+if (Option.isNone(period)) {
+  return yield* Effect.fail(new FiscalPeriodNotFoundError({ date: transactionDate }))
+}
+if (period.value.status === "Future") {
+  return yield* Effect.fail(new FiscalPeriodNotOpenError({ status: "Future" }))
+}
+if (period.value.status === "Closed" || period.value.status === "Locked") {
+  return yield* Effect.fail(new FiscalPeriodClosedError({ status: period.value.status }))
+}
+```
+
+**Option B: Enhanced System Policies**
+Update/add system policies to cover all scenarios:
+```typescript
+// Policy 1: Block Future periods
+{ resource: { type: "journal_entry", attributes: { periodStatus: ["Future"] } }, effect: "deny" }
+
+// Policy 2: Block Closed periods
+{ resource: { type: "journal_entry", attributes: { periodStatus: ["Closed"] } }, effect: "deny" }
+
+// Policy 3: Restrict SoftClose to controllers
+{
+  subject: { functionalRoles: ["controller"] },
+  resource: { type: "journal_entry", attributes: { periodStatus: ["SoftClose"] } },
+  effect: "allow"
+}
+```
+
+**Option C: Hybrid Approach**
+- Service validates period existence (can't be done via policy)
+- Policies handle status-based restrictions (flexible, auditable)
+
+**Files to Modify:**
+- `packages/core/src/Services/JournalEntryService.ts` - Add period validation
+- `packages/persistence/src/Layers/JournalEntryServiceLive.ts` - Implement validation
+- `packages/persistence/src/Seeds/SystemPolicies.ts` - Add new system policies
+- `packages/core/src/Services/JournalEntryErrors.ts` - Add new error types
+
+**Priority:** HIGH - Without this, the fiscal period workflow is cosmetic only. Users can bypass all period controls except "Locked".
+
+---
+
+### 3. Owner Transfer UI
 
 **Status: IMPLEMENTED** ✓
 
@@ -115,7 +206,7 @@ The AUTHORIZATION.md spec defines actions for fiscal period management. All comp
 
 ---
 
-### 3. Platform Admin Management
+### 4. Platform Admin Management
 
 **Status: IMPLEMENTED (READ-ONLY VIEWER)** ✓
 
@@ -146,7 +237,7 @@ Platform admin capability exists in the database with a read-only viewer for pla
 
 ---
 
-### 4. Invitation Link Display
+### 5. Invitation Link Display
 
 **Status: IMPLEMENTED** ✓
 
@@ -175,7 +266,7 @@ Platform admin capability exists in the database with a read-only viewer for pla
 
 ---
 
-### 5. Environment Condition Runtime Evaluation
+### 6. Environment Condition Runtime Evaluation
 
 **Status: IMPLEMENTED** ✓
 
@@ -210,7 +301,7 @@ Platform admin capability exists in the database with a read-only viewer for pla
 
 ---
 
-### 6. Authorization Denial Audit Log Viewing
+### 7. Authorization Denial Audit Log Viewing
 
 **Status: IMPLEMENTED** ✓
 
@@ -237,7 +328,7 @@ Platform admin capability exists in the database with a read-only viewer for pla
 
 ---
 
-### 7. User Profile Page Broken Semantics
+### 8. User Profile Page Broken Semantics
 
 **Status: IMPLEMENTED** ✓
 
@@ -510,7 +601,7 @@ The following test coverage is missing for authorization features:
   - Show member in list after accepting invitation
   - Transfer ownership to admin successfully
 - [x] E2E tests for duplicate invitation error handling - Added in same file
-- [ ] E2E tests for member removal/reinstatement - Now unblocked, can be implemented
+- [x] E2E tests for member removal/reinstatement - Implemented in `packages/web/test-e2e/member-management.spec.ts`
 - [ ] Integration tests for environment condition evaluation
 - [x] E2E tests for fiscal period management - `packages/web/test-e2e/fiscal-periods.spec.ts` (10 tests)
 - [ ] Load tests for permission checking latency

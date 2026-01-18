@@ -39,6 +39,44 @@ import * as Timestamp from "@accountability/core/Domains/Timestamp"
 import type { AuthUserId } from "@accountability/core/Auth/AuthUserId"
 import { FiscalPeriodRepository } from "../Services/FiscalPeriodRepository.ts"
 
+// =============================================================================
+// Date Helper Functions
+// =============================================================================
+
+/**
+ * Get the number of days in a given month
+ */
+function getDaysInMonth(year: number, month: number): number {
+  // Month is 1-indexed (1 = January, 12 = December)
+  // Create a date for the first day of the next month, then go back one day
+  const nextMonth = month === 12 ? 1 : month + 1
+  const nextMonthYear = month === 12 ? year + 1 : year
+  const date = new Date(Date.UTC(nextMonthYear, nextMonth - 1, 0))
+  return date.getUTCDate()
+}
+
+/**
+ * Compare two LocalDate values
+ * Returns negative if a < b, 0 if equal, positive if a > b
+ */
+function compareDates(a: LocalDate, b: LocalDate): number {
+  if (a.year !== b.year) return a.year - b.year
+  if (a.month !== b.month) return a.month - b.month
+  return a.day - b.day
+}
+
+/**
+ * Add days to a LocalDate
+ */
+function addDays(date: LocalDate, days: number): LocalDate {
+  const d = new Date(Date.UTC(date.year, date.month - 1, date.day + days))
+  return LocalDate.make({
+    year: d.getUTCFullYear(),
+    month: d.getUTCMonth() + 1,
+    day: d.getUTCDate()
+  })
+}
+
 /**
  * Creates the FiscalPeriodService implementation
  */
@@ -210,18 +248,50 @@ const make = Effect.gen(function* () {
         const now = Timestamp.now()
         const periods: FiscalPeriod[] = []
 
-        // Generate monthly periods - in a real implementation,
-        // we'd derive dates from the fiscal year configuration
+        // Use the start/end dates from input - they are provided by the caller
+        // who already has the fiscal year data from createFiscalYear
+        const startDate = input.startDate
+        const endDate = input.endDate
+        const includesAdjustmentPeriod = input.includeAdjustmentPeriod ?? false
+
+        // Generate monthly periods that are sequential with no gaps
+        // Each period starts where the previous one ended + 1 day
+        let currentStart = startDate
+
         for (let i = 1; i <= periodCount; i++) {
+          let periodEnd: LocalDate
+
+          if (i === periodCount) {
+            // Last regular period ends at fiscal year end
+            periodEnd = endDate
+          } else {
+            // Calculate end date as last day of the month containing currentStart
+            // Then move to first day of next month for next period
+            const currentMonth = currentStart.month
+            const currentYear = currentStart.year
+
+            // Get last day of current month
+            const daysInMonth = getDaysInMonth(currentYear, currentMonth)
+            periodEnd = LocalDate.make({
+              year: currentYear,
+              month: currentMonth,
+              day: daysInMonth
+            })
+
+            // If period end would be after fiscal year end, clamp it
+            if (compareDates(periodEnd, endDate) > 0) {
+              periodEnd = endDate
+            }
+          }
+
           const period = FiscalPeriod.make({
             id: FiscalPeriodId.make(crypto.randomUUID()),
             fiscalYearId: input.fiscalYearId,
             periodNumber: i,
             name: `Period ${i}`,
             periodType: "Regular",
-            // Placeholder dates - would come from fiscal year calculation
-            startDate: LocalDate.make({ year: 2025, month: i, day: 1 }),
-            endDate: LocalDate.make({ year: 2025, month: i, day: 28 }),
+            startDate: currentStart,
+            endDate: periodEnd,
             status: "Future",
             closedBy: Option.none(),
             closedAt: Option.none(),
@@ -229,6 +299,31 @@ const make = Effect.gen(function* () {
             updatedAt: now
           })
           periods.push(period)
+
+          // Next period starts the day after this one ends
+          if (i < periodCount) {
+            currentStart = addDays(periodEnd, 1)
+          }
+        }
+
+        // Add adjustment period (Period 13) if requested
+        if (includesAdjustmentPeriod) {
+          const adjustmentPeriod = FiscalPeriod.make({
+            id: FiscalPeriodId.make(crypto.randomUUID()),
+            fiscalYearId: input.fiscalYearId,
+            periodNumber: 13,
+            name: `Period 13 (Adjustment)`,
+            periodType: "Adjustment",
+            // Adjustment period covers the same dates as the last regular period
+            startDate: endDate,
+            endDate,
+            status: "Future",
+            closedBy: Option.none(),
+            closedAt: Option.none(),
+            createdAt: now,
+            updatedAt: now
+          })
+          periods.push(adjustmentPeriod)
         }
 
         return yield* periodRepo.createPeriods(periods)

@@ -162,7 +162,10 @@ export const FiscalPeriodApiLive = HttpApiBuilder.group(AppApi, "fiscal-periods"
 
             // Generate periods for the fiscal year
             yield* periodService.generatePeriods({
-              fiscalYearId: fiscalYear.id
+              fiscalYearId: fiscalYear.id,
+              startDate: fiscalYear.startDate,
+              endDate: fiscalYear.endDate,
+              includeAdjustmentPeriod: fiscalYear.includesAdjustmentPeriod
             }).pipe(Effect.orDie)
 
             return fiscalYear

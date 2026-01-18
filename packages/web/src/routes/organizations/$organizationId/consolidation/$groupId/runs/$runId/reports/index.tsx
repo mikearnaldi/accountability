@@ -174,7 +174,6 @@ interface ReportCard {
   readonly iconColor: string
   readonly bgColor: string
   readonly hoverBgColor: string
-  readonly available: boolean
   readonly route: string
 }
 
@@ -188,7 +187,6 @@ function getReportCards(): readonly ReportCard[] {
       iconColor: "text-green-600",
       bgColor: "bg-green-100",
       hoverBgColor: "group-hover:bg-green-200",
-      available: true,
       route: "balance-sheet"
     },
     {
@@ -199,7 +197,6 @@ function getReportCards(): readonly ReportCard[] {
       iconColor: "text-purple-600",
       bgColor: "bg-purple-100",
       hoverBgColor: "group-hover:bg-purple-200",
-      available: true,
       route: "income-statement"
     },
     {
@@ -210,7 +207,6 @@ function getReportCards(): readonly ReportCard[] {
       iconColor: "text-teal-600",
       bgColor: "bg-teal-100",
       hoverBgColor: "group-hover:bg-teal-200",
-      available: true,
       route: "cash-flow"
     },
     {
@@ -221,7 +217,6 @@ function getReportCards(): readonly ReportCard[] {
       iconColor: "text-orange-600",
       bgColor: "bg-orange-100",
       hoverBgColor: "group-hover:bg-orange-200",
-      available: true,
       route: "equity-statement"
     }
   ]
@@ -369,7 +364,8 @@ function ReportCardComponent({
     return routes[report.id] ?? "/organizations/$organizationId/consolidation/$groupId/runs/$runId/reports/balance-sheet"
   }
 
-  if (disabled || !report.available) {
+  // Show disabled state when run is not completed
+  if (disabled) {
     return (
       <div
         className="rounded-lg border border-gray-200 bg-white p-6 opacity-60"
@@ -384,7 +380,7 @@ function ReportCardComponent({
         <p className="mt-2 text-sm text-gray-500">{report.description}</p>
         <div className="mt-4">
           <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600">
-            {disabled ? "Run Not Completed" : "Coming Soon"}
+            Run Not Completed
           </span>
         </div>
       </div>

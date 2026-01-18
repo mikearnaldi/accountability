@@ -62,6 +62,12 @@ export interface GeneratePeriodsInput {
   readonly fiscalYearId: FiscalYearId
   /** Number of regular periods (typically 12 for monthly) */
   readonly periodCount?: number
+  /** Start date of the fiscal year (for calculating period dates) */
+  readonly startDate: LocalDate
+  /** End date of the fiscal year (for calculating period dates) */
+  readonly endDate: LocalDate
+  /** Whether to include Period 13 adjustment period */
+  readonly includeAdjustmentPeriod?: boolean
 }
 
 /**

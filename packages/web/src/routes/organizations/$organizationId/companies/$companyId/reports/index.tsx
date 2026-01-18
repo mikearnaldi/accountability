@@ -161,7 +161,6 @@ interface ReportCard {
   readonly iconColor: string
   readonly bgColor: string
   readonly hoverBgColor: string
-  readonly available: boolean
 }
 
 function getReportCards(): readonly ReportCard[] {
@@ -173,8 +172,7 @@ function getReportCards(): readonly ReportCard[] {
       icon: FileText,
       iconColor: "text-blue-600",
       bgColor: "bg-blue-100",
-      hoverBgColor: "group-hover:bg-blue-200",
-      available: true
+      hoverBgColor: "group-hover:bg-blue-200"
     },
     {
       id: "balance-sheet",
@@ -183,8 +181,7 @@ function getReportCards(): readonly ReportCard[] {
       icon: BarChart3,
       iconColor: "text-green-600",
       bgColor: "bg-green-100",
-      hoverBgColor: "group-hover:bg-green-200",
-      available: true
+      hoverBgColor: "group-hover:bg-green-200"
     },
     {
       id: "income-statement",
@@ -193,8 +190,7 @@ function getReportCards(): readonly ReportCard[] {
       icon: TrendingUp,
       iconColor: "text-purple-600",
       bgColor: "bg-purple-100",
-      hoverBgColor: "group-hover:bg-purple-200",
-      available: true
+      hoverBgColor: "group-hover:bg-purple-200"
     },
     {
       id: "cash-flow",
@@ -203,8 +199,7 @@ function getReportCards(): readonly ReportCard[] {
       icon: DollarSign,
       iconColor: "text-teal-600",
       bgColor: "bg-teal-100",
-      hoverBgColor: "group-hover:bg-teal-200",
-      available: true
+      hoverBgColor: "group-hover:bg-teal-200"
     },
     {
       id: "equity-statement",
@@ -213,8 +208,7 @@ function getReportCards(): readonly ReportCard[] {
       icon: PieChart,
       iconColor: "text-orange-600",
       bgColor: "bg-orange-100",
-      hoverBgColor: "group-hover:bg-orange-200",
-      available: true
+      hoverBgColor: "group-hover:bg-orange-200"
     }
   ]
 }
@@ -332,28 +326,6 @@ function ReportCardComponent({
   readonly companyId: string
 }) {
   const Icon = report.icon
-
-  if (!report.available) {
-    return (
-      <div
-        className="rounded-lg border border-gray-200 bg-white p-6 opacity-60"
-        data-testid={`report-card-${report.id}`}
-      >
-        <div
-          className={`mb-4 flex h-12 w-12 items-center justify-center rounded-lg ${report.bgColor}`}
-        >
-          <Icon className={`h-6 w-6 ${report.iconColor}`} />
-        </div>
-        <h3 className="font-semibold text-gray-900">{report.name}</h3>
-        <p className="mt-2 text-sm text-gray-500">{report.description}</p>
-        <div className="mt-4">
-          <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600">
-            Coming Soon
-          </span>
-        </div>
-      </div>
-    )
-  }
 
   // Build the route path based on report ID
   const getReportRoute = () => {

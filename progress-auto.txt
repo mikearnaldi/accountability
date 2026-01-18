@@ -663,3 +663,8 @@
 **Task**: Removed fiscal period Coming Soon labels and added 10 E2E tests
 **Status**: complete
 ---
+
+## Iteration 4 - 2026-01-18 17:51
+**Task**: Fixed E2E tests by showing New Company and Create Fiscal Year buttons even when list is empty, and fixed type error in generatePeriods
+**Status**: complete
+---

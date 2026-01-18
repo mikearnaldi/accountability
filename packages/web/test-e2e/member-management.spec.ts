@@ -15,7 +15,7 @@ import { test, expect, APIRequestContext, Page } from "@playwright/test"
 async function createAuthenticatedUser(
   request: APIRequestContext,
   prefix: string
-): Promise<{ email: string; password: string; displayName: string; token: string }> {
+): Promise<{ email: string; password: string; displayName: string; token: string; userId: string }> {
   const testUser = {
     email: `${prefix}-${Date.now()}@example.com`,
     password: "TestPassword123",
@@ -37,7 +37,7 @@ async function createAuthenticatedUser(
   expect(loginRes.ok()).toBeTruthy()
   const loginData = await loginRes.json()
 
-  return { ...testUser, token: loginData.token }
+  return { ...testUser, token: loginData.token, userId: loginData.user.id }
 }
 
 // Helper function to create an organization
@@ -288,20 +288,224 @@ test.describe("Member Management - Duplicate Invitation", () => {
   })
 })
 
-// Note: The following tests are skipped because the API's listMembers endpoint
-// only returns active members, but the UI expects to show inactive members too.
-// These tests will work once the API is updated to return all members.
-test.describe.skip("Member Management - Removal and Reinstatement (API FIX NEEDED)", () => {
-  test("should show removed member in inactive section", async () => {
-    // This test requires the API to return all members (including removed)
-    // Currently listMembers only returns active members
+test.describe("Member Management - Removal and Reinstatement", () => {
+  test("should remove a member and show in inactive section", async ({ page, request }) => {
+    // Create owner and organization
+    const owner = await createAuthenticatedUser(request, "owner-remove")
+    const org = await createOrganization(request, owner.token, `Remove Member Org ${Date.now()}`)
+
+    // Create a member to be removed
+    const memberUser = await createAuthenticatedUser(request, "member-to-remove")
+
+    // Invite and accept as member
+    await inviteAndAcceptMember(request, owner.token, memberUser.token, org.id, memberUser.email, "member")
+
+    // Set session and navigate to members page as owner
+    await setSessionCookie(page, owner.token)
+    await page.goto(`/organizations/${org.id}/settings/members`)
+
+    // Wait for page to load and show the member
+    await expect(page.getByTestId("members-page")).toBeVisible()
+    await expect(page.getByText(memberUser.displayName)).toBeVisible({ timeout: 10000 })
+    await page.waitForTimeout(500)
+
+    // Find the member's row (not the owner)
+    const memberRow = page.locator("tr").filter({ hasText: memberUser.email })
+    await expect(memberRow).toBeVisible()
+
+    // Click the action menu
+    const actionButton = memberRow.locator("button").last()
+    await actionButton.click({ force: true })
+
+    // Set up dialog handler to accept confirm dialogs
+    page.on("dialog", (dialog) => dialog.accept())
+
+    // Click remove and wait for API call to complete
+    const removeResponsePromise = page.waitForResponse(
+      (resp) => resp.url().includes("/members/") && resp.request().method() === "DELETE"
+    )
+    await page.getByTestId("member-remove").click()
+    await removeResponsePromise
+
+    // Wait for refresh and reload to ensure member list is updated
+    await page.waitForTimeout(500)
+    await page.reload()
+    await expect(page.getByTestId("members-page")).toBeVisible()
+    await page.waitForTimeout(500)
+
+    // The member should now appear in the inactive section
+    await expect(page.getByText("Inactive Members")).toBeVisible({ timeout: 10000 })
+
+    // Expand the inactive section if needed
+    const inactiveSection = page.locator("[data-testid='inactive-members-section']")
+    if (await inactiveSection.isVisible()) {
+      // Member should be visible in inactive section
+      const inactiveRow = inactiveSection.locator("tr").filter({ hasText: memberUser.email })
+      await expect(inactiveRow).toBeVisible()
+      await expect(inactiveRow.getByText("Removed")).toBeVisible()
+    }
   })
 
-  test("should reinstate a removed member via UI", async () => {
-    // This test requires the API to return all members (including removed)
+  test("should reinstate a removed member via UI", async ({ page, request }) => {
+    // Create owner and organization
+    const owner = await createAuthenticatedUser(request, "owner-reinstate")
+    const org = await createOrganization(request, owner.token, `Reinstate Member Org ${Date.now()}`)
+
+    // Create a member to be removed and reinstated
+    const memberUser = await createAuthenticatedUser(request, "member-to-reinstate")
+
+    // Invite and accept as member
+    await inviteAndAcceptMember(request, owner.token, memberUser.token, org.id, memberUser.email, "member")
+
+    // Remove the member via API (using userId, not email)
+    const removeRes = await request.delete(`/api/v1/organizations/${org.id}/members/${memberUser.userId}`, {
+      headers: { Authorization: `Bearer ${owner.token}` },
+      data: { reason: "Testing removal" }
+    })
+    expect(removeRes.ok()).toBeTruthy()
+
+    // Set session and navigate to members page as owner
+    await setSessionCookie(page, owner.token)
+    await page.goto(`/organizations/${org.id}/settings/members`)
+
+    // Wait for page to load
+    await expect(page.getByTestId("members-page")).toBeVisible()
+    await page.waitForTimeout(500)
+
+    // The member should be in the inactive section
+    await expect(page.getByText("Inactive Members")).toBeVisible({ timeout: 10000 })
+
+    // Find the inactive member's row
+    const inactiveSection = page.locator("[data-testid='inactive-members-section']")
+    await expect(inactiveSection).toBeVisible()
+    const memberRow = inactiveSection.locator("tr").filter({ hasText: memberUser.email })
+    await expect(memberRow).toBeVisible()
+
+    // Click the action menu for the inactive member
+    const actionButton = memberRow.locator("button").last()
+    await actionButton.click({ force: true })
+
+    // Click reinstate
+    await page.getByTestId("member-reinstate").click()
+
+    // Wait for success and reload
+    await page.waitForTimeout(1000)
+    await page.reload()
+    await expect(page.getByTestId("members-page")).toBeVisible()
+    await page.waitForTimeout(500)
+
+    // The member should now be back in the active members section
+    const activeMembersSection = page.locator("[data-testid='active-members-section']")
+    const reactiveMemberRow = activeMembersSection.locator("tr").filter({ hasText: memberUser.email })
+    await expect(reactiveMemberRow).toBeVisible({ timeout: 10000 })
   })
 
-  test("should show suspended member in inactive section", async () => {
-    // This test requires the API to return all members (including suspended)
+  test("should suspend a member and show in inactive section", async ({ page, request }) => {
+    // Create owner and organization
+    const owner = await createAuthenticatedUser(request, "owner-suspend")
+    const org = await createOrganization(request, owner.token, `Suspend Member Org ${Date.now()}`)
+
+    // Create a member to be suspended
+    const memberUser = await createAuthenticatedUser(request, "member-to-suspend")
+
+    // Invite and accept as member
+    await inviteAndAcceptMember(request, owner.token, memberUser.token, org.id, memberUser.email, "member")
+
+    // Set session and navigate to members page as owner
+    await setSessionCookie(page, owner.token)
+    await page.goto(`/organizations/${org.id}/settings/members`)
+
+    // Wait for page to load and show the member
+    await expect(page.getByTestId("members-page")).toBeVisible()
+    await expect(page.getByText(memberUser.displayName)).toBeVisible({ timeout: 10000 })
+    await page.waitForTimeout(500)
+
+    // Find the member's row (not the owner)
+    const memberRow = page.locator("tr").filter({ hasText: memberUser.email })
+    await expect(memberRow).toBeVisible()
+
+    // Click the action menu
+    const actionButton = memberRow.locator("button").last()
+    await actionButton.click({ force: true })
+
+    // Set up dialog handler to accept confirm dialogs
+    page.on("dialog", (dialog) => dialog.accept())
+
+    // Click suspend and wait for API call to complete
+    const suspendResponsePromise = page.waitForResponse(
+      (resp) => resp.url().includes("/suspend") && resp.request().method() === "POST"
+    )
+    await page.getByTestId("member-suspend").click()
+    await suspendResponsePromise
+
+    // Wait for refresh and reload to ensure member list is updated
+    await page.waitForTimeout(500)
+    await page.reload()
+    await expect(page.getByTestId("members-page")).toBeVisible()
+    await page.waitForTimeout(500)
+
+    // The member should now appear in the inactive section
+    await expect(page.getByText("Inactive Members")).toBeVisible({ timeout: 10000 })
+
+    // Find the suspended member
+    const inactiveSection = page.locator("[data-testid='inactive-members-section']")
+    await expect(inactiveSection).toBeVisible()
+    const suspendedRow = inactiveSection.locator("tr").filter({ hasText: memberUser.email })
+    await expect(suspendedRow).toBeVisible()
+    await expect(suspendedRow.getByText("Suspended")).toBeVisible()
+  })
+
+  test("should unsuspend a member via UI", async ({ page, request }) => {
+    // Create owner and organization
+    const owner = await createAuthenticatedUser(request, "owner-unsuspend")
+    const org = await createOrganization(request, owner.token, `Unsuspend Member Org ${Date.now()}`)
+
+    // Create a member to be suspended and unsuspended
+    const memberUser = await createAuthenticatedUser(request, "member-to-unsuspend")
+
+    // Invite and accept as member
+    await inviteAndAcceptMember(request, owner.token, memberUser.token, org.id, memberUser.email, "member")
+
+    // Suspend the member via API (using userId, not email)
+    const suspendRes = await request.post(`/api/v1/organizations/${org.id}/members/${memberUser.userId}/suspend`, {
+      headers: { Authorization: `Bearer ${owner.token}` },
+      data: { reason: null }
+    })
+    expect(suspendRes.ok()).toBeTruthy()
+
+    // Set session and navigate to members page as owner
+    await setSessionCookie(page, owner.token)
+    await page.goto(`/organizations/${org.id}/settings/members`)
+
+    // Wait for page to load
+    await expect(page.getByTestId("members-page")).toBeVisible()
+    await page.waitForTimeout(500)
+
+    // The member should be in the inactive section
+    await expect(page.getByText("Inactive Members")).toBeVisible({ timeout: 10000 })
+
+    // Find the suspended member's row
+    const inactiveSection = page.locator("[data-testid='inactive-members-section']")
+    await expect(inactiveSection).toBeVisible()
+    const memberRow = inactiveSection.locator("tr").filter({ hasText: memberUser.email })
+    await expect(memberRow).toBeVisible()
+
+    // Click the action menu
+    const actionButton = memberRow.locator("button").last()
+    await actionButton.click({ force: true })
+
+    // Click unsuspend
+    await page.getByTestId("member-unsuspend").click()
+
+    // Wait for success and reload
+    await page.waitForTimeout(1000)
+    await page.reload()
+    await expect(page.getByTestId("members-page")).toBeVisible()
+    await page.waitForTimeout(500)
+
+    // The member should now be back in the active members section
+    const activeMembersSection = page.locator("[data-testid='active-members-section']")
+    const reactiveMemberRow = activeMembersSection.locator("tr").filter({ hasText: memberUser.email })
+    await expect(reactiveMemberRow).toBeVisible({ timeout: 10000 })
   })
 })
