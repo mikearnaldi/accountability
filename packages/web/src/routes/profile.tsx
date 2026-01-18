@@ -73,11 +73,16 @@ interface OrganizationForSelector {
   readonly name: string
 }
 
+export interface ProfileSearchParams {
+  readonly org?: string | undefined
+}
+
 export interface ProfileLoaderResult {
   readonly user: UserProfile
   readonly identities: readonly Identity[]
   readonly memberships: readonly OrganizationMembership[]
   readonly organizations: readonly OrganizationForSelector[]
+  readonly currentOrgId?: string
 }
 
 // =============================================================================
@@ -152,6 +157,11 @@ const fetchUserProfile = createServerFn({ method: "GET" }).handler(async (): Pro
 // =============================================================================
 
 export const Route = createFileRoute("/profile")({
+  validateSearch: (search: Record<string, unknown>): ProfileSearchParams => {
+    return {
+      org: typeof search.org === "string" ? search.org : undefined
+    }
+  },
   beforeLoad: async ({ context }) => {
     if (!context.user) {
       throw redirect({
@@ -162,13 +172,14 @@ export const Route = createFileRoute("/profile")({
       })
     }
   },
-  loader: async () => {
+  loader: async ({ deps: _deps }) => {
     const result = await fetchUserProfile()
     if (!result) {
       throw redirect({ to: "/login" })
     }
     return result
   },
+  loaderDeps: ({ search }) => ({ orgId: search.org }),
   component: ProfilePage
 })
 
@@ -178,8 +189,14 @@ export const Route = createFileRoute("/profile")({
 
 function ProfilePage() {
   const { user, identities, memberships, organizations } = Route.useLoaderData()
+  const { org: currentOrgId } = Route.useSearch()
   const context = Route.useRouteContext()
   const router = useRouter()
+
+  // Find the current organization from the search param, or default to first org
+  const currentOrganization = currentOrgId
+    ? organizations.find((o) => o.id === currentOrgId) ?? organizations[0] ?? null
+    : organizations[0] ?? null
 
   const [displayName, setDisplayName] = useState(user.displayName)
   const [isSaving, setIsSaving] = useState(false)
@@ -284,7 +301,7 @@ function ProfilePage() {
     <AppLayout
       user={context.user}
       organizations={organizations}
-      currentOrganization={null}
+      currentOrganization={currentOrganization}
       showBreadcrumbs={true}
       breadcrumbItems={breadcrumbItems}
     >

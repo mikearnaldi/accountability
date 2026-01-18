@@ -360,8 +360,8 @@ test.describe("Chart of Accounts Page", () => {
       `/organizations/${orgData.id}/companies/${companyData.id}/accounts`
     )
 
-    // 7. Click "New Account" button
-    await page.getByRole("button", { name: /New Account/i }).click()
+    // 7. Click "Create Account" button in empty state (no accounts exist yet)
+    await page.getByTestId("create-account-empty-button").click()
 
     // 8. Should show create account form modal
     await expect(
@@ -987,13 +987,13 @@ test.describe("Chart of Accounts Page", () => {
     await page.waitForTimeout(500)
     await expect(page.getByTestId("accounts-page")).toBeVisible()
 
-    // Wait for "New Account" button to be visible and enabled
-    const newAccountButton = page.getByRole("button", { name: /New Account/i })
-    await expect(newAccountButton).toBeVisible()
-    await expect(newAccountButton).toBeEnabled()
+    // Wait for "Create Account" button in empty state (no accounts exist yet)
+    const createAccountButton = page.getByTestId("create-account-empty-button")
+    await expect(createAccountButton).toBeVisible()
+    await expect(createAccountButton).toBeEnabled()
 
-    // 6. Click "New Account" button
-    await newAccountButton.click({ force: true })
+    // 6. Click "Create Account" button
+    await createAccountButton.click({ force: true })
 
     // 7. Wait for modal to appear (wait for React state update)
     await expect(page.getByTestId("account-form-modal")).toBeVisible({ timeout: 10000 })
@@ -1100,16 +1100,16 @@ test.describe("Chart of Accounts Page", () => {
     // Wait for page to be fully loaded (React hydration)
     await expect(page.getByTestId("accounts-page")).toBeVisible()
 
-    // Wait for the "New Account" button to be visible and enabled
-    const newAccountButton = page.getByRole("button", { name: /New Account/i })
-    await expect(newAccountButton).toBeVisible()
-    await expect(newAccountButton).toBeEnabled()
+    // Wait for the "Create Account" button in empty state (no accounts exist yet)
+    const createAccountButton = page.getByTestId("create-account-empty-button")
+    await expect(createAccountButton).toBeVisible()
+    await expect(createAccountButton).toBeEnabled()
 
     // Wait for full hydration before clicking
     await page.waitForTimeout(500)
 
-    // 6. Click "New Account" button with force
-    await newAccountButton.click({ force: true })
+    // 6. Click "Create Account" button with force
+    await createAccountButton.click({ force: true })
 
     // 7. Modal should be visible (wait for React state update)
     await expect(page.getByTestId("account-form-modal")).toBeVisible({ timeout: 15000 })

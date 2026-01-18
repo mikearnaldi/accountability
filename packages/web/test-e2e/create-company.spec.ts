@@ -71,11 +71,11 @@ test.describe("Create Company Form", () => {
     await page.waitForTimeout(500)
     await expect(page.getByTestId("companies-list-page")).toBeVisible()
 
-    // 6. Click "New Company" button - wait for it to be visible and enabled
-    const newCompanyButton = page.getByRole("button", { name: /New Company/i })
-    await expect(newCompanyButton).toBeVisible()
-    await expect(newCompanyButton).toBeEnabled()
-    await newCompanyButton.click({ force: true })
+    // 6. Click "Create Company" button in empty state (no companies exist yet)
+    const createCompanyButton = page.getByRole("button", { name: /Create Company/i })
+    await expect(createCompanyButton).toBeVisible()
+    await expect(createCompanyButton).toBeEnabled()
+    await createCompanyButton.click({ force: true })
 
     // Wait for modal to appear
     await expect(page.getByTestId("create-company-modal")).toBeVisible({ timeout: 10000 })
@@ -424,11 +424,11 @@ test.describe("Create Company Form", () => {
     await page.waitForTimeout(500)
     await expect(page.getByTestId("companies-list-page")).toBeVisible()
 
-    // 6. Click "New Company" button - wait for it to be visible and enabled
-    const newCompanyButton = page.getByRole("button", { name: /New Company/i })
-    await expect(newCompanyButton).toBeVisible()
-    await expect(newCompanyButton).toBeEnabled()
-    await newCompanyButton.click({ force: true })
+    // 6. Click "Create Company" button in empty state (no companies exist yet)
+    const createCompanyButton = page.getByRole("button", { name: /Create Company/i })
+    await expect(createCompanyButton).toBeVisible()
+    await expect(createCompanyButton).toBeEnabled()
+    await createCompanyButton.click({ force: true })
 
     // Wait for modal to appear
     await expect(page.getByTestId("create-company-modal")).toBeVisible({ timeout: 10000 })
@@ -623,11 +623,11 @@ test.describe("Create Company Form", () => {
     await page.waitForTimeout(500)
     await expect(page.getByTestId("companies-list-page")).toBeVisible()
 
-    // 6. Click "New Company" button
-    const newCompanyButton = page.getByRole("button", { name: /New Company/i })
-    await expect(newCompanyButton).toBeVisible()
-    await expect(newCompanyButton).toBeEnabled()
-    await newCompanyButton.click({ force: true })
+    // 6. Click "Create Company" button in empty state (no companies exist yet)
+    const createCompanyButton = page.getByRole("button", { name: /Create Company/i })
+    await expect(createCompanyButton).toBeVisible()
+    await expect(createCompanyButton).toBeEnabled()
+    await createCompanyButton.click({ force: true })
 
     // Wait for modal to appear
     await expect(page.getByTestId("create-company-modal")).toBeVisible({ timeout: 10000 })
@@ -716,11 +716,11 @@ test.describe("Create Company Form", () => {
     await page.waitForTimeout(500)
     await expect(page.getByTestId("companies-list-page")).toBeVisible()
 
-    // 6. Click "New Company" button
-    const newCompanyButton = page.getByRole("button", { name: /New Company/i })
-    await expect(newCompanyButton).toBeVisible()
-    await expect(newCompanyButton).toBeEnabled()
-    await newCompanyButton.click({ force: true })
+    // 6. Click "Create Company" button in empty state (no companies exist yet)
+    const createCompanyButton = page.getByRole("button", { name: /Create Company/i })
+    await expect(createCompanyButton).toBeVisible()
+    await expect(createCompanyButton).toBeEnabled()
+    await createCompanyButton.click({ force: true })
 
     // Wait for modal to appear
     await expect(page.getByTestId("create-company-modal")).toBeVisible({ timeout: 10000 })
@@ -811,11 +811,11 @@ test.describe("Create Company Form", () => {
     await page.waitForTimeout(500)
     await expect(page.getByTestId("companies-list-page")).toBeVisible()
 
-    // 6. Click "New Company" button
-    const newCompanyButton = page.getByRole("button", { name: /New Company/i })
-    await expect(newCompanyButton).toBeVisible()
-    await expect(newCompanyButton).toBeEnabled()
-    await newCompanyButton.click({ force: true })
+    // 6. Click "Create Company" button in empty state (no companies exist yet)
+    const createCompanyButton = page.getByRole("button", { name: /Create Company/i })
+    await expect(createCompanyButton).toBeVisible()
+    await expect(createCompanyButton).toBeEnabled()
+    await createCompanyButton.click({ force: true })
 
     // Wait for modal to appear
     await expect(page.getByTestId("create-company-modal")).toBeVisible({ timeout: 10000 })
@@ -904,11 +904,11 @@ test.describe("Create Company Form", () => {
     await page.waitForTimeout(500)
     await expect(page.getByTestId("companies-list-page")).toBeVisible()
 
-    // 6. Click "New Company" button - wait for it to be visible and enabled
-    const newCompanyButton = page.getByRole("button", { name: /New Company/i })
-    await expect(newCompanyButton).toBeVisible()
-    await expect(newCompanyButton).toBeEnabled()
-    await newCompanyButton.click({ force: true })
+    // 6. Click "Create Company" button in empty state (no companies exist yet)
+    const createCompanyButton = page.getByRole("button", { name: /Create Company/i })
+    await expect(createCompanyButton).toBeVisible()
+    await expect(createCompanyButton).toBeEnabled()
+    await createCompanyButton.click({ force: true })
 
     // Wait for modal to appear
     await expect(page.getByTestId("create-company-modal")).toBeVisible({ timeout: 10000 })

@@ -163,6 +163,7 @@ export function Breadcrumbs({ items, showHome = true, organization }: Breadcrumb
         <>
           <Link
             to="/organizations"
+            search={{ org: organization.id }}
             data-testid="breadcrumb-organizations"
             className="hidden sm:block flex-shrink-0 text-gray-500 hover:text-gray-700 transition-colors"
           >

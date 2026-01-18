@@ -142,6 +142,7 @@ All specifications and context documentation live in `specs/`. Use focus mode to
 4. **Organization selector always accessible** - users can switch orgs from any page
 5. **Consistent page templates** - use List, Detail, Form page patterns from spec
 6. **Empty states required** - every list page needs an empty state with CTA
+7. **NO redundant CTAs** - when list is empty, hide header button (`items.length > 0 &&`), show only empty state CTA
 
 ---
 

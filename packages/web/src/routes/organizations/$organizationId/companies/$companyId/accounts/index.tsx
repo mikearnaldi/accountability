@@ -328,7 +328,7 @@ function ChartOfAccountsPage() {
               </p>
             </div>
 
-            {canCreateAccount && (
+            {canCreateAccount && accounts.length > 0 && (
               <Button
                 onClick={() => setShowCreateForm(true)}
                 icon={<Plus className="h-4 w-4" />}

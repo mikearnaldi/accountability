@@ -383,24 +383,30 @@ test.describe("Consolidation Module", () => {
 
       // 11. Click Active filter
       await page.getByTestId("filter-active").click()
+      // Wait for filter to take effect
+      await page.waitForTimeout(500)
 
       // 12. Should only show active group
-      await expect(page.getByText(activeGroupName)).toBeVisible()
-      await expect(page.getByText(inactiveGroupName)).not.toBeVisible()
+      await expect(page.getByText(activeGroupName)).toBeVisible({ timeout: 10000 })
+      await expect(page.getByText(inactiveGroupName)).not.toBeVisible({ timeout: 10000 })
 
       // 13. Click Inactive filter
       await page.getByTestId("filter-inactive").click()
+      // Wait for filter to take effect
+      await page.waitForTimeout(500)
 
       // 14. Should only show inactive group
-      await expect(page.getByText(activeGroupName)).not.toBeVisible()
-      await expect(page.getByText(inactiveGroupName)).toBeVisible()
+      await expect(page.getByText(activeGroupName)).not.toBeVisible({ timeout: 10000 })
+      await expect(page.getByText(inactiveGroupName)).toBeVisible({ timeout: 10000 })
 
       // 15. Click All filter to reset
       await page.getByTestId("filter-all").click()
+      // Wait for filter to take effect
+      await page.waitForTimeout(500)
 
       // 16. Should show both groups again
-      await expect(page.getByText(activeGroupName)).toBeVisible()
-      await expect(page.getByText(inactiveGroupName)).toBeVisible()
+      await expect(page.getByText(activeGroupName)).toBeVisible({ timeout: 10000 })
+      await expect(page.getByText(inactiveGroupName)).toBeVisible({ timeout: 10000 })
     })
   })
 

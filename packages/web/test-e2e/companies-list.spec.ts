@@ -287,16 +287,16 @@ test.describe("Companies List Page", () => {
     // Wait for page to fully load (React hydration)
     await expect(page.getByTestId("companies-list-page")).toBeVisible()
 
-    // Wait for "New Company" button to be visible and enabled
-    const newCompanyButton = page.getByRole("button", { name: /New Company/i })
-    await expect(newCompanyButton).toBeVisible()
-    await expect(newCompanyButton).toBeEnabled()
+    // Wait for "Create Company" button in empty state (no companies exist yet)
+    const createCompanyButton = page.getByTestId("create-company-empty-button")
+    await expect(createCompanyButton).toBeVisible()
+    await expect(createCompanyButton).toBeEnabled()
 
     // Wait for full hydration before clicking
     await page.waitForTimeout(500)
 
-    // 7. Click "New Company" button with force
-    await newCompanyButton.click({ force: true })
+    // 7. Click "Create Company" button with force
+    await createCompanyButton.click({ force: true })
 
     // 8. Should show create company form modal
     await expect(page.getByTestId("create-company-modal")).toBeVisible({ timeout: 15000 })
@@ -386,16 +386,16 @@ test.describe("Companies List Page", () => {
     // Wait for page to fully load (React hydration)
     await expect(page.getByTestId("companies-list-page")).toBeVisible()
 
-    // Wait for "New Company" button to be visible and enabled
-    const newCompanyButton = page.getByRole("button", { name: /New Company/i })
-    await expect(newCompanyButton).toBeVisible()
-    await expect(newCompanyButton).toBeEnabled()
+    // Wait for "Create Company" button in empty state (no companies exist yet)
+    const createCompanyButton = page.getByTestId("create-company-empty-button")
+    await expect(createCompanyButton).toBeVisible()
+    await expect(createCompanyButton).toBeEnabled()
 
     // Wait for full hydration before clicking
     await page.waitForTimeout(500)
 
-    // 6. Click "New Company" button with force to ensure click registers
-    await newCompanyButton.click({ force: true })
+    // 6. Click "Create Company" button with force to ensure click registers
+    await createCompanyButton.click({ force: true })
 
     // Wait for the modal to appear first
     await expect(page.getByTestId("create-company-modal")).toBeVisible({ timeout: 15000 })
@@ -477,16 +477,16 @@ test.describe("Companies List Page", () => {
     // Wait for page to fully load (React hydration)
     await expect(page.getByTestId("companies-list-page")).toBeVisible()
 
-    // Wait for "New Company" button to be visible and enabled
-    const newCompanyButton = page.getByRole("button", { name: /New Company/i })
-    await expect(newCompanyButton).toBeVisible()
-    await expect(newCompanyButton).toBeEnabled()
+    // Wait for "Create Company" button in empty state (no companies exist yet)
+    const createCompanyButton = page.getByTestId("create-company-empty-button")
+    await expect(createCompanyButton).toBeVisible()
+    await expect(createCompanyButton).toBeEnabled()
 
     // Wait for full hydration before clicking
     await page.waitForTimeout(500)
 
-    // 6. Click "New Company" button with force
-    await newCompanyButton.click({ force: true })
+    // 6. Click "Create Company" button with force
+    await createCompanyButton.click({ force: true })
 
     // 7. Modal should be visible
     await expect(

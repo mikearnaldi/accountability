@@ -309,7 +309,7 @@ test.describe("Exchange Rates", () => {
       await page.getByTestId("cancel-button").click()
 
       // 8. Should redirect to exchange rates list
-      await page.waitForURL(/\/exchange-rates$/)
+      await page.waitForURL(/\/exchange-rates($|\?)/, { timeout: 15000 })
       await expect(page.getByTestId("exchange-rates-page")).toBeVisible()
     })
 

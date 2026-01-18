@@ -905,8 +905,9 @@ test.describe("Journal Entries List Page", () => {
     // Wait for page hydration
     await page.waitForTimeout(500)
 
-    // 6. Should show enabled New Entry button (may be hidden if no permissions)
-    const newEntryButton = page.locator('[data-testid="create-journal-entry-button"]')
+    // 6. Should show empty state with create button (no entries yet)
+    // When there are no entries, the header button is hidden and the empty state button is shown
+    const newEntryButton = page.locator('[data-testid="create-journal-entry-empty-button"]')
     await expect(newEntryButton).toBeVisible({ timeout: 10000 })
 
     // 7. Click the New Entry button with force to ensure click registers

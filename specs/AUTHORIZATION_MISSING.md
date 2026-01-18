@@ -130,56 +130,292 @@ The fiscal period workflow (Future → Open → SoftClose → Closed → Locked)
    - [ ] Add system policy: "Restrict SoftClose Period Access" allowing only controllers
    - [ ] Consider: Should all operations be blocked, or just posting?
 
-**Implementation Options:**
+**Implementation Approach: Hybrid (Recommended)**
 
-**Option A: Service-Level Validation (Recommended)**
-Add validation directly in `JournalEntryService` before any database operations:
+Policies alone cannot validate that a fiscal period EXISTS - they can only check attributes when a period is found. If no period exists, `periodStatus` is undefined and policy conditions don't match, defaulting to allow.
+
+**The hybrid approach solves this:**
+
+1. **Service validates period existence** (cannot be done via policy)
+   - Add validation in `JournalEntryService.create()` to lookup period by date
+   - Return `FiscalPeriodNotFoundError` if no period covers the transaction date
+   - This is a hard requirement enforced in code
+
+2. **Policies handle status-based restrictions** (auditable, flexible)
+   - Policies can check `periodStatus` attribute when period exists
+   - Changes are visible in UI and tracked
+   - Can be customized per organization if needed later
+
+**Service-Level Changes:**
 ```typescript
-// In create/update/post methods:
+// In JournalEntryService create/update/post methods:
 const period = yield* fiscalPeriodService.findPeriodByDate(companyId, transactionDate)
 if (Option.isNone(period)) {
-  return yield* Effect.fail(new FiscalPeriodNotFoundError({ date: transactionDate }))
+  return yield* Effect.fail(new FiscalPeriodNotFoundError({ date: transactionDate, companyId }))
 }
-if (period.value.status === "Future") {
-  return yield* Effect.fail(new FiscalPeriodNotOpenError({ status: "Future" }))
-}
-if (period.value.status === "Closed" || period.value.status === "Locked") {
-  return yield* Effect.fail(new FiscalPeriodClosedError({ status: period.value.status }))
-}
+// Period exists - status restrictions handled by ABAC policies
 ```
 
-**Option B: Enhanced System Policies**
-Update/add system policies to cover all scenarios:
+**System Policies to Add:**
 ```typescript
-// Policy 1: Block Future periods
-{ resource: { type: "journal_entry", attributes: { periodStatus: ["Future"] } }, effect: "deny" }
-
-// Policy 2: Block Closed periods
-{ resource: { type: "journal_entry", attributes: { periodStatus: ["Closed"] } }, effect: "deny" }
-
-// Policy 3: Restrict SoftClose to controllers
+// Policy 1: Block Future periods - period hasn't started yet
 {
-  subject: { functionalRoles: ["controller"] },
+  name: "Prevent Entries in Future Periods",
+  resource: { type: "journal_entry", attributes: { periodStatus: ["Future"] } },
+  action: { actions: ["journal_entry:create", "journal_entry:update", "journal_entry:post"] },
+  effect: "deny"
+}
+
+// Policy 2: Block Closed periods - same protection as Locked
+{
+  name: "Prevent Modifications to Closed Periods",
+  resource: { type: "journal_entry", attributes: { periodStatus: ["Closed"] } },
+  action: { actions: ["journal_entry:create", "journal_entry:update", "journal_entry:post", "journal_entry:reverse"] },
+  effect: "deny"
+}
+
+// Policy 3: Restrict SoftClose to controllers only
+{
+  name: "Restrict SoftClose Period Access",
+  subject: { functionalRoles: ["controller", "period_admin"] },
   resource: { type: "journal_entry", attributes: { periodStatus: ["SoftClose"] } },
+  action: { actions: ["journal_entry:create", "journal_entry:update", "journal_entry:post"] },
   effect: "allow"
 }
+
+// Policy 4: Default deny for SoftClose (evaluated after Policy 3)
+{
+  name: "Deny SoftClose Period Access by Default",
+  resource: { type: "journal_entry", attributes: { periodStatus: ["SoftClose"] } },
+  action: { actions: ["journal_entry:create", "journal_entry:update", "journal_entry:post"] },
+  effect: "deny"
+}
 ```
 
-**Option C: Hybrid Approach**
-- Service validates period existence (can't be done via policy)
-- Policies handle status-based restrictions (flexible, auditable)
+**Note:** The existing "Prevent Modifications to Locked Periods" policy already handles Locked status.
 
 **Files to Modify:**
-- `packages/core/src/Services/JournalEntryService.ts` - Add period validation
-- `packages/persistence/src/Layers/JournalEntryServiceLive.ts` - Implement validation
-- `packages/persistence/src/Seeds/SystemPolicies.ts` - Add new system policies
-- `packages/core/src/Services/JournalEntryErrors.ts` - Add new error types
+- `packages/core/src/Services/JournalEntryService.ts` - Add period existence validation
+- `packages/persistence/src/Layers/JournalEntryServiceLive.ts` - Implement validation with FiscalPeriodService dependency
+- `packages/core/src/Services/JournalEntryErrors.ts` - Add `FiscalPeriodNotFoundForDateError`
+- `packages/persistence/src/Seeds/SystemPolicies.ts` - Add 4 new system policies (Future, Closed, SoftClose allow, SoftClose deny)
+- `packages/api/src/Layers/JournalEntriesApiLive.ts` - Map new error to appropriate HTTP response (400 Bad Request)
 
 **Priority:** HIGH - Without this, the fiscal period workflow is cosmetic only. Users can bypass all period controls except "Locked".
 
 ---
 
-### 3. Owner Transfer UI
+### 3. Audit Log Integration Gap
+
+**Status: NOT IMPLEMENTED** ⚠️
+
+The audit log infrastructure is **100% complete** but **nothing writes to it at runtime**. The entire system exists only as infrastructure - database, repository, API, UI are all functional, but no business operations create audit entries.
+
+**Infrastructure Status:**
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Database table (`audit_log`) | ✅ Complete | Migration0013, proper indexes |
+| `AuditLogRepository` | ✅ Complete | `create()`, `findAll()`, `count()`, `findByEntity()` |
+| `AuditLogApiLive` | ✅ Complete | `GET /api/v1/audit-log` with filtering, pagination |
+| Audit Log UI page | ✅ Complete | `/organizations/:orgId/audit-log` with filters |
+| **Actual audit entry creation** | ❌ **Missing** | No operations write to audit log |
+
+**What's NOT Being Audited:**
+
+| Entity Type | Operations | Impact |
+|-------------|------------|--------|
+| Organization | Create, Update, Delete | Cannot track org changes |
+| Company | Create, Update, Delete | Cannot track company setup |
+| Account | Create, Update, Delete | Cannot track chart of accounts changes |
+| JournalEntry | Create, Post, Reverse | Cannot track financial transactions |
+| JournalEntryLine | Create, Update, Delete | Cannot track line-level changes |
+| FiscalYear | Create, Close | Cannot track fiscal year setup |
+| FiscalPeriod | Open, Close, Lock, Reopen | Cannot track period lifecycle |
+| ExchangeRate | Create, Update, Delete | Cannot track rate changes |
+| ConsolidationGroup | Create, Update, Delete | Cannot track consolidation config |
+| IntercompanyTransaction | Create, Reconcile | Cannot track intercompany activity |
+| User | Create, Update | Cannot track user changes |
+| Session | Create, Delete | Cannot track login/logout |
+
+**Root Cause:**
+1. No centralized audit hook/middleware to intercept operations
+2. Services create/update/delete entities but don't call `AuditLogRepository.create()`
+3. No `AuditLogService` exists to encapsulate audit logging logic
+4. No user context is passed through to enable audit entry creation
+
+**Separate Audit Mechanism:**
+- `PeriodReopenAuditEntry` exists in a separate `period_reopen_audit_entries` table
+- This is the ONLY audit trail that actually works
+- Should be consolidated into the general audit log for consistency
+
+**Implementation Plan:**
+
+#### Phase 1: Create AuditLogService (Core Infrastructure)
+
+Create a service that encapsulates audit logging with user context:
+
+```typescript
+// packages/core/src/AuditLog/AuditLogService.ts
+export interface AuditLogServiceShape {
+  /**
+   * Log an entity creation
+   */
+  readonly logCreate: <T>(
+    entityType: AuditEntityType,
+    entityId: string,
+    entity: T,
+    userId: AuthUserId
+  ) => Effect.Effect<void, PersistenceError>
+
+  /**
+   * Log an entity update with before/after changes
+   */
+  readonly logUpdate: <T>(
+    entityType: AuditEntityType,
+    entityId: string,
+    before: T,
+    after: T,
+    userId: AuthUserId
+  ) => Effect.Effect<void, PersistenceError>
+
+  /**
+   * Log an entity deletion
+   */
+  readonly logDelete: <T>(
+    entityType: AuditEntityType,
+    entityId: string,
+    entity: T,
+    userId: AuthUserId
+  ) => Effect.Effect<void, PersistenceError>
+
+  /**
+   * Log a status change (for workflows like fiscal periods)
+   */
+  readonly logStatusChange: (
+    entityType: AuditEntityType,
+    entityId: string,
+    previousStatus: string,
+    newStatus: string,
+    userId: AuthUserId
+  ) => Effect.Effect<void, PersistenceError>
+}
+
+export class AuditLogService extends Context.Tag("AuditLogService")<
+  AuditLogService,
+  AuditLogServiceShape
+>() {}
+```
+
+**Files to Create:**
+- `packages/core/src/AuditLog/AuditLogService.ts` - Service interface
+- `packages/persistence/src/Layers/AuditLogServiceLive.ts` - Implementation
+
+#### Phase 2: Integrate with Critical Services
+
+Add audit logging to services that handle sensitive data:
+
+**Priority 1: Financial Operations (Compliance Critical)**
+- [ ] `JournalEntryServiceLive` - Log create, post, reverse operations
+- [ ] `FiscalPeriodServiceLive` - Log fiscal year create, period status changes
+- [ ] `ExchangeRateServiceLive` - Log rate creates/updates (affects valuations)
+
+**Priority 2: Configuration Changes**
+- [ ] `CompanyServiceLive` - Log company create/update/delete
+- [ ] `AccountServiceLive` - Log chart of accounts changes
+- [ ] `ConsolidationServiceLive` - Log group/rule changes
+
+**Priority 3: User Management**
+- [ ] `OrganizationMemberServiceLive` - Log member add/remove/suspend/role changes
+- [ ] `SessionServiceLive` - Log login/logout events
+
+#### Phase 3: Pass User Context Through Services
+
+Services need the current user ID to create audit entries. Options:
+
+**Option A: Effect Context (Recommended)**
+```typescript
+// Add CurrentUserId to effect context in API middleware
+export class CurrentUserId extends Context.Tag("CurrentUserId")<
+  CurrentUserId,
+  AuthUserId
+>() {}
+
+// Services read it from context
+const userId = yield* CurrentUserId
+yield* auditService.logCreate("Account", account.id, account, userId)
+```
+
+**Option B: Explicit Parameter**
+```typescript
+// Add userId parameter to service methods
+readonly createAccount: (
+  input: CreateAccountInput,
+  userId: AuthUserId  // Add this
+) => Effect.Effect<Account, CreateAccountError>
+```
+
+**Recommendation:** Option A (Effect Context) - cleaner API, already have pattern with `CurrentOrganizationContext`
+
+#### Phase 4: Change Detection for Updates
+
+For update operations, capture before/after state:
+
+```typescript
+// In service update methods:
+const updateAccount = (id: AccountId, input: UpdateAccountInput) =>
+  Effect.gen(function* () {
+    const userId = yield* CurrentUserId
+    const auditService = yield* AuditLogService
+
+    // Get current state BEFORE update
+    const before = yield* accountRepo.findById(id)
+
+    // Perform update
+    const after = yield* accountRepo.update(id, input)
+
+    // Log with before/after
+    yield* auditService.logUpdate("Account", id, before, after, userId)
+
+    return after
+  })
+```
+
+#### Phase 5: Consolidate Period Reopen Audit
+
+Migrate `PeriodReopenAuditEntry` to use the general audit log:
+
+- [ ] Update `FiscalPeriodServiceLive.reopenPeriod()` to use `AuditLogService.logStatusChange()`
+- [ ] Include reopen reason in audit entry changes field
+- [ ] Keep `period_reopen_audit_entries` table for backwards compatibility (read-only)
+- [ ] Update UI to show period reopens in main audit log
+
+**Files to Modify:**
+
+| File | Changes |
+|------|---------|
+| `packages/core/src/AuditLog/AuditLogService.ts` | CREATE - Service interface |
+| `packages/persistence/src/Layers/AuditLogServiceLive.ts` | CREATE - Implementation |
+| `packages/api/src/Layers/OrganizationContextMiddlewareLive.ts` | Add `CurrentUserId` to context |
+| `packages/persistence/src/Layers/JournalEntryServiceLive.ts` | Add audit logging to create/post/reverse |
+| `packages/persistence/src/Layers/FiscalPeriodServiceLive.ts` | Add audit logging to all operations |
+| `packages/persistence/src/Layers/AccountServiceLive.ts` | Add audit logging to create/update/delete |
+| `packages/persistence/src/Layers/CompanyServiceLive.ts` | Add audit logging to create/update/delete |
+| `packages/persistence/src/Layers/ExchangeRateServiceLive.ts` | Add audit logging to sync operations |
+| `packages/persistence/src/Layers/OrganizationMemberServiceLive.ts` | Add audit logging to member changes |
+
+**Testing:**
+
+- [ ] Unit tests for `AuditLogServiceLive` - verify entry creation
+- [ ] Integration tests for each service - verify audit entries created
+- [ ] E2E test - create fiscal year, verify appears in audit log UI
+- [ ] E2E test - create journal entry, verify appears in audit log UI
+
+**Priority:** HIGH - Audit logging is a compliance requirement for accounting software. SOX, GAAP, and other regulations require complete audit trails of financial data changes.
+
+---
+
+### 5. Owner Transfer UI
 
 **Status: IMPLEMENTED** ✓
 
@@ -206,7 +442,7 @@ Update/add system policies to cover all scenarios:
 
 ---
 
-### 4. Platform Admin Management
+### 6. Platform Admin Management
 
 **Status: IMPLEMENTED (READ-ONLY VIEWER)** ✓
 
@@ -237,7 +473,7 @@ Platform admin capability exists in the database with a read-only viewer for pla
 
 ---
 
-### 5. Invitation Link Display
+### 7. Invitation Link Display
 
 **Status: IMPLEMENTED** ✓
 
@@ -266,7 +502,7 @@ Platform admin capability exists in the database with a read-only viewer for pla
 
 ---
 
-### 6. Environment Condition Runtime Evaluation
+### 8. Environment Condition Runtime Evaluation
 
 **Status: IMPLEMENTED** ✓
 
@@ -301,7 +537,7 @@ Platform admin capability exists in the database with a read-only viewer for pla
 
 ---
 
-### 7. Authorization Denial Audit Log Viewing
+### 9. Authorization Denial Audit Log Viewing
 
 **Status: IMPLEMENTED** ✓
 
@@ -328,7 +564,7 @@ Platform admin capability exists in the database with a read-only viewer for pla
 
 ---
 
-### 8. User Profile Page Broken Semantics
+### 10. User Profile Page Broken Semantics
 
 **Status: IMPLEMENTED** ✓
 
@@ -356,7 +592,7 @@ Platform admin capability exists in the database with a read-only viewer for pla
 
 ## Partial Implementations
 
-### 8. Member Removal/Reinstatement API Calls
+### 11. Member Removal/Reinstatement API Calls
 
 **Status: IMPLEMENTED** ✓
 
@@ -376,7 +612,7 @@ Platform admin capability exists in the database with a read-only viewer for pla
 
 ---
 
-### 9. Member Suspension State
+### 12. Member Suspension State
 
 **Status: IMPLEMENTED** ✓
 
@@ -410,7 +646,7 @@ The membership status includes "suspended" and is now fully functional:
 
 ---
 
-### 10. Effective Permissions Display
+### 13. Effective Permissions Display
 
 **Status: IMPLEMENTED** ✓
 
@@ -496,7 +732,7 @@ The membership status includes "suspended" and is now fully functional:
 
 ## Lower Priority Missing Features
 
-### 11. Invitation Uniqueness Constraint
+### 14. Invitation Uniqueness Constraint
 
 **Spec States:** Unique constraint `(organization_id, email, status)` for pending invites
 
@@ -517,7 +753,7 @@ The database has this constraint and the UI now handles the duplicate invitation
 
 ---
 
-### 12. User Agent Capture for Audit
+### 15. User Agent Capture for Audit
 
 **Spec States:** Audit log should include IP address and user agent
 
@@ -556,6 +792,21 @@ The database has this constraint and the UI now handles the duplicate invitation
 15. ~~**Create platform admin viewer** - Read-only list of admins~~ ✓ DONE (GET /api/v1/platform-admins, /platform-admins page)
 16. ~~**Create effective permissions viewer** - Permission matrix UI~~ ✓ DONE
 
+### Phase 5: Audit Log Integration (High effort, Compliance Critical)
+17. **Create AuditLogService** - Service interface and implementation for audit entry creation
+18. **Add CurrentUserId to API context** - Pass authenticated user ID through Effect context
+19. **Integrate with JournalEntryService** - Log create, post, reverse operations
+20. **Integrate with FiscalPeriodService** - Log fiscal year/period lifecycle events
+21. **Integrate with AccountService** - Log chart of accounts changes
+22. **Integrate with CompanyService** - Log company configuration changes
+23. **Integrate with OrganizationMemberService** - Log member management events
+24. **Consolidate PeriodReopenAuditEntry** - Migrate to general audit log
+
+### Phase 6: Fiscal Period Enforcement (Medium effort)
+25. **Add period existence validation** - Require fiscal period for journal entry dates
+26. **Add system policies for period status** - Block Future, Closed; restrict SoftClose
+27. **E2E tests for period enforcement** - Verify all period statuses are enforced
+
 ---
 
 ## Files to Create/Modify
@@ -569,6 +820,9 @@ The database has this constraint and the UI now handles the duplicate invitation
 - `packages/web/src/routes/organizations/$organizationId/fiscal-periods/` - Period UI
 - `packages/web/src/components/members/TransferOwnershipModal.tsx` - Transfer UI
 - `packages/web/src/components/members/EffectivePermissionsView.tsx` - Permission display
+- `packages/core/src/AuditLog/AuditLogService.ts` - Audit service interface
+- `packages/persistence/src/Layers/AuditLogServiceLive.ts` - Audit service implementation
+- `packages/core/src/Auth/CurrentUserId.ts` - Context tag for current authenticated user
 
 ### Files to Modify:
 - `packages/web/src/routes/profile.tsx`: ✓ DONE
@@ -589,6 +843,22 @@ The database has this constraint and the UI now handles the duplicate invitation
   - ~~Re-enable IP restriction fields~~ - Added IP Allow List and IP Deny List input fields
   - ~~Remove "Coming Soon" labels when environment evaluation works~~ - Updated info banner to reflect that environment conditions are now evaluated at runtime
 
+### Files to Modify (Audit Log Integration):
+- `packages/api/src/Layers/OrganizationContextMiddlewareLive.ts` - Add `CurrentUserId` to Effect context
+- `packages/persistence/src/Layers/JournalEntryServiceLive.ts` - Add audit logging to create/post/reverse
+- `packages/persistence/src/Layers/FiscalPeriodServiceLive.ts` - Add audit logging to all operations
+- `packages/persistence/src/Layers/AccountServiceLive.ts` - Add audit logging to create/update/delete
+- `packages/persistence/src/Layers/CompanyServiceLive.ts` - Add audit logging to create/update/delete
+- `packages/persistence/src/Layers/ExchangeRateServiceLive.ts` - Add audit logging to sync operations
+- `packages/persistence/src/Layers/OrganizationMemberServiceLive.ts` - Add audit logging to member changes
+
+### Files to Modify (Fiscal Period Enforcement):
+- `packages/core/src/Services/JournalEntryService.ts` - Add period existence validation signature
+- `packages/persistence/src/Layers/JournalEntryServiceLive.ts` - Implement period validation with FiscalPeriodService
+- `packages/core/src/Services/JournalEntryErrors.ts` - Add `FiscalPeriodNotFoundForDateError`
+- `packages/persistence/src/Seeds/SystemPolicies.ts` - Add 4 new system policies (Future, Closed, SoftClose)
+- `packages/api/src/Layers/JournalEntriesApiLive.ts` - Map new error to 400 response
+
 ---
 
 ## Testing Gaps
@@ -605,6 +875,23 @@ The following test coverage is missing for authorization features:
 - [ ] Integration tests for environment condition evaluation
 - [x] E2E tests for fiscal period management - `packages/web/test-e2e/fiscal-periods.spec.ts` (10 tests)
 - [ ] Load tests for permission checking latency
+
+### Audit Log Integration Tests (NOT YET IMPLEMENTED):
+- [ ] Unit tests for `AuditLogServiceLive` - Verify entry creation with correct fields
+- [ ] Integration tests for JournalEntryService - Verify audit entries created on create/post/reverse
+- [ ] Integration tests for FiscalPeriodService - Verify audit entries for year/period operations
+- [ ] Integration tests for AccountService - Verify audit entries for chart of accounts changes
+- [ ] E2E test - Create fiscal year → verify appears in audit log UI
+- [ ] E2E test - Create journal entry → verify appears in audit log UI
+- [ ] E2E test - Add organization member → verify appears in audit log UI
+
+### Fiscal Period Enforcement Tests (NOT YET IMPLEMENTED):
+- [ ] Unit test - Journal entry blocked when no fiscal period exists
+- [ ] Unit test - Journal entry blocked in Future period
+- [ ] Unit test - Journal entry blocked in Closed period
+- [ ] Unit test - Journal entry allowed in Open period
+- [ ] Unit test - Journal entry in SoftClose requires controller role
+- [ ] E2E test - UI shows error when creating entry without fiscal period
 
 ### API Bug Fixed: listMembers now returns all members ✓
 

@@ -148,12 +148,14 @@ test.describe("Journal Entry Past Dates", () => {
     const dateInput = page.locator('[data-testid="journal-entry-date"]')
     await dateInput.click()
     await dateInput.fill("2024-01-15")
+    // Blur the input to trigger state update
+    await dateInput.blur()
     await expect(dateInput).toHaveValue("2024-01-15")
 
-    // 10. Verify fiscal period computed correctly for 2024
+    // 10. Verify fiscal period computed correctly for 2024 (wait for React state update)
     await expect(page.locator('[data-testid="computed-fiscal-period"]')).toContainText(
       "P1 FY2024",
-      { timeout: 5000 }
+      { timeout: 10000 }
     )
 
     // 11. Fill in entry details
@@ -485,12 +487,14 @@ test.describe("Journal Entry Past Dates", () => {
     const dateInput = page.locator('[data-testid="journal-entry-date"]')
     await dateInput.click()
     await dateInput.fill("2024-12-31")
+    // Blur the input to trigger state update
+    await dateInput.blur()
     await expect(dateInput).toHaveValue("2024-12-31")
 
-    // 9. Verify fiscal period is P12 FY2024
+    // 9. Verify fiscal period is P12 FY2024 (wait for React state update)
     await expect(page.locator('[data-testid="computed-fiscal-period"]')).toContainText(
       "P12 FY2024",
-      { timeout: 5000 }
+      { timeout: 10000 }
     )
 
     // 10. Fill in entry

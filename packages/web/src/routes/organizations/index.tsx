@@ -58,6 +58,10 @@ export interface LoaderResult {
   readonly autoRedirectId: string | null
 }
 
+export interface OrganizationsSearchParams {
+  readonly org?: string | undefined
+}
+
 // =============================================================================
 // Server Functions
 // =============================================================================
@@ -138,6 +142,11 @@ const fetchOrganizationsWithStats = createServerFn({ method: "GET" }).handler(as
 // =============================================================================
 
 export const Route = createFileRoute("/organizations/")({
+  validateSearch: (search: Record<string, unknown>): OrganizationsSearchParams => {
+    return {
+      org: typeof search.org === "string" ? search.org : undefined
+    }
+  },
   beforeLoad: async ({ context }) => {
     if (!context.user) {
       throw redirect({
@@ -170,10 +179,16 @@ export const Route = createFileRoute("/organizations/")({
 
 function OrganizationsPage() {
   const { organizations, total } = Route.useLoaderData()
+  const { org: currentOrgId } = Route.useSearch()
   const context = Route.useRouteContext()
   const [searchQuery, setSearchQuery] = useState("")
 
   const user = context.user
+
+  // Find the current organization from the search param, or default to first org
+  const currentOrganization = currentOrgId
+    ? organizations.find((o) => o.id === currentOrgId) ?? organizations[0] ?? null
+    : organizations[0] ?? null
 
   // Filter organizations based on search query
   const filteredOrganizations = useMemo(() => {
@@ -196,7 +211,7 @@ function OrganizationsPage() {
     <AppLayout
       user={user}
       organizations={organizations}
-      currentOrganization={null}
+      currentOrganization={currentOrganization}
       showBreadcrumbs={true}
       breadcrumbItems={breadcrumbItems}
     >

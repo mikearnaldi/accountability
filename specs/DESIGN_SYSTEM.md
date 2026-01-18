@@ -642,6 +642,7 @@ Error feedback and recovery options.
 
 Display collections of items with actions.
 
+**With Data:**
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ Breadcrumbs                                                 │
@@ -663,12 +664,59 @@ Display collections of items with actions.
 └─────────────────────────────────────────────────────────────┘
 ```
 
+**Empty State (NO header button - CTA is in empty state only):**
+```
+┌─────────────────────────────────────────────────────────────┐
+│ Breadcrumbs                                                 │
+├─────────────────────────────────────────────────────────────┤
+│ Page Title                                                  │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│              ┌─────────────────────────┐                    │
+│              │         Icon            │                    │
+│              │                         │                    │
+│              │   No items yet          │                    │
+│              │   Description text      │                    │
+│              │                         │                    │
+│              │   [+ Create First Item] │                    │
+│              └─────────────────────────┘                    │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
 #### States
 
 1. **Loading** - Table skeleton
-2. **Empty** - Empty state with CTA
+2. **Empty** - Empty state with CTA (header button HIDDEN to avoid redundant CTAs)
 3. **Error** - Error state with retry
-4. **Data** - Table with content
+4. **Data** - Table with content (header button visible)
+
+#### CRITICAL: Avoid Redundant CTAs
+
+**NEVER show both a header "Create" button AND an empty state CTA simultaneously.**
+
+When the list is empty:
+- Header "Create" button: **HIDDEN** (`items.length > 0 && ...`)
+- Empty state CTA: **VISIBLE** (the only CTA on the page)
+
+When the list has data:
+- Header "Create" button: **VISIBLE** (for quick access)
+- Empty state: **NOT RENDERED**
+
+```typescript
+// CORRECT implementation pattern:
+{canCreate && items.length > 0 && (
+  <Button>Create New</Button>  // Header button
+)}
+
+{items.length === 0 ? (
+  <EmptyState action={<Button>Create First</Button>} />
+) : (
+  <DataTable items={items} />
+)}
+```
+
+This prevents user confusion from seeing two identical actions on the same page.
 
 ### 6.2 Detail Page
 

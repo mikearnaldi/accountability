@@ -336,7 +336,7 @@ function CompaniesListPage() {
               </p>
             </div>
 
-            {canCreateCompany && (
+            {canCreateCompany && companies.length > 0 && (
               <Button
                 onClick={() => setShowCreateForm(true)}
                 icon={<Plus className="h-4 w-4" />}
@@ -407,6 +407,7 @@ function CompaniesListPage() {
                 <Button
                   onClick={() => setShowCreateForm(true)}
                   icon={<Plus className="h-5 w-5" />}
+                  data-testid="create-company-empty-button"
                 >
                   Create Company
                 </Button>

@@ -432,7 +432,7 @@ function JournalEntriesPage() {
               </p>
             </div>
 
-            {canCreateEntry && (
+            {canCreateEntry && entries.length > 0 && (
               <Button
                 icon={<Plus className="h-4 w-4" />}
                 data-testid="create-journal-entry-button"

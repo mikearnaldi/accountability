@@ -668,3 +668,8 @@
 **Task**: Fixed E2E tests by showing New Company and Create Fiscal Year buttons even when list is empty, and fixed type error in generatePeriods
 **Status**: complete
 ---
+
+## Iteration 1 - 2026-01-18 18:33
+**Task**: Fixed E2E tests by updating button selectors to use data-testid and adding proper waits for React state updates
+**Status**: complete
+---

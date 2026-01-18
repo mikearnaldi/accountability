@@ -649,7 +649,7 @@ test.describe("Organization Details Page", () => {
     await page.getByRole("link", { name: "Organizations" }).click()
 
     // 9. Should be on organizations list page
-    await page.waitForURL("/organizations")
+    await page.waitForURL(/\/organizations($|\?)/, { timeout: 15000 })
     expect(page.url()).toContain("/organizations")
   })
 })
