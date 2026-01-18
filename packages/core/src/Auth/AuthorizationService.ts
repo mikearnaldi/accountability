@@ -18,6 +18,7 @@ import type { BaseRole } from "./BaseRole.ts"
 import type { FunctionalRole } from "./FunctionalRole.ts"
 import type { PermissionDeniedError } from "./AuthorizationErrors.ts"
 import type { CurrentOrganizationMembership } from "./CurrentOrganizationMembership.ts"
+import type { ResourceContext } from "./matchers/ResourceMatcher.ts"
 
 // =============================================================================
 // Service Interface
@@ -36,7 +37,11 @@ export interface AuthorizationServiceShape {
    * Checks the permission matrix against the user's role and functional roles.
    * Throws PermissionDeniedError if not authorized.
    *
+   * When a resourceContext is provided, ABAC policies can evaluate resource
+   * attributes like period status for time-sensitive authorization checks.
+   *
    * @param action - The action to check permission for
+   * @param resourceContext - Optional resource context for ABAC evaluation
    * @returns Effect that completes successfully if permitted, fails with PermissionDeniedError otherwise
    *
    * @example
@@ -47,10 +52,20 @@ export interface AuthorizationServiceShape {
    *   // If we get here, user has permission
    *   yield* companyService.create(...)
    * })
+   *
+   * // With resource context (for period-sensitive checks):
+   * const journalEntryProgram = Effect.gen(function* () {
+   *   const authService = yield* AuthorizationService
+   *   yield* authService.checkPermission("journal_entry:create", {
+   *     type: "journal_entry",
+   *     periodStatus: "Open"
+   *   })
+   * })
    * ```
    */
   readonly checkPermission: (
-    action: Action
+    action: Action,
+    resourceContext?: ResourceContext
   ) => Effect.Effect<void, PermissionDeniedError, CurrentOrganizationMembership>
 
   /**

@@ -174,8 +174,12 @@ const make = Effect.gen(function* () {
      * Environment context (IP, time, user agent) is automatically captured
      * from CurrentEnvironmentContext if available, enabling time-based and
      * IP-based policy evaluation.
+     *
+     * When a providedResourceContext is given, it's used for ABAC policy
+     * evaluation with resource attributes (e.g., periodStatus for locked
+     * period protection).
      */
-    checkPermission: (action: Action) =>
+    checkPermission: (action: Action, providedResourceContext?: ResourceContext) =>
       Effect.gen(function* () {
         const membership = yield* getCurrentOrganizationMembership()
         const functionalRoles = extractFunctionalRoles(membership)
@@ -203,7 +207,9 @@ const make = Effect.gen(function* () {
           // For now, we assume non-platform admin. This can be enhanced
           // when user-level platform admin flag is accessible.
           const subjectContext = createSubjectContextFromMembership(membership, false)
-          const resourceContext = createResourceContext(resourceType)
+
+          // Use provided resource context if available, otherwise create from action's resource type
+          const resourceContext = providedResourceContext ?? createResourceContext(resourceType)
 
           // If resource type is not recognized, fall back to RBAC
           if (resourceContext === undefined) {

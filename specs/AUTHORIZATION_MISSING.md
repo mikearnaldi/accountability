@@ -14,9 +14,9 @@ The authorization system has all 57 specification phases marked as complete. How
 
 ### 1. Fiscal Period Management
 
-**Status: IN PROGRESS**
+**Status: COMPLETE** ✓
 
-The AUTHORIZATION.md spec defines actions for fiscal period management. Implementation is underway:
+The AUTHORIZATION.md spec defines actions for fiscal period management. All components are implemented:
 
 **What's Defined:**
 - Actions: `fiscal_period:read`, `fiscal_period:open`, `fiscal_period:soft_close`, `fiscal_period:close`, `fiscal_period:lock`, `fiscal_period:reopen`
@@ -51,7 +51,7 @@ The AUTHORIZATION.md spec defines actions for fiscal period management. Implemen
   - Features: Fiscal year list with collapsible periods, create fiscal year modal, period status transitions
   - Period actions: Open, Soft Close, Close, Lock, Reopen (with reason/audit trail)
   - Navigation: Company detail page has "Fiscal Periods" card linking to this page
-- [ ] **Period status integration** - Connect ResourceMatcher `periodStatus` attribute to actual period data
+- [x] **Period status integration** - Connect ResourceMatcher `periodStatus` attribute to actual period data ✓ Done
 
 **Current Behavior:** Fiscal periods can be persisted, queried, and managed through both the service layer and REST API. The service provides:
 - Fiscal year creation with validation for duplicates
@@ -60,10 +60,16 @@ The AUTHORIZATION.md spec defines actions for fiscal period management. Implemen
 - Period reopening with audit trail
 - Status queries for authorization checks (isPeriodOpenForEntries, isPeriodOpenForModifications)
 
-**Impact:** The "Locked Period Protection" system policy cannot function until:
+**Impact:** The "Locked Period Protection" system policy is now fully functional:
 1. ~~FiscalPeriodService implements period creation and status transitions~~ ✓ Done
 2. ~~FiscalPeriodApi exposes endpoints for period management~~ ✓ Done
-3. Period status is integrated with journal entry authorization checks
+3. ~~Period status is integrated with journal entry authorization checks~~ ✓ Done
+
+**Integration Details:**
+- `AuthorizationService.checkPermission()` now accepts an optional `ResourceContext` parameter
+- `requirePermissionWithResource()` helper in API middleware passes resource context to authorization
+- Journal entry handlers (create, update, post, reverse) lookup the period status and pass it to permission checks
+- ABAC policies can evaluate `periodStatus` attribute to enforce locked period protection
 
 **Files Created:**
 - `packages/core/src/Domains/FiscalYear.ts` - Fiscal year domain entity

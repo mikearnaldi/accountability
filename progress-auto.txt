@@ -638,3 +638,8 @@
 **Task**: Added Fiscal Period Management UI with fiscal year list, create modal, and period status transitions
 **Status**: complete
 ---
+
+## Iteration 16 - 2026-01-18 14:57
+**Task**: Integrated period status into journal entry authorization - AuthorizationService.checkPermission now accepts ResourceContext, added requirePermissionWithResource helper, journal entry handlers lookup and pass periodStatus for ABAC policy evaluation
+**Status**: complete
+---

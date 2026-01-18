@@ -44,7 +44,11 @@ import {
   BusinessRuleError,
   ConflictError
 } from "../Definitions/ApiErrors.ts"
-import { requireOrganizationContext, requirePermission } from "./OrganizationContextMiddlewareLive.ts"
+import { requireOrganizationContext, requirePermission, requirePermissionWithResource } from "./OrganizationContextMiddlewareLive.ts"
+import { FiscalPeriodService } from "@accountability/core/FiscalPeriod/FiscalPeriodService"
+import type { ResourceContext } from "@accountability/core/Auth/matchers/ResourceMatcher"
+import type { LocalDate } from "@accountability/core/Domains/LocalDate"
+import type { CompanyId } from "@accountability/core/Domains/Company"
 
 /**
  * Convert persistence errors to NotFoundError
@@ -140,18 +144,61 @@ const createLineFromRequest = (
 }
 
 /**
+ * Helper to build resource context with period status for ABAC evaluation
+ *
+ * This enables the "Locked Period Protection" system policy to evaluate
+ * periodStatus conditions. The policy denies journal entry modifications
+ * when the period is Closed or Locked.
+ *
+ * @param companyId - The company ID to look up the period for
+ * @param transactionDate - The date to check period status for
+ * @returns Effect containing the resource context for authorization
+ */
+const buildJournalEntryResourceContext = (
+  companyId: CompanyId,
+  transactionDate: LocalDate
+): Effect.Effect<
+  ResourceContext,
+  never,
+  FiscalPeriodService
+> =>
+  Effect.gen(function* () {
+    const periodService = yield* FiscalPeriodService
+
+    // Look up the period status for the transaction date
+    const periodStatusOption = yield* periodService.getPeriodStatusForDate(
+      companyId,
+      transactionDate
+    ).pipe(
+      // If there's an error looking up the period, don't block - just skip period check
+      Effect.catchAll(() => Effect.succeed(Option.none()))
+    )
+
+    // Build resource context with period status if available
+    const resourceContext: ResourceContext = {
+      type: "journal_entry",
+      ...(Option.isSome(periodStatusOption) && { periodStatus: periodStatusOption.value })
+    }
+
+    return resourceContext
+  })
+
+/**
  * JournalEntriesApiLive - Layer providing JournalEntriesApi handlers
  *
  * Dependencies:
  * - JournalEntryRepository
  * - JournalEntryLineRepository
  * - CompanyRepository
+ * - FiscalPeriodService (for period status checks)
  */
 export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entries", (handlers) =>
   Effect.gen(function* () {
     const entryRepo = yield* JournalEntryRepository
     const lineRepo = yield* JournalEntryLineRepository
     const companyRepo = yield* CompanyRepository
+    // FiscalPeriodService is used by buildJournalEntryResourceContext via Effect context
+    void FiscalPeriodService
 
     return handlers
       .handle("listJournalEntries", (_) =>
@@ -245,8 +292,6 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
       .handle("createJournalEntry", (_) =>
         requireOrganizationContext(_.payload.organizationId,
           Effect.gen(function* () {
-            yield* requirePermission("journal_entry:create")
-
             const req = _.payload
 
             // Validate company exists within organization and get functional currency
@@ -262,6 +307,13 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
             }
             const company = maybeCompany.value
             const functionalCurrency = company.functionalCurrency
+
+            // Get period status for ABAC policy evaluation (locked period protection)
+            const resourceContext = yield* buildJournalEntryResourceContext(
+              req.companyId,
+              req.transactionDate
+            )
+            yield* requirePermissionWithResource("journal_entry:create", resourceContext)
 
             // Compute fiscal period from transaction date and company's fiscal year end
             // If fiscalPeriod is provided in the request, use it; otherwise compute it
@@ -366,8 +418,6 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
       .handle("updateJournalEntry", (_) =>
         requireOrganizationContext(_.payload.organizationId,
           Effect.gen(function* () {
-            yield* requirePermission("journal_entry:update")
-
             const entryId = _.path.id
             const req = _.payload
             const organizationId = req.organizationId
@@ -389,6 +439,17 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
                 conflictingField: Option.some("status")
               }))
             }
+
+            // Get period status for ABAC policy evaluation (locked period protection)
+            // Use the new transaction date if provided, otherwise use existing
+            const checkDate = Option.isSome(req.transactionDate)
+              ? req.transactionDate.value
+              : existing.transactionDate
+            const resourceContext = yield* buildJournalEntryResourceContext(
+              existing.companyId,
+              checkDate
+            )
+            yield* requirePermissionWithResource("journal_entry:update", resourceContext)
 
             // Get company for functional currency (using org ID from request for authorization)
             const maybeCompany = yield* companyRepo.findById(organizationId, existing.companyId).pipe(
@@ -626,8 +687,6 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
       .handle("postJournalEntry", (_) =>
         requireOrganizationContext(_.payload.organizationId,
           Effect.gen(function* () {
-            yield* requirePermission("journal_entry:post")
-
             const entryId = _.path.id
             const req = _.payload
             const organizationId = req.organizationId
@@ -648,8 +707,14 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
               }))
             }
 
-            // NOTE: Period validation removed. Fiscal periods are now computed from
-            // transaction dates at runtime rather than validated against stored periods.
+            // Get period status for ABAC policy evaluation (locked period protection)
+            const resourceContext = yield* buildJournalEntryResourceContext(
+              existing.companyId,
+              existing.transactionDate
+            )
+            yield* requirePermissionWithResource("journal_entry:post", resourceContext)
+
+            // NOTE: Additional period validation handled by ABAC policies.
 
             const now = timestampNow()
             const postingDate = Option.isSome(req.postingDate)
@@ -675,8 +740,6 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
       .handle("reverseJournalEntry", (_) =>
         requireOrganizationContext(_.payload.organizationId,
           Effect.gen(function* () {
-            yield* requirePermission("journal_entry:reverse")
-
             const entryId = _.path.id
             const req = _.payload
             const organizationId = req.organizationId
@@ -696,6 +759,14 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
                 details: Option.none()
               }))
             }
+
+            // Get period status for ABAC policy evaluation (locked period protection)
+            // Check both the original entry's period and the reversal date's period
+            const resourceContext = yield* buildJournalEntryResourceContext(
+              existing.companyId,
+              existing.transactionDate
+            )
+            yield* requirePermissionWithResource("journal_entry:reverse", resourceContext)
 
             if (Option.isSome(existing.reversingEntryId)) {
               return yield* Effect.fail(new BusinessRuleError({

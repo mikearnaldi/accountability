@@ -45,6 +45,7 @@ import * as Timestamp from "@accountability/core/Domains/Timestamp"
 import type { Action } from "@accountability/core/Auth/Action"
 import { CurrentUser } from "../Definitions/AuthMiddleware.ts"
 import { ForbiddenError, NotFoundError } from "../Definitions/ApiErrors.ts"
+import type { ResourceContext } from "@accountability/core/Auth/matchers/ResourceMatcher"
 
 // =============================================================================
 // Types
@@ -413,6 +414,64 @@ export const requirePermission = (action: Action) =>
     const authService = yield* AuthorizationService
 
     yield* authService.checkPermission(action).pipe(
+      Effect.mapError((error) =>
+        new ForbiddenError({
+          message: error.reason,
+          resource: Option.fromNullable(error.resourceType),
+          action: Option.some(action)
+        })
+      )
+    )
+  })
+
+/**
+ * requirePermissionWithResource - Require permission with resource context for ABAC evaluation
+ *
+ * Like requirePermission, but also passes a ResourceContext to the authorization
+ * service. This enables ABAC policies that evaluate resource attributes like
+ * periodStatus, entryType, or accountType.
+ *
+ * Use this for operations where the policy may vary based on the resource's state,
+ * such as the "Locked Period Protection" policy that denies journal entry
+ * modifications in locked fiscal periods.
+ *
+ * @param action - The action to check permission for
+ * @param resourceContext - The resource context with attributes for ABAC evaluation
+ * @returns Effect that fails with ForbiddenError if user doesn't have permission
+ *
+ * Requires: CurrentOrganizationMembership, AuthorizationService
+ *
+ * @example
+ * ```typescript
+ * // Journal entry creation with period status check
+ * .handle("createJournalEntry", ({ payload }) =>
+ *   requireOrganizationContext(payload.organizationId,
+ *     Effect.gen(function* () {
+ *       // Get the period status for the transaction date
+ *       const periodStatus = yield* fiscalPeriodService.getPeriodStatusForDate(
+ *         companyId,
+ *         payload.transactionDate
+ *       )
+ *
+ *       // Check permission with period status context
+ *       yield* requirePermissionWithResource("journal_entry:create", {
+ *         type: "journal_entry",
+ *         periodStatus: Option.getOrUndefined(periodStatus)
+ *       })
+ *
+ *       // If we get here, the period is open and user has permission
+ *       const entry = yield* entryRepo.create(...)
+ *       return entry
+ *     })
+ *   )
+ * )
+ * ```
+ */
+export const requirePermissionWithResource = (action: Action, resourceContext: ResourceContext) =>
+  Effect.gen(function* () {
+    const authService = yield* AuthorizationService
+
+    yield* authService.checkPermission(action, resourceContext).pipe(
       Effect.mapError((error) =>
         new ForbiddenError({
           message: error.reason,

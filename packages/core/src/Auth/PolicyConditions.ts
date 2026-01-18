@@ -135,8 +135,10 @@ export const JournalEntryTypeCondition = Schema.Literal(
 
 /**
  * Period status for resource conditions
+ * Matches the FiscalPeriodStatus domain type
  */
 export const PeriodStatusCondition = Schema.Literal(
+  "Future",
   "Open",
   "SoftClose",
   "Closed",
