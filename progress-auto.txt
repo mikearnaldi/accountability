@@ -489,3 +489,8 @@
 **Task**: Implemented Phase F8 - Policy Management API with 6 endpoints (list, get, create, update, delete, test) for managing ABAC policies
 **Status**: complete
 ---
+
+## Iteration 15 - 2026-01-18 02:21
+**Task**: Implemented Phase G1 - Regenerated API client with all authorization endpoints (members, invitations, policies, user organizations)
+**Status**: complete
+---

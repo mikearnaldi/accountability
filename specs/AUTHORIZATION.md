@@ -729,9 +729,19 @@ Update `AuthorizationServiceLive.ts`:
 
 ### Track G: Frontend - Core
 
-#### Phase G1: Generate API Client
+#### Phase G1: Generate API Client ✅ COMPLETE
 Run `pnpm generate:api` in packages/web.
 Verify new endpoints available in typed client.
+
+**Completed**: Generated API client with all new authorization endpoints:
+- `/v1/organizations/:orgId/members` - Membership management (list, invite, update, remove, reinstate)
+- `/v1/organizations/:orgId/transfer-ownership` - Ownership transfer
+- `/v1/users/me/invitations` - User's pending invitations
+- `/v1/invitations/:token/accept|decline` - Accept/decline invitations
+- `/v1/organizations/:orgId/invitations` - Org invitation management
+- `/v1/organizations/:orgId/policies` - Policy management (list, create, update, delete, test)
+- `/v1/users/me/organizations` - User's organizations with roles and permissions
+Verified: 87 endpoints, 231 schemas. Typecheck clean, lint clean.
 
 ---
 

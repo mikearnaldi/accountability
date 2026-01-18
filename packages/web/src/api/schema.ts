@@ -855,6 +855,78 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/organizations/{orgId}/policies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List organization policies
+         * @description Retrieve all policies for an organization, including system policies.
+         */
+        get: operations["policy.listPolicies"];
+        put?: never;
+        /**
+         * Create custom policy
+         * @description Create a new custom authorization policy for the organization.
+         */
+        post: operations["policy.createPolicy"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{orgId}/policies/{policyId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get policy details
+         * @description Retrieve details of a specific policy.
+         */
+        get: operations["policy.getPolicy"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete policy
+         * @description Delete a custom policy. System policies cannot be deleted.
+         */
+        delete: operations["policy.deletePolicy"];
+        options?: never;
+        head?: never;
+        /**
+         * Update policy
+         * @description Update an existing custom policy. System policies cannot be modified.
+         */
+        patch: operations["policy.updatePolicy"];
+        trace?: never;
+    };
+    "/api/v1/organizations/{orgId}/policies/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Test policy evaluation
+         * @description Simulate an authorization request to see which policies would match and what decision would be made.
+         */
+        post: operations["policy.testPolicy"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reports/trial-balance": {
         parameters: {
             query?: never;
@@ -3028,6 +3100,247 @@ export interface components {
              */
             myNewRole: "admin" | "member" | "viewer";
         };
+        PolicyListResponse: {
+            policies: components["schemas"]["PolicyInfo"][];
+        };
+        PolicyInfo: {
+            id: components["schemas"]["PolicyId"];
+            name: components["schemas"]["NonEmptyTrimmedString"];
+            description: string | null;
+            subject: components["schemas"]["SubjectCondition"];
+            resource: components["schemas"]["ResourceCondition"];
+            action: components["schemas"]["ActionCondition"];
+            environment: components["schemas"]["EnvironmentCondition"] | null;
+            effect: components["schemas"]["PolicyEffect"];
+            /**
+             * between(0, 1000)
+             * @description a number between 0 and 1000
+             */
+            priority: number;
+            isSystemPolicy: boolean;
+            isActive: boolean;
+            createdAt: components["schemas"]["Timestamp"];
+            updatedAt: components["schemas"]["Timestamp"];
+            createdBy: components["schemas"]["AuthUserId"] | null;
+        };
+        /**
+         * Policy ID
+         * Format: uuid
+         * @description A unique identifier for an authorization policy (UUID format)
+         */
+        PolicyId: string;
+        /**
+         * Subject Condition
+         * @description Conditions that determine which users a policy applies to
+         */
+        SubjectCondition: {
+            /**
+             * Roles
+             * @description Match users with any of these base roles
+             */
+            roles?: components["schemas"]["BaseRole"][];
+            /**
+             * Functional Roles
+             * @description Match users with any of these functional roles
+             */
+            functionalRoles?: components["schemas"]["FunctionalRole"][];
+            /**
+             * User IDs
+             * @description Match specific users by their ID
+             */
+            userIds?: components["schemas"]["AuthUserId"][];
+            /**
+             * Is Platform Admin
+             * @description Match users by their platform admin status
+             */
+            isPlatformAdmin?: boolean;
+        };
+        /**
+         * Resource Condition
+         * @description Conditions that determine which resources a policy applies to
+         */
+        ResourceCondition: {
+            /**
+             * Resource Type
+             * @description The type of resource this policy applies to
+             * @enum {string}
+             */
+            type: "organization" | "company" | "account" | "journal_entry" | "fiscal_period" | "consolidation_group" | "report" | "*";
+            /**
+             * Attributes
+             * @description Additional attribute conditions for resource matching
+             */
+            attributes?: components["schemas"]["ResourceAttributes"];
+        };
+        /**
+         * Resource Attributes
+         * @description Attribute conditions for resource matching
+         */
+        ResourceAttributes: {
+            /**
+             * Account Number
+             * @description Conditions based on account number
+             */
+            accountNumber?: components["schemas"]["AccountNumberCondition"];
+            /**
+             * Account Type
+             * @description Match accounts of these types
+             */
+            accountType?: ("Asset" | "Liability" | "Equity" | "Revenue" | "Expense")[];
+            /**
+             * Is Intercompany
+             * @description Match intercompany-related resources
+             */
+            isIntercompany?: boolean;
+            /**
+             * Entry Type
+             * @description Match journal entries of these types
+             */
+            entryType?: ("Standard" | "Adjusting" | "Closing" | "Reversing" | "Elimination" | "Consolidation" | "Intercompany")[];
+            /**
+             * Is Own Entry
+             * @description Match journal entries created by the requesting user
+             */
+            isOwnEntry?: boolean;
+            /**
+             * Period Status
+             * @description Match fiscal periods with these statuses
+             */
+            periodStatus?: ("Open" | "SoftClose" | "Closed" | "Locked")[];
+            /**
+             * Is Adjustment Period
+             * @description Match adjustment periods
+             */
+            isAdjustmentPeriod?: boolean;
+        };
+        /**
+         * Account Number Condition
+         * @description Conditions based on account number
+         */
+        AccountNumberCondition: {
+            /**
+             * Range
+             * @description Account number range [min, max]
+             */
+            range?: [
+                number,
+                number
+            ];
+            /**
+             * In
+             * @description Specific account numbers to match
+             */
+            in?: number[];
+        };
+        /**
+         * Action Condition
+         * @description Conditions that determine which actions a policy applies to
+         */
+        ActionCondition: {
+            /**
+             * Actions
+             * @description The actions this policy applies to
+             */
+            actions: components["schemas"]["Action"][];
+        };
+        /**
+         * Authorization Action
+         * @description An authorization action that can be performed in the system
+         * @enum {string}
+         */
+        Action: "organization:manage_settings" | "organization:manage_members" | "organization:delete" | "organization:transfer_ownership" | "company:create" | "company:read" | "company:update" | "company:delete" | "account:create" | "account:read" | "account:update" | "account:deactivate" | "journal_entry:create" | "journal_entry:read" | "journal_entry:update" | "journal_entry:post" | "journal_entry:reverse" | "fiscal_period:read" | "fiscal_period:open" | "fiscal_period:soft_close" | "fiscal_period:close" | "fiscal_period:lock" | "fiscal_period:reopen" | "consolidation_group:create" | "consolidation_group:read" | "consolidation_group:update" | "consolidation_group:delete" | "consolidation_group:run" | "elimination:create" | "report:read" | "report:export" | "exchange_rate:read" | "exchange_rate:manage" | "audit_log:read" | "*";
+        /**
+         * Environment Condition
+         * @description Contextual conditions based on request environment
+         */
+        EnvironmentCondition: {
+            /**
+             * Time of Day
+             * @description Restrict to certain hours of the day
+             */
+            timeOfDay?: components["schemas"]["TimeRange"];
+            /**
+             * Days of Week
+             * @description Restrict to certain days (0=Sunday, 6=Saturday)
+             */
+            daysOfWeek?: number[];
+            /**
+             * IP Allow List
+             * @description IP addresses or CIDR ranges to allow
+             */
+            ipAllowList?: string[];
+            /**
+             * IP Deny List
+             * @description IP addresses or CIDR ranges to deny
+             */
+            ipDenyList?: string[];
+        };
+        /**
+         * Time Range
+         * @description A time of day range in HH:MM format
+         */
+        TimeRange: {
+            /**
+             * Start Time
+             * @description Start time in HH:MM format (24-hour)
+             */
+            start: string;
+            /**
+             * End Time
+             * @description End time in HH:MM format (24-hour)
+             */
+            end: string;
+        };
+        /**
+         * Policy Effect
+         * @description The effect when an authorization policy matches
+         * @enum {string}
+         */
+        PolicyEffect: "allow" | "deny";
+        UpdatePolicyRequest: {
+            name: components["schemas"]["NonEmptyTrimmedString"] | null;
+            description: string | null;
+            subject: components["schemas"]["SubjectCondition"] | null;
+            resource: components["schemas"]["ResourceCondition"] | null;
+            action: components["schemas"]["ActionCondition"] | null;
+            environment: components["schemas"]["EnvironmentCondition"] | null;
+            effect: components["schemas"]["PolicyEffect"] | null;
+            priority: number | null;
+            isActive: boolean | null;
+        };
+        TestPolicyRequest: {
+            /**
+             * Auth User ID
+             * Format: uuid
+             * @description The user to test authorization for
+             */
+            userId: string;
+            /**
+             * Authorization Action
+             * @description The action to test
+             * @enum {string}
+             */
+            action: "organization:manage_settings" | "organization:manage_members" | "organization:delete" | "organization:transfer_ownership" | "company:create" | "company:read" | "company:update" | "company:delete" | "account:create" | "account:read" | "account:update" | "account:deactivate" | "journal_entry:create" | "journal_entry:read" | "journal_entry:update" | "journal_entry:post" | "journal_entry:reverse" | "fiscal_period:read" | "fiscal_period:open" | "fiscal_period:soft_close" | "fiscal_period:close" | "fiscal_period:lock" | "fiscal_period:reopen" | "consolidation_group:create" | "consolidation_group:read" | "consolidation_group:update" | "consolidation_group:delete" | "consolidation_group:run" | "elimination:create" | "report:read" | "report:export" | "exchange_rate:read" | "exchange_rate:manage" | "audit_log:read" | "*";
+            /** @description The type of resource being accessed */
+            resourceType: string;
+            /** @description Optional specific resource ID */
+            resourceId: string | null;
+            /** @description Optional resource attributes for attribute-based matching */
+            resourceAttributes: {
+                [key: string]: unknown;
+            } | null;
+        };
+        TestPolicyResponse: {
+            /**
+             * @description The final authorization decision
+             * @enum {string}
+             */
+            decision: "allow" | "deny";
+            /** @description Policies that matched and influenced the decision */
+            matchedPolicies: components["schemas"]["PolicyInfo"][];
+            /** @description Human-readable explanation for the decision */
+            reason: string;
+        };
         /**
          * Report Format
          * @description Output format for financial reports
@@ -3879,12 +4192,6 @@ export interface components {
             functionalRoles: components["schemas"]["FunctionalRoles"];
             effectivePermissions: components["schemas"]["Action"][];
         };
-        /**
-         * Authorization Action
-         * @description An authorization action that can be performed in the system
-         * @enum {string}
-         */
-        Action: "organization:manage_settings" | "organization:manage_members" | "organization:delete" | "organization:transfer_ownership" | "company:create" | "company:read" | "company:update" | "company:delete" | "account:create" | "account:read" | "account:update" | "account:deactivate" | "journal_entry:create" | "journal_entry:read" | "journal_entry:update" | "journal_entry:post" | "journal_entry:reverse" | "fiscal_period:read" | "fiscal_period:open" | "fiscal_period:soft_close" | "fiscal_period:close" | "fiscal_period:lock" | "fiscal_period:reopen" | "consolidation_group:create" | "consolidation_group:read" | "consolidation_group:update" | "consolidation_group:delete" | "consolidation_group:run" | "elimination:create" | "report:read" | "report:export" | "exchange_rate:read" | "exchange_rate:manage" | "audit_log:read" | "*";
     };
     responses: never;
     parameters: never;
@@ -6003,6 +6310,15 @@ export interface operations {
                     "application/json": components["schemas"]["UnauthorizedError"];
                 };
             };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
             /** @description NotFoundError */
             404: {
                 headers: {
@@ -6052,6 +6368,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
+            /** @description NotFoundError */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
                 };
             };
             /** @description BusinessRuleError */
@@ -6105,6 +6439,15 @@ export interface operations {
                     "application/json": components["schemas"]["UnauthorizedError"];
                 };
             };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
             /** @description NotFoundError */
             404: {
                 headers: {
@@ -6156,6 +6499,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
                 };
             };
             /** @description NotFoundError */
@@ -6225,6 +6577,15 @@ export interface operations {
                     "application/json": components["schemas"]["UnauthorizedError"];
                 };
             };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
             /** @description NotFoundError */
             404: {
                 headers: {
@@ -6285,6 +6646,15 @@ export interface operations {
                     "application/json": components["schemas"]["UnauthorizedError"];
                 };
             };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
             /** @description NotFoundError */
             404: {
                 headers: {
@@ -6343,6 +6713,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
                 };
             };
             /** @description NotFoundError */
@@ -6411,6 +6790,15 @@ export interface operations {
                     "application/json": components["schemas"]["UnauthorizedError"];
                 };
             };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
             /** @description NotFoundError */
             404: {
                 headers: {
@@ -6473,6 +6861,15 @@ export interface operations {
                     "application/json": components["schemas"]["UnauthorizedError"];
                 };
             };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
             /** @description NotFoundError */
             404: {
                 headers: {
@@ -6533,6 +6930,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
                 };
             };
             /** @description NotFoundError */
@@ -6971,6 +7377,471 @@ export interface operations {
             };
         };
     };
+    "policy.listPolicies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PolicyListResponse */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolicyListResponse"];
+                };
+            };
+            /** @description The request did not match the expected schema */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpApiDecodeError"];
+                };
+            };
+            /** @description UnauthorizedError */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
+            /** @description NotFoundError */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
+                };
+            };
+        };
+    };
+    "policy.createPolicy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /**
+                     * nonEmptyString
+                     * @description Human-readable name for the policy
+                     */
+                    name: components["schemas"]["Trimmed"];
+                    /** @description Optional description of what this policy does */
+                    description: string | null;
+                    /**
+                     * Subject Condition
+                     * @description Conditions that define who this policy applies to
+                     */
+                    subject: {
+                        /**
+                         * Roles
+                         * @description Match users with any of these base roles
+                         */
+                        roles?: components["schemas"]["BaseRole"][];
+                        /**
+                         * Functional Roles
+                         * @description Match users with any of these functional roles
+                         */
+                        functionalRoles?: components["schemas"]["FunctionalRole"][];
+                        /**
+                         * User IDs
+                         * @description Match specific users by their ID
+                         */
+                        userIds?: components["schemas"]["AuthUserId"][];
+                        /**
+                         * Is Platform Admin
+                         * @description Match users by their platform admin status
+                         */
+                        isPlatformAdmin?: boolean;
+                    };
+                    /**
+                     * Resource Condition
+                     * @description Conditions that define what resources this policy applies to
+                     */
+                    resource: {
+                        /**
+                         * Resource Type
+                         * @description The type of resource this policy applies to
+                         * @enum {string}
+                         */
+                        type: "organization" | "company" | "account" | "journal_entry" | "fiscal_period" | "consolidation_group" | "report" | "*";
+                        /**
+                         * Attributes
+                         * @description Additional attribute conditions for resource matching
+                         */
+                        attributes?: components["schemas"]["ResourceAttributes"];
+                    };
+                    /**
+                     * Action Condition
+                     * @description Conditions that define what actions this policy applies to
+                     */
+                    action: {
+                        /**
+                         * Actions
+                         * @description The actions this policy applies to
+                         */
+                        actions: components["schemas"]["Action"][];
+                    };
+                    /** @description Optional contextual conditions (time, IP, etc.) */
+                    environment: components["schemas"]["EnvironmentCondition"] | null;
+                    /**
+                     * Policy Effect
+                     * @description Whether to allow or deny when this policy matches
+                     * @enum {string}
+                     */
+                    effect: "allow" | "deny";
+                    /**
+                     * between(0, 899)
+                     * @description Priority for conflict resolution (0-899 for custom policies, higher = evaluated first)
+                     */
+                    priority?: number;
+                    /** @description Whether this policy should be active immediately */
+                    isActive?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description PolicyInfo */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolicyInfo"];
+                };
+            };
+            /** @description The request did not match the expected schema */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpApiDecodeError"] | components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description UnauthorizedError */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
+            /** @description NotFoundError */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
+                };
+            };
+            /** @description BusinessRuleError */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BusinessRuleError"];
+                };
+            };
+        };
+    };
+    "policy.getPolicy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: string;
+                policyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PolicyInfo */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolicyInfo"];
+                };
+            };
+            /** @description The request did not match the expected schema */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpApiDecodeError"];
+                };
+            };
+            /** @description UnauthorizedError */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
+            /** @description NotFoundError */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
+                };
+            };
+        };
+    };
+    "policy.deletePolicy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: string;
+                policyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The request did not match the expected schema */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpApiDecodeError"];
+                };
+            };
+            /** @description UnauthorizedError */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
+            /** @description NotFoundError */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
+                };
+            };
+            /** @description BusinessRuleError */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BusinessRuleError"];
+                };
+            };
+        };
+    };
+    "policy.updatePolicy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: string;
+                policyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdatePolicyRequest"];
+            };
+        };
+        responses: {
+            /** @description PolicyInfo */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolicyInfo"];
+                };
+            };
+            /** @description The request did not match the expected schema */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpApiDecodeError"] | components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description UnauthorizedError */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
+            /** @description NotFoundError */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
+                };
+            };
+            /** @description BusinessRuleError */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BusinessRuleError"];
+                };
+            };
+        };
+    };
+    "policy.testPolicy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TestPolicyRequest"];
+            };
+        };
+        responses: {
+            /** @description TestPolicyResponse */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestPolicyResponse"];
+                };
+            };
+            /** @description The request did not match the expected schema */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpApiDecodeError"] | components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description UnauthorizedError */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
+            /** @description NotFoundError */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
+                };
+            };
+        };
+    };
     "reports.generateTrialBalance": {
         parameters: {
             query: {
@@ -7012,6 +7883,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
                 };
             };
             /** @description NotFoundError */
@@ -7075,6 +7955,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
                 };
             };
             /** @description NotFoundError */
@@ -7141,6 +8030,15 @@ export interface operations {
                     "application/json": components["schemas"]["UnauthorizedError"];
                 };
             };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
             /** @description NotFoundError */
             404: {
                 headers: {
@@ -7204,6 +8102,15 @@ export interface operations {
                     "application/json": components["schemas"]["UnauthorizedError"];
                 };
             };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
             /** @description NotFoundError */
             404: {
                 headers: {
@@ -7264,6 +8171,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
                 };
             };
             /** @description NotFoundError */
@@ -7411,6 +8327,24 @@ export interface operations {
                     "application/json": components["schemas"]["UnauthorizedError"];
                 };
             };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
+            /** @description NotFoundError */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
+                };
+            };
         };
     };
     "currency.createExchangeRate": {
@@ -7459,6 +8393,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
+            /** @description NotFoundError */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
                 };
             };
             /** @description ConflictError */
@@ -7519,6 +8471,15 @@ export interface operations {
                     "application/json": components["schemas"]["UnauthorizedError"];
                 };
             };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
             /** @description NotFoundError */
             404: {
                 headers: {
@@ -7564,6 +8525,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
                 };
             };
             /** @description NotFoundError */
@@ -7626,6 +8596,24 @@ export interface operations {
                     "application/json": components["schemas"]["UnauthorizedError"];
                 };
             };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
+            /** @description NotFoundError */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
+                };
+            };
         };
     };
     "currency.getRateForDate": {
@@ -7667,6 +8655,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
                 };
             };
         };
@@ -7711,6 +8708,15 @@ export interface operations {
                     "application/json": components["schemas"]["UnauthorizedError"];
                 };
             };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
         };
     };
     "currency.getClosestRate": {
@@ -7752,6 +8758,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
                 };
             };
         };
@@ -7799,6 +8814,15 @@ export interface operations {
                     "application/json": components["schemas"]["UnauthorizedError"];
                 };
             };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
         };
     };
     "currency.getPeriodClosingRate": {
@@ -7842,6 +8866,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
                 };
             };
         };
@@ -8354,6 +9387,24 @@ export interface operations {
                     "application/json": components["schemas"]["UnauthorizedError"];
                 };
             };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
+            /** @description NotFoundError */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
+                };
+            };
         };
     };
     "consolidation.createConsolidationGroup": {
@@ -8394,6 +9445,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
+            /** @description NotFoundError */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
                 };
             };
             /** @description ConflictError */
@@ -8456,6 +9525,15 @@ export interface operations {
                     "application/json": components["schemas"]["UnauthorizedError"];
                 };
             };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
             /** @description NotFoundError */
             404: {
                 headers: {
@@ -8509,6 +9587,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
                 };
             };
             /** @description NotFoundError */
@@ -8567,6 +9654,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
                 };
             };
             /** @description NotFoundError */
@@ -8629,6 +9725,15 @@ export interface operations {
                     "application/json": components["schemas"]["UnauthorizedError"];
                 };
             };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
             /** @description NotFoundError */
             404: {
                 headers: {
@@ -8687,6 +9792,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
                 };
             };
             /** @description NotFoundError */
@@ -8756,6 +9870,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
                 };
             };
             /** @description NotFoundError */
@@ -8832,6 +9955,15 @@ export interface operations {
                     "application/json": components["schemas"]["UnauthorizedError"];
                 };
             };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
             /** @description NotFoundError */
             404: {
                 headers: {
@@ -8891,6 +10023,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
                 };
             };
             /** @description NotFoundError */
@@ -8961,6 +10102,24 @@ export interface operations {
                     "application/json": components["schemas"]["UnauthorizedError"];
                 };
             };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
+            /** @description NotFoundError */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
+                };
+            };
         };
     };
     "consolidation.getConsolidationRun": {
@@ -9001,6 +10160,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
                 };
             };
             /** @description NotFoundError */
@@ -9050,6 +10218,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
                 };
             };
             /** @description NotFoundError */
@@ -9128,6 +10305,15 @@ export interface operations {
                     "application/json": components["schemas"]["UnauthorizedError"];
                 };
             };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
             /** @description NotFoundError */
             404: {
                 headers: {
@@ -9197,6 +10383,15 @@ export interface operations {
                     "application/json": components["schemas"]["UnauthorizedError"];
                 };
             };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
             /** @description NotFoundError */
             404: {
                 headers: {
@@ -9255,6 +10450,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
                 };
             };
             /** @description NotFoundError */
@@ -9317,6 +10521,15 @@ export interface operations {
                     "application/json": components["schemas"]["UnauthorizedError"];
                 };
             };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
             /** @description NotFoundError */
             404: {
                 headers: {
@@ -9375,6 +10588,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
                 };
             };
             /** @description NotFoundError */
@@ -9437,6 +10659,15 @@ export interface operations {
                     "application/json": components["schemas"]["UnauthorizedError"];
                 };
             };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
             /** @description NotFoundError */
             404: {
                 headers: {
@@ -9497,6 +10728,15 @@ export interface operations {
                     "application/json": components["schemas"]["UnauthorizedError"];
                 };
             };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
             /** @description NotFoundError */
             404: {
                 headers: {
@@ -9555,6 +10795,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
                 };
             };
             /** @description NotFoundError */
