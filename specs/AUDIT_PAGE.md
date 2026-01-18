@@ -517,25 +517,54 @@ Denormalize user info to avoid joins and preserve historical names.
    - ✅ Long JSON values expandable with `<details>` element
    - ✅ Summary shows "Entity created", "Entity deleted", or "N fields changed"
 
+7. **Format Effect-TS types for human-readable display** ✅ DONE
+   - [x] Render Option types properly: `Option.None` → "—" (em-dash), `Option.Some(value)` → the unwrapped value
+   - [x] Render DateTime/Timestamp: `{ "epochMillis": 1768774143932 }` → "Jan 18, 2026, 9:29 AM"
+   - [x] Render Date objects: `{ "day": 31, "month": 12 }` → "December 31"
+   - [x] Render Date with year: `{ "year": 2026, "month": 1, "day": 15 }` → "Jan 15, 2026"
+   - [x] Render booleans: `true` → "Yes", `false` → "No"
+   - [x] Render currency codes: Show as-is (e.g., "USD")
+   - [x] Render BigDecimal: `{ "value": "1000.50" }` → "1,000.50"
+   - [x] Implemented `formatEffectValue()` helper that detects and formats these types
+   - [x] Updated `ChangeValue` component to use the new formatter
+   - [x] Updated CSV export to use human-readable formatting
+
+   **Implementation:** See `formatEffectValue()` in `packages/web/src/routes/organizations/$organizationId/audit-log/index.tsx`
+
+   **Example Transformations:**
+
+   | Raw Value | Rendered |
+   |-----------|----------|
+   | `{ "_id": "Option", "_tag": "None" }` | — |
+   | `{ "_id": "Option", "_tag": "Some", "value": "Active" }` | Active |
+   | `{ "epochMillis": 1768774143932 }` | Jan 18, 2026, 9:29 AM |
+   | `{ "day": 31, "month": 12 }` | December 31 |
+   | `{ "year": 2026, "month": 1, "day": 15 }` | Jan 15, 2026 |
+   | `true` | Yes |
+   | `false` | No |
+   | `1000.5` | 1,000.5 |
+   | `{ "value": "1000.50" }` | 1,000.50 |
+   | `"USD"` | USD |
+
 ### Phase 3: Enhanced Features
 
-7. **Add search functionality** ✅ DONE
+8. **Add search functionality** ✅ DONE
    - ✅ Full-text search across entity name and entity ID (case-insensitive ILIKE)
    - ✅ Debounced input (300ms)
    - ✅ Search icon in input field
    - ✅ Search included in "Clear Filters" functionality
 
-8. **Add date range presets** ✅ DONE
+9. **Add date range presets** ✅ DONE
    - ✅ "Today", "Last 7 days", "Last 30 days", "This month" preset buttons
    - ✅ Custom date range picker (via date inputs)
    - ✅ Active preset is highlighted
    - ✅ Presets immediately apply and fetch filtered data
 
-9. **Add export functionality** ✅ DONE
-   - ✅ Export filtered results as CSV (Export CSV button in page header)
-   - ✅ Export single entry as JSON (Copy as JSON button in detail panel)
+10. **Add export functionality** ✅ DONE
+    - ✅ Export filtered results as CSV (Export CSV button in page header)
+    - ✅ Export single entry as JSON (Copy as JSON button in detail panel)
 
-10. **Add entity linking** ✅ DONE
+11. **Add entity linking** ✅ DONE
     - ✅ "View Entity" button on detail panel
     - ✅ Links to entity detail page based on entity type (Organization, Company, Account, JournalEntry, ConsolidationGroup, ExchangeRate, FiscalYear, FiscalPeriod)
     - ✅ Button hidden for deleted entities and entity types without detail pages

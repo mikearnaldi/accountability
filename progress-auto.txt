@@ -752,3 +752,8 @@
 **Task**: Added user display name denormalization to audit log with database migration, AuditLogServiceLive user lookup, API schema updates, and frontend display with email tooltip
 **Status**: complete
 ---
+
+## Iteration 1 - 2026-01-18 23:19
+**Task**: Implemented formatEffectValue() helper for human-readable Effect-TS types in audit log (Option, DateTime, Date, BigDecimal, booleans)
+**Status**: complete
+---

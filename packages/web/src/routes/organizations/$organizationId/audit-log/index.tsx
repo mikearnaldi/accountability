@@ -821,12 +821,134 @@ function formatTimestamp(timestamp: string): string {
 }
 
 
-function formatFullValue(value: unknown): string {
+/**
+ * Type guard to check if a value is a non-null object
+ */
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null
+}
+
+/**
+ * Type guard for Option.None: { "_id": "Option", "_tag": "None" }
+ */
+function isOptionNone(obj: Record<string, unknown>): boolean {
+  return obj._id === "Option" && obj._tag === "None"
+}
+
+/**
+ * Type guard for Option.Some: { "_id": "Option", "_tag": "Some", "value": ... }
+ */
+function isOptionSome(obj: Record<string, unknown>): obj is { _id: "Option"; _tag: "Some"; value: unknown } {
+  return obj._id === "Option" && obj._tag === "Some" && "value" in obj
+}
+
+/**
+ * Type guard for DateTime with epochMillis
+ */
+function hasEpochMillis(obj: Record<string, unknown>): obj is { epochMillis: number } {
+  return "epochMillis" in obj && typeof obj.epochMillis === "number"
+}
+
+/**
+ * Type guard for Date with day/month only (fiscal year end)
+ */
+function isDayMonthOnly(obj: Record<string, unknown>): obj is { day: number; month: number } {
+  return "day" in obj && "month" in obj &&
+         typeof obj.day === "number" && typeof obj.month === "number" &&
+         !("year" in obj)
+}
+
+/**
+ * Type guard for full Date with year/month/day
+ */
+function isFullDate(obj: Record<string, unknown>): obj is { year: number; month: number; day: number } {
+  return "year" in obj && "month" in obj && "day" in obj &&
+         typeof obj.year === "number" && typeof obj.month === "number" && typeof obj.day === "number"
+}
+
+/**
+ * Type guard for BigDecimal-like objects
+ */
+function isBigDecimal(obj: Record<string, unknown>): obj is { value: string } {
+  return "value" in obj && typeof obj.value === "string" && /^-?\d+(\.\d+)?$/.test(obj.value)
+}
+
+/**
+ * Formats Effect-TS and domain values for human-readable display.
+ * Detects common patterns and renders them appropriately.
+ *
+ * @example
+ * // Option.None → "—"
+ * // Option.Some("Active") → "Active"
+ * // { epochMillis: 1768774143932 } → "Jan 18, 2026, 9:29 AM"
+ * // { day: 31, month: 12 } → "December 31"
+ * // true → "Yes"
+ * // false → "No"
+ */
+function formatEffectValue(value: unknown): string {
+  // Handle null/undefined
   if (value === null || value === undefined) return "—"
+
+  // Handle primitives
   if (typeof value === "string") return value
-  if (typeof value === "boolean") return value ? "true" : "false"
-  if (typeof value === "number") return String(value)
-  if (typeof value === "object") return JSON.stringify(value, null, 2)
+  if (typeof value === "number") return value.toLocaleString()
+  if (typeof value === "boolean") return value ? "Yes" : "No"
+
+  // Handle objects
+  if (isObject(value)) {
+    // Option.None: { "_id": "Option", "_tag": "None" }
+    if (isOptionNone(value)) {
+      return "—"
+    }
+
+    // Option.Some: { "_id": "Option", "_tag": "Some", "value": ... }
+    if (isOptionSome(value)) {
+      return formatEffectValue(value.value)
+    }
+
+    // DateTime (epochMillis): { "epochMillis": 1768774143932 }
+    if (hasEpochMillis(value)) {
+      return new Date(value.epochMillis).toLocaleString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+      })
+    }
+
+    // Date with day/month (no year): { "day": 31, "month": 12 }
+    // This is for fiscal year end dates
+    if (isDayMonthOnly(value)) {
+      const monthNames = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+      ]
+      return `${monthNames[value.month - 1]} ${value.day}`
+    }
+
+    // Date with year/month/day: { "year": 2026, "month": 1, "day": 15 }
+    if (isFullDate(value)) {
+      const date = new Date(value.year, value.month - 1, value.day)
+      return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric"
+      })
+    }
+
+    // BigDecimal: { "value": "1000.50" } or similar patterns
+    if (isBigDecimal(value)) {
+      return parseFloat(value.value).toLocaleString("en-US", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      })
+    }
+
+    // Fallback: pretty-print JSON for other objects
+    return JSON.stringify(value, null, 2)
+  }
+
   return String(value)
 }
 
@@ -873,11 +995,11 @@ function exportToCSV(entries: readonly AuditLogEntry[], organizationName: string
     return value
   }
 
-  // Format changes for CSV
+  // Format changes for CSV using human-readable formatting
   const formatChangesForCSV = (changes: Record<string, { from: unknown; to: unknown }> | null): string => {
     if (!changes || Object.keys(changes).length === 0) return ""
     return Object.entries(changes)
-      .map(([field, { from, to }]) => `${field}: ${JSON.stringify(from)} → ${JSON.stringify(to)}`)
+      .map(([field, { from, to }]) => `${field}: ${formatEffectValue(from)} → ${formatEffectValue(to)}`)
       .join("; ")
   }
 
@@ -1311,7 +1433,7 @@ interface ChangeValueProps {
 }
 
 function ChangeValue({ value, type }: ChangeValueProps) {
-  const formattedValue = formatFullValue(value)
+  const formattedValue = formatEffectValue(value)
   const isNull = value === null || value === undefined
   const isLongValue = formattedValue.length > 100
 
