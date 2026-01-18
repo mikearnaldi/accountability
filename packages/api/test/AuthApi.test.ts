@@ -38,6 +38,7 @@ import { CurrenciesApiLive } from "@accountability/api/Layers/CurrenciesApiLive"
 import { CurrencyApiLive } from "@accountability/api/Layers/CurrencyApiLive"
 import { JurisdictionsApiLive } from "@accountability/api/Layers/JurisdictionsApiLive"
 import { EliminationRulesApiLive } from "@accountability/api/Layers/EliminationRulesApiLive"
+import { FiscalPeriodApiLive } from "@accountability/api/Layers/FiscalPeriodApiLive"
 import { IntercompanyTransactionsApiLive } from "@accountability/api/Layers/IntercompanyTransactionsApiLive"
 import { InvitationApiLive } from "@accountability/api/Layers/InvitationApiLive"
 import { JournalEntriesApiLive } from "@accountability/api/Layers/JournalEntriesApiLive"
@@ -120,6 +121,7 @@ const AppApiLiveWithSessionAuth = HttpApiBuilder.api(AppApi)
   .pipe(Layer.provide(ConsolidationApiLive))
   .pipe(Layer.provide(ConsolidatedReportServiceLive))
   .pipe(Layer.provide(EliminationRulesApiLive))
+  .pipe(Layer.provide(FiscalPeriodApiLive))
   .pipe(Layer.provide(UserOrganizationsApiLive))
   .pipe(Layer.provide(AuthorizationServiceWithDependencies))
   .pipe(Layer.provide(AuthMiddlewareWithSessionValidation))

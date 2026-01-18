@@ -1879,6 +1879,270 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/organizations/{organizationId}/companies/{companyId}/fiscal-years": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List fiscal years
+         * @description Retrieve all fiscal years for a company, ordered by year descending.
+         */
+        get: operations["fiscal-periods.listFiscalYears"];
+        put?: never;
+        /**
+         * Create fiscal year
+         * @description Create a new fiscal year for a company with auto-generated monthly periods.
+         */
+        post: operations["fiscal-periods.createFiscalYear"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{organizationId}/companies/{companyId}/fiscal-years/{fiscalYearId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get fiscal year
+         * @description Retrieve a single fiscal year by its unique identifier.
+         */
+        get: operations["fiscal-periods.getFiscalYear"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{organizationId}/companies/{companyId}/fiscal-years/{fiscalYearId}/begin-close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Begin year-end close
+         * @description Transition a fiscal year to 'Closing' status to begin year-end close process.
+         */
+        post: operations["fiscal-periods.beginYearClose"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{organizationId}/companies/{companyId}/fiscal-years/{fiscalYearId}/complete-close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Complete year-end close
+         * @description Transition a fiscal year to 'Closed' status. All periods must be closed first.
+         */
+        post: operations["fiscal-periods.completeYearClose"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{organizationId}/companies/{companyId}/fiscal-years/{fiscalYearId}/periods": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List fiscal periods
+         * @description Retrieve all fiscal periods for a fiscal year, optionally filtered by status.
+         */
+        get: operations["fiscal-periods.listFiscalPeriods"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{organizationId}/companies/{companyId}/fiscal-years/{fiscalYearId}/periods/{periodId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get fiscal period
+         * @description Retrieve a single fiscal period by its unique identifier.
+         */
+        get: operations["fiscal-periods.getFiscalPeriod"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{organizationId}/companies/{companyId}/fiscal-years/{fiscalYearId}/periods/{periodId}/open": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Open fiscal period
+         * @description Transition a fiscal period from 'Future' to 'Open' status.
+         */
+        post: operations["fiscal-periods.openFiscalPeriod"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{organizationId}/companies/{companyId}/fiscal-years/{fiscalYearId}/periods/{periodId}/soft-close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Soft-close fiscal period
+         * @description Transition a fiscal period from 'Open' to 'SoftClose' status. Limited operations still allowed with approval.
+         */
+        post: operations["fiscal-periods.softCloseFiscalPeriod"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{organizationId}/companies/{companyId}/fiscal-years/{fiscalYearId}/periods/{periodId}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Close fiscal period
+         * @description Transition a fiscal period from 'SoftClose' to 'Closed' status. No modifications allowed after close.
+         */
+        post: operations["fiscal-periods.closeFiscalPeriod"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{organizationId}/companies/{companyId}/fiscal-years/{fiscalYearId}/periods/{periodId}/lock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Lock fiscal period
+         * @description Transition a fiscal period from 'Closed' to 'Locked' status. Requires special authorization to reopen.
+         */
+        post: operations["fiscal-periods.lockFiscalPeriod"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{organizationId}/companies/{companyId}/fiscal-years/{fiscalYearId}/periods/{periodId}/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reopen fiscal period
+         * @description Reopen a closed or locked fiscal period with audit trail. Requires special authorization (fiscal_period:reopen).
+         */
+        post: operations["fiscal-periods.reopenFiscalPeriod"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{organizationId}/companies/{companyId}/fiscal-years/{fiscalYearId}/periods/{periodId}/reopen-history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get period reopen history
+         * @description Retrieve the audit history of all times this period has been reopened.
+         */
+        get: operations["fiscal-periods.getPeriodReopenHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{organizationId}/companies/{companyId}/period-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get period status for date
+         * @description Check the fiscal period status for a specific date, including whether journal entries and modifications are allowed.
+         */
+        get: operations["fiscal-periods.getPeriodStatusForDate"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/users/me/organizations": {
         parameters: {
             query?: never;
@@ -4259,6 +4523,151 @@ export interface components {
              * @description a non-negative number
              */
             priority: number;
+        };
+        FiscalYearListResponse: {
+            fiscalYears: components["schemas"]["FiscalYear"][];
+            /**
+             * greaterThanOrEqualTo(0)
+             * @description a non-negative number
+             */
+            total: number;
+        };
+        FiscalYear: {
+            id: components["schemas"]["FiscalYearId"];
+            companyId: components["schemas"]["CompanyId"];
+            /**
+             * Fiscal Year Name
+             * @description Display name for the fiscal year
+             */
+            name: components["schemas"]["Trimmed"];
+            /**
+             * lessThanOrEqualTo(2999)
+             * @description The fiscal year number
+             */
+            year: number;
+            startDate: components["schemas"]["LocalDate"];
+            endDate: components["schemas"]["LocalDate"];
+            status: components["schemas"]["FiscalYearStatus"];
+            /**
+             * Includes Adjustment Period
+             * @description Whether period 13 exists for year-end adjustments
+             */
+            includesAdjustmentPeriod: boolean;
+            createdAt: components["schemas"]["Timestamp"];
+            updatedAt: components["schemas"]["Timestamp"];
+        };
+        /**
+         * Fiscal Year ID
+         * Format: uuid
+         * @description A unique identifier for a fiscal year (UUID format)
+         */
+        FiscalYearId: string;
+        /**
+         * Fiscal Year Status
+         * @description The status of a fiscal year
+         * @enum {string}
+         */
+        FiscalYearStatus: "Open" | "Closing" | "Closed";
+        CreateFiscalYearRequest: {
+            /**
+             * lessThanOrEqualTo(2999)
+             * @description a number less than or equal to 2999
+             */
+            year: number;
+            name: components["schemas"]["NonEmptyTrimmedString"] | null;
+            startDate: components["schemas"]["LocalDate"];
+            endDate: components["schemas"]["LocalDate"];
+            includeAdjustmentPeriod: boolean | null;
+        };
+        FiscalPeriodListResponse: {
+            periods: components["schemas"]["FiscalPeriod"][];
+            /**
+             * greaterThanOrEqualTo(0)
+             * @description a non-negative number
+             */
+            total: number;
+        };
+        FiscalPeriod: {
+            id: components["schemas"]["FiscalPeriodId"];
+            fiscalYearId: components["schemas"]["FiscalYearId"];
+            /**
+             * lessThanOrEqualTo(13)
+             * @description Period number within the fiscal year (1-13)
+             */
+            periodNumber: number;
+            /**
+             * Period Name
+             * @description Display name for the fiscal period
+             */
+            name: components["schemas"]["Trimmed"];
+            periodType: components["schemas"]["FiscalPeriodType"];
+            startDate: components["schemas"]["LocalDate"];
+            endDate: components["schemas"]["LocalDate"];
+            status: components["schemas"]["FiscalPeriodStatus"];
+            /**
+             * Closed By
+             * @description User who closed this period
+             */
+            closedBy: components["schemas"]["UserId"] | null;
+            /**
+             * Closed At
+             * @description When this period was closed
+             */
+            closedAt: components["schemas"]["Timestamp"] | null;
+            createdAt: components["schemas"]["Timestamp"];
+            updatedAt: components["schemas"]["Timestamp"];
+        };
+        /**
+         * Fiscal Period ID
+         * Format: uuid
+         * @description A unique identifier for a fiscal period (UUID format)
+         */
+        FiscalPeriodId: string;
+        /**
+         * Fiscal Period Type
+         * @description The type of fiscal period
+         * @enum {string}
+         */
+        FiscalPeriodType: "Regular" | "Adjustment" | "Closing";
+        /**
+         * Fiscal Period Status
+         * @description The status of a fiscal period
+         * @enum {string}
+         */
+        FiscalPeriodStatus: "Future" | "Open" | "SoftClose" | "Closed" | "Locked";
+        ReopenPeriodRequest: {
+            reason: components["schemas"]["NonEmptyTrimmedString"];
+        };
+        PeriodReopenHistoryResponse: {
+            history: components["schemas"]["PeriodReopenAuditEntry"][];
+            /**
+             * greaterThanOrEqualTo(0)
+             * @description a non-negative number
+             */
+            total: number;
+        };
+        PeriodReopenAuditEntry: {
+            id: components["schemas"]["PeriodReopenAuditEntryId"];
+            periodId: components["schemas"]["FiscalPeriodId"];
+            /**
+             * Reason
+             * @description Reason for reopening the period
+             */
+            reason: components["schemas"]["Trimmed"];
+            reopenedBy: components["schemas"]["UserId"];
+            reopenedAt: components["schemas"]["Timestamp"];
+            previousStatus: components["schemas"]["FiscalPeriodStatus"];
+        };
+        /**
+         * Period Reopen Audit Entry ID
+         * Format: uuid
+         * @description A unique identifier for a period reopen audit entry (UUID format)
+         */
+        PeriodReopenAuditEntryId: string;
+        PeriodStatusResponse: {
+            status: components["schemas"]["FiscalPeriodStatus"] | null;
+            allowsJournalEntries: boolean;
+            allowsModifications: boolean;
         };
         UserOrganizationsResponse: {
             organizations: components["schemas"]["UserOrganizationInfo"][];
@@ -11569,6 +11978,935 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+        };
+    };
+    "fiscal-periods.listFiscalYears": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationId: string;
+                companyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description FiscalYearListResponse */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FiscalYearListResponse"];
+                };
+            };
+            /** @description The request did not match the expected schema */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpApiDecodeError"];
+                };
+            };
+            /** @description UnauthorizedError */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
+            /** @description NotFoundError */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
+                };
+            };
+        };
+    };
+    "fiscal-periods.createFiscalYear": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationId: string;
+                companyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateFiscalYearRequest"];
+            };
+        };
+        responses: {
+            /** @description FiscalYear */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FiscalYear"];
+                };
+            };
+            /** @description The request did not match the expected schema */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpApiDecodeError"] | components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description UnauthorizedError */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
+            /** @description NotFoundError */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
+                };
+            };
+            /** @description BusinessRuleError */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BusinessRuleError"];
+                };
+            };
+        };
+    };
+    "fiscal-periods.getFiscalYear": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationId: string;
+                companyId: string;
+                fiscalYearId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description FiscalYear */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FiscalYear"];
+                };
+            };
+            /** @description The request did not match the expected schema */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpApiDecodeError"];
+                };
+            };
+            /** @description UnauthorizedError */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
+            /** @description NotFoundError */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
+                };
+            };
+        };
+    };
+    "fiscal-periods.beginYearClose": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationId: string;
+                companyId: string;
+                fiscalYearId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description FiscalYear */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FiscalYear"];
+                };
+            };
+            /** @description The request did not match the expected schema */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpApiDecodeError"];
+                };
+            };
+            /** @description UnauthorizedError */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
+            /** @description NotFoundError */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
+                };
+            };
+            /** @description BusinessRuleError */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BusinessRuleError"];
+                };
+            };
+        };
+    };
+    "fiscal-periods.completeYearClose": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationId: string;
+                companyId: string;
+                fiscalYearId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description FiscalYear */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FiscalYear"];
+                };
+            };
+            /** @description The request did not match the expected schema */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpApiDecodeError"];
+                };
+            };
+            /** @description UnauthorizedError */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
+            /** @description NotFoundError */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
+                };
+            };
+            /** @description BusinessRuleError */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BusinessRuleError"];
+                };
+            };
+        };
+    };
+    "fiscal-periods.listFiscalPeriods": {
+        parameters: {
+            query?: {
+                fiscalYearId?: string;
+                status?: string;
+            };
+            header?: never;
+            path: {
+                organizationId: string;
+                companyId: string;
+                fiscalYearId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description FiscalPeriodListResponse */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FiscalPeriodListResponse"];
+                };
+            };
+            /** @description The request did not match the expected schema */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpApiDecodeError"];
+                };
+            };
+            /** @description UnauthorizedError */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
+            /** @description NotFoundError */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
+                };
+            };
+        };
+    };
+    "fiscal-periods.getFiscalPeriod": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationId: string;
+                companyId: string;
+                fiscalYearId: string;
+                periodId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description FiscalPeriod */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FiscalPeriod"];
+                };
+            };
+            /** @description The request did not match the expected schema */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpApiDecodeError"];
+                };
+            };
+            /** @description UnauthorizedError */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
+            /** @description NotFoundError */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
+                };
+            };
+        };
+    };
+    "fiscal-periods.openFiscalPeriod": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationId: string;
+                companyId: string;
+                fiscalYearId: string;
+                periodId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description FiscalPeriod */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FiscalPeriod"];
+                };
+            };
+            /** @description The request did not match the expected schema */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpApiDecodeError"];
+                };
+            };
+            /** @description UnauthorizedError */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
+            /** @description NotFoundError */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
+                };
+            };
+            /** @description BusinessRuleError */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BusinessRuleError"];
+                };
+            };
+        };
+    };
+    "fiscal-periods.softCloseFiscalPeriod": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationId: string;
+                companyId: string;
+                fiscalYearId: string;
+                periodId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description FiscalPeriod */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FiscalPeriod"];
+                };
+            };
+            /** @description The request did not match the expected schema */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpApiDecodeError"];
+                };
+            };
+            /** @description UnauthorizedError */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
+            /** @description NotFoundError */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
+                };
+            };
+            /** @description BusinessRuleError */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BusinessRuleError"];
+                };
+            };
+        };
+    };
+    "fiscal-periods.closeFiscalPeriod": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationId: string;
+                companyId: string;
+                fiscalYearId: string;
+                periodId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description FiscalPeriod */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FiscalPeriod"];
+                };
+            };
+            /** @description The request did not match the expected schema */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpApiDecodeError"];
+                };
+            };
+            /** @description UnauthorizedError */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
+            /** @description NotFoundError */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
+                };
+            };
+            /** @description BusinessRuleError */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BusinessRuleError"];
+                };
+            };
+        };
+    };
+    "fiscal-periods.lockFiscalPeriod": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationId: string;
+                companyId: string;
+                fiscalYearId: string;
+                periodId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description FiscalPeriod */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FiscalPeriod"];
+                };
+            };
+            /** @description The request did not match the expected schema */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpApiDecodeError"];
+                };
+            };
+            /** @description UnauthorizedError */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
+            /** @description NotFoundError */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
+                };
+            };
+            /** @description BusinessRuleError */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BusinessRuleError"];
+                };
+            };
+        };
+    };
+    "fiscal-periods.reopenFiscalPeriod": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationId: string;
+                companyId: string;
+                fiscalYearId: string;
+                periodId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReopenPeriodRequest"];
+            };
+        };
+        responses: {
+            /** @description FiscalPeriod */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FiscalPeriod"];
+                };
+            };
+            /** @description The request did not match the expected schema */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpApiDecodeError"];
+                };
+            };
+            /** @description UnauthorizedError */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
+            /** @description NotFoundError */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
+                };
+            };
+            /** @description BusinessRuleError */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BusinessRuleError"];
+                };
+            };
+        };
+    };
+    "fiscal-periods.getPeriodReopenHistory": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationId: string;
+                companyId: string;
+                fiscalYearId: string;
+                periodId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PeriodReopenHistoryResponse */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PeriodReopenHistoryResponse"];
+                };
+            };
+            /** @description The request did not match the expected schema */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpApiDecodeError"];
+                };
+            };
+            /** @description UnauthorizedError */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
+            /** @description NotFoundError */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
+                };
+            };
+        };
+    };
+    "fiscal-periods.getPeriodStatusForDate": {
+        parameters: {
+            query: {
+                date: string;
+            };
+            header?: never;
+            path: {
+                organizationId: string;
+                companyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PeriodStatusResponse */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PeriodStatusResponse"];
+                };
+            };
+            /** @description The request did not match the expected schema */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpApiDecodeError"];
+                };
+            };
+            /** @description UnauthorizedError */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
+            /** @description NotFoundError */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
                 };
             };
         };

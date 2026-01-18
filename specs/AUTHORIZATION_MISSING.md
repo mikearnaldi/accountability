@@ -40,11 +40,16 @@ The AUTHORIZATION.md spec defines actions for fiscal period management. Implemen
   - `packages/persistence/src/Layers/FiscalPeriodServiceLive.ts` - Service implementation
 
 **What's Missing:**
-- [ ] **FiscalPeriodApi endpoints** - REST API to create, open, close, or lock fiscal periods
+- [x] **FiscalPeriodApi endpoints** - REST API to create, open, close, or lock fiscal periods ✓ Done
+  - `packages/api/src/Definitions/FiscalPeriodApi.ts` - API endpoint definitions (14 endpoints)
+  - `packages/api/src/Layers/FiscalPeriodApiLive.ts` - API handlers with organization context and permission checks
+  - Endpoints: listFiscalYears, getFiscalYear, createFiscalYear, beginYearClose, completeYearClose
+  - Endpoints: listFiscalPeriods, getFiscalPeriod, openFiscalPeriod, softCloseFiscalPeriod, closeFiscalPeriod, lockFiscalPeriod, reopenFiscalPeriod
+  - Endpoints: getPeriodReopenHistory, getPeriodStatusForDate
 - [ ] **Fiscal Period Management UI** - Pages to view or manage period states
 - [ ] **Period status integration** - Connect ResourceMatcher `periodStatus` attribute to actual period data
 
-**Current Behavior:** Fiscal periods can be persisted, queried, and managed through the service layer. The service provides:
+**Current Behavior:** Fiscal periods can be persisted, queried, and managed through both the service layer and REST API. The service provides:
 - Fiscal year creation with validation for duplicates
 - Period generation with standard monthly schedule
 - Period status transitions (Future → Open → SoftClose → Closed → Locked)
@@ -53,7 +58,7 @@ The AUTHORIZATION.md spec defines actions for fiscal period management. Implemen
 
 **Impact:** The "Locked Period Protection" system policy cannot function until:
 1. ~~FiscalPeriodService implements period creation and status transitions~~ ✓ Done
-2. FiscalPeriodApi exposes endpoints for period management
+2. ~~FiscalPeriodApi exposes endpoints for period management~~ ✓ Done
 3. Period status is integrated with journal entry authorization checks
 
 **Files Created:**
@@ -67,6 +72,8 @@ The AUTHORIZATION.md spec defines actions for fiscal period management. Implemen
 - `packages/core/src/FiscalPeriod/FiscalPeriodService.ts` - Service interface
 - `packages/core/src/FiscalPeriod/FiscalPeriodErrors.ts` - Error definitions
 - `packages/persistence/src/Layers/FiscalPeriodServiceLive.ts` - Service implementation
+- `packages/api/src/Definitions/FiscalPeriodApi.ts` - API endpoint definitions
+- `packages/api/src/Layers/FiscalPeriodApiLive.ts` - API handlers implementation
 
 ---
 

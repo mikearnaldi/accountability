@@ -28,6 +28,7 @@ import { CurrenciesApiLive } from "./CurrenciesApiLive.ts"
 import { CurrencyApiLive } from "./CurrencyApiLive.ts"
 import { JurisdictionsApiLive } from "./JurisdictionsApiLive.ts"
 import { EliminationRulesApiLive } from "./EliminationRulesApiLive.ts"
+import { FiscalPeriodApiLive } from "./FiscalPeriodApiLive.ts"
 import { IntercompanyTransactionsApiLive } from "./IntercompanyTransactionsApiLive.ts"
 import { InvitationApiLive } from "./InvitationApiLive.ts"
 import { JournalEntriesApiLive } from "./JournalEntriesApiLive.ts"
@@ -136,7 +137,8 @@ const MasterDataApiGroup = Layer.mergeAll(
  */
 const AdvancedApiGroup = Layer.mergeAll(
   IntercompanyTransactionsApiLive,
-  EliminationRulesApiLive
+  EliminationRulesApiLive,
+  FiscalPeriodApiLive
 )
 
 // =============================================================================
@@ -164,6 +166,7 @@ const AdvancedApiGroup = Layer.mergeAll(
  * - Invitation API (protected)
  * - User Organizations API (protected)
  * - Policy API (protected)
+ * - Fiscal Period API (protected)
  * - Platform Admin API (protected, admin-only)
  *
  * Dependencies (required from consumer):
@@ -177,6 +180,8 @@ const AdvancedApiGroup = Layer.mergeAll(
  * - ConsolidationRepository
  * - EliminationRuleRepository
  * - AuditLogRepository
+ * - FiscalPeriodRepository
+ * - FiscalPeriodService
  */
 export const AppApiLive = HttpApiBuilder.api(AppApi).pipe(
   // Core API groups (merged to reduce pipe arguments)

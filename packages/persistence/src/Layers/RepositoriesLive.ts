@@ -44,6 +44,8 @@ import { PolicyRepositoryLive } from "./PolicyRepositoryLive.ts"
 import { AuthServiceLive } from "./AuthServiceLive.ts"
 import { OrganizationMemberServiceLive } from "./OrganizationMemberServiceLive.ts"
 import { InvitationServiceLive } from "./InvitationServiceLive.ts"
+import { FiscalPeriodRepositoryLive } from "./FiscalPeriodRepositoryLive.ts"
+import { FiscalPeriodServiceLive } from "./FiscalPeriodServiceLive.ts"
 import { LocalAuthProviderLive } from "./LocalAuthProviderLive.ts"
 import { LocalAuthProvider } from "../Services/LocalAuthProvider.ts"
 import { AuthServiceConfig, SessionDurationConfig } from "../Services/AuthServiceConfig.ts"
@@ -106,7 +108,8 @@ export const RepositoriesLive = Layer.mergeAll(
   SessionRepositoryLive,
   OrganizationMemberRepositoryLive,
   InvitationRepositoryLive,
-  PolicyRepositoryLive
+  PolicyRepositoryLive,
+  FiscalPeriodRepositoryLive
 )
 
 // =============================================================================
@@ -286,6 +289,13 @@ const InvitationServiceWithDeps = InvitationServiceLive.pipe(
 )
 
 /**
+ * FiscalPeriodServiceWithDeps - FiscalPeriodService with repository
+ */
+const FiscalPeriodServiceWithDeps = FiscalPeriodServiceLive.pipe(
+  Layer.provide(FiscalPeriodRepositoryLive)
+)
+
+/**
  * RepositoriesWithAuthLive - Repositories plus AuthService
  *
  * Includes all repository implementations plus the AuthService.
@@ -297,11 +307,13 @@ const InvitationServiceWithDeps = InvitationServiceLive.pipe(
  * - PasswordHasher (for password verification/hashing in API handlers)
  * - OrganizationMemberService
  * - InvitationService
+ * - FiscalPeriodService
  */
 export const RepositoriesWithAuthLive = Layer.mergeAll(
   RepositoriesLive,
   AuthServiceWithDeps,
   PasswordHasherWithCrypto,
   OrganizationMemberServiceWithDeps,
-  InvitationServiceWithDeps
+  InvitationServiceWithDeps,
+  FiscalPeriodServiceWithDeps
 )

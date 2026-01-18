@@ -20,6 +20,7 @@ import { CurrenciesApi } from "./CurrenciesApi.ts"
 import { CurrencyApi } from "./CurrencyApi.ts"
 import { JurisdictionsApi } from "./JurisdictionsApi.ts"
 import { EliminationRulesApi } from "./EliminationRulesApi.ts"
+import { FiscalPeriodApi } from "./FiscalPeriodApi.ts"
 import { IntercompanyTransactionsApi } from "./IntercompanyTransactionsApi.ts"
 import { InvitationApi } from "./InvitationApi.ts"
 import { JournalEntriesApi } from "./JournalEntriesApi.ts"
@@ -99,6 +100,8 @@ export class HealthApi extends HttpApiGroup.make("health")
  * - /api/v1/users/me/organizations - User's organizations with roles/permissions (protected)
  * - /api/v1/organizations/:orgId/policies - ABAC policy management (protected)
  * - /api/v1/organizations/:orgId/authorization-audit - Authorization denial logs (protected)
+ * - /api/v1/organizations/:orgId/companies/:companyId/fiscal-years - Fiscal year management (protected)
+ * - /api/v1/organizations/:orgId/companies/:companyId/fiscal-years/:yearId/periods - Fiscal period management (protected)
  * - /api/v1/platform-admins - Platform administrator list (protected, admin-only)
  */
 export class AppApi extends HttpApi.make("AppApi")
@@ -122,6 +125,7 @@ export class AppApi extends HttpApi.make("AppApi")
   .add(IntercompanyTransactionsApi)
   .add(ConsolidationApi)
   .add(EliminationRulesApi)
+  .add(FiscalPeriodApi)
   .add(UserOrganizationsApi)
   .prefix("/api")
   .annotateContext(OpenApi.annotations({
