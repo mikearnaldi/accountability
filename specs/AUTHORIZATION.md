@@ -561,7 +561,7 @@ Function to match current user against SubjectCondition:
 
 ---
 
-#### Phase F3: Resource Matcher
+#### Phase F3: Resource Matcher ✅ COMPLETE
 **File**: `packages/core/src/Auth/matchers/ResourceMatcher.ts`
 
 Function to match resource against ResourceCondition:
@@ -572,6 +572,20 @@ Function to match resource against ResourceCondition:
 - etc.
 
 **Test**: Unit tests.
+
+**Completed**:
+- Created `ResourceMatcher.ts` with functions for matching resources against resource conditions in ABAC policy evaluation
+- Implemented `matchesResourceType` for type matching with wildcard support
+- Implemented `matchesAccountNumberCondition` for range and list-based matching
+- Implemented `matchesAccountType`, `matchesEntryType`, `matchesPeriodStatus` for literal list matching
+- Implemented `matchesBooleanAttribute` for boolean flag matching
+- Implemented `matchesResourceAttributes` that combines all attribute conditions with AND logic
+- Implemented `matchesResourceCondition` as the main entry point for resource matching
+- Implemented `matchesAnyResourceCondition` and `matchesAllResourceConditions` for multi-condition matching
+- Implemented `getResourceMismatchReason` for human-readable denial reasons
+- Created helper functions for creating ResourceContext objects: `createAccountResourceContext`, `createJournalEntryResourceContext`, `createFiscalPeriodResourceContext`, `createCompanyResourceContext`, `createOrganizationResourceContext`, `createConsolidationGroupResourceContext`, `createReportResourceContext`
+- Added 76 comprehensive unit tests covering all match types and edge cases
+- All 3774 tests pass, typecheck clean, lint clean
 
 ---
 
