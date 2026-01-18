@@ -516,7 +516,7 @@ Update `AuthorizationServiceLive.ts`:
 
 ### Track F: ABAC Policy Engine (Backend)
 
-#### Phase F1: Action Matcher
+#### Phase F1: Action Matcher ✅ COMPLETE
 **File**: `packages/core/src/Auth/matchers/ActionMatcher.ts`
 
 Function to match action against ActionCondition:
@@ -525,6 +525,16 @@ Function to match action against ActionCondition:
 - Prefix wildcard: `"journal_entry:*"` matches `"journal_entry:create"`
 
 **Test**: Unit tests for all match types.
+
+**Completed**:
+- Created `ActionMatcher.ts` with functions for matching actions against patterns and conditions
+- Implemented `matchesActionPattern` for exact matching and global wildcard matching
+- Implemented `matchesActionPatternString` for prefix wildcard patterns like `journal_entry:*`
+- Implemented `matchesActionCondition` for matching against ActionCondition objects
+- Implemented `matchesActionPatterns`, `anyActionMatchesCondition`, `filterMatchingActions`, `filterMatchingActionsFromPatterns` helper functions
+- Added `ActionPattern` type for prefix wildcard support
+- Created comprehensive unit tests (30 tests) covering exact matches, wildcards, prefix wildcards, and edge cases
+- All 3650 tests pass, typecheck clean, lint clean
 
 ---
 
