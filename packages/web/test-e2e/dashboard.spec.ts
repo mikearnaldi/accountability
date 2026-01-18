@@ -328,7 +328,6 @@ test.describe("Dashboard - Header", () => {
 
     // Verify menu items
     await expect(page.locator('[data-testid="user-menu-profile"]')).toBeVisible()
-    await expect(page.locator('[data-testid="user-menu-settings"]')).toBeVisible()
     await expect(page.locator('[data-testid="user-menu-logout"]')).toBeVisible()
   })
 

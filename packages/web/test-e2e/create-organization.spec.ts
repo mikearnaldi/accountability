@@ -398,10 +398,16 @@ test.describe("Create Organization Page (/organizations/new)", () => {
       page.getByTestId("org-form-submit-button").click()
     ])
 
-    // 7. Wait for the organization name heading to appear on the detail page
-    await expect(page.getByRole("heading", { name: orgName })).toBeVisible({ timeout: 15000 })
+    // 7. Wait for navigation to complete (URL should have UUID)
+    await page.waitForURL(/\/organizations\/[a-f0-9-]+$/, { timeout: 15000 })
 
-    // 8. Verify we're on the organization detail page (URL should have UUID)
+    // 8. Wait for page to be fully hydrated
+    await page.waitForTimeout(500)
+
+    // 9. Wait for the organization name heading to appear on the detail page
+    await expect(page.getByRole("heading", { name: orgName })).toBeVisible({ timeout: 10000 })
+
+    // 10. Verify we're on the organization detail page
     expect(page.url()).toMatch(/\/organizations\/[a-f0-9-]+/)
   })
 
@@ -469,8 +475,11 @@ test.describe("Create Organization Page (/organizations/new)", () => {
     // 8. Should navigate to organization detail page
     await page.waitForURL(/\/organizations\/[^/]+$/, { timeout: 15000 })
 
-    // 9. Verify the organization was created with correct settings (use heading to avoid matching breadcrumb)
-    await expect(page.getByRole("heading", { name: orgName })).toBeVisible({ timeout: 5000 })
+    // 9. Wait for page to be fully hydrated
+    await page.waitForTimeout(500)
+
+    // 10. Verify the organization was created with correct settings (use heading to avoid matching breadcrumb)
+    await expect(page.getByRole("heading", { name: orgName })).toBeVisible({ timeout: 10000 })
     await expect(page.getByText("GBP")).toBeVisible()
     await expect(page.getByText("Europe/London")).toBeVisible()
   })

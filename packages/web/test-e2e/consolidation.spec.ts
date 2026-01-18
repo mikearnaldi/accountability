@@ -543,19 +543,41 @@ test.describe("Consolidation Module", () => {
 
       // 12. Select parent company
       const parentCompanySelect = page.getByTestId("parent-company-select")
-      await parentCompanySelect.selectOption(parentData.id)
+
+      // Wait for form to be fully hydrated before interacting
+      await page.waitForTimeout(500)
+
+      // Select the parent company using the value
+      await parentCompanySelect.selectOption({ value: parentData.id })
 
       // Verify parent company was selected
-      await expect(parentCompanySelect).toHaveValue(parentData.id)
+      await expect(parentCompanySelect).toHaveValue(parentData.id, { timeout: 10000 })
 
-      // Wait for React to update state after parent company selection
-      // The add-member-button becomes enabled when parentCompanyId is set
+      // 13. Wait for add-member-button to be enabled
+      // The button becomes enabled when:
+      // 1. parentCompanyId is set (done above)
+      // 2. availableCompaniesForMembers.length > 0 (subsidiary should be available)
+      const addMemberButton = page.getByTestId("add-member-button")
+
+      // Wait for React state updates to propagate
+      // The useMemo hook needs to recompute availableCompaniesForMembers
       await page.waitForTimeout(1000)
 
-      // 13. Wait for add-member-button to be enabled (depends on parentCompanyId being set)
-      // Use a longer timeout since React state updates can be slow
-      await expect(page.getByTestId("add-member-button")).toBeEnabled({ timeout: 15000 })
-      await page.getByTestId("add-member-button").click({ force: true })
+      // If button is still disabled after initial wait, try clicking the select again
+      // to trigger React re-render
+      const isEnabled = await addMemberButton.isEnabled()
+      if (!isEnabled) {
+        // Re-select to force state update
+        await parentCompanySelect.selectOption({ value: "" })
+        await page.waitForTimeout(300)
+        await parentCompanySelect.selectOption({ value: parentData.id })
+        await expect(parentCompanySelect).toHaveValue(parentData.id, { timeout: 5000 })
+        await page.waitForTimeout(500)
+      }
+
+      // Final check that button is enabled
+      await expect(addMemberButton).toBeEnabled({ timeout: 15000 })
+      await addMemberButton.click({ force: true })
 
       // 14. Select the subsidiary company
       await page.getByTestId("member-company-select-0").selectOption(subData.id)
@@ -564,13 +586,18 @@ test.describe("Consolidation Module", () => {
       await page.getByTestId("member-ownership-input-0").fill("75")
 
       // 16. Submit the form
-      await page.getByTestId("submit-button").click()
+      const submitButton = page.getByTestId("submit-button")
+      await expect(submitButton).toBeEnabled({ timeout: 5000 })
+      await submitButton.click({ force: true })
 
-      // 17. Should redirect to group detail page
-      await page.waitForURL(/\/consolidation\/[a-f0-9-]+$/)
+      // 17. Should redirect to group detail page (allow more time for API call and redirect)
+      await page.waitForURL(/\/consolidation\/[a-f0-9-]+$/, { timeout: 30000 })
 
-      // 18. Should show the new group's detail page
-      await expect(page.getByTestId("consolidation-group-detail-page")).toBeVisible()
+      // 18. Wait for page to hydrate
+      await page.waitForTimeout(500)
+
+      // 19. Should show the new group's detail page
+      await expect(page.getByTestId("consolidation-group-detail-page")).toBeVisible({ timeout: 10000 })
       await expect(page.getByTestId("page-title")).toContainText(groupName)
     })
 

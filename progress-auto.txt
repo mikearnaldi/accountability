@@ -569,3 +569,8 @@
 **Task**: Created comprehensive AUTHORIZATION_MISSING.md documenting 12 missing/partial features including fiscal period management, owner transfer UI, platform admin management, email sending, environment condition runtime evaluation, and more
 **Status**: complete
 ---
+
+## Iteration 1 - 2026-01-18 12:54
+**Task**: Fixed CI failures - removed obsolete user-menu-settings test assertion and stabilized flaky E2E tests
+**Status**: complete
+---

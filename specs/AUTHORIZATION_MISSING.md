@@ -85,26 +85,31 @@ Platform admin capability exists in the database but cannot be managed:
 
 ---
 
-### 4. Invitation Email Sending
+### 4. Invitation Link Display
 
-**Status: TOKEN GENERATED - NO EMAIL SENT**
+**Status: TOKEN GENERATED - NOT SHOWN TO USER**
 
-Invitations can be created and accepted, but there's no way to notify invitees:
+Invitations can be created and accepted, but the invitation link is not displayed for manual sharing:
 
 **What's Implemented:**
 - Invitation token generation (256-bit random, base64url encoded)
 - Token hashing and storage
 - Accept/decline invitation API endpoints
 - UI to accept invitations (if you have the token URL)
+- API returns raw token in response
 
 **What's Missing:**
-- [ ] **No email service integration** (Mailgun, SendGrid, AWS SES, etc.)
-- [ ] **No invitation email template**
-- [ ] **No background job system** for async email sending
-- [ ] **No SMTP/email configuration**
-- [ ] **No email queue/retry logic**
+- [ ] **Invitation link display** - Show the shareable link after creating invitation
+- [ ] **Copy to clipboard button** - One-click copy of invitation URL
+- [ ] **Link format display** - Show `https://app.example.com/invitations/{token}`
 
-**Current Workaround:** The API returns the raw token in the response. The frontend could theoretically display this token for manual sharing, but there's no UI for this. Invitation acceptance requires knowing the token URL.
+**Note:** Email integration is explicitly NOT planned. The workflow should be:
+1. Admin creates invitation in UI
+2. UI displays the invitation link with copy button
+3. Admin manually shares link via email, Slack, etc.
+4. Invitee clicks link to accept
+
+**File:** `packages/web/src/routes/organizations/$organizationId/settings/members.tsx` - Update `InviteMemberModal` to show link after successful creation
 
 ---
 
@@ -162,9 +167,73 @@ Authorization denials are logged to the database, but there's no UI to view them
 
 ---
 
+### 7. User Profile Page Broken Semantics
+
+**Status: FUNDAMENTALLY BROKEN**
+
+The profile page (`/profile`) has severe UX and semantic issues:
+
+**What's Implemented:**
+- Display name editing
+- Email display (read-only)
+- Authentication provider information
+- Member since date
+
+**Critical Problems:**
+
+1. **Organization context is explicitly cleared:**
+   ```typescript
+   // packages/web/src/routes/profile.tsx lines 231-232
+   <AppLayout
+     organizations={[]}           // Empty array!
+     currentOrganization={null}   // Null!
+   >
+   ```
+   - Visiting the profile page clears the organization selector
+   - User loses their place in the app navigation
+   - Back button goes to `/organizations` list, not their previous org
+
+2. **"Role" field is meaningless without organization context:**
+   ```typescript
+   // Shows user.role from auth_users table
+   <span data-testid="profile-role">{getRoleDisplayName(user.role)}</span>
+   ```
+   - Displays "Member", "Owner", "Administrator", or "Viewer"
+   - But this is the *auth_users.role* field, NOT organization membership role
+   - A user can be Owner in Org A and Viewer in Org B
+   - The role shown has no connection to any organization
+   - Description says "Managed by organization administrators" - of which organization?
+
+3. **Confusing user vs member distinction:**
+   - The `auth_users.role` field is a legacy/platform-level concept
+   - Organization membership roles are in `user_organization_members.role`
+   - Profile page conflates these two different concepts
+
+**What's Missing:**
+- [ ] **Preserve organization context** - Don't clear the org selector when visiting profile
+- [ ] **Remove or clarify the Role field** - Either remove it entirely or show "Platform role" with explanation
+- [ ] **Show organization memberships** - List all orgs the user belongs to with their role in each
+- [ ] **Navigate back to previous context** - Back button should return to previous page, not /organizations
+
+**Suggested Fix:**
+
+Option A: **Make profile org-scoped** (`/organizations/:orgId/profile`)
+- Show role in current organization context
+- Keep organization selector populated
+- Add section showing "Your role in [Org Name]: Owner"
+
+Option B: **Make profile truly global** with membership list
+- Remove the confusing "Role" field entirely
+- Add "Your Organizations" section showing all memberships with roles
+- Keep organization selector populated (don't clear it)
+
+**File:** `packages/web/src/routes/profile.tsx`
+
+---
+
 ## Partial Implementations
 
-### 7. Member Removal/Reinstatement API Calls
+### 8. Member Removal/Reinstatement API Calls
 
 **Status: UI EXISTS - API CALLS STUBBED**
 
@@ -191,7 +260,7 @@ The member actions menu has Remove and Reinstate buttons, but they don't actuall
 
 ---
 
-### 8. Member Suspension State
+### 9. Member Suspension State
 
 **Status: DEFINED BUT UNUSED**
 
@@ -213,7 +282,7 @@ The membership status includes "suspended" but it's never used:
 
 ---
 
-### 9. Effective Permissions Display
+### 10. Effective Permissions Display
 
 **Status: CACHED INTERNALLY - NOT SHOWN TO USERS**
 
@@ -247,18 +316,6 @@ This UI component is not implemented.
 
 ## Lower Priority Missing Features
 
-### 10. Rate Limiting for Invitations
-
-**Spec States:** "Rate limit: max 10 invitations per org per hour"
-
-**Status:** NOT IMPLEMENTED
-
-- [ ] No rate limiting middleware
-- [ ] No invitation count tracking
-- [ ] No 429 Too Many Requests response
-
----
-
 ### 11. Invitation Uniqueness Constraint
 
 **Spec States:** Unique constraint `(organization_id, email, status)` for pending invites
@@ -286,32 +343,28 @@ The database has this constraint, but the UI doesn't handle the duplicate invita
 ## Implementation Recommendations
 
 ### Phase 1: Quick Wins (Low effort, High impact)
-1. **Complete member removal API calls** - Fix stub implementations (30 min)
-2. **Add owner transfer modal** - UI for existing backend (2-3 hours)
-3. **Show current owner indicator** - Visual badge in members list (30 min)
+1. **Fix profile page** - Preserve org context, remove broken Role field, add memberships list (1-2 hours)
+2. **Show invitation link after creation** - Display shareable URL with copy button (30 min)
+3. **Complete member removal API calls** - Fix stub implementations (30 min)
+4. **Add owner transfer modal** - UI for existing backend (2-3 hours)
+5. **Show current owner indicator** - Visual badge in members list (30 min)
 
 ### Phase 2: Environment Integration (Medium effort)
-4. **Capture request context in middleware** - Time, IP, user agent (2-3 hours)
-5. **Pass environment to policy engine** - Enable time/IP restrictions (1-2 hours)
-6. **Re-enable IP restrictions in policy builder** - Uncomment UI fields (30 min)
+6. **Capture request context in middleware** - Time, IP, user agent (2-3 hours)
+7. **Pass environment to policy engine** - Enable time/IP restrictions (1-2 hours)
+8. **Re-enable IP restrictions in policy builder** - Uncomment UI fields (30 min)
 
 ### Phase 3: Fiscal Period Management (High effort)
-7. **Design fiscal period data model** - Period status table schema (1-2 hours)
-8. **Create FiscalPeriodRepository** - Database operations (2-3 hours)
-9. **Create FiscalPeriodService** - State transition logic (3-4 hours)
-10. **Create FiscalPeriodApi** - REST endpoints (2-3 hours)
-11. **Create Fiscal Period Management UI** - List/detail pages (4-6 hours)
+9. **Design fiscal period data model** - Period status table schema (1-2 hours)
+10. **Create FiscalPeriodRepository** - Database operations (2-3 hours)
+11. **Create FiscalPeriodService** - State transition logic (3-4 hours)
+12. **Create FiscalPeriodApi** - REST endpoints (2-3 hours)
+13. **Create Fiscal Period Management UI** - List/detail pages (4-6 hours)
 
-### Phase 4: Email Service (High effort, External dependency)
-12. **Choose email provider** - Mailgun, SendGrid, AWS SES
-13. **Implement email service** - Provider integration
-14. **Create invitation email template** - HTML email
-15. **Add background job system** - Async email sending
-
-### Phase 5: Admin Features (Medium effort)
-16. **Create authorization audit log UI** - View denied access attempts
-17. **Create platform admin viewer** - Read-only list of admins
-18. **Create effective permissions viewer** - Permission matrix UI
+### Phase 4: Admin Features (Medium effort)
+14. **Create authorization audit log UI** - View denied access attempts
+15. **Create platform admin viewer** - Read-only list of admins
+16. **Create effective permissions viewer** - Permission matrix UI
 
 ---
 
@@ -324,12 +377,15 @@ The database has this constraint, but the UI doesn't handle the duplicate invita
 - `packages/api/src/Definitions/FiscalPeriodApi.ts` - Period API
 - `packages/api/src/Layers/FiscalPeriodApiLive.ts` - Period API handlers
 - `packages/web/src/routes/organizations/$organizationId/fiscal-periods/` - Period UI
-- `packages/core/src/Email/EmailService.ts` - Email sending interface
-- `packages/persistence/src/Services/EmailServiceLive.ts` - Email implementation
 - `packages/web/src/components/members/TransferOwnershipModal.tsx` - Transfer UI
 - `packages/web/src/components/members/EffectivePermissionsView.tsx` - Permission display
 
 ### Files to Modify:
+- `packages/web/src/routes/profile.tsx`:
+  - Fix organization context (don't clear org selector)
+  - Remove or clarify meaningless "Role" field
+  - Add "Your Organizations" section with roles
+  - Fix back navigation
 - `packages/web/src/routes/organizations/$organizationId/settings/members.tsx`:
   - Complete removal/reinstatement API calls
   - Add owner transfer button and modal

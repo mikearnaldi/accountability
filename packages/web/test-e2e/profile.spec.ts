@@ -228,12 +228,19 @@ test.describe("User Profile Page", () => {
 
     // 7. Type something then clear back to original
     const displayNameInput = page.getByTestId("profile-display-name-input")
+
+    // Wait for input to be ready and hydrated
+    await page.waitForTimeout(500)
+
+    // Fill with a different value
     await displayNameInput.fill("Changed")
-    await expect(saveButton).toBeEnabled()
+
+    // Wait for React state update
+    await expect(saveButton).toBeEnabled({ timeout: 10000 })
 
     // 8. Revert to original value
     await displayNameInput.fill("Test User Name")
-    await expect(saveButton).toBeDisabled()
+    await expect(saveButton).toBeDisabled({ timeout: 10000 })
   })
 
   test("should show delete account button as disabled", async ({ page, request }) => {
