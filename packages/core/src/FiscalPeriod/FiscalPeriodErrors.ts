@@ -73,6 +73,35 @@ export class FiscalPeriodNotFoundError extends Schema.TaggedError<FiscalPeriodNo
  */
 export const isFiscalPeriodNotFoundError = Schema.is(FiscalPeriodNotFoundError)
 
+/**
+ * FiscalPeriodNotFoundForDateError - No fiscal period exists for the given date
+ *
+ * Returned when attempting to create a journal entry for a date
+ * that doesn't fall within any fiscal period.
+ *
+ * HTTP Status: 400 Bad Request
+ */
+export class FiscalPeriodNotFoundForDateError extends Schema.TaggedError<FiscalPeriodNotFoundForDateError>()(
+  "FiscalPeriodNotFoundForDateError",
+  {
+    companyId: CompanyId.annotations({
+      description: "The company ID"
+    }),
+    date: Schema.String.annotations({
+      description: "The date for which no fiscal period exists (ISO format)"
+    })
+  }
+) {
+  get message(): string {
+    return `No fiscal period exists for date ${this.date}. Please create a fiscal year covering this date.`
+  }
+}
+
+/**
+ * Type guard for FiscalPeriodNotFoundForDateError
+ */
+export const isFiscalPeriodNotFoundForDateError = Schema.is(FiscalPeriodNotFoundForDateError)
+
 // =============================================================================
 // 400 Bad Request Errors - Invalid operations
 // =============================================================================
@@ -328,6 +357,7 @@ export const isPeriodsNotClosedError = Schema.is(PeriodsNotClosedError)
 export type FiscalPeriodError =
   | FiscalYearNotFoundError
   | FiscalPeriodNotFoundError
+  | FiscalPeriodNotFoundForDateError
   | InvalidStatusTransitionError
   | InvalidYearStatusTransitionError
   | FiscalYearOverlapError
@@ -348,6 +378,7 @@ export const FISCAL_PERIOD_ERROR_STATUS_CODES = {
   InvalidStatusTransitionError: 400,
   InvalidYearStatusTransitionError: 400,
   FiscalYearOverlapError: 400,
+  FiscalPeriodNotFoundForDateError: 400,
   // 409 Conflict
   FiscalYearAlreadyExistsError: 409,
   PeriodNotOpenError: 409,

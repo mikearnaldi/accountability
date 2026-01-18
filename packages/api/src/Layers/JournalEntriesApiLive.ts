@@ -46,6 +46,7 @@ import {
 } from "../Definitions/ApiErrors.ts"
 import { requireOrganizationContext, requirePermission, requirePermissionWithResource } from "./OrganizationContextMiddlewareLive.ts"
 import { FiscalPeriodService } from "@accountability/core/FiscalPeriod/FiscalPeriodService"
+import { FiscalPeriodNotFoundForDateError } from "@accountability/core/FiscalPeriod/FiscalPeriodErrors"
 import type { ResourceContext } from "@accountability/core/Auth/matchers/ResourceMatcher"
 import type { LocalDate } from "@accountability/core/Domains/LocalDate"
 import type { CompanyId } from "@accountability/core/Domains/Company"
@@ -146,20 +147,26 @@ const createLineFromRequest = (
 /**
  * Helper to build resource context with period status for ABAC evaluation
  *
- * This enables the "Locked Period Protection" system policy to evaluate
- * periodStatus conditions. The policy denies journal entry modifications
- * when the period is Closed or Locked.
+ * This enables the fiscal period protection system policies to evaluate
+ * periodStatus conditions. The policies deny journal entry modifications
+ * when the period is Future, SoftClose (without controller role), Closed, or Locked.
+ *
+ * IMPORTANT: This function enforces that a fiscal period MUST exist for the
+ * transaction date. If no fiscal period exists, it will fail with
+ * FiscalPeriodNotFoundForDateError.
  *
  * @param companyId - The company ID to look up the period for
  * @param transactionDate - The date to check period status for
+ * @param requirePeriod - Whether to require a fiscal period to exist (default: true)
  * @returns Effect containing the resource context for authorization
  */
 const buildJournalEntryResourceContext = (
   companyId: CompanyId,
-  transactionDate: LocalDate
+  transactionDate: LocalDate,
+  requirePeriod: boolean = true
 ): Effect.Effect<
   ResourceContext,
-  never,
+  BusinessRuleError,
   FiscalPeriodService
 > =>
   Effect.gen(function* () {
@@ -173,6 +180,18 @@ const buildJournalEntryResourceContext = (
       // If there's an error looking up the period, don't block - just skip period check
       Effect.catchAll(() => Effect.succeed(Option.none()))
     )
+
+    // If period is required but not found, fail with appropriate error
+    if (requirePeriod && Option.isNone(periodStatusOption)) {
+      return yield* Effect.fail(new BusinessRuleError({
+        code: "FISCAL_PERIOD_NOT_FOUND_FOR_DATE",
+        message: new FiscalPeriodNotFoundForDateError({
+          companyId,
+          date: transactionDate.toString()
+        }).message,
+        details: Option.none()
+      }))
+    }
 
     // Build resource context with period status if available
     const resourceContext: ResourceContext = {

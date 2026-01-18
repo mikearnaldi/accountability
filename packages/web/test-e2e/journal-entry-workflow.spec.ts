@@ -7,7 +7,68 @@
  * - Complete workflow from Draft to Posted
  */
 
-import { test, expect } from "@playwright/test"
+import { test, expect, type APIRequestContext } from "@playwright/test"
+
+/**
+ * Helper to create a fiscal year with open periods for testing.
+ * This is required because journal entry creation now requires fiscal periods to exist.
+ */
+async function createFiscalYearWithOpenPeriods(
+  request: APIRequestContext,
+  sessionToken: string,
+  organizationId: string,
+  companyId: string,
+  year: number
+): Promise<{ fiscalYearId: string; openPeriodId: string }> {
+  // Create fiscal year
+  const createFiscalYearRes = await request.post(
+    `/api/v1/organizations/${organizationId}/companies/${companyId}/fiscal-years`,
+    {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        year,
+        name: `FY ${year}`,
+        startDate: { year, month: 1, day: 1 },
+        endDate: { year, month: 12, day: 31 },
+        includeAdjustmentPeriod: null
+      }
+    }
+  )
+  if (!createFiscalYearRes.ok()) {
+    throw new Error(`Failed to create fiscal year: ${await createFiscalYearRes.text()}`)
+  }
+  const fiscalYearData = await createFiscalYearRes.json()
+  const fiscalYearId = fiscalYearData.id
+
+  // Get periods to find period 1 (January)
+  const listPeriodsRes = await request.get(
+    `/api/v1/organizations/${organizationId}/companies/${companyId}/fiscal-years/${fiscalYearId}/periods`,
+    {
+      headers: { Authorization: `Bearer ${sessionToken}` }
+    }
+  )
+  if (!listPeriodsRes.ok()) {
+    throw new Error(`Failed to list periods: ${await listPeriodsRes.text()}`)
+  }
+  const periodsData = await listPeriodsRes.json()
+  const period1 = periodsData.periods.find((p: { periodNumber: number }) => p.periodNumber === 1)
+  if (!period1) {
+    throw new Error("Period 1 not found")
+  }
+
+  // Open period 1 (January)
+  const openPeriodRes = await request.post(
+    `/api/v1/organizations/${organizationId}/companies/${companyId}/fiscal-years/${fiscalYearId}/periods/${period1.id}/open`,
+    {
+      headers: { Authorization: `Bearer ${sessionToken}` }
+    }
+  )
+  if (!openPeriodRes.ok()) {
+    throw new Error(`Failed to open period: ${await openPeriodRes.text()}`)
+  }
+
+  return { fiscalYearId, openPeriodId: period1.id }
+}
 
 test.describe("Journal Entry Detail and Workflow", () => {
   test("should complete approval workflow: Draft -> PendingApproval -> Approved -> Posted", async ({
@@ -124,7 +185,8 @@ test.describe("Journal Entry Detail and Workflow", () => {
     expect(createAccount2Res.ok()).toBeTruthy()
     const account2Data = await createAccount2Res.json()
 
-    // Note: Fiscal year creation removed - fiscal periods are computed automatically
+    // Create fiscal year with open periods (required for journal entry creation)
+    await createFiscalYearWithOpenPeriods(request, sessionToken, orgData.id, companyData.id, 2026)
 
     // 6. Create a journal entry via API
     const createJournalEntryRes = await request.post("/api/v1/journal-entries", {
@@ -327,7 +389,8 @@ test.describe("Journal Entry Detail and Workflow", () => {
     expect(createAccount2Res.ok()).toBeTruthy()
     const account2Data = await createAccount2Res.json()
 
-    // Note: Fiscal year creation removed - fiscal periods are computed automatically
+    // Create fiscal year with open periods (required for journal entry creation)
+    await createFiscalYearWithOpenPeriods(request, sessionToken, orgData.id, companyData.id, 2026)
 
     // 6. Create a journal entry and submit it via API
     const createJournalEntryRes = await request.post("/api/v1/journal-entries", {
@@ -535,7 +598,8 @@ test.describe("Journal Entry Detail and Workflow", () => {
     expect(createAccount2Res.ok()).toBeTruthy()
     const account2Data = await createAccount2Res.json()
 
-    // Note: Fiscal year creation removed - fiscal periods are computed automatically
+    // Create fiscal year with open periods (required for journal entry creation)
+    await createFiscalYearWithOpenPeriods(request, sessionToken, orgData.id, companyData.id, 2026)
 
     // 6. Create journal entry
     const createJournalEntryRes = await request.post("/api/v1/journal-entries", {
@@ -749,7 +813,8 @@ test.describe("Journal Entry Detail and Workflow", () => {
     expect(createAccount2Res.ok()).toBeTruthy()
     const account2Data = await createAccount2Res.json()
 
-    // Note: Fiscal year creation removed - fiscal periods are computed automatically
+    // Create fiscal year with open periods (required for journal entry creation)
+    await createFiscalYearWithOpenPeriods(request, sessionToken, orgData.id, companyData.id, 2026)
 
     // 6. Create journal entry with all metadata
     const createJournalEntryRes = await request.post("/api/v1/journal-entries", {
@@ -945,7 +1010,8 @@ test.describe("Journal Entry Detail and Workflow", () => {
     expect(createAccount2Res.ok()).toBeTruthy()
     const account2Data = await createAccount2Res.json()
 
-    // Note: Fiscal year creation removed - fiscal periods are computed automatically
+    // Create fiscal year with open periods (required for journal entry creation)
+    await createFiscalYearWithOpenPeriods(request, sessionToken, orgData.id, companyData.id, 2026)
 
     // 6. Create journal entry
     const createJournalEntryRes = await request.post("/api/v1/journal-entries", {

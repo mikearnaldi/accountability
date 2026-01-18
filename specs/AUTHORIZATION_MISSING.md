@@ -90,118 +90,61 @@ The AUTHORIZATION.md spec defines actions for fiscal period management. All comp
 
 ### 2. Fiscal Period Enforcement Gap
 
-**Status: NOT IMPLEMENTED** ⚠️
+**Status: IMPLEMENTED** ✓
 
-The fiscal period workflow (Future → Open → SoftClose → Closed → Locked) is implemented, but **only "Locked" periods actually block journal entry operations**. All other statuses allow full access.
+The fiscal period workflow (Future → Open → SoftClose → Closed → Locked) is now fully enforced.
 
-**Current Behavior:**
+**Current Behavior (After Implementation):**
 
 | Scenario | Can Create Journal Entry? | Expected Behavior |
 |----------|--------------------------|-------------------|
-| No fiscal period exists for the date | ✅ Yes | ❌ Should require period to exist |
-| Fiscal period exists with status "Future" | ✅ Yes | ❌ Should block (period not started) |
+| No fiscal period exists for the date | ❌ No (400 error) | ✅ Correct - requires period to exist |
+| Fiscal period exists with status "Future" | ❌ No (denied by policy) | ✅ Correct - period not started |
 | Fiscal period exists with status "Open" | ✅ Yes | ✅ Correct |
-| Fiscal period exists with status "SoftClose" | ✅ Yes | ⚠️ Should allow only with approval/special permission |
-| Fiscal period exists with status "Closed" | ✅ Yes | ❌ Should block |
-| Fiscal period exists with status "Locked" | ❌ No (blocked) | ✅ Correct |
+| Fiscal period exists with status "SoftClose" | ⚠️ Requires controller role | ✅ Correct - restricted access |
+| Fiscal period exists with status "Closed" | ❌ No (denied by policy) | ✅ Correct |
+| Fiscal period exists with status "Locked" | ❌ No (denied by policy) | ✅ Correct |
 
-**Root Cause:**
-1. `JournalEntryService` comments state: "Fiscal periods are computed from transaction dates at runtime rather than being validated against stored periods"
-2. The only protection is the "Prevent Modifications to Locked Periods" system policy which only checks for `periodStatus: ["Locked"]`
-3. No validation exists for non-existent periods or other closed statuses
-
-**What's Needed:**
+**What Was Implemented:**
 
 1. **Require fiscal period to exist** for journal entry dates
-   - [ ] Add validation in `JournalEntryService.create()` to lookup period by date
-   - [ ] Return error `FiscalPeriodNotFoundError` if no period covers the transaction date
-   - [ ] API should return 400 with clear message: "No fiscal period exists for date {date}"
+   - [x] Added validation in `buildJournalEntryResourceContext()` to lookup period by date
+   - [x] Returns `FiscalPeriodNotFoundForDateError` if no period covers the transaction date
+   - [x] API returns 400 with message: "No fiscal period exists for date {date}. Please create a fiscal year covering this date."
 
-2. **Block "Future" periods**
-   - [ ] Add system policy: "Prevent Entries in Future Periods" with `periodStatus: ["Future"]`
-   - [ ] Or: Add service-level validation before authorization check
+2. **Block "Future" periods** - System policy added
+   - [x] Added system policy: "Prevent Entries in Future Periods" with `periodStatus: ["Future"]`
+   - [x] Priority: 999 (same as locked/closed)
 
-3. **Block "Closed" periods** (same as Locked)
-   - [ ] Update system policy to include `periodStatus: ["Closed", "Locked"]`
-   - [ ] Or: Create separate "Prevent Modifications to Closed Periods" policy
+3. **Block "Closed" periods** - System policy added
+   - [x] Created separate "Prevent Modifications to Closed Periods" policy
+   - [x] Priority: 999 (same as locked)
 
-4. **Restrict "SoftClose" periods**
-   - [ ] Only users with `fiscal_period:soft_close` permission should be able to post entries
-   - [ ] Add system policy: "Restrict SoftClose Period Access" allowing only controllers
-   - [ ] Consider: Should all operations be blocked, or just posting?
+4. **Restrict "SoftClose" periods** - Two policies added
+   - [x] "Allow SoftClose Period Access for Controllers" - allows `controller` and `period_admin` functional roles
+   - [x] "Restrict SoftClose Period Access" - denies everyone else
+   - [x] Priority ordering ensures controller allow (998) is evaluated before default deny (997)
 
-**Implementation Approach: Hybrid (Recommended)**
+**System Policies Added (4 new, 8 total):**
 
-Policies alone cannot validate that a fiscal period EXISTS - they can only check attributes when a period is found. If no period exists, `periodStatus` is undefined and policy conditions don't match, defaulting to allow.
+1. **Prevent Modifications to Closed Periods** (Priority: 999, Effect: deny)
+   - Blocks create/update/post/reverse for periodStatus: ["Closed"]
 
-**The hybrid approach solves this:**
+2. **Prevent Entries in Future Periods** (Priority: 999, Effect: deny)
+   - Blocks create/update/post for periodStatus: ["Future"]
 
-1. **Service validates period existence** (cannot be done via policy)
-   - Add validation in `JournalEntryService.create()` to lookup period by date
-   - Return `FiscalPeriodNotFoundError` if no period covers the transaction date
-   - This is a hard requirement enforced in code
+3. **Allow SoftClose Period Access for Controllers** (Priority: 998, Effect: allow)
+   - Allows create/update/post for functionalRoles: ["controller", "period_admin"] in SoftClose
 
-2. **Policies handle status-based restrictions** (auditable, flexible)
-   - Policies can check `periodStatus` attribute when period exists
-   - Changes are visible in UI and tracked
-   - Can be customized per organization if needed later
+4. **Restrict SoftClose Period Access** (Priority: 997, Effect: deny)
+   - Blocks create/update/post for everyone else in periodStatus: ["SoftClose"]
 
-**Service-Level Changes:**
-```typescript
-// In JournalEntryService create/update/post methods:
-const period = yield* fiscalPeriodService.findPeriodByDate(companyId, transactionDate)
-if (Option.isNone(period)) {
-  return yield* Effect.fail(new FiscalPeriodNotFoundError({ date: transactionDate, companyId }))
-}
-// Period exists - status restrictions handled by ABAC policies
-```
-
-**System Policies to Add:**
-```typescript
-// Policy 1: Block Future periods - period hasn't started yet
-{
-  name: "Prevent Entries in Future Periods",
-  resource: { type: "journal_entry", attributes: { periodStatus: ["Future"] } },
-  action: { actions: ["journal_entry:create", "journal_entry:update", "journal_entry:post"] },
-  effect: "deny"
-}
-
-// Policy 2: Block Closed periods - same protection as Locked
-{
-  name: "Prevent Modifications to Closed Periods",
-  resource: { type: "journal_entry", attributes: { periodStatus: ["Closed"] } },
-  action: { actions: ["journal_entry:create", "journal_entry:update", "journal_entry:post", "journal_entry:reverse"] },
-  effect: "deny"
-}
-
-// Policy 3: Restrict SoftClose to controllers only
-{
-  name: "Restrict SoftClose Period Access",
-  subject: { functionalRoles: ["controller", "period_admin"] },
-  resource: { type: "journal_entry", attributes: { periodStatus: ["SoftClose"] } },
-  action: { actions: ["journal_entry:create", "journal_entry:update", "journal_entry:post"] },
-  effect: "allow"
-}
-
-// Policy 4: Default deny for SoftClose (evaluated after Policy 3)
-{
-  name: "Deny SoftClose Period Access by Default",
-  resource: { type: "journal_entry", attributes: { periodStatus: ["SoftClose"] } },
-  action: { actions: ["journal_entry:create", "journal_entry:update", "journal_entry:post"] },
-  effect: "deny"
-}
-```
-
-**Note:** The existing "Prevent Modifications to Locked Periods" policy already handles Locked status.
-
-**Files to Modify:**
-- `packages/core/src/Services/JournalEntryService.ts` - Add period existence validation
-- `packages/persistence/src/Layers/JournalEntryServiceLive.ts` - Implement validation with FiscalPeriodService dependency
-- `packages/core/src/Services/JournalEntryErrors.ts` - Add `FiscalPeriodNotFoundForDateError`
-- `packages/persistence/src/Seeds/SystemPolicies.ts` - Add 4 new system policies (Future, Closed, SoftClose allow, SoftClose deny)
-- `packages/api/src/Layers/JournalEntriesApiLive.ts` - Map new error to appropriate HTTP response (400 Bad Request)
-
-**Priority:** HIGH - Without this, the fiscal period workflow is cosmetic only. Users can bypass all period controls except "Locked".
+**Files Modified:**
+- `packages/core/src/Auth/AuthorizationPolicy.ts` - Added new priority constants
+- `packages/core/src/FiscalPeriod/FiscalPeriodErrors.ts` - Added `FiscalPeriodNotFoundForDateError`
+- `packages/persistence/src/Seeds/SystemPolicies.ts` - Added 4 new system policies
+- `packages/persistence/test/Seeds/SystemPolicies.test.ts` - Updated tests for 8 policies
+- `packages/api/src/Layers/JournalEntriesApiLive.ts` - Updated `buildJournalEntryResourceContext` to require period existence
 
 ---
 
@@ -852,12 +795,12 @@ The database has this constraint and the UI now handles the duplicate invitation
 - `packages/persistence/src/Layers/ExchangeRateServiceLive.ts` - Add audit logging to sync operations
 - `packages/persistence/src/Layers/OrganizationMemberServiceLive.ts` - Add audit logging to member changes
 
-### Files to Modify (Fiscal Period Enforcement):
-- `packages/core/src/Services/JournalEntryService.ts` - Add period existence validation signature
-- `packages/persistence/src/Layers/JournalEntryServiceLive.ts` - Implement period validation with FiscalPeriodService
-- `packages/core/src/Services/JournalEntryErrors.ts` - Add `FiscalPeriodNotFoundForDateError`
-- `packages/persistence/src/Seeds/SystemPolicies.ts` - Add 4 new system policies (Future, Closed, SoftClose)
-- `packages/api/src/Layers/JournalEntriesApiLive.ts` - Map new error to 400 response
+### Files to Modify (Fiscal Period Enforcement): ✓ DONE
+- [x] `packages/core/src/Auth/AuthorizationPolicy.ts` - Added new priority constants for period protection
+- [x] `packages/core/src/FiscalPeriod/FiscalPeriodErrors.ts` - Added `FiscalPeriodNotFoundForDateError`
+- [x] `packages/persistence/src/Seeds/SystemPolicies.ts` - Added 4 new system policies (Future, Closed, SoftClose allow, SoftClose deny)
+- [x] `packages/persistence/test/Seeds/SystemPolicies.test.ts` - Updated tests for 8 policies
+- [x] `packages/api/src/Layers/JournalEntriesApiLive.ts` - Updated `buildJournalEntryResourceContext` to require period existence
 
 ---
 
@@ -885,13 +828,20 @@ The following test coverage is missing for authorization features:
 - [ ] E2E test - Create journal entry → verify appears in audit log UI
 - [ ] E2E test - Add organization member → verify appears in audit log UI
 
-### Fiscal Period Enforcement Tests (NOT YET IMPLEMENTED):
-- [ ] Unit test - Journal entry blocked when no fiscal period exists
-- [ ] Unit test - Journal entry blocked in Future period
-- [ ] Unit test - Journal entry blocked in Closed period
-- [ ] Unit test - Journal entry allowed in Open period
-- [ ] Unit test - Journal entry in SoftClose requires controller role
-- [ ] E2E test - UI shows error when creating entry without fiscal period
+### Fiscal Period Enforcement Tests (COMPLETE):
+- [x] Unit tests for SystemPolicies - Verify 8 system policies created with correct settings (17 tests)
+- [x] E2E tests updated to create fiscal years - Journal entry tests now create fiscal years with open periods before creating entries
+- [x] Integration test - Journal entry blocked when no fiscal period exists (API-level) - Returns 400 with "No fiscal period exists for date" message
+- [ ] Integration test - Journal entry blocked in Future period via policy
+- [ ] Integration test - Journal entry blocked in Closed period via policy
+- [x] Integration test - Journal entry allowed in Open period - All E2E tests pass with Open periods
+- [ ] Integration test - Journal entry in SoftClose requires controller role
+- [x] E2E test - UI shows error when creating entry without fiscal period - Form displays error message
+
+**E2E Test Files Updated:**
+- `packages/web/test-e2e/journal-entries.spec.ts` - Added `createFiscalYearWithOpenPeriods()` helper, all tests create 2025/2026 fiscal years with period 1 open
+- `packages/web/test-e2e/journal-entry-workflow.spec.ts` - Added same helper, all tests create 2026 fiscal year with period 1 open
+- `packages/web/test-e2e/journal-entries-past-dates.spec.ts` - Added `createFiscalYearWithOpenPeriod()` helper that opens specific periods, tests create fiscal years for 2000, 2024, and 2025 as needed
 
 ### API Bug Fixed: listMembers now returns all members ✓
 

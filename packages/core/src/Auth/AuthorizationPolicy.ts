@@ -185,10 +185,26 @@ export const DEFAULT_POLICY_PRIORITY = 500
 
 /**
  * System policy priority levels
+ *
+ * Higher priority = evaluated first.
+ * Deny policies at the same priority as allow policies will block access.
+ *
+ * Order of evaluation:
+ * 1000 - Platform Admin Override (highest, allows anything)
+ *  999 - Period Protection (deny policies for locked/closed/future periods)
+ *  998 - SoftClose Controller Access (allow for controller roles)
+ *  997 - SoftClose Default Deny (deny for everyone else in soft-close)
+ *  900 - Owner Full Access
+ *  500 - Custom policies (default)
+ *  100 - Viewer Read-Only (lowest)
  */
 export const SYSTEM_POLICY_PRIORITIES = {
   PLATFORM_ADMIN_OVERRIDE: 1000,
-  OWNER_FULL_ACCESS: 900,
   LOCKED_PERIOD_PROTECTION: 999,
+  CLOSED_PERIOD_PROTECTION: 999,
+  FUTURE_PERIOD_PROTECTION: 999,
+  SOFTCLOSE_CONTROLLER_ACCESS: 998,
+  SOFTCLOSE_DEFAULT_DENY: 997,
+  OWNER_FULL_ACCESS: 900,
   VIEWER_READ_ONLY: 100
 } as const

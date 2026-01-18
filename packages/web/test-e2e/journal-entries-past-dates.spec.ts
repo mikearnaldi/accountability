@@ -8,7 +8,69 @@
  * - Testing entries far in the past (1900, 2000)
  */
 
-import { test, expect } from "@playwright/test"
+import { test, expect, type APIRequestContext } from "@playwright/test"
+
+/**
+ * Helper to create a fiscal year with a specific period opened for testing.
+ * This is required because journal entry creation now requires fiscal periods to exist.
+ */
+async function createFiscalYearWithOpenPeriod(
+  request: APIRequestContext,
+  sessionToken: string,
+  organizationId: string,
+  companyId: string,
+  year: number,
+  periodNumber: number
+): Promise<{ fiscalYearId: string; openPeriodId: string }> {
+  // Create fiscal year
+  const createFiscalYearRes = await request.post(
+    `/api/v1/organizations/${organizationId}/companies/${companyId}/fiscal-years`,
+    {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        year,
+        name: `FY ${year}`,
+        startDate: { year, month: 1, day: 1 },
+        endDate: { year, month: 12, day: 31 },
+        includeAdjustmentPeriod: null
+      }
+    }
+  )
+  if (!createFiscalYearRes.ok()) {
+    throw new Error(`Failed to create fiscal year ${year}: ${await createFiscalYearRes.text()}`)
+  }
+  const fiscalYearData = await createFiscalYearRes.json()
+  const fiscalYearId = fiscalYearData.id
+
+  // Get periods to find the requested period
+  const listPeriodsRes = await request.get(
+    `/api/v1/organizations/${organizationId}/companies/${companyId}/fiscal-years/${fiscalYearId}/periods`,
+    {
+      headers: { Authorization: `Bearer ${sessionToken}` }
+    }
+  )
+  if (!listPeriodsRes.ok()) {
+    throw new Error(`Failed to list periods: ${await listPeriodsRes.text()}`)
+  }
+  const periodsData = await listPeriodsRes.json()
+  const period = periodsData.periods.find((p: { periodNumber: number }) => p.periodNumber === periodNumber)
+  if (!period) {
+    throw new Error(`Period ${periodNumber} not found`)
+  }
+
+  // Open the period
+  const openPeriodRes = await request.post(
+    `/api/v1/organizations/${organizationId}/companies/${companyId}/fiscal-years/${fiscalYearId}/periods/${period.id}/open`,
+    {
+      headers: { Authorization: `Bearer ${sessionToken}` }
+    }
+  )
+  if (!openPeriodRes.ok()) {
+    throw new Error(`Failed to open period: ${await openPeriodRes.text()}`)
+  }
+
+  return { fiscalYearId, openPeriodId: period.id }
+}
 
 test.describe("Journal Entry Past Dates", () => {
   test("can create journal entry with date from previous year (2024)", async ({
@@ -123,7 +185,10 @@ test.describe("Journal Entry Past Dates", () => {
     })
     expect(createAccount2Res.ok()).toBeTruthy()
 
-    // 6. Set session cookie
+    // 6. Create fiscal year 2024 with period 1 (January) open
+    await createFiscalYearWithOpenPeriod(request, sessionToken, orgData.id, companyData.id, 2024, 1)
+
+    // 7. Set session cookie
     await page.context().addCookies([
       {
         name: "accountability_session",
@@ -136,7 +201,7 @@ test.describe("Journal Entry Past Dates", () => {
       }
     ])
 
-    // 7. Navigate to new journal entry page
+    // 8. Navigate to new journal entry page
     await page.goto(
       `/organizations/${orgData.id}/companies/${companyData.id}/journal-entries/new`
     )
@@ -309,7 +374,10 @@ test.describe("Journal Entry Past Dates", () => {
     expect(createAccount2Res.ok()).toBeTruthy()
     const account2Data = await createAccount2Res.json()
 
-    // 5. Create journal entry with 2024 date via API
+    // 5. Create fiscal year 2024 with period 6 (June) open
+    await createFiscalYearWithOpenPeriod(request, sessionToken, orgData.id, companyData.id, 2024, 6)
+
+    // 6. Create journal entry with 2024 date via API
     const createJERes = await request.post("/api/v1/journal-entries", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {
@@ -462,7 +530,10 @@ test.describe("Journal Entry Past Dates", () => {
       }
     })
 
-    // 5. Set session cookie
+    // 5. Create fiscal year 2024 with period 12 (December) open
+    await createFiscalYearWithOpenPeriod(request, sessionToken, orgData.id, companyData.id, 2024, 12)
+
+    // 6. Set session cookie
     await page.context().addCookies([
       {
         name: "accountability_session",
@@ -475,15 +546,15 @@ test.describe("Journal Entry Past Dates", () => {
       }
     ])
 
-    // 6. Navigate to new journal entry page
+    // 7. Navigate to new journal entry page
     await page.goto(
       `/organizations/${orgData.id}/companies/${companyData.id}/journal-entries/new`
     )
 
-    // 7. Wait for form
+    // 8. Wait for form
     await expect(page.locator('[data-testid="journal-entry-form"]')).toBeVisible()
 
-    // 8. Set date to Dec 31, 2024 (last day of fiscal year)
+    // 9. Set date to Dec 31, 2024 (last day of fiscal year)
     const dateInput = page.locator('[data-testid="journal-entry-date"]')
     await dateInput.click()
     await dateInput.fill("2024-12-31")
@@ -624,7 +695,10 @@ test.describe("Journal Entry Past Dates", () => {
       }
     })
 
-    // 5. Set session cookie
+    // 5. Create fiscal year 2025 with period 1 (January) open
+    await createFiscalYearWithOpenPeriod(request, sessionToken, orgData.id, companyData.id, 2025, 1)
+
+    // 6. Set session cookie
     await page.context().addCookies([
       {
         name: "accountability_session",
@@ -637,15 +711,15 @@ test.describe("Journal Entry Past Dates", () => {
       }
     ])
 
-    // 6. Navigate to new journal entry page
+    // 7. Navigate to new journal entry page
     await page.goto(
       `/organizations/${orgData.id}/companies/${companyData.id}/journal-entries/new`
     )
 
-    // 7. Wait for form
+    // 8. Wait for form
     await expect(page.locator('[data-testid="journal-entry-form"]')).toBeVisible()
 
-    // 8. Set date to Jan 1, 2025 (first day of new fiscal year)
+    // 9. Set date to Jan 1, 2025 (first day of new fiscal year)
     const dateInput = page.locator('[data-testid="journal-entry-date"]')
     await dateInput.click()
     await dateInput.fill("2025-01-01")
@@ -949,7 +1023,10 @@ test.describe("Journal Entry Past Dates", () => {
     expect(createAccount2Res.ok()).toBeTruthy()
     const account2Data = await createAccount2Res.json()
 
-    // 5. Create journal entry with year 2000 date
+    // 5. Create fiscal year 2000 with period 1 (January) open
+    await createFiscalYearWithOpenPeriod(request, sessionToken, orgData.id, companyData.id, 2000, 1)
+
+    // 6. Create journal entry with year 2000 date
     const createJERes = await request.post("/api/v1/journal-entries", {
       headers: { Authorization: `Bearer ${sessionToken}` },
       data: {

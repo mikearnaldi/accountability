@@ -673,3 +673,8 @@
 **Task**: Fixed E2E tests by updating button selectors to use data-testid and adding proper waits for React state updates
 **Status**: complete
 ---
+
+## Iteration 3 - 2026-01-18 18:54
+**Task**: Fixed E2E tests by adding fiscal year creation helpers to journal entry test files
+**Status**: complete
+---

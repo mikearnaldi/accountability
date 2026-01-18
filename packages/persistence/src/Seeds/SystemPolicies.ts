@@ -51,7 +51,7 @@ function createSystemPolicy(
 }
 
 /**
- * Generates the 4 system policies for a new organization
+ * Generates the 8 system policies for a new organization
  *
  * @param organizationId - The ID of the organization to create policies for
  * @returns Array of policy creation inputs
@@ -146,6 +146,107 @@ export function createSystemPoliciesForOrganization(
       },
       effect: "deny",
       priority: SYSTEM_POLICY_PRIORITIES.LOCKED_PERIOD_PROTECTION
+    }),
+
+    // 5. Closed Period Protection - No modifications to closed periods
+    // Same as locked, but for closed periods
+    createSystemPolicy(organizationId, {
+      name: "Prevent Modifications to Closed Periods",
+      description: "Prevents creating, updating, posting, or reversing journal entries in closed fiscal periods",
+      subject: {
+        roles: ["owner", "admin", "member", "viewer"]
+      },
+      resource: {
+        type: "journal_entry",
+        attributes: {
+          periodStatus: ["Closed"]
+        }
+      },
+      action: {
+        actions: [
+          "journal_entry:create",
+          "journal_entry:update",
+          "journal_entry:post",
+          "journal_entry:reverse"
+        ]
+      },
+      effect: "deny",
+      priority: SYSTEM_POLICY_PRIORITIES.CLOSED_PERIOD_PROTECTION
+    }),
+
+    // 6. Future Period Protection - No entries in future periods
+    // Periods that haven't started yet shouldn't accept journal entries
+    createSystemPolicy(organizationId, {
+      name: "Prevent Entries in Future Periods",
+      description: "Prevents creating or posting journal entries in fiscal periods that haven't started yet",
+      subject: {
+        roles: ["owner", "admin", "member", "viewer"]
+      },
+      resource: {
+        type: "journal_entry",
+        attributes: {
+          periodStatus: ["Future"]
+        }
+      },
+      action: {
+        actions: [
+          "journal_entry:create",
+          "journal_entry:update",
+          "journal_entry:post"
+        ]
+      },
+      effect: "deny",
+      priority: SYSTEM_POLICY_PRIORITIES.FUTURE_PERIOD_PROTECTION
+    }),
+
+    // 7. SoftClose Controller Access - Controllers can still work in soft-closed periods
+    // This allow policy must be evaluated BEFORE the deny policy (#8)
+    createSystemPolicy(organizationId, {
+      name: "Allow SoftClose Period Access for Controllers",
+      description: "Users with controller or period_admin functional roles can create and post entries in soft-closed periods",
+      subject: {
+        functionalRoles: ["controller", "period_admin"]
+      },
+      resource: {
+        type: "journal_entry",
+        attributes: {
+          periodStatus: ["SoftClose"]
+        }
+      },
+      action: {
+        actions: [
+          "journal_entry:create",
+          "journal_entry:update",
+          "journal_entry:post"
+        ]
+      },
+      effect: "allow",
+      priority: SYSTEM_POLICY_PRIORITIES.SOFTCLOSE_CONTROLLER_ACCESS
+    }),
+
+    // 8. SoftClose Default Deny - Block others from working in soft-closed periods
+    // This deny policy is evaluated AFTER the controller allow policy (#7)
+    createSystemPolicy(organizationId, {
+      name: "Restrict SoftClose Period Access",
+      description: "Prevents regular users from creating or posting entries in soft-closed periods (controllers exempted)",
+      subject: {
+        roles: ["owner", "admin", "member", "viewer"]
+      },
+      resource: {
+        type: "journal_entry",
+        attributes: {
+          periodStatus: ["SoftClose"]
+        }
+      },
+      action: {
+        actions: [
+          "journal_entry:create",
+          "journal_entry:update",
+          "journal_entry:post"
+        ]
+      },
+      effect: "deny",
+      priority: SYSTEM_POLICY_PRIORITIES.SOFTCLOSE_DEFAULT_DENY
     })
   ]
 }
@@ -184,11 +285,11 @@ export function seedSystemPolicies(
  * (e.g., for migration purposes)
  *
  * @param policies - Array of policies to check
- * @returns true if all 4 system policies exist
+ * @returns true if all 8 system policies exist
  */
 export function hasSystemPolicies(
   policies: ReadonlyArray<{ isSystemPolicy: boolean }>
 ): boolean {
   const systemPolicyCount = policies.filter((p) => p.isSystemPolicy).length
-  return systemPolicyCount >= 4
+  return systemPolicyCount >= 8
 }
