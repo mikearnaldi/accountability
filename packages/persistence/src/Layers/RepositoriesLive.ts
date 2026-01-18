@@ -34,6 +34,7 @@ import { ConsolidationRepositoryLive } from "./ConsolidationRepositoryLive.ts"
 import { IntercompanyTransactionRepositoryLive } from "./IntercompanyTransactionRepositoryLive.ts"
 import { EliminationRuleRepositoryLive } from "./EliminationRuleRepositoryLive.ts"
 import { AuditLogRepositoryLive } from "./AuditLogRepositoryLive.ts"
+import { AuthorizationAuditRepositoryLive } from "./AuthorizationAuditRepositoryLive.ts"
 import { UserRepositoryLive } from "./UserRepositoryLive.ts"
 import { IdentityRepositoryLive } from "./IdentityRepositoryLive.ts"
 import { SessionRepositoryLive } from "./SessionRepositoryLive.ts"
@@ -60,6 +61,7 @@ import { AuthServiceConfig, SessionDurationConfig } from "../Services/AuthServic
  * - IntercompanyTransactionRepository
  * - EliminationRuleRepository
  * - AuditLogRepository
+ * - AuthorizationAuditRepository
  * - UserRepository
  * - IdentityRepository
  * - SessionRepository
@@ -97,6 +99,7 @@ export const RepositoriesLive = Layer.mergeAll(
   IntercompanyTransactionRepositoryLive,
   EliminationRuleRepositoryLive,
   AuditLogRepositoryLive,
+  AuthorizationAuditRepositoryLive,
   UserRepositoryLive,
   IdentityRepositoryLive,
   SessionRepositoryLive,

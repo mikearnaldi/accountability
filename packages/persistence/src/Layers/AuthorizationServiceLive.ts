@@ -5,6 +5,9 @@
  * Uses the CurrentOrganizationMembership context to determine the user's
  * role and functional roles.
  *
+ * Includes denial audit logging per Phase E14 - all permission denials
+ * are logged to the authorization_audit_log table.
+ *
  * For Phase C4, this implements RBAC only. ABAC policy engine integration
  * will be added in Track F.
  *
@@ -28,109 +31,135 @@ import {
   getResourceType,
   permissionSetToArray
 } from "@accountability/core/Auth/PermissionMatrix"
+import { AuthorizationAuditRepository } from "../Services/AuthorizationAuditRepository.ts"
 
 /**
  * Creates the AuthorizationService implementation
  */
-const make: AuthorizationServiceShape = {
-  /**
-   * Check if the current user has permission to perform an action
-   */
-  checkPermission: (action: Action) =>
-    Effect.gen(function* () {
-      const membership = yield* getCurrentOrganizationMembership()
+const make = Effect.gen(function* () {
+  const auditRepo = yield* AuthorizationAuditRepository
 
-      // Get effective permissions
-      const functionalRoles: FunctionalRole[] = []
-      if (membership.isController) functionalRoles.push("controller")
-      if (membership.isFinanceManager) functionalRoles.push("finance_manager")
-      if (membership.isAccountant) functionalRoles.push("accountant")
-      if (membership.isPeriodAdmin) functionalRoles.push("period_admin")
-      if (membership.isConsolidationManager) functionalRoles.push("consolidation_manager")
+  const service: AuthorizationServiceShape = {
+    /**
+     * Check if the current user has permission to perform an action
+     * Logs denied attempts to authorization_audit_log
+     */
+    checkPermission: (action: Action) =>
+      Effect.gen(function* () {
+        const membership = yield* getCurrentOrganizationMembership()
 
-      const permissions = computeEffectivePermissions(membership.role, functionalRoles)
+        // Get effective permissions
+        const functionalRoles: FunctionalRole[] = []
+        if (membership.isController) functionalRoles.push("controller")
+        if (membership.isFinanceManager) functionalRoles.push("finance_manager")
+        if (membership.isAccountant) functionalRoles.push("accountant")
+        if (membership.isPeriodAdmin) functionalRoles.push("period_admin")
+        if (membership.isConsolidationManager) functionalRoles.push("consolidation_manager")
 
-      // Check permission
-      if (!hasPermission(permissions, action)) {
-        return yield* Effect.fail(
-          new PermissionDeniedError({
-            action,
-            resourceType: getResourceType(action),
-            reason: `Role '${membership.role}' does not have permission for '${action}'`
-          })
-        )
-      }
-    }),
+        const permissions = computeEffectivePermissions(membership.role, functionalRoles)
 
-  /**
-   * Check multiple permissions at once
-   */
-  checkPermissions: (actions: readonly Action[]) =>
-    Effect.gen(function* () {
-      const membership = yield* getCurrentOrganizationMembership()
+        // Check permission
+        if (!hasPermission(permissions, action)) {
+          const resourceType = getResourceType(action)
+          const reason = `Role '${membership.role}' does not have permission for '${action}'`
 
-      // Get effective permissions
-      const functionalRoles: FunctionalRole[] = []
-      if (membership.isController) functionalRoles.push("controller")
-      if (membership.isFinanceManager) functionalRoles.push("finance_manager")
-      if (membership.isAccountant) functionalRoles.push("accountant")
-      if (membership.isPeriodAdmin) functionalRoles.push("period_admin")
-      if (membership.isConsolidationManager) functionalRoles.push("consolidation_manager")
+          // Log the denial to audit log (fire-and-forget, don't block on logging)
+          yield* auditRepo
+            .logDenial({
+              userId: membership.userId,
+              organizationId: membership.organizationId,
+              action,
+              resourceType,
+              denialReason: reason
+              // ipAddress and userAgent are optional - not available in current context
+            })
+            .pipe(
+              // Don't fail the main operation if logging fails
+              Effect.catchAll(() => Effect.void)
+            )
 
-      const permissions = computeEffectivePermissions(membership.role, functionalRoles)
+          return yield* Effect.fail(
+            new PermissionDeniedError({
+              action,
+              resourceType,
+              reason
+            })
+          )
+        }
+      }),
 
-      // Build result record using reduce - each action maps to its permission status
-      const result: Partial<Record<Action, boolean>> = {}
-      for (const action of actions) {
-        result[action] = hasPermission(permissions, action)
-      }
-      return result
-    }),
+    /**
+     * Check multiple permissions at once
+     */
+    checkPermissions: (actions: readonly Action[]) =>
+      Effect.gen(function* () {
+        const membership = yield* getCurrentOrganizationMembership()
 
-  /**
-   * Check if current user has a specific base role
-   */
-  hasRole: (role: BaseRole) =>
-    Effect.gen(function* () {
-      const membership = yield* getCurrentOrganizationMembership()
-      return membership.role === role
-    }),
+        // Get effective permissions
+        const functionalRoles: FunctionalRole[] = []
+        if (membership.isController) functionalRoles.push("controller")
+        if (membership.isFinanceManager) functionalRoles.push("finance_manager")
+        if (membership.isAccountant) functionalRoles.push("accountant")
+        if (membership.isPeriodAdmin) functionalRoles.push("period_admin")
+        if (membership.isConsolidationManager) functionalRoles.push("consolidation_manager")
 
-  /**
-   * Check if current user has a specific functional role
-   */
-  hasFunctionalRole: (role: FunctionalRole) =>
-    Effect.gen(function* () {
-      const membership = yield* getCurrentOrganizationMembership()
-      return membership.hasFunctionalRole(role)
-    }),
+        const permissions = computeEffectivePermissions(membership.role, functionalRoles)
 
-  /**
-   * Get all actions the current user is permitted to perform
-   */
-  getEffectivePermissions: () =>
-    Effect.gen(function* () {
-      const membership = yield* getCurrentOrganizationMembership()
+        // Build result record using reduce - each action maps to its permission status
+        const result: Partial<Record<Action, boolean>> = {}
+        for (const action of actions) {
+          result[action] = hasPermission(permissions, action)
+        }
+        return result
+      }),
 
-      // Get effective permissions
-      const functionalRoles: FunctionalRole[] = []
-      if (membership.isController) functionalRoles.push("controller")
-      if (membership.isFinanceManager) functionalRoles.push("finance_manager")
-      if (membership.isAccountant) functionalRoles.push("accountant")
-      if (membership.isPeriodAdmin) functionalRoles.push("period_admin")
-      if (membership.isConsolidationManager) functionalRoles.push("consolidation_manager")
+    /**
+     * Check if current user has a specific base role
+     */
+    hasRole: (role: BaseRole) =>
+      Effect.gen(function* () {
+        const membership = yield* getCurrentOrganizationMembership()
+        return membership.role === role
+      }),
 
-      const permissions = computeEffectivePermissions(membership.role, functionalRoles)
+    /**
+     * Check if current user has a specific functional role
+     */
+    hasFunctionalRole: (role: FunctionalRole) =>
+      Effect.gen(function* () {
+        const membership = yield* getCurrentOrganizationMembership()
+        return membership.hasFunctionalRole(role)
+      }),
 
-      return permissionSetToArray(permissions)
-    })
-}
+    /**
+     * Get all actions the current user is permitted to perform
+     */
+    getEffectivePermissions: () =>
+      Effect.gen(function* () {
+        const membership = yield* getCurrentOrganizationMembership()
+
+        // Get effective permissions
+        const functionalRoles: FunctionalRole[] = []
+        if (membership.isController) functionalRoles.push("controller")
+        if (membership.isFinanceManager) functionalRoles.push("finance_manager")
+        if (membership.isAccountant) functionalRoles.push("accountant")
+        if (membership.isPeriodAdmin) functionalRoles.push("period_admin")
+        if (membership.isConsolidationManager) functionalRoles.push("consolidation_manager")
+
+        const permissions = computeEffectivePermissions(membership.role, functionalRoles)
+
+        return permissionSetToArray(permissions)
+      })
+  }
+
+  return service
+})
 
 /**
  * AuthorizationServiceLive - Layer providing AuthorizationService implementation
  *
- * This layer has no dependencies - it only requires CurrentOrganizationMembership
- * to be in context when methods are called.
+ * This layer depends on AuthorizationAuditRepository for denial logging.
+ * CurrentOrganizationMembership must be in context when methods are called.
  *
  * Usage:
  * ```typescript
@@ -148,7 +177,5 @@ const make: AuthorizationServiceShape = {
  * )
  * ```
  */
-export const AuthorizationServiceLive: Layer.Layer<AuthorizationService> = Layer.succeed(
-  AuthorizationService,
-  make
-)
+export const AuthorizationServiceLive: Layer.Layer<AuthorizationService, never, AuthorizationAuditRepository> =
+  Layer.effect(AuthorizationService, make)

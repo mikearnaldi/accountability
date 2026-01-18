@@ -495,12 +495,22 @@ Same pattern as E7.
 
 ---
 
-#### Phase E14: Denial Audit Logging
+#### Phase E14: Denial Audit Logging ✅ COMPLETE
 Update `AuthorizationServiceLive.ts`:
 - On `checkPermission` denial, call `AuthorizationAuditRepository.logDenial()`
 - Include user, org, action, resource, reason, IP, user agent
 
 **Test**: Verify denials are logged.
+
+**Completed**:
+- Updated `AuthorizationServiceLive.ts` to depend on `AuthorizationAuditRepository`
+- Changed from `Layer.succeed` to `Layer.effect` to allow effectful initialization
+- On `checkPermission` denial, logs to `authorization_audit_log` table with:
+  - userId, organizationId, action, resourceType, denialReason
+  - ipAddress and userAgent are optional (not available in current context)
+- Logging is fire-and-forget (uses `catchAll` to not block main operation if logging fails)
+- Added `AuthorizationAuditRepositoryLive` to `RepositoriesLive` layer composition
+- All 3620 tests pass, typecheck clean, lint clean
 
 ---
 
