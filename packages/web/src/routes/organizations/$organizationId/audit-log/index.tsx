@@ -18,7 +18,7 @@ import { Select } from "@/components/ui/Select"
 import { Input } from "@/components/ui/Input"
 import { Button } from "@/components/ui/Button"
 import { Tooltip } from "@/components/ui/Tooltip"
-import { ClipboardList, FileText, User, Calendar, Search, ChevronLeft, ChevronRight, RefreshCw, ChevronDown, ChevronUp, Copy, Check } from "lucide-react"
+import { ClipboardList, FileText, User, Calendar, Search, ChevronLeft, ChevronRight, RefreshCw, ChevronDown, ChevronUp, Copy, Check, Clock } from "lucide-react"
 
 // =============================================================================
 // Types
@@ -153,6 +153,58 @@ const ACTIONS: AuditAction[] = ["Create", "Update", "Delete", "StatusChange"]
 
 const PAGE_SIZE = 25
 
+// Date preset helpers
+type DatePreset = "today" | "7days" | "30days" | "thisMonth"
+
+function getDatePresetRange(preset: DatePreset): { from: string; to: string } {
+  const today = new Date()
+  const toDate = today.toISOString().split("T")[0]
+
+  switch (preset) {
+    case "today": {
+      return { from: toDate, to: toDate }
+    }
+    case "7days": {
+      const weekAgo = new Date(today)
+      weekAgo.setDate(weekAgo.getDate() - 7)
+      return { from: weekAgo.toISOString().split("T")[0], to: toDate }
+    }
+    case "30days": {
+      const monthAgo = new Date(today)
+      monthAgo.setDate(monthAgo.getDate() - 30)
+      return { from: monthAgo.toISOString().split("T")[0], to: toDate }
+    }
+    case "thisMonth": {
+      const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
+      return { from: firstOfMonth.toISOString().split("T")[0], to: toDate }
+    }
+  }
+}
+
+const DATE_PRESETS: readonly DatePreset[] = ["today", "7days", "30days", "thisMonth"]
+
+function getActivePreset(from: string, to: string): DatePreset | null {
+  if (!from && !to) return null
+
+  const today = new Date()
+  const todayStr = today.toISOString().split("T")[0]
+
+  // Check each preset
+  for (const preset of DATE_PRESETS) {
+    const range = getDatePresetRange(preset)
+    if (from === range.from && to === range.to) {
+      return preset
+    }
+  }
+
+  // Check if "today" with only from date set to today
+  if (from === todayStr && to === todayStr) {
+    return "today"
+  }
+
+  return null
+}
+
 function AuditLogPage() {
   const context = Route.useRouteContext()
   const loaderData = Route.useLoaderData()
@@ -274,6 +326,20 @@ function AuditLogPage() {
       setCurrentPage(0)
       fetchWithCurrentFilters(0, entityTypeFilter, actionFilter, fromDate, value, searchTerm).catch(() => {})
     }, 500)
+  }
+
+  // Handle date preset selection
+  const handleDatePreset = (preset: DatePreset) => {
+    // Clear existing debounce timer
+    if (dateDebounceRef.current) {
+      clearTimeout(dateDebounceRef.current)
+    }
+
+    const range = getDatePresetRange(preset)
+    setFromDate(range.from)
+    setToDate(range.to)
+    setCurrentPage(0)
+    fetchWithCurrentFilters(0, entityTypeFilter, actionFilter, range.from, range.to, searchTerm).catch(() => {})
   }
 
   // Handle search change - debounced with 300ms per spec
@@ -458,6 +524,12 @@ function AuditLogPage() {
               className="w-40"
               placeholder="To Date"
               data-testid="filter-to-date"
+            />
+
+            {/* Date range presets */}
+            <DatePresetButtons
+              activePreset={getActivePreset(fromDate, toDate)}
+              onPresetSelect={handleDatePreset}
             />
 
             {hasFilters && (
@@ -660,6 +732,40 @@ function ActionBadge({ action }: { readonly action: AuditAction }) {
     <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${colors[action]}`}>
       {action}
     </span>
+  )
+}
+
+interface DatePresetButtonsProps {
+  readonly activePreset: DatePreset | null
+  readonly onPresetSelect: (preset: DatePreset) => void
+}
+
+function DatePresetButtons({ activePreset, onPresetSelect }: DatePresetButtonsProps) {
+  const presets: { id: DatePreset; label: string }[] = [
+    { id: "today", label: "Today" },
+    { id: "7days", label: "Last 7 days" },
+    { id: "30days", label: "Last 30 days" },
+    { id: "thisMonth", label: "This month" }
+  ]
+
+  return (
+    <div className="flex items-center gap-1" data-testid="date-presets">
+      <Clock className="h-4 w-4 text-gray-400" />
+      {presets.map((preset) => (
+        <button
+          key={preset.id}
+          onClick={() => onPresetSelect(preset.id)}
+          className={`rounded-md px-2 py-1 text-xs font-medium transition-colors ${
+            activePreset === preset.id
+              ? "bg-blue-100 text-blue-700"
+              : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+          }`}
+          data-testid={`date-preset-${preset.id}`}
+        >
+          {preset.label}
+        </button>
+      ))}
+    </div>
   )
 }
 

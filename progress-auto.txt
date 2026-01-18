@@ -737,3 +737,8 @@
 **Task**: Added search functionality to audit log page with debounced input, case-insensitive search on entity name/ID, and API backend support
 **Status**: complete
 ---
+
+## Iteration 7 - 2026-01-18 22:41
+**Task**: Added date range presets (Today, Last 7 days, Last 30 days, This month) to audit log page
+**Status**: complete
+---

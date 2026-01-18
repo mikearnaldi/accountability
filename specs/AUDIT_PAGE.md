@@ -525,9 +525,11 @@ Denormalize user info to avoid joins and preserve historical names.
    - ✅ Search icon in input field
    - ✅ Search included in "Clear Filters" functionality
 
-8. **Add date range presets**
-   - "Today", "Last 7 days", "Last 30 days"
-   - Custom date range picker
+8. **Add date range presets** ✅ DONE
+   - ✅ "Today", "Last 7 days", "Last 30 days", "This month" preset buttons
+   - ✅ Custom date range picker (via date inputs)
+   - ✅ Active preset is highlighted
+   - ✅ Presets immediately apply and fetch filtered data
 
 9. **Add export functionality**
    - Export filtered results as CSV
