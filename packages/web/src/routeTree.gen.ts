@@ -26,6 +26,7 @@ import { Route as OrganizationsOrganizationIdExchangeRatesIndexRouteImport } fro
 import { Route as OrganizationsOrganizationIdConsolidationIndexRouteImport } from './routes/organizations/$organizationId/consolidation/index'
 import { Route as OrganizationsOrganizationIdCompaniesIndexRouteImport } from './routes/organizations/$organizationId/companies/index'
 import { Route as OrganizationsOrganizationIdAuditLogIndexRouteImport } from './routes/organizations/$organizationId/audit-log/index'
+import { Route as OrganizationsOrganizationIdSettingsPoliciesRouteImport } from './routes/organizations/$organizationId/settings/policies'
 import { Route as OrganizationsOrganizationIdSettingsMembersRouteImport } from './routes/organizations/$organizationId/settings/members'
 import { Route as OrganizationsOrganizationIdIntercompanyNewRouteImport } from './routes/organizations/$organizationId/intercompany/new'
 import { Route as OrganizationsOrganizationIdExchangeRatesNewRouteImport } from './routes/organizations/$organizationId/exchange-rates/new'
@@ -149,6 +150,12 @@ const OrganizationsOrganizationIdAuditLogIndexRoute =
     id: '/audit-log/',
     path: '/audit-log/',
     getParentRoute: () => OrganizationsOrganizationIdRouteRoute,
+  } as any)
+const OrganizationsOrganizationIdSettingsPoliciesRoute =
+  OrganizationsOrganizationIdSettingsPoliciesRouteImport.update({
+    id: '/policies',
+    path: '/policies',
+    getParentRoute: () => OrganizationsOrganizationIdSettingsRoute,
   } as any)
 const OrganizationsOrganizationIdSettingsMembersRoute =
   OrganizationsOrganizationIdSettingsMembersRouteImport.update({
@@ -369,6 +376,7 @@ export interface FileRoutesByFullPath {
   '/organizations/$organizationId/exchange-rates/new': typeof OrganizationsOrganizationIdExchangeRatesNewRoute
   '/organizations/$organizationId/intercompany/new': typeof OrganizationsOrganizationIdIntercompanyNewRoute
   '/organizations/$organizationId/settings/members': typeof OrganizationsOrganizationIdSettingsMembersRoute
+  '/organizations/$organizationId/settings/policies': typeof OrganizationsOrganizationIdSettingsPoliciesRoute
   '/organizations/$organizationId/audit-log': typeof OrganizationsOrganizationIdAuditLogIndexRoute
   '/organizations/$organizationId/companies': typeof OrganizationsOrganizationIdCompaniesIndexRoute
   '/organizations/$organizationId/consolidation': typeof OrganizationsOrganizationIdConsolidationIndexRoute
@@ -415,6 +423,7 @@ export interface FileRoutesByTo {
   '/organizations/$organizationId/exchange-rates/new': typeof OrganizationsOrganizationIdExchangeRatesNewRoute
   '/organizations/$organizationId/intercompany/new': typeof OrganizationsOrganizationIdIntercompanyNewRoute
   '/organizations/$organizationId/settings/members': typeof OrganizationsOrganizationIdSettingsMembersRoute
+  '/organizations/$organizationId/settings/policies': typeof OrganizationsOrganizationIdSettingsPoliciesRoute
   '/organizations/$organizationId/audit-log': typeof OrganizationsOrganizationIdAuditLogIndexRoute
   '/organizations/$organizationId/companies': typeof OrganizationsOrganizationIdCompaniesIndexRoute
   '/organizations/$organizationId/consolidation': typeof OrganizationsOrganizationIdConsolidationIndexRoute
@@ -463,6 +472,7 @@ export interface FileRoutesById {
   '/organizations/$organizationId/exchange-rates/new': typeof OrganizationsOrganizationIdExchangeRatesNewRoute
   '/organizations/$organizationId/intercompany/new': typeof OrganizationsOrganizationIdIntercompanyNewRoute
   '/organizations/$organizationId/settings/members': typeof OrganizationsOrganizationIdSettingsMembersRoute
+  '/organizations/$organizationId/settings/policies': typeof OrganizationsOrganizationIdSettingsPoliciesRoute
   '/organizations/$organizationId/audit-log/': typeof OrganizationsOrganizationIdAuditLogIndexRoute
   '/organizations/$organizationId/companies/': typeof OrganizationsOrganizationIdCompaniesIndexRoute
   '/organizations/$organizationId/consolidation/': typeof OrganizationsOrganizationIdConsolidationIndexRoute
@@ -512,6 +522,7 @@ export interface FileRouteTypes {
     | '/organizations/$organizationId/exchange-rates/new'
     | '/organizations/$organizationId/intercompany/new'
     | '/organizations/$organizationId/settings/members'
+    | '/organizations/$organizationId/settings/policies'
     | '/organizations/$organizationId/audit-log'
     | '/organizations/$organizationId/companies'
     | '/organizations/$organizationId/consolidation'
@@ -558,6 +569,7 @@ export interface FileRouteTypes {
     | '/organizations/$organizationId/exchange-rates/new'
     | '/organizations/$organizationId/intercompany/new'
     | '/organizations/$organizationId/settings/members'
+    | '/organizations/$organizationId/settings/policies'
     | '/organizations/$organizationId/audit-log'
     | '/organizations/$organizationId/companies'
     | '/organizations/$organizationId/consolidation'
@@ -605,6 +617,7 @@ export interface FileRouteTypes {
     | '/organizations/$organizationId/exchange-rates/new'
     | '/organizations/$organizationId/intercompany/new'
     | '/organizations/$organizationId/settings/members'
+    | '/organizations/$organizationId/settings/policies'
     | '/organizations/$organizationId/audit-log/'
     | '/organizations/$organizationId/companies/'
     | '/organizations/$organizationId/consolidation/'
@@ -767,6 +780,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/organizations/$organizationId/audit-log'
       preLoaderRoute: typeof OrganizationsOrganizationIdAuditLogIndexRouteImport
       parentRoute: typeof OrganizationsOrganizationIdRouteRoute
+    }
+    '/organizations/$organizationId/settings/policies': {
+      id: '/organizations/$organizationId/settings/policies'
+      path: '/policies'
+      fullPath: '/organizations/$organizationId/settings/policies'
+      preLoaderRoute: typeof OrganizationsOrganizationIdSettingsPoliciesRouteImport
+      parentRoute: typeof OrganizationsOrganizationIdSettingsRoute
     }
     '/organizations/$organizationId/settings/members': {
       id: '/organizations/$organizationId/settings/members'
@@ -969,12 +989,15 @@ declare module '@tanstack/react-router' {
 
 interface OrganizationsOrganizationIdSettingsRouteChildren {
   OrganizationsOrganizationIdSettingsMembersRoute: typeof OrganizationsOrganizationIdSettingsMembersRoute
+  OrganizationsOrganizationIdSettingsPoliciesRoute: typeof OrganizationsOrganizationIdSettingsPoliciesRoute
 }
 
 const OrganizationsOrganizationIdSettingsRouteChildren: OrganizationsOrganizationIdSettingsRouteChildren =
   {
     OrganizationsOrganizationIdSettingsMembersRoute:
       OrganizationsOrganizationIdSettingsMembersRoute,
+    OrganizationsOrganizationIdSettingsPoliciesRoute:
+      OrganizationsOrganizationIdSettingsPoliciesRoute,
   }
 
 const OrganizationsOrganizationIdSettingsRouteWithChildren =

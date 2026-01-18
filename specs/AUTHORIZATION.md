@@ -994,15 +994,27 @@ Add section showing:
 
 ---
 
-### Track I: Frontend - Policy Management
+### Track I: Frontend - Policy Management ✅ COMPLETE
 
-#### Phase I1: Policies Page Route
+#### Phase I1: Policies Page Route ✅ COMPLETE
 **File**: `packages/web/src/routes/organizations/$organizationId/settings/policies.tsx`
 
 Create route with:
 - Loader fetching policies
 - Table with name, effect, priority, status
 - System policy indicator (grayed)
+
+**Completed**: Created `settings/policies.tsx` with:
+- Server function to fetch organization, policies, and companies data
+- AppLayout integration with sidebar
+- Page header with refresh and create policy buttons
+- Info banner explaining policy concepts
+- System policies section (locked, grayed out, cannot modify)
+- Custom policies section with action menus (edit, test, delete placeholders)
+- Policy table showing name, effect badge, priority, target summary, status
+- Empty state with CTA for custom policies
+- PolicyTargetSummary component showing who/what/can summary
+- Permission-based UI element hiding via `usePermissions.isAdminOrOwner`
 
 ---
 

@@ -1,0 +1,694 @@
+/**
+ * Organization Policies Page
+ *
+ * Phase I1 of AUTHORIZATION.md spec - Policies Page Route
+ *
+ * Lists organization authorization policies with:
+ * - Policy table with name, effect, priority, status
+ * - System policy indicator (grayed out, cannot edit/delete)
+ * - Custom policy management (create, edit, delete)
+ *
+ * Route: /organizations/:organizationId/settings/policies
+ */
+
+import { createFileRoute, redirect, useRouter } from "@tanstack/react-router"
+import { createServerFn } from "@tanstack/react-start"
+import { getCookie } from "@tanstack/react-start/server"
+import { useState } from "react"
+import { Shield, Plus, RefreshCw, MoreVertical, Lock, Pencil, Trash2, CheckCircle, XCircle, Play } from "lucide-react"
+import { clsx } from "clsx"
+import { createServerApi } from "@/api/server"
+import { AppLayout } from "@/components/layout/AppLayout"
+import { MinimalRouteError } from "@/components/ui/RouteError"
+import { Button } from "@/components/ui/Button"
+import { usePermissions } from "@/hooks/usePermissions"
+
+// =============================================================================
+// Types
+// =============================================================================
+
+type PolicyEffect = "allow" | "deny"
+type BaseRole = "owner" | "admin" | "member" | "viewer"
+// SubjectConditionRole includes wildcard for policy conditions (e.g., "Prevent Modifications to Locked Periods" applies to all roles)
+type SubjectConditionRole = BaseRole | "*"
+type FunctionalRole = "controller" | "finance_manager" | "accountant" | "period_admin" | "consolidation_manager"
+type ResourceType = "organization" | "company" | "account" | "journal_entry" | "fiscal_period" | "consolidation_group" | "report" | "*"
+
+interface SubjectCondition {
+  readonly roles?: readonly SubjectConditionRole[]
+  readonly functionalRoles?: readonly FunctionalRole[]
+  readonly userIds?: readonly string[]
+  readonly isPlatformAdmin?: boolean
+}
+
+interface ResourceAttributes {
+  readonly accountNumber?: {
+    readonly range?: readonly [number, number]
+    readonly in?: readonly number[]
+  }
+  readonly accountType?: readonly ("Asset" | "Liability" | "Equity" | "Revenue" | "Expense")[]
+  readonly isIntercompany?: boolean
+  readonly entryType?: readonly ("Standard" | "Adjusting" | "Closing" | "Reversing" | "Elimination" | "Consolidation" | "Intercompany")[]
+  readonly isOwnEntry?: boolean
+  readonly periodStatus?: readonly ("Open" | "SoftClose" | "Closed" | "Locked")[]
+  readonly isAdjustmentPeriod?: boolean
+}
+
+interface ResourceCondition {
+  readonly type: ResourceType
+  readonly attributes?: ResourceAttributes
+}
+
+interface ActionCondition {
+  readonly actions: readonly string[]
+}
+
+interface TimeRange {
+  readonly start: string
+  readonly end: string
+}
+
+interface EnvironmentCondition {
+  readonly timeOfDay?: TimeRange
+  readonly daysOfWeek?: readonly number[]
+  readonly ipAllowList?: readonly string[]
+  readonly ipDenyList?: readonly string[]
+}
+
+interface Policy {
+  readonly id: string
+  readonly name: string
+  readonly description: string | null
+  readonly subject: SubjectCondition
+  readonly resource: ResourceCondition
+  readonly action: ActionCondition
+  readonly environment: EnvironmentCondition | null
+  readonly effect: PolicyEffect
+  readonly priority: number
+  readonly isSystemPolicy: boolean
+  readonly isActive: boolean
+  readonly createdAt: { readonly epochMillis: number }
+  readonly updatedAt: { readonly epochMillis: number }
+  readonly createdBy: string | null
+}
+
+interface Organization {
+  readonly id: string
+  readonly name: string
+  readonly reportingCurrency: string
+}
+
+interface Company {
+  readonly id: string
+  readonly name: string
+}
+
+// =============================================================================
+// Server Functions
+// =============================================================================
+
+const fetchPoliciesData = createServerFn({ method: "GET" })
+  .inputValidator((data: string) => data)
+  .handler(async ({ data: organizationId }) => {
+    const sessionToken = getCookie("accountability_session")
+
+    if (!sessionToken) {
+      return { organization: null, policies: [], companies: [], error: "unauthorized" as const }
+    }
+
+    try {
+      const serverApi = createServerApi()
+      const Authorization = `Bearer ${sessionToken}`
+
+      const [orgResult, policiesResult, companiesResult] = await Promise.all([
+        serverApi.GET("/api/v1/organizations/{id}", {
+          params: { path: { id: organizationId } },
+          headers: { Authorization }
+        }),
+        serverApi.GET("/api/v1/organizations/{orgId}/policies", {
+          params: { path: { orgId: organizationId } },
+          headers: { Authorization }
+        }),
+        serverApi.GET("/api/v1/companies", {
+          params: { query: { organizationId } },
+          headers: { Authorization }
+        })
+      ])
+
+      if (orgResult.error) {
+        if (typeof orgResult.error === "object" && "status" in orgResult.error && orgResult.error.status === 404) {
+          return { organization: null, policies: [], companies: [], error: "not_found" as const }
+        }
+        return { organization: null, policies: [], companies: [], error: "failed" as const }
+      }
+
+      return {
+        organization: orgResult.data,
+        policies: policiesResult.data?.policies ?? [],
+        companies: companiesResult.data?.companies ?? [],
+        error: null
+      }
+    } catch {
+      return { organization: null, policies: [], companies: [], error: "failed" as const }
+    }
+  })
+
+// =============================================================================
+// Constants
+// =============================================================================
+
+const EFFECT_STYLES: Record<PolicyEffect, { bg: string; text: string; icon: React.ReactNode }> = {
+  allow: {
+    bg: "bg-green-100",
+    text: "text-green-700",
+    icon: <CheckCircle className="h-3.5 w-3.5" />
+  },
+  deny: {
+    bg: "bg-red-100",
+    text: "text-red-700",
+    icon: <XCircle className="h-3.5 w-3.5" />
+  }
+}
+
+const RESOURCE_TYPE_LABELS: Record<ResourceType, string> = {
+  organization: "Organization",
+  company: "Company",
+  account: "Account",
+  journal_entry: "Journal Entry",
+  fiscal_period: "Fiscal Period",
+  consolidation_group: "Consolidation Group",
+  report: "Report",
+  "*": "All Resources"
+}
+
+// =============================================================================
+// Route Definition
+// =============================================================================
+
+export const Route = createFileRoute("/organizations/$organizationId/settings/policies")({
+  beforeLoad: async ({ context, params }) => {
+    if (!context.user) {
+      throw redirect({
+        to: "/login",
+        search: {
+          redirect: `/organizations/${params.organizationId}/settings/policies`
+        }
+      })
+    }
+  },
+  loader: async ({ params }) => {
+    const result = await fetchPoliciesData({ data: params.organizationId })
+    if (result.error === "not_found") {
+      throw new Error("Organization not found")
+    }
+    return {
+      organization: result.organization,
+      policies: result.policies,
+      companies: result.companies
+    }
+  },
+  errorComponent: ({ error }) => (
+    <MinimalRouteError error={error} />
+  ),
+  component: PoliciesPage
+})
+
+// =============================================================================
+// Page Component
+// =============================================================================
+
+function PoliciesPage() {
+  const context = Route.useRouteContext()
+  const loaderData = Route.useLoaderData()
+  const router = useRouter()
+  const user = context.user
+  const organizations = context.organizations ?? []
+  const { isAdminOrOwner } = usePermissions()
+
+  /* eslint-disable @typescript-eslint/consistent-type-assertions -- Loader data typing */
+  const organization = loaderData.organization as Organization | null
+  const policies = loaderData.policies as readonly Policy[]
+  const companies = loaderData.companies as readonly Company[]
+  /* eslint-enable @typescript-eslint/consistent-type-assertions */
+
+  const [actionMenuOpen, setActionMenuOpen] = useState<string | null>(null)
+
+  if (!organization) {
+    return null
+  }
+
+  const companiesForSidebar = companies.map((c) => ({ id: c.id, name: c.name }))
+
+  // Separate system and custom policies
+  const systemPolicies = policies.filter((p) => p.isSystemPolicy)
+  const customPolicies = policies.filter((p) => !p.isSystemPolicy)
+
+  // Sort by priority (descending - higher priority first)
+  const sortedSystemPolicies = [...systemPolicies].sort((a, b) => b.priority - a.priority)
+  const sortedCustomPolicies = [...customPolicies].sort((a, b) => b.priority - a.priority)
+
+  const handleRefresh = async () => {
+    await router.invalidate()
+  }
+
+  return (
+    <AppLayout
+      user={user}
+      organizations={organizations}
+      currentOrganization={organization}
+      companies={companiesForSidebar}
+    >
+      <div className="space-y-6" data-testid="policies-page">
+        {/* Page Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900" data-testid="policies-page-title">
+              Authorization Policies
+            </h1>
+            <p className="mt-1 text-sm text-gray-500">
+              Manage access control policies for {organization.name}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Button
+              variant="secondary"
+              onClick={handleRefresh}
+              icon={<RefreshCw className="h-4 w-4" />}
+              data-testid="policies-refresh-button"
+            >
+              Refresh
+            </Button>
+
+            {isAdminOrOwner && (
+              <Button
+                variant="primary"
+                onClick={() => {
+                  // TODO: Open create policy modal (Phase I2)
+                  alert("Create policy modal - coming in Phase I2")
+                }}
+                icon={<Plus className="h-4 w-4" />}
+                data-testid="policies-create-button"
+              >
+                Create Policy
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Info Banner */}
+        <div className="rounded-lg bg-blue-50 border border-blue-200 p-4">
+          <div className="flex items-start gap-3">
+            <Shield className="h-5 w-5 text-blue-600 mt-0.5" />
+            <div>
+              <h3 className="text-sm font-medium text-blue-800">About Authorization Policies</h3>
+              <p className="mt-1 text-sm text-blue-700">
+                Policies control what actions users can perform. System policies are created automatically
+                and cannot be modified. Custom policies can override system policies for specific use cases.
+                Policies are evaluated by priority (higher first), with deny policies taking precedence.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* System Policies Section */}
+        <PolicyTable
+          title="System Policies"
+          icon={<Lock className="h-5 w-5 text-gray-400" />}
+          description="Built-in policies that define base permission levels. These cannot be modified."
+          policies={sortedSystemPolicies}
+          isSystemSection
+          canManage={false}
+          actionMenuOpen={actionMenuOpen}
+          onActionMenuToggle={setActionMenuOpen}
+          data-testid="system-policies-section"
+        />
+
+        {/* Custom Policies Section */}
+        <PolicyTable
+          title="Custom Policies"
+          icon={<Shield className="h-5 w-5 text-gray-500" />}
+          description="Organization-specific policies that extend or restrict permissions."
+          policies={sortedCustomPolicies}
+          isSystemSection={false}
+          canManage={isAdminOrOwner}
+          actionMenuOpen={actionMenuOpen}
+          onActionMenuToggle={setActionMenuOpen}
+          onRefresh={handleRefresh}
+          organizationId={organization.id}
+          data-testid="custom-policies-section"
+        />
+
+        {/* Empty Custom Policies State */}
+        {customPolicies.length === 0 && (
+          <div
+            className="rounded-lg border border-gray-200 bg-white p-8 text-center"
+            data-testid="policies-empty-state"
+          >
+            <Shield className="mx-auto h-12 w-12 text-gray-400" />
+            <h3 className="mt-4 text-lg font-medium text-gray-900">No custom policies</h3>
+            <p className="mt-2 text-sm text-gray-500">
+              Create custom policies to fine-tune access control for specific users, roles, or resources.
+            </p>
+            {isAdminOrOwner && (
+              <Button
+                variant="primary"
+                onClick={() => {
+                  // TODO: Open create policy modal (Phase I2)
+                  alert("Create policy modal - coming in Phase I2")
+                }}
+                icon={<Plus className="h-4 w-4" />}
+                className="mt-4"
+                data-testid="policies-empty-create-button"
+              >
+                Create Policy
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
+    </AppLayout>
+  )
+}
+
+// =============================================================================
+// Policy Table Component
+// =============================================================================
+
+interface PolicyTableProps {
+  readonly title: string
+  readonly icon: React.ReactNode
+  readonly description: string
+  readonly policies: readonly Policy[]
+  readonly isSystemSection: boolean
+  readonly canManage: boolean
+  readonly actionMenuOpen: string | null
+  readonly onActionMenuToggle: (id: string | null) => void
+  readonly onRefresh?: () => void
+  readonly organizationId?: string
+  readonly "data-testid"?: string
+}
+
+function PolicyTable({
+  title,
+  icon,
+  description,
+  policies,
+  isSystemSection,
+  canManage,
+  actionMenuOpen,
+  onActionMenuToggle,
+  onRefresh,
+  organizationId,
+  "data-testid": testId
+}: PolicyTableProps) {
+  if (policies.length === 0 && isSystemSection) {
+    return null
+  }
+
+  return (
+    <div
+      className={clsx(
+        "rounded-lg border bg-white",
+        isSystemSection ? "border-gray-200" : "border-gray-200"
+      )}
+      data-testid={testId}
+    >
+      {/* Section Header */}
+      <div className="flex items-start justify-between border-b border-gray-200 px-6 py-4">
+        <div className="flex items-center gap-2">
+          {icon}
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+            <p className="text-sm text-gray-500">{description}</p>
+          </div>
+        </div>
+        <span className="text-sm text-gray-500">({policies.length})</span>
+      </div>
+
+      {/* Table */}
+      {policies.length > 0 && (
+        <table className="w-full">
+          <thead className="bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <tr>
+              <th className="px-6 py-3">Policy Name</th>
+              <th className="px-6 py-3">Effect</th>
+              <th className="px-6 py-3">Priority</th>
+              <th className="px-6 py-3">Target</th>
+              <th className="px-6 py-3">Status</th>
+              {canManage && <th className="px-6 py-3 w-12"></th>}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-200">
+            {policies.map((policy) => {
+              const isMenuOpen = actionMenuOpen === policy.id
+              const effectStyle = EFFECT_STYLES[policy.effect]
+
+              return (
+                <tr
+                  key={policy.id}
+                  className={clsx(
+                    "hover:bg-gray-50",
+                    isSystemSection && "bg-gray-50/50"
+                  )}
+                  data-testid={`policy-row-${policy.id}`}
+                >
+                  {/* Policy Name */}
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-2">
+                      {isSystemSection && (
+                        <span title="System policy">
+                          <Lock className="h-4 w-4 text-gray-400" />
+                        </span>
+                      )}
+                      <div>
+                        <span className={clsx(
+                          "font-medium",
+                          isSystemSection ? "text-gray-600" : "text-gray-900"
+                        )}>
+                          {policy.name}
+                        </span>
+                        {policy.description && (
+                          <p className="text-sm text-gray-500 mt-0.5">{policy.description}</p>
+                        )}
+                      </div>
+                    </div>
+                  </td>
+
+                  {/* Effect */}
+                  <td className="px-6 py-4">
+                    <span
+                      className={clsx(
+                        "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium",
+                        effectStyle.bg,
+                        effectStyle.text
+                      )}
+                    >
+                      {effectStyle.icon}
+                      {policy.effect.charAt(0).toUpperCase() + policy.effect.slice(1)}
+                    </span>
+                  </td>
+
+                  {/* Priority */}
+                  <td className="px-6 py-4">
+                    <span className={clsx(
+                      "text-sm font-mono",
+                      isSystemSection ? "text-gray-500" : "text-gray-700"
+                    )}>
+                      {policy.priority}
+                    </span>
+                  </td>
+
+                  {/* Target Summary */}
+                  <td className="px-6 py-4">
+                    <PolicyTargetSummary policy={policy} isSystemSection={isSystemSection} />
+                  </td>
+
+                  {/* Status */}
+                  <td className="px-6 py-4">
+                    <span
+                      className={clsx(
+                        "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
+                        policy.isActive
+                          ? "bg-green-100 text-green-700"
+                          : "bg-gray-100 text-gray-500"
+                      )}
+                    >
+                      {policy.isActive ? "Active" : "Disabled"}
+                    </span>
+                  </td>
+
+                  {/* Actions */}
+                  {canManage && (
+                    <td className="px-6 py-4">
+                      {!isSystemSection && (
+                        <div className="relative">
+                          <button
+                            onClick={() => onActionMenuToggle(isMenuOpen ? null : policy.id)}
+                            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600"
+                            data-testid={`policy-actions-${policy.id}`}
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </button>
+
+                          {isMenuOpen && (
+                            <PolicyActionsMenu
+                              policy={policy}
+                              organizationId={organizationId ?? ""}
+                              onClose={() => onActionMenuToggle(null)}
+                              {...(onRefresh ? { onRefresh } : {})}
+                            />
+                          )}
+                        </div>
+                      )}
+                    </td>
+                  )}
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      )}
+    </div>
+  )
+}
+
+// =============================================================================
+// Policy Target Summary Component
+// =============================================================================
+
+interface PolicyTargetSummaryProps {
+  readonly policy: Policy
+  readonly isSystemSection: boolean
+}
+
+function PolicyTargetSummary({ policy, isSystemSection }: PolicyTargetSummaryProps) {
+  const { subject, resource, action } = policy
+
+  // Build subject summary
+  const subjectParts: string[] = []
+  if (subject.isPlatformAdmin) {
+    subjectParts.push("Platform Admins")
+  }
+  if (subject.roles && subject.roles.length > 0) {
+    // Check for wildcard role using string comparison
+    const hasWildcardRole = subject.roles.some((r) => r === "*")
+    if (hasWildcardRole) {
+      subjectParts.push("All Roles")
+    } else {
+      subjectParts.push(subject.roles.map((r) => r.charAt(0).toUpperCase() + r.slice(1)).join(", "))
+    }
+  }
+  if (subject.functionalRoles && subject.functionalRoles.length > 0) {
+    subjectParts.push(`${subject.functionalRoles.length} functional role(s)`)
+  }
+  if (subject.userIds && subject.userIds.length > 0) {
+    subjectParts.push(`${subject.userIds.length} specific user(s)`)
+  }
+
+  const subjectSummary = subjectParts.length > 0 ? subjectParts.join(", ") : "All users"
+
+  // Build resource summary
+  const resourceType = RESOURCE_TYPE_LABELS[resource.type] ?? resource.type
+  const hasAttributes = resource.attributes && Object.keys(resource.attributes).length > 0
+  const resourceSummary = hasAttributes ? `${resourceType} (with conditions)` : resourceType
+
+  // Build action summary
+  const actionCount = action.actions.length
+  const hasWildcard = action.actions.includes("*")
+  const actionSummary = hasWildcard
+    ? "All actions"
+    : actionCount === 1
+      ? action.actions[0]
+      : `${actionCount} actions`
+
+  return (
+    <div className={clsx(
+      "text-sm",
+      isSystemSection ? "text-gray-500" : "text-gray-700"
+    )}>
+      <div className="flex items-center gap-1">
+        <span className="font-medium">Who:</span>
+        <span>{subjectSummary}</span>
+      </div>
+      <div className="flex items-center gap-1">
+        <span className="font-medium">What:</span>
+        <span>{resourceSummary}</span>
+      </div>
+      <div className="flex items-center gap-1">
+        <span className="font-medium">Can:</span>
+        <span>{actionSummary}</span>
+      </div>
+    </div>
+  )
+}
+
+// =============================================================================
+// Policy Actions Menu Component
+// =============================================================================
+
+interface PolicyActionsMenuProps {
+  readonly policy: Policy
+  readonly organizationId: string
+  readonly onClose: () => void
+  readonly onRefresh?: () => void
+}
+
+function PolicyActionsMenu({ policy, onClose, onRefresh }: PolicyActionsMenuProps) {
+  const handleEdit = () => {
+    // TODO: Open edit policy modal (Phase I2)
+    alert("Edit policy modal - coming in Phase I2")
+    onClose()
+  }
+
+  const handleTest = () => {
+    // TODO: Open test policy modal (Phase I7)
+    alert("Test policy modal - coming in Phase I7")
+    onClose()
+  }
+
+  const handleDelete = async () => {
+    if (!window.confirm(`Are you sure you want to delete the policy "${policy.name}"?`)) {
+      return
+    }
+
+    // TODO: Implement delete (Phase I2)
+    alert("Delete policy - coming in Phase I2")
+    onRefresh?.()
+    onClose()
+  }
+
+  return (
+    <div
+      className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50"
+      data-testid={`policy-actions-menu-${policy.id}`}
+    >
+      <button
+        onClick={handleEdit}
+        className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+        data-testid="policy-edit"
+      >
+        <Pencil className="h-4 w-4" />
+        Edit Policy
+      </button>
+
+      <button
+        onClick={handleTest}
+        className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+        data-testid="policy-test"
+      >
+        <Play className="h-4 w-4" />
+        Test Policy
+      </button>
+
+      <button
+        onClick={handleDelete}
+        className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-700 hover:bg-red-50"
+        data-testid="policy-delete"
+      >
+        <Trash2 className="h-4 w-4" />
+        Delete Policy
+      </button>
+    </div>
+  )
+}
