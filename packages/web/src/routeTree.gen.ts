@@ -44,6 +44,7 @@ import { Route as OrganizationsOrganizationIdIntercompanyTransactionIdEditRouteI
 import { Route as OrganizationsOrganizationIdConsolidationGroupIdEditRouteImport } from './routes/organizations/$organizationId/consolidation/$groupId/edit'
 import { Route as OrganizationsOrganizationIdCompaniesCompanyIdReportsIndexRouteImport } from './routes/organizations/$organizationId/companies/$companyId/reports/index'
 import { Route as OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesIndexRouteImport } from './routes/organizations/$organizationId/companies/$companyId/journal-entries/index'
+import { Route as OrganizationsOrganizationIdCompaniesCompanyIdFiscalPeriodsIndexRouteImport } from './routes/organizations/$organizationId/companies/$companyId/fiscal-periods/index'
 import { Route as OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRouteImport } from './routes/organizations/$organizationId/companies/$companyId/accounts/index'
 import { Route as OrganizationsOrganizationIdConsolidationGroupIdRunsRunIdRouteImport } from './routes/organizations/$organizationId/consolidation/$groupId/runs/$runId'
 import { Route as OrganizationsOrganizationIdCompaniesCompanyIdReportsTrialBalanceRouteImport } from './routes/organizations/$organizationId/companies/$companyId/reports/trial-balance'
@@ -263,6 +264,14 @@ const OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesIndexRoute =
       getParentRoute: () => OrganizationsOrganizationIdRouteRoute,
     } as any,
   )
+const OrganizationsOrganizationIdCompaniesCompanyIdFiscalPeriodsIndexRoute =
+  OrganizationsOrganizationIdCompaniesCompanyIdFiscalPeriodsIndexRouteImport.update(
+    {
+      id: '/companies/$companyId/fiscal-periods/',
+      path: '/companies/$companyId/fiscal-periods/',
+      getParentRoute: () => OrganizationsOrganizationIdRouteRoute,
+    } as any,
+  )
 const OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute =
   OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRouteImport.update({
     id: '/companies/$companyId/accounts/',
@@ -434,6 +443,7 @@ export interface FileRoutesByFullPath {
   '/organizations/$organizationId/companies/$companyId/reports/trial-balance': typeof OrganizationsOrganizationIdCompaniesCompanyIdReportsTrialBalanceRoute
   '/organizations/$organizationId/consolidation/$groupId/runs/$runId': typeof OrganizationsOrganizationIdConsolidationGroupIdRunsRunIdRouteWithChildren
   '/organizations/$organizationId/companies/$companyId/accounts': typeof OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute
+  '/organizations/$organizationId/companies/$companyId/fiscal-periods': typeof OrganizationsOrganizationIdCompaniesCompanyIdFiscalPeriodsIndexRoute
   '/organizations/$organizationId/companies/$companyId/journal-entries': typeof OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesIndexRoute
   '/organizations/$organizationId/companies/$companyId/reports': typeof OrganizationsOrganizationIdCompaniesCompanyIdReportsIndexRoute
   '/organizations/$organizationId/companies/$companyId/journal-entries/$entryId/edit': typeof OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesEntryIdEditRoute
@@ -485,6 +495,7 @@ export interface FileRoutesByTo {
   '/organizations/$organizationId/companies/$companyId/reports/trial-balance': typeof OrganizationsOrganizationIdCompaniesCompanyIdReportsTrialBalanceRoute
   '/organizations/$organizationId/consolidation/$groupId/runs/$runId': typeof OrganizationsOrganizationIdConsolidationGroupIdRunsRunIdRouteWithChildren
   '/organizations/$organizationId/companies/$companyId/accounts': typeof OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute
+  '/organizations/$organizationId/companies/$companyId/fiscal-periods': typeof OrganizationsOrganizationIdCompaniesCompanyIdFiscalPeriodsIndexRoute
   '/organizations/$organizationId/companies/$companyId/journal-entries': typeof OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesIndexRoute
   '/organizations/$organizationId/companies/$companyId/reports': typeof OrganizationsOrganizationIdCompaniesCompanyIdReportsIndexRoute
   '/organizations/$organizationId/companies/$companyId/journal-entries/$entryId/edit': typeof OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesEntryIdEditRoute
@@ -539,6 +550,7 @@ export interface FileRoutesById {
   '/organizations/$organizationId/companies/$companyId/reports/trial-balance': typeof OrganizationsOrganizationIdCompaniesCompanyIdReportsTrialBalanceRoute
   '/organizations/$organizationId/consolidation/$groupId/runs/$runId': typeof OrganizationsOrganizationIdConsolidationGroupIdRunsRunIdRouteWithChildren
   '/organizations/$organizationId/companies/$companyId/accounts/': typeof OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute
+  '/organizations/$organizationId/companies/$companyId/fiscal-periods/': typeof OrganizationsOrganizationIdCompaniesCompanyIdFiscalPeriodsIndexRoute
   '/organizations/$organizationId/companies/$companyId/journal-entries/': typeof OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesIndexRoute
   '/organizations/$organizationId/companies/$companyId/reports/': typeof OrganizationsOrganizationIdCompaniesCompanyIdReportsIndexRoute
   '/organizations/$organizationId/companies/$companyId/journal-entries/$entryId/edit': typeof OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesEntryIdEditRoute
@@ -594,6 +606,7 @@ export interface FileRouteTypes {
     | '/organizations/$organizationId/companies/$companyId/reports/trial-balance'
     | '/organizations/$organizationId/consolidation/$groupId/runs/$runId'
     | '/organizations/$organizationId/companies/$companyId/accounts'
+    | '/organizations/$organizationId/companies/$companyId/fiscal-periods'
     | '/organizations/$organizationId/companies/$companyId/journal-entries'
     | '/organizations/$organizationId/companies/$companyId/reports'
     | '/organizations/$organizationId/companies/$companyId/journal-entries/$entryId/edit'
@@ -645,6 +658,7 @@ export interface FileRouteTypes {
     | '/organizations/$organizationId/companies/$companyId/reports/trial-balance'
     | '/organizations/$organizationId/consolidation/$groupId/runs/$runId'
     | '/organizations/$organizationId/companies/$companyId/accounts'
+    | '/organizations/$organizationId/companies/$companyId/fiscal-periods'
     | '/organizations/$organizationId/companies/$companyId/journal-entries'
     | '/organizations/$organizationId/companies/$companyId/reports'
     | '/organizations/$organizationId/companies/$companyId/journal-entries/$entryId/edit'
@@ -698,6 +712,7 @@ export interface FileRouteTypes {
     | '/organizations/$organizationId/companies/$companyId/reports/trial-balance'
     | '/organizations/$organizationId/consolidation/$groupId/runs/$runId'
     | '/organizations/$organizationId/companies/$companyId/accounts/'
+    | '/organizations/$organizationId/companies/$companyId/fiscal-periods/'
     | '/organizations/$organizationId/companies/$companyId/journal-entries/'
     | '/organizations/$organizationId/companies/$companyId/reports/'
     | '/organizations/$organizationId/companies/$companyId/journal-entries/$entryId/edit'
@@ -969,6 +984,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesIndexRouteImport
       parentRoute: typeof OrganizationsOrganizationIdRouteRoute
     }
+    '/organizations/$organizationId/companies/$companyId/fiscal-periods/': {
+      id: '/organizations/$organizationId/companies/$companyId/fiscal-periods/'
+      path: '/companies/$companyId/fiscal-periods'
+      fullPath: '/organizations/$organizationId/companies/$companyId/fiscal-periods'
+      preLoaderRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdFiscalPeriodsIndexRouteImport
+      parentRoute: typeof OrganizationsOrganizationIdRouteRoute
+    }
     '/organizations/$organizationId/companies/$companyId/accounts/': {
       id: '/organizations/$organizationId/companies/$companyId/accounts/'
       path: '/companies/$companyId/accounts'
@@ -1175,6 +1197,7 @@ interface OrganizationsOrganizationIdRouteRouteChildren {
   OrganizationsOrganizationIdCompaniesCompanyIdReportsTrialBalanceRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdReportsTrialBalanceRoute
   OrganizationsOrganizationIdConsolidationGroupIdRunsRunIdRoute: typeof OrganizationsOrganizationIdConsolidationGroupIdRunsRunIdRouteWithChildren
   OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute
+  OrganizationsOrganizationIdCompaniesCompanyIdFiscalPeriodsIndexRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdFiscalPeriodsIndexRoute
   OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesIndexRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesIndexRoute
   OrganizationsOrganizationIdCompaniesCompanyIdReportsIndexRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdReportsIndexRoute
   OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesEntryIdEditRoute: typeof OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesEntryIdEditRoute
@@ -1237,6 +1260,8 @@ const OrganizationsOrganizationIdRouteRouteChildren: OrganizationsOrganizationId
       OrganizationsOrganizationIdConsolidationGroupIdRunsRunIdRouteWithChildren,
     OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute:
       OrganizationsOrganizationIdCompaniesCompanyIdAccountsIndexRoute,
+    OrganizationsOrganizationIdCompaniesCompanyIdFiscalPeriodsIndexRoute:
+      OrganizationsOrganizationIdCompaniesCompanyIdFiscalPeriodsIndexRoute,
     OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesIndexRoute:
       OrganizationsOrganizationIdCompaniesCompanyIdJournalEntriesIndexRoute,
     OrganizationsOrganizationIdCompaniesCompanyIdReportsIndexRoute:

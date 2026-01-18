@@ -46,7 +46,11 @@ The AUTHORIZATION.md spec defines actions for fiscal period management. Implemen
   - Endpoints: listFiscalYears, getFiscalYear, createFiscalYear, beginYearClose, completeYearClose
   - Endpoints: listFiscalPeriods, getFiscalPeriod, openFiscalPeriod, softCloseFiscalPeriod, closeFiscalPeriod, lockFiscalPeriod, reopenFiscalPeriod
   - Endpoints: getPeriodReopenHistory, getPeriodStatusForDate
-- [ ] **Fiscal Period Management UI** - Pages to view or manage period states
+- [x] **Fiscal Period Management UI** - Pages to view or manage period states ✓ Done
+  - `packages/web/src/routes/organizations/$organizationId/companies/$companyId/fiscal-periods/index.tsx`
+  - Features: Fiscal year list with collapsible periods, create fiscal year modal, period status transitions
+  - Period actions: Open, Soft Close, Close, Lock, Reopen (with reason/audit trail)
+  - Navigation: Company detail page has "Fiscal Periods" card linking to this page
 - [ ] **Period status integration** - Connect ResourceMatcher `periodStatus` attribute to actual period data
 
 **Current Behavior:** Fiscal periods can be persisted, queried, and managed through both the service layer and REST API. The service provides:
@@ -74,6 +78,7 @@ The AUTHORIZATION.md spec defines actions for fiscal period management. Implemen
 - `packages/persistence/src/Layers/FiscalPeriodServiceLive.ts` - Service implementation
 - `packages/api/src/Definitions/FiscalPeriodApi.ts` - API endpoint definitions
 - `packages/api/src/Layers/FiscalPeriodApiLive.ts` - API handlers implementation
+- `packages/web/src/routes/organizations/$organizationId/companies/$companyId/fiscal-periods/index.tsx` - Fiscal Period Management UI
 
 ---
 
