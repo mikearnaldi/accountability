@@ -18,7 +18,7 @@ import { Select } from "@/components/ui/Select"
 import { Input } from "@/components/ui/Input"
 import { Button } from "@/components/ui/Button"
 import { Tooltip } from "@/components/ui/Tooltip"
-import { ClipboardList, FileText, User, Calendar, Search, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react"
+import { ClipboardList, FileText, User, Calendar, Search, ChevronLeft, ChevronRight, RefreshCw, ChevronDown, ChevronUp, Copy, Check } from "lucide-react"
 
 // =============================================================================
 // Types
@@ -176,6 +176,9 @@ function AuditLogPage() {
   const [entries, setEntries] = useState<readonly AuditLogEntry[]>([])
   const [total, setTotal] = useState(0)
 
+  // Expanded rows state
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set())
+
   // Debounce timeout ref for date inputs
   const dateDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -297,6 +300,27 @@ function AuditLogPage() {
       }
     }
   }, [])
+
+  // Toggle row expansion
+  const toggleRowExpansion = (entryId: string) => {
+    setExpandedRows((prev) => {
+      const next = new Set(prev)
+      if (next.has(entryId)) {
+        next.delete(entryId)
+      } else {
+        next.add(entryId)
+      }
+      return next
+    })
+  }
+
+  // Handle keyboard navigation for row expansion
+  const handleRowKeyDown = (e: React.KeyboardEvent, entryId: string) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault()
+      toggleRowExpansion(entryId)
+    }
+  }
 
   // Refresh data
   const handleRefresh = async () => {
@@ -422,27 +446,30 @@ function AuditLogPage() {
               <table className="min-w-full divide-y divide-gray-200" data-testid="audit-log-table">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                    <th className="w-10 px-3 py-3">
+                      <span className="sr-only">Expand</span>
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                       <Tooltip content="The type of action performed: Create, Update, Delete, or StatusChange">
                         <span className="cursor-help">Action</span>
                       </Tooltip>
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                       <Tooltip content="The type of entity that was affected (e.g., Organization, Company, Account, Journal Entry)">
                         <span className="cursor-help">Entity Type</span>
                       </Tooltip>
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                       <Tooltip content="The unique identifier of the affected entity">
                         <span className="cursor-help">Entity ID</span>
                       </Tooltip>
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                       <Tooltip content="When the change occurred">
                         <span className="cursor-help">Timestamp</span>
                       </Tooltip>
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                       <Tooltip content="Summary of what was changed (for updates)">
                         <span className="cursor-help">Changes</span>
                       </Tooltip>
@@ -450,36 +477,18 @@ function AuditLogPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 bg-white">
-                  {entries.map((entry) => (
-                    <tr
-                      key={entry.id}
-                      className="hover:bg-gray-50"
-                      data-testid={`audit-row-${entry.id}`}
-                    >
-                      <td className="whitespace-nowrap px-6 py-4">
-                        <ActionBadge action={entry.action} />
-                      </td>
-                      <td className="whitespace-nowrap px-6 py-4">
-                        <span className="text-sm font-medium text-gray-900">
-                          {formatEntityType(entry.entityType)}
-                        </span>
-                      </td>
-                      <td className="whitespace-nowrap px-6 py-4">
-                        <span className="font-mono text-sm text-gray-500">
-                          {entry.entityId.slice(0, 8)}...
-                        </span>
-                      </td>
-                      <td className="whitespace-nowrap px-6 py-4">
-                        <div className="flex items-center gap-2 text-sm text-gray-500">
-                          <Calendar className="h-4 w-4" />
-                          {formatTimestamp(entry.timestamp)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <ChangesDisplay changes={entry.changes} />
-                      </td>
-                    </tr>
-                  ))}
+                  {entries.map((entry) => {
+                    const isExpanded = expandedRows.has(entry.id)
+                    return (
+                      <AuditLogRow
+                        key={entry.id}
+                        entry={entry}
+                        isExpanded={isExpanded}
+                        onToggle={() => toggleRowExpansion(entry.id)}
+                        onKeyDown={(e) => handleRowKeyDown(e, entry.id)}
+                      />
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
@@ -651,41 +660,341 @@ function formatTimestamp(timestamp: string): string {
   }
 }
 
-interface ChangesDisplayProps {
-  readonly changes: Record<string, { from: unknown; to: unknown }> | null
+
+function formatFullValue(value: unknown): string {
+  if (value === null || value === undefined) return "—"
+  if (typeof value === "string") return value
+  if (typeof value === "boolean") return value ? "true" : "false"
+  if (typeof value === "number") return String(value)
+  if (typeof value === "object") return JSON.stringify(value, null, 2)
+  return String(value)
 }
 
-function ChangesDisplay({ changes }: ChangesDisplayProps) {
+function formatFullTimestamp(timestamp: string): string {
+  try {
+    const date = new Date(timestamp)
+    return date.toLocaleString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      timeZoneName: "short"
+    })
+  } catch {
+    return timestamp
+  }
+}
+
+// =============================================================================
+// Expandable Row Components
+// =============================================================================
+
+interface AuditLogRowProps {
+  readonly entry: AuditLogEntry
+  readonly isExpanded: boolean
+  readonly onToggle: () => void
+  readonly onKeyDown: (e: React.KeyboardEvent) => void
+}
+
+function AuditLogRow({ entry, isExpanded, onToggle, onKeyDown }: AuditLogRowProps) {
+  return (
+    <>
+      <tr
+        className={`cursor-pointer transition-colors ${isExpanded ? "bg-blue-50" : "hover:bg-gray-50"}`}
+        onClick={onToggle}
+        onKeyDown={onKeyDown}
+        tabIndex={0}
+        role="button"
+        aria-expanded={isExpanded}
+        data-testid={`audit-row-${entry.id}`}
+      >
+        <td className="px-3 py-4">
+          <div className="flex items-center justify-center">
+            {isExpanded ? (
+              <ChevronUp className="h-4 w-4 text-gray-500" />
+            ) : (
+              <ChevronDown className="h-4 w-4 text-gray-400" />
+            )}
+          </div>
+        </td>
+        <td className="whitespace-nowrap px-4 py-4">
+          <ActionBadge action={entry.action} />
+        </td>
+        <td className="whitespace-nowrap px-4 py-4">
+          <span className="text-sm font-medium text-gray-900">
+            {formatEntityType(entry.entityType)}
+          </span>
+        </td>
+        <td className="whitespace-nowrap px-4 py-4">
+          <span className="font-mono text-sm text-gray-500">
+            {entry.entityId.slice(0, 8)}...
+          </span>
+        </td>
+        <td className="whitespace-nowrap px-4 py-4">
+          <div className="flex items-center gap-2 text-sm text-gray-500">
+            <Calendar className="h-4 w-4" />
+            {formatTimestamp(entry.timestamp)}
+          </div>
+        </td>
+        <td className="px-4 py-4">
+          <ChangesSummary changes={entry.changes} action={entry.action} />
+        </td>
+      </tr>
+      {isExpanded && (
+        <tr data-testid={`audit-detail-${entry.id}`}>
+          <td colSpan={6} className="bg-gray-50 px-6 py-4">
+            <AuditLogDetailPanel entry={entry} />
+          </td>
+        </tr>
+      )}
+    </>
+  )
+}
+
+interface ChangesSummaryProps {
+  readonly changes: Record<string, { from: unknown; to: unknown }> | null
+  readonly action: AuditAction
+}
+
+function ChangesSummary({ changes, action }: ChangesSummaryProps) {
+  if (action === "Create") {
+    return <span className="text-sm text-green-600">Entity created</span>
+  }
+  if (action === "Delete") {
+    return <span className="text-sm text-red-600">Entity deleted</span>
+  }
   if (!changes || Object.keys(changes).length === 0) {
-    return <span className="text-sm text-gray-400">-</span>
+    return <span className="text-sm text-gray-400">—</span>
   }
 
-  const changeEntries = Object.entries(changes)
-  const displayCount = 2
-  const hasMore = changeEntries.length > displayCount
+  const count = Object.keys(changes).length
+  return (
+    <span className="text-sm text-blue-600">
+      {count} field{count !== 1 ? "s" : ""} changed
+    </span>
+  )
+}
+
+interface AuditLogDetailPanelProps {
+  readonly entry: AuditLogEntry
+}
+
+function AuditLogDetailPanel({ entry }: AuditLogDetailPanelProps) {
+  const [copiedField, setCopiedField] = useState<string | null>(null)
+
+  const handleCopy = async (value: string, fieldName: string) => {
+    try {
+      await navigator.clipboard.writeText(value)
+      setCopiedField(fieldName)
+      setTimeout(() => setCopiedField(null), 2000)
+    } catch {
+      // Clipboard not available
+    }
+  }
 
   return (
-    <div className="text-sm text-gray-600">
-      {changeEntries.slice(0, displayCount).map(([field, { from, to }]) => (
-        <div key={field} className="flex items-center gap-1">
-          <span className="font-medium">{field}:</span>
-          <span className="text-gray-400 line-through">{formatValue(from)}</span>
-          <span className="text-gray-400">→</span>
-          <span>{formatValue(to)}</span>
+    <div className="space-y-4">
+      {/* Header with timestamp */}
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-sm font-medium text-gray-900">
+            {formatFullTimestamp(entry.timestamp)}
+          </p>
         </div>
-      ))}
-      {hasMore && (
-        <span className="text-xs text-gray-400">+{changeEntries.length - displayCount} more</span>
+        <ActionBadge action={entry.action} />
+      </div>
+
+      {/* Entry Information Grid */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {/* Entry ID */}
+        <div className="rounded-lg border border-gray-200 bg-white p-3">
+          <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Entry ID</p>
+          <div className="mt-1 flex items-center gap-2">
+            <code className="flex-1 truncate text-sm text-gray-900">{entry.id}</code>
+            <CopyButton
+              value={entry.id}
+              fieldName="entryId"
+              copiedField={copiedField}
+              onCopy={handleCopy}
+            />
+          </div>
+        </div>
+
+        {/* Entity Type */}
+        <div className="rounded-lg border border-gray-200 bg-white p-3">
+          <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Entity Type</p>
+          <p className="mt-1 text-sm font-medium text-gray-900">{formatEntityType(entry.entityType)}</p>
+        </div>
+
+        {/* Entity ID */}
+        <div className="rounded-lg border border-gray-200 bg-white p-3">
+          <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Entity ID</p>
+          <div className="mt-1 flex items-center gap-2">
+            <code className="flex-1 truncate text-sm text-gray-900">{entry.entityId}</code>
+            <CopyButton
+              value={entry.entityId}
+              fieldName="entityId"
+              copiedField={copiedField}
+              onCopy={handleCopy}
+            />
+          </div>
+        </div>
+
+        {/* User ID */}
+        <div className="rounded-lg border border-gray-200 bg-white p-3">
+          <p className="text-xs font-medium uppercase tracking-wide text-gray-500">User</p>
+          <div className="mt-1 flex items-center gap-2">
+            {entry.userId ? (
+              <>
+                <code className="flex-1 truncate text-sm text-gray-900">{entry.userId}</code>
+                <CopyButton
+                  value={entry.userId}
+                  fieldName="userId"
+                  copiedField={copiedField}
+                  onCopy={handleCopy}
+                />
+              </>
+            ) : (
+              <span className="text-sm text-gray-500 italic">System</span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Changes Table */}
+      {entry.changes && Object.keys(entry.changes).length > 0 && (
+        <div className="rounded-lg border border-gray-200 bg-white">
+          <div className="border-b border-gray-200 px-4 py-3">
+            <h4 className="text-sm font-medium text-gray-900">Changes</h4>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
+                    Field
+                  </th>
+                  <th className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
+                    Before
+                  </th>
+                  <th className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
+                    After
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {Object.entries(entry.changes).map(([field, { from, to }]) => (
+                  <tr key={field}>
+                    <td className="whitespace-nowrap px-4 py-2">
+                      <span className="text-sm font-medium text-gray-900">{field}</span>
+                    </td>
+                    <td className="px-4 py-2">
+                      <ChangeValue value={from} type="from" />
+                    </td>
+                    <td className="px-4 py-2">
+                      <ChangeValue value={to} type="to" />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
+
+      {/* Copy as JSON button */}
+      <div className="flex justify-end">
+        <button
+          onClick={() => handleCopy(JSON.stringify(entry, null, 2), "json")}
+          className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+        >
+          {copiedField === "json" ? (
+            <>
+              <Check className="h-4 w-4 text-green-500" />
+              Copied!
+            </>
+          ) : (
+            <>
+              <Copy className="h-4 w-4" />
+              Copy as JSON
+            </>
+          )}
+        </button>
+      </div>
     </div>
   )
 }
 
-function formatValue(value: unknown): string {
-  if (value === null || value === undefined) return "null"
-  if (typeof value === "string") return value.length > 20 ? `${value.slice(0, 20)}...` : value
-  if (typeof value === "boolean") return value ? "true" : "false"
-  if (typeof value === "number") return String(value)
-  if (typeof value === "object") return JSON.stringify(value).slice(0, 20) + "..."
-  return String(value)
+interface CopyButtonProps {
+  readonly value: string
+  readonly fieldName: string
+  readonly copiedField: string | null
+  readonly onCopy: (value: string, fieldName: string) => Promise<void>
+}
+
+function CopyButton({ value, fieldName, copiedField, onCopy }: CopyButtonProps) {
+  const isCopied = copiedField === fieldName
+
+  return (
+    <button
+      onClick={(e) => {
+        e.stopPropagation()
+        onCopy(value, fieldName).catch(() => {})
+      }}
+      className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+      title={isCopied ? "Copied!" : "Copy to clipboard"}
+    >
+      {isCopied ? (
+        <Check className="h-4 w-4 text-green-500" />
+      ) : (
+        <Copy className="h-4 w-4" />
+      )}
+    </button>
+  )
+}
+
+interface ChangeValueProps {
+  readonly value: unknown
+  readonly type: "from" | "to"
+}
+
+function ChangeValue({ value, type }: ChangeValueProps) {
+  const formattedValue = formatFullValue(value)
+  const isNull = value === null || value === undefined
+  const isLongValue = formattedValue.length > 100
+
+  if (isNull) {
+    return <span className="text-sm italic text-gray-400">—</span>
+  }
+
+  if (type === "from") {
+    return (
+      <span className={`text-sm text-red-600 ${isLongValue ? "" : "line-through"}`}>
+        {isLongValue ? (
+          <details className="cursor-pointer">
+            <summary className="line-through">{formattedValue.slice(0, 50)}...</summary>
+            <pre className="mt-1 whitespace-pre-wrap text-xs">{formattedValue}</pre>
+          </details>
+        ) : (
+          formattedValue
+        )}
+      </span>
+    )
+  }
+
+  return (
+    <span className="text-sm text-green-600">
+      {isLongValue ? (
+        <details className="cursor-pointer">
+          <summary>{formattedValue.slice(0, 50)}...</summary>
+          <pre className="mt-1 whitespace-pre-wrap text-xs">{formattedValue}</pre>
+        </details>
+      ) : (
+        formattedValue
+      )}
+    </span>
+  )
 }

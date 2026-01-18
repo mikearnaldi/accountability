@@ -495,20 +495,26 @@ Denormalize user info to avoid joins and preserve historical names.
 
 ### Phase 2: Improve Display
 
-4. **Implement expandable row detail**
-   - Add `AuditEntryDetail` component
-   - Show all changes in expanded view
-   - Add copy buttons for IDs
+4. **Implement expandable row detail** ✅ DONE
+   - ✅ Added `AuditLogRow` component with expand/collapse toggle
+   - ✅ Added `AuditLogDetailPanel` component showing all changes in expanded view
+   - ✅ Added copy buttons for Entry ID, Entity ID, and User ID
+   - ✅ Added "Copy as JSON" button for developers
+   - ✅ Keyboard navigation (Enter/Space to toggle, Tab to navigate)
+   - ✅ ARIA attributes for accessibility (aria-expanded, role="button")
+   - ✅ Changes table with Before/After columns in detail panel
+   - ✅ Long values are collapsible with `<details>` element
 
 5. **Add user display names**
    - Denormalize user name/email into audit entries
-   - Display "System" for null users
+   - ✅ Display "System" for null users (italic styling)
    - Show email in tooltip
 
-6. **Improve changes display**
-   - Format null as styled dash
-   - Syntax highlight JSON values
-   - Add diff highlighting for text
+6. **Improve changes display** ✅ DONE
+   - ✅ Format null as styled dash (—)
+   - ✅ Color-coded changes (red for "before", green for "after")
+   - ✅ Long JSON values expandable with `<details>` element
+   - ✅ Summary shows "Entity created", "Entity deleted", or "N fields changed"
 
 ### Phase 3: Enhanced Features
 
