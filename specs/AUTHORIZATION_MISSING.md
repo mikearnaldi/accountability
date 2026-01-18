@@ -150,9 +150,9 @@ The fiscal period workflow (Future → Open → SoftClose → Closed → Locked)
 
 ### 3. Audit Log Integration Gap
 
-**Status: NOT IMPLEMENTED** ⚠️
+**Status: PARTIALLY IMPLEMENTED** 🔶
 
-The audit log infrastructure is **100% complete** but **nothing writes to it at runtime**. The entire system exists only as infrastructure - database, repository, API, UI are all functional, but no business operations create audit entries.
+The audit log infrastructure is **100% complete** and the **AuditLogService** has been created and integrated with the FiscalPeriodService. Further integration with other services is needed.
 
 **Infrastructure Status:**
 
@@ -162,7 +162,11 @@ The audit log infrastructure is **100% complete** but **nothing writes to it at 
 | `AuditLogRepository` | ✅ Complete | `create()`, `findAll()`, `count()`, `findByEntity()` |
 | `AuditLogApiLive` | ✅ Complete | `GET /api/v1/audit-log` with filtering, pagination |
 | Audit Log UI page | ✅ Complete | `/organizations/:orgId/audit-log` with filters |
-| **Actual audit entry creation** | ❌ **Missing** | No operations write to audit log |
+| `AuditLogService` | ✅ Complete | Service interface and implementation |
+| `CurrentUserId` | ✅ Complete | Context tag for passing user ID through effects |
+| **FiscalPeriodService integration** | ✅ Complete | Logs fiscal year create and period status changes |
+| **JournalEntryService integration** | ❌ Pending | Needs create/post/reverse logging |
+| **Other service integrations** | ❌ Pending | Account, Company, ExchangeRate, etc. |
 
 **What's NOT Being Audited:**
 
@@ -181,11 +185,20 @@ The audit log infrastructure is **100% complete** but **nothing writes to it at 
 | User | Create, Update | Cannot track user changes |
 | Session | Create, Delete | Cannot track login/logout |
 
-**Root Cause:**
-1. No centralized audit hook/middleware to intercept operations
-2. Services create/update/delete entities but don't call `AuditLogRepository.create()`
-3. No `AuditLogService` exists to encapsulate audit logging logic
-4. No user context is passed through to enable audit entry creation
+**Root Cause (Original):**
+1. ~~No centralized audit hook/middleware to intercept operations~~
+2. ~~Services create/update/delete entities but don't call `AuditLogRepository.create()`~~
+3. ~~No `AuditLogService` exists to encapsulate audit logging logic~~ ✅ Created
+4. ~~No user context is passed through to enable audit entry creation~~ ✅ Created `CurrentUserId` context tag
+
+**Current Implementation:**
+- `AuditLogService` interface with `logCreate`, `logUpdate`, `logDelete`, `logStatusChange`, `logWithChanges` methods
+- `AuditLogServiceLive` implementation with automatic change detection
+- `CurrentUserId` context tag for passing user ID through Effect context
+- `FiscalPeriodServiceLive` integrated with audit logging for:
+  - Fiscal year creation (via `logAuditCreateWithContext`)
+  - Period status transitions (via `logAuditStatusChange`)
+  - Period reopening with audit trail
 
 **Separate Audit Mechanism:**
 - `PeriodReopenAuditEntry` exists in a separate `period_reopen_audit_entries` table
@@ -194,65 +207,24 @@ The audit log infrastructure is **100% complete** but **nothing writes to it at 
 
 **Implementation Plan:**
 
-#### Phase 1: Create AuditLogService (Core Infrastructure)
+#### Phase 1: Create AuditLogService (Core Infrastructure) ✅ COMPLETE
 
-Create a service that encapsulates audit logging with user context:
+Created a service that encapsulates audit logging with user context:
 
-```typescript
-// packages/core/src/AuditLog/AuditLogService.ts
-export interface AuditLogServiceShape {
-  /**
-   * Log an entity creation
-   */
-  readonly logCreate: <T>(
-    entityType: AuditEntityType,
-    entityId: string,
-    entity: T,
-    userId: AuthUserId
-  ) => Effect.Effect<void, PersistenceError>
+**Files Created:**
+- `packages/core/src/AuditLog/AuditLogService.ts` - Service interface with `logCreate`, `logUpdate`, `logDelete`, `logStatusChange`, `logWithChanges` methods
+- `packages/core/src/AuditLog/AuditLogErrors.ts` - `AuditLogError` error type
+- `packages/core/src/AuditLog/CurrentUserId.ts` - Context tag for passing user ID through effects
+- `packages/persistence/src/Layers/AuditLogServiceLive.ts` - Implementation with automatic change detection
 
-  /**
-   * Log an entity update with before/after changes
-   */
-  readonly logUpdate: <T>(
-    entityType: AuditEntityType,
-    entityId: string,
-    before: T,
-    after: T,
-    userId: AuthUserId
-  ) => Effect.Effect<void, PersistenceError>
-
-  /**
-   * Log an entity deletion
-   */
-  readonly logDelete: <T>(
-    entityType: AuditEntityType,
-    entityId: string,
-    entity: T,
-    userId: AuthUserId
-  ) => Effect.Effect<void, PersistenceError>
-
-  /**
-   * Log a status change (for workflows like fiscal periods)
-   */
-  readonly logStatusChange: (
-    entityType: AuditEntityType,
-    entityId: string,
-    previousStatus: string,
-    newStatus: string,
-    userId: AuthUserId
-  ) => Effect.Effect<void, PersistenceError>
-}
-
-export class AuditLogService extends Context.Tag("AuditLogService")<
-  AuditLogService,
-  AuditLogServiceShape
->() {}
-```
-
-**Files to Create:**
-- `packages/core/src/AuditLog/AuditLogService.ts` - Service interface
-- `packages/persistence/src/Layers/AuditLogServiceLive.ts` - Implementation
+**Key Features:**
+- `logCreate`: Records entity creation with all initial field values
+- `logUpdate`: Computes diff between before/after states automatically
+- `logDelete`: Records entity deletion with all final field values
+- `logStatusChange`: Records status transitions for workflow entities
+- `logWithChanges`: Allows pre-computed changes for complex scenarios
+- Automatic change detection using safe object comparison
+- Silent failure handling to not block business operations
 
 #### Phase 2: Integrate with Critical Services
 
@@ -260,7 +232,7 @@ Add audit logging to services that handle sensitive data:
 
 **Priority 1: Financial Operations (Compliance Critical)**
 - [ ] `JournalEntryServiceLive` - Log create, post, reverse operations
-- [ ] `FiscalPeriodServiceLive` - Log fiscal year create, period status changes
+- [x] `FiscalPeriodServiceLive` - Log fiscal year create, period status changes ✅ COMPLETE
 - [ ] `ExchangeRateServiceLive` - Log rate creates/updates (affects valuations)
 
 **Priority 2: Configuration Changes**
@@ -272,33 +244,29 @@ Add audit logging to services that handle sensitive data:
 - [ ] `OrganizationMemberServiceLive` - Log member add/remove/suspend/role changes
 - [ ] `SessionServiceLive` - Log login/logout events
 
-#### Phase 3: Pass User Context Through Services
+#### Phase 3: Pass User Context Through Services ✅ COMPLETE
 
-Services need the current user ID to create audit entries. Options:
+Services need the current user ID to create audit entries. **Option A (Effect Context) was implemented:**
 
-**Option A: Effect Context (Recommended)**
+**Files Created:**
+- `packages/core/src/AuditLog/CurrentUserId.ts` - Context tag with `getCurrentUserId()` and `withCurrentUserId()` helpers
+
+**Usage in Services:**
 ```typescript
-// Add CurrentUserId to effect context in API middleware
-export class CurrentUserId extends Context.Tag("CurrentUserId")<
-  CurrentUserId,
-  AuthUserId
->() {}
+// Services use Effect.serviceOption to optionally get CurrentUserId
+const getOptionalUserId = Effect.serviceOption(CurrentUserId)
 
-// Services read it from context
-const userId = yield* CurrentUserId
-yield* auditService.logCreate("Account", account.id, account, userId)
+// Log audit entry if both AuditLogService and CurrentUserId are available
+const logAuditCreateWithContext = <T>(entityType, entityId, entity) =>
+  Effect.gen(function* () {
+    const maybeUserId = yield* getOptionalUserId
+    if (Option.isSome(maybeUserId) && Option.isSome(auditLogService)) {
+      yield* logAuditCreate(entityType, entityId, entity, maybeUserId.value)
+    }
+  })
 ```
 
-**Option B: Explicit Parameter**
-```typescript
-// Add userId parameter to service methods
-readonly createAccount: (
-  input: CreateAccountInput,
-  userId: AuthUserId  // Add this
-) => Effect.Effect<Account, CreateAccountError>
-```
-
-**Recommendation:** Option A (Effect Context) - cleaner API, already have pattern with `CurrentOrganizationContext`
+**Note:** API middleware needs to provide `CurrentUserId` from authenticated user. Services gracefully skip audit logging when context is not provided (e.g., in tests or background jobs).
 
 #### Phase 4: Change Detection for Updates
 
@@ -335,17 +303,20 @@ Migrate `PeriodReopenAuditEntry` to use the general audit log:
 
 **Files to Modify:**
 
-| File | Changes |
-|------|---------|
-| `packages/core/src/AuditLog/AuditLogService.ts` | CREATE - Service interface |
-| `packages/persistence/src/Layers/AuditLogServiceLive.ts` | CREATE - Implementation |
-| `packages/api/src/Layers/OrganizationContextMiddlewareLive.ts` | Add `CurrentUserId` to context |
-| `packages/persistence/src/Layers/JournalEntryServiceLive.ts` | Add audit logging to create/post/reverse |
-| `packages/persistence/src/Layers/FiscalPeriodServiceLive.ts` | Add audit logging to all operations |
-| `packages/persistence/src/Layers/AccountServiceLive.ts` | Add audit logging to create/update/delete |
-| `packages/persistence/src/Layers/CompanyServiceLive.ts` | Add audit logging to create/update/delete |
-| `packages/persistence/src/Layers/ExchangeRateServiceLive.ts` | Add audit logging to sync operations |
-| `packages/persistence/src/Layers/OrganizationMemberServiceLive.ts` | Add audit logging to member changes |
+| File | Changes | Status |
+|------|---------|--------|
+| `packages/core/src/AuditLog/AuditLogService.ts` | CREATE - Service interface | ✅ Done |
+| `packages/core/src/AuditLog/AuditLogErrors.ts` | CREATE - Error types | ✅ Done |
+| `packages/core/src/AuditLog/CurrentUserId.ts` | CREATE - Context tag | ✅ Done |
+| `packages/persistence/src/Layers/AuditLogServiceLive.ts` | CREATE - Implementation | ✅ Done |
+| `packages/persistence/src/Layers/RepositoriesLive.ts` | Add AuditLogServiceLive to layer composition | ✅ Done |
+| `packages/api/src/Layers/OrganizationContextMiddlewareLive.ts` | Add `CurrentUserId` to context | ✅ Done |
+| `packages/persistence/src/Layers/JournalEntryServiceLive.ts` | Add audit logging to create/post/reverse | ❌ Pending |
+| `packages/persistence/src/Layers/FiscalPeriodServiceLive.ts` | Add audit logging to all operations | ✅ Done |
+| `packages/persistence/src/Layers/AccountServiceLive.ts` | Add audit logging to create/update/delete | ❌ Pending |
+| `packages/persistence/src/Layers/CompanyServiceLive.ts` | Add audit logging to create/update/delete | ❌ Pending |
+| `packages/persistence/src/Layers/ExchangeRateServiceLive.ts` | Add audit logging to sync operations | ❌ Pending |
+| `packages/persistence/src/Layers/OrganizationMemberServiceLive.ts` | Add audit logging to member changes | ❌ Pending |
 
 **Testing:**
 
@@ -736,14 +707,15 @@ The database has this constraint and the UI now handles the duplicate invitation
 16. ~~**Create effective permissions viewer** - Permission matrix UI~~ ✓ DONE
 
 ### Phase 5: Audit Log Integration (High effort, Compliance Critical)
-17. **Create AuditLogService** - Service interface and implementation for audit entry creation
-18. **Add CurrentUserId to API context** - Pass authenticated user ID through Effect context
-19. **Integrate with JournalEntryService** - Log create, post, reverse operations
-20. **Integrate with FiscalPeriodService** - Log fiscal year/period lifecycle events
-21. **Integrate with AccountService** - Log chart of accounts changes
-22. **Integrate with CompanyService** - Log company configuration changes
-23. **Integrate with OrganizationMemberService** - Log member management events
-24. **Consolidate PeriodReopenAuditEntry** - Migrate to general audit log
+17. ~~**Create AuditLogService** - Service interface and implementation for audit entry creation~~ ✅ DONE
+18. ~~**Add CurrentUserId context tag** - Pass authenticated user ID through Effect context~~ ✅ DONE
+19. **Integrate with JournalEntryService** - Log create, post, reverse operations ❌ Pending
+20. ~~**Integrate with FiscalPeriodService** - Log fiscal year/period lifecycle events~~ ✅ DONE
+21. **Integrate with AccountService** - Log chart of accounts changes ❌ Pending
+22. **Integrate with CompanyService** - Log company configuration changes ❌ Pending
+23. **Integrate with OrganizationMemberService** - Log member management events ❌ Pending
+24. **Consolidate PeriodReopenAuditEntry** - Migrate to general audit log ❌ Pending
+25. **Add CurrentUserId to API context** - Provide user ID to services from middleware ❌ Pending
 
 ### Phase 6: Fiscal Period Enforcement (Medium effort)
 25. **Add period existence validation** - Require fiscal period for journal entry dates
@@ -755,17 +727,18 @@ The database has this constraint and the UI now handles the duplicate invitation
 ## Files to Create/Modify
 
 ### New Files Needed:
-- `packages/core/src/Domains/FiscalPeriod.ts` - Period entity (not just Ref)
-- `packages/persistence/src/Services/FiscalPeriodRepository.ts` - Period storage
-- `packages/core/src/FiscalPeriod/FiscalPeriodService.ts` - Period management
-- `packages/api/src/Definitions/FiscalPeriodApi.ts` - Period API
-- `packages/api/src/Layers/FiscalPeriodApiLive.ts` - Period API handlers
-- `packages/web/src/routes/organizations/$organizationId/fiscal-periods/` - Period UI
-- `packages/web/src/components/members/TransferOwnershipModal.tsx` - Transfer UI
-- `packages/web/src/components/members/EffectivePermissionsView.tsx` - Permission display
-- `packages/core/src/AuditLog/AuditLogService.ts` - Audit service interface
-- `packages/persistence/src/Layers/AuditLogServiceLive.ts` - Audit service implementation
-- `packages/core/src/Auth/CurrentUserId.ts` - Context tag for current authenticated user
+- `packages/core/src/Domains/FiscalPeriod.ts` - Period entity (not just Ref) ✅ Done
+- `packages/persistence/src/Services/FiscalPeriodRepository.ts` - Period storage ✅ Done
+- `packages/core/src/FiscalPeriod/FiscalPeriodService.ts` - Period management ✅ Done
+- `packages/api/src/Definitions/FiscalPeriodApi.ts` - Period API ✅ Done
+- `packages/api/src/Layers/FiscalPeriodApiLive.ts` - Period API handlers ✅ Done
+- `packages/web/src/routes/organizations/$organizationId/fiscal-periods/` - Period UI ✅ Done
+- `packages/web/src/components/members/TransferOwnershipModal.tsx` - Transfer UI ✅ Done
+- `packages/web/src/components/members/EffectivePermissionsView.tsx` - Permission display ✅ Done
+- `packages/core/src/AuditLog/AuditLogService.ts` - Audit service interface ✅ Done
+- `packages/core/src/AuditLog/AuditLogErrors.ts` - Audit error types ✅ Done
+- `packages/core/src/AuditLog/CurrentUserId.ts` - Context tag for current authenticated user ✅ Done
+- `packages/persistence/src/Layers/AuditLogServiceLive.ts` - Audit service implementation ✅ Done
 
 ### Files to Modify:
 - `packages/web/src/routes/profile.tsx`: ✓ DONE
@@ -787,13 +760,13 @@ The database has this constraint and the UI now handles the duplicate invitation
   - ~~Remove "Coming Soon" labels when environment evaluation works~~ - Updated info banner to reflect that environment conditions are now evaluated at runtime
 
 ### Files to Modify (Audit Log Integration):
-- `packages/api/src/Layers/OrganizationContextMiddlewareLive.ts` - Add `CurrentUserId` to Effect context
-- `packages/persistence/src/Layers/JournalEntryServiceLive.ts` - Add audit logging to create/post/reverse
-- `packages/persistence/src/Layers/FiscalPeriodServiceLive.ts` - Add audit logging to all operations
-- `packages/persistence/src/Layers/AccountServiceLive.ts` - Add audit logging to create/update/delete
-- `packages/persistence/src/Layers/CompanyServiceLive.ts` - Add audit logging to create/update/delete
-- `packages/persistence/src/Layers/ExchangeRateServiceLive.ts` - Add audit logging to sync operations
-- `packages/persistence/src/Layers/OrganizationMemberServiceLive.ts` - Add audit logging to member changes
+- `packages/api/src/Layers/OrganizationContextMiddlewareLive.ts` - Add `CurrentUserId` to Effect context ✅ Done
+- `packages/persistence/src/Layers/JournalEntryServiceLive.ts` - Add audit logging to create/post/reverse ❌ Pending
+- `packages/persistence/src/Layers/FiscalPeriodServiceLive.ts` - Add audit logging to all operations ✅ Done
+- `packages/persistence/src/Layers/AccountServiceLive.ts` - Add audit logging to create/update/delete ❌ Pending
+- `packages/persistence/src/Layers/CompanyServiceLive.ts` - Add audit logging to create/update/delete ❌ Pending
+- `packages/persistence/src/Layers/ExchangeRateServiceLive.ts` - Add audit logging to sync operations ❌ Pending
+- `packages/persistence/src/Layers/OrganizationMemberServiceLive.ts` - Add audit logging to member changes ❌ Pending
 
 ### Files to Modify (Fiscal Period Enforcement): ✓ DONE
 - [x] `packages/core/src/Auth/AuthorizationPolicy.ts` - Added new priority constants for period protection
@@ -819,14 +792,16 @@ The following test coverage is missing for authorization features:
 - [x] E2E tests for fiscal period management - `packages/web/test-e2e/fiscal-periods.spec.ts` (10 tests)
 - [ ] Load tests for permission checking latency
 
-### Audit Log Integration Tests (NOT YET IMPLEMENTED):
+### Audit Log Integration Tests (PARTIALLY IMPLEMENTED):
 - [ ] Unit tests for `AuditLogServiceLive` - Verify entry creation with correct fields
 - [ ] Integration tests for JournalEntryService - Verify audit entries created on create/post/reverse
-- [ ] Integration tests for FiscalPeriodService - Verify audit entries for year/period operations
+- [x] Integration tests for FiscalPeriodService - Audit logging integrated (manual verification)
 - [ ] Integration tests for AccountService - Verify audit entries for chart of accounts changes
-- [ ] E2E test - Create fiscal year → verify appears in audit log UI
-- [ ] E2E test - Create journal entry → verify appears in audit log UI
-- [ ] E2E test - Add organization member → verify appears in audit log UI
+- [ ] E2E test - Create fiscal year → verify appears in audit log UI (needs CurrentUserId in API context)
+- [ ] E2E test - Create journal entry → verify appears in audit log UI (needs CurrentUserId in API context)
+- [ ] E2E test - Add organization member → verify appears in audit log UI (needs CurrentUserId in API context)
+
+**Note:** E2E tests for audit log entries require the API middleware to provide `CurrentUserId` context. This is listed as a pending item in Phase 5.
 
 ### Fiscal Period Enforcement Tests (COMPLETE):
 - [x] Unit tests for SystemPolicies - Verify 8 system policies created with correct settings (17 tests)

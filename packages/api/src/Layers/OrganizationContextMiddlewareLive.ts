@@ -27,6 +27,8 @@ import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
 import { OrganizationId } from "@accountability/core/Domains/Organization"
 import { AuthUserId } from "@accountability/core/Auth/AuthUserId"
+import type { CurrentUserId } from "@accountability/core/AuditLog/CurrentUserId"
+import { withCurrentUserId } from "@accountability/core/AuditLog/CurrentUserId"
 import { OrganizationMemberRepository } from "@accountability/persistence/Services/OrganizationMemberRepository"
 import {
   CurrentOrganizationMembership,
@@ -46,6 +48,9 @@ import type { Action } from "@accountability/core/Auth/Action"
 import { CurrentUser } from "../Definitions/AuthMiddleware.ts"
 import { ForbiddenError, NotFoundError } from "../Definitions/ApiErrors.ts"
 import type { ResourceContext } from "@accountability/core/Auth/matchers/ResourceMatcher"
+
+// Re-export CurrentUserId for convenience
+export { CurrentUserId } from "@accountability/core/AuditLog/CurrentUserId"
 
 // =============================================================================
 // Types
@@ -248,15 +253,17 @@ export const loadOrganizationMembership = (organizationId: OrganizationId) =>
  */
 export const withOrganizationContext = <A, E, R>(
   organizationId: OrganizationId,
-  effect: Effect.Effect<A, E, R | CurrentOrganizationMembership>
+  effect: Effect.Effect<A, E, R | CurrentOrganizationMembership | CurrentUserId>
 ): Effect.Effect<
   A,
   E | OrganizationContextError,
-  Exclude<R, CurrentOrganizationMembership> | CurrentUser | OrganizationMemberRepository
+  Exclude<Exclude<R, CurrentOrganizationMembership>, CurrentUserId> | CurrentUser | OrganizationMemberRepository
 > =>
   Effect.gen(function* () {
     const membership = yield* loadOrganizationMembership(organizationId)
-    return yield* withOrganizationMembership(membership)(effect)
+    // Provide both CurrentOrganizationMembership and CurrentUserId for audit logging
+    const withMembership = withOrganizationMembership(membership)(effect)
+    return yield* withCurrentUserId(membership.userId)(withMembership)
   })
 
 /**
@@ -283,11 +290,11 @@ export const withOrganizationContext = <A, E, R>(
  */
 export const requireOrganizationContext = <A, E, R>(
   orgIdString: string,
-  effect: Effect.Effect<A, E, R | CurrentOrganizationMembership>
+  effect: Effect.Effect<A, E, R | CurrentOrganizationMembership | CurrentUserId>
 ): Effect.Effect<
   A,
   E | OrganizationContextError,
-  Exclude<R, CurrentOrganizationMembership> | CurrentUser | OrganizationMemberRepository
+  Exclude<Exclude<R, CurrentOrganizationMembership>, CurrentUserId> | CurrentUser | OrganizationMemberRepository
 > =>
   Effect.gen(function* () {
     const organizationId = yield* validateOrganizationId(orgIdString)

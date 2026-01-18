@@ -678,3 +678,8 @@
 **Task**: Fixed E2E tests by adding fiscal year creation helpers to journal entry test files
 **Status**: complete
 ---
+
+## Iteration 5 - 2026-01-18 19:13
+**Task**: Fixed failing E2E test and added CurrentUserId to organization context middleware for audit logging
+**Status**: complete
+---

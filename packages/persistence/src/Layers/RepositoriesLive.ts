@@ -46,6 +46,7 @@ import { OrganizationMemberServiceLive } from "./OrganizationMemberServiceLive.t
 import { InvitationServiceLive } from "./InvitationServiceLive.ts"
 import { FiscalPeriodRepositoryLive } from "./FiscalPeriodRepositoryLive.ts"
 import { FiscalPeriodServiceLive } from "./FiscalPeriodServiceLive.ts"
+import { AuditLogServiceLive } from "./AuditLogServiceLive.ts"
 import { LocalAuthProviderLive } from "./LocalAuthProviderLive.ts"
 import { LocalAuthProvider } from "../Services/LocalAuthProvider.ts"
 import { AuthServiceConfig, SessionDurationConfig } from "../Services/AuthServiceConfig.ts"
@@ -289,10 +290,18 @@ const InvitationServiceWithDeps = InvitationServiceLive.pipe(
 )
 
 /**
- * FiscalPeriodServiceWithDeps - FiscalPeriodService with repository
+ * AuditLogServiceWithDeps - AuditLogService with repository
+ */
+const AuditLogServiceWithDeps = AuditLogServiceLive.pipe(
+  Layer.provide(AuditLogRepositoryLive)
+)
+
+/**
+ * FiscalPeriodServiceWithDeps - FiscalPeriodService with repository and audit logging
  */
 const FiscalPeriodServiceWithDeps = FiscalPeriodServiceLive.pipe(
-  Layer.provide(FiscalPeriodRepositoryLive)
+  Layer.provide(FiscalPeriodRepositoryLive),
+  Layer.provide(AuditLogServiceWithDeps)
 )
 
 /**
@@ -308,6 +317,7 @@ const FiscalPeriodServiceWithDeps = FiscalPeriodServiceLive.pipe(
  * - OrganizationMemberService
  * - InvitationService
  * - FiscalPeriodService
+ * - AuditLogService
  */
 export const RepositoriesWithAuthLive = Layer.mergeAll(
   RepositoriesLive,
@@ -315,5 +325,6 @@ export const RepositoriesWithAuthLive = Layer.mergeAll(
   PasswordHasherWithCrypto,
   OrganizationMemberServiceWithDeps,
   InvitationServiceWithDeps,
-  FiscalPeriodServiceWithDeps
+  FiscalPeriodServiceWithDeps,
+  AuditLogServiceWithDeps
 )

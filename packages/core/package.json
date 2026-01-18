@@ -101,7 +101,10 @@
     "./Services/PeriodService": "./src/Services/PeriodService.ts",
     "./Services/TrialBalanceService": "./src/Services/TrialBalanceService.ts",
     "./FiscalPeriod/FiscalPeriodErrors": "./src/FiscalPeriod/FiscalPeriodErrors.ts",
-    "./FiscalPeriod/FiscalPeriodService": "./src/FiscalPeriod/FiscalPeriodService.ts"
+    "./FiscalPeriod/FiscalPeriodService": "./src/FiscalPeriod/FiscalPeriodService.ts",
+    "./AuditLog/AuditLogErrors": "./src/AuditLog/AuditLogErrors.ts",
+    "./AuditLog/AuditLogService": "./src/AuditLog/AuditLogService.ts",
+    "./AuditLog/CurrentUserId": "./src/AuditLog/CurrentUserId.ts"
   },
   "scripts": {
     "clean": "rm -rf dist",

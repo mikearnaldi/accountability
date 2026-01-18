@@ -258,7 +258,7 @@ test.describe("Organization Dashboard", () => {
     expect(page.url()).toContain(`/organizations/${organization.id}/companies/new`)
   })
 
-  test("should display activity feed placeholder", async ({ page, request }) => {
+  test("should display activity feed section", async ({ page, request }) => {
     // 1. Register and login
     const testUser = {
       email: `test-org-activity-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`,
@@ -303,8 +303,16 @@ test.describe("Organization Dashboard", () => {
     // 4. Navigate to dashboard
     await page.goto(`/organizations/${organization.id}/dashboard`)
 
-    // 5. Verify activity feed empty state (until audit log API is ready)
-    await expect(page.locator('[data-testid="activity-feed-empty"]')).toBeVisible()
+    // 5. Verify activity feed section is present (either with data or empty state)
+    // The activity feed can show entries (from audit log) or empty state depending on system state
+    const activityFeedWithData = page.locator('[data-testid="activity-feed"]')
+    const activityFeedEmpty = page.locator('[data-testid="activity-feed-empty"]')
+
+    // Wait for either the populated feed or empty state to be visible
+    await expect(activityFeedWithData.or(activityFeedEmpty)).toBeVisible({ timeout: 10000 })
+
+    // Verify the Recent Activity heading is visible (use role to get the heading specifically)
+    await expect(page.getByRole("heading", { name: "Recent Activity" })).toBeVisible()
   })
 
   test("should show sidebar with org-scoped navigation", async ({ page, request }) => {
