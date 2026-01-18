@@ -12,6 +12,7 @@ import { NoCompaniesEmptyState } from "@/components/ui/EmptyState"
 import { Button } from "@/components/ui/Button"
 import { AppLayout } from "@/components/layout/AppLayout"
 import { MinimalRouteError } from "@/components/ui/RouteError"
+import { usePermissions } from "@/hooks/usePermissions"
 
 // =============================================================================
 // Server Functions: Fetch organization and companies from API with cookie auth
@@ -205,6 +206,10 @@ function CompaniesListPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [apiError, setApiError] = useState<string | null>(null)
 
+  // Permission checks for UI element visibility
+  const { canPerform } = usePermissions()
+  const canCreateCompany = canPerform("company:create")
+
   // Filter companies by status
   const filteredCompanies = useMemo(() => {
     if (statusFilter === "all") return companies
@@ -331,13 +336,15 @@ function CompaniesListPage() {
               </p>
             </div>
 
-            <Button
-              onClick={() => setShowCreateForm(true)}
-              icon={<Plus className="h-4 w-4" />}
-              data-testid="create-company-button"
-            >
-              New Company
-            </Button>
+            {canCreateCompany && (
+              <Button
+                onClick={() => setShowCreateForm(true)}
+                icon={<Plus className="h-4 w-4" />}
+                data-testid="create-company-button"
+              >
+                New Company
+              </Button>
+            )}
           </div>
 
           {/* Status Filter */}
@@ -396,12 +403,14 @@ function CompaniesListPage() {
         {companies.length === 0 ? (
           <NoCompaniesEmptyState
             action={
-              <Button
-                onClick={() => setShowCreateForm(true)}
-                icon={<Plus className="h-5 w-5" />}
-              >
-                Create Company
-              </Button>
+              canCreateCompany ? (
+                <Button
+                  onClick={() => setShowCreateForm(true)}
+                  icon={<Plus className="h-5 w-5" />}
+                >
+                  Create Company
+                </Button>
+              ) : undefined
             }
           />
         ) : filteredCompanies.length === 0 ? (

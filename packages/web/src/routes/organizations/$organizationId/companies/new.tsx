@@ -15,6 +15,7 @@ import { createServerApi } from "@/api/server"
 import { CompanyForm, type CompanyFormData, type CurrencyOption } from "@/components/forms/CompanyForm"
 import type { JurisdictionOption } from "@/components/ui/JurisdictionSelect"
 import { AppLayout } from "@/components/layout/AppLayout"
+import { usePermissions } from "@/hooks/usePermissions"
 
 // =============================================================================
 // Types
@@ -173,6 +174,10 @@ function NewCompanyPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [apiError, setApiError] = useState<string | null>(null)
 
+  // Permission check
+  const { canPerform } = usePermissions()
+  const canCreateCompany = canPerform("company:create")
+
   // Map companies for parent selection (only active companies)
   const existingCompaniesForParent = useMemo(
     () => companies.map((c) => ({ id: c.id, name: c.name })),
@@ -202,6 +207,35 @@ function NewCompanyPage() {
 
   if (!organization) {
     return null
+  }
+
+  // Show permission denied if user cannot create companies
+  if (!canCreateCompany) {
+    return (
+      <AppLayout
+        user={user}
+        organizations={organizations}
+        currentOrganization={organization}
+        breadcrumbItems={breadcrumbItems}
+        companies={companiesForSidebar}
+      >
+        <div className="rounded-lg border border-red-200 bg-red-50 p-8 text-center" data-testid="permission-denied">
+          <h2 className="text-lg font-semibold text-red-800">Permission Denied</h2>
+          <p className="mt-2 text-sm text-red-600">
+            You don&apos;t have permission to create companies in this organization.
+          </p>
+          <button
+            onClick={() => router.navigate({
+              to: "/organizations/$organizationId/companies",
+              params: { organizationId: params.organizationId }
+            })}
+            className="mt-4 rounded-lg bg-red-100 px-4 py-2 text-sm font-medium text-red-800 hover:bg-red-200"
+          >
+            Back to Companies
+          </button>
+        </div>
+      </AppLayout>
+    )
   }
 
   const handleSubmit = async (formData: CompanyFormData) => {

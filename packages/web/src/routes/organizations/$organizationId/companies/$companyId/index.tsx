@@ -10,6 +10,7 @@ import { MinimalRouteError } from "@/components/ui/RouteError"
 import { Input } from "@/components/ui/Input"
 import { Select } from "@/components/ui/Select"
 import { Button } from "@/components/ui/Button"
+import { usePermissions } from "@/hooks/usePermissions"
 
 // Type for CompanyType from the API schema
 type CompanyType = NonNullable<paths["/api/v1/organizations/{organizationId}/companies/{id}"]["put"]["requestBody"]["content"]["application/json"]["companyType"]>
@@ -219,6 +220,11 @@ function CompanyDetailsPage() {
   const [isEditing, setIsEditing] = useState(false)
   const [isToggling, setIsToggling] = useState(false)
 
+  // Permission checks for UI element visibility
+  const { canPerform } = usePermissions()
+  const canUpdateCompany = canPerform("company:update")
+  const canDeleteCompany = canPerform("company:delete")
+
   // Map companies for sidebar
   const companiesForSidebar = useMemo(
     () => allCompanies.map((c) => ({ id: c.id, name: c.name })),
@@ -358,25 +364,29 @@ function CompanyDetailsPage() {
                 <p className="mt-1 text-sm text-gray-500">Created {createdDate}</p>
               </div>
               <div className="flex items-center gap-3">
-                <button
-                  onClick={() => setIsEditing(true)}
-                  data-testid="edit-company-button"
-                  className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={handleToggleActive}
-                  disabled={isToggling}
-                  data-testid="toggle-active-button"
-                  className={`rounded-lg px-4 py-2 text-sm font-medium ${
-                    company.isActive
-                      ? "border border-red-300 bg-white text-red-700 hover:bg-red-50"
-                      : "border border-green-300 bg-white text-green-700 hover:bg-green-50"
-                  } disabled:cursor-not-allowed disabled:opacity-50`}
-                >
-                  {isToggling ? "..." : company.isActive ? "Deactivate" : "Activate"}
-                </button>
+                {canUpdateCompany && (
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    data-testid="edit-company-button"
+                    className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  >
+                    Edit
+                  </button>
+                )}
+                {canDeleteCompany && (
+                  <button
+                    onClick={handleToggleActive}
+                    disabled={isToggling}
+                    data-testid="toggle-active-button"
+                    className={`rounded-lg px-4 py-2 text-sm font-medium ${
+                      company.isActive
+                        ? "border border-red-300 bg-white text-red-700 hover:bg-red-50"
+                        : "border border-green-300 bg-white text-green-700 hover:bg-green-50"
+                    } disabled:cursor-not-allowed disabled:opacity-50`}
+                  >
+                    {isToggling ? "..." : company.isActive ? "Deactivate" : "Activate"}
+                  </button>
+                )}
               </div>
             </div>
           </div>

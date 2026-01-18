@@ -794,11 +794,25 @@ Changes:
 
 ---
 
-#### Phase G4: Protected UI Elements - Companies
+#### Phase G4: Protected UI Elements - Companies ✅ COMPLETE
 Hide/disable UI elements in company pages based on permissions:
 - Create button: `company:create`
 - Edit button: `company:update`
 - Delete button: `company:delete`
+
+**Completed**:
+- Updated `companies/index.tsx` (list page):
+  - Import and use `usePermissions` hook
+  - Hide "New Company" header button if user lacks `company:create` permission
+  - Hide empty state CTA button if user lacks `company:create` permission
+- Updated `companies/$companyId/index.tsx` (detail page):
+  - Import and use `usePermissions` hook
+  - Hide "Edit" button if user lacks `company:update` permission
+  - Hide "Deactivate/Activate" button if user lacks `company:delete` permission
+- Updated `companies/new.tsx` (create page):
+  - Import and use `usePermissions` hook
+  - Show permission denied message with back button if user lacks `company:create` permission
+- All 3899 tests pass, typecheck clean, lint clean
 
 ---
 
