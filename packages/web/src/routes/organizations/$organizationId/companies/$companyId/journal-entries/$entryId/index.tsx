@@ -25,6 +25,7 @@ import { MinimalRouteError } from "@/components/ui/RouteError"
 import { Tooltip } from "@/components/ui/Tooltip"
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
+import { usePermissions } from "@/hooks/usePermissions"
 
 // =============================================================================
 // Types (extracted from API response schema)
@@ -280,6 +281,7 @@ interface CompanyForSidebar {
 function JournalEntryDetailPage() {
   const context = Route.useRouteContext()
   const loaderData = Route.useLoaderData()
+  const { canPerform } = usePermissions()
   /* eslint-disable @typescript-eslint/consistent-type-assertions -- Type assertions needed for loader data typing */
   const entry = loaderData.entry as JournalEntry | null
   const lines = loaderData.lines as readonly JournalEntryLine[]
@@ -292,6 +294,11 @@ function JournalEntryDetailPage() {
   const user = context.user
   // Organizations come from the parent layout route's beforeLoad
   const organizations = context.organizations ?? []
+
+  // Permission checks
+  const canUpdateEntry = canPerform("journal_entry:update")
+  const canPostEntry = canPerform("journal_entry:post")
+  const canReverseEntry = canPerform("journal_entry:reverse")
 
   // Build account lookup map
   const accountMap = new Map<string, Account>()
@@ -488,6 +495,9 @@ function JournalEntryDetailPage() {
               entry={entry}
               organizationId={params.organizationId}
               companyId={params.companyId}
+              canUpdateEntry={canUpdateEntry}
+              canPostEntry={canPostEntry}
+              canReverseEntry={canReverseEntry}
             />
           </div>
         </div>
@@ -511,11 +521,17 @@ function JournalEntryDetailPage() {
 function WorkflowActions({
   entry,
   organizationId,
-  companyId
+  companyId,
+  canUpdateEntry,
+  canPostEntry,
+  canReverseEntry
 }: {
   readonly entry: JournalEntry
   readonly organizationId: string
   readonly companyId: string
+  readonly canUpdateEntry: boolean
+  readonly canPostEntry: boolean
+  readonly canReverseEntry: boolean
 }) {
   const router = useRouter()
   const navigate = useNavigate()
@@ -700,48 +716,54 @@ function WorkflowActions({
         {/* Draft actions */}
         {entry.status === "Draft" && (
           <>
-            <Link
-              to="/organizations/$organizationId/companies/$companyId/journal-entries/$entryId/edit"
-              params={{
-                organizationId,
-                companyId,
-                entryId: entry.id
-              }}
-              className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-              data-testid="edit-button"
-            >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-              Edit
-            </Link>
-            <Button
-              onClick={handleSubmitForApproval}
-              loading={isSubmitting}
-              disabled={isSubmitting}
-              data-testid="submit-button"
-            >
-              Submit for Approval
-            </Button>
-            <Button
-              variant="danger"
-              onClick={() => setShowDeleteConfirm(true)}
-              disabled={isSubmitting}
-              data-testid="delete-button"
-              icon={
+            {canUpdateEntry && (
+              <Link
+                to="/organizations/$organizationId/companies/$companyId/journal-entries/$entryId/edit"
+                params={{
+                  organizationId,
+                  companyId,
+                  entryId: entry.id
+                }}
+                className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                data-testid="edit-button"
+              >
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
-              }
-              className="border border-red-300 bg-white text-red-700 hover:bg-red-50"
-            >
-              Delete
-            </Button>
+                Edit
+              </Link>
+            )}
+            {canUpdateEntry && (
+              <Button
+                onClick={handleSubmitForApproval}
+                loading={isSubmitting}
+                disabled={isSubmitting}
+                data-testid="submit-button"
+              >
+                Submit for Approval
+              </Button>
+            )}
+            {canUpdateEntry && (
+              <Button
+                variant="danger"
+                onClick={() => setShowDeleteConfirm(true)}
+                disabled={isSubmitting}
+                data-testid="delete-button"
+                icon={
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                }
+                className="border border-red-300 bg-white text-red-700 hover:bg-red-50"
+              >
+                Delete
+              </Button>
+            )}
           </>
         )}
 
         {/* PendingApproval actions */}
-        {entry.status === "PendingApproval" && (
+        {entry.status === "PendingApproval" && canPostEntry && (
           <>
             <Button
               onClick={handleApprove}
@@ -765,7 +787,7 @@ function WorkflowActions({
         )}
 
         {/* Approved actions */}
-        {entry.status === "Approved" && (
+        {entry.status === "Approved" && canPostEntry && (
           <Button
             onClick={handlePost}
             loading={isSubmitting}
@@ -778,7 +800,7 @@ function WorkflowActions({
         )}
 
         {/* Posted actions */}
-        {entry.status === "Posted" && (
+        {entry.status === "Posted" && canReverseEntry && (
           <Button
             variant="secondary"
             onClick={() => setShowReverseConfirm(true)}

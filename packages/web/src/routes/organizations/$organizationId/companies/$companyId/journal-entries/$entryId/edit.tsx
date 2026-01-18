@@ -12,7 +12,7 @@ import { createFileRoute, redirect, Link, useNavigate } from "@tanstack/react-ro
 import { createServerFn } from "@tanstack/react-start"
 import { getCookie } from "@tanstack/react-start/server"
 import { useState, useMemo, useCallback } from "react"
-import { Plus, Calendar, Info } from "lucide-react"
+import { Plus, Calendar, Info, ArrowLeft } from "lucide-react"
 import { createServerApi } from "@/api/server"
 import { api } from "@/api/client"
 import { AppLayout } from "@/components/layout/AppLayout"
@@ -25,6 +25,7 @@ import {
   type Account,
   type JournalEntryLine
 } from "@/components/journal/JournalEntryLineEditor"
+import { usePermissions } from "@/hooks/usePermissions"
 
 // =============================================================================
 // Types
@@ -542,6 +543,7 @@ function ComputedPeriodDisplay({
 function EditJournalEntryPage() {
   const context = Route.useRouteContext()
   const loaderData = Route.useLoaderData()
+  const { canPerform } = usePermissions()
   /* eslint-disable @typescript-eslint/consistent-type-assertions -- Type assertions needed for loader data typing */
   const entry = loaderData.entry as JournalEntry | null
   const entryLines = loaderData.lines as readonly JournalEntryLineData[]
@@ -555,6 +557,9 @@ function EditJournalEntryPage() {
   const user = context.user
   // Organizations come from the parent layout route's beforeLoad
   const organizations = context.organizations ?? []
+
+  // Permission check
+  const canUpdateEntry = canPerform("journal_entry:update")
 
   // Check if entry is editable (only Draft entries can be edited)
   const isEditable = entry?.status === "Draft"
@@ -825,6 +830,56 @@ function EditJournalEntryPage() {
 
   if (!entry || !company || !organization) {
     return null
+  }
+
+  // Permission denied check
+  if (!canUpdateEntry) {
+    return (
+      <AppLayout
+        user={user}
+        organizations={organizations}
+        currentOrganization={organization}
+        breadcrumbItems={[
+          {
+            label: "Companies",
+            href: `/organizations/${params.organizationId}/companies`
+          },
+          {
+            label: company.name,
+            href: `/organizations/${params.organizationId}/companies/${params.companyId}`
+          },
+          {
+            label: "Journal Entries",
+            href: `/organizations/${params.organizationId}/companies/${params.companyId}/journal-entries`
+          },
+          {
+            label: entry.referenceNumber ?? entry.entryNumber ?? "Entry",
+            href: `/organizations/${params.organizationId}/companies/${params.companyId}/journal-entries/${params.entryId}`
+          }
+        ]}
+        companies={[{ id: company.id, name: company.name }]}
+      >
+        <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-center" data-testid="permission-denied">
+          <h2 className="text-lg font-medium text-red-800">Permission Denied</h2>
+          <p className="mt-2 text-red-700">
+            You do not have permission to edit journal entries.
+          </p>
+          <Button
+            variant="secondary"
+            icon={<ArrowLeft className="h-4 w-4" />}
+            className="mt-4"
+            onClick={() => {
+              navigate({
+                to: "/organizations/$organizationId/companies/$companyId/journal-entries/$entryId",
+                params: { organizationId: params.organizationId, companyId: params.companyId, entryId: params.entryId }
+              })
+            }}
+          >
+            Back to Entry
+          </Button>
+        </div>
+      </AppLayout>
+    )
   }
 
   // Show error if entry is not editable

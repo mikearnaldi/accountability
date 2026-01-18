@@ -13,12 +13,13 @@ import { createFileRoute, redirect, Link, useNavigate } from "@tanstack/react-ro
 import { createServerFn } from "@tanstack/react-start"
 import { getCookie } from "@tanstack/react-start/server"
 import { useMemo } from "react"
-import { Plus } from "lucide-react"
+import { Plus, ArrowLeft } from "lucide-react"
 import { createServerApi } from "@/api/server"
 import { JournalEntryForm } from "@/components/forms/JournalEntryForm"
 import { AppLayout } from "@/components/layout/AppLayout"
 import { MinimalRouteError } from "@/components/ui/RouteError"
 import { Button } from "@/components/ui/Button"
+import { usePermissions } from "@/hooks/usePermissions"
 
 // =============================================================================
 // Types
@@ -190,6 +191,7 @@ export const Route = createFileRoute(
 function NewJournalEntryPage() {
   const context = Route.useRouteContext()
   const loaderData = Route.useLoaderData()
+  const { canPerform } = usePermissions()
   /* eslint-disable @typescript-eslint/consistent-type-assertions -- Type assertions needed for loader data typing */
   const company = loaderData.company as Company | null
   const organization = loaderData.organization as Organization | null
@@ -201,6 +203,9 @@ function NewJournalEntryPage() {
   const user = context.user
   // Organizations come from the parent layout route's beforeLoad
   const organizations = context.organizations ?? []
+
+  // Permission check
+  const canCreateEntry = canPerform("journal_entry:create")
 
   // Handle success - navigate back to journal entries list
   const handleSuccess = () => {
@@ -226,6 +231,52 @@ function NewJournalEntryPage() {
 
   if (!company || !organization) {
     return null
+  }
+
+  // Permission denied check
+  if (!canCreateEntry) {
+    return (
+      <AppLayout
+        user={user}
+        organizations={organizations}
+        currentOrganization={organization}
+        breadcrumbItems={[
+          {
+            label: "Companies",
+            href: `/organizations/${params.organizationId}/companies`
+          },
+          {
+            label: company.name,
+            href: `/organizations/${params.organizationId}/companies/${params.companyId}`
+          },
+          {
+            label: "Journal Entries",
+            href: `/organizations/${params.organizationId}/companies/${params.companyId}/journal-entries`
+          }
+        ]}
+        companies={[{ id: company.id, name: company.name }]}
+      >
+        <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-center" data-testid="permission-denied">
+          <h2 className="text-lg font-medium text-red-800">Permission Denied</h2>
+          <p className="mt-2 text-red-700">
+            You do not have permission to create journal entries.
+          </p>
+          <Button
+            variant="secondary"
+            icon={<ArrowLeft className="h-4 w-4" />}
+            className="mt-4"
+            onClick={() => {
+              navigate({
+                to: "/organizations/$organizationId/companies/$companyId/journal-entries",
+                params: { organizationId: params.organizationId, companyId: params.companyId }
+              })
+            }}
+          >
+            Back to Journal Entries
+          </Button>
+        </div>
+      </AppLayout>
+    )
   }
 
   // Check if company has any accounts

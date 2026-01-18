@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/Button"
 import { Tooltip } from "@/components/ui/Tooltip"
 import { Select } from "@/components/ui/Select"
 import { Input } from "@/components/ui/Input"
+import { usePermissions } from "@/hooks/usePermissions"
 
 // =============================================================================
 // Types (extracted from API response schema)
@@ -252,12 +253,16 @@ function JournalEntriesPage() {
   const context = Route.useRouteContext()
   const loaderData = Route.useLoaderData()
   const navigate = useNavigate()
+  const { canPerform } = usePermissions()
   /* eslint-disable @typescript-eslint/consistent-type-assertions -- Type assertions needed for loader data typing */
   const entries = loaderData.entries as readonly JournalEntry[]
   const total = loaderData.total as number
   const company = loaderData.company as Company | null
   const organization = loaderData.organization as Organization | null
   /* eslint-enable @typescript-eslint/consistent-type-assertions */
+
+  // Permission checks
+  const canCreateEntry = canPerform("journal_entry:create")
 
   // Compute available fiscal years from entries (since fiscal periods are now computed, Issue 33/34)
   const availableFiscalYears = useMemo(() => {
@@ -427,18 +432,20 @@ function JournalEntriesPage() {
               </p>
             </div>
 
-            <Button
-              icon={<Plus className="h-4 w-4" />}
-              data-testid="create-journal-entry-button"
-              onClick={() => {
-                navigate({
-                  to: "/organizations/$organizationId/companies/$companyId/journal-entries/new",
-                  params: { organizationId: params.organizationId, companyId: params.companyId }
-                })
-              }}
-            >
-              New Entry
-            </Button>
+            {canCreateEntry && (
+              <Button
+                icon={<Plus className="h-4 w-4" />}
+                data-testid="create-journal-entry-button"
+                onClick={() => {
+                  navigate({
+                    to: "/organizations/$organizationId/companies/$companyId/journal-entries/new",
+                    params: { organizationId: params.organizationId, companyId: params.companyId }
+                  })
+                }}
+              >
+                New Entry
+              </Button>
+            )}
           </div>
         </div>
 
@@ -592,6 +599,7 @@ function JournalEntriesPage() {
           <JournalEntriesEmptyState
             organizationId={params.organizationId}
             companyId={params.companyId}
+            canCreateEntry={canCreateEntry}
           />
         ) : filteredEntries.length === 0 ? (
           <div className="rounded-lg border border-gray-200 bg-white p-8 text-center" data-testid="journal-entries-no-results">
@@ -768,10 +776,12 @@ function JournalEntryRow({
 
 function JournalEntriesEmptyState({
   organizationId,
-  companyId
+  companyId,
+  canCreateEntry
 }: {
   readonly organizationId: string
   readonly companyId: string
+  readonly canCreateEntry: boolean
 }) {
   const navigate = useNavigate()
   return (
@@ -785,18 +795,20 @@ function JournalEntriesEmptyState({
       <p className="mb-6 text-gray-500">
         Journal entries will appear here once created.
       </p>
-      <Button
-        icon={<Plus className="h-5 w-5" />}
-        data-testid="create-journal-entry-empty-button"
-        onClick={() => {
-          navigate({
-            to: "/organizations/$organizationId/companies/$companyId/journal-entries/new",
-            params: { organizationId, companyId }
-          })
-        }}
-      >
-        Create Journal Entry
-      </Button>
+      {canCreateEntry && (
+        <Button
+          icon={<Plus className="h-5 w-5" />}
+          data-testid="create-journal-entry-empty-button"
+          onClick={() => {
+            navigate({
+              to: "/organizations/$organizationId/companies/$companyId/journal-entries/new",
+              params: { organizationId, companyId }
+            })
+          }}
+        >
+          Create Journal Entry
+        </Button>
+      )}
     </div>
   )
 }

@@ -834,8 +834,31 @@ Same pattern for accounts pages.
 
 ---
 
-#### Phase G6: Protected UI Elements - Journal Entries
+#### Phase G6: Protected UI Elements - Journal Entries ✅ COMPLETE
 Same pattern for journal entry pages.
+
+**Completed**:
+- Updated `journal-entries/index.tsx` (list page):
+  - Import and use `usePermissions` hook
+  - Hide "New Entry" header button if user lacks `journal_entry:create` permission
+  - Hide empty state CTA button if user lacks `journal_entry:create` permission
+  - Updated JournalEntriesEmptyState component to accept `canCreateEntry` prop
+- Updated `journal-entries/new.tsx` (create page):
+  - Import and use `usePermissions` hook
+  - Show permission denied message with back button if user lacks `journal_entry:create` permission
+- Updated `journal-entries/$entryId/index.tsx` (detail page):
+  - Import and use `usePermissions` hook
+  - Hide "Edit" button if user lacks `journal_entry:update` permission
+  - Hide "Submit for Approval" button if user lacks `journal_entry:update` permission
+  - Hide "Delete" button if user lacks `journal_entry:update` permission
+  - Hide "Approve/Reject" buttons if user lacks `journal_entry:post` permission
+  - Hide "Post to Ledger" button if user lacks `journal_entry:post` permission
+  - Hide "Create Reversal" button if user lacks `journal_entry:reverse` permission
+  - Updated WorkflowActions component to accept permission props
+- Updated `journal-entries/$entryId/edit.tsx` (edit page):
+  - Import and use `usePermissions` hook
+  - Show permission denied message with back button if user lacks `journal_entry:update` permission
+- All 3899 tests pass, typecheck clean, lint clean
 
 ---
 
