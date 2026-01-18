@@ -250,6 +250,17 @@ export interface OrganizationMemberServiceShape {
   ) => Effect.Effect<ReadonlyArray<OrganizationMembership>, PersistenceError>
 
   /**
+   * List all members in an organization (including removed/suspended)
+   *
+   * @param organizationId - The organization ID
+   * @returns Effect containing array of all memberships regardless of status
+   * @errors PersistenceError - Database operation failed
+   */
+  readonly listAllMembers: (
+    organizationId: OrganizationId
+  ) => Effect.Effect<ReadonlyArray<OrganizationMembership>, PersistenceError>
+
+  /**
    * List all memberships for a user (across all organizations)
    *
    * @param userId - The user ID

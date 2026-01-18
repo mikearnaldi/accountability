@@ -510,21 +510,26 @@ The following test coverage is missing for authorization features:
   - Show member in list after accepting invitation
   - Transfer ownership to admin successfully
 - [x] E2E tests for duplicate invitation error handling - Added in same file
-- [ ] E2E tests for member removal/reinstatement - **BLOCKED** by API bug (listMembers only returns active members)
+- [ ] E2E tests for member removal/reinstatement - Now unblocked, can be implemented
 - [ ] Integration tests for environment condition evaluation
 - [ ] E2E tests for fiscal period management (once implemented)
 - [ ] Load tests for permission checking latency
 
-### API Bug Discovered: listMembers returns only active members
+### API Bug Fixed: listMembers now returns all members ✓
 
-The `MembershipApiLive.listMembers` handler calls `memberService.listActiveMembers(orgId)` which only returns active members.
+**Status: RESOLVED**
+
+The `MembershipApiLive.listMembers` handler previously called `memberService.listActiveMembers(orgId)` which only returned active members.
 The UI expects to show both active and inactive (removed/suspended) members in separate sections.
 
-**Fix Required:**
-1. Add `listAllMembers` method to `OrganizationMemberService` interface
-2. Implement it in `OrganizationMemberServiceLive` using `memberRepo.findByOrganization`
-3. Update `MembershipApiLive.listMembers` to use the new method
-4. This will unblock the E2E tests for member removal/reinstatement
+**Fix Implemented:**
+1. [x] Added `listAllMembers` method to `OrganizationMemberService` interface
+2. [x] Implemented it in `OrganizationMemberServiceLive` using `memberRepo.findByOrganization`
+3. [x] Updated `MembershipApiLive.listMembers` to use the new method
+
+The members page now correctly displays:
+- Active members section
+- Inactive members section (showing removed/suspended members)
 
 ---
 

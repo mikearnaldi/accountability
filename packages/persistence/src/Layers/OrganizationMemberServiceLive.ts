@@ -293,6 +293,11 @@ const make = Effect.gen(function* () {
     listActiveMembers: (organizationId) => memberRepo.findActiveByOrganization(organizationId),
 
     /**
+     * List all members in an organization (including removed/suspended)
+     */
+    listAllMembers: (organizationId) => memberRepo.findByOrganization(organizationId),
+
+    /**
      * List all memberships for a user (across all organizations)
      */
     listUserMemberships: (userId) => memberRepo.findByUser(userId)

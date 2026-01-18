@@ -60,8 +60,8 @@ export const MembershipApiLive = HttpApiBuilder.group(AppApi, "membership", (han
             }))
           )
 
-          // Get all members - persistence errors become defects
-          const memberships = yield* memberService.listActiveMembers(orgId).pipe(
+          // Get all members (including removed/suspended) - persistence errors become defects
+          const memberships = yield* memberService.listAllMembers(orgId).pipe(
             Effect.orDie
           )
 

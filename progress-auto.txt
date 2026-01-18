@@ -653,3 +653,8 @@
 **Task**: Added improved duplicate invitation error handling with friendly UI and E2E tests for owner transfer and member management flows
 **Status**: complete
 ---
+
+## Iteration 19 - 2026-01-18 15:22
+**Task**: Fixed listMembers API to return all members including removed/suspended
+**Status**: complete
+---
