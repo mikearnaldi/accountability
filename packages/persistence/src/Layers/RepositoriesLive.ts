@@ -40,6 +40,7 @@ import { IdentityRepositoryLive } from "./IdentityRepositoryLive.ts"
 import { SessionRepositoryLive } from "./SessionRepositoryLive.ts"
 import { OrganizationMemberRepositoryLive } from "./OrganizationMemberRepositoryLive.ts"
 import { InvitationRepositoryLive } from "./InvitationRepositoryLive.ts"
+import { PolicyRepositoryLive } from "./PolicyRepositoryLive.ts"
 import { AuthServiceLive } from "./AuthServiceLive.ts"
 import { OrganizationMemberServiceLive } from "./OrganizationMemberServiceLive.ts"
 import { InvitationServiceLive } from "./InvitationServiceLive.ts"
@@ -104,7 +105,8 @@ export const RepositoriesLive = Layer.mergeAll(
   IdentityRepositoryLive,
   SessionRepositoryLive,
   OrganizationMemberRepositoryLive,
-  InvitationRepositoryLive
+  InvitationRepositoryLive,
+  PolicyRepositoryLive
 )
 
 // =============================================================================

@@ -653,13 +653,26 @@ Function to match request context against EnvironmentCondition:
 
 ---
 
-#### Phase F6: System Policies Seeding
+#### Phase F6: System Policies Seeding ✅ COMPLETE
 **File**: `packages/persistence/src/Seeds/SystemPolicies.ts`
 
 Define the 4 system policies as seed data.
 Update organization creation to insert system policies.
 
 **Test**: New org has 4 system policies.
+
+**Completed**:
+- Created `SystemPolicies.ts` with `createSystemPoliciesForOrganization()` function that generates the 4 system policies:
+  1. Platform Admin Full Access (priority 1000, allow all)
+  2. Organization Owner Full Access (priority 900, allow all)
+  3. Viewer Read-Only Access (priority 100, allow read actions only)
+  4. Locked Period Protection (priority 999, deny journal entry modifications in locked periods)
+- Added `seedSystemPolicies()` function to create all policies for an organization
+- Added `hasSystemPolicies()` helper to check if policies are already seeded
+- Updated `createOrganization` handler in `CompaniesApiLive.ts` to seed system policies on org creation
+- Added `PolicyRepositoryLive` to `RepositoriesLive` layer composition
+- Added 17 unit tests for system policy generation and seeding
+- All 3899 tests pass, typecheck clean, lint clean
 
 ---
 

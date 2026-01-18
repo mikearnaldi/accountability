@@ -30,6 +30,8 @@ import { AuthUserId } from "@accountability/core/Auth/AuthUserId"
 import { CompanyRepository } from "@accountability/persistence/Services/CompanyRepository"
 import { OrganizationRepository } from "@accountability/persistence/Services/OrganizationRepository"
 import { OrganizationMemberRepository } from "@accountability/persistence/Services/OrganizationMemberRepository"
+import { PolicyRepository } from "@accountability/persistence/Services/PolicyRepository"
+import { seedSystemPolicies } from "@accountability/persistence/Seeds/SystemPolicies"
 import {
   isEntityNotFoundError,
   type EntityNotFoundError,
@@ -104,6 +106,7 @@ export const CompaniesApiLive = HttpApiBuilder.group(AppApi, "companies", (handl
     const companyRepo = yield* CompanyRepository
     const orgRepo = yield* OrganizationRepository
     const memberRepo = yield* OrganizationMemberRepository
+    const policyRepo = yield* PolicyRepository
 
     return handlers
       // =============================================================================
@@ -194,6 +197,12 @@ export const CompaniesApiLive = HttpApiBuilder.group(AppApi, "companies", (handl
               Effect.catchAll(() => Effect.void)
             )
           }
+
+          // Seed system policies for the new organization
+          // These are the 4 built-in policies that cannot be modified by users
+          yield* seedSystemPolicies(createdOrg.id, policyRepo).pipe(
+            Effect.catchAll(() => Effect.void)
+          )
 
           return createdOrg
         })
