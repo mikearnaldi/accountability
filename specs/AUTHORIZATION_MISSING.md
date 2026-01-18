@@ -170,7 +170,8 @@ The audit log infrastructure is **100% complete** and the **AuditLogService** ha
 | **CompaniesApiLive integration** | ✅ Complete | Logs create/update/deactivate operations |
 | **OrganizationMemberServiceLive integration** | ✅ Complete | Logs add/remove/suspend/unsuspend/role update/reinstate/ownership transfer |
 | **CurrencyApiLive integration** | ✅ Complete | Logs create/bulkCreate/delete operations |
-| **Other service integrations** | ❌ Pending | ConsolidationGroup, etc. |
+| **ConsolidationApiLive integration** | ✅ Complete | Logs group create/update/activate/deactivate/member changes and run create/cancel/delete |
+| **Other service integrations** | ❌ Pending | Organization, IntercompanyTransaction, etc. |
 
 **What IS Being Audited:**
 
@@ -183,6 +184,8 @@ The audit log infrastructure is **100% complete** and the **AuditLogService** ha
 | Company | Create, Update, Deactivate | ✅ Complete |
 | OrganizationMember | Add, Remove, Suspend, Unsuspend, Role Update, Reinstate, Ownership Transfer | ✅ Complete |
 | ExchangeRate | Create, BulkCreate, Delete | ✅ Complete |
+| ConsolidationGroup | Create, Update, Activate, Deactivate, Add/Update/Remove Members | ✅ Complete |
+| ConsolidationRun | Create, Cancel, Delete | ✅ Complete |
 
 **What's NOT Being Audited:**
 
@@ -190,7 +193,6 @@ The audit log infrastructure is **100% complete** and the **AuditLogService** ha
 |-------------|------------|--------|
 | Organization | Create, Update, Delete | Cannot track org changes |
 | JournalEntryLine | Create, Update, Delete | Cannot track line-level changes |
-| ConsolidationGroup | Create, Update, Delete | Cannot track consolidation config |
 | IntercompanyTransaction | Create, Reconcile | Cannot track intercompany activity |
 | User | Create, Update | Cannot track user changes |
 | Session | Create, Delete | Cannot track login/logout |
@@ -248,7 +250,7 @@ Add audit logging to services that handle sensitive data:
 **Priority 2: Configuration Changes**
 - [x] `CompaniesApiLive` - Log company create/update/deactivate ✅ COMPLETE
 - [x] `AccountsApiLive` - Log chart of accounts changes ✅ Done (create/update/deactivate)
-- [ ] `ConsolidationServiceLive` - Log group/rule changes
+- [x] `ConsolidationApiLive` - Log group create/update/activate/deactivate/member changes and run create/cancel/delete ✅ COMPLETE
 
 **Priority 3: User Management**
 - [x] `OrganizationMemberServiceLive` - Log member add/remove/suspend/role changes ✅ COMPLETE
@@ -325,8 +327,9 @@ Migrate `PeriodReopenAuditEntry` to use the general audit log:
 | `packages/persistence/src/Layers/FiscalPeriodServiceLive.ts` | Add audit logging to all operations | ✅ Done |
 | `packages/api/src/Layers/AccountsApiLive.ts` | Add audit logging to create/update/delete | ✅ Done |
 | `packages/api/src/Layers/CompaniesApiLive.ts` | Add audit logging to create/update/deactivate | ✅ Done |
-| `packages/persistence/src/Layers/ExchangeRateServiceLive.ts` | Add audit logging to sync operations | ❌ Pending |
-| `packages/persistence/src/Layers/OrganizationMemberServiceLive.ts` | Add audit logging to member changes | ❌ Pending |
+| `packages/api/src/Layers/CurrencyApiLive.ts` | Add audit logging to create/bulkCreate/delete | ✅ Done |
+| `packages/persistence/src/Layers/OrganizationMemberServiceLive.ts` | Add audit logging to member changes | ✅ Done |
+| `packages/api/src/Layers/ConsolidationApiLive.ts` | Add audit logging to group/run operations | ✅ Done |
 
 **Testing:**
 
@@ -724,8 +727,8 @@ The database has this constraint and the UI now handles the duplicate invitation
 21. ~~**Integrate with AccountsApi** - Log chart of accounts changes~~ ✅ DONE
 22. ~~**Integrate with CompaniesApi** - Log company configuration changes~~ ✅ DONE
 23. ~~**Integrate with OrganizationMemberService** - Log member management events~~ ✅ DONE
-24. **Consolidate PeriodReopenAuditEntry** - Migrate to general audit log ❌ Pending
-25. **Add CurrentUserId to API context** - Provide user ID to services from middleware ❌ Pending
+24. ~~**Add CurrentUserId to API context** - Provide user ID to services from middleware~~ ✅ DONE (in OrganizationContextMiddlewareLive.ts)
+25. **Consolidate PeriodReopenAuditEntry** - Migrate to general audit log ❌ Pending (lower priority)
 
 ### Phase 6: Fiscal Period Enforcement (Medium effort)
 25. **Add period existence validation** - Require fiscal period for journal entry dates

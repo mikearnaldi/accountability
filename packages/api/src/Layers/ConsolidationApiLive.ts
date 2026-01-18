@@ -44,6 +44,8 @@ import {
   BusinessRuleError
 } from "../Definitions/ApiErrors.ts"
 import { requireOrganizationContext, requirePermission } from "./OrganizationContextMiddlewareLive.ts"
+import { AuditLogService } from "@accountability/core/AuditLog/AuditLogService"
+import { CurrentUserId } from "@accountability/core/AuditLog/CurrentUserId"
 
 /**
  * Convert persistence errors to NotFoundError
@@ -91,17 +93,194 @@ const mapPersistenceToValidation = (
 }
 
 /**
+ * Helper to log consolidation group creation to audit log
+ *
+ * Uses Effect.serviceOption to gracefully skip audit logging when
+ * AuditLogService or CurrentUserId is not available (e.g., in tests).
+ * Errors are caught and silently ignored to not block business operations.
+ *
+ * @param group - The created consolidation group
+ * @returns Effect that completes when audit logging is attempted
+ */
+const logConsolidationGroupCreate = (
+  group: ConsolidationGroup
+): Effect.Effect<void, never, never> =>
+  Effect.gen(function* () {
+    const maybeAuditService = yield* Effect.serviceOption(AuditLogService)
+    const maybeUserId = yield* Effect.serviceOption(CurrentUserId)
+
+    if (Option.isSome(maybeAuditService) && Option.isSome(maybeUserId)) {
+      yield* maybeAuditService.value.logCreate(
+        "ConsolidationGroup",
+        group.id,
+        group,
+        maybeUserId.value
+      )
+    }
+  }).pipe(
+    Effect.catchAll(() => Effect.void) // Silent failure - don't block business operations
+  )
+
+/**
+ * Helper to log consolidation group update to audit log
+ *
+ * @param groupId - The group ID
+ * @param before - The group state before the update
+ * @param after - The group state after the update
+ * @returns Effect that completes when audit logging is attempted
+ */
+const logConsolidationGroupUpdate = (
+  groupId: ConsolidationGroupId,
+  before: ConsolidationGroup,
+  after: ConsolidationGroup
+): Effect.Effect<void, never, never> =>
+  Effect.gen(function* () {
+    const maybeAuditService = yield* Effect.serviceOption(AuditLogService)
+    const maybeUserId = yield* Effect.serviceOption(CurrentUserId)
+
+    if (Option.isSome(maybeAuditService) && Option.isSome(maybeUserId)) {
+      yield* maybeAuditService.value.logUpdate(
+        "ConsolidationGroup",
+        groupId,
+        before,
+        after,
+        maybeUserId.value
+      )
+    }
+  }).pipe(
+    Effect.catchAll(() => Effect.void) // Silent failure - don't block business operations
+  )
+
+/**
+ * Helper to log consolidation group status change (activate/deactivate) to audit log
+ *
+ * @param groupId - The group ID
+ * @param previousStatus - The status before the change
+ * @param newStatus - The status after the change
+ * @returns Effect that completes when audit logging is attempted
+ */
+const logConsolidationGroupStatusChange = (
+  groupId: ConsolidationGroupId,
+  previousStatus: string,
+  newStatus: string
+): Effect.Effect<void, never, never> =>
+  Effect.gen(function* () {
+    const maybeAuditService = yield* Effect.serviceOption(AuditLogService)
+    const maybeUserId = yield* Effect.serviceOption(CurrentUserId)
+
+    if (Option.isSome(maybeAuditService) && Option.isSome(maybeUserId)) {
+      yield* maybeAuditService.value.logStatusChange(
+        "ConsolidationGroup",
+        groupId,
+        previousStatus,
+        newStatus,
+        maybeUserId.value
+      )
+    }
+  }).pipe(
+    Effect.catchAll(() => Effect.void) // Silent failure - don't block business operations
+  )
+
+/**
+ * Helper to log consolidation run creation to audit log
+ *
+ * @param run - The created consolidation run
+ * @returns Effect that completes when audit logging is attempted
+ */
+const logConsolidationRunCreate = (
+  run: ConsolidationRun
+): Effect.Effect<void, never, never> =>
+  Effect.gen(function* () {
+    const maybeAuditService = yield* Effect.serviceOption(AuditLogService)
+    const maybeUserId = yield* Effect.serviceOption(CurrentUserId)
+
+    if (Option.isSome(maybeAuditService) && Option.isSome(maybeUserId)) {
+      yield* maybeAuditService.value.logCreate(
+        "ConsolidationRun",
+        run.id,
+        run,
+        maybeUserId.value
+      )
+    }
+  }).pipe(
+    Effect.catchAll(() => Effect.void) // Silent failure - don't block business operations
+  )
+
+/**
+ * Helper to log consolidation run status change (cancel) to audit log
+ *
+ * @param runId - The run ID
+ * @param previousStatus - The status before the change
+ * @param newStatus - The status after the change
+ * @param reason - Optional reason for the status change
+ * @returns Effect that completes when audit logging is attempted
+ */
+const logConsolidationRunStatusChange = (
+  runId: ConsolidationRunId,
+  previousStatus: string,
+  newStatus: string,
+  reason?: string
+): Effect.Effect<void, never, never> =>
+  Effect.gen(function* () {
+    const maybeAuditService = yield* Effect.serviceOption(AuditLogService)
+    const maybeUserId = yield* Effect.serviceOption(CurrentUserId)
+
+    if (Option.isSome(maybeAuditService) && Option.isSome(maybeUserId)) {
+      yield* maybeAuditService.value.logStatusChange(
+        "ConsolidationRun",
+        runId,
+        previousStatus,
+        newStatus,
+        maybeUserId.value,
+        reason
+      )
+    }
+  }).pipe(
+    Effect.catchAll(() => Effect.void) // Silent failure - don't block business operations
+  )
+
+/**
+ * Helper to log consolidation run deletion to audit log
+ *
+ * @param run - The deleted consolidation run
+ * @returns Effect that completes when audit logging is attempted
+ */
+const logConsolidationRunDelete = (
+  run: ConsolidationRun
+): Effect.Effect<void, never, never> =>
+  Effect.gen(function* () {
+    const maybeAuditService = yield* Effect.serviceOption(AuditLogService)
+    const maybeUserId = yield* Effect.serviceOption(CurrentUserId)
+
+    if (Option.isSome(maybeAuditService) && Option.isSome(maybeUserId)) {
+      yield* maybeAuditService.value.logDelete(
+        "ConsolidationRun",
+        run.id,
+        run,
+        maybeUserId.value
+      )
+    }
+  }).pipe(
+    Effect.catchAll(() => Effect.void) // Silent failure - don't block business operations
+  )
+
+/**
  * ConsolidationApiLive - Layer providing ConsolidationApi handlers
  *
  * Dependencies:
  * - ConsolidationRepository
  * - CompanyRepository
+ * - AuditLogService (optional, for audit logging)
+ * - CurrentUserId (optional, for audit logging)
  */
 export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation", (handlers) =>
   Effect.gen(function* () {
     const consolidationRepo = yield* ConsolidationRepository
     const companyRepo = yield* CompanyRepository
     const reportService = yield* ConsolidatedReportService
+    // AuditLogService and CurrentUserId are accessed via Effect.serviceOption in helper functions
+    void AuditLogService
+    void CurrentUserId
 
     return handlers
       .handle("listConsolidationGroups", (_) =>
@@ -213,6 +392,9 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
               Effect.mapError((e) => mapPersistenceToBusinessRule(e))
             )
 
+            // Log audit entry for consolidation group creation
+            yield* logConsolidationGroupCreate(createdGroup)
+
             return {
               group: createdGroup,
               members: Array.fromIterable(Chunk.toArray(createdGroup.members))
@@ -246,9 +428,14 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
               reportingCurrency: Option.isSome(req.reportingCurrency) ? req.reportingCurrency.value : existing.reportingCurrency
             })
 
-            return yield* consolidationRepo.updateGroup(organizationId, updatedGroup).pipe(
+            const savedGroup = yield* consolidationRepo.updateGroup(organizationId, updatedGroup).pipe(
               Effect.mapError((e) => mapPersistenceToBusinessRule(e))
             )
+
+            // Log audit entry for consolidation group update
+            yield* logConsolidationGroupUpdate(groupId, existing, savedGroup)
+
+            return savedGroup
           })
         )
       )
@@ -305,14 +492,24 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
               return yield* Effect.fail(new NotFoundError({ resource: "ConsolidationGroup", id: groupId }))
             }
 
+            const existing = maybeGroup.value
             const updatedGroup = ConsolidationGroup.make({
-              ...maybeGroup.value,
+              ...existing,
               isActive: true
             })
 
-            return yield* consolidationRepo.updateGroup(organizationId, updatedGroup).pipe(
+            const savedGroup = yield* consolidationRepo.updateGroup(organizationId, updatedGroup).pipe(
               Effect.mapError((e) => mapPersistenceToBusinessRule(e))
             )
+
+            // Log audit entry for consolidation group activation
+            yield* logConsolidationGroupStatusChange(
+              groupId,
+              existing.isActive ? "Active" : "Inactive",
+              "Active"
+            )
+
+            return savedGroup
           })
         )
       )
@@ -331,14 +528,24 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
               return yield* Effect.fail(new NotFoundError({ resource: "ConsolidationGroup", id: groupId }))
             }
 
+            const existing = maybeGroup.value
             const updatedGroup = ConsolidationGroup.make({
-              ...maybeGroup.value,
+              ...existing,
               isActive: false
             })
 
-            return yield* consolidationRepo.updateGroup(organizationId, updatedGroup).pipe(
+            const savedGroup = yield* consolidationRepo.updateGroup(organizationId, updatedGroup).pipe(
               Effect.mapError((e) => mapPersistenceToBusinessRule(e))
             )
+
+            // Log audit entry for consolidation group deactivation
+            yield* logConsolidationGroupStatusChange(
+              groupId,
+              existing.isActive ? "Active" : "Inactive",
+              "Inactive"
+            )
+
+            return savedGroup
           })
         )
       )
@@ -391,6 +598,9 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
             const savedGroup = yield* consolidationRepo.updateGroup(organizationId, updatedGroup).pipe(
               Effect.mapError((e) => mapPersistenceToBusinessRule(e))
             )
+
+            // Log audit entry for member addition (group update)
+            yield* logConsolidationGroupUpdate(groupId, existing, savedGroup)
 
             return {
               group: savedGroup,
@@ -456,6 +666,9 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
               Effect.mapError((e) => mapPersistenceToBusinessRule(e))
             )
 
+            // Log audit entry for member update (group update)
+            yield* logConsolidationGroupUpdate(groupId, existing, savedGroup)
+
             return {
               group: savedGroup,
               members: Array.fromIterable(Chunk.toArray(savedGroup.members))
@@ -499,6 +712,9 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
             const savedGroup = yield* consolidationRepo.updateGroup(organizationId, updatedGroup).pipe(
               Effect.mapError((e) => mapPersistenceToBusinessRule(e))
             )
+
+            // Log audit entry for member removal (group update)
+            yield* logConsolidationGroupUpdate(groupId, existing, savedGroup)
 
             return {
               group: savedGroup,
@@ -634,9 +850,14 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
               errorMessage: Option.none()
             })
 
-            return yield* consolidationRepo.createRun(newRun).pipe(
+            const createdRun = yield* consolidationRepo.createRun(newRun).pipe(
               Effect.mapError((e) => mapPersistenceToBusinessRule(e))
             )
+
+            // Log audit entry for consolidation run creation
+            yield* logConsolidationRunCreate(createdRun)
+
+            return createdRun
           })
         )
       )
@@ -671,9 +892,19 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
               completedAt: Option.some(timestampNow())
             })
 
-            return yield* consolidationRepo.updateRun(organizationId, updatedRun).pipe(
+            const savedRun = yield* consolidationRepo.updateRun(organizationId, updatedRun).pipe(
               Effect.mapError((e) => mapPersistenceToBusinessRule(e))
             )
+
+            // Log audit entry for consolidation run cancellation
+            yield* logConsolidationRunStatusChange(
+              runId,
+              existing.status,
+              "Cancelled",
+              "Run cancelled by user"
+            )
+
+            return savedRun
           })
         )
       )
@@ -701,6 +932,9 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
                 details: Option.none()
               }))
             }
+
+            // Log audit entry for consolidation run deletion (before deletion)
+            yield* logConsolidationRunDelete(existing)
 
             yield* consolidationRepo.deleteRun(organizationId, runId).pipe(
               Effect.mapError((e) => mapPersistenceToBusinessRule(e))
