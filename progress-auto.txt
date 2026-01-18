@@ -434,3 +434,8 @@
 **Task**: Implemented Phase E10 (N/A) and E11 - Permission Checks in ConsolidationApi. Added organization context and permission checks to all 21 consolidation API handlers. Added ForbiddenError to all endpoints. Permission mapping: consolidation_group:read for list/get, consolidation_group:create for create, consolidation_group:update for update/activate/deactivate/member ops, consolidation_group:delete for delete, consolidation_group:run for run ops, report:read for reports. All 3620 tests pass, typecheck clean, lint clean.
 **Status**: complete
 ---
+
+## Iteration 4 - 2026-01-18 01:10
+**Task**: Implemented Phase E12 - Permission Checks in ExchangeRatesApi. Added organization context and permission checks to all exchange rate CRUD endpoints using requireOrganizationContext and requirePermission helpers. Permission mapping: exchange_rate:read for list/get, exchange_rate:manage for create/bulkCreate/delete. Added ForbiddenError to all endpoints. All 3620 tests pass, typecheck clean, lint clean.
+**Status**: complete
+---

@@ -28,6 +28,7 @@ import {
   ValidationError,
   BusinessRuleError
 } from "../Definitions/ApiErrors.ts"
+import { requireOrganizationContext, requirePermission } from "./OrganizationContextMiddlewareLive.ts"
 
 /**
  * Convert persistence errors to NotFoundError
@@ -86,150 +87,203 @@ export const CurrencyApiLive = HttpApiBuilder.group(AppApi, "currency", (handler
 
     return handlers
       .handle("listExchangeRates", (_) =>
-        Effect.gen(function* () {
-          const { fromCurrency, toCurrency, startDate, endDate } = _.urlParams
+        requireOrganizationContext(_.urlParams.organizationId,
+          Effect.gen(function* () {
+            yield* requirePermission("exchange_rate:read")
 
-          let rates: ReadonlyArray<ExchangeRate>
+            const { fromCurrency, toCurrency, startDate, endDate } = _.urlParams
 
-          if (fromCurrency !== undefined && toCurrency !== undefined) {
-            if (startDate !== undefined && endDate !== undefined) {
-              rates = yield* exchangeRateRepo.findByDateRange(
-                fromCurrency,
-                toCurrency,
-                startDate,
-                endDate
-              ).pipe(
-                Effect.mapError((e) => mapPersistenceToValidation(e))
-              )
+            let rates: ReadonlyArray<ExchangeRate>
+
+            if (fromCurrency !== undefined && toCurrency !== undefined) {
+              if (startDate !== undefined && endDate !== undefined) {
+                rates = yield* exchangeRateRepo.findByDateRange(
+                  fromCurrency,
+                  toCurrency,
+                  startDate,
+                  endDate
+                ).pipe(
+                  Effect.mapError((e) => mapPersistenceToValidation(e))
+                )
+              } else {
+                rates = yield* exchangeRateRepo.findByCurrencyPair(fromCurrency, toCurrency).pipe(
+                  Effect.mapError((e) => mapPersistenceToValidation(e))
+                )
+              }
             } else {
-              rates = yield* exchangeRateRepo.findByCurrencyPair(fromCurrency, toCurrency).pipe(
-                Effect.mapError((e) => mapPersistenceToValidation(e))
-              )
+              // No filter - return empty for now
+              rates = []
             }
-          } else {
-            // No filter - return empty for now
-            rates = []
-          }
 
-          // Apply rateType filter if provided
-          const { rateType } = _.urlParams
-          if (rateType !== undefined) {
-            rates = rates.filter((r) => r.rateType === rateType)
-          }
+            // Apply rateType filter if provided
+            const { rateType } = _.urlParams
+            if (rateType !== undefined) {
+              rates = rates.filter((r) => r.rateType === rateType)
+            }
 
-          // Apply pagination
-          const total = rates.length
-          const limit = _.urlParams.limit ?? 100
-          const offset = _.urlParams.offset ?? 0
-          const paginatedRates = rates.slice(offset, offset + limit)
+            // Apply pagination
+            const total = rates.length
+            const limit = _.urlParams.limit ?? 100
+            const offset = _.urlParams.offset ?? 0
+            const paginatedRates = rates.slice(offset, offset + limit)
 
-          return {
-            rates: paginatedRates,
-            total,
-            limit,
-            offset
-          }
-        })
+            return {
+              rates: paginatedRates,
+              total,
+              limit,
+              offset
+            }
+          })
+        )
       )
       .handle("getExchangeRate", (_) =>
         Effect.gen(function* () {
           const rateId = _.path.id
 
+          // First fetch the rate to get its organizationId
           const maybeRate = yield* exchangeRateRepo.findById(rateId).pipe(
             Effect.mapError((e) => mapPersistenceToNotFound("ExchangeRate", rateId, e))
           )
 
-          return yield* Option.match(maybeRate, {
+          const rate = yield* Option.match(maybeRate, {
             onNone: () => Effect.fail(new NotFoundError({ resource: "ExchangeRate", id: rateId })),
             onSome: Effect.succeed
           })
+
+          // Now check organization context and permission
+          return yield* requireOrganizationContext(rate.organizationId,
+            Effect.gen(function* () {
+              yield* requirePermission("exchange_rate:read")
+              return rate
+            })
+          )
         })
       )
       .handle("createExchangeRate", (_) =>
-        Effect.gen(function* () {
-          const req = _.payload
+        requireOrganizationContext(_.payload.organizationId,
+          Effect.gen(function* () {
+            yield* requirePermission("exchange_rate:manage")
 
-          // Validate currencies are different
-          if (req.fromCurrency === req.toCurrency) {
-            return yield* Effect.fail(new ValidationError({
-              message: "From and To currencies must be different",
-              field: Option.some("toCurrency"),
-              details: Option.none()
-            }))
-          }
+            const req = _.payload
 
-          // Create the rate
-          const newRate = ExchangeRate.make({
-            id: ExchangeRateId.make(crypto.randomUUID()),
-            organizationId: req.organizationId,
-            fromCurrency: req.fromCurrency,
-            toCurrency: req.toCurrency,
-            rate: req.rate,
-            effectiveDate: req.effectiveDate,
-            rateType: req.rateType,
-            source: req.source,
-            createdAt: timestampNow()
+            // Validate currencies are different
+            if (req.fromCurrency === req.toCurrency) {
+              return yield* Effect.fail(new ValidationError({
+                message: "From and To currencies must be different",
+                field: Option.some("toCurrency"),
+                details: Option.none()
+              }))
+            }
+
+            // Create the rate
+            const newRate = ExchangeRate.make({
+              id: ExchangeRateId.make(crypto.randomUUID()),
+              organizationId: req.organizationId,
+              fromCurrency: req.fromCurrency,
+              toCurrency: req.toCurrency,
+              rate: req.rate,
+              effectiveDate: req.effectiveDate,
+              rateType: req.rateType,
+              source: req.source,
+              createdAt: timestampNow()
+            })
+
+            return yield* exchangeRateRepo.create(newRate).pipe(
+              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+            )
           })
-
-          return yield* exchangeRateRepo.create(newRate).pipe(
-            Effect.mapError((e) => mapPersistenceToBusinessRule(e))
-          )
-        })
+        )
       )
       .handle("bulkCreateExchangeRates", (_) =>
         Effect.gen(function* () {
           const req = _.payload
 
-          // Validate each rate
+          // Validate there is at least one rate and all are for the same organization
+          if (req.rates.length === 0) {
+            return yield* Effect.fail(new ValidationError({
+              message: "At least one rate is required",
+              field: Option.some("rates"),
+              details: Option.none()
+            }))
+          }
+
+          const firstOrgId = req.rates[0].organizationId
           for (const rateReq of req.rates) {
-            if (rateReq.fromCurrency === rateReq.toCurrency) {
+            if (rateReq.organizationId !== firstOrgId) {
               return yield* Effect.fail(new ValidationError({
-                message: `From and To currencies must be different: ${rateReq.fromCurrency}`,
+                message: "All rates in bulk create must be for the same organization",
                 field: Option.some("rates"),
                 details: Option.none()
               }))
             }
           }
 
-          // Create all rates
-          const newRates = req.rates.map((rateReq) =>
-            ExchangeRate.make({
-              id: ExchangeRateId.make(crypto.randomUUID()),
-              organizationId: rateReq.organizationId,
-              fromCurrency: rateReq.fromCurrency,
-              toCurrency: rateReq.toCurrency,
-              rate: rateReq.rate,
-              effectiveDate: rateReq.effectiveDate,
-              rateType: rateReq.rateType,
-              source: rateReq.source,
-              createdAt: timestampNow()
+          // Now check organization context and permission
+          return yield* requireOrganizationContext(firstOrgId,
+            Effect.gen(function* () {
+              yield* requirePermission("exchange_rate:manage")
+
+              // Validate each rate
+              for (const rateReq of req.rates) {
+                if (rateReq.fromCurrency === rateReq.toCurrency) {
+                  return yield* Effect.fail(new ValidationError({
+                    message: `From and To currencies must be different: ${rateReq.fromCurrency}`,
+                    field: Option.some("rates"),
+                    details: Option.none()
+                  }))
+                }
+              }
+
+              // Create all rates
+              const newRates = req.rates.map((rateReq) =>
+                ExchangeRate.make({
+                  id: ExchangeRateId.make(crypto.randomUUID()),
+                  organizationId: rateReq.organizationId,
+                  fromCurrency: rateReq.fromCurrency,
+                  toCurrency: rateReq.toCurrency,
+                  rate: rateReq.rate,
+                  effectiveDate: rateReq.effectiveDate,
+                  rateType: rateReq.rateType,
+                  source: rateReq.source,
+                  createdAt: timestampNow()
+                })
+              )
+
+              const created = yield* exchangeRateRepo.createMany(newRates).pipe(
+                Effect.mapError((e) => mapPersistenceToValidation(e))
+              )
+
+              return {
+                created: Array.fromIterable(created),
+                count: created.length
+              }
             })
           )
-
-          const created = yield* exchangeRateRepo.createMany(newRates).pipe(
-            Effect.mapError((e) => mapPersistenceToValidation(e))
-          )
-
-          return {
-            created: Array.fromIterable(created),
-            count: created.length
-          }
         })
       )
       .handle("deleteExchangeRate", (_) =>
         Effect.gen(function* () {
           const rateId = _.path.id
 
-          // Check if exists
-          const exists = yield* exchangeRateRepo.exists(rateId).pipe(
+          // First fetch the rate to get its organizationId
+          const maybeRate = yield* exchangeRateRepo.findById(rateId).pipe(
             Effect.mapError((e) => mapPersistenceToBusinessRule(e))
           )
-          if (!exists) {
-            return yield* Effect.fail(new NotFoundError({ resource: "ExchangeRate", id: rateId }))
-          }
 
-          yield* exchangeRateRepo.delete(rateId).pipe(
-            Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+          const rate = yield* Option.match(maybeRate, {
+            onNone: () => Effect.fail(new NotFoundError({ resource: "ExchangeRate", id: rateId })),
+            onSome: Effect.succeed
+          })
+
+          // Now check organization context and permission
+          return yield* requireOrganizationContext(rate.organizationId,
+            Effect.gen(function* () {
+              yield* requirePermission("exchange_rate:manage")
+
+              yield* exchangeRateRepo.delete(rateId).pipe(
+                Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+              )
+            })
           )
         })
       )

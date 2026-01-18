@@ -22,6 +22,7 @@ import { OrganizationId } from "@accountability/core/Domains/Organization"
 import {
   BusinessRuleError,
   ConflictError,
+  ForbiddenError,
   NotFoundError,
   ValidationError
 } from "./ApiErrors.ts"
@@ -165,6 +166,8 @@ const listExchangeRates = HttpApiEndpoint.get("listExchangeRates", "/")
   .setUrlParams(ExchangeRateListParams)
   .addSuccess(ExchangeRateListResponse)
   .addError(ValidationError)
+  .addError(ForbiddenError)
+  .addError(NotFoundError)
   .annotateContext(OpenApi.annotations({
     summary: "List exchange rates",
     description: "Retrieve a paginated list of exchange rates. Supports filtering by currency pair, rate type, and date range."
@@ -177,6 +180,7 @@ const getExchangeRate = HttpApiEndpoint.get("getExchangeRate", "/:id")
   .setPath(Schema.Struct({ id: ExchangeRateId }))
   .addSuccess(ExchangeRate)
   .addError(NotFoundError)
+  .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "Get exchange rate",
     description: "Retrieve a single exchange rate by its unique identifier."
@@ -191,6 +195,8 @@ const createExchangeRate = HttpApiEndpoint.post("createExchangeRate", "/")
   .addError(ValidationError)
   .addError(ConflictError)
   .addError(BusinessRuleError)
+  .addError(ForbiddenError)
+  .addError(NotFoundError)
   .annotateContext(OpenApi.annotations({
     summary: "Create exchange rate",
     description: "Create a new exchange rate for a currency pair on a specific date."
@@ -203,6 +209,8 @@ const bulkCreateExchangeRates = HttpApiEndpoint.post("bulkCreateExchangeRates", 
   .setPayload(BulkCreateExchangeRatesRequest)
   .addSuccess(BulkCreateExchangeRatesResponse, { status: 201 })
   .addError(ValidationError)
+  .addError(ForbiddenError)
+  .addError(NotFoundError)
   .annotateContext(OpenApi.annotations({
     summary: "Bulk create exchange rates",
     description: "Create multiple exchange rates in a single request. Useful for importing rates from external sources."
@@ -216,6 +224,7 @@ const deleteExchangeRate = HttpApiEndpoint.del("deleteExchangeRate", "/:id")
   .addSuccess(HttpApiSchema.NoContent)
   .addError(NotFoundError)
   .addError(BusinessRuleError)
+  .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "Delete exchange rate",
     description: "Delete an exchange rate. Rates that have been used in transactions may not be deleted."
@@ -227,6 +236,7 @@ const deleteExchangeRate = HttpApiEndpoint.del("deleteExchangeRate", "/:id")
 const getRateForDate = HttpApiEndpoint.get("getRateForDate", "/rate")
   .setUrlParams(GetRateParams)
   .addSuccess(GetRateResponse)
+  .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "Get rate for date",
     description: "Get the exchange rate effective on a specific date for a currency pair and rate type."
@@ -238,6 +248,7 @@ const getRateForDate = HttpApiEndpoint.get("getRateForDate", "/rate")
 const getLatestRate = HttpApiEndpoint.get("getLatestRate", "/latest")
   .setUrlParams(GetLatestRateParams)
   .addSuccess(GetRateResponse)
+  .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "Get latest rate",
     description: "Get the most recent exchange rate for a currency pair and rate type."
@@ -249,6 +260,7 @@ const getLatestRate = HttpApiEndpoint.get("getLatestRate", "/latest")
 const getClosestRate = HttpApiEndpoint.get("getClosestRate", "/closest")
   .setUrlParams(GetClosestRateParams)
   .addSuccess(GetRateResponse)
+  .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "Get closest rate",
     description: "Get the exchange rate closest to a specific date for a currency pair and rate type."
@@ -260,6 +272,7 @@ const getClosestRate = HttpApiEndpoint.get("getClosestRate", "/closest")
 const getPeriodAverageRate = HttpApiEndpoint.get("getPeriodAverageRate", "/period-average")
   .setUrlParams(GetPeriodAverageRateParams)
   .addSuccess(GetRateResponse)
+  .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "Get period average rate",
     description: "Get the average exchange rate for a fiscal period. Used for translating income statement items per ASC 830."
@@ -271,6 +284,7 @@ const getPeriodAverageRate = HttpApiEndpoint.get("getPeriodAverageRate", "/perio
 const getPeriodClosingRate = HttpApiEndpoint.get("getPeriodClosingRate", "/period-closing")
   .setUrlParams(GetPeriodClosingRateParams)
   .addSuccess(GetRateResponse)
+  .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "Get period closing rate",
     description: "Get the closing exchange rate for a fiscal period. Used for translating balance sheet items per ASC 830."

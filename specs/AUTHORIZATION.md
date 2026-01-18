@@ -465,8 +465,19 @@ Same pattern as E7.
 
 ---
 
-#### Phase E12: Permission Checks in ExchangeRatesApi
+#### Phase E12: Permission Checks in ExchangeRatesApi ✅ COMPLETE
 Same pattern as E7.
+
+**Completed**:
+- Added permission checks to Exchange Rate endpoints (listExchangeRates, getExchangeRate, createExchangeRate, bulkCreateExchangeRates, deleteExchangeRate)
+- Wrapped handlers with `requireOrganizationContext` and `requirePermission`
+- Permission mapping:
+  - `exchange_rate:read` - list, get operations
+  - `exchange_rate:manage` - create, bulk create, delete operations
+- Added ForbiddenError and NotFoundError to API endpoint error types
+- Rate query endpoints (getRateForDate, getLatestRate, getClosestRate, getPeriodAverageRate, getPeriodClosingRate) remain authenticated-only since they query globally by currency pair
+- Added validation for bulk create to require all rates be for the same organization
+- All 3620 tests pass, typecheck clean, lint clean
 
 ---
 
