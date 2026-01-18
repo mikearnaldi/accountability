@@ -31,6 +31,7 @@ import { Route as OrganizationsOrganizationIdCompaniesIndexRouteImport } from '.
 import { Route as OrganizationsOrganizationIdAuditLogIndexRouteImport } from './routes/organizations/$organizationId/audit-log/index'
 import { Route as OrganizationsOrganizationIdSettingsPoliciesRouteImport } from './routes/organizations/$organizationId/settings/policies'
 import { Route as OrganizationsOrganizationIdSettingsMembersRouteImport } from './routes/organizations/$organizationId/settings/members'
+import { Route as OrganizationsOrganizationIdSettingsAuthorizationAuditRouteImport } from './routes/organizations/$organizationId/settings/authorization-audit'
 import { Route as OrganizationsOrganizationIdIntercompanyNewRouteImport } from './routes/organizations/$organizationId/intercompany/new'
 import { Route as OrganizationsOrganizationIdExchangeRatesNewRouteImport } from './routes/organizations/$organizationId/exchange-rates/new'
 import { Route as OrganizationsOrganizationIdConsolidationNewRouteImport } from './routes/organizations/$organizationId/consolidation/new'
@@ -180,6 +181,12 @@ const OrganizationsOrganizationIdSettingsMembersRoute =
   OrganizationsOrganizationIdSettingsMembersRouteImport.update({
     id: '/members',
     path: '/members',
+    getParentRoute: () => OrganizationsOrganizationIdSettingsRoute,
+  } as any)
+const OrganizationsOrganizationIdSettingsAuthorizationAuditRoute =
+  OrganizationsOrganizationIdSettingsAuthorizationAuditRouteImport.update({
+    id: '/authorization-audit',
+    path: '/authorization-audit',
     getParentRoute: () => OrganizationsOrganizationIdSettingsRoute,
   } as any)
 const OrganizationsOrganizationIdIntercompanyNewRoute =
@@ -396,6 +403,7 @@ export interface FileRoutesByFullPath {
   '/organizations/$organizationId/consolidation/new': typeof OrganizationsOrganizationIdConsolidationNewRoute
   '/organizations/$organizationId/exchange-rates/new': typeof OrganizationsOrganizationIdExchangeRatesNewRoute
   '/organizations/$organizationId/intercompany/new': typeof OrganizationsOrganizationIdIntercompanyNewRoute
+  '/organizations/$organizationId/settings/authorization-audit': typeof OrganizationsOrganizationIdSettingsAuthorizationAuditRoute
   '/organizations/$organizationId/settings/members': typeof OrganizationsOrganizationIdSettingsMembersRoute
   '/organizations/$organizationId/settings/policies': typeof OrganizationsOrganizationIdSettingsPoliciesRoute
   '/organizations/$organizationId/audit-log': typeof OrganizationsOrganizationIdAuditLogIndexRoute
@@ -445,6 +453,7 @@ export interface FileRoutesByTo {
   '/organizations/$organizationId/consolidation/new': typeof OrganizationsOrganizationIdConsolidationNewRoute
   '/organizations/$organizationId/exchange-rates/new': typeof OrganizationsOrganizationIdExchangeRatesNewRoute
   '/organizations/$organizationId/intercompany/new': typeof OrganizationsOrganizationIdIntercompanyNewRoute
+  '/organizations/$organizationId/settings/authorization-audit': typeof OrganizationsOrganizationIdSettingsAuthorizationAuditRoute
   '/organizations/$organizationId/settings/members': typeof OrganizationsOrganizationIdSettingsMembersRoute
   '/organizations/$organizationId/settings/policies': typeof OrganizationsOrganizationIdSettingsPoliciesRoute
   '/organizations/$organizationId/audit-log': typeof OrganizationsOrganizationIdAuditLogIndexRoute
@@ -497,6 +506,7 @@ export interface FileRoutesById {
   '/organizations/$organizationId/consolidation/new': typeof OrganizationsOrganizationIdConsolidationNewRoute
   '/organizations/$organizationId/exchange-rates/new': typeof OrganizationsOrganizationIdExchangeRatesNewRoute
   '/organizations/$organizationId/intercompany/new': typeof OrganizationsOrganizationIdIntercompanyNewRoute
+  '/organizations/$organizationId/settings/authorization-audit': typeof OrganizationsOrganizationIdSettingsAuthorizationAuditRoute
   '/organizations/$organizationId/settings/members': typeof OrganizationsOrganizationIdSettingsMembersRoute
   '/organizations/$organizationId/settings/policies': typeof OrganizationsOrganizationIdSettingsPoliciesRoute
   '/organizations/$organizationId/audit-log/': typeof OrganizationsOrganizationIdAuditLogIndexRoute
@@ -550,6 +560,7 @@ export interface FileRouteTypes {
     | '/organizations/$organizationId/consolidation/new'
     | '/organizations/$organizationId/exchange-rates/new'
     | '/organizations/$organizationId/intercompany/new'
+    | '/organizations/$organizationId/settings/authorization-audit'
     | '/organizations/$organizationId/settings/members'
     | '/organizations/$organizationId/settings/policies'
     | '/organizations/$organizationId/audit-log'
@@ -599,6 +610,7 @@ export interface FileRouteTypes {
     | '/organizations/$organizationId/consolidation/new'
     | '/organizations/$organizationId/exchange-rates/new'
     | '/organizations/$organizationId/intercompany/new'
+    | '/organizations/$organizationId/settings/authorization-audit'
     | '/organizations/$organizationId/settings/members'
     | '/organizations/$organizationId/settings/policies'
     | '/organizations/$organizationId/audit-log'
@@ -650,6 +662,7 @@ export interface FileRouteTypes {
     | '/organizations/$organizationId/consolidation/new'
     | '/organizations/$organizationId/exchange-rates/new'
     | '/organizations/$organizationId/intercompany/new'
+    | '/organizations/$organizationId/settings/authorization-audit'
     | '/organizations/$organizationId/settings/members'
     | '/organizations/$organizationId/settings/policies'
     | '/organizations/$organizationId/audit-log/'
@@ -850,6 +863,13 @@ declare module '@tanstack/react-router' {
       path: '/members'
       fullPath: '/organizations/$organizationId/settings/members'
       preLoaderRoute: typeof OrganizationsOrganizationIdSettingsMembersRouteImport
+      parentRoute: typeof OrganizationsOrganizationIdSettingsRoute
+    }
+    '/organizations/$organizationId/settings/authorization-audit': {
+      id: '/organizations/$organizationId/settings/authorization-audit'
+      path: '/authorization-audit'
+      fullPath: '/organizations/$organizationId/settings/authorization-audit'
+      preLoaderRoute: typeof OrganizationsOrganizationIdSettingsAuthorizationAuditRouteImport
       parentRoute: typeof OrganizationsOrganizationIdSettingsRoute
     }
     '/organizations/$organizationId/intercompany/new': {
@@ -1057,6 +1077,7 @@ const InvitationsRouteWithChildren = InvitationsRoute._addFileChildren(
 )
 
 interface OrganizationsOrganizationIdSettingsRouteChildren {
+  OrganizationsOrganizationIdSettingsAuthorizationAuditRoute: typeof OrganizationsOrganizationIdSettingsAuthorizationAuditRoute
   OrganizationsOrganizationIdSettingsMembersRoute: typeof OrganizationsOrganizationIdSettingsMembersRoute
   OrganizationsOrganizationIdSettingsPoliciesRoute: typeof OrganizationsOrganizationIdSettingsPoliciesRoute
   OrganizationsOrganizationIdSettingsIndexRoute: typeof OrganizationsOrganizationIdSettingsIndexRoute
@@ -1064,6 +1085,8 @@ interface OrganizationsOrganizationIdSettingsRouteChildren {
 
 const OrganizationsOrganizationIdSettingsRouteChildren: OrganizationsOrganizationIdSettingsRouteChildren =
   {
+    OrganizationsOrganizationIdSettingsAuthorizationAuditRoute:
+      OrganizationsOrganizationIdSettingsAuthorizationAuditRoute,
     OrganizationsOrganizationIdSettingsMembersRoute:
       OrganizationsOrganizationIdSettingsMembersRoute,
     OrganizationsOrganizationIdSettingsPoliciesRoute:

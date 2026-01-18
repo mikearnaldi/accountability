@@ -45,6 +45,7 @@ import { MembershipApiLive } from "@accountability/api/Layers/MembershipApiLive"
 import { PolicyApiLive } from "@accountability/api/Layers/PolicyApiLive"
 import { ReportsApiLive } from "@accountability/api/Layers/ReportsApiLive"
 import { UserOrganizationsApiLive } from "@accountability/api/Layers/UserOrganizationsApiLive"
+import { AuthorizationAuditApiLive } from "@accountability/api/Layers/AuthorizationAuditApiLive"
 import { AuthorizationServiceLive } from "@accountability/persistence/Layers/AuthorizationServiceLive"
 import { PolicyEngineLive } from "@accountability/persistence/Layers/PolicyEngineLive"
 
@@ -102,6 +103,7 @@ const AppApiLiveWithSessionAuth = HttpApiBuilder.api(AppApi)
   .pipe(Layer.provide(AccountsApiLive))
   .pipe(Layer.provide(AccountTemplatesApiLive))
   .pipe(Layer.provide(AuditLogApiLive))
+  .pipe(Layer.provide(AuthorizationAuditApiLive))
   .pipe(Layer.provide(CompaniesApiLive))
   .pipe(Layer.provide(InvitationApiLive))
   .pipe(Layer.provide(JournalEntriesApiLive))

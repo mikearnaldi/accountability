@@ -13,6 +13,7 @@ import { AccountsApi } from "./AccountsApi.ts"
 import { AccountTemplatesApi } from "./AccountTemplatesApi.ts"
 import { AuditLogApi } from "./AuditLogApi.ts"
 import { AuthApi, AuthSessionApi } from "./AuthApi.ts"
+import { AuthorizationAuditApi } from "./AuthorizationAuditApi.ts"
 import { CompaniesApi } from "./CompaniesApi.ts"
 import { ConsolidationApi } from "./ConsolidationApi.ts"
 import { CurrenciesApi } from "./CurrenciesApi.ts"
@@ -96,6 +97,7 @@ export class HealthApi extends HttpApiGroup.make("health")
  * - /api/v1/invitations/:token/* - Invitation accept/decline (protected)
  * - /api/v1/users/me/organizations - User's organizations with roles/permissions (protected)
  * - /api/v1/organizations/:orgId/policies - ABAC policy management (protected)
+ * - /api/v1/organizations/:orgId/authorization-audit - Authorization denial logs (protected)
  */
 export class AppApi extends HttpApi.make("AppApi")
   .add(HealthApi)
@@ -104,6 +106,7 @@ export class AppApi extends HttpApi.make("AppApi")
   .add(AccountsApi)
   .add(AccountTemplatesApi)
   .add(AuditLogApi)
+  .add(AuthorizationAuditApi)
   .add(CompaniesApi)
   .add(InvitationApi)
   .add(JournalEntriesApi)

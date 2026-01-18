@@ -157,9 +157,9 @@ Platform admin capability exists in the database but cannot be managed:
 
 ### 6. Authorization Denial Audit Log Viewing
 
-**Status: LOGGED BUT NOT VIEWABLE**
+**Status: IMPLEMENTED** ✓
 
-Authorization denials are logged to the database, but there's no UI to view them:
+~~Authorization denials are logged to the database, but there's no UI to view them~~
 
 **What's Implemented:**
 - `authorization_audit_log` table captures:
@@ -168,14 +168,17 @@ Authorization denials are logged to the database, but there's no UI to view them
   - IP address, user agent (when available)
 - `AuthorizationAuditRepository` with `findByOrganization()` and `findByUser()`
 - Denials logged via `AuthorizationServiceLive.checkPermission()`
+- [x] **Authorization Audit API** - `GET /api/v1/organizations/{orgId}/authorization-audit` endpoint
+- [x] **Authorization Audit UI** - `/organizations/:orgId/settings/authorization-audit` page
+- [x] **Filtering/search** - Resource type and date range filters
+- [ ] **Denial alerts** - Notifications not yet implemented (lower priority)
 
-**What's Missing:**
-- [ ] **No authorization audit log UI** - Only data operation audit log is shown
-- [ ] **No API endpoint** to query authorization denials via HTTP
-- [ ] **No filtering/search** for denial logs
-- [ ] **No denial alerts** or notifications
+**Files Added:**
+- `packages/api/src/Definitions/AuthorizationAuditApi.ts` - API definition
+- `packages/api/src/Layers/AuthorizationAuditApiLive.ts` - API implementation
+- `packages/web/src/routes/organizations/$organizationId/settings/authorization-audit.tsx` - UI page
 
-**Note:** The existing audit log page at `/organizations/:organizationId/audit-log` shows data operations (create/update/delete entities), not authorization denials.
+**Note:** The existing audit log page at `/organizations/:organizationId/audit-log` shows data operations (create/update/delete entities), while the new authorization audit page shows denied access attempts.
 
 ---
 

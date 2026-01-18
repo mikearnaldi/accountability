@@ -395,6 +395,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/organizations/{orgId}/authorization-audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List authorization denial audit entries
+         * @description Retrieve paginated authorization denial entries for security audit and compliance. Supports filtering by user, action, resource type, and date range. Only admins and owners can view denial logs.
+         */
+        get: operations["authorizationAudit.listAuthorizationDenials"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/organizations": {
         parameters: {
             query?: never;
@@ -2493,6 +2513,28 @@ export interface components {
             requestId: string | null;
             /** @enum {string} */
             _tag: "InternalServerError";
+        };
+        AuthorizationDenialListResponse: {
+            entries: components["schemas"]["AuthorizationDenialEntryResponse"][];
+            /**
+             * nonNegative
+             * @description a non-negative number
+             */
+            total: number;
+        };
+        AuthorizationDenialEntryResponse: {
+            id: components["schemas"]["UUID"];
+            userId: components["schemas"]["UUID"];
+            userEmail: string | null;
+            userDisplayName: string | null;
+            action: string;
+            resourceType: string;
+            resourceId: components["schemas"]["UUID"] | null;
+            denialReason: string;
+            matchedPolicyIds: components["schemas"]["UUID"][];
+            ipAddress: string | null;
+            userAgent: string | null;
+            createdAt: components["schemas"]["DateTimeUtc"];
         };
         OrganizationListResponse: {
             organizations: components["schemas"]["Organization"][];
@@ -5374,6 +5416,74 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["InternalServerError"];
+                };
+            };
+        };
+    };
+    "authorizationAudit.listAuthorizationDenials": {
+        parameters: {
+            query?: {
+                userId?: components["schemas"]["UUID"];
+                action?: string;
+                resourceType?: string;
+                fromDate?: components["schemas"]["DateTimeUtc"];
+                toDate?: components["schemas"]["DateTimeUtc"];
+                /** @description a string to be decoded into a number */
+                limit?: string;
+                /** @description a string to be decoded into a number */
+                offset?: string;
+            };
+            header?: never;
+            path: {
+                orgId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description AuthorizationDenialListResponse */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthorizationDenialListResponse"];
+                };
+            };
+            /** @description The request did not match the expected schema */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpApiDecodeError"];
+                };
+            };
+            /** @description UnauthorizedError */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
+            /** @description NotFoundError */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
                 };
             };
         };

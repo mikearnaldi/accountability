@@ -21,6 +21,7 @@ import { AccountsApiLive } from "./AccountsApiLive.ts"
 import { AccountTemplatesApiLive } from "./AccountTemplatesApiLive.ts"
 import { AuditLogApiLive } from "./AuditLogApiLive.ts"
 import { AuthApiLive, AuthSessionApiLive } from "./AuthApiLive.ts"
+import { AuthorizationAuditApiLive } from "./AuthorizationAuditApiLive.ts"
 import { CompaniesApiLive } from "./CompaniesApiLive.ts"
 import { ConsolidationApiLive } from "./ConsolidationApiLive.ts"
 import { CurrenciesApiLive } from "./CurrenciesApiLive.ts"
@@ -111,6 +112,7 @@ const CoreApiGroup1 = Layer.mergeAll(
  */
 const CoreApiGroup2 = Layer.mergeAll(
   AuditLogApiLive,
+  AuthorizationAuditApiLive,
   CompaniesApiLive,
   InvitationApiLive,
   JournalEntriesApiLive,

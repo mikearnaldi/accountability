@@ -35,6 +35,7 @@ import {
   BarChart3,
   Users,
   Shield,
+  ShieldAlert,
   SlidersHorizontal
 } from "lucide-react"
 import type { Organization } from "./OrganizationSelector.tsx"
@@ -167,6 +168,12 @@ function getNavItems(organizationId?: string): readonly NavItem[] {
           href: `/organizations/${organizationId}/settings/policies`,
           icon: Shield,
           testId: "nav-settings-policies"
+        },
+        {
+          label: "Security Audit",
+          href: `/organizations/${organizationId}/settings/authorization-audit`,
+          icon: ShieldAlert,
+          testId: "nav-settings-security-audit"
         }
       ]
     }
