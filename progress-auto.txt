@@ -614,3 +614,7 @@
 **Task**: Implemented Effective Permissions Display UI with categorized permission matrix on Members page
 **Status**: complete
 ---
+
+## Iteration 11 - 2026-01-18 14:18
+**Task**: Partial work (no explicit completion signal)
+---

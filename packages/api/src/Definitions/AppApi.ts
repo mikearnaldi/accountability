@@ -24,6 +24,7 @@ import { IntercompanyTransactionsApi } from "./IntercompanyTransactionsApi.ts"
 import { InvitationApi } from "./InvitationApi.ts"
 import { JournalEntriesApi } from "./JournalEntriesApi.ts"
 import { MembershipApi } from "./MembershipApi.ts"
+import { PlatformAdminApi } from "./PlatformAdminApi.ts"
 import { PolicyApi } from "./PolicyApi.ts"
 import { ReportsApi } from "./ReportsApi.ts"
 import { UserOrganizationsApi } from "./UserOrganizationsApi.ts"
@@ -98,6 +99,7 @@ export class HealthApi extends HttpApiGroup.make("health")
  * - /api/v1/users/me/organizations - User's organizations with roles/permissions (protected)
  * - /api/v1/organizations/:orgId/policies - ABAC policy management (protected)
  * - /api/v1/organizations/:orgId/authorization-audit - Authorization denial logs (protected)
+ * - /api/v1/platform-admins - Platform administrator list (protected, admin-only)
  */
 export class AppApi extends HttpApi.make("AppApi")
   .add(HealthApi)
@@ -111,6 +113,7 @@ export class AppApi extends HttpApi.make("AppApi")
   .add(InvitationApi)
   .add(JournalEntriesApi)
   .add(MembershipApi)
+  .add(PlatformAdminApi)
   .add(PolicyApi)
   .add(ReportsApi)
   .add(CurrenciesApi)

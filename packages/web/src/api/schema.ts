@@ -875,6 +875,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/platform-admins": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List platform administrators
+         * @description Retrieve all platform administrators. Only accessible by platform administrators.
+         */
+        get: operations["platformAdmins.listPlatformAdmins"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/organizations/{orgId}/policies": {
         parameters: {
             query?: never;
@@ -3143,6 +3163,21 @@ export interface components {
              */
             myNewRole: "admin" | "member" | "viewer";
         };
+        PlatformAdminsResponse: {
+            admins: components["schemas"]["PlatformAdminInfo"][];
+            count: components["schemas"]["Int"];
+        };
+        PlatformAdminInfo: {
+            id: components["schemas"]["AuthUserId"];
+            email: components["schemas"]["Email"];
+            displayName: components["schemas"]["NonEmptyTrimmedString"];
+            createdAt: components["schemas"]["DateTimeUtc"];
+        };
+        /**
+         * int
+         * @description an integer
+         */
+        Int: number;
         PolicyListResponse: {
             policies: components["schemas"]["PolicyInfo"][];
         };
@@ -7484,6 +7519,53 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BusinessRuleError"];
+                };
+            };
+        };
+    };
+    "platformAdmins.listPlatformAdmins": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PlatformAdminsResponse */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformAdminsResponse"];
+                };
+            };
+            /** @description The request did not match the expected schema */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpApiDecodeError"];
+                };
+            };
+            /** @description UnauthorizedError */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
                 };
             };
         };

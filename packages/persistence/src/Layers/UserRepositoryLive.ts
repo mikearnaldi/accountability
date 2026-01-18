@@ -43,6 +43,21 @@ const CountRow = Schema.Struct({
 })
 
 /**
+ * Schema for platform admin row from auth_users table
+ * Includes is_platform_admin column
+ */
+const PlatformAdminRow = Schema.Struct({
+  id: Schema.String,
+  email: Schema.String,
+  display_name: Schema.String,
+  role: UserRole,
+  primary_provider: AuthProviderType,
+  is_platform_admin: Schema.Boolean,
+  created_at: Schema.DateFromSelf,
+  updated_at: Schema.DateFromSelf
+})
+
+/**
  * Convert database row to AuthUser domain entity
  * Pure function - no Effect wrapping needed
  */
@@ -235,12 +250,48 @@ const make = Effect.gen(function* () {
       yield* sql`DELETE FROM auth_users WHERE id = ${id}`.pipe(wrapSqlError("delete"))
     })
 
+  const findPlatformAdminsQuery = SqlSchema.findAll({
+    Request: Schema.Void,
+    Result: PlatformAdminRow,
+    execute: () => sql`
+      SELECT id, email, display_name, role, primary_provider, is_platform_admin, created_at, updated_at
+      FROM auth_users
+      WHERE is_platform_admin = true
+      ORDER BY email ASC
+    `
+  })
+
+  const findPlatformAdmins: UserRepositoryService["findPlatformAdmins"] = () =>
+    findPlatformAdminsQuery(undefined).pipe(
+      Effect.map((rows) => rows.map(rowToAuthUser)),
+      wrapSqlError("findPlatformAdmins")
+    )
+
+  const isPlatformAdminQuery = SqlSchema.findOne({
+    Request: Schema.String,
+    Result: Schema.Struct({ is_platform_admin: Schema.Boolean }),
+    execute: (id) => sql`SELECT is_platform_admin FROM auth_users WHERE id = ${id}`
+  })
+
+  const isPlatformAdmin: UserRepositoryService["isPlatformAdmin"] = (id) =>
+    isPlatformAdminQuery(id).pipe(
+      Effect.map((maybeRow) =>
+        Option.match(maybeRow, {
+          onNone: () => false,
+          onSome: (row) => row.is_platform_admin
+        })
+      ),
+      wrapSqlError("isPlatformAdmin")
+    )
+
   return {
     findById,
     findByEmail,
     create,
     update,
-    delete: deleteUser
+    delete: deleteUser,
+    findPlatformAdmins,
+    isPlatformAdmin
   } satisfies UserRepositoryService
 })
 

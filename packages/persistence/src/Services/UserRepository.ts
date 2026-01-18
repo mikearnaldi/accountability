@@ -102,6 +102,21 @@ export interface UserRepositoryService {
   readonly delete: (
     id: AuthUserId
   ) => Effect.Effect<void, EntityNotFoundError | PersistenceError>
+
+  /**
+   * Find all platform administrators
+   *
+   * @returns Effect containing array of platform admin users
+   */
+  readonly findPlatformAdmins: () => Effect.Effect<readonly AuthUser[], PersistenceError>
+
+  /**
+   * Check if a user is a platform administrator
+   *
+   * @param id - The user ID to check
+   * @returns Effect containing true if the user is a platform admin, false otherwise
+   */
+  readonly isPlatformAdmin: (id: AuthUserId) => Effect.Effect<boolean, PersistenceError>
 }
 
 /**

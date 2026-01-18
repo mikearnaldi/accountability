@@ -72,22 +72,32 @@ The AUTHORIZATION.md spec defines actions for fiscal period management, but the 
 
 ### 3. Platform Admin Management
 
-**Status: DATABASE FIELD ONLY - NO MANAGEMENT**
+**Status: IMPLEMENTED (READ-ONLY VIEWER)** ✓
 
-Platform admin capability exists in the database but cannot be managed:
+Platform admin capability exists in the database with a read-only viewer for platform administrators:
 
 **What's Implemented:**
 - `is_platform_admin` column in `auth_users` table
 - Platform admin policy evaluation in authorization service
 - "Platform Admin Full Access" system policy
+- [x] **Platform Admin API endpoint** - `GET /api/v1/platform-admins` returns list of all platform admins
+- [x] **isPlatformAdmin repository method** - Checks if a user has platform admin status
+- [x] **Platform Admin viewer UI** - `/platform-admins` page showing all platform administrators
+  - Only accessible to platform administrators (403 for non-admins)
+  - Shows admin name, email, and member since date
+  - Access denied state for non-admin users
+  - Info banner explaining platform admin access level
 
-**What's Missing:**
-- [ ] **No admin console UI** to view/manage platform admins
-- [ ] **No API endpoint** to set/unset platform admin status
-- [ ] **No service method** to manage platform admins
-- [ ] **No audit logging** for platform admin changes
+**By Design (Not Implemented):**
+- **No API to set/unset platform admin status** - This is intentional per spec: "Platform admin flag can only be set via database migration (not UI)"
+- **No audit logging for platform admin changes** - Changes happen via migrations, not runtime operations
 
-**Note:** The spec states "Platform admin flag can only be set via database migration (not UI)" - this is by design. However, at minimum there should be a way to VIEW who the platform admins are.
+**Files Added:**
+- `packages/persistence/src/Services/UserRepository.ts` - Added `findPlatformAdmins()` and `isPlatformAdmin()` methods
+- `packages/persistence/src/Layers/UserRepositoryLive.ts` - Implementations for new methods
+- `packages/api/src/Definitions/PlatformAdminApi.ts` - API definition
+- `packages/api/src/Layers/PlatformAdminApiLive.ts` - API handler
+- `packages/web/src/routes/platform-admins.tsx` - UI page
 
 ---
 
@@ -386,9 +396,9 @@ The database has this constraint, but the UI doesn't handle the duplicate invita
 13. **Create Fiscal Period Management UI** - List/detail pages (4-6 hours)
 
 ### Phase 4: Admin Features (Medium effort)
-14. **Create authorization audit log UI** - View denied access attempts
-15. **Create platform admin viewer** - Read-only list of admins
-16. **Create effective permissions viewer** - Permission matrix UI
+14. ~~**Create authorization audit log UI** - View denied access attempts~~ ✓ DONE
+15. ~~**Create platform admin viewer** - Read-only list of admins~~ ✓ DONE (GET /api/v1/platform-admins, /platform-admins page)
+16. ~~**Create effective permissions viewer** - Permission matrix UI~~ ✓ DONE
 
 ---
 

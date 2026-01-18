@@ -444,7 +444,9 @@ describe("SessionTokenValidatorLive", () => {
         })
       ),
     update: (_id, _data) => Effect.succeed(testAuthUser),
-    delete: () => Effect.void
+    delete: () => Effect.void,
+    findPlatformAdmins: () => Effect.succeed([]),
+    isPlatformAdmin: () => Effect.succeed(false)
   })
 
   // Create test layer with valid session and user
@@ -769,7 +771,11 @@ describe("SessionTokenValidatorLive", () => {
       update: () =>
         Effect.fail(new PersistenceError({ operation: "update", cause: new Error("DB error") })),
       delete: () =>
-        Effect.fail(new PersistenceError({ operation: "delete", cause: new Error("DB error") }))
+        Effect.fail(new PersistenceError({ operation: "delete", cause: new Error("DB error") })),
+      findPlatformAdmins: () =>
+        Effect.fail(new PersistenceError({ operation: "findPlatformAdmins", cause: new Error("DB error") })),
+      isPlatformAdmin: () =>
+        Effect.fail(new PersistenceError({ operation: "isPlatformAdmin", cause: new Error("DB error") }))
     }
 
     const userDbErrorTestLayer = SessionTokenValidatorLive.pipe(

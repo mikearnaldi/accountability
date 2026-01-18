@@ -32,6 +32,7 @@ import { IntercompanyTransactionsApiLive } from "./IntercompanyTransactionsApiLi
 import { InvitationApiLive } from "./InvitationApiLive.ts"
 import { JournalEntriesApiLive } from "./JournalEntriesApiLive.ts"
 import { MembershipApiLive } from "./MembershipApiLive.ts"
+import { PlatformAdminApiLive } from "./PlatformAdminApiLive.ts"
 import { PolicyApiLive } from "./PolicyApiLive.ts"
 import { ReportsApiLive } from "./ReportsApiLive.ts"
 import { UserOrganizationsApiLive } from "./UserOrganizationsApiLive.ts"
@@ -126,6 +127,7 @@ const MasterDataApiGroup = Layer.mergeAll(
   CurrenciesApiLive,
   JurisdictionsApiLive,
   CurrencyApiLive,
+  PlatformAdminApiLive,
   UserOrganizationsApiLive
 )
 
@@ -162,6 +164,7 @@ const AdvancedApiGroup = Layer.mergeAll(
  * - Invitation API (protected)
  * - User Organizations API (protected)
  * - Policy API (protected)
+ * - Platform Admin API (protected, admin-only)
  *
  * Dependencies (required from consumer):
  * - AccountRepository
