@@ -354,6 +354,146 @@ const pipeMaxArgumentsRule = {
 }
 
 /**
+ * Custom ESLint rule to ban Effect.ignore usage.
+ * Effect.ignore silently discards errors which hides bugs.
+ * Errors should be explicitly handled or propagated.
+ */
+const noEffectIgnoreRule = {
+  meta: {
+    type: "problem",
+    docs: {
+      description: "Disallow Effect.ignore - errors should be explicitly handled"
+    },
+    messages: {
+      noEffectIgnore: "Do not use Effect.ignore. It silently discards errors which hides bugs. Handle errors explicitly with Effect.catchTag, Effect.catchAll, or propagate them."
+    },
+    schema: []
+  },
+  create(context) {
+    return {
+      MemberExpression(node) {
+        if (
+          node.object.type === "Identifier" &&
+          node.object.name === "Effect" &&
+          node.property.type === "Identifier" &&
+          node.property.name === "ignore"
+        ) {
+          context.report({
+            node,
+            messageId: "noEffectIgnore"
+          })
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Custom ESLint rule to ban Effect.catchAllCause usage.
+ * catchAllCause catches defects (bugs) which should crash the program.
+ * Use Effect.catchAll or Effect.catchTag for expected errors only.
+ */
+const noEffectCatchAllCauseRule = {
+  meta: {
+    type: "problem",
+    docs: {
+      description: "Disallow Effect.catchAllCause - it catches defects which should not be caught"
+    },
+    messages: {
+      noEffectCatchAllCause: "Do not use Effect.catchAllCause. It catches defects (bugs) which should crash the program. Use Effect.catchAll or Effect.catchTag to handle expected errors only."
+    },
+    schema: []
+  },
+  create(context) {
+    return {
+      MemberExpression(node) {
+        if (
+          node.object.type === "Identifier" &&
+          node.object.name === "Effect" &&
+          node.property.type === "Identifier" &&
+          node.property.name === "catchAllCause"
+        ) {
+          context.report({
+            node,
+            messageId: "noEffectCatchAllCause"
+          })
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Custom ESLint rule to ban void expressions (e.g., void someValue).
+ * void X is a no-op that evaluates X and discards the result.
+ * This is usually a mistake or unnecessary.
+ */
+const noVoidExpressionRule = {
+  meta: {
+    type: "problem",
+    docs: {
+      description: "Disallow void expressions - they are no-ops"
+    },
+    messages: {
+      noVoidExpression: "'void {{expression}}' is a no-op. It evaluates the expression and discards the result. Remove it or use the value."
+    },
+    schema: []
+  },
+  create(context) {
+    return {
+      UnaryExpression(node) {
+        if (node.operator === "void") {
+          const expression = context.getSourceCode().getText(node.argument)
+          context.report({
+            node,
+            messageId: "noVoidExpression",
+            data: { expression }
+          })
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Custom ESLint rule to ban Effect.serviceOption usage.
+ * Services should always be present in context, even during testing.
+ * Using serviceOption makes it easy to forget to provide a service.
+ */
+const noServiceOptionRule = {
+  meta: {
+    type: "problem",
+    docs: {
+      description: "Disallow Effect.serviceOption - services should always be present in context"
+    },
+    messages: {
+      noServiceOption: "Do not use Effect.serviceOption. Services should always be present in context, even during testing. Yield the service directly (yield* MyService) and ensure it is provided in your layer composition."
+    },
+    schema: []
+  },
+  create(context) {
+    return {
+      CallExpression(node) {
+        const callee = node.callee
+        // Check for Effect.serviceOption()
+        if (
+          callee.type === "MemberExpression" &&
+          callee.object.type === "Identifier" &&
+          callee.object.name === "Effect" &&
+          callee.property.type === "Identifier" &&
+          callee.property.name === "serviceOption"
+        ) {
+          context.report({
+            node,
+            messageId: "noServiceOption"
+          })
+        }
+      }
+    }
+  }
+}
+
+/**
  * Custom ESLint rule to warn when Layer.provide is nested inside another Layer.provide.
  * Nested Layer.provide calls are confusing and should be refactored.
  */
@@ -459,7 +599,11 @@ const localPlugin = {
     "no-direct-fetch": noDirectFetchRule,
     "no-localstorage": noLocalStorageRule,
     "pipe-max-arguments": pipeMaxArgumentsRule,
-    "no-nested-layer-provide": noNestedLayerProvideRule
+    "no-nested-layer-provide": noNestedLayerProvideRule,
+    "no-service-option": noServiceOptionRule,
+    "no-void-expression": noVoidExpressionRule,
+    "no-effect-ignore": noEffectIgnoreRule,
+    "no-effect-catchallcause": noEffectCatchAllCauseRule
   }
 }
 
@@ -534,6 +678,14 @@ export default [
       "local/pipe-max-arguments": "error",
       // Error when Layer.provide is nested inside another Layer.provide
       "local/no-nested-layer-provide": "error",
+      // Ban Effect.serviceOption - services should always be present in context
+      "local/no-service-option": "error",
+      // Ban void expressions - they are no-ops
+      "local/no-void-expression": "error",
+      // Ban Effect.ignore - errors should be explicitly handled
+      "local/no-effect-ignore": "error",
+      // Ban Effect.catchAllCause - it catches defects which should not be caught
+      "local/no-effect-catchallcause": "error",
       // Allow unused variables starting with underscore
       "no-unused-vars": "off",
       "@typescript-eslint/no-unused-vars": [

@@ -50,6 +50,7 @@ import { UserOrganizationsApiLive } from "@accountability/api/Layers/UserOrganiz
 import { AuthorizationAuditApiLive } from "@accountability/api/Layers/AuthorizationAuditApiLive"
 import { AuthorizationServiceLive } from "@accountability/persistence/Layers/AuthorizationServiceLive"
 import { PolicyEngineLive } from "@accountability/persistence/Layers/PolicyEngineLive"
+import { AuthorizationConfigGracePeriod } from "@accountability/core/Auth/AuthorizationConfig"
 
 /**
  * AuthorizationServiceWithDependencies - AuthorizationServiceLive with PolicyEngineLive
@@ -137,6 +138,7 @@ const AppApiLiveWithSessionAuth = HttpApiBuilder.api(AppApi)
 const HttpLive = HttpApiBuilder.serve().pipe(
   Layer.provide(AppApiLiveWithSessionAuth),
   Layer.provide(DatabaseLayer),
+  Layer.provide(AuthorizationConfigGracePeriod),
   Layer.provideMerge(NodeHttpServer.layerTest)
 )
 

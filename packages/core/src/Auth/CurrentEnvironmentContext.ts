@@ -12,6 +12,7 @@
 
 import * as Context from "effect/Context"
 import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
 import type { EnvironmentContext } from "./matchers/EnvironmentMatcher.ts"
 
 // =============================================================================
@@ -30,7 +31,7 @@ import type { EnvironmentContext } from "./matchers/EnvironmentMatcher.ts"
  * Usage in handlers/services:
  * ```ts
  * Effect.gen(function* () {
- *   const envContext = yield* Effect.serviceOption(CurrentEnvironmentContext)
+ *   const envContext = yield* getCurrentEnvironmentContext
  *   if (Option.isSome(envContext)) {
  *     // Use environment context for policy evaluation
  *   }
@@ -59,11 +60,16 @@ export interface EnvironmentContextWithMeta extends EnvironmentContext {
 /**
  * getCurrentEnvironmentContext - Get the environment context from the current effect context
  *
- * Returns Option.none() if no environment context is available.
+ * Requires CurrentEnvironmentContext in context. Use CurrentEnvironmentContextDefault
+ * layer in tests or non-HTTP contexts.
  *
- * @returns Effect that yields the environment context or None
+ * @returns Effect that yields the environment context
  */
-export const getCurrentEnvironmentContext = Effect.serviceOption(CurrentEnvironmentContext)
+export const getCurrentEnvironmentContext: Effect.Effect<
+  EnvironmentContextWithMeta,
+  never,
+  CurrentEnvironmentContext
+> = CurrentEnvironmentContext
 
 /**
  * withEnvironmentContext - Provide environment context for an effect
@@ -119,3 +125,26 @@ export const createEnvironmentContextFromRequest = (
 
   return result
 }
+
+// =============================================================================
+// Layers
+// =============================================================================
+
+/**
+ * Default environment context for non-HTTP contexts (tests, CLI, etc.)
+ *
+ * Creates an environment context with current time but no IP or user agent.
+ * Use this in tests or non-HTTP contexts where environment context is required
+ * but no HTTP request is available.
+ */
+export const defaultEnvironmentContext = (): EnvironmentContextWithMeta =>
+  createEnvironmentContextFromRequest(undefined, undefined, new Date())
+
+/**
+ * CurrentEnvironmentContextDefault - Layer providing a default environment context
+ *
+ * Use this in tests or non-HTTP contexts where CurrentEnvironmentContext is required.
+ * Provides current time of day and day of week, but no IP address or user agent.
+ */
+export const CurrentEnvironmentContextDefault: Layer.Layer<CurrentEnvironmentContext> =
+  Layer.sync(CurrentEnvironmentContext, defaultEnvironmentContext)

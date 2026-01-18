@@ -38,10 +38,11 @@ export const AuditLogApiLive = HttpApiBuilder.group(AppApi, "auditLog", (handler
     return handlers
       .handle("listAuditLog", (_) =>
         Effect.gen(function* () {
-          const { urlParams } = _
+          const { path, urlParams } = _
 
-          // Build filter from query parameters
+          // Build filter from query parameters with organization scoping
           const filter = {
+            organizationId: path.organizationId,
             entityType: Option.fromNullable(urlParams.entityType),
             entityId: Option.fromNullable(urlParams.entityId),
             userId: Option.fromNullable(urlParams.userId),

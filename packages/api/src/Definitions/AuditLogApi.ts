@@ -49,6 +49,21 @@ export class AuditLogListResponse extends Schema.Class<AuditLogListResponse>("Au
 }) {}
 
 // =============================================================================
+// Path Parameters
+// =============================================================================
+
+/**
+ * Path parameters for audit log endpoints
+ */
+export const AuditLogPathParams = Schema.Struct({
+  organizationId: Schema.UUID.annotations({
+    description: "The organization ID to scope audit entries to"
+  })
+})
+
+export type AuditLogPathParams = typeof AuditLogPathParams.Type
+
+// =============================================================================
 // Query Parameters
 // =============================================================================
 
@@ -88,14 +103,16 @@ export type AuditLogListParams = typeof AuditLogListParams.Type
  *
  * Returns paginated audit entries for compliance and SOX requirements.
  * Supports filtering by entity type, entity ID, user, action, and date range.
+ * Entries are scoped to the specified organization for security.
  */
-const listAuditLog = HttpApiEndpoint.get("listAuditLog", "/")
+const listAuditLog = HttpApiEndpoint.get("listAuditLog", "/:organizationId")
+  .setPath(AuditLogPathParams)
   .setUrlParams(AuditLogListParams)
   .addSuccess(AuditLogListResponse)
   .addError(InternalServerError)
   .annotateContext(OpenApi.annotations({
     summary: "List audit log entries",
-    description: "Retrieve paginated audit trail entries for compliance and SOX requirements. Supports filtering by entity type, entity ID, user, action, and date range."
+    description: "Retrieve paginated audit trail entries for compliance and SOX requirements. Supports filtering by entity type, entity ID, user, action, and date range. Entries are scoped to the specified organization."
   }))
 
 // =============================================================================

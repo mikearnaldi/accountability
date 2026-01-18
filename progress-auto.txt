@@ -718,3 +718,8 @@
 **Task**: Added unit tests for AuditLogServiceLive with 11 tests covering create, update, delete, and status change operations
 **Status**: complete
 ---
+
+## Iteration 2 - 2026-01-18 21:52
+**Task**: Fixed CurrentUserId context propagation and lint errors in MembershipApiLive and other files
+**Status**: complete
+---

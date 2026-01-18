@@ -29,6 +29,7 @@ import type { PersistenceError } from "../Errors/RepositoryError.ts"
  */
 export interface AuditLogEntry {
   readonly id: AuditLogEntryId
+  readonly organizationId: string
   readonly entityType: AuditEntityType
   readonly entityId: string
   readonly action: AuditAction
@@ -43,6 +44,7 @@ export interface AuditLogEntry {
  * Used by system code or triggers to create audit entries.
  */
 export interface AuditLogInsert {
+  readonly organizationId: string
   readonly entityType: AuditEntityType
   readonly entityId: string
   readonly action: AuditAction
@@ -54,6 +56,7 @@ export interface AuditLogInsert {
  * AuditLogFilter - Filter criteria for querying audit log entries
  */
 export interface AuditLogFilter {
+  readonly organizationId: string
   readonly entityType: Option.Option<AuditEntityType>
   readonly entityId: Option.Option<string>
   readonly userId: Option.Option<string>

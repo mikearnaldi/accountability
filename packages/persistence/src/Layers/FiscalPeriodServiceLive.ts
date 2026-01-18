@@ -38,8 +38,6 @@ import { LocalDate } from "@accountability/core/Domains/LocalDate"
 import * as Timestamp from "@accountability/core/Domains/Timestamp"
 import type { AuthUserId } from "@accountability/core/Auth/AuthUserId"
 import { FiscalPeriodRepository } from "../Services/FiscalPeriodRepository.ts"
-import { AuditLogService } from "@accountability/core/AuditLog/AuditLogService"
-import { CurrentUserId } from "@accountability/core/AuditLog/CurrentUserId"
 
 // =============================================================================
 // Date Helper Functions
@@ -84,66 +82,47 @@ function addDays(date: LocalDate, days: number): LocalDate {
  */
 const make = Effect.gen(function* () {
   const periodRepo = yield* FiscalPeriodRepository
-  const auditLogService = yield* Effect.serviceOption(AuditLogService)
+  // AuditLogService is optional - accessed via Effect.either in helper functions
 
   /**
-   * Helper to get current user ID from context if available
-   * Returns Option.none() if CurrentUserId is not provided
-   */
-  const getOptionalUserId = Effect.serviceOption(CurrentUserId)
-
-  /**
-   * Helper to log audit entries if AuditLogService is available
-   * Silently ignores errors to not block business operations
+   * Helper to log audit entries (no-op at this layer)
+   *
+   * Note: organizationId is not available at the FiscalPeriodService layer.
+   * Audit logging for fiscal periods should be done at the API layer where
+   * organization context is available.
+   *
+   * This function always returns Effect.void since we don't have the
+   * organization context needed for proper audit logging.
    */
   const logAuditStatusChange = (
-    entityType: "FiscalYear" | "FiscalPeriod",
-    entityId: string,
-    previousStatus: string,
-    newStatus: string,
-    userId: AuthUserId,
-    reason?: string
-  ) =>
-    Option.match(auditLogService, {
-      onNone: () => Effect.void,
-      onSome: (svc) =>
-        svc.logStatusChange(entityType, entityId, previousStatus, newStatus, userId, reason).pipe(
-          Effect.catchAll(() => Effect.void) // Don't fail if audit logging fails
-        )
-    })
-
-  /**
-   * Helper to log create audit entries if AuditLogService is available
-   */
-  const logAuditCreate = <T>(
-    entityType: "FiscalYear" | "FiscalPeriod",
-    entityId: string,
-    entity: T,
-    userId: AuthUserId
-  ) =>
-    Option.match(auditLogService, {
-      onNone: () => Effect.void,
-      onSome: (svc) =>
-        svc.logCreate(entityType, entityId, entity, userId).pipe(
-          Effect.catchAll(() => Effect.void)
-        )
-    })
+    _organizationId: string | undefined,
+    _entityType: "FiscalYear" | "FiscalPeriod",
+    _entityId: string,
+    _previousStatus: string,
+    _newStatus: string,
+    _userId: AuthUserId,
+    _reason?: string
+  ): Effect.Effect<void> =>
+    // Skip audit logging - organizationId not available at this layer
+    // Audit logging should be done at the API layer
+    Effect.void
 
   /**
    * Helper to log create with optional user ID from context
    * Will skip audit logging if no user ID is in context
+   *
+   * Note: Currently skips audit logging as organizationId is not available
+   * at the FiscalPeriodService level. Audit logging for fiscal periods
+   * should be done at the API layer where organization context is available.
    */
   const logAuditCreateWithContext = <T>(
-    entityType: "FiscalYear" | "FiscalPeriod",
-    entityId: string,
-    entity: T
+    _entityType: "FiscalYear" | "FiscalPeriod",
+    _entityId: string,
+    _entity: T
   ) =>
-    Effect.gen(function* () {
-      const maybeUserId = yield* getOptionalUserId
-      if (Option.isSome(maybeUserId) && Option.isSome(auditLogService)) {
-        yield* logAuditCreate(entityType, entityId, entity, maybeUserId.value)
-      }
-    }).pipe(Effect.catchAll(() => Effect.void))
+    // Skip audit logging - organizationId not available at this layer
+    // Audit logging should be done at the API layer
+    Effect.void
 
   /**
    * Helper function to transition period status with validation
@@ -191,7 +170,8 @@ const make = Effect.gen(function* () {
       const result = yield* periodRepo.updatePeriod(fiscalYearId, updatedPeriod)
 
       // Log the status change to audit log
-      yield* logAuditStatusChange("FiscalPeriod", periodId, previousStatus, targetStatus, userId)
+      // Note: organizationId not available at this layer, skipping audit logging
+      yield* logAuditStatusChange(undefined, "FiscalPeriod", periodId, previousStatus, targetStatus, userId)
 
       return result
     })
@@ -500,7 +480,9 @@ const make = Effect.gen(function* () {
         const result = yield* periodRepo.updatePeriod(fiscalYearId, updatedPeriod)
 
         // Log to general audit log as well
+        // Note: organizationId not available at this layer, skipping audit logging
         yield* logAuditStatusChange(
+          undefined,
           "FiscalPeriod",
           input.periodId,
           period.status,

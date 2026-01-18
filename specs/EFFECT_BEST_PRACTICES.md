@@ -911,3 +911,117 @@ export const FullLayer = Layer.provideMerge(
   SqlClientLive
 )
 ```
+
+---
+
+## Two Types of Context: Global vs Per-Request
+
+Context in Effect comes in two distinct types. Understanding this distinction is **critical**.
+
+### 1. Global Context (Application Services)
+
+**Provided via Layers at application startup.** These are long-lived services shared across all requests:
+
+- Database connections (`SqlClient`)
+- Repositories (`AccountRepository`, `UserRepository`)
+- Business services (`AccountService`, `AuthorizationService`)
+- Configuration (`Config`)
+
+```typescript
+// Global context - provided via Layer composition
+const AppLayer = Layer.mergeAll(
+  SqlClientLive,
+  AccountRepositoryLive,
+  AccountServiceLive,
+  AuthorizationServiceLive
+)
+
+// Created once at startup
+const program = mainApp.pipe(Effect.provide(AppLayer))
+```
+
+### 2. Per-Request Context (Request-Scoped Data)
+
+**Provided via `Effect.provideService` for each request.** This is data specific to a single HTTP request:
+
+- Current user ID (`CurrentUserId`)
+- Current organization membership (`CurrentOrganizationMembership`)
+- Environment context from request (`CurrentEnvironmentContext` - IP, time, user agent)
+
+```typescript
+// CORRECT - per-request context provided via Effect.provideService
+const handleRequest = (req: Request) =>
+  Effect.gen(function* () {
+    const result = yield* businessLogic()
+    return result
+  }).pipe(
+    Effect.provideService(CurrentUserId, extractUserId(req)),
+    Effect.provideService(CurrentEnvironmentContext, createEnvContext(req)),
+    Effect.provideService(CurrentOrganizationMembership, membership)
+  )
+
+// WRONG - don't use Layers for per-request data
+const handleRequest = (req: Request) =>
+  businessLogic().pipe(
+    Effect.provide(Layer.succeed(CurrentUserId, extractUserId(req)))  // NO!
+  )
+```
+
+### Why This Matters
+
+**Layers are memoized and shared.** If you use a Layer for per-request data, you get:
+- Stale data (the first request's user ID for all subsequent requests)
+- Memory leaks (layers aren't garbage collected per-request)
+- Incorrect behavior (wrong user context)
+
+**`Effect.provideService` is per-execution.** It provides a fresh value for each Effect execution, which is exactly what you want for request-scoped data.
+
+### Pattern: HTTP Middleware Providing Request Context
+
+```typescript
+// In HTTP request handler/middleware
+const withRequestContext = <A, E, R>(
+  effect: Effect.Effect<A, E, R | CurrentUserId | CurrentEnvironmentContext>
+) => (req: Request): Effect.Effect<A, E, Exclude<R, CurrentUserId | CurrentEnvironmentContext>> =>
+  effect.pipe(
+    Effect.provideService(CurrentUserId, CurrentUserId.of(req.userId)),
+    Effect.provideService(
+      CurrentEnvironmentContext,
+      createEnvironmentContextFromRequest(req.ip, req.headers["user-agent"])
+    )
+  )
+
+// Usage in route handler
+const handler = withRequestContext(
+  Effect.gen(function* () {
+    const userId = yield* CurrentUserId
+    const envContext = yield* CurrentEnvironmentContext
+    // ... business logic
+  })
+)
+```
+
+### Service Methods and Request Context
+
+When a service method needs request-scoped context, it declares that in its return type:
+
+```typescript
+interface AuthorizationService {
+  // This method requires CurrentOrganizationMembership and CurrentEnvironmentContext
+  // at CALL TIME, not at Layer creation time
+  checkPermission: (action: Action) => Effect.Effect<
+    void,
+    PermissionDeniedError,
+    CurrentOrganizationMembership | CurrentEnvironmentContext  // Request-scoped requirements
+  >
+}
+
+// The Layer does NOT include request-scoped context in its requirements
+export const AuthorizationServiceLive: Layer.Layer<
+  AuthorizationService,
+  never,
+  PolicyRepository | PolicyEngine  // Only global services here
+> = Layer.effect(AuthorizationService, make)
+```
+
+**Key insight:** The Layer creates the service once. The service methods are called per-request and their return types declare what request-scoped context they need. Callers (HTTP middleware) provide that context via `Effect.provideService`.

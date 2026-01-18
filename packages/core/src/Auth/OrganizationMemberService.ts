@@ -26,6 +26,9 @@ import type {
   UserAlreadyMemberError
 } from "./AuthorizationErrors.ts"
 import type { PersistenceError, EntityNotFoundError } from "../Errors/RepositoryError.ts"
+import type { AuditLogService } from "../AuditLog/AuditLogService.ts"
+import type { AuditLogError } from "../AuditLog/AuditLogErrors.ts"
+import type { CurrentUserId } from "../AuditLog/CurrentUserId.ts"
 
 // =============================================================================
 // Service Input Types
@@ -87,7 +90,7 @@ export interface OrganizationMemberServiceShape {
    */
   readonly addMember: (
     input: AddMemberInput
-  ) => Effect.Effect<OrganizationMembership, UserAlreadyMemberError | PersistenceError>
+  ) => Effect.Effect<OrganizationMembership, UserAlreadyMemberError | PersistenceError | AuditLogError, AuditLogService | CurrentUserId>
 
   /**
    * Remove a member from an organization (soft delete)
@@ -111,7 +114,8 @@ export interface OrganizationMemberServiceShape {
     reason?: string
   ) => Effect.Effect<
     OrganizationMembership,
-    MembershipNotFoundError | OwnerCannotBeRemovedError | PersistenceError | EntityNotFoundError
+    MembershipNotFoundError | OwnerCannotBeRemovedError | PersistenceError | EntityNotFoundError | AuditLogError,
+    AuditLogService | CurrentUserId
   >
 
   /**
@@ -130,7 +134,8 @@ export interface OrganizationMemberServiceShape {
     input: UpdateMemberRolesInput
   ) => Effect.Effect<
     OrganizationMembership,
-    MembershipNotFoundError | PersistenceError | EntityNotFoundError
+    MembershipNotFoundError | PersistenceError | EntityNotFoundError | AuditLogError,
+    AuditLogService | CurrentUserId
   >
 
   /**
@@ -151,7 +156,8 @@ export interface OrganizationMemberServiceShape {
     reinstatedBy: AuthUserId
   ) => Effect.Effect<
     OrganizationMembership,
-    MembershipNotFoundError | PersistenceError | EntityNotFoundError
+    MembershipNotFoundError | PersistenceError | EntityNotFoundError | AuditLogError,
+    AuditLogService | CurrentUserId
   >
 
   /**
@@ -176,7 +182,8 @@ export interface OrganizationMemberServiceShape {
     reason?: string
   ) => Effect.Effect<
     OrganizationMembership,
-    MembershipNotFoundError | OwnerCannotBeSuspendedError | PersistenceError | EntityNotFoundError
+    MembershipNotFoundError | OwnerCannotBeSuspendedError | PersistenceError | EntityNotFoundError | AuditLogError,
+    AuditLogService | CurrentUserId
   >
 
   /**
@@ -198,7 +205,8 @@ export interface OrganizationMemberServiceShape {
     unsuspendedBy: AuthUserId
   ) => Effect.Effect<
     OrganizationMembership,
-    MembershipNotFoundError | MemberNotSuspendedError | PersistenceError | EntityNotFoundError
+    MembershipNotFoundError | MemberNotSuspendedError | PersistenceError | EntityNotFoundError | AuditLogError,
+    AuditLogService | CurrentUserId
   >
 
   /**
@@ -218,7 +226,8 @@ export interface OrganizationMemberServiceShape {
     input: TransferOwnershipInput
   ) => Effect.Effect<
     { previousOwner: OrganizationMembership; newOwner: OrganizationMembership },
-    MembershipNotFoundError | CannotTransferToNonAdminError | PersistenceError | EntityNotFoundError
+    MembershipNotFoundError | CannotTransferToNonAdminError | PersistenceError | EntityNotFoundError | AuditLogError,
+    AuditLogService | CurrentUserId
   >
 
   /**
@@ -304,7 +313,7 @@ export class OrganizationMemberService extends Context.Tag("OrganizationMemberSe
 /**
  * AddMemberError - Union of errors for adding a member
  */
-export type AddMemberError = UserAlreadyMemberError | PersistenceError
+export type AddMemberError = UserAlreadyMemberError | PersistenceError | AuditLogError
 
 /**
  * RemoveMemberError - Union of errors for removing a member
@@ -314,6 +323,7 @@ export type RemoveMemberError =
   | OwnerCannotBeRemovedError
   | PersistenceError
   | EntityNotFoundError
+  | AuditLogError
 
 /**
  * UpdateRoleError - Union of errors for updating roles
@@ -322,6 +332,7 @@ export type UpdateRoleError =
   | MembershipNotFoundError
   | PersistenceError
   | EntityNotFoundError
+  | AuditLogError
 
 /**
  * ReinstateMemberError - Union of errors for reinstating a member
@@ -330,6 +341,7 @@ export type ReinstateMemberError =
   | MembershipNotFoundError
   | PersistenceError
   | EntityNotFoundError
+  | AuditLogError
 
 /**
  * SuspendMemberError - Union of errors for suspending a member
@@ -339,6 +351,7 @@ export type SuspendMemberError =
   | OwnerCannotBeSuspendedError
   | PersistenceError
   | EntityNotFoundError
+  | AuditLogError
 
 /**
  * UnsuspendMemberError - Union of errors for unsuspending a member
@@ -348,6 +361,7 @@ export type UnsuspendMemberError =
   | MemberNotSuspendedError
   | PersistenceError
   | EntityNotFoundError
+  | AuditLogError
 
 /**
  * TransferOwnershipError - Union of errors for transferring ownership
@@ -357,3 +371,4 @@ export type TransferOwnershipError =
   | CannotTransferToNonAdminError
   | PersistenceError
   | EntityNotFoundError
+  | AuditLogError

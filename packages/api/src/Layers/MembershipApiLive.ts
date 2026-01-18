@@ -14,6 +14,7 @@ import * as Schema from "effect/Schema"
 import { OrganizationMemberService } from "@accountability/core/Auth/OrganizationMemberService"
 import { InvitationService } from "@accountability/core/Auth/InvitationService"
 import { UserRepository } from "@accountability/persistence/Services/UserRepository"
+import { CurrentUserId } from "@accountability/core/AuditLog/CurrentUserId"
 import { CurrentUser } from "../Definitions/AuthMiddleware.ts"
 import { OrganizationId } from "@accountability/core/Domains/Organization"
 import { AuthUserId } from "@accountability/core/Auth/AuthUserId"
@@ -28,6 +29,7 @@ import {
   NotFoundError,
   ValidationError
 } from "../Definitions/ApiErrors.ts"
+import { requireOrganizationContext } from "./OrganizationContextMiddlewareLive.ts"
 
 // =============================================================================
 // Handler Implementation
@@ -151,433 +153,445 @@ export const MembershipApiLive = HttpApiBuilder.group(AppApi, "membership", (han
       // Update Member
       // =======================================================================
       .handle("updateMember", ({ path, payload }) =>
-        Effect.gen(function* () {
-          const orgId = yield* Schema.decodeUnknown(OrganizationId)(path.orgId).pipe(
-            Effect.mapError(() => new ValidationError({
-              message: "Invalid organization ID format",
-              field: Option.some("orgId"),
-              details: Option.none()
-            }))
-          )
-
-          const userId = yield* Schema.decodeUnknown(AuthUserId)(path.userId).pipe(
-            Effect.mapError(() => new ValidationError({
-              message: "Invalid user ID format",
-              field: Option.some("userId"),
-              details: Option.none()
-            }))
-          )
-
-          // Build update input - only include fields that have values
-          const updateInput: { role?: typeof payload.role extends Option.Option<infer R> ? R : never; functionalRoles?: readonly ("controller" | "finance_manager" | "accountant" | "period_admin" | "consolidation_manager")[] } = {}
-          if (Option.isSome(payload.role)) {
-            updateInput.role = payload.role.value
-          }
-          if (Option.isSome(payload.functionalRoles)) {
-            updateInput.functionalRoles = payload.functionalRoles.value
-          }
-
-          // Update the member's role
-          const membership = yield* memberService.updateRole(orgId, userId, updateInput).pipe(
-            Effect.mapError((error) => {
-              if ("_tag" in error && error._tag === "MembershipNotFoundError") {
-                return new NotFoundError({
-                  resource: "Membership",
-                  id: `user ${path.userId} in org ${path.orgId}`
-                })
-              }
-              if ("_tag" in error && error._tag === "EntityNotFoundError") {
-                return new NotFoundError({
-                  resource: "Membership",
-                  id: `user ${path.userId}`
-                })
-              }
-              // Map PersistenceError to BusinessRuleError
-              return new BusinessRuleError({
-                code: "UPDATE_FAILED",
-                message: "message" in error ? String(error.message) : "Failed to update member",
+        requireOrganizationContext(path.orgId,
+          Effect.gen(function* () {
+            const orgId = yield* Schema.decodeUnknown(OrganizationId)(path.orgId).pipe(
+              Effect.mapError(() => new ValidationError({
+                message: "Invalid organization ID format",
+                field: Option.some("orgId"),
                 details: Option.none()
+              }))
+            )
+
+            const userId = yield* Schema.decodeUnknown(AuthUserId)(path.userId).pipe(
+              Effect.mapError(() => new ValidationError({
+                message: "Invalid user ID format",
+                field: Option.some("userId"),
+                details: Option.none()
+              }))
+            )
+
+            // Build update input - only include fields that have values
+            const updateInput: { role?: typeof payload.role extends Option.Option<infer R> ? R : never; functionalRoles?: readonly ("controller" | "finance_manager" | "accountant" | "period_admin" | "consolidation_manager")[] } = {}
+            if (Option.isSome(payload.role)) {
+              updateInput.role = payload.role.value
+            }
+            if (Option.isSome(payload.functionalRoles)) {
+              updateInput.functionalRoles = payload.functionalRoles.value
+            }
+
+            // Update the member's role
+            const membership = yield* memberService.updateRole(orgId, userId, updateInput).pipe(
+              Effect.mapError((error) => {
+                if ("_tag" in error && error._tag === "MembershipNotFoundError") {
+                  return new NotFoundError({
+                    resource: "Membership",
+                    id: `user ${path.userId} in org ${path.orgId}`
+                  })
+                }
+                if ("_tag" in error && error._tag === "EntityNotFoundError") {
+                  return new NotFoundError({
+                    resource: "Membership",
+                    id: `user ${path.userId}`
+                  })
+                }
+                // Map PersistenceError to BusinessRuleError
+                return new BusinessRuleError({
+                  code: "UPDATE_FAILED",
+                  message: "message" in error ? String(error.message) : "Failed to update member",
+                  details: Option.none()
+                })
               })
+            )
+
+            // Look up user details
+            const userOption = yield* userRepository.findById(membership.userId).pipe(
+              Effect.orDie
+            )
+
+            if (Option.isNone(userOption)) {
+              return yield* Effect.fail(new NotFoundError({
+                resource: "User",
+                id: membership.userId
+              }))
+            }
+
+            const user = userOption.value
+            return MemberInfo.make({
+              userId: membership.userId,
+              email: user.email,
+              displayName: user.displayName,
+              role: membership.role,
+              functionalRoles: membership.getFunctionalRoles(),
+              status: membership.status,
+              joinedAt: membership.createdAt
             })
-          )
-
-          // Look up user details
-          const userOption = yield* userRepository.findById(membership.userId).pipe(
-            Effect.orDie
-          )
-
-          if (Option.isNone(userOption)) {
-            return yield* Effect.fail(new NotFoundError({
-              resource: "User",
-              id: membership.userId
-            }))
-          }
-
-          const user = userOption.value
-          return MemberInfo.make({
-            userId: membership.userId,
-            email: user.email,
-            displayName: user.displayName,
-            role: membership.role,
-            functionalRoles: membership.getFunctionalRoles(),
-            status: membership.status,
-            joinedAt: membership.createdAt
           })
-        })
+        )
       )
 
       // =======================================================================
       // Remove Member
       // =======================================================================
       .handle("removeMember", ({ path, payload }) =>
-        Effect.gen(function* () {
-          const orgId = yield* Schema.decodeUnknown(OrganizationId)(path.orgId).pipe(
-            Effect.mapError(() => new NotFoundError({
-              resource: "Organization",
-              id: path.orgId
-            }))
-          )
+        requireOrganizationContext(path.orgId,
+          Effect.gen(function* () {
+            const orgId = yield* Schema.decodeUnknown(OrganizationId)(path.orgId).pipe(
+              Effect.mapError(() => new NotFoundError({
+                resource: "Organization",
+                id: path.orgId
+              }))
+            )
 
-          const userId = yield* Schema.decodeUnknown(AuthUserId)(path.userId).pipe(
-            Effect.mapError(() => new NotFoundError({
-              resource: "User",
-              id: path.userId
-            }))
-          )
+            const userId = yield* Schema.decodeUnknown(AuthUserId)(path.userId).pipe(
+              Effect.mapError(() => new NotFoundError({
+                resource: "User",
+                id: path.userId
+              }))
+            )
 
-          const currentUserInfo = yield* CurrentUser
-          const currentUserId = AuthUserId.make(currentUserInfo.userId)
+            // Get current user ID from context (provided by requireOrganizationContext)
+            const currentUserId = yield* CurrentUserId
 
-          // Remove the member
-          yield* memberService.removeMember(
-            orgId,
-            userId,
-            currentUserId,
-            Option.getOrUndefined(payload.reason)
-          ).pipe(
-            Effect.mapError((error) => {
-              if ("_tag" in error && error._tag === "MembershipNotFoundError") {
-                return new NotFoundError({
-                  resource: "Membership",
-                  id: `user ${path.userId} in org ${path.orgId}`
-                })
-              }
-              if ("_tag" in error && error._tag === "OwnerCannotBeRemovedError") {
+            // Remove the member
+            yield* memberService.removeMember(
+              orgId,
+              userId,
+              currentUserId,
+              Option.getOrUndefined(payload.reason)
+            ).pipe(
+              Effect.mapError((error) => {
+                if ("_tag" in error && error._tag === "MembershipNotFoundError") {
+                  return new NotFoundError({
+                    resource: "Membership",
+                    id: `user ${path.userId} in org ${path.orgId}`
+                  })
+                }
+                if ("_tag" in error && error._tag === "OwnerCannotBeRemovedError") {
+                  return new BusinessRuleError({
+                    code: "OWNER_CANNOT_BE_REMOVED",
+                    message: "The organization owner cannot be removed. Transfer ownership first.",
+                    details: Option.none()
+                  })
+                }
+                if ("_tag" in error && error._tag === "EntityNotFoundError") {
+                  return new NotFoundError({
+                    resource: "Membership",
+                    id: `user ${path.userId}`
+                  })
+                }
+                // Map PersistenceError to BusinessRuleError
                 return new BusinessRuleError({
-                  code: "OWNER_CANNOT_BE_REMOVED",
-                  message: "The organization owner cannot be removed. Transfer ownership first.",
+                  code: "REMOVE_FAILED",
+                  message: "message" in error ? String(error.message) : "Failed to remove member",
                   details: Option.none()
                 })
-              }
-              if ("_tag" in error && error._tag === "EntityNotFoundError") {
-                return new NotFoundError({
-                  resource: "Membership",
-                  id: `user ${path.userId}`
-                })
-              }
-              // Map PersistenceError to BusinessRuleError
-              return new BusinessRuleError({
-                code: "REMOVE_FAILED",
-                message: "message" in error ? String(error.message) : "Failed to remove member",
-                details: Option.none()
               })
-            })
-          )
-        })
+            )
+          })
+        )
       )
 
       // =======================================================================
       // Reinstate Member
       // =======================================================================
       .handle("reinstateMember", ({ path }) =>
-        Effect.gen(function* () {
-          const orgId = yield* Schema.decodeUnknown(OrganizationId)(path.orgId).pipe(
-            Effect.mapError(() => new NotFoundError({
-              resource: "Organization",
-              id: path.orgId
-            }))
-          )
+        requireOrganizationContext(path.orgId,
+          Effect.gen(function* () {
+            const orgId = yield* Schema.decodeUnknown(OrganizationId)(path.orgId).pipe(
+              Effect.mapError(() => new NotFoundError({
+                resource: "Organization",
+                id: path.orgId
+              }))
+            )
 
-          const userId = yield* Schema.decodeUnknown(AuthUserId)(path.userId).pipe(
-            Effect.mapError(() => new NotFoundError({
-              resource: "User",
-              id: path.userId
-            }))
-          )
+            const userId = yield* Schema.decodeUnknown(AuthUserId)(path.userId).pipe(
+              Effect.mapError(() => new NotFoundError({
+                resource: "User",
+                id: path.userId
+              }))
+            )
 
-          const currentUserInfo = yield* CurrentUser
-          const currentUserId = AuthUserId.make(currentUserInfo.userId)
+            // Get current user ID from context (provided by requireOrganizationContext)
+            const currentUserId = yield* CurrentUserId
 
-          // Reinstate the member
-          const membership = yield* memberService.reinstateMember(
-            orgId,
-            userId,
-            currentUserId
-          ).pipe(
-            Effect.mapError((error) => {
-              if ("_tag" in error && error._tag === "MembershipNotFoundError") {
-                return new NotFoundError({
-                  resource: "Membership",
-                  id: `user ${path.userId} in org ${path.orgId}`
+            // Reinstate the member
+            const membership = yield* memberService.reinstateMember(
+              orgId,
+              userId,
+              currentUserId
+            ).pipe(
+              Effect.mapError((error) => {
+                if ("_tag" in error && error._tag === "MembershipNotFoundError") {
+                  return new NotFoundError({
+                    resource: "Membership",
+                    id: `user ${path.userId} in org ${path.orgId}`
+                  })
+                }
+                if ("_tag" in error && error._tag === "EntityNotFoundError") {
+                  return new NotFoundError({
+                    resource: "Membership",
+                    id: `user ${path.userId}`
+                  })
+                }
+                // PersistenceError - map to BusinessRuleError for reinstate endpoint
+                return new BusinessRuleError({
+                  code: "REINSTATE_FAILED",
+                  message: "Failed to reinstate member",
+                  details: Option.none()
                 })
-              }
-              if ("_tag" in error && error._tag === "EntityNotFoundError") {
-                return new NotFoundError({
-                  resource: "Membership",
-                  id: `user ${path.userId}`
-                })
-              }
-              // PersistenceError - map to BusinessRuleError for reinstate endpoint
-              return new BusinessRuleError({
-                code: "REINSTATE_FAILED",
-                message: "Failed to reinstate member",
-                details: Option.none()
               })
+            )
+
+            // Look up user details
+            const userOption = yield* userRepository.findById(membership.userId).pipe(
+              Effect.orDie
+            )
+
+            if (Option.isNone(userOption)) {
+              return yield* Effect.fail(new NotFoundError({
+                resource: "User",
+                id: membership.userId
+              }))
+            }
+
+            const user = userOption.value
+            return MemberInfo.make({
+              userId: membership.userId,
+              email: user.email,
+              displayName: user.displayName,
+              role: membership.role,
+              functionalRoles: membership.getFunctionalRoles(),
+              status: membership.status,
+              joinedAt: membership.createdAt
             })
-          )
-
-          // Look up user details
-          const userOption = yield* userRepository.findById(membership.userId).pipe(
-            Effect.orDie
-          )
-
-          if (Option.isNone(userOption)) {
-            return yield* Effect.fail(new NotFoundError({
-              resource: "User",
-              id: membership.userId
-            }))
-          }
-
-          const user = userOption.value
-          return MemberInfo.make({
-            userId: membership.userId,
-            email: user.email,
-            displayName: user.displayName,
-            role: membership.role,
-            functionalRoles: membership.getFunctionalRoles(),
-            status: membership.status,
-            joinedAt: membership.createdAt
           })
-        })
+        )
       )
 
       // =======================================================================
       // Suspend Member
       // =======================================================================
       .handle("suspendMember", ({ path, payload }) =>
-        Effect.gen(function* () {
-          const orgId = yield* Schema.decodeUnknown(OrganizationId)(path.orgId).pipe(
-            Effect.mapError(() => new NotFoundError({
-              resource: "Organization",
-              id: path.orgId
-            }))
-          )
+        requireOrganizationContext(path.orgId,
+          Effect.gen(function* () {
+            const orgId = yield* Schema.decodeUnknown(OrganizationId)(path.orgId).pipe(
+              Effect.mapError(() => new NotFoundError({
+                resource: "Organization",
+                id: path.orgId
+              }))
+            )
 
-          const userId = yield* Schema.decodeUnknown(AuthUserId)(path.userId).pipe(
-            Effect.mapError(() => new NotFoundError({
-              resource: "User",
-              id: path.userId
-            }))
-          )
+            const userId = yield* Schema.decodeUnknown(AuthUserId)(path.userId).pipe(
+              Effect.mapError(() => new NotFoundError({
+                resource: "User",
+                id: path.userId
+              }))
+            )
 
-          const currentUserInfo = yield* CurrentUser
-          const currentUserId = AuthUserId.make(currentUserInfo.userId)
+            // Get current user ID from context (provided by requireOrganizationContext)
+            const currentUserId = yield* CurrentUserId
 
-          // Suspend the member
-          const membership = yield* memberService.suspendMember(
-            orgId,
-            userId,
-            currentUserId,
-            Option.getOrUndefined(payload.reason)
-          ).pipe(
-            Effect.mapError((error) => {
-              if ("_tag" in error && error._tag === "MembershipNotFoundError") {
-                return new NotFoundError({
-                  resource: "Membership",
-                  id: `user ${path.userId} in org ${path.orgId}`
-                })
-              }
-              if ("_tag" in error && error._tag === "OwnerCannotBeSuspendedError") {
+            // Suspend the member
+            const membership = yield* memberService.suspendMember(
+              orgId,
+              userId,
+              currentUserId,
+              Option.getOrUndefined(payload.reason)
+            ).pipe(
+              Effect.mapError((error) => {
+                if ("_tag" in error && error._tag === "MembershipNotFoundError") {
+                  return new NotFoundError({
+                    resource: "Membership",
+                    id: `user ${path.userId} in org ${path.orgId}`
+                  })
+                }
+                if ("_tag" in error && error._tag === "OwnerCannotBeSuspendedError") {
+                  return new BusinessRuleError({
+                    code: "OWNER_CANNOT_BE_SUSPENDED",
+                    message: "The organization owner cannot be suspended. Transfer ownership first.",
+                    details: Option.none()
+                  })
+                }
+                if ("_tag" in error && error._tag === "EntityNotFoundError") {
+                  return new NotFoundError({
+                    resource: "Membership",
+                    id: `user ${path.userId}`
+                  })
+                }
+                // Map PersistenceError to BusinessRuleError
                 return new BusinessRuleError({
-                  code: "OWNER_CANNOT_BE_SUSPENDED",
-                  message: "The organization owner cannot be suspended. Transfer ownership first.",
+                  code: "SUSPEND_FAILED",
+                  message: "message" in error ? String(error.message) : "Failed to suspend member",
                   details: Option.none()
                 })
-              }
-              if ("_tag" in error && error._tag === "EntityNotFoundError") {
-                return new NotFoundError({
-                  resource: "Membership",
-                  id: `user ${path.userId}`
-                })
-              }
-              // Map PersistenceError to BusinessRuleError
-              return new BusinessRuleError({
-                code: "SUSPEND_FAILED",
-                message: "message" in error ? String(error.message) : "Failed to suspend member",
-                details: Option.none()
               })
+            )
+
+            // Look up user details
+            const userOption = yield* userRepository.findById(membership.userId).pipe(
+              Effect.orDie
+            )
+
+            if (Option.isNone(userOption)) {
+              return yield* Effect.fail(new NotFoundError({
+                resource: "User",
+                id: membership.userId
+              }))
+            }
+
+            const user = userOption.value
+            return MemberInfo.make({
+              userId: membership.userId,
+              email: user.email,
+              displayName: user.displayName,
+              role: membership.role,
+              functionalRoles: membership.getFunctionalRoles(),
+              status: membership.status,
+              joinedAt: membership.createdAt
             })
-          )
-
-          // Look up user details
-          const userOption = yield* userRepository.findById(membership.userId).pipe(
-            Effect.orDie
-          )
-
-          if (Option.isNone(userOption)) {
-            return yield* Effect.fail(new NotFoundError({
-              resource: "User",
-              id: membership.userId
-            }))
-          }
-
-          const user = userOption.value
-          return MemberInfo.make({
-            userId: membership.userId,
-            email: user.email,
-            displayName: user.displayName,
-            role: membership.role,
-            functionalRoles: membership.getFunctionalRoles(),
-            status: membership.status,
-            joinedAt: membership.createdAt
           })
-        })
+        )
       )
 
       // =======================================================================
       // Unsuspend Member
       // =======================================================================
       .handle("unsuspendMember", ({ path }) =>
-        Effect.gen(function* () {
-          const orgId = yield* Schema.decodeUnknown(OrganizationId)(path.orgId).pipe(
-            Effect.mapError(() => new NotFoundError({
-              resource: "Organization",
-              id: path.orgId
-            }))
-          )
+        requireOrganizationContext(path.orgId,
+          Effect.gen(function* () {
+            const orgId = yield* Schema.decodeUnknown(OrganizationId)(path.orgId).pipe(
+              Effect.mapError(() => new NotFoundError({
+                resource: "Organization",
+                id: path.orgId
+              }))
+            )
 
-          const userId = yield* Schema.decodeUnknown(AuthUserId)(path.userId).pipe(
-            Effect.mapError(() => new NotFoundError({
-              resource: "User",
-              id: path.userId
-            }))
-          )
+            const userId = yield* Schema.decodeUnknown(AuthUserId)(path.userId).pipe(
+              Effect.mapError(() => new NotFoundError({
+                resource: "User",
+                id: path.userId
+              }))
+            )
 
-          const currentUserInfo = yield* CurrentUser
-          const currentUserId = AuthUserId.make(currentUserInfo.userId)
+            // Get current user ID from context (provided by requireOrganizationContext)
+            const currentUserId = yield* CurrentUserId
 
-          // Unsuspend the member
-          const membership = yield* memberService.unsuspendMember(
-            orgId,
-            userId,
-            currentUserId
-          ).pipe(
-            Effect.mapError((error) => {
-              if ("_tag" in error && error._tag === "MembershipNotFoundError") {
-                return new NotFoundError({
-                  resource: "Membership",
-                  id: `user ${path.userId} in org ${path.orgId}`
-                })
-              }
-              if ("_tag" in error && error._tag === "MemberNotSuspendedError") {
+            // Unsuspend the member
+            const membership = yield* memberService.unsuspendMember(
+              orgId,
+              userId,
+              currentUserId
+            ).pipe(
+              Effect.mapError((error) => {
+                if ("_tag" in error && error._tag === "MembershipNotFoundError") {
+                  return new NotFoundError({
+                    resource: "Membership",
+                    id: `user ${path.userId} in org ${path.orgId}`
+                  })
+                }
+                if ("_tag" in error && error._tag === "MemberNotSuspendedError") {
+                  return new BusinessRuleError({
+                    code: "MEMBER_NOT_SUSPENDED",
+                    message: "Cannot unsuspend: member is not currently suspended.",
+                    details: Option.none()
+                  })
+                }
+                if ("_tag" in error && error._tag === "EntityNotFoundError") {
+                  return new NotFoundError({
+                    resource: "Membership",
+                    id: `user ${path.userId}`
+                  })
+                }
+                // Map PersistenceError to BusinessRuleError
                 return new BusinessRuleError({
-                  code: "MEMBER_NOT_SUSPENDED",
-                  message: "Cannot unsuspend: member is not currently suspended.",
+                  code: "UNSUSPEND_FAILED",
+                  message: "message" in error ? String(error.message) : "Failed to unsuspend member",
                   details: Option.none()
                 })
-              }
-              if ("_tag" in error && error._tag === "EntityNotFoundError") {
-                return new NotFoundError({
-                  resource: "Membership",
-                  id: `user ${path.userId}`
-                })
-              }
-              // Map PersistenceError to BusinessRuleError
-              return new BusinessRuleError({
-                code: "UNSUSPEND_FAILED",
-                message: "message" in error ? String(error.message) : "Failed to unsuspend member",
-                details: Option.none()
               })
+            )
+
+            // Look up user details
+            const userOption = yield* userRepository.findById(membership.userId).pipe(
+              Effect.orDie
+            )
+
+            if (Option.isNone(userOption)) {
+              return yield* Effect.fail(new NotFoundError({
+                resource: "User",
+                id: membership.userId
+              }))
+            }
+
+            const user = userOption.value
+            return MemberInfo.make({
+              userId: membership.userId,
+              email: user.email,
+              displayName: user.displayName,
+              role: membership.role,
+              functionalRoles: membership.getFunctionalRoles(),
+              status: membership.status,
+              joinedAt: membership.createdAt
             })
-          )
-
-          // Look up user details
-          const userOption = yield* userRepository.findById(membership.userId).pipe(
-            Effect.orDie
-          )
-
-          if (Option.isNone(userOption)) {
-            return yield* Effect.fail(new NotFoundError({
-              resource: "User",
-              id: membership.userId
-            }))
-          }
-
-          const user = userOption.value
-          return MemberInfo.make({
-            userId: membership.userId,
-            email: user.email,
-            displayName: user.displayName,
-            role: membership.role,
-            functionalRoles: membership.getFunctionalRoles(),
-            status: membership.status,
-            joinedAt: membership.createdAt
           })
-        })
+        )
       )
 
       // =======================================================================
       // Transfer Ownership
       // =======================================================================
       .handle("transferOwnership", ({ path, payload }) =>
-        Effect.gen(function* () {
-          const orgId = yield* Schema.decodeUnknown(OrganizationId)(path.orgId).pipe(
-            Effect.mapError(() => new ValidationError({
-              message: "Invalid organization ID format",
-              field: Option.some("orgId"),
-              details: Option.none()
-            }))
-          )
+        requireOrganizationContext(path.orgId,
+          Effect.gen(function* () {
+            const orgId = yield* Schema.decodeUnknown(OrganizationId)(path.orgId).pipe(
+              Effect.mapError(() => new ValidationError({
+                message: "Invalid organization ID format",
+                field: Option.some("orgId"),
+                details: Option.none()
+              }))
+            )
 
-          const currentUserInfo = yield* CurrentUser
-          const currentUserId = AuthUserId.make(currentUserInfo.userId)
+            // Get current user ID from context (provided by requireOrganizationContext)
+            const currentUserId = yield* CurrentUserId
 
-          // Transfer ownership
-          yield* memberService.transferOwnership({
-            organizationId: orgId,
-            fromUserId: currentUserId,
-            toUserId: payload.toUserId,
-            newRoleForPreviousOwner: payload.myNewRole
-          }).pipe(
-            Effect.mapError((error) => {
-              if ("_tag" in error && error._tag === "MembershipNotFoundError") {
-                return new NotFoundError({
-                  resource: "Membership",
-                  id: `user in org ${path.orgId}`
-                })
-              }
-              if ("_tag" in error && error._tag === "CannotTransferToNonAdminError") {
-                return new ValidationError({
-                  message: "Ownership can only be transferred to an existing admin member",
-                  field: Option.some("toUserId"),
+            // Transfer ownership
+            yield* memberService.transferOwnership({
+              organizationId: orgId,
+              fromUserId: currentUserId,
+              toUserId: payload.toUserId,
+              newRoleForPreviousOwner: payload.myNewRole
+            }).pipe(
+              Effect.mapError((error) => {
+                if ("_tag" in error && error._tag === "MembershipNotFoundError") {
+                  return new NotFoundError({
+                    resource: "Membership",
+                    id: `user in org ${path.orgId}`
+                  })
+                }
+                if ("_tag" in error && error._tag === "CannotTransferToNonAdminError") {
+                  return new ValidationError({
+                    message: "Ownership can only be transferred to an existing admin member",
+                    field: Option.some("toUserId"),
+                    details: Option.none()
+                  })
+                }
+                if ("_tag" in error && error._tag === "EntityNotFoundError") {
+                  return new NotFoundError({
+                    resource: "User",
+                    id: payload.toUserId
+                  })
+                }
+                // PersistenceError - map to BusinessRuleError
+                return new BusinessRuleError({
+                  code: "TRANSFER_FAILED",
+                  message: "Failed to transfer ownership",
                   details: Option.none()
                 })
-              }
-              if ("_tag" in error && error._tag === "EntityNotFoundError") {
-                return new NotFoundError({
-                  resource: "User",
-                  id: payload.toUserId
-                })
-              }
-              // PersistenceError - map to BusinessRuleError
-              return new BusinessRuleError({
-                code: "TRANSFER_FAILED",
-                message: "Failed to transfer ownership",
-                details: Option.none()
               })
-            })
-          )
-        })
+            )
+          })
+        )
       )
   })
 )

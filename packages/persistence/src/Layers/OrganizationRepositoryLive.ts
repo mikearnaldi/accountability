@@ -108,7 +108,7 @@ const make = Effect.gen(function* () {
     )
 
   const findAll: OrganizationRepositoryService["findAll"] = () =>
-    findAllOrganizations(void 0).pipe(
+    findAllOrganizations(undefined).pipe(
       Effect.map((rows) => rows.map(rowToOrganization)),
       wrapSqlError("findAll")
     )

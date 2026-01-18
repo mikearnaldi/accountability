@@ -38,9 +38,8 @@ import { CurrentUserId } from "@accountability/core/AuditLog/CurrentUserId"
 const mapPersistenceToNotFound = (
   resource: string,
   id: string,
-  error: EntityNotFoundError | PersistenceError
+  _error: EntityNotFoundError | PersistenceError
 ): NotFoundError => {
-  void error
   return new NotFoundError({ resource, id })
 }
 
@@ -80,28 +79,28 @@ const mapPersistenceToValidation = (
 /**
  * Helper to log exchange rate creation to audit log
  *
- * Uses Effect.serviceOption to gracefully skip audit logging when
- * AuditLogService or CurrentUserId is not available (e.g., in tests).
+ * Uses the AuditLogService and CurrentUserId from the Effect context.
  * Errors are caught and silently ignored to not block business operations.
  *
+ * @param organizationId - The organization this rate belongs to
  * @param rate - The created exchange rate
  * @returns Effect that completes when audit logging is attempted
  */
 const logExchangeRateCreate = (
+  organizationId: string,
   rate: ExchangeRate
-): Effect.Effect<void, never, never> =>
+): Effect.Effect<void, never, AuditLogService | CurrentUserId> =>
   Effect.gen(function* () {
-    const maybeAuditService = yield* Effect.serviceOption(AuditLogService)
-    const maybeUserId = yield* Effect.serviceOption(CurrentUserId)
+    const auditService = yield* AuditLogService
+    const userId = yield* CurrentUserId
 
-    if (Option.isSome(maybeAuditService) && Option.isSome(maybeUserId)) {
-      yield* maybeAuditService.value.logCreate(
-        "ExchangeRate",
-        rate.id,
-        rate,
-        maybeUserId.value
-      )
-    }
+    yield* auditService.logCreate(
+      organizationId,
+      "ExchangeRate",
+      rate.id,
+      rate,
+      userId
+    )
   }).pipe(
     Effect.catchAll(() => Effect.void) // Silent failure - don't block business operations
   )
@@ -111,26 +110,27 @@ const logExchangeRateCreate = (
  *
  * Logs each created rate as a separate audit entry.
  *
+ * @param organizationId - The organization these rates belong to
  * @param rates - The created exchange rates
  * @returns Effect that completes when audit logging is attempted
  */
 const logExchangeRateBulkCreate = (
+  organizationId: string,
   rates: ReadonlyArray<ExchangeRate>
-): Effect.Effect<void, never, never> =>
+): Effect.Effect<void, never, AuditLogService | CurrentUserId> =>
   Effect.gen(function* () {
-    const maybeAuditService = yield* Effect.serviceOption(AuditLogService)
-    const maybeUserId = yield* Effect.serviceOption(CurrentUserId)
+    const auditService = yield* AuditLogService
+    const userId = yield* CurrentUserId
 
-    if (Option.isSome(maybeAuditService) && Option.isSome(maybeUserId)) {
-      // Log each rate creation individually
-      for (const rate of rates) {
-        yield* maybeAuditService.value.logCreate(
-          "ExchangeRate",
-          rate.id,
-          rate,
-          maybeUserId.value
-        )
-      }
+    // Log each rate creation individually
+    for (const rate of rates) {
+      yield* auditService.logCreate(
+        organizationId,
+        "ExchangeRate",
+        rate.id,
+        rate,
+        userId
+      )
     }
   }).pipe(
     Effect.catchAll(() => Effect.void) // Silent failure - don't block business operations
@@ -139,24 +139,25 @@ const logExchangeRateBulkCreate = (
 /**
  * Helper to log exchange rate deletion to audit log
  *
+ * @param organizationId - The organization this rate belongs to
  * @param rate - The exchange rate being deleted
  * @returns Effect that completes when audit logging is attempted
  */
 const logExchangeRateDelete = (
+  organizationId: string,
   rate: ExchangeRate
-): Effect.Effect<void, never, never> =>
+): Effect.Effect<void, never, AuditLogService | CurrentUserId> =>
   Effect.gen(function* () {
-    const maybeAuditService = yield* Effect.serviceOption(AuditLogService)
-    const maybeUserId = yield* Effect.serviceOption(CurrentUserId)
+    const auditService = yield* AuditLogService
+    const userId = yield* CurrentUserId
 
-    if (Option.isSome(maybeAuditService) && Option.isSome(maybeUserId)) {
-      yield* maybeAuditService.value.logDelete(
-        "ExchangeRate",
-        rate.id,
-        rate,
-        maybeUserId.value
-      )
-    }
+    yield* auditService.logDelete(
+      organizationId,
+      "ExchangeRate",
+      rate.id,
+      rate,
+      userId
+    )
   }).pipe(
     Effect.catchAll(() => Effect.void) // Silent failure - don't block business operations
   )
@@ -279,7 +280,7 @@ export const CurrencyApiLive = HttpApiBuilder.group(AppApi, "currency", (handler
             )
 
             // Log exchange rate creation to audit log
-            yield* logExchangeRateCreate(createdRate)
+            yield* logExchangeRateCreate(req.organizationId, createdRate)
 
             return createdRate
           })
@@ -345,7 +346,7 @@ export const CurrencyApiLive = HttpApiBuilder.group(AppApi, "currency", (handler
               )
 
               // Log all exchange rate creations to audit log
-              yield* logExchangeRateBulkCreate(created)
+              yield* logExchangeRateBulkCreate(firstOrgId, created)
 
               return {
                 created: Array.fromIterable(created),
@@ -379,7 +380,7 @@ export const CurrencyApiLive = HttpApiBuilder.group(AppApi, "currency", (handler
               )
 
               // Log exchange rate deletion to audit log
-              yield* logExchangeRateDelete(rate)
+              yield* logExchangeRateDelete(rate.organizationId, rate)
             })
           )
         })

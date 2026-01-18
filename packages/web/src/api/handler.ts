@@ -61,11 +61,11 @@ const gracefulShutdown = async (signal: string): Promise<void> => {
 }
 
 process.on("SIGTERM", () => {
-  void gracefulShutdown("SIGTERM")
+  gracefulShutdown("SIGTERM").catch(() => {})
 })
 
 process.on("SIGINT", () => {
-  void gracefulShutdown("SIGINT")
+  gracefulShutdown("SIGINT").catch(() => {})
 })
 
 // Vite HMR support - clean up resources when module is hot-reloaded
@@ -74,7 +74,7 @@ if (import.meta.hot) {
     log("[API] HMR dispose - cleaning up handler resources...")
     const oldDispose = globalThis.__apiDispose
     if (oldDispose) {
-      void oldDispose()
+      oldDispose().catch(() => {})
     }
   })
 }

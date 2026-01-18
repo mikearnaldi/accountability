@@ -3,10 +3,11 @@
  *
  * Tests for the audit log query endpoint.
  * Verifies:
- * - GET /api/v1/audit-log returns paginated audit entries
+ * - GET /api/v1/audit-log/{organizationId} returns paginated audit entries
  * - Query parameters: entityType, entityId, userId, action, fromDate, toDate, limit, offset
  * - Response schema matches expected format
  * - Authentication is required
+ * - Organization scoping is enforced
  *
  * @module AuditLogApi.test
  */
@@ -52,6 +53,13 @@ const HttpLive = HttpApiBuilder.serve().pipe(
 )
 
 // =============================================================================
+// Test Constants
+// =============================================================================
+
+// Test organization ID - must be a valid UUID format
+const testOrganizationId = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+
+// =============================================================================
 // Helper Functions
 // =============================================================================
 
@@ -63,11 +71,13 @@ const createTestAuditEntry = (
   entityId: string,
   action: "Create" | "Update" | "Delete" | "StatusChange",
   userId?: string,
-  changes?: Record<string, { from: unknown; to: unknown }>
+  changes?: Record<string, { from: unknown; to: unknown }>,
+  organizationId: string = testOrganizationId
 ) =>
   Effect.gen(function* () {
     const repo = yield* AuditLogRepository
     return yield* repo.create({
+      organizationId,
       entityType,
       entityId,
       action,
@@ -81,7 +91,7 @@ const createTestAuditEntry = (
 // =============================================================================
 
 layer(HttpLive, { timeout: "120 seconds" })("AuditLogApi", (it) => {
-  describe("GET /api/v1/audit-log", () => {
+  describe("GET /api/v1/audit-log/{organizationId}", () => {
     it.effect("returns empty list when no audit entries exist (after cleanup)", () =>
       Effect.gen(function* () {
         const client = yield* HttpApiClient.makeWith(AppApi, {
@@ -92,6 +102,7 @@ layer(HttpLive, { timeout: "120 seconds" })("AuditLogApi", (it) => {
 
         // Query with a specific entityId that won't exist
         const response = yield* client.auditLog.listAuditLog({
+          path: { organizationId: testOrganizationId },
           urlParams: {
             entityId: "00000000-0000-0000-0000-000000000000"
           }
@@ -119,6 +130,7 @@ layer(HttpLive, { timeout: "120 seconds" })("AuditLogApi", (it) => {
         })
 
         const response = yield* client.auditLog.listAuditLog({
+          path: { organizationId: testOrganizationId },
           urlParams: {
             entityType: "Organization",
             entityId: testEntityId
@@ -148,6 +160,7 @@ layer(HttpLive, { timeout: "120 seconds" })("AuditLogApi", (it) => {
         })
 
         const response = yield* client.auditLog.listAuditLog({
+          path: { organizationId: testOrganizationId },
           urlParams: {
             entityType: "Company",
             entityId: testEntityId1
@@ -174,6 +187,7 @@ layer(HttpLive, { timeout: "120 seconds" })("AuditLogApi", (it) => {
         })
 
         const response = yield* client.auditLog.listAuditLog({
+          path: { organizationId: testOrganizationId },
           urlParams: {
             entityId: testEntityId,
             action: "StatusChange"
@@ -200,6 +214,7 @@ layer(HttpLive, { timeout: "120 seconds" })("AuditLogApi", (it) => {
         })
 
         const response = yield* client.auditLog.listAuditLog({
+          path: { organizationId: testOrganizationId },
           urlParams: {
             entityId: testEntityId,
             userId: userId1
@@ -232,6 +247,7 @@ layer(HttpLive, { timeout: "120 seconds" })("AuditLogApi", (it) => {
 
         // Get first 2 entries
         const response1 = yield* client.auditLog.listAuditLog({
+          path: { organizationId: testOrganizationId },
           urlParams: {
             entityId: testEntityId,
             limit: 2,
@@ -244,6 +260,7 @@ layer(HttpLive, { timeout: "120 seconds" })("AuditLogApi", (it) => {
 
         // Get next 2 entries
         const response2 = yield* client.auditLog.listAuditLog({
+          path: { organizationId: testOrganizationId },
           urlParams: {
             entityId: testEntityId,
             limit: 2,
@@ -256,6 +273,7 @@ layer(HttpLive, { timeout: "120 seconds" })("AuditLogApi", (it) => {
 
         // Get last entry
         const response3 = yield* client.auditLog.listAuditLog({
+          path: { organizationId: testOrganizationId },
           urlParams: {
             entityId: testEntityId,
             limit: 2,
@@ -285,6 +303,7 @@ layer(HttpLive, { timeout: "120 seconds" })("AuditLogApi", (it) => {
 
         // Count all entries for this entity
         const allResponse = yield* client.auditLog.listAuditLog({
+          path: { organizationId: testOrganizationId },
           urlParams: {
             entityId: testEntityId
           }
@@ -293,6 +312,7 @@ layer(HttpLive, { timeout: "120 seconds" })("AuditLogApi", (it) => {
 
         // Count only Update entries
         const updateResponse = yield* client.auditLog.listAuditLog({
+          path: { organizationId: testOrganizationId },
           urlParams: {
             entityId: testEntityId,
             action: "Update"
@@ -318,6 +338,7 @@ layer(HttpLive, { timeout: "120 seconds" })("AuditLogApi", (it) => {
         })
 
         const response = yield* client.auditLog.listAuditLog({
+          path: { organizationId: testOrganizationId },
           urlParams: {
             entityId: testEntityId
           }
@@ -347,6 +368,7 @@ layer(HttpLive, { timeout: "120 seconds" })("AuditLogApi", (it) => {
         })
 
         const response = yield* client.auditLog.listAuditLog({
+          path: { organizationId: testOrganizationId },
           urlParams: {
             entityId: testEntityId
           }
@@ -368,7 +390,7 @@ layer(HttpLive, { timeout: "120 seconds" })("AuditLogApi", (it) => {
     it.effect("returns 401 without authentication", () =>
       Effect.gen(function* () {
         const httpClient = yield* HttpClient.HttpClient
-        const response = yield* HttpClientRequest.get("/api/v1/audit-log").pipe(
+        const response = yield* HttpClientRequest.get(`/api/v1/audit-log/${testOrganizationId}`).pipe(
           httpClient.execute,
           Effect.scoped
         )
@@ -380,7 +402,7 @@ layer(HttpLive, { timeout: "120 seconds" })("AuditLogApi", (it) => {
     it.effect("returns 401 with invalid token", () =>
       Effect.gen(function* () {
         const httpClient = yield* HttpClient.HttpClient
-        const response = yield* HttpClientRequest.get("/api/v1/audit-log").pipe(
+        const response = yield* HttpClientRequest.get(`/api/v1/audit-log/${testOrganizationId}`).pipe(
           HttpClientRequest.bearerToken("invalid-token"),
           httpClient.execute,
           Effect.scoped
@@ -393,7 +415,7 @@ layer(HttpLive, { timeout: "120 seconds" })("AuditLogApi", (it) => {
     it.effect("accepts valid token", () =>
       Effect.gen(function* () {
         const httpClient = yield* HttpClient.HttpClient
-        const response = yield* HttpClientRequest.get("/api/v1/audit-log").pipe(
+        const response = yield* HttpClientRequest.get(`/api/v1/audit-log/${testOrganizationId}`).pipe(
           HttpClientRequest.bearerToken("user_456_user"),
           httpClient.execute,
           Effect.scoped
@@ -423,6 +445,7 @@ layer(HttpLive, { timeout: "120 seconds" })("AuditLogApi", (it) => {
         })
 
         const response = yield* client.auditLog.listAuditLog({
+          path: { organizationId: testOrganizationId },
           urlParams: {}
         })
 
@@ -446,6 +469,7 @@ layer(HttpLive, { timeout: "120 seconds" })("AuditLogApi", (it) => {
 
         // Request with entityType filter
         const response = yield* client.auditLog.listAuditLog({
+          path: { organizationId: testOrganizationId },
           urlParams: {
             entityType: "Organization",
             entityId: testEntityId
@@ -462,7 +486,7 @@ layer(HttpLive, { timeout: "120 seconds" })("AuditLogApi", (it) => {
     it.effect("returns list of audit entries with authentication", () =>
       Effect.gen(function* () {
         const httpClient = yield* HttpClient.HttpClient
-        const response = yield* HttpClientRequest.get("/api/v1/audit-log").pipe(
+        const response = yield* HttpClientRequest.get(`/api/v1/audit-log/${testOrganizationId}`).pipe(
           HttpClientRequest.bearerToken("user_123_admin"),
           httpClient.execute,
           Effect.scoped

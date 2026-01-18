@@ -32,6 +32,7 @@ import { wrapSqlError } from "../Errors/RepositoryError.ts"
  */
 const AuditLogRow = Schema.Struct({
   id: Schema.String,
+  organization_id: Schema.NullOr(Schema.String),
   entity_type: AuditEntityType,
   entity_id: Schema.String,
   action: AuditAction,
@@ -68,6 +69,7 @@ const rowToAuditLogEntry = (row: AuditLogRow): Effect.Effect<AuditLogEntry, neve
 
     return {
       id: AuditLogEntryId.make(row.id),
+      organizationId: row.organization_id ?? "",
       entityType: row.entity_type,
       entityId: row.entity_id,
       action: row.action,
@@ -86,9 +88,10 @@ const make = Effect.gen(function* () {
   const findAll: AuditLogRepositoryService["findAll"] = (filter, pagination) =>
     Effect.gen(function* () {
       // Build dynamic WHERE conditions
-      const conditions: string[] = []
-      const values: unknown[] = []
-      let paramIndex = 1
+      // Organization ID is REQUIRED for security - always first condition
+      const conditions: string[] = [`organization_id = $1`]
+      const values: unknown[] = [filter.organizationId]
+      let paramIndex = 2
 
       if (Option.isSome(filter.entityType)) {
         conditions.push(`entity_type = $${paramIndex}`)
@@ -126,7 +129,7 @@ const make = Effect.gen(function* () {
         paramIndex++
       }
 
-      const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : ""
+      const whereClause = `WHERE ${conditions.join(" AND ")}`
 
       // Use raw SQL with parameter substitution
       // Order by timestamp DESC and id DESC for deterministic ordering when timestamps are equal
@@ -147,9 +150,10 @@ const make = Effect.gen(function* () {
   const count: AuditLogRepositoryService["count"] = (filter) =>
     Effect.gen(function* () {
       // Build dynamic WHERE conditions
-      const conditions: string[] = []
-      const values: unknown[] = []
-      let paramIndex = 1
+      // Organization ID is REQUIRED for security - always first condition
+      const conditions: string[] = [`organization_id = $1`]
+      const values: unknown[] = [filter.organizationId]
+      let paramIndex = 2
 
       if (Option.isSome(filter.entityType)) {
         conditions.push(`entity_type = $${paramIndex}`)
@@ -187,7 +191,7 @@ const make = Effect.gen(function* () {
         paramIndex++
       }
 
-      const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : ""
+      const whereClause = `WHERE ${conditions.join(" AND ")}`
 
       const query = sql.unsafe(
         `SELECT COUNT(*) as count FROM audit_log ${whereClause}`,
@@ -233,8 +237,9 @@ const make = Effect.gen(function* () {
 
       const result = yield* sql`
         INSERT INTO audit_log (
-          entity_type, entity_id, action, user_id, timestamp, changes
+          organization_id, entity_type, entity_id, action, user_id, timestamp, changes
         ) VALUES (
+          ${entry.organizationId},
           ${entry.entityType},
           ${entry.entityId},
           ${entry.action},

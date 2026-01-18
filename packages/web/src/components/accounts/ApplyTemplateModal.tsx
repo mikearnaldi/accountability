@@ -86,7 +86,7 @@ export function ApplyTemplateModal({ organizationId, companyId, onClose }: Apply
       setIsLoading(false)
     }
 
-    void fetchTemplates()
+    fetchTemplates().catch(() => {})
   }, [])
 
   // Handle template selection

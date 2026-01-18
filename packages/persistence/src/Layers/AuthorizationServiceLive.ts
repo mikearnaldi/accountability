@@ -20,7 +20,6 @@
 
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
-import * as Option from "effect/Option"
 import {
   AuthorizationService,
   type AuthorizationServiceShape
@@ -120,20 +119,21 @@ const toEnvironmentContext = (
 }
 
 /**
- * Get environment context from service context if available
+ * Get environment context from service context
  *
- * Returns undefined if no environment context is provided
- * (e.g., when called from non-HTTP context like tests)
+ * Requires CurrentEnvironmentContext in context. Use CurrentEnvironmentContextDefault
+ * layer in tests or non-HTTP contexts.
  */
-const getEnvironmentContext: Effect.Effect<EnvironmentContext | undefined> = Effect.gen(
-  function* () {
-    const envOption = yield* Effect.serviceOption(CurrentEnvironmentContext)
-    return Option.match(envOption, {
-      onNone: () => undefined,
-      onSome: toEnvironmentContext
-    })
-  }
-)
+const getEnvironmentContext: Effect.Effect<EnvironmentContext, never, CurrentEnvironmentContext> =
+  Effect.flatMap(CurrentEnvironmentContext, (ctx) => Effect.succeed(toEnvironmentContext(ctx)))
+
+/**
+ * Get full environment context with metadata from service context
+ *
+ * Requires CurrentEnvironmentContext in context.
+ */
+const getEnvironmentContextWithMeta: Effect.Effect<EnvironmentContextWithMeta, never, CurrentEnvironmentContext> =
+  Effect.flatMap(CurrentEnvironmentContext, Effect.succeed)
 
 /**
  * Check permission using RBAC permission matrix
@@ -189,7 +189,7 @@ const make = Effect.gen(function* () {
         const environmentContext = yield* getEnvironmentContext
 
         // Get full environment context with user agent for audit logging
-        const envWithMeta = yield* Effect.serviceOption(CurrentEnvironmentContext)
+        const envWithMeta = yield* getEnvironmentContextWithMeta
 
         // Load active policies for the organization
         const policies = yield* policyRepo
@@ -256,11 +256,11 @@ const make = Effect.gen(function* () {
           }
 
           // Only add IP and user agent if defined (to satisfy exactOptionalPropertyTypes)
-          if (Option.isSome(envWithMeta) && envWithMeta.value.ipAddress !== undefined) {
-            auditEntry.ipAddress = envWithMeta.value.ipAddress
+          if (envWithMeta.ipAddress !== undefined) {
+            auditEntry.ipAddress = envWithMeta.ipAddress
           }
-          if (Option.isSome(envWithMeta) && envWithMeta.value.userAgent !== undefined) {
-            auditEntry.userAgent = envWithMeta.value.userAgent
+          if (envWithMeta.userAgent !== undefined) {
+            auditEntry.userAgent = envWithMeta.userAgent
           }
 
           // Log the denial to audit log (fire-and-forget, don't block on logging)

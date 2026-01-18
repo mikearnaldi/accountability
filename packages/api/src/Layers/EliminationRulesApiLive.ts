@@ -37,9 +37,8 @@ import {
 const mapPersistenceToNotFound = (
   resource: string,
   id: string,
-  error: EntityNotFoundError | PersistenceError
+  _error: EntityNotFoundError | PersistenceError
 ): NotFoundError => {
-  void error
   return new NotFoundError({ resource, id })
 }
 

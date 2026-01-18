@@ -26,6 +26,8 @@ const TestLayer = AuditLogServiceLive.pipe(
 )
 
 // Test UUIDs - these are valid UUID format
+// Note: organization_id has no FK constraint, so any UUID works for testing
+const testOrganizationId = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
 const testUserId = AuthUserId.make("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
 const testEntityId = "cccccccc-cccc-cccc-cccc-cccccccccccc"
 
@@ -47,7 +49,7 @@ describe("AuditLogServiceLive", () => {
         }
 
         // Log the creation
-        yield* service.logCreate("Account", testEntityId, entity, testUserId)
+        yield* service.logCreate(testOrganizationId, "Account", testEntityId, entity, testUserId)
 
         // Verify the entry was created
         const entries = yield* repo.findByEntity("Account", testEntityId)
@@ -100,7 +102,7 @@ describe("AuditLogServiceLive", () => {
         }
 
         // Log the update
-        yield* service.logUpdate("Company", updateEntityId, before, after, testUserId)
+        yield* service.logUpdate(testOrganizationId, "Company", updateEntityId, before, after, testUserId)
 
         // Verify the entry was created
         const entries = yield* repo.findByEntity("Company", updateEntityId)
@@ -143,7 +145,7 @@ describe("AuditLogServiceLive", () => {
         const countBefore = Chunk.size(beforeEntries)
 
         // Log update with identical before/after
-        yield* service.logUpdate("Company", noChangeEntityId, entity, entity, testUserId)
+        yield* service.logUpdate(testOrganizationId, "Company", noChangeEntityId, entity, entity, testUserId)
 
         // Count should be the same - no entry created
         const afterEntries = yield* repo.findByEntity("Company", noChangeEntityId)
@@ -167,7 +169,7 @@ describe("AuditLogServiceLive", () => {
           settings: { timezone: "America/New_York", locale: "en-US" }
         }
 
-        yield* service.logUpdate("Organization", nestedEntityId, before, after, testUserId)
+        yield* service.logUpdate(testOrganizationId, "Organization", nestedEntityId, before, after, testUserId)
 
         const entries = yield* repo.findByEntity("Organization", nestedEntityId)
         const updateEntry = Chunk.toArray(entries).find(e => e.action === "Update")
@@ -196,7 +198,7 @@ describe("AuditLogServiceLive", () => {
           balance: 1000
         }
 
-        yield* service.logDelete("Account", deleteEntityId, entity, testUserId)
+        yield* service.logDelete(testOrganizationId, "Account", deleteEntityId, entity, testUserId)
 
         const entries = yield* repo.findByEntity("Account", deleteEntityId)
         const deleteEntry = Chunk.toArray(entries).find(e => e.action === "Delete")
@@ -233,6 +235,7 @@ describe("AuditLogServiceLive", () => {
         const statusEntityId = "22222222-2222-2222-2222-222222222222"
 
         yield* service.logStatusChange(
+          testOrganizationId,
           "FiscalPeriod",
           statusEntityId,
           "Open",
@@ -266,6 +269,7 @@ describe("AuditLogServiceLive", () => {
         const reasonEntityId = "33333333-3333-3333-3333-333333333333"
 
         yield* service.logStatusChange(
+          testOrganizationId,
           "FiscalPeriod",
           reasonEntityId,
           "Locked",
@@ -303,6 +307,7 @@ describe("AuditLogServiceLive", () => {
         }
 
         yield* service.logWithChanges(
+          testOrganizationId,
           "JournalEntry",
           precomputedEntityId,
           "Update",
@@ -335,7 +340,7 @@ describe("AuditLogServiceLive", () => {
         const emptyEntityId = "55555555-5555-5555-5555-555555555555"
         const emptyEntity = {}
 
-        yield* service.logCreate("Account", emptyEntityId, emptyEntity, testUserId)
+        yield* service.logCreate(testOrganizationId, "Account", emptyEntityId, emptyEntity, testUserId)
 
         const entries = yield* repo.findByEntity("Account", emptyEntityId)
         const entry = Chunk.toArray(entries).find(e => e.action === "Create")
@@ -364,7 +369,7 @@ describe("AuditLogServiceLive", () => {
           newField: "added"
         }
 
-        yield* service.logUpdate("Company", fieldChangeEntityId, before, after, testUserId)
+        yield* service.logUpdate(testOrganizationId, "Company", fieldChangeEntityId, before, after, testUserId)
 
         const entries = yield* repo.findByEntity("Company", fieldChangeEntityId)
         const entry = Chunk.toArray(entries).find(e => e.action === "Update")
@@ -395,7 +400,7 @@ describe("AuditLogServiceLive", () => {
           normalField: "value"
         }
 
-        yield* service.logCreate("Account", nullEntityId, entityWithNulls, testUserId)
+        yield* service.logCreate(testOrganizationId, "Account", nullEntityId, entityWithNulls, testUserId)
 
         const entries = yield* repo.findByEntity("Account", nullEntityId)
         const entry = Chunk.toArray(entries).find(e => e.action === "Create")

@@ -215,14 +215,14 @@ function AuthorizationAuditPage() {
 
   // Load entries on mount
   useEffect(() => {
-    void fetchWithCurrentFilters(0, resourceTypeFilter, fromDate, toDate)
+    fetchWithCurrentFilters(0, resourceTypeFilter, fromDate, toDate).catch(() => {})
   }, [])
 
   // Handle resource type filter change
   const handleResourceTypeChange = (value: string) => {
     setResourceTypeFilter(value)
     setCurrentPage(0)
-    void fetchWithCurrentFilters(0, value, fromDate, toDate)
+    fetchWithCurrentFilters(0, value, fromDate, toDate).catch(() => {})
   }
 
   // Handle date filter changes - debounced
@@ -233,7 +233,7 @@ function AuthorizationAuditPage() {
     }
     dateDebounceRef.current = setTimeout(() => {
       setCurrentPage(0)
-      void fetchWithCurrentFilters(0, resourceTypeFilter, value, toDate)
+      fetchWithCurrentFilters(0, resourceTypeFilter, value, toDate).catch(() => {})
     }, 500)
   }
 
@@ -244,7 +244,7 @@ function AuthorizationAuditPage() {
     }
     dateDebounceRef.current = setTimeout(() => {
       setCurrentPage(0)
-      void fetchWithCurrentFilters(0, resourceTypeFilter, fromDate, value)
+      fetchWithCurrentFilters(0, resourceTypeFilter, fromDate, value).catch(() => {})
     }, 500)
   }
 
@@ -263,7 +263,7 @@ function AuthorizationAuditPage() {
     setFromDate("")
     setToDate("")
     setCurrentPage(0)
-    void fetchWithCurrentFilters(0, "all", "", "")
+    fetchWithCurrentFilters(0, "all", "", "").catch(() => {})
   }
 
   // Cleanup debounce on unmount

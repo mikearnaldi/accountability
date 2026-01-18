@@ -313,8 +313,9 @@ const fetchOrganizationDashboard = createServerFn({ method: "GET" })
       // Fetch recent activity from audit log (Issue 39)
       let recentActivity: DashboardData["recentActivity"] = []
       try {
-        const auditLogResult = await serverApi.GET("/api/v1/audit-log", {
+        const auditLogResult = await serverApi.GET("/api/v1/audit-log/{organizationId}", {
           params: {
+            path: { organizationId },
             query: {
               limit: "10"
             }
@@ -323,7 +324,7 @@ const fetchOrganizationDashboard = createServerFn({ method: "GET" })
         })
 
         if (auditLogResult.data?.entries) {
-          recentActivity = auditLogResult.data.entries.map((entry) => {
+          recentActivity = auditLogResult.data.entries.map((entry: typeof auditLogResult.data.entries[number]) => {
             const activityType = mapAuditToActivityType(entry.entityType, entry.action)
             const description = formatAuditDescription(entry.entityType, entry.action, entry.entityId)
 

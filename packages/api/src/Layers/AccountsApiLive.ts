@@ -47,9 +47,8 @@ import { CurrentUserId } from "@accountability/core/AuditLog/CurrentUserId"
 const mapPersistenceToNotFound = (
   resource: string,
   id: string,
-  error: EntityNotFoundError | PersistenceError
+  _error: EntityNotFoundError | PersistenceError
 ): NotFoundError => {
-  void error
   return new NotFoundError({ resource, id })
 }
 
@@ -89,28 +88,28 @@ const mapPersistenceToValidation = (
 /**
  * Helper to log account creation to audit log
  *
- * Uses Effect.serviceOption to gracefully skip audit logging when
- * AuditLogService or CurrentUserId is not available (e.g., in tests).
+ * Uses the AuditLogService and CurrentUserId from the Effect context.
  * Errors are caught and silently ignored to not block business operations.
  *
+ * @param organizationId - The organization this account belongs to
  * @param account - The created account
  * @returns Effect that completes when audit logging is attempted
  */
 const logAccountCreate = (
+  organizationId: string,
   account: Account
-): Effect.Effect<void, never, never> =>
+): Effect.Effect<void, never, AuditLogService | CurrentUserId> =>
   Effect.gen(function* () {
-    const maybeAuditService = yield* Effect.serviceOption(AuditLogService)
-    const maybeUserId = yield* Effect.serviceOption(CurrentUserId)
+    const auditService = yield* AuditLogService
+    const userId = yield* CurrentUserId
 
-    if (Option.isSome(maybeAuditService) && Option.isSome(maybeUserId)) {
-      yield* maybeAuditService.value.logCreate(
-        "Account",
-        account.id,
-        account,
-        maybeUserId.value
-      )
-    }
+    yield* auditService.logCreate(
+      organizationId,
+      "Account",
+      account.id,
+      account,
+      userId
+    )
   }).pipe(
     Effect.catchAll(() => Effect.void) // Silent failure - don't block business operations
   )
@@ -120,27 +119,28 @@ const logAccountCreate = (
  *
  * Records the before/after state of the account for auditing.
  *
+ * @param organizationId - The organization this account belongs to
  * @param before - The account state before the update
  * @param after - The account state after the update
  * @returns Effect that completes when audit logging is attempted
  */
 const logAccountUpdate = (
+  organizationId: string,
   before: Account,
   after: Account
-): Effect.Effect<void, never, never> =>
+): Effect.Effect<void, never, AuditLogService | CurrentUserId> =>
   Effect.gen(function* () {
-    const maybeAuditService = yield* Effect.serviceOption(AuditLogService)
-    const maybeUserId = yield* Effect.serviceOption(CurrentUserId)
+    const auditService = yield* AuditLogService
+    const userId = yield* CurrentUserId
 
-    if (Option.isSome(maybeAuditService) && Option.isSome(maybeUserId)) {
-      yield* maybeAuditService.value.logUpdate(
-        "Account",
-        after.id,
-        before,
-        after,
-        maybeUserId.value
-      )
-    }
+    yield* auditService.logUpdate(
+      organizationId,
+      "Account",
+      after.id,
+      before,
+      after,
+      userId
+    )
   }).pipe(
     Effect.catchAll(() => Effect.void) // Silent failure - don't block business operations
   )
@@ -148,26 +148,27 @@ const logAccountUpdate = (
 /**
  * Helper to log account deactivation (status change) to audit log
  *
+ * @param organizationId - The organization this account belongs to
  * @param accountId - The account ID
  * @returns Effect that completes when audit logging is attempted
  */
 const logAccountDeactivate = (
+  organizationId: string,
   accountId: AccountId
-): Effect.Effect<void, never, never> =>
+): Effect.Effect<void, never, AuditLogService | CurrentUserId> =>
   Effect.gen(function* () {
-    const maybeAuditService = yield* Effect.serviceOption(AuditLogService)
-    const maybeUserId = yield* Effect.serviceOption(CurrentUserId)
+    const auditService = yield* AuditLogService
+    const userId = yield* CurrentUserId
 
-    if (Option.isSome(maybeAuditService) && Option.isSome(maybeUserId)) {
-      yield* maybeAuditService.value.logStatusChange(
-        "Account",
-        accountId,
-        "active",
-        "inactive",
-        maybeUserId.value,
-        "Account deactivated"
-      )
-    }
+    yield* auditService.logStatusChange(
+      organizationId,
+      "Account",
+      accountId,
+      "active",
+      "inactive",
+      userId,
+      "Account deactivated"
+    )
   }).pipe(
     Effect.catchAll(() => Effect.void) // Silent failure - don't block business operations
   )
@@ -361,7 +362,7 @@ export const AccountsApiLive = HttpApiBuilder.group(AppApi, "accounts", (handler
             )
 
             // Log account creation to audit log
-            yield* logAccountCreate(createdAccount)
+            yield* logAccountCreate(req.organizationId, createdAccount)
 
             return createdAccount
           })
@@ -461,7 +462,7 @@ export const AccountsApiLive = HttpApiBuilder.group(AppApi, "accounts", (handler
             )
 
             // Log account update to audit log with before/after state
-            yield* logAccountUpdate(existing, savedAccount)
+            yield* logAccountUpdate(_.path.organizationId, existing, savedAccount)
 
             return savedAccount
           })
@@ -510,7 +511,7 @@ export const AccountsApiLive = HttpApiBuilder.group(AppApi, "accounts", (handler
             )
 
             // Log account deactivation to audit log
-            yield* logAccountDeactivate(accountId)
+            yield* logAccountDeactivate(_.path.organizationId, accountId)
           })
         )
       )

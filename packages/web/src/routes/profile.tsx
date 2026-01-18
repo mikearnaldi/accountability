@@ -172,14 +172,13 @@ export const Route = createFileRoute("/profile")({
       })
     }
   },
-  loader: async ({ deps: _deps }) => {
+  loader: async () => {
     const result = await fetchUserProfile()
     if (!result) {
       throw redirect({ to: "/login" })
     }
     return result
   },
-  loaderDeps: ({ search }) => ({ orgId: search.org }),
   component: ProfilePage
 })
 

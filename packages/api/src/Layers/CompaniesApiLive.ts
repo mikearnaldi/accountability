@@ -102,8 +102,7 @@ const mapPersistenceToConflict = (
 /**
  * Helper to log company creation to audit log
  *
- * Uses Effect.serviceOption to gracefully skip audit logging when
- * AuditLogService or CurrentUserId is not available (e.g., in tests).
+ * Uses the AuditLogService and CurrentUserId from the Effect context.
  * Errors are caught and silently ignored to not block business operations.
  *
  * @param company - The created company
@@ -111,19 +110,18 @@ const mapPersistenceToConflict = (
  */
 const logCompanyCreate = (
   company: Company
-): Effect.Effect<void, never, never> =>
+): Effect.Effect<void, never, AuditLogService | CurrentUserId> =>
   Effect.gen(function* () {
-    const maybeAuditService = yield* Effect.serviceOption(AuditLogService)
-    const maybeUserId = yield* Effect.serviceOption(CurrentUserId)
+    const auditService = yield* AuditLogService
+    const userId = yield* CurrentUserId
 
-    if (Option.isSome(maybeAuditService) && Option.isSome(maybeUserId)) {
-      yield* maybeAuditService.value.logCreate(
-        "Company",
-        company.id,
-        company,
-        maybeUserId.value
-      )
-    }
+    yield* auditService.logCreate(
+      company.organizationId,
+      "Company",
+      company.id,
+      company,
+      userId
+    )
   }).pipe(
     Effect.catchAll(() => Effect.void) // Silent failure - don't block business operations
   )
@@ -138,20 +136,19 @@ const logCompanyCreate = (
 const logCompanyUpdate = (
   before: Company,
   after: Company
-): Effect.Effect<void, never, never> =>
+): Effect.Effect<void, never, AuditLogService | CurrentUserId> =>
   Effect.gen(function* () {
-    const maybeAuditService = yield* Effect.serviceOption(AuditLogService)
-    const maybeUserId = yield* Effect.serviceOption(CurrentUserId)
+    const auditService = yield* AuditLogService
+    const userId = yield* CurrentUserId
 
-    if (Option.isSome(maybeAuditService) && Option.isSome(maybeUserId)) {
-      yield* maybeAuditService.value.logUpdate(
-        "Company",
-        after.id,
-        before,
-        after,
-        maybeUserId.value
-      )
-    }
+    yield* auditService.logUpdate(
+      after.organizationId,
+      "Company",
+      after.id,
+      before,
+      after,
+      userId
+    )
   }).pipe(
     Effect.catchAll(() => Effect.void) // Silent failure - don't block business operations
   )
@@ -166,21 +163,20 @@ const logCompanyUpdate = (
  */
 const logCompanyDeactivate = (
   company: Company
-): Effect.Effect<void, never, never> =>
+): Effect.Effect<void, never, AuditLogService | CurrentUserId> =>
   Effect.gen(function* () {
-    const maybeAuditService = yield* Effect.serviceOption(AuditLogService)
-    const maybeUserId = yield* Effect.serviceOption(CurrentUserId)
+    const auditService = yield* AuditLogService
+    const userId = yield* CurrentUserId
 
-    if (Option.isSome(maybeAuditService) && Option.isSome(maybeUserId)) {
-      yield* maybeAuditService.value.logStatusChange(
-        "Company",
-        company.id,
-        "active",
-        "inactive",
-        maybeUserId.value,
-        "Company deactivated"
-      )
-    }
+    yield* auditService.logStatusChange(
+      company.organizationId,
+      "Company",
+      company.id,
+      "active",
+      "inactive",
+      userId,
+      "Company deactivated"
+    )
   }).pipe(
     Effect.catchAll(() => Effect.void) // Silent failure - don't block business operations
   )
@@ -202,9 +198,6 @@ export const CompaniesApiLive = HttpApiBuilder.group(AppApi, "companies", (handl
     const orgRepo = yield* OrganizationRepository
     const memberRepo = yield* OrganizationMemberRepository
     const policyRepo = yield* PolicyRepository
-    // AuditLogService and CurrentUserId are accessed via Effect.serviceOption in helper functions
-    void AuditLogService
-    void CurrentUserId
 
     return handlers
       // =============================================================================

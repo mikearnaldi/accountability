@@ -167,11 +167,9 @@ export const loadOrganizationMembership = (organizationId: OrganizationId) =>
     )
 
     // Check authorization config for enforcement mode
-    const authzConfig = yield* Effect.serviceOption(AuthorizationConfig)
-    const enforcementEnabled = Option.match(authzConfig, {
-      onNone: () => true, // Default to strict enforcement if config not available
-      onSome: (config) => config.enforcementEnabled
-    })
+    // AuthorizationConfig is a required dependency that must be provided via layer composition
+    const config = yield* AuthorizationConfig
+    const enforcementEnabled = config.enforcementEnabled
 
     // Load membership from repository
     const memberRepo = yield* OrganizationMemberRepository
@@ -253,17 +251,22 @@ export const loadOrganizationMembership = (organizationId: OrganizationId) =>
  */
 export const withOrganizationContext = <A, E, R>(
   organizationId: OrganizationId,
-  effect: Effect.Effect<A, E, R | CurrentOrganizationMembership | CurrentUserId>
+  effect: Effect.Effect<A, E, R | CurrentOrganizationMembership | CurrentUserId | CurrentEnvironmentContext>
 ): Effect.Effect<
   A,
   E | OrganizationContextError,
-  Exclude<Exclude<R, CurrentOrganizationMembership>, CurrentUserId> | CurrentUser | OrganizationMemberRepository
+  Exclude<Exclude<Exclude<R, CurrentOrganizationMembership>, CurrentUserId>, CurrentEnvironmentContext> | CurrentUser | OrganizationMemberRepository | AuthorizationConfig
 > =>
   Effect.gen(function* () {
     const membership = yield* loadOrganizationMembership(organizationId)
-    // Provide both CurrentOrganizationMembership and CurrentUserId for audit logging
+    // Provide CurrentOrganizationMembership, CurrentUserId (for audit logging),
+    // and CurrentEnvironmentContext (for ABAC policy evaluation)
     const withMembership = withOrganizationMembership(membership)(effect)
-    return yield* withCurrentUserId(membership.userId)(withMembership)
+    const withUserId = withCurrentUserId(membership.userId)(withMembership)
+    // Provide default environment context (no IP/user-agent, just time)
+    // HTTP handlers can use withEnvironmentContext to provide full context
+    const envContext = createEnvironmentContextFromRequest(undefined, undefined)
+    return yield* Effect.provideService(withUserId, CurrentEnvironmentContext, envContext)
   })
 
 /**
@@ -290,11 +293,11 @@ export const withOrganizationContext = <A, E, R>(
  */
 export const requireOrganizationContext = <A, E, R>(
   orgIdString: string,
-  effect: Effect.Effect<A, E, R | CurrentOrganizationMembership | CurrentUserId>
+  effect: Effect.Effect<A, E, R | CurrentOrganizationMembership | CurrentUserId | CurrentEnvironmentContext>
 ): Effect.Effect<
   A,
   E | OrganizationContextError,
-  Exclude<Exclude<R, CurrentOrganizationMembership>, CurrentUserId> | CurrentUser | OrganizationMemberRepository
+  Exclude<Exclude<Exclude<R, CurrentOrganizationMembership>, CurrentUserId>, CurrentEnvironmentContext> | CurrentUser | OrganizationMemberRepository | AuthorizationConfig
 > =>
   Effect.gen(function* () {
     const organizationId = yield* validateOrganizationId(orgIdString)

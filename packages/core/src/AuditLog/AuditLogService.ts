@@ -24,7 +24,7 @@ import type { AuditLogError } from "./AuditLogErrors.ts"
  * AuditLogServiceShape - Service interface for audit log operations
  *
  * Provides methods for logging entity operations (create, update, delete, status change)
- * with automatic change detection and user context.
+ * with automatic change detection, user context, and organization scoping.
  */
 export interface AuditLogServiceShape {
   /**
@@ -32,6 +32,7 @@ export interface AuditLogServiceShape {
    *
    * Records that a new entity was created, storing the initial state.
    *
+   * @param organizationId - The organization this entity belongs to
    * @param entityType - The type of entity being created
    * @param entityId - The ID of the created entity
    * @param entity - The created entity data (will be stored as changes)
@@ -41,6 +42,7 @@ export interface AuditLogServiceShape {
    * @example
    * ```typescript
    * yield* auditLogService.logCreate(
+   *   organizationId,
    *   "Account",
    *   account.id,
    *   account,
@@ -49,6 +51,7 @@ export interface AuditLogServiceShape {
    * ```
    */
   readonly logCreate: <T>(
+    organizationId: string,
     entityType: AuditEntityType,
     entityId: string,
     entity: T,
@@ -61,6 +64,7 @@ export interface AuditLogServiceShape {
    * Records changes made to an entity by computing the diff between
    * before and after states.
    *
+   * @param organizationId - The organization this entity belongs to
    * @param entityType - The type of entity being updated
    * @param entityId - The ID of the updated entity
    * @param before - The entity state before the update
@@ -73,6 +77,7 @@ export interface AuditLogServiceShape {
    * const before = yield* accountRepo.findById(id)
    * const after = yield* accountRepo.update(id, input)
    * yield* auditLogService.logUpdate(
+   *   organizationId,
    *   "Account",
    *   id,
    *   before,
@@ -82,6 +87,7 @@ export interface AuditLogServiceShape {
    * ```
    */
   readonly logUpdate: <T>(
+    organizationId: string,
     entityType: AuditEntityType,
     entityId: string,
     before: T,
@@ -94,6 +100,7 @@ export interface AuditLogServiceShape {
    *
    * Records that an entity was deleted, storing the final state.
    *
+   * @param organizationId - The organization this entity belongs to
    * @param entityType - The type of entity being deleted
    * @param entityId - The ID of the deleted entity
    * @param entity - The entity data at time of deletion
@@ -105,6 +112,7 @@ export interface AuditLogServiceShape {
    * const entity = yield* accountRepo.findById(id)
    * yield* accountRepo.delete(id)
    * yield* auditLogService.logDelete(
+   *   organizationId,
    *   "Account",
    *   id,
    *   entity,
@@ -113,6 +121,7 @@ export interface AuditLogServiceShape {
    * ```
    */
   readonly logDelete: <T>(
+    organizationId: string,
     entityType: AuditEntityType,
     entityId: string,
     entity: T,
@@ -125,6 +134,7 @@ export interface AuditLogServiceShape {
    * Records status changes for entities with workflows (e.g., fiscal periods,
    * journal entries). This is more specific than logUpdate for clarity.
    *
+   * @param organizationId - The organization this entity belongs to
    * @param entityType - The type of entity with status change
    * @param entityId - The ID of the entity
    * @param previousStatus - The status before the change
@@ -136,6 +146,7 @@ export interface AuditLogServiceShape {
    * @example
    * ```typescript
    * yield* auditLogService.logStatusChange(
+   *   organizationId,
    *   "FiscalPeriod",
    *   periodId,
    *   "Open",
@@ -146,6 +157,7 @@ export interface AuditLogServiceShape {
    * ```
    */
   readonly logStatusChange: (
+    organizationId: string,
     entityType: AuditEntityType,
     entityId: string,
     previousStatus: string,
@@ -160,6 +172,7 @@ export interface AuditLogServiceShape {
    * For cases where you need direct control over the changes recorded.
    * Useful when the change computation is complex or pre-computed.
    *
+   * @param organizationId - The organization this entity belongs to
    * @param entityType - The type of entity
    * @param entityId - The ID of the entity
    * @param action - The action being performed
@@ -168,6 +181,7 @@ export interface AuditLogServiceShape {
    * @returns Effect that completes when the audit entry is recorded
    */
   readonly logWithChanges: (
+    organizationId: string,
     entityType: AuditEntityType,
     entityId: string,
     action: "Create" | "Update" | "Delete" | "StatusChange",

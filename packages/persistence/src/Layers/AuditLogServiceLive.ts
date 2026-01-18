@@ -148,10 +148,11 @@ const make = Effect.gen(function* () {
     <A, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<A, AuditLogError, R> =>
       Effect.mapError(effect, (cause) => new AuditLogError({ operation, cause }))
 
-  const logCreate: AuditLogServiceShape["logCreate"] = (entityType, entityId, entity, userId) =>
+  const logCreate: AuditLogServiceShape["logCreate"] = (organizationId, entityType, entityId, entity, userId) =>
     Effect.gen(function* () {
       const changes = entityToCreateChanges(entity)
       yield* auditRepo.create({
+        organizationId,
         entityType,
         entityId,
         action: "Create",
@@ -163,12 +164,13 @@ const make = Effect.gen(function* () {
       wrapError("logCreate")
     )
 
-  const logUpdate: AuditLogServiceShape["logUpdate"] = (entityType, entityId, before, after, userId) =>
+  const logUpdate: AuditLogServiceShape["logUpdate"] = (organizationId, entityType, entityId, before, after, userId) =>
     Effect.gen(function* () {
       const changes = computeChanges(before, after)
       // Only create audit entry if there are actual changes
       if (Object.keys(changes).length > 0) {
         yield* auditRepo.create({
+          organizationId,
           entityType,
           entityId,
           action: "Update",
@@ -181,10 +183,11 @@ const make = Effect.gen(function* () {
       wrapError("logUpdate")
     )
 
-  const logDelete: AuditLogServiceShape["logDelete"] = (entityType, entityId, entity, userId) =>
+  const logDelete: AuditLogServiceShape["logDelete"] = (organizationId, entityType, entityId, entity, userId) =>
     Effect.gen(function* () {
       const changes = entityToDeleteChanges(entity)
       yield* auditRepo.create({
+        organizationId,
         entityType,
         entityId,
         action: "Delete",
@@ -197,6 +200,7 @@ const make = Effect.gen(function* () {
     )
 
   const logStatusChange: AuditLogServiceShape["logStatusChange"] = (
+    organizationId,
     entityType,
     entityId,
     previousStatus,
@@ -213,6 +217,7 @@ const make = Effect.gen(function* () {
       }
       const changes = buildChanges(baseEntries)
       yield* auditRepo.create({
+        organizationId,
         entityType,
         entityId,
         action: "StatusChange",
@@ -225,6 +230,7 @@ const make = Effect.gen(function* () {
     )
 
   const logWithChanges: AuditLogServiceShape["logWithChanges"] = (
+    organizationId,
     entityType,
     entityId,
     action,
@@ -233,6 +239,7 @@ const make = Effect.gen(function* () {
   ) =>
     Effect.gen(function* () {
       yield* auditRepo.create({
+        organizationId,
         entityType,
         entityId,
         action,

@@ -198,8 +198,12 @@ function AuditLogPage() {
       if (from) query.fromDate = new Date(from).toISOString()
       if (to) query.toDate = new Date(to).toISOString()
 
-      const { data, error } = await api.GET("/api/v1/audit-log", {
-        params: { query }
+      // Use organization-scoped endpoint for security
+      const { data, error } = await api.GET("/api/v1/audit-log/{organizationId}", {
+        params: {
+          path: { organizationId: params.organizationId },
+          query
+        }
       })
 
       if (!error && data) {
@@ -212,25 +216,25 @@ function AuditLogPage() {
       // Keep existing data on error
     }
     setIsLoading(false)
-  }, [])
+  }, [params.organizationId])
 
   // Load audit entries on mount (empty deps for initial load only)
   useEffect(() => {
-    void fetchWithCurrentFilters(0, entityTypeFilter, actionFilter, fromDate, toDate)
+    fetchWithCurrentFilters(0, entityTypeFilter, actionFilter, fromDate, toDate).catch(() => {})
   }, [])
 
   // Handle entity type filter change - auto-apply immediately
   const handleEntityTypeChange = (value: string) => {
     setEntityTypeFilter(value)
     setCurrentPage(0)
-    void fetchWithCurrentFilters(0, value, actionFilter, fromDate, toDate)
+    fetchWithCurrentFilters(0, value, actionFilter, fromDate, toDate).catch(() => {})
   }
 
   // Handle action filter change - auto-apply immediately
   const handleActionChange = (value: string) => {
     setActionFilter(value)
     setCurrentPage(0)
-    void fetchWithCurrentFilters(0, entityTypeFilter, value, fromDate, toDate)
+    fetchWithCurrentFilters(0, entityTypeFilter, value, fromDate, toDate).catch(() => {})
   }
 
   // Handle date filter changes - debounced to avoid excessive API calls
@@ -245,7 +249,7 @@ function AuditLogPage() {
     // Debounce the API call for 500ms
     dateDebounceRef.current = setTimeout(() => {
       setCurrentPage(0)
-      void fetchWithCurrentFilters(0, entityTypeFilter, actionFilter, value, toDate)
+      fetchWithCurrentFilters(0, entityTypeFilter, actionFilter, value, toDate).catch(() => {})
     }, 500)
   }
 
@@ -260,7 +264,7 @@ function AuditLogPage() {
     // Debounce the API call for 500ms
     dateDebounceRef.current = setTimeout(() => {
       setCurrentPage(0)
-      void fetchWithCurrentFilters(0, entityTypeFilter, actionFilter, fromDate, value)
+      fetchWithCurrentFilters(0, entityTypeFilter, actionFilter, fromDate, value).catch(() => {})
     }, 500)
   }
 
@@ -282,7 +286,7 @@ function AuditLogPage() {
     setFromDate("")
     setToDate("")
     setCurrentPage(0)
-    void fetchWithCurrentFilters(0, "all", "all", "", "")
+    fetchWithCurrentFilters(0, "all", "all", "", "").catch(() => {})
   }
 
   // Cleanup debounce on unmount

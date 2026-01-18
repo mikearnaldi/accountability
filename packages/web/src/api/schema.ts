@@ -375,7 +375,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/audit-log": {
+    "/api/v1/audit-log/{organizationId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -384,7 +384,7 @@ export interface paths {
         };
         /**
          * List audit log entries
-         * @description Retrieve paginated audit trail entries for compliance and SOX requirements. Supports filtering by entity type, entity ID, user, action, and date range.
+         * @description Retrieve paginated audit trail entries for compliance and SOX requirements. Supports filtering by entity type, entity ID, user, action, and date range. Entries are scoped to the specified organization.
          */
         get: operations["auditLog.listAuditLog"];
         put?: never;
@@ -2792,7 +2792,7 @@ export interface components {
          * @description The type of entity being audited
          * @enum {string}
          */
-        AuditEntityType: "Organization" | "Company" | "Account" | "JournalEntry" | "JournalEntryLine" | "FiscalYear" | "FiscalPeriod" | "ExchangeRate" | "ConsolidationGroup" | "ConsolidationRun" | "EliminationRule" | "IntercompanyTransaction" | "User" | "Session";
+        AuditEntityType: "Organization" | "OrganizationMember" | "Company" | "Account" | "JournalEntry" | "JournalEntryLine" | "FiscalYear" | "FiscalPeriod" | "ExchangeRate" | "ConsolidationGroup" | "ConsolidationRun" | "EliminationRule" | "IntercompanyTransaction" | "User" | "Session";
         /**
          * Audit Action
          * @description The type of action performed on an entity
@@ -5864,7 +5864,10 @@ export interface operations {
                 offset?: string;
             };
             header?: never;
-            path?: never;
+            path: {
+                /** @description The organization ID to scope audit entries to */
+                organizationId: string;
+            };
             cookie?: never;
         };
         requestBody?: never;

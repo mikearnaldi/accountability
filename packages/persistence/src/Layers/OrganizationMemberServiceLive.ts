@@ -45,6 +45,7 @@ import {
   UserAlreadyMemberError
 } from "@accountability/core/Auth/AuthorizationErrors"
 import { AuditLogService } from "@accountability/core/AuditLog/AuditLogService"
+import type { AuditLogError } from "@accountability/core/AuditLog/AuditLogErrors"
 import { CurrentUserId } from "@accountability/core/AuditLog/CurrentUserId"
 import { OrganizationMemberRepository } from "../Services/OrganizationMemberRepository.ts"
 
@@ -55,59 +56,58 @@ import { OrganizationMemberRepository } from "../Services/OrganizationMemberRepo
 /**
  * Helper to log member creation to audit log
  *
- * Uses Effect.serviceOption to gracefully skip audit logging when
- * AuditLogService or CurrentUserId is not available (e.g., in tests).
- * Errors are caught and silently ignored to not block business operations.
+ * Accesses AuditLogService and CurrentUserId from the Effect context.
+ * Per AUDIT_PAGE.md spec, audit logging is required - tests must provide
+ * test implementations of these services.
  *
+ * @param organizationId - The organization this member belongs to
  * @param membership - The created membership
- * @returns Effect that completes when audit logging is attempted
+ * @returns Effect that requires AuditLogService and CurrentUserId
  */
 const logMemberCreate = (
+  organizationId: string,
   membership: OrganizationMembership
-): Effect.Effect<void, never, never> =>
+): Effect.Effect<void, AuditLogError, AuditLogService | CurrentUserId> =>
   Effect.gen(function* () {
-    const maybeAuditService = yield* Effect.serviceOption(AuditLogService)
-    const maybeUserId = yield* Effect.serviceOption(CurrentUserId)
-
-    if (Option.isSome(maybeAuditService) && Option.isSome(maybeUserId)) {
-      yield* maybeAuditService.value.logCreate(
-        "OrganizationMember",
-        membership.id,
-        membership,
-        maybeUserId.value
-      )
-    }
-  }).pipe(
-    Effect.catchAll(() => Effect.void) // Silent failure - don't block business operations
-  )
+    const auditService = yield* AuditLogService
+    const userId = yield* CurrentUserId
+    yield* auditService.logCreate(
+      organizationId,
+      "OrganizationMember",
+      membership.id,
+      membership,
+      userId
+    )
+  })
 
 /**
  * Helper to log member role update to audit log
  *
+ * Per AUDIT_PAGE.md spec, audit logging is required - tests must provide
+ * test implementations of these services.
+ *
+ * @param organizationId - The organization this member belongs to
  * @param before - The membership state before the update
  * @param after - The membership state after the update
- * @returns Effect that completes when audit logging is attempted
+ * @returns Effect that requires AuditLogService and CurrentUserId
  */
 const logMemberUpdate = (
+  organizationId: string,
   before: OrganizationMembership,
   after: OrganizationMembership
-): Effect.Effect<void, never, never> =>
+): Effect.Effect<void, AuditLogError, AuditLogService | CurrentUserId> =>
   Effect.gen(function* () {
-    const maybeAuditService = yield* Effect.serviceOption(AuditLogService)
-    const maybeUserId = yield* Effect.serviceOption(CurrentUserId)
-
-    if (Option.isSome(maybeAuditService) && Option.isSome(maybeUserId)) {
-      yield* maybeAuditService.value.logUpdate(
-        "OrganizationMember",
-        after.id,
-        before,
-        after,
-        maybeUserId.value
-      )
-    }
-  }).pipe(
-    Effect.catchAll(() => Effect.void) // Silent failure - don't block business operations
-  )
+    const auditService = yield* AuditLogService
+    const userId = yield* CurrentUserId
+    yield* auditService.logUpdate(
+      organizationId,
+      "OrganizationMember",
+      after.id,
+      before,
+      after,
+      userId
+    )
+  })
 
 /**
  * Helper to log member status change to audit log
@@ -118,35 +118,36 @@ const logMemberUpdate = (
  * - active → suspended (member suspended)
  * - suspended → active (member unsuspended)
  *
+ * Per AUDIT_PAGE.md spec, audit logging is required - tests must provide
+ * test implementations of these services.
+ *
+ * @param organizationId - The organization this member belongs to
  * @param membership - The membership being changed
  * @param previousStatus - The status before the change
  * @param newStatus - The status after the change
  * @param reason - Optional reason for the status change
- * @returns Effect that completes when audit logging is attempted
+ * @returns Effect that requires AuditLogService and CurrentUserId
  */
 const logMemberStatusChange = (
+  organizationId: string,
   membership: OrganizationMembership,
   previousStatus: string,
   newStatus: string,
   reason?: string
-): Effect.Effect<void, never, never> =>
+): Effect.Effect<void, AuditLogError, AuditLogService | CurrentUserId> =>
   Effect.gen(function* () {
-    const maybeAuditService = yield* Effect.serviceOption(AuditLogService)
-    const maybeUserId = yield* Effect.serviceOption(CurrentUserId)
-
-    if (Option.isSome(maybeAuditService) && Option.isSome(maybeUserId)) {
-      yield* maybeAuditService.value.logStatusChange(
-        "OrganizationMember",
-        membership.id,
-        previousStatus,
-        newStatus,
-        maybeUserId.value,
-        reason
-      )
-    }
-  }).pipe(
-    Effect.catchAll(() => Effect.void) // Silent failure - don't block business operations
-  )
+    const auditService = yield* AuditLogService
+    const userId = yield* CurrentUserId
+    yield* auditService.logStatusChange(
+      organizationId,
+      "OrganizationMember",
+      membership.id,
+      previousStatus,
+      newStatus,
+      userId,
+      reason
+    )
+  })
 
 /**
  * Creates the OrganizationMemberService implementation
@@ -236,7 +237,7 @@ const make = Effect.gen(function* () {
         const createdMembership = yield* memberRepo.create(membership)
 
         // Log member creation to audit log
-        yield* logMemberCreate(createdMembership)
+        yield* logMemberCreate(input.organizationId, createdMembership)
 
         return createdMembership
       }),
@@ -261,6 +262,7 @@ const make = Effect.gen(function* () {
 
         // Log member removal to audit log
         yield* logMemberStatusChange(
+          organizationId,
           removedMembership,
           "active",
           "removed",
@@ -304,7 +306,7 @@ const make = Effect.gen(function* () {
         const updatedMembership = yield* memberRepo.update(membership.id, updateInput)
 
         // Log member role update to audit log
-        yield* logMemberUpdate(membership, updatedMembership)
+        yield* logMemberUpdate(organizationId, membership, updatedMembership)
 
         return updatedMembership
       }),
@@ -323,6 +325,7 @@ const make = Effect.gen(function* () {
 
         // Log member reinstatement to audit log
         yield* logMemberStatusChange(
+          organizationId,
           reinstatedMembership,
           previousStatus,
           "active",
@@ -352,6 +355,7 @@ const make = Effect.gen(function* () {
 
         // Log member suspension to audit log
         yield* logMemberStatusChange(
+          organizationId,
           suspendedMembership,
           "active",
           "suspended",
@@ -385,6 +389,7 @@ const make = Effect.gen(function* () {
 
         // Log member unsuspension to audit log
         yield* logMemberStatusChange(
+          organizationId,
           unsuspendedMembership,
           "suspended",
           "active",
@@ -439,8 +444,8 @@ const make = Effect.gen(function* () {
         })
 
         // Log ownership transfer to audit log
-        yield* logMemberUpdate(fromMembership, updatedPreviousOwner)
-        yield* logMemberUpdate(toMembership, updatedNewOwner)
+        yield* logMemberUpdate(input.organizationId, fromMembership, updatedPreviousOwner)
+        yield* logMemberUpdate(input.organizationId, toMembership, updatedNewOwner)
 
         return {
           previousOwner: updatedPreviousOwner,
