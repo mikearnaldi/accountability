@@ -99,7 +99,9 @@
     "./Services/JournalEntryService": "./src/Services/JournalEntryService.ts",
     "./Services/NCIService": "./src/Services/NCIService.ts",
     "./Services/PeriodService": "./src/Services/PeriodService.ts",
-    "./Services/TrialBalanceService": "./src/Services/TrialBalanceService.ts"
+    "./Services/TrialBalanceService": "./src/Services/TrialBalanceService.ts",
+    "./FiscalPeriod/FiscalPeriodErrors": "./src/FiscalPeriod/FiscalPeriodErrors.ts",
+    "./FiscalPeriod/FiscalPeriodService": "./src/FiscalPeriod/FiscalPeriodService.ts"
   },
   "scripts": {
     "clean": "rm -rf dist",

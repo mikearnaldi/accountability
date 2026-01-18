@@ -34,17 +34,25 @@ The AUTHORIZATION.md spec defines actions for fiscal period management. Implemen
 - [x] **FiscalPeriodRepository** - Full CRUD operations for fiscal years and periods
   - `packages/persistence/src/Services/FiscalPeriodRepository.ts` - Repository interface
   - `packages/persistence/src/Layers/FiscalPeriodRepositoryLive.ts` - PostgreSQL implementation
+- [x] **FiscalPeriodService** - Business logic for period state transitions and validation
+  - `packages/core/src/FiscalPeriod/FiscalPeriodService.ts` - Service interface with operations for fiscal years and periods
+  - `packages/core/src/FiscalPeriod/FiscalPeriodErrors.ts` - Tagged error types for fiscal period operations
+  - `packages/persistence/src/Layers/FiscalPeriodServiceLive.ts` - Service implementation
 
 **What's Missing:**
-- [ ] **FiscalPeriodService** - Business logic for period state transitions and validation
 - [ ] **FiscalPeriodApi endpoints** - REST API to create, open, close, or lock fiscal periods
 - [ ] **Fiscal Period Management UI** - Pages to view or manage period states
 - [ ] **Period status integration** - Connect ResourceMatcher `periodStatus` attribute to actual period data
 
-**Current Behavior:** Fiscal periods can now be persisted and queried through the repository layer. However, there is no service layer for business logic or API endpoints for frontend access.
+**Current Behavior:** Fiscal periods can be persisted, queried, and managed through the service layer. The service provides:
+- Fiscal year creation with validation for duplicates
+- Period generation with standard monthly schedule
+- Period status transitions (Future → Open → SoftClose → Closed → Locked)
+- Period reopening with audit trail
+- Status queries for authorization checks (isPeriodOpenForEntries, isPeriodOpenForModifications)
 
 **Impact:** The "Locked Period Protection" system policy cannot function until:
-1. FiscalPeriodService implements period creation and status transitions
+1. ~~FiscalPeriodService implements period creation and status transitions~~ ✓ Done
 2. FiscalPeriodApi exposes endpoints for period management
 3. Period status is integrated with journal entry authorization checks
 
@@ -56,6 +64,9 @@ The AUTHORIZATION.md spec defines actions for fiscal period management. Implemen
 - `packages/core/src/Domains/FiscalYearStatus.ts` - Year status enum
 - `packages/persistence/src/Services/FiscalPeriodRepository.ts` - Repository interface
 - `packages/persistence/src/Layers/FiscalPeriodRepositoryLive.ts` - Repository implementation
+- `packages/core/src/FiscalPeriod/FiscalPeriodService.ts` - Service interface
+- `packages/core/src/FiscalPeriod/FiscalPeriodErrors.ts` - Error definitions
+- `packages/persistence/src/Layers/FiscalPeriodServiceLive.ts` - Service implementation
 
 ---
 
