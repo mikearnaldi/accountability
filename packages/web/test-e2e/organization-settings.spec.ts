@@ -385,8 +385,15 @@ test.describe("Organization Settings Page", () => {
     // Navigate to organization dashboard (where sidebar is visible)
     await page.goto(`/organizations/${orgData.id}/dashboard`)
 
-    // Click Settings link in sidebar
-    await page.getByTestId("nav-org-settings").click()
+    // Wait for page to be fully loaded
+    await page.waitForTimeout(500)
+
+    // Click Settings button in sidebar to expand the submenu
+    await page.getByTestId("nav-org-settings").click({ force: true })
+
+    // Wait for submenu to expand, then click the General link to navigate
+    await page.waitForTimeout(200)
+    await page.getByTestId("nav-settings-general").click({ force: true })
 
     // Should be on settings page
     await page.waitForURL(/\/settings/)

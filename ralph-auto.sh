@@ -562,14 +562,19 @@ run_iteration() {
     assistant_text=$(cat "$output_file" | \
         jq -r 'select(.type == "assistant") | .message.content[]? | select(.type == "text") | .text // empty' 2>/dev/null)
 
-    # Check if agent signaled nothing left to do (only in assistant output, not prompt)
+    # Check for signals
+    local has_task_complete=false
+    local has_nothing_left=false
+
+    if echo "$assistant_text" | grep -q "TASK_COMPLETE"; then
+        has_task_complete=true
+    fi
     if echo "$assistant_text" | grep -q "$COMPLETE_MARKER"; then
-        log "SUCCESS" "Agent signaled NOTHING_LEFT_TO_DO"
-        return 0
+        has_nothing_left=true
     fi
 
-    # Check if agent signaled task completion (only in assistant output, not prompt)
-    if echo "$assistant_text" | grep -q "TASK_COMPLETE"; then
+    # Handle TASK_COMPLETE first (commit the work)
+    if [ "$has_task_complete" = true ]; then
         log "INFO" "Agent signaled task completion"
 
         local task_desc=$(extract_task_description "$output_file")
@@ -597,25 +602,30 @@ run_iteration() {
         else
             log "WARN" "CI checks failed - keeping changes for next iteration to fix"
             # Don't rollback - keep changes so next iteration can fix CI errors
+            return 1
         fi
-    else
-        log "WARN" "Agent did not complete a task"
-        # Check if there are changes anyway
-        if has_changes; then
-            log "INFO" "Found uncommitted changes, running CI checks..."
-            if run_ci_checks; then
-                echo "" >> "$PROGRESS_FILE"
-                echo "## Iteration $iteration - $(date '+%Y-%m-%d %H:%M')" >> "$PROGRESS_FILE"
-                echo "**Task**: Partial work (no explicit completion signal)" >> "$PROGRESS_FILE"
-                echo "---" >> "$PROGRESS_FILE"
+    elif has_changes; then
+        # No TASK_COMPLETE but there are changes - commit as partial work
+        log "WARN" "Agent did not signal TASK_COMPLETE but has uncommitted changes"
+        log "INFO" "Found uncommitted changes, running CI checks..."
+        if run_ci_checks; then
+            echo "" >> "$PROGRESS_FILE"
+            echo "## Iteration $iteration - $(date '+%Y-%m-%d %H:%M')" >> "$PROGRESS_FILE"
+            echo "**Task**: Partial work (no explicit completion signal)" >> "$PROGRESS_FILE"
+            echo "---" >> "$PROGRESS_FILE"
 
-                rm -f "$OUTPUT_DIR/ci_errors.txt"
+            rm -f "$OUTPUT_DIR/ci_errors.txt"
 
-                if commit_changes "$iteration" "Partial work from iteration $iteration"; then
-                    log "SUCCESS" "Partial work committed"
-                fi
+            if commit_changes "$iteration" "Partial work from iteration $iteration"; then
+                log "SUCCESS" "Partial work committed"
             fi
         fi
+    fi
+
+    # Now check if we should exit the loop
+    if [ "$has_nothing_left" = true ]; then
+        log "SUCCESS" "Agent signaled NOTHING_LEFT_TO_DO"
+        return 0
     fi
 
     return 1

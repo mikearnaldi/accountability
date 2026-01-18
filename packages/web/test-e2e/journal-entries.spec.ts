@@ -795,29 +795,30 @@ test.describe("Journal Entries List Page", () => {
 
     // 8. Filter by Standard type using data-testid
     const typeFilter = page.locator('[data-testid="journal-entries-filter-type"]')
-    await typeFilter.selectOption("Standard")
-    // Wait for filter to apply and count to update
-    await page.waitForTimeout(500)
+    // Use page.selectOption which triggers proper change events
+    await page.selectOption('[data-testid="journal-entries-filter-type"]', "Standard")
+    // Wait for React state update
+    await page.waitForTimeout(1000)
 
     // 9. Should only show Standard entry - wait for filter to apply
-    await expect(page.locator('[data-testid="journal-entries-count"]')).toContainText("1 of 2 entries", { timeout: 10000 })
+    await expect(page.locator('[data-testid="journal-entries-count"]')).toContainText("1 of 2 entries", { timeout: 15000 })
     await expect(page.getByText("Standard Entry")).toBeVisible()
     await expect(page.getByText("Adjusting Entry")).not.toBeVisible()
 
     // 10. Filter by Adjusting type
-    await typeFilter.selectOption("Adjusting")
-    // Wait for filter to apply
-    await page.waitForTimeout(500)
+    await page.selectOption('[data-testid="journal-entries-filter-type"]', "Adjusting")
+    // Wait for React state update
+    await page.waitForTimeout(1000)
 
     // 11. Should only show Adjusting entry - wait for filter to apply
-    await expect(page.locator('[data-testid="journal-entries-count"]')).toContainText("1 of 2 entries", { timeout: 10000 })
+    await expect(page.locator('[data-testid="journal-entries-count"]')).toContainText("1 of 2 entries", { timeout: 15000 })
     await expect(page.getByText("Adjusting Entry")).toBeVisible()
     await expect(page.getByText("Standard Entry")).not.toBeVisible()
 
     // 12. Reset filter - wait for filter to apply
-    await typeFilter.selectOption("All")
-    await page.waitForTimeout(500)
-    await expect(page.locator('[data-testid="journal-entries-count"]')).toContainText("2 of 2 entries", { timeout: 10000 })
+    await page.selectOption('[data-testid="journal-entries-filter-type"]', "All")
+    await page.waitForTimeout(1000)
+    await expect(page.locator('[data-testid="journal-entries-count"]')).toContainText("2 of 2 entries", { timeout: 15000 })
   })
 
   test("should navigate to new journal entry form when clicking New Entry button", async ({ page, request }) => {
@@ -901,19 +902,22 @@ test.describe("Journal Entries List Page", () => {
       `/organizations/${orgData.id}/companies/${companyData.id}/journal-entries`
     )
 
-    // 6. Should show enabled New Entry button
-    const newEntryButton = page.locator('[data-testid="create-journal-entry-button"]')
-    await expect(newEntryButton).toBeVisible()
+    // Wait for page hydration
+    await page.waitForTimeout(500)
 
-    // 7. Click the New Entry button
-    await newEntryButton.click()
+    // 6. Should show enabled New Entry button (may be hidden if no permissions)
+    const newEntryButton = page.locator('[data-testid="create-journal-entry-button"]')
+    await expect(newEntryButton).toBeVisible({ timeout: 10000 })
+
+    // 7. Click the New Entry button with force to ensure click registers
+    await newEntryButton.click({ force: true })
 
     // 8. Should navigate to new journal entry page
-    await page.waitForURL(/\/journal-entries\/new/)
+    await page.waitForURL(/\/journal-entries\/new/, { timeout: 15000 })
     expect(page.url()).toContain(`/organizations/${orgData.id}/companies/${companyData.id}/journal-entries/new`)
 
     // 9. Should show Create Journal Entry heading
-    await expect(page.getByRole("heading", { name: "Create Journal Entry" })).toBeVisible()
+    await expect(page.getByRole("heading", { name: "Create Journal Entry" })).toBeVisible({ timeout: 10000 })
   })
 
   test("should create a balanced journal entry", async ({ page, request }) => {

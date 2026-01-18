@@ -22,6 +22,7 @@ import { Route as OrganizationsOrganizationIdRouteRouteImport } from './routes/o
 import { Route as OrganizationsOrganizationIdIndexRouteImport } from './routes/organizations/$organizationId/index'
 import { Route as OrganizationsOrganizationIdSettingsRouteImport } from './routes/organizations/$organizationId/settings'
 import { Route as OrganizationsOrganizationIdDashboardRouteImport } from './routes/organizations/$organizationId/dashboard'
+import { Route as OrganizationsOrganizationIdSettingsIndexRouteImport } from './routes/organizations/$organizationId/settings/index'
 import { Route as OrganizationsOrganizationIdReportsIndexRouteImport } from './routes/organizations/$organizationId/reports/index'
 import { Route as OrganizationsOrganizationIdIntercompanyIndexRouteImport } from './routes/organizations/$organizationId/intercompany/index'
 import { Route as OrganizationsOrganizationIdExchangeRatesIndexRouteImport } from './routes/organizations/$organizationId/exchange-rates/index'
@@ -126,6 +127,12 @@ const OrganizationsOrganizationIdDashboardRoute =
     id: '/dashboard',
     path: '/dashboard',
     getParentRoute: () => OrganizationsOrganizationIdRouteRoute,
+  } as any)
+const OrganizationsOrganizationIdSettingsIndexRoute =
+  OrganizationsOrganizationIdSettingsIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => OrganizationsOrganizationIdSettingsRoute,
   } as any)
 const OrganizationsOrganizationIdReportsIndexRoute =
   OrganizationsOrganizationIdReportsIndexRouteImport.update({
@@ -397,6 +404,7 @@ export interface FileRoutesByFullPath {
   '/organizations/$organizationId/exchange-rates': typeof OrganizationsOrganizationIdExchangeRatesIndexRoute
   '/organizations/$organizationId/intercompany': typeof OrganizationsOrganizationIdIntercompanyIndexRoute
   '/organizations/$organizationId/reports': typeof OrganizationsOrganizationIdReportsIndexRoute
+  '/organizations/$organizationId/settings/': typeof OrganizationsOrganizationIdSettingsIndexRoute
   '/organizations/$organizationId/consolidation/$groupId/edit': typeof OrganizationsOrganizationIdConsolidationGroupIdEditRoute
   '/organizations/$organizationId/intercompany/$transactionId/edit': typeof OrganizationsOrganizationIdIntercompanyTransactionIdEditRoute
   '/organizations/$organizationId/companies/$companyId': typeof OrganizationsOrganizationIdCompaniesCompanyIdIndexRoute
@@ -432,7 +440,6 @@ export interface FileRoutesByTo {
   '/organizations/new': typeof OrganizationsNewRoute
   '/organizations': typeof OrganizationsIndexRoute
   '/organizations/$organizationId/dashboard': typeof OrganizationsOrganizationIdDashboardRoute
-  '/organizations/$organizationId/settings': typeof OrganizationsOrganizationIdSettingsRouteWithChildren
   '/organizations/$organizationId': typeof OrganizationsOrganizationIdIndexRoute
   '/organizations/$organizationId/companies/new': typeof OrganizationsOrganizationIdCompaniesNewRoute
   '/organizations/$organizationId/consolidation/new': typeof OrganizationsOrganizationIdConsolidationNewRoute
@@ -446,6 +453,7 @@ export interface FileRoutesByTo {
   '/organizations/$organizationId/exchange-rates': typeof OrganizationsOrganizationIdExchangeRatesIndexRoute
   '/organizations/$organizationId/intercompany': typeof OrganizationsOrganizationIdIntercompanyIndexRoute
   '/organizations/$organizationId/reports': typeof OrganizationsOrganizationIdReportsIndexRoute
+  '/organizations/$organizationId/settings': typeof OrganizationsOrganizationIdSettingsIndexRoute
   '/organizations/$organizationId/consolidation/$groupId/edit': typeof OrganizationsOrganizationIdConsolidationGroupIdEditRoute
   '/organizations/$organizationId/intercompany/$transactionId/edit': typeof OrganizationsOrganizationIdIntercompanyTransactionIdEditRoute
   '/organizations/$organizationId/companies/$companyId': typeof OrganizationsOrganizationIdCompaniesCompanyIdIndexRoute
@@ -497,6 +505,7 @@ export interface FileRoutesById {
   '/organizations/$organizationId/exchange-rates/': typeof OrganizationsOrganizationIdExchangeRatesIndexRoute
   '/organizations/$organizationId/intercompany/': typeof OrganizationsOrganizationIdIntercompanyIndexRoute
   '/organizations/$organizationId/reports/': typeof OrganizationsOrganizationIdReportsIndexRoute
+  '/organizations/$organizationId/settings/': typeof OrganizationsOrganizationIdSettingsIndexRoute
   '/organizations/$organizationId/consolidation/$groupId/edit': typeof OrganizationsOrganizationIdConsolidationGroupIdEditRoute
   '/organizations/$organizationId/intercompany/$transactionId/edit': typeof OrganizationsOrganizationIdIntercompanyTransactionIdEditRoute
   '/organizations/$organizationId/companies/$companyId/': typeof OrganizationsOrganizationIdCompaniesCompanyIdIndexRoute
@@ -549,6 +558,7 @@ export interface FileRouteTypes {
     | '/organizations/$organizationId/exchange-rates'
     | '/organizations/$organizationId/intercompany'
     | '/organizations/$organizationId/reports'
+    | '/organizations/$organizationId/settings/'
     | '/organizations/$organizationId/consolidation/$groupId/edit'
     | '/organizations/$organizationId/intercompany/$transactionId/edit'
     | '/organizations/$organizationId/companies/$companyId'
@@ -584,7 +594,6 @@ export interface FileRouteTypes {
     | '/organizations/new'
     | '/organizations'
     | '/organizations/$organizationId/dashboard'
-    | '/organizations/$organizationId/settings'
     | '/organizations/$organizationId'
     | '/organizations/$organizationId/companies/new'
     | '/organizations/$organizationId/consolidation/new'
@@ -598,6 +607,7 @@ export interface FileRouteTypes {
     | '/organizations/$organizationId/exchange-rates'
     | '/organizations/$organizationId/intercompany'
     | '/organizations/$organizationId/reports'
+    | '/organizations/$organizationId/settings'
     | '/organizations/$organizationId/consolidation/$groupId/edit'
     | '/organizations/$organizationId/intercompany/$transactionId/edit'
     | '/organizations/$organizationId/companies/$companyId'
@@ -648,6 +658,7 @@ export interface FileRouteTypes {
     | '/organizations/$organizationId/exchange-rates/'
     | '/organizations/$organizationId/intercompany/'
     | '/organizations/$organizationId/reports/'
+    | '/organizations/$organizationId/settings/'
     | '/organizations/$organizationId/consolidation/$groupId/edit'
     | '/organizations/$organizationId/intercompany/$transactionId/edit'
     | '/organizations/$organizationId/companies/$companyId/'
@@ -777,6 +788,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/organizations/$organizationId/dashboard'
       preLoaderRoute: typeof OrganizationsOrganizationIdDashboardRouteImport
       parentRoute: typeof OrganizationsOrganizationIdRouteRoute
+    }
+    '/organizations/$organizationId/settings/': {
+      id: '/organizations/$organizationId/settings/'
+      path: '/'
+      fullPath: '/organizations/$organizationId/settings/'
+      preLoaderRoute: typeof OrganizationsOrganizationIdSettingsIndexRouteImport
+      parentRoute: typeof OrganizationsOrganizationIdSettingsRoute
     }
     '/organizations/$organizationId/reports/': {
       id: '/organizations/$organizationId/reports/'
@@ -1041,6 +1059,7 @@ const InvitationsRouteWithChildren = InvitationsRoute._addFileChildren(
 interface OrganizationsOrganizationIdSettingsRouteChildren {
   OrganizationsOrganizationIdSettingsMembersRoute: typeof OrganizationsOrganizationIdSettingsMembersRoute
   OrganizationsOrganizationIdSettingsPoliciesRoute: typeof OrganizationsOrganizationIdSettingsPoliciesRoute
+  OrganizationsOrganizationIdSettingsIndexRoute: typeof OrganizationsOrganizationIdSettingsIndexRoute
 }
 
 const OrganizationsOrganizationIdSettingsRouteChildren: OrganizationsOrganizationIdSettingsRouteChildren =
@@ -1049,6 +1068,8 @@ const OrganizationsOrganizationIdSettingsRouteChildren: OrganizationsOrganizatio
       OrganizationsOrganizationIdSettingsMembersRoute,
     OrganizationsOrganizationIdSettingsPoliciesRoute:
       OrganizationsOrganizationIdSettingsPoliciesRoute,
+    OrganizationsOrganizationIdSettingsIndexRoute:
+      OrganizationsOrganizationIdSettingsIndexRoute,
   }
 
 const OrganizationsOrganizationIdSettingsRouteWithChildren =

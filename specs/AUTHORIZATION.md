@@ -1931,6 +1931,52 @@ Response: {
 
 ## UI Components
 
+### Settings Navigation Integration ✅ COMPLETE
+
+**COMPLETED**: Added navigation to Members and Policies pages from the main UI.
+
+#### Implementation (Option A: Sidebar Sub-items)
+
+Updated `packages/web/src/components/layout/Sidebar.tsx` with expandable Settings sub-items:
+
+```typescript
+{
+  label: "Settings",
+  href: `/organizations/${organizationId}/settings`,
+  icon: Settings,
+  testId: "nav-org-settings",
+  subItems: [
+    {
+      label: "General",
+      href: `/organizations/${organizationId}/settings`,
+      icon: Settings,
+      testId: "nav-settings-general"
+    },
+    {
+      label: "Members",
+      href: `/organizations/${organizationId}/settings/members`,
+      icon: Users,
+      testId: "nav-settings-members"
+    },
+    {
+      label: "Policies",
+      href: `/organizations/${organizationId}/settings/policies`,
+      icon: Shield,
+      testId: "nav-settings-policies"
+    }
+  ]
+}
+```
+
+#### Completed Tasks
+
+- [x] Update Sidebar.tsx to add Settings sub-items with expandable menu
+- [x] Add Users and Shield icons to Sidebar imports
+- [x] Test navigation works on desktop and mobile sidebar
+- [x] Ensure active state highlighting works for sub-items (fixed path-based comparison logic)
+
+---
+
 ### Member Management Page
 
 Location: `/organizations/:orgId/settings/members`

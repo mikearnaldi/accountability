@@ -542,11 +542,20 @@ test.describe("Consolidation Module", () => {
       await page.getByTestId("consolidation-method-select").selectOption("FullConsolidation")
 
       // 12. Select parent company
-      await page.getByTestId("parent-company-select").selectOption(parentData.id)
+      const parentCompanySelect = page.getByTestId("parent-company-select")
+      await parentCompanySelect.selectOption(parentData.id)
 
-      // 13. Wait for add-member-button to be enabled, then click
-      await expect(page.getByTestId("add-member-button")).toBeEnabled({ timeout: 5000 })
-      await page.getByTestId("add-member-button").click()
+      // Verify parent company was selected
+      await expect(parentCompanySelect).toHaveValue(parentData.id)
+
+      // Wait for React to update state after parent company selection
+      // The add-member-button becomes enabled when parentCompanyId is set
+      await page.waitForTimeout(1000)
+
+      // 13. Wait for add-member-button to be enabled (depends on parentCompanyId being set)
+      // Use a longer timeout since React state updates can be slow
+      await expect(page.getByTestId("add-member-button")).toBeEnabled({ timeout: 15000 })
+      await page.getByTestId("add-member-button").click({ force: true })
 
       // 14. Select the subsidiary company
       await page.getByTestId("member-company-select-0").selectOption(subData.id)

@@ -32,7 +32,9 @@ import {
   FileText,
   CreditCard,
   ChevronDown,
-  BarChart3
+  BarChart3,
+  Users,
+  Shield
 } from "lucide-react"
 import type { Organization } from "./OrganizationSelector.tsx"
 
@@ -145,7 +147,27 @@ function getNavItems(organizationId?: string): readonly NavItem[] {
       label: "Settings",
       href: `/organizations/${organizationId}/settings`,
       icon: Settings,
-      testId: "nav-org-settings"
+      testId: "nav-org-settings",
+      subItems: [
+        {
+          label: "General",
+          href: `/organizations/${organizationId}/settings`,
+          icon: Settings,
+          testId: "nav-settings-general"
+        },
+        {
+          label: "Members",
+          href: `/organizations/${organizationId}/settings/members`,
+          icon: Users,
+          testId: "nav-settings-members"
+        },
+        {
+          label: "Policies",
+          href: `/organizations/${organizationId}/settings/policies`,
+          icon: Shield,
+          testId: "nav-settings-policies"
+        }
+      ]
     }
   ]
 }
@@ -374,7 +396,12 @@ function NavItemComponent({ item, isCollapsed, currentOrganization, isMobile, on
       {isExpanded && !isCollapsed && (
         <div className="ml-4 mt-1 space-y-1 border-l border-gray-200 pl-3">
           {item.subItems?.map((subItem) => {
-            const subIsActive = location.pathname.includes(subItem.testId.replace("nav-reports-", ""))
+            // Check if this sub-item's path matches the current location
+            // For the "General" settings (which has the same href as the parent), check for exact match
+            // For other sub-items, check if the pathname matches exactly or starts with the href
+            const subIsActive = subItem.href === item.href
+              ? location.pathname === subItem.href  // Exact match for parent-level items (like General)
+              : location.pathname === subItem.href || location.pathname.startsWith(subItem.href + "/")
 
             // If not available, show as disabled
             if (subItem.available === false) {
