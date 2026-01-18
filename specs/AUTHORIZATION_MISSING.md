@@ -176,65 +176,27 @@ Authorization denials are logged to the database, but there's no UI to view them
 
 ### 7. User Profile Page Broken Semantics
 
-**Status: FUNDAMENTALLY BROKEN**
+**Status: IMPLEMENTED** ✓
 
-The profile page (`/profile`) has severe UX and semantic issues:
+~~The profile page (`/profile`) has severe UX and semantic issues~~
 
-**What's Implemented:**
-- Display name editing
-- Email display (read-only)
-- Authentication provider information
-- Member since date
+**What's Implemented (Option B from suggested fixes):**
+- [x] **Organization context preserved** - Fetches user's organizations and populates the selector
+- [x] **Confusing "Role" field removed** - No longer shows meaningless global role
+- [x] **"Your Organizations" section added** - Lists all organizations with roles:
+  - Shows role badge with icon (Owner/Crown, Admin/Shield, Member/UserCircle, Viewer/Eye)
+  - Shows functional roles if any (e.g., "General Ledger Controller")
+  - Each organization is clickable, navigating to that org's dashboard
+  - Empty state shows CTA to create organization
+- [x] **Back navigation fixed** - Uses browser history when available, falls back to /organizations
 
-**Critical Problems:**
+**Implementation Details:**
+- Profile page fetches `/api/v1/users/me/organizations` to get membership data
+- Organizations are passed to AppLayout so the selector stays populated
+- Back button uses `window.history.back()` if history exists, otherwise navigates to /organizations
+- E2E tests updated to verify new behavior
 
-1. **Organization context is explicitly cleared:**
-   ```typescript
-   // packages/web/src/routes/profile.tsx lines 231-232
-   <AppLayout
-     organizations={[]}           // Empty array!
-     currentOrganization={null}   // Null!
-   >
-   ```
-   - Visiting the profile page clears the organization selector
-   - User loses their place in the app navigation
-   - Back button goes to `/organizations` list, not their previous org
-
-2. **"Role" field is meaningless without organization context:**
-   ```typescript
-   // Shows user.role from auth_users table
-   <span data-testid="profile-role">{getRoleDisplayName(user.role)}</span>
-   ```
-   - Displays "Member", "Owner", "Administrator", or "Viewer"
-   - But this is the *auth_users.role* field, NOT organization membership role
-   - A user can be Owner in Org A and Viewer in Org B
-   - The role shown has no connection to any organization
-   - Description says "Managed by organization administrators" - of which organization?
-
-3. **Confusing user vs member distinction:**
-   - The `auth_users.role` field is a legacy/platform-level concept
-   - Organization membership roles are in `user_organization_members.role`
-   - Profile page conflates these two different concepts
-
-**What's Missing:**
-- [ ] **Preserve organization context** - Don't clear the org selector when visiting profile
-- [ ] **Remove or clarify the Role field** - Either remove it entirely or show "Platform role" with explanation
-- [ ] **Show organization memberships** - List all orgs the user belongs to with their role in each
-- [ ] **Navigate back to previous context** - Back button should return to previous page, not /organizations
-
-**Suggested Fix:**
-
-Option A: **Make profile org-scoped** (`/organizations/:orgId/profile`)
-- Show role in current organization context
-- Keep organization selector populated
-- Add section showing "Your role in [Org Name]: Owner"
-
-Option B: **Make profile truly global** with membership list
-- Remove the confusing "Role" field entirely
-- Add "Your Organizations" section showing all memberships with roles
-- Keep organization selector populated (don't clear it)
-
-**File:** `packages/web/src/routes/profile.tsx`
+**File Modified:** `packages/web/src/routes/profile.tsx`
 
 ---
 
@@ -408,7 +370,7 @@ The database has this constraint, but the UI doesn't handle the duplicate invita
 ## Implementation Recommendations
 
 ### Phase 1: Quick Wins (Low effort, High impact)
-1. **Fix profile page** - Preserve org context, remove broken Role field, add memberships list (1-2 hours)
+1. ~~**Fix profile page** - Preserve org context, remove broken Role field, add memberships list (1-2 hours)~~ ✓ DONE
 2. ~~**Show invitation link after creation** - Display shareable URL with copy button (30 min)~~ ✓ DONE
 3. ~~**Complete member removal API calls** - Fix stub implementations (30 min)~~ ✓ DONE
 4. ~~**Add owner transfer modal** - UI for existing backend (2-3 hours)~~ ✓ DONE

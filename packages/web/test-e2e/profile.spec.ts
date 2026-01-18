@@ -2,9 +2,10 @@
  * User Profile E2E Tests
  *
  * Tests for the user profile page:
- * - View profile information (email, role, provider)
+ * - View profile information (email, provider)
  * - Update display name
  * - View linked identities
+ * - View organization memberships with roles
  * - Navigation and breadcrumbs
  */
 
@@ -83,8 +84,8 @@ test.describe("User Profile Page", () => {
     const displayNameInput = page.getByTestId("profile-display-name-input")
     await expect(displayNameInput).toHaveValue(displayName)
 
-    // 9. Should show user role
-    await expect(page.getByTestId("profile-role")).toBeVisible()
+    // 9. Should show "Your Organizations" section (roles are shown per-organization, not globally)
+    await expect(page.getByText("Your Organizations")).toBeVisible()
 
     // 10. Should show primary sign-in method
     await expect(page.getByTestId("profile-provider")).toContainText("Email & Password")
@@ -342,10 +343,11 @@ test.describe("User Profile Page", () => {
     // 5. Wait for page to load
     await expect(page.getByTestId("profile-page")).toBeVisible()
 
-    // 6. Click back arrow link to organizations
-    await page.getByRole("link", { name: "Back to Organizations" }).click()
+    // 6. Click back arrow button (uses browser history or navigates to organizations)
+    // Since we navigated directly to /profile, clicking back should go to /organizations
+    await page.getByRole("button", { name: "Go back" }).click()
 
-    // 7. Should navigate to organizations page
+    // 7. Should navigate to organizations page (fallback when no history)
     await page.waitForURL("/organizations")
     expect(page.url()).toContain("/organizations")
   })
@@ -409,9 +411,9 @@ test.describe("User Profile Page", () => {
     await expect(page.getByText("Email Address")).toBeVisible()
     await expect(page.getByText("Email cannot be changed")).toBeVisible()
 
-    // 10. Should show Role label with "Managed by organization administrators" note
-    await expect(page.getByText("Role")).toBeVisible()
-    await expect(page.getByText("Managed by organization administrators")).toBeVisible()
+    // 10. Should show "Your Organizations" section (role is shown per-organization now)
+    await expect(page.getByText("Your Organizations")).toBeVisible()
+    await expect(page.getByText("Organizations you are a member of and your roles")).toBeVisible()
 
     // 11. Should show Primary Sign-in Method label
     await expect(page.getByText("Primary Sign-in Method")).toBeVisible()

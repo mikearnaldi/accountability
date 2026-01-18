@@ -589,3 +589,8 @@
 **Task**: Added owner transfer UI with modal, confirmation flow, and crown indicator
 **Status**: complete
 ---
+
+## Iteration 5 - 2026-01-18 13:16
+**Task**: Fixed profile page - preserved org context, removed broken Role field, added Your Organizations section with roles
+**Status**: complete
+---
