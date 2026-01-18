@@ -30,6 +30,7 @@ import { IntercompanyTransactionsApiLive } from "./IntercompanyTransactionsApiLi
 import { InvitationApiLive } from "./InvitationApiLive.ts"
 import { JournalEntriesApiLive } from "./JournalEntriesApiLive.ts"
 import { MembershipApiLive } from "./MembershipApiLive.ts"
+import { PolicyApiLive } from "./PolicyApiLive.ts"
 import { ReportsApiLive } from "./ReportsApiLive.ts"
 import { UserOrganizationsApiLive } from "./UserOrganizationsApiLive.ts"
 
@@ -66,6 +67,20 @@ const ConsolidationApiWithDependencies = Layer.provide(
 )
 
 /**
+ * MembershipPolicyApiGroup - Combined layer for membership and policy APIs
+ *
+ * Combined to reduce the number of Layer.provide calls in the main chain
+ * (TypeScript has a limit on pipe arguments).
+ *
+ * PolicyApiLive requires PolicyEngine for policy testing/evaluation,
+ * so we provide PolicyEngineLive here.
+ */
+const MembershipPolicyApiGroup = Layer.mergeAll(
+  MembershipApiLive,
+  PolicyApiLive
+).pipe(Layer.provide(PolicyEngineLive))
+
+/**
  * AuthorizationServiceWithDependencies - AuthorizationServiceLive with PolicyEngineLive
  *
  * AuthorizationServiceLive depends on PolicyEngine for ABAC policy evaluation.
@@ -100,6 +115,7 @@ const AuthorizationServiceWithDependencies = Layer.provide(
  * - Membership API (protected)
  * - Invitation API (protected)
  * - User Organizations API (protected)
+ * - Policy API (protected)
  *
  * Dependencies (required from consumer):
  * - AccountRepository
@@ -123,7 +139,7 @@ export const AppApiLive = HttpApiBuilder.api(AppApi).pipe(
   Layer.provide(CompaniesApiLive),
   Layer.provide(InvitationApiLive),
   Layer.provide(JournalEntriesApiLive),
-  Layer.provide(MembershipApiLive),
+  Layer.provide(MembershipPolicyApiGroup),
   Layer.provide(ReportsApiLive),
   Layer.provide(CurrenciesApiLive),
   Layer.provide(JurisdictionsApiLive),
