@@ -589,7 +589,7 @@ Function to match resource against ResourceCondition:
 
 ---
 
-#### Phase F4: Environment Matcher
+#### Phase F4: Environment Matcher ✅ COMPLETE
 **File**: `packages/core/src/Auth/matchers/EnvironmentMatcher.ts`
 
 Function to match request context against EnvironmentCondition:
@@ -599,6 +599,20 @@ Function to match request context against EnvironmentCondition:
 - `ipDenyList` - request IP not in CIDR
 
 **Test**: Unit tests.
+
+**Completed**:
+- Created `EnvironmentMatcher.ts` with functions for matching request context against environment conditions
+- Implemented `parseTimeToMinutes` for time string parsing
+- Implemented `matchesTimeOfDay` with support for normal and overnight time ranges (e.g., 22:00-06:00)
+- Implemented `matchesDayOfWeek` for day-of-week list matching
+- Implemented `matchesIPPattern` with full IPv4 CIDR support (e.g., /8, /16, /24, /32) and basic IPv6 exact matching
+- Implemented `matchesIPAllowList` and `matchesIPDenyList` for IP-based access control
+- Implemented `matchesEnvironmentCondition` combining all conditions with AND logic
+- Implemented `matchesAnyEnvironmentCondition` and `matchesAllEnvironmentConditions` for multi-condition matching
+- Implemented `getEnvironmentMismatchReason` for human-readable denial messages
+- Created `createEnvironmentContext` helper for building context from date and IP
+- Added 74 comprehensive unit tests covering all match types and edge cases
+- All 3848 tests pass, typecheck clean, lint clean
 
 ---
 
