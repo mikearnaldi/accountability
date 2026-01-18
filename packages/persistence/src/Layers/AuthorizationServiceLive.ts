@@ -20,11 +20,16 @@
 
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
+import * as Option from "effect/Option"
 import {
   AuthorizationService,
   type AuthorizationServiceShape
 } from "@accountability/core/Auth/AuthorizationService"
 import { getCurrentOrganizationMembership } from "@accountability/core/Auth/CurrentOrganizationMembership"
+import {
+  CurrentEnvironmentContext,
+  type EnvironmentContextWithMeta
+} from "@accountability/core/Auth/CurrentEnvironmentContext"
 import { PermissionDeniedError } from "@accountability/core/Auth/AuthorizationErrors"
 import type { Action } from "@accountability/core/Auth/Action"
 import type { BaseRole } from "@accountability/core/Auth/BaseRole"
@@ -42,6 +47,7 @@ import {
   createSubjectContextFromMembership
 } from "@accountability/core/Auth/matchers/SubjectMatcher"
 import type { ResourceType, ResourceContext } from "@accountability/core/Auth/matchers/ResourceMatcher"
+import type { EnvironmentContext } from "@accountability/core/Auth/matchers/EnvironmentMatcher"
 
 // =============================================================================
 // Helper Functions
@@ -96,6 +102,40 @@ const extractFunctionalRoles = (membership: {
 }
 
 /**
+ * Convert EnvironmentContextWithMeta to EnvironmentContext for policy evaluation
+ *
+ * The policy engine uses EnvironmentContext (without userAgent),
+ * while CurrentEnvironmentContext provides EnvironmentContextWithMeta (with userAgent).
+ */
+const toEnvironmentContext = (
+  envWithMeta: EnvironmentContextWithMeta
+): EnvironmentContext => {
+  // Build the context with only the defined properties to satisfy exactOptionalPropertyTypes
+  // Using spread with conditionally included properties to avoid type assertions
+  return {
+    ...(envWithMeta.currentTime !== undefined && { currentTime: envWithMeta.currentTime }),
+    ...(envWithMeta.currentDayOfWeek !== undefined && { currentDayOfWeek: envWithMeta.currentDayOfWeek }),
+    ...(envWithMeta.ipAddress !== undefined && { ipAddress: envWithMeta.ipAddress })
+  }
+}
+
+/**
+ * Get environment context from service context if available
+ *
+ * Returns undefined if no environment context is provided
+ * (e.g., when called from non-HTTP context like tests)
+ */
+const getEnvironmentContext: Effect.Effect<EnvironmentContext | undefined> = Effect.gen(
+  function* () {
+    const envOption = yield* Effect.serviceOption(CurrentEnvironmentContext)
+    return Option.match(envOption, {
+      onNone: () => undefined,
+      onSome: toEnvironmentContext
+    })
+  }
+)
+
+/**
  * Check permission using RBAC permission matrix
  * Returns the denial reason if denied, or undefined if allowed
  */
@@ -130,12 +170,22 @@ const make = Effect.gen(function* () {
      * Uses ABAC policy engine if the organization has policies.
      * Falls back to RBAC permission matrix if no policies exist.
      * Logs denied attempts to authorization_audit_log.
+     *
+     * Environment context (IP, time, user agent) is automatically captured
+     * from CurrentEnvironmentContext if available, enabling time-based and
+     * IP-based policy evaluation.
      */
     checkPermission: (action: Action) =>
       Effect.gen(function* () {
         const membership = yield* getCurrentOrganizationMembership()
         const functionalRoles = extractFunctionalRoles(membership)
         const resourceType = getResourceType(action)
+
+        // Get environment context (IP, time) if available in the context
+        const environmentContext = yield* getEnvironmentContext
+
+        // Get full environment context with user agent for audit logging
+        const envWithMeta = yield* Effect.serviceOption(CurrentEnvironmentContext)
 
         // Load active policies for the organization
         const policies = yield* policyRepo
@@ -159,12 +209,19 @@ const make = Effect.gen(function* () {
           if (resourceContext === undefined) {
             denialReason = checkWithRBAC(membership.role, functionalRoles, action)
           } else {
-            const evalContext: PolicyEvaluationContext = {
-              subject: subjectContext,
-              resource: resourceContext,
-              action
-              // environment could be added here for IP/time-based policies
-            }
+            // Build policy evaluation context, only including environment if available
+            const evalContext: PolicyEvaluationContext = environmentContext !== undefined
+              ? {
+                  subject: subjectContext,
+                  resource: resourceContext,
+                  action,
+                  environment: environmentContext
+                }
+              : {
+                  subject: subjectContext,
+                  resource: resourceContext,
+                  action
+                }
 
             const result = yield* policyEngine.evaluatePolicies(policies, evalContext)
 
@@ -175,16 +232,34 @@ const make = Effect.gen(function* () {
         }
 
         if (denialReason !== undefined) {
+          // Build audit log entry with optional IP and user agent from environment context
+          const auditEntry: {
+            userId: typeof membership.userId
+            organizationId: typeof membership.organizationId
+            action: Action
+            resourceType: string
+            denialReason: string
+            ipAddress?: string
+            userAgent?: string
+          } = {
+            userId: membership.userId,
+            organizationId: membership.organizationId,
+            action,
+            resourceType,
+            denialReason
+          }
+
+          // Only add IP and user agent if defined (to satisfy exactOptionalPropertyTypes)
+          if (Option.isSome(envWithMeta) && envWithMeta.value.ipAddress !== undefined) {
+            auditEntry.ipAddress = envWithMeta.value.ipAddress
+          }
+          if (Option.isSome(envWithMeta) && envWithMeta.value.userAgent !== undefined) {
+            auditEntry.userAgent = envWithMeta.value.userAgent
+          }
+
           // Log the denial to audit log (fire-and-forget, don't block on logging)
           yield* auditRepo
-            .logDenial({
-              userId: membership.userId,
-              organizationId: membership.organizationId,
-              action,
-              resourceType,
-              denialReason
-              // ipAddress and userAgent are optional - not available in current context
-            })
+            .logDenial(auditEntry)
             .pipe(
               // Don't fail the main operation if logging fails
               Effect.catchAll(() => Effect.void)
@@ -205,11 +280,15 @@ const make = Effect.gen(function* () {
      *
      * Uses ABAC policy engine if the organization has policies.
      * Falls back to RBAC permission matrix if no policies exist.
+     * Environment context is included for IP/time-based policy evaluation.
      */
     checkPermissions: (actions: readonly Action[]) =>
       Effect.gen(function* () {
         const membership = yield* getCurrentOrganizationMembership()
         const functionalRoles = extractFunctionalRoles(membership)
+
+        // Get environment context (IP, time) if available in the context
+        const environmentContext = yield* getEnvironmentContext
 
         // Load active policies for the organization
         const policies = yield* policyRepo
@@ -237,11 +316,19 @@ const make = Effect.gen(function* () {
               const permissions = computeEffectivePermissions(membership.role, functionalRoles)
               result[action] = hasPermission(permissions, action)
             } else {
-              const evalContext: PolicyEvaluationContext = {
-                subject: subjectContext,
-                resource: resourceContext,
-                action
-              }
+              // Build policy evaluation context, only including environment if available
+              const evalContext: PolicyEvaluationContext = environmentContext !== undefined
+                ? {
+                    subject: subjectContext,
+                    resource: resourceContext,
+                    action,
+                    environment: environmentContext
+                  }
+                : {
+                    subject: subjectContext,
+                    resource: resourceContext,
+                    action
+                  }
 
               const evalResult = yield* policyEngine.evaluatePolicies(policies, evalContext)
               result[action] = evalResult.decision === "allow"
@@ -275,11 +362,15 @@ const make = Effect.gen(function* () {
      *
      * Uses ABAC policy engine if the organization has policies.
      * Falls back to RBAC permission matrix if no policies exist.
+     * Environment context is included for IP/time-based policy evaluation.
      */
     getEffectivePermissions: () =>
       Effect.gen(function* () {
         const membership = yield* getCurrentOrganizationMembership()
         const functionalRoles = extractFunctionalRoles(membership)
+
+        // Get environment context (IP, time) if available in the context
+        const environmentContext = yield* getEnvironmentContext
 
         // Load active policies for the organization
         const policies = yield* policyRepo
@@ -310,11 +401,19 @@ const make = Effect.gen(function* () {
               allowedActions.push(action)
             }
           } else {
-            const evalContext: PolicyEvaluationContext = {
-              subject: subjectContext,
-              resource: resourceContext,
-              action
-            }
+            // Build policy evaluation context, only including environment if available
+            const evalContext: PolicyEvaluationContext = environmentContext !== undefined
+              ? {
+                  subject: subjectContext,
+                  resource: resourceContext,
+                  action,
+                  environment: environmentContext
+                }
+              : {
+                  subject: subjectContext,
+                  resource: resourceContext,
+                  action
+                }
 
             const evalResult = yield* policyEngine.evaluatePolicies(policies, evalContext)
             if (evalResult.decision === "allow") {

@@ -122,9 +122,9 @@ Platform admin capability exists in the database but cannot be managed:
 
 ### 5. Environment Condition Runtime Evaluation
 
-**Status: IMPLEMENTED BUT NOT INTEGRATED**
+**Status: IMPLEMENTED** ✓
 
-The ABAC policy engine has full environment matching logic, but it's never used at runtime:
+~~The ABAC policy engine has full environment matching logic, but it's never used at runtime~~
 
 **What's Implemented:**
 - `EnvironmentMatcher.ts` with complete matching logic:
@@ -134,19 +134,24 @@ The ABAC policy engine has full environment matching logic, but it's never used 
   - `matchesIPAllowList()` / `matchesIPDenyList()`
 - Environment condition storage in policies
 - UI to configure environment conditions (marked "Coming Soon")
+- [x] **API middleware captures request context** - `OrganizationContextMiddlewareLive.ts` provides:
+  - `captureEnvironmentContext` - Captures current time, day of week, IP address, user agent
+  - `getClientIP()` - Extracts IP from X-Forwarded-For, X-Real-IP, CF-Connecting-IP, or socket
+  - `withEnvironmentContext()` - Wraps effects to provide `CurrentEnvironmentContext`
+- [x] **PolicyEngine receives environment context** - `AuthorizationServiceLive.checkPermission()`:
+  - Reads `CurrentEnvironmentContext` from effect context when available
+  - Passes to `PolicyEvaluationContext.environment` for ABAC evaluation
+  - Falls back gracefully when environment context not provided (e.g., in tests)
+- [x] **Audit log includes IP/user agent** - Denial logs now capture ipAddress and userAgent
 
-**What's Missing:**
-- [ ] **API middleware doesn't capture request context** - No extraction of:
-  - Current time/date
-  - Client IP address
-  - User agent
-- [ ] **PolicyEngine doesn't receive environment context** - Evaluation skips environment check when context undefined
-- [ ] **IP address removed from UI** - Backend matcher exists but UI won't let you configure IP restrictions
+**What's Implemented (UI):**
+- [x] **IP address fields in policy builder** - IP Allow List and IP Deny List fields with CIDR support
 
 **Files Involved:**
-- `packages/api/src/Layers/OrganizationContextMiddlewareLive.ts` - Should capture environment context
-- `packages/persistence/src/Layers/PolicyEngineLive.ts` - Skips environment when undefined
-- `packages/web/src/components/policies/PolicyBuilderModal.tsx` - Has environment section but limited
+- `packages/core/src/Auth/CurrentEnvironmentContext.ts` - Service tag and helpers for environment context
+- `packages/api/src/Layers/OrganizationContextMiddlewareLive.ts` - Captures environment from HTTP request
+- `packages/persistence/src/Layers/AuthorizationServiceLive.ts` - Uses environment in policy evaluation
+- `packages/web/src/components/policies/PolicyBuilderModal.tsx` - Has environment section but limited (Coming Soon)
 
 ---
 
@@ -280,25 +285,17 @@ This UI component is not implemented.
 
 ### Organization Selector Role Badges
 
-**Status: IMPLEMENTED BUT SHOULD BE REMOVED**
+**Status: IMPLEMENTED** ✓
 
-The organization selector currently shows role badges next to each organization name. This adds unnecessary visual clutter to a simple selection component.
+~~The organization selector currently shows role badges next to each organization name. This adds unnecessary visual clutter to a simple selection component.~~
 
-**Current Behavior:**
-- `OrganizationSelector.tsx` displays role badges (Owner, Admin, Member, Viewer) next to org names
-- Implemented in AUTHORIZATION.md Phase G3
+**What Was Fixed:**
+- [x] Removed `RoleBadge` component usage from the dropdown list in `OrganizationSelector.tsx`
+- [x] Organization selector now shows only organization names and currency
+- [x] Selector is focused on its single purpose: switching organizations
+- [x] `RoleBadge` component is kept and used on Members page where it's contextually relevant
 
-**Correct Behavior:**
-- Organization selector should simply list organization names
-- Allow selection without showing roles
-- Role information belongs on the Members page, not in the selector dropdown
-
-**What Needs to Change:**
-- [ ] Remove `RoleBadge` component usage from `OrganizationSelector.tsx`
-- [ ] Remove role field from organization list items in selector
-- [ ] Keep selector focused on its single purpose: switching organizations
-
-**File:** `packages/web/src/components/layout/OrganizationSelector.tsx`
+**File Modified:** `packages/web/src/components/layout/OrganizationSelector.tsx`
 
 ---
 
@@ -360,10 +357,12 @@ The database has this constraint, but the UI doesn't handle the duplicate invita
 
 **Spec States:** Audit log should include IP address and user agent
 
-**Status:** FIELDS EXIST - NOT CAPTURED
+**Status:** IMPLEMENTED ✓
 
-- [ ] Extract `User-Agent` header in API middleware
-- [ ] Pass to authorization audit log
+- [x] Extract `User-Agent` header in API middleware - `captureEnvironmentContext` extracts from `request.headers["user-agent"]`
+- [x] Pass to authorization audit log - `AuthorizationServiceLive.checkPermission()` logs `ipAddress` and `userAgent` on denial
+
+**Note:** This is now captured by the environment context system. When `withEnvironmentContext()` or `requireOrganizationContext()` wraps an API handler, the environment context is available for both policy evaluation and audit logging.
 
 ---
 
@@ -377,9 +376,9 @@ The database has this constraint, but the UI doesn't handle the duplicate invita
 5. ~~**Show current owner indicator** - Visual badge in members list (30 min)~~ ✓ DONE (Crown icon)
 
 ### Phase 2: Environment Integration (Medium effort)
-6. **Capture request context in middleware** - Time, IP, user agent (2-3 hours)
-7. **Pass environment to policy engine** - Enable time/IP restrictions (1-2 hours)
-8. **Re-enable IP restrictions in policy builder** - Uncomment UI fields (30 min)
+6. ~~**Capture request context in middleware** - Time, IP, user agent (2-3 hours)~~ ✓ DONE
+7. ~~**Pass environment to policy engine** - Enable time/IP restrictions (1-2 hours)~~ ✓ DONE
+8. ~~**Re-enable IP restrictions in policy builder** - IP Allow List and IP Deny List fields (30 min)~~ ✓ DONE
 
 ### Phase 3: Fiscal Period Management (High effort)
 9. **Design fiscal period data model** - Period status table schema (1-2 hours)
@@ -408,23 +407,23 @@ The database has this constraint, but the UI doesn't handle the duplicate invita
 - `packages/web/src/components/members/EffectivePermissionsView.tsx` - Permission display
 
 ### Files to Modify:
-- `packages/web/src/routes/profile.tsx`:
-  - Fix organization context (don't clear org selector)
-  - Remove or clarify meaningless "Role" field
-  - Add "Your Organizations" section with roles
-  - Fix back navigation
-- `packages/web/src/routes/organizations/$organizationId/settings/members.tsx`:
-  - Complete removal/reinstatement API calls
-  - Add owner transfer button and modal
-  - Add owner indicator badge
-- `packages/api/src/Layers/OrganizationContextMiddlewareLive.ts`:
-  - Capture time, IP, user agent
-  - Create environment context
-- `packages/persistence/src/Layers/PolicyEngineLive.ts`:
-  - Use environment context when available
-- `packages/web/src/components/policies/PolicyBuilderModal.tsx`:
-  - Re-enable IP restriction fields
-  - Remove "Coming Soon" labels when environment evaluation works
+- `packages/web/src/routes/profile.tsx`: ✓ DONE
+  - ~~Fix organization context (don't clear org selector)~~
+  - ~~Remove or clarify meaningless "Role" field~~
+  - ~~Add "Your Organizations" section with roles~~
+  - ~~Fix back navigation~~
+- `packages/web/src/routes/organizations/$organizationId/settings/members.tsx`: ✓ DONE
+  - ~~Complete removal/reinstatement API calls~~
+  - ~~Add owner transfer button and modal~~
+  - ~~Add owner indicator badge~~
+- `packages/api/src/Layers/OrganizationContextMiddlewareLive.ts`: ✓ DONE
+  - ~~Capture time, IP, user agent~~
+  - ~~Create environment context~~
+- `packages/persistence/src/Layers/AuthorizationServiceLive.ts`: ✓ DONE (not PolicyEngineLive)
+  - ~~Use environment context when available~~
+- `packages/web/src/components/policies/PolicyBuilderModal.tsx`: ✓ DONE
+  - ~~Re-enable IP restriction fields~~ - Added IP Allow List and IP Deny List input fields
+  - ~~Remove "Coming Soon" labels when environment evaluation works~~ - Updated info banner to reflect that environment conditions are now evaluated at runtime
 
 ---
 

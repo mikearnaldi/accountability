@@ -19,6 +19,7 @@
     "./Auth/AuthUser": "./src/Auth/AuthUser.ts",
     "./Auth/AuthUserId": "./src/Auth/AuthUserId.ts",
     "./Auth/BaseRole": "./src/Auth/BaseRole.ts",
+    "./Auth/CurrentEnvironmentContext": "./src/Auth/CurrentEnvironmentContext.ts",
     "./Auth/CurrentOrganizationMembership": "./src/Auth/CurrentOrganizationMembership.ts",
     "./Auth/CurrentUser": "./src/Auth/CurrentUser.ts",
     "./Auth/Email": "./src/Auth/Email.ts",

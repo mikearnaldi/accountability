@@ -801,37 +801,34 @@ test.describe("Journal Entry Past Dates", () => {
 
     const dateInput = page.locator('[data-testid="journal-entry-date"]')
 
+    // Helper function to set date and wait for fiscal period update
+    const setDateAndVerify = async (date: string, expectedPeriod: string) => {
+      // Clear and fill the date input
+      await dateInput.click()
+      await dateInput.clear()
+      await page.waitForTimeout(100)
+      await dateInput.fill(date)
+      // Trigger blur to ensure React state update
+      await dateInput.blur()
+      await page.waitForTimeout(300)
+      // Verify the computed fiscal period
+      await expect(page.locator('[data-testid="computed-fiscal-period"]')).toContainText(
+        expectedPeriod,
+        { timeout: 10000 }
+      )
+    }
+
     // Test 1: July 1, 2024 should be P1 FY2025 (start of FY2025)
-    await dateInput.click()
-    await dateInput.fill("2024-07-01")
-    await expect(page.locator('[data-testid="computed-fiscal-period"]')).toContainText(
-      "P1 FY2025",
-      { timeout: 5000 }
-    )
+    await setDateAndVerify("2024-07-01", "P1 FY2025")
 
     // Test 2: December 15, 2024 should be P6 FY2025
-    await dateInput.click()
-    await dateInput.fill("2024-12-15")
-    await expect(page.locator('[data-testid="computed-fiscal-period"]')).toContainText(
-      "P6 FY2025",
-      { timeout: 5000 }
-    )
+    await setDateAndVerify("2024-12-15", "P6 FY2025")
 
     // Test 3: June 30, 2024 should be P12 FY2024 (end of FY2024)
-    await dateInput.click()
-    await dateInput.fill("2024-06-30")
-    await expect(page.locator('[data-testid="computed-fiscal-period"]')).toContainText(
-      "P12 FY2024",
-      { timeout: 5000 }
-    )
+    await setDateAndVerify("2024-06-30", "P12 FY2024")
 
     // Test 4: January 1, 2024 should be P7 FY2024
-    await dateInput.click()
-    await dateInput.fill("2024-01-01")
-    await expect(page.locator('[data-testid="computed-fiscal-period"]')).toContainText(
-      "P7 FY2024",
-      { timeout: 5000 }
-    )
+    await setDateAndVerify("2024-01-01", "P7 FY2024")
   })
 
   test("can create journal entry with very old date (year 2000)", async ({

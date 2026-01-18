@@ -4,12 +4,14 @@
  * Dropdown to select the current organization context.
  * Features:
  * - Shows current organization name prominently
- * - Dropdown list of user's organizations with role badges
+ * - Dropdown list of user's organizations
  * - Navigation to organization on selection
  * - Option to create new organization
  * - Data-testid attributes for E2E testing
  *
- * Phase G3 of AUTHORIZATION.md specification.
+ * Note: Role badges are intentionally NOT shown in the selector dropdown
+ * to keep the component focused on its primary purpose of switching organizations.
+ * Role information is displayed on the Members page where it's contextually relevant.
  */
 
 import { useNavigate, Link } from "@tanstack/react-router"
@@ -231,18 +233,14 @@ export function OrganizationSelector({
 
                     {/* Organization Info */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p
-                          className={clsx(
-                            "text-sm font-medium truncate",
-                            isSelected ? "text-blue-700" : "text-gray-900"
-                          )}
-                        >
-                          {org.name}
-                        </p>
-                        {/* Role Badge */}
-                        {org.role && <RoleBadge role={org.role} size="sm" />}
-                      </div>
+                      <p
+                        className={clsx(
+                          "text-sm font-medium truncate",
+                          isSelected ? "text-blue-700" : "text-gray-900"
+                        )}
+                      >
+                        {org.name}
+                      </p>
                       {org.reportingCurrency && (
                         <p className="text-xs text-gray-500">{org.reportingCurrency}</p>
                       )}

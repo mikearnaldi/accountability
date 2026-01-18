@@ -21,6 +21,7 @@
  * @module OrganizationContextMiddlewareLive
  */
 
+import { HttpServerRequest } from "@effect/platform"
 import * as Effect from "effect/Effect"
 import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
@@ -31,6 +32,11 @@ import {
   CurrentOrganizationMembership,
   withOrganizationMembership
 } from "@accountability/core/Auth/CurrentOrganizationMembership"
+import {
+  CurrentEnvironmentContext,
+  createEnvironmentContextFromRequest,
+  type EnvironmentContextWithMeta
+} from "@accountability/core/Auth/CurrentEnvironmentContext"
 import { OrganizationMembership } from "@accountability/core/Auth/OrganizationMembership"
 import { OrganizationMembershipId } from "@accountability/core/Auth/OrganizationMembershipId"
 import { AuthorizationService } from "@accountability/core/Auth/AuthorizationService"
@@ -416,3 +422,150 @@ export const requirePermission = (action: Action) =>
       )
     )
   })
+
+// =============================================================================
+// Environment Context Helpers
+// =============================================================================
+
+/**
+ * getClientIP - Extract the client IP address from the request
+ *
+ * Checks for common proxy headers (X-Forwarded-For, X-Real-IP, CF-Connecting-IP)
+ * before falling back to the socket remote address.
+ *
+ * @param request - The HTTP server request
+ * @returns The client IP address if available
+ */
+export const getClientIP = (request: HttpServerRequest.HttpServerRequest): string | undefined => {
+  // Check X-Forwarded-For header (standard proxy header)
+  const xForwardedFor = request.headers["x-forwarded-for"]
+  if (xForwardedFor !== undefined) {
+    // X-Forwarded-For can contain multiple IPs, take the first (client) one
+    const firstIP = xForwardedFor.split(",")[0]?.trim()
+    if (firstIP) {
+      return firstIP
+    }
+  }
+
+  // Check X-Real-IP header (nginx default)
+  const xRealIP = request.headers["x-real-ip"]
+  if (xRealIP !== undefined) {
+    return xRealIP.trim()
+  }
+
+  // Check CF-Connecting-IP header (Cloudflare)
+  const cfConnectingIP = request.headers["cf-connecting-ip"]
+  if (cfConnectingIP !== undefined) {
+    return cfConnectingIP.trim()
+  }
+
+  // Fall back to socket remote address
+  return Option.getOrUndefined(request.remoteAddress)
+}
+
+/**
+ * captureEnvironmentContext - Capture environment context from the HTTP request
+ *
+ * Extracts:
+ * - IP address (from proxy headers or socket)
+ * - User-Agent header
+ * - Current time
+ * - Current day of week
+ *
+ * @returns Effect that yields the environment context
+ *
+ * Requires: HttpServerRequest
+ */
+export const captureEnvironmentContext: Effect.Effect<
+  EnvironmentContextWithMeta,
+  never,
+  HttpServerRequest.HttpServerRequest
+> = Effect.gen(function* () {
+  const request = yield* HttpServerRequest.HttpServerRequest
+
+  // Extract IP address
+  const ipAddress = getClientIP(request)
+
+  // Extract User-Agent header
+  const userAgent = request.headers["user-agent"]
+
+  // Create environment context with current time
+  return createEnvironmentContextFromRequest(ipAddress, userAgent)
+})
+
+/**
+ * withEnvironmentContext - Provide environment context for an effect
+ *
+ * Captures environment context from the HTTP request and provides it
+ * to the wrapped effect. This enables environment-based policy evaluation
+ * (time restrictions, IP restrictions, etc.).
+ *
+ * @param effect - The effect to run with environment context
+ * @returns Effect with CurrentEnvironmentContext provided
+ *
+ * Requires: HttpServerRequest
+ *
+ * @example
+ * ```typescript
+ * .handle("myEndpoint", ({ path }) =>
+ *   withEnvironmentContext(
+ *     requireOrganizationContext(path.orgId,
+ *       Effect.gen(function* () {
+ *         // CurrentEnvironmentContext is available for policy evaluation
+ *         yield* requirePermission("account:create")
+ *         // ...
+ *       })
+ *     )
+ *   )
+ * )
+ * ```
+ */
+export const withEnvironmentContext = <A, E, R>(
+  effect: Effect.Effect<A, E, R | CurrentEnvironmentContext>
+): Effect.Effect<
+  A,
+  E,
+  Exclude<R, CurrentEnvironmentContext> | HttpServerRequest.HttpServerRequest
+> =>
+  Effect.gen(function* () {
+    const envContext = yield* captureEnvironmentContext
+    return yield* Effect.provideService(effect, CurrentEnvironmentContext, envContext)
+  })
+
+/**
+ * requireOrganizationContextWithEnv - Validate org ID and provide membership + environment context
+ *
+ * Convenience function that combines requireOrganizationContext and withEnvironmentContext.
+ * Use this in handlers when you need both organization membership and environment context
+ * for ABAC policy evaluation.
+ *
+ * @param orgIdString - The raw organization ID string from path parameter
+ * @param effect - The effect to run with organization and environment context
+ * @returns Effect with CurrentOrganizationMembership and CurrentEnvironmentContext provided
+ *
+ * @example
+ * ```typescript
+ * .handle("myEndpoint", ({ path }) =>
+ *   requireOrganizationContextWithEnv(path.orgId,
+ *     Effect.gen(function* () {
+ *       // Both CurrentOrganizationMembership and CurrentEnvironmentContext available
+ *       yield* requirePermission("account:create")
+ *       // ...
+ *     })
+ *   )
+ * )
+ * ```
+ */
+// Note: For combined organization + environment context, compose the helpers:
+//
+// withEnvironmentContext(
+//   requireOrganizationContext(path.orgId,
+//     Effect.gen(function* () {
+//       // Both CurrentOrganizationMembership and CurrentEnvironmentContext available
+//       yield* requirePermission("account:create")
+//     })
+//   )
+// )
+//
+// The environment context will be available in AuthorizationServiceLive.checkPermission
+// for ABAC policy evaluation with time/IP-based conditions.

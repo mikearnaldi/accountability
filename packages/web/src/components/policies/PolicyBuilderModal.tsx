@@ -344,7 +344,7 @@ export function PolicyBuilderModal({
   )
   const [actionSearch, setActionSearch] = useState("")
 
-  // Phase I6: Environment conditions (Note: currently stored but not evaluated at runtime)
+  // Phase I6: Environment conditions (now evaluated at runtime)
   const [hasTimeRestriction, setHasTimeRestriction] = useState(
     Boolean(existingPolicy?.environment?.timeOfDay)
   )
@@ -352,6 +352,13 @@ export function PolicyBuilderModal({
   const [timeEnd, setTimeEnd] = useState(existingPolicy?.environment?.timeOfDay?.end ?? "17:00")
   const [selectedDays, setSelectedDays] = useState<number[]>(
     [...(existingPolicy?.environment?.daysOfWeek ?? [])]
+  )
+  // IP restrictions
+  const [ipAllowListText, setIpAllowListText] = useState(
+    existingPolicy?.environment?.ipAllowList?.join(", ") ?? ""
+  )
+  const [ipDenyListText, setIpDenyListText] = useState(
+    existingPolicy?.environment?.ipDenyList?.join(", ") ?? ""
   )
 
   // UI state
@@ -476,18 +483,36 @@ export function PolicyBuilderModal({
     const actionsArray: ActionType[] = validatedActions.length > 0 ? validatedActions : ["*"]
     const action = { actions: actionsArray }
 
-    // Build environment condition (Note: currently stored but not evaluated at runtime)
+    // Build environment condition (now evaluated at runtime)
+    // Parse IP lists from comma-separated text
+    const ipAllowList = ipAllowListText
+      .split(",")
+      .map((ip) => ip.trim())
+      .filter((ip) => ip.length > 0)
+    const ipDenyList = ipDenyListText
+      .split(",")
+      .map((ip) => ip.trim())
+      .filter((ip) => ip.length > 0)
+
     let environment: {
       timeOfDay?: { start: string; end: string }
       daysOfWeek?: number[]
+      ipAllowList?: string[]
+      ipDenyList?: string[]
     } | null = null
-    if (hasTimeRestriction || selectedDays.length > 0) {
+    if (hasTimeRestriction || selectedDays.length > 0 || ipAllowList.length > 0 || ipDenyList.length > 0) {
       environment = {}
       if (hasTimeRestriction) {
         environment.timeOfDay = { start: timeStart, end: timeEnd }
       }
       if (selectedDays.length > 0) {
         environment.daysOfWeek = [...selectedDays]
+      }
+      if (ipAllowList.length > 0) {
+        environment.ipAllowList = ipAllowList
+      }
+      if (ipDenyList.length > 0) {
+        environment.ipDenyList = ipDenyList
       }
     }
 
@@ -970,20 +995,20 @@ export function PolicyBuilderModal({
             </div>
           </section>
 
-          {/* Phase I6: Environment Conditions - Note: Currently stored but not evaluated at runtime */}
+          {/* Phase I6: Environment Conditions */}
           <section>
             <h3 className="text-sm font-medium text-gray-900 mb-4 flex items-center gap-2">
               <Shield className="h-4 w-4 text-gray-400" />
-              When (Time Conditions)
-              <span className="text-xs text-gray-400 font-normal">(Optional - Coming Soon)</span>
+              When &amp; Where (Environment Conditions)
+              <span className="text-xs text-gray-400 font-normal">(Optional)</span>
             </h3>
             <div className="space-y-4">
               {/* Info Banner */}
-              <div className="flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 p-3">
-                <Info className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
-                <p className="text-xs text-amber-700">
-                  <strong>Note:</strong> Time-based conditions are stored but not currently enforced at runtime.
-                  This feature is planned for a future release.
+              <div className="flex items-start gap-2 rounded-lg bg-blue-50 border border-blue-200 p-3">
+                <Info className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-blue-700">
+                  <strong>Environment conditions</strong> are evaluated at runtime.
+                  Time, day of week, and IP restrictions are enforced when checking permissions.
                 </p>
               </div>
 
@@ -1044,6 +1069,27 @@ export function PolicyBuilderModal({
                 {selectedDays.length === 0 && (
                   <p className="mt-1 text-xs text-gray-500">No restriction (all days)</p>
                 )}
+              </div>
+
+              {/* IP Restrictions */}
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 space-y-4">
+                <p className="text-sm font-medium text-gray-700">IP Address Restrictions</p>
+                <Input
+                  label="IP Allow List"
+                  value={ipAllowListText}
+                  onChange={(e) => setIpAllowListText(e.target.value)}
+                  placeholder="e.g., 192.168.1.0/24, 10.0.0.1"
+                  helperText="Comma-separated IP addresses or CIDR ranges. If specified, only these IPs can access."
+                  data-testid="policy-ip-allow-list"
+                />
+                <Input
+                  label="IP Deny List"
+                  value={ipDenyListText}
+                  onChange={(e) => setIpDenyListText(e.target.value)}
+                  placeholder="e.g., 192.168.1.100, 10.0.0.0/8"
+                  helperText="Comma-separated IP addresses or CIDR ranges. These IPs will be blocked."
+                  data-testid="policy-ip-deny-list"
+                />
               </div>
             </div>
           </section>

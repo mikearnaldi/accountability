@@ -381,33 +381,49 @@ test.describe("Create Organization Page (/organizations/new)", () => {
     // 3. Navigate to create organization page
     await page.goto("/organizations/new")
 
-    // 4. Fill form
-    const orgName = `E2E Test Org ${Date.now()}`
-    await page.fill("#org-name", orgName)
-    await page.selectOption("#org-currency", "EUR")
-
-    // 5. Blur the form fields by clicking elsewhere to settle state
-    await page.getByRole("heading", { name: "Create Organization" }).click()
-    await page.waitForTimeout(100)
-
-    // 6. Submit form and wait for response
-    await Promise.all([
-      page.waitForResponse((resp) =>
-        resp.url().includes("/api/v1/organizations") && resp.request().method() === "POST"
-      ),
-      page.getByTestId("org-form-submit-button").click()
-    ])
-
-    // 7. Wait for navigation to complete (URL should have UUID)
-    await page.waitForURL(/\/organizations\/[a-f0-9-]+$/, { timeout: 15000 })
-
-    // 8. Wait for page to be fully hydrated
+    // 4. Wait for form to be fully hydrated
+    await expect(page.getByTestId("organization-form")).toBeVisible()
     await page.waitForTimeout(500)
 
-    // 9. Wait for the organization name heading to appear on the detail page
+    // 5. Fill form using data-testid for reliable targeting
+    const orgName = `E2E Test Org ${Date.now()}`
+    const nameInput = page.getByTestId("org-name-input")
+    await expect(nameInput).toBeVisible()
+    await nameInput.click()
+    await nameInput.fill(orgName)
+
+    // Select currency using data-testid
+    const currencySelect = page.getByTestId("org-currency-select")
+    await expect(currencySelect).toBeVisible()
+    await currencySelect.selectOption("EUR")
+
+    // 6. Wait for form to be fully hydrated before submitting
+    await page.waitForTimeout(500)
+
+    // 7. Ensure submit button is ready
+    const submitButton = page.getByTestId("org-form-submit-button")
+    await expect(submitButton).toBeVisible()
+    await expect(submitButton).toBeEnabled()
+
+    // 8. Submit form with force click and wait for response
+    await Promise.all([
+      page.waitForResponse((resp) =>
+        resp.url().includes("/api/v1/organizations") && resp.request().method() === "POST",
+        { timeout: 15000 }
+      ),
+      submitButton.click({ force: true })
+    ])
+
+    // 9. Wait for navigation to complete (URL should have UUID)
+    await page.waitForURL(/\/organizations\/[a-f0-9-]+$/, { timeout: 15000 })
+
+    // 10. Wait for page to be fully hydrated
+    await page.waitForTimeout(500)
+
+    // 11. Wait for the organization name heading to appear on the detail page
     await expect(page.getByRole("heading", { name: orgName })).toBeVisible({ timeout: 10000 })
 
-    // 10. Verify we're on the organization detail page
+    // 12. Verify we're on the organization detail page
     expect(page.url()).toMatch(/\/organizations\/[a-f0-9-]+/)
   })
 
@@ -456,29 +472,52 @@ test.describe("Create Organization Page (/organizations/new)", () => {
     // 3. Navigate to create organization page
     await page.goto("/organizations/new")
 
-    // 4. Fill basic fields
-    const orgName = `Settings Org ${Date.now()}`
-    await page.fill("#org-name", orgName)
-    await page.selectOption("#org-currency", "GBP")
-
-    // 5. Expand settings panel
-    await page.getByTestId("org-settings-toggle").click()
-
-    // 6. Change settings
-    await page.selectOption("#org-locale", "en-GB")
-    await page.selectOption("#org-timezone", "Europe/London")
-    await page.selectOption("#org-decimal-places", "3")
-
-    // 7. Submit form
-    await page.getByTestId("org-form-submit-button").click()
-
-    // 8. Should navigate to organization detail page
-    await page.waitForURL(/\/organizations\/[^/]+$/, { timeout: 15000 })
-
-    // 9. Wait for page to be fully hydrated
+    // 4. Wait for form to be fully hydrated
+    await expect(page.getByTestId("organization-form")).toBeVisible()
     await page.waitForTimeout(500)
 
-    // 10. Verify the organization was created with correct settings (use heading to avoid matching breadcrumb)
+    // 5. Fill basic fields using data-testid for reliable targeting
+    const orgName = `Settings Org ${Date.now()}`
+    const nameInput = page.getByTestId("org-name-input")
+    await expect(nameInput).toBeVisible()
+    await nameInput.click()
+    await nameInput.fill(orgName)
+
+    const currencySelect = page.getByTestId("org-currency-select")
+    await expect(currencySelect).toBeVisible()
+    await currencySelect.selectOption("GBP")
+
+    // 6. Expand settings panel
+    const settingsToggle = page.getByTestId("org-settings-toggle")
+    await expect(settingsToggle).toBeVisible()
+    await settingsToggle.click()
+    await page.waitForTimeout(300)
+
+    // 7. Change settings using data-testid
+    const localeSelect = page.getByTestId("org-locale-select")
+    await expect(localeSelect).toBeVisible()
+    await localeSelect.selectOption("en-GB")
+
+    const timezoneSelect = page.getByTestId("org-timezone-select")
+    await expect(timezoneSelect).toBeVisible()
+    await timezoneSelect.selectOption("Europe/London")
+
+    const decimalSelect = page.getByTestId("org-decimal-places-select")
+    await expect(decimalSelect).toBeVisible()
+    await decimalSelect.selectOption("3")
+
+    // 8. Submit form
+    const submitButton = page.getByTestId("org-form-submit-button")
+    await expect(submitButton).toBeEnabled()
+    await submitButton.click({ force: true })
+
+    // 9. Should navigate to organization detail page
+    await page.waitForURL(/\/organizations\/[^/]+$/, { timeout: 15000 })
+
+    // 10. Wait for page to be fully hydrated
+    await page.waitForTimeout(500)
+
+    // 11. Verify the organization was created with correct settings (use heading to avoid matching breadcrumb)
     await expect(page.getByRole("heading", { name: orgName })).toBeVisible({ timeout: 10000 })
     await expect(page.getByText("GBP")).toBeVisible()
     await expect(page.getByText("Europe/London")).toBeVisible()

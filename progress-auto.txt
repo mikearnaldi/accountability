@@ -594,3 +594,8 @@
 **Task**: Fixed profile page - preserved org context, removed broken Role field, added Your Organizations section with roles
 **Status**: complete
 ---
+
+## Iteration 7 - 2026-01-18 13:40
+**Task**: Fixed CI E2E tests, added IP restriction fields to policy builder, removed role badges from org selector
+**Status**: complete
+---

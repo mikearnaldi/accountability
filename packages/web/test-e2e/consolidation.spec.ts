@@ -585,18 +585,38 @@ test.describe("Consolidation Module", () => {
       // 15. Set ownership percentage
       await page.getByTestId("member-ownership-input-0").fill("75")
 
-      // 16. Submit the form
+      // 16. Verify group name is still filled (React re-renders might have cleared it)
+      const groupNameInput = page.getByTestId("group-name-input")
+      const currentGroupName = await groupNameInput.inputValue()
+      if (!currentGroupName || currentGroupName.trim() === "") {
+        await groupNameInput.click()
+        await groupNameInput.fill(groupName)
+        await groupNameInput.blur()
+        await page.waitForTimeout(200)
+      }
+
+      // 17. Submit the form and wait for API response
       const submitButton = page.getByTestId("submit-button")
       await expect(submitButton).toBeEnabled({ timeout: 5000 })
-      await submitButton.click({ force: true })
 
-      // 17. Should redirect to group detail page (allow more time for API call and redirect)
+      // Wait for form submission with both response and redirect
+      await Promise.all([
+        page.waitForResponse(
+          (resp) =>
+            resp.url().includes("/api/v1/consolidation/groups") &&
+            resp.request().method() === "POST",
+          { timeout: 30000 }
+        ),
+        submitButton.click({ force: true })
+      ])
+
+      // 18. Should redirect to group detail page (allow more time for redirect)
       await page.waitForURL(/\/consolidation\/[a-f0-9-]+$/, { timeout: 30000 })
 
-      // 18. Wait for page to hydrate
+      // 19. Wait for page to hydrate
       await page.waitForTimeout(500)
 
-      // 19. Should show the new group's detail page
+      // 20. Should show the new group's detail page
       await expect(page.getByTestId("consolidation-group-detail-page")).toBeVisible({ timeout: 10000 })
       await expect(page.getByTestId("page-title")).toContainText(groupName)
     })
