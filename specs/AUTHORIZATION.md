@@ -438,13 +438,30 @@ Same pattern as E7.
 
 ---
 
-#### Phase E10: Permission Checks in FiscalPeriodsApi
-Same pattern as E7.
+#### Phase E10: Permission Checks in FiscalPeriodsApi ✅ N/A
+FiscalPeriodsApi does not exist in the codebase - fiscal periods are computed automatically as FiscalPeriodRef value objects within JournalEntry entities, not managed via a separate API.
 
 ---
 
-#### Phase E11: Permission Checks in ConsolidationApi
+#### Phase E11: Permission Checks in ConsolidationApi ✅ COMPLETE
 Same pattern as E7.
+
+**Completed**:
+- Added permission checks to all Consolidation endpoints (21 endpoints total)
+- Group operations: listConsolidationGroups, getConsolidationGroup, createConsolidationGroup, updateConsolidationGroup, deleteConsolidationGroup, activateConsolidationGroup, deactivateConsolidationGroup
+- Member operations: addGroupMember, updateGroupMember, removeGroupMember
+- Run operations: listConsolidationRuns, getConsolidationRun, initiateConsolidationRun, cancelConsolidationRun, deleteConsolidationRun, getConsolidatedTrialBalance, getLatestCompletedRun
+- Report operations: getConsolidatedBalanceSheet, getConsolidatedIncomeStatement, getConsolidatedCashFlowStatement, getConsolidatedEquityStatement
+- Permission mapping:
+  - `consolidation_group:read` - list, get, and trial balance operations
+  - `consolidation_group:create` - create group
+  - `consolidation_group:update` - update group, activate/deactivate, add/update/remove members
+  - `consolidation_group:delete` - delete group
+  - `consolidation_group:run` - initiate, cancel, delete runs
+  - `report:read` - consolidated financial reports
+- Added ForbiddenError to all API endpoint error types
+- Wrapped handlers with `requireOrganizationContext` and `requirePermission`
+- All 3620 tests pass, typecheck clean, lint clean
 
 ---
 

@@ -43,6 +43,7 @@ import {
   ValidationError,
   BusinessRuleError
 } from "../Definitions/ApiErrors.ts"
+import { requireOrganizationContext, requirePermission } from "./OrganizationContextMiddlewareLive.ts"
 
 /**
  * Convert persistence errors to NotFoundError
@@ -104,801 +105,885 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
 
     return handlers
       .handle("listConsolidationGroups", (_) =>
-        Effect.gen(function* () {
-          const { organizationId, isActive } = _.urlParams
+        requireOrganizationContext(_.urlParams.organizationId,
+          Effect.gen(function* () {
+            yield* requirePermission("consolidation_group:read")
 
-          let groups: ReadonlyArray<ConsolidationGroup>
+            const { organizationId, isActive } = _.urlParams
 
-          if (isActive === true) {
-            groups = yield* consolidationRepo.findActiveGroups(organizationId).pipe(
-              Effect.mapError((e) => mapPersistenceToValidation(e))
-            )
-          } else {
-            groups = yield* consolidationRepo.findGroupsByOrganization(organizationId).pipe(
-              Effect.mapError((e) => mapPersistenceToValidation(e))
-            )
-          }
+            let groups: ReadonlyArray<ConsolidationGroup>
 
-          // Apply pagination
-          const total = groups.length
-          const limit = _.urlParams.limit ?? 100
-          const offset = _.urlParams.offset ?? 0
-          const paginatedGroups = groups.slice(offset, offset + limit)
-
-          return {
-            groups: paginatedGroups,
-            total,
-            limit,
-            offset
-          }
-        })
-      )
-      .handle("getConsolidationGroup", (_) =>
-        Effect.gen(function* () {
-          const groupId = _.path.id
-          const organizationId = _.urlParams.organizationId
-
-          const maybeGroup = yield* consolidationRepo.findGroup(organizationId, groupId).pipe(
-            Effect.mapError((e) => mapPersistenceToNotFound("ConsolidationGroup", groupId, e))
-          )
-
-          if (Option.isNone(maybeGroup)) {
-            return yield* Effect.fail(new NotFoundError({ resource: "ConsolidationGroup", id: groupId }))
-          }
-
-          return {
-            group: maybeGroup.value,
-            members: Array.fromIterable(Chunk.toArray(maybeGroup.value.members))
-          }
-        })
-      )
-      .handle("createConsolidationGroup", (_) =>
-        Effect.gen(function* () {
-          const req = _.payload
-
-          // Validate parent company exists within organization
-          const parentCompanyExists = yield* companyRepo.exists(req.organizationId, req.parentCompanyId).pipe(
-            Effect.mapError((e) => mapPersistenceToBusinessRule(e))
-          )
-          if (!parentCompanyExists) {
-            return yield* Effect.fail(new BusinessRuleError({
-              code: "PARENT_COMPANY_NOT_FOUND",
-              message: `Parent company not found: ${req.parentCompanyId}`,
-              details: Option.none()
-            }))
-          }
-
-          // Create members from input - using provided acquisition date or default to today
-          const today = LocalDate.make({ year: new Date().getFullYear(), month: new Date().getMonth() + 1, day: new Date().getDate() })
-          const members = Chunk.fromIterable(
-            req.members.map((m) =>
-              ConsolidationMember.make({
-                companyId: m.companyId,
-                ownershipPercentage: m.ownershipPercentage,
-                consolidationMethod: m.consolidationMethod,
-                acquisitionDate: Option.isSome(m.acquisitionDate) ? m.acquisitionDate.value : today,
-                goodwillAmount: Option.none(),
-                nonControllingInterestPercentage: Percentage.make(100 - m.ownershipPercentage),
-                vieDetermination: Option.none()
-              })
-            )
-          )
-
-          // Create the group
-          const newGroup = ConsolidationGroup.make({
-            id: ConsolidationGroupId.make(crypto.randomUUID()),
-            organizationId: req.organizationId,
-            name: req.name,
-            reportingCurrency: req.reportingCurrency,
-            consolidationMethod: req.consolidationMethod,
-            parentCompanyId: req.parentCompanyId,
-            members,
-            eliminationRuleIds: Chunk.empty(),
-            isActive: true
-          })
-
-          const createdGroup = yield* consolidationRepo.createGroup(newGroup).pipe(
-            Effect.mapError((e) => mapPersistenceToBusinessRule(e))
-          )
-
-          return {
-            group: createdGroup,
-            members: Array.fromIterable(Chunk.toArray(createdGroup.members))
-          }
-        })
-      )
-      .handle("updateConsolidationGroup", (_) =>
-        Effect.gen(function* () {
-          const groupId = _.path.id
-          const organizationId = _.urlParams.organizationId
-          const req = _.payload
-
-          // Get existing group
-          const maybeExisting = yield* consolidationRepo.findGroup(organizationId, groupId).pipe(
-            Effect.mapError((e) => mapPersistenceToBusinessRule(e))
-          )
-          if (Option.isNone(maybeExisting)) {
-            return yield* Effect.fail(new NotFoundError({ resource: "ConsolidationGroup", id: groupId }))
-          }
-          const existing = maybeExisting.value
-
-          // Build updated group
-          const updatedGroup = ConsolidationGroup.make({
-            ...existing,
-            name: Option.isSome(req.name) ? req.name.value : existing.name,
-            consolidationMethod: Option.isSome(req.consolidationMethod) ? req.consolidationMethod.value : existing.consolidationMethod,
-            reportingCurrency: Option.isSome(req.reportingCurrency) ? req.reportingCurrency.value : existing.reportingCurrency
-          })
-
-          return yield* consolidationRepo.updateGroup(organizationId, updatedGroup).pipe(
-            Effect.mapError((e) => mapPersistenceToBusinessRule(e))
-          )
-        })
-      )
-      .handle("deleteConsolidationGroup", (_) =>
-        Effect.gen(function* () {
-          const groupId = _.path.id
-          const organizationId = _.urlParams.organizationId
-
-          // Check if exists
-          const exists = yield* consolidationRepo.groupExists(organizationId, groupId).pipe(
-            Effect.mapError((e) => mapPersistenceToBusinessRule(e))
-          )
-          if (!exists) {
-            return yield* Effect.fail(new NotFoundError({ resource: "ConsolidationGroup", id: groupId }))
-          }
-
-          // Check for completed runs
-          const runs = yield* consolidationRepo.findRunsByGroup(organizationId, groupId).pipe(
-            Effect.mapError((e) => mapPersistenceToBusinessRule(e))
-          )
-          const completedRuns = runs.filter((r) => r.status === "Completed")
-          if (completedRuns.length > 0) {
-            return yield* Effect.fail(new BusinessRuleError({
-              code: "HAS_COMPLETED_RUNS",
-              message: `Cannot delete group with ${completedRuns.length} completed runs`,
-              details: Option.none()
-            }))
-          }
-
-          // For now, we don't have a delete method - just deactivate
-          return yield* Effect.fail(new BusinessRuleError({
-            code: "DELETE_NOT_SUPPORTED",
-            message: "Group deletion is not yet implemented. Use deactivation instead.",
-            details: Option.none()
-          }))
-        })
-      )
-      .handle("activateConsolidationGroup", (_) =>
-        Effect.gen(function* () {
-          const groupId = _.path.id
-          const organizationId = _.urlParams.organizationId
-
-          const maybeGroup = yield* consolidationRepo.findGroup(organizationId, groupId).pipe(
-            Effect.mapError((e) => mapPersistenceToBusinessRule(e))
-          )
-          if (Option.isNone(maybeGroup)) {
-            return yield* Effect.fail(new NotFoundError({ resource: "ConsolidationGroup", id: groupId }))
-          }
-
-          const updatedGroup = ConsolidationGroup.make({
-            ...maybeGroup.value,
-            isActive: true
-          })
-
-          return yield* consolidationRepo.updateGroup(organizationId, updatedGroup).pipe(
-            Effect.mapError((e) => mapPersistenceToBusinessRule(e))
-          )
-        })
-      )
-      .handle("deactivateConsolidationGroup", (_) =>
-        Effect.gen(function* () {
-          const groupId = _.path.id
-          const organizationId = _.urlParams.organizationId
-
-          const maybeGroup = yield* consolidationRepo.findGroup(organizationId, groupId).pipe(
-            Effect.mapError((e) => mapPersistenceToBusinessRule(e))
-          )
-          if (Option.isNone(maybeGroup)) {
-            return yield* Effect.fail(new NotFoundError({ resource: "ConsolidationGroup", id: groupId }))
-          }
-
-          const updatedGroup = ConsolidationGroup.make({
-            ...maybeGroup.value,
-            isActive: false
-          })
-
-          return yield* consolidationRepo.updateGroup(organizationId, updatedGroup).pipe(
-            Effect.mapError((e) => mapPersistenceToBusinessRule(e))
-          )
-        })
-      )
-      .handle("addGroupMember", (_) =>
-        Effect.gen(function* () {
-          const groupId = _.path.id
-          const organizationId = _.urlParams.organizationId
-          const req = _.payload
-
-          // Get existing group
-          const maybeGroup = yield* consolidationRepo.findGroup(organizationId, groupId).pipe(
-            Effect.mapError((e) => mapPersistenceToBusinessRule(e))
-          )
-          if (Option.isNone(maybeGroup)) {
-            return yield* Effect.fail(new NotFoundError({ resource: "ConsolidationGroup", id: groupId }))
-          }
-          const existing = maybeGroup.value
-
-          // Check company not already a member
-          const existingMember = Chunk.findFirst(existing.members, (m) => m.companyId === req.companyId)
-          if (Option.isSome(existingMember)) {
-            return yield* Effect.fail(new BusinessRuleError({
-              code: "ALREADY_MEMBER",
-              message: `Company ${req.companyId} is already a member of this group`,
-              details: Option.none()
-            }))
-          }
-
-          // Create new member - using provided acquisition date or default to today
-          const today = LocalDate.make({ year: new Date().getFullYear(), month: new Date().getMonth() + 1, day: new Date().getDate() })
-          const newMember = ConsolidationMember.make({
-            companyId: req.companyId,
-            ownershipPercentage: req.ownershipPercentage,
-            consolidationMethod: req.consolidationMethod,
-            acquisitionDate: Option.isSome(req.acquisitionDate) ? req.acquisitionDate.value : today,
-            goodwillAmount: Option.none(),
-            nonControllingInterestPercentage: Percentage.make(100 - req.ownershipPercentage),
-            vieDetermination: Option.none()
-          })
-
-          // Add member to group
-          const updatedGroup = ConsolidationGroup.make({
-            ...existing,
-            members: Chunk.append(existing.members, newMember)
-          })
-
-          const savedGroup = yield* consolidationRepo.updateGroup(organizationId, updatedGroup).pipe(
-            Effect.mapError((e) => mapPersistenceToBusinessRule(e))
-          )
-
-          return {
-            group: savedGroup,
-            members: Array.fromIterable(Chunk.toArray(savedGroup.members))
-          }
-        })
-      )
-      .handle("updateGroupMember", (_) =>
-        Effect.gen(function* () {
-          const groupId = _.path.id
-          const companyId = _.path.companyId
-          const organizationId = _.urlParams.organizationId
-          const req = _.payload
-
-          // Get existing group
-          const maybeGroup = yield* consolidationRepo.findGroup(organizationId, groupId).pipe(
-            Effect.mapError((e) => mapPersistenceToBusinessRule(e))
-          )
-          if (Option.isNone(maybeGroup)) {
-            return yield* Effect.fail(new NotFoundError({ resource: "ConsolidationGroup", id: groupId }))
-          }
-          const existing = maybeGroup.value
-
-          // Find member
-          const memberIndex = Chunk.findFirstIndex(existing.members, (m) => m.companyId === companyId)
-          if (Option.isNone(memberIndex)) {
-            return yield* Effect.fail(new NotFoundError({
-              resource: "ConsolidationMember",
-              id: `${groupId}/${companyId}`
-            }))
-          }
-
-          // Update member
-          const oldMember = Chunk.unsafeGet(existing.members, memberIndex.value)
-          const newOwnership = Option.isSome(req.ownershipPercentage)
-            ? req.ownershipPercentage.value
-            : oldMember.ownershipPercentage
-          const updatedMember = ConsolidationMember.make({
-            ...oldMember,
-            ownershipPercentage: newOwnership,
-            consolidationMethod: Option.isSome(req.consolidationMethod)
-              ? req.consolidationMethod.value
-              : oldMember.consolidationMethod,
-            acquisitionDate: Option.isSome(req.acquisitionDate)
-              ? req.acquisitionDate.value
-              : oldMember.acquisitionDate,
-            nonControllingInterestPercentage: Percentage.make(100 - newOwnership)
-          })
-
-          // Replace member in list
-          const updatedMembers = Chunk.modify(existing.members, memberIndex.value, () => updatedMember)
-
-          const updatedGroup = ConsolidationGroup.make({
-            ...existing,
-            members: updatedMembers
-          })
-
-          const savedGroup = yield* consolidationRepo.updateGroup(organizationId, updatedGroup).pipe(
-            Effect.mapError((e) => mapPersistenceToBusinessRule(e))
-          )
-
-          return {
-            group: savedGroup,
-            members: Array.fromIterable(Chunk.toArray(savedGroup.members))
-          }
-        })
-      )
-      .handle("removeGroupMember", (_) =>
-        Effect.gen(function* () {
-          const groupId = _.path.id
-          const companyId = _.path.companyId
-          const organizationId = _.urlParams.organizationId
-
-          // Get existing group
-          const maybeGroup = yield* consolidationRepo.findGroup(organizationId, groupId).pipe(
-            Effect.mapError((e) => mapPersistenceToBusinessRule(e))
-          )
-          if (Option.isNone(maybeGroup)) {
-            return yield* Effect.fail(new NotFoundError({ resource: "ConsolidationGroup", id: groupId }))
-          }
-          const existing = maybeGroup.value
-
-          // Filter out the member
-          const updatedMembers = Chunk.filter(existing.members, (m) => m.companyId !== companyId)
-
-          if (Chunk.size(updatedMembers) === Chunk.size(existing.members)) {
-            return yield* Effect.fail(new NotFoundError({
-              resource: "ConsolidationMember",
-              id: `${groupId}/${companyId}`
-            }))
-          }
-
-          const updatedGroup = ConsolidationGroup.make({
-            ...existing,
-            members: updatedMembers
-          })
-
-          const savedGroup = yield* consolidationRepo.updateGroup(organizationId, updatedGroup).pipe(
-            Effect.mapError((e) => mapPersistenceToBusinessRule(e))
-          )
-
-          return {
-            group: savedGroup,
-            members: Array.fromIterable(Chunk.toArray(savedGroup.members))
-          }
-        })
-      )
-      .handle("listConsolidationRuns", (_) =>
-        Effect.gen(function* () {
-          const { organizationId, groupId, status, year, period } = _.urlParams
-
-          let runs: ReadonlyArray<ConsolidationRun>
-
-          if (groupId !== undefined) {
-            if (status !== undefined) {
-              runs = yield* consolidationRepo.findRunsByStatus(organizationId, groupId, status).pipe(
+            if (isActive === true) {
+              groups = yield* consolidationRepo.findActiveGroups(organizationId).pipe(
                 Effect.mapError((e) => mapPersistenceToValidation(e))
               )
             } else {
-              runs = yield* consolidationRepo.findRunsByGroup(organizationId, groupId).pipe(
+              groups = yield* consolidationRepo.findGroupsByOrganization(organizationId).pipe(
                 Effect.mapError((e) => mapPersistenceToValidation(e))
               )
             }
-          } else {
-            // No groupId filter - return empty for now (requires groupId to scope by org)
-            runs = []
-          }
 
-          // Apply additional filters
-          if (year !== undefined) {
-            runs = runs.filter((r) => r.periodRef.year === year)
-          }
-          if (period !== undefined) {
-            runs = runs.filter((r) => r.periodRef.period === period)
-          }
+            // Apply pagination
+            const total = groups.length
+            const limit = _.urlParams.limit ?? 100
+            const offset = _.urlParams.offset ?? 0
+            const paginatedGroups = groups.slice(offset, offset + limit)
 
-          // Apply pagination
-          const total = runs.length
-          const limit = _.urlParams.limit ?? 100
-          const offset = _.urlParams.offset ?? 0
-          const paginatedRuns = runs.slice(offset, offset + limit)
+            return {
+              groups: paginatedGroups,
+              total,
+              limit,
+              offset
+            }
+          })
+        )
+      )
+      .handle("getConsolidationGroup", (_) =>
+        requireOrganizationContext(_.urlParams.organizationId,
+          Effect.gen(function* () {
+            yield* requirePermission("consolidation_group:read")
 
-          return {
-            runs: paginatedRuns,
-            total,
-            limit,
-            offset
-          }
-        })
+            const groupId = _.path.id
+            const organizationId = _.urlParams.organizationId
+
+            const maybeGroup = yield* consolidationRepo.findGroup(organizationId, groupId).pipe(
+              Effect.mapError((e) => mapPersistenceToNotFound("ConsolidationGroup", groupId, e))
+            )
+
+            if (Option.isNone(maybeGroup)) {
+              return yield* Effect.fail(new NotFoundError({ resource: "ConsolidationGroup", id: groupId }))
+            }
+
+            return {
+              group: maybeGroup.value,
+              members: Array.fromIterable(Chunk.toArray(maybeGroup.value.members))
+            }
+          })
+        )
+      )
+      .handle("createConsolidationGroup", (_) =>
+        requireOrganizationContext(_.payload.organizationId,
+          Effect.gen(function* () {
+            yield* requirePermission("consolidation_group:create")
+
+            const req = _.payload
+
+            // Validate parent company exists within organization
+            const parentCompanyExists = yield* companyRepo.exists(req.organizationId, req.parentCompanyId).pipe(
+              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+            )
+            if (!parentCompanyExists) {
+              return yield* Effect.fail(new BusinessRuleError({
+                code: "PARENT_COMPANY_NOT_FOUND",
+                message: `Parent company not found: ${req.parentCompanyId}`,
+                details: Option.none()
+              }))
+            }
+
+            // Create members from input - using provided acquisition date or default to today
+            const today = LocalDate.make({ year: new Date().getFullYear(), month: new Date().getMonth() + 1, day: new Date().getDate() })
+            const members = Chunk.fromIterable(
+              req.members.map((m) =>
+                ConsolidationMember.make({
+                  companyId: m.companyId,
+                  ownershipPercentage: m.ownershipPercentage,
+                  consolidationMethod: m.consolidationMethod,
+                  acquisitionDate: Option.isSome(m.acquisitionDate) ? m.acquisitionDate.value : today,
+                  goodwillAmount: Option.none(),
+                  nonControllingInterestPercentage: Percentage.make(100 - m.ownershipPercentage),
+                  vieDetermination: Option.none()
+                })
+              )
+            )
+
+            // Create the group
+            const newGroup = ConsolidationGroup.make({
+              id: ConsolidationGroupId.make(crypto.randomUUID()),
+              organizationId: req.organizationId,
+              name: req.name,
+              reportingCurrency: req.reportingCurrency,
+              consolidationMethod: req.consolidationMethod,
+              parentCompanyId: req.parentCompanyId,
+              members,
+              eliminationRuleIds: Chunk.empty(),
+              isActive: true
+            })
+
+            const createdGroup = yield* consolidationRepo.createGroup(newGroup).pipe(
+              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+            )
+
+            return {
+              group: createdGroup,
+              members: Array.fromIterable(Chunk.toArray(createdGroup.members))
+            }
+          })
+        )
+      )
+      .handle("updateConsolidationGroup", (_) =>
+        requireOrganizationContext(_.urlParams.organizationId,
+          Effect.gen(function* () {
+            yield* requirePermission("consolidation_group:update")
+
+            const groupId = _.path.id
+            const organizationId = _.urlParams.organizationId
+            const req = _.payload
+
+            // Get existing group
+            const maybeExisting = yield* consolidationRepo.findGroup(organizationId, groupId).pipe(
+              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+            )
+            if (Option.isNone(maybeExisting)) {
+              return yield* Effect.fail(new NotFoundError({ resource: "ConsolidationGroup", id: groupId }))
+            }
+            const existing = maybeExisting.value
+
+            // Build updated group
+            const updatedGroup = ConsolidationGroup.make({
+              ...existing,
+              name: Option.isSome(req.name) ? req.name.value : existing.name,
+              consolidationMethod: Option.isSome(req.consolidationMethod) ? req.consolidationMethod.value : existing.consolidationMethod,
+              reportingCurrency: Option.isSome(req.reportingCurrency) ? req.reportingCurrency.value : existing.reportingCurrency
+            })
+
+            return yield* consolidationRepo.updateGroup(organizationId, updatedGroup).pipe(
+              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+            )
+          })
+        )
+      )
+      .handle("deleteConsolidationGroup", (_) =>
+        requireOrganizationContext(_.urlParams.organizationId,
+          Effect.gen(function* () {
+            yield* requirePermission("consolidation_group:delete")
+
+            const groupId = _.path.id
+            const organizationId = _.urlParams.organizationId
+
+            // Check if exists
+            const exists = yield* consolidationRepo.groupExists(organizationId, groupId).pipe(
+              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+            )
+            if (!exists) {
+              return yield* Effect.fail(new NotFoundError({ resource: "ConsolidationGroup", id: groupId }))
+            }
+
+            // Check for completed runs
+            const runs = yield* consolidationRepo.findRunsByGroup(organizationId, groupId).pipe(
+              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+            )
+            const completedRuns = runs.filter((r) => r.status === "Completed")
+            if (completedRuns.length > 0) {
+              return yield* Effect.fail(new BusinessRuleError({
+                code: "HAS_COMPLETED_RUNS",
+                message: `Cannot delete group with ${completedRuns.length} completed runs`,
+                details: Option.none()
+              }))
+            }
+
+            // For now, we don't have a delete method - just deactivate
+            return yield* Effect.fail(new BusinessRuleError({
+              code: "DELETE_NOT_SUPPORTED",
+              message: "Group deletion is not yet implemented. Use deactivation instead.",
+              details: Option.none()
+            }))
+          })
+        )
+      )
+      .handle("activateConsolidationGroup", (_) =>
+        requireOrganizationContext(_.urlParams.organizationId,
+          Effect.gen(function* () {
+            yield* requirePermission("consolidation_group:update")
+
+            const groupId = _.path.id
+            const organizationId = _.urlParams.organizationId
+
+            const maybeGroup = yield* consolidationRepo.findGroup(organizationId, groupId).pipe(
+              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+            )
+            if (Option.isNone(maybeGroup)) {
+              return yield* Effect.fail(new NotFoundError({ resource: "ConsolidationGroup", id: groupId }))
+            }
+
+            const updatedGroup = ConsolidationGroup.make({
+              ...maybeGroup.value,
+              isActive: true
+            })
+
+            return yield* consolidationRepo.updateGroup(organizationId, updatedGroup).pipe(
+              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+            )
+          })
+        )
+      )
+      .handle("deactivateConsolidationGroup", (_) =>
+        requireOrganizationContext(_.urlParams.organizationId,
+          Effect.gen(function* () {
+            yield* requirePermission("consolidation_group:update")
+
+            const groupId = _.path.id
+            const organizationId = _.urlParams.organizationId
+
+            const maybeGroup = yield* consolidationRepo.findGroup(organizationId, groupId).pipe(
+              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+            )
+            if (Option.isNone(maybeGroup)) {
+              return yield* Effect.fail(new NotFoundError({ resource: "ConsolidationGroup", id: groupId }))
+            }
+
+            const updatedGroup = ConsolidationGroup.make({
+              ...maybeGroup.value,
+              isActive: false
+            })
+
+            return yield* consolidationRepo.updateGroup(organizationId, updatedGroup).pipe(
+              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+            )
+          })
+        )
+      )
+      .handle("addGroupMember", (_) =>
+        requireOrganizationContext(_.urlParams.organizationId,
+          Effect.gen(function* () {
+            yield* requirePermission("consolidation_group:update")
+
+            const groupId = _.path.id
+            const organizationId = _.urlParams.organizationId
+            const req = _.payload
+
+            // Get existing group
+            const maybeGroup = yield* consolidationRepo.findGroup(organizationId, groupId).pipe(
+              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+            )
+            if (Option.isNone(maybeGroup)) {
+              return yield* Effect.fail(new NotFoundError({ resource: "ConsolidationGroup", id: groupId }))
+            }
+            const existing = maybeGroup.value
+
+            // Check company not already a member
+            const existingMember = Chunk.findFirst(existing.members, (m) => m.companyId === req.companyId)
+            if (Option.isSome(existingMember)) {
+              return yield* Effect.fail(new BusinessRuleError({
+                code: "ALREADY_MEMBER",
+                message: `Company ${req.companyId} is already a member of this group`,
+                details: Option.none()
+              }))
+            }
+
+            // Create new member - using provided acquisition date or default to today
+            const today = LocalDate.make({ year: new Date().getFullYear(), month: new Date().getMonth() + 1, day: new Date().getDate() })
+            const newMember = ConsolidationMember.make({
+              companyId: req.companyId,
+              ownershipPercentage: req.ownershipPercentage,
+              consolidationMethod: req.consolidationMethod,
+              acquisitionDate: Option.isSome(req.acquisitionDate) ? req.acquisitionDate.value : today,
+              goodwillAmount: Option.none(),
+              nonControllingInterestPercentage: Percentage.make(100 - req.ownershipPercentage),
+              vieDetermination: Option.none()
+            })
+
+            // Add member to group
+            const updatedGroup = ConsolidationGroup.make({
+              ...existing,
+              members: Chunk.append(existing.members, newMember)
+            })
+
+            const savedGroup = yield* consolidationRepo.updateGroup(organizationId, updatedGroup).pipe(
+              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+            )
+
+            return {
+              group: savedGroup,
+              members: Array.fromIterable(Chunk.toArray(savedGroup.members))
+            }
+          })
+        )
+      )
+      .handle("updateGroupMember", (_) =>
+        requireOrganizationContext(_.urlParams.organizationId,
+          Effect.gen(function* () {
+            yield* requirePermission("consolidation_group:update")
+
+            const groupId = _.path.id
+            const companyId = _.path.companyId
+            const organizationId = _.urlParams.organizationId
+            const req = _.payload
+
+            // Get existing group
+            const maybeGroup = yield* consolidationRepo.findGroup(organizationId, groupId).pipe(
+              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+            )
+            if (Option.isNone(maybeGroup)) {
+              return yield* Effect.fail(new NotFoundError({ resource: "ConsolidationGroup", id: groupId }))
+            }
+            const existing = maybeGroup.value
+
+            // Find member
+            const memberIndex = Chunk.findFirstIndex(existing.members, (m) => m.companyId === companyId)
+            if (Option.isNone(memberIndex)) {
+              return yield* Effect.fail(new NotFoundError({
+                resource: "ConsolidationMember",
+                id: `${groupId}/${companyId}`
+              }))
+            }
+
+            // Update member
+            const oldMember = Chunk.unsafeGet(existing.members, memberIndex.value)
+            const newOwnership = Option.isSome(req.ownershipPercentage)
+              ? req.ownershipPercentage.value
+              : oldMember.ownershipPercentage
+            const updatedMember = ConsolidationMember.make({
+              ...oldMember,
+              ownershipPercentage: newOwnership,
+              consolidationMethod: Option.isSome(req.consolidationMethod)
+                ? req.consolidationMethod.value
+                : oldMember.consolidationMethod,
+              acquisitionDate: Option.isSome(req.acquisitionDate)
+                ? req.acquisitionDate.value
+                : oldMember.acquisitionDate,
+              nonControllingInterestPercentage: Percentage.make(100 - newOwnership)
+            })
+
+            // Replace member in list
+            const updatedMembers = Chunk.modify(existing.members, memberIndex.value, () => updatedMember)
+
+            const updatedGroup = ConsolidationGroup.make({
+              ...existing,
+              members: updatedMembers
+            })
+
+            const savedGroup = yield* consolidationRepo.updateGroup(organizationId, updatedGroup).pipe(
+              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+            )
+
+            return {
+              group: savedGroup,
+              members: Array.fromIterable(Chunk.toArray(savedGroup.members))
+            }
+          })
+        )
+      )
+      .handle("removeGroupMember", (_) =>
+        requireOrganizationContext(_.urlParams.organizationId,
+          Effect.gen(function* () {
+            yield* requirePermission("consolidation_group:update")
+
+            const groupId = _.path.id
+            const companyId = _.path.companyId
+            const organizationId = _.urlParams.organizationId
+
+            // Get existing group
+            const maybeGroup = yield* consolidationRepo.findGroup(organizationId, groupId).pipe(
+              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+            )
+            if (Option.isNone(maybeGroup)) {
+              return yield* Effect.fail(new NotFoundError({ resource: "ConsolidationGroup", id: groupId }))
+            }
+            const existing = maybeGroup.value
+
+            // Filter out the member
+            const updatedMembers = Chunk.filter(existing.members, (m) => m.companyId !== companyId)
+
+            if (Chunk.size(updatedMembers) === Chunk.size(existing.members)) {
+              return yield* Effect.fail(new NotFoundError({
+                resource: "ConsolidationMember",
+                id: `${groupId}/${companyId}`
+              }))
+            }
+
+            const updatedGroup = ConsolidationGroup.make({
+              ...existing,
+              members: updatedMembers
+            })
+
+            const savedGroup = yield* consolidationRepo.updateGroup(organizationId, updatedGroup).pipe(
+              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+            )
+
+            return {
+              group: savedGroup,
+              members: Array.fromIterable(Chunk.toArray(savedGroup.members))
+            }
+          })
+        )
+      )
+      .handle("listConsolidationRuns", (_) =>
+        requireOrganizationContext(_.urlParams.organizationId,
+          Effect.gen(function* () {
+            yield* requirePermission("consolidation_group:read")
+
+            const { organizationId, groupId, status, year, period } = _.urlParams
+
+            let runs: ReadonlyArray<ConsolidationRun>
+
+            if (groupId !== undefined) {
+              if (status !== undefined) {
+                runs = yield* consolidationRepo.findRunsByStatus(organizationId, groupId, status).pipe(
+                  Effect.mapError((e) => mapPersistenceToValidation(e))
+                )
+              } else {
+                runs = yield* consolidationRepo.findRunsByGroup(organizationId, groupId).pipe(
+                  Effect.mapError((e) => mapPersistenceToValidation(e))
+                )
+              }
+            } else {
+              // No groupId filter - return empty for now (requires groupId to scope by org)
+              runs = []
+            }
+
+            // Apply additional filters
+            if (year !== undefined) {
+              runs = runs.filter((r) => r.periodRef.year === year)
+            }
+            if (period !== undefined) {
+              runs = runs.filter((r) => r.periodRef.period === period)
+            }
+
+            // Apply pagination
+            const total = runs.length
+            const limit = _.urlParams.limit ?? 100
+            const offset = _.urlParams.offset ?? 0
+            const paginatedRuns = runs.slice(offset, offset + limit)
+
+            return {
+              runs: paginatedRuns,
+              total,
+              limit,
+              offset
+            }
+          })
+        )
       )
       .handle("getConsolidationRun", (_) =>
-        Effect.gen(function* () {
-          const runId = _.path.id
-          const organizationId = _.urlParams.organizationId
+        requireOrganizationContext(_.urlParams.organizationId,
+          Effect.gen(function* () {
+            yield* requirePermission("consolidation_group:read")
 
-          const maybeRun = yield* consolidationRepo.findRun(organizationId, runId).pipe(
-            Effect.mapError((e) => mapPersistenceToNotFound("ConsolidationRun", runId, e))
-          )
+            const runId = _.path.id
+            const organizationId = _.urlParams.organizationId
 
-          return yield* Option.match(maybeRun, {
-            onNone: () => Effect.fail(new NotFoundError({ resource: "ConsolidationRun", id: runId })),
-            onSome: Effect.succeed
+            const maybeRun = yield* consolidationRepo.findRun(organizationId, runId).pipe(
+              Effect.mapError((e) => mapPersistenceToNotFound("ConsolidationRun", runId, e))
+            )
+
+            return yield* Option.match(maybeRun, {
+              onNone: () => Effect.fail(new NotFoundError({ resource: "ConsolidationRun", id: runId })),
+              onSome: Effect.succeed
+            })
           })
-        })
+        )
       )
       .handle("initiateConsolidationRun", (_) =>
-        Effect.gen(function* () {
-          const groupId = _.path.groupId
-          const organizationId = _.urlParams.organizationId
-          const req = _.payload
+        requireOrganizationContext(_.urlParams.organizationId,
+          Effect.gen(function* () {
+            yield* requirePermission("consolidation_group:run")
 
-          // Check group exists and is active
-          const maybeGroup = yield* consolidationRepo.findGroup(organizationId, groupId).pipe(
-            Effect.mapError((e) => mapPersistenceToBusinessRule(e))
-          )
-          if (Option.isNone(maybeGroup)) {
-            return yield* Effect.fail(new NotFoundError({ resource: "ConsolidationGroup", id: groupId }))
-          }
-          if (!maybeGroup.value.isActive) {
-            return yield* Effect.fail(new BusinessRuleError({
-              code: "GROUP_INACTIVE",
-              message: "Cannot initiate run for inactive group",
-              details: Option.none()
-            }))
-          }
+            const groupId = _.path.groupId
+            const organizationId = _.urlParams.organizationId
+            const req = _.payload
 
-          // Check for existing run for this period
-          const existingRun = yield* consolidationRepo.findRunByGroupAndPeriod(organizationId, groupId, req.periodRef).pipe(
-            Effect.mapError((e) => mapPersistenceToBusinessRule(e))
-          )
-          if (Option.isSome(existingRun) && !req.forceRegeneration) {
-            return yield* Effect.fail(new BusinessRuleError({
-              code: "RUN_EXISTS",
-              message: `A consolidation run already exists for period ${req.periodRef.year}-${req.periodRef.period}`,
-              details: Option.none()
-            }))
-          }
+            // Check group exists and is active
+            const maybeGroup = yield* consolidationRepo.findGroup(organizationId, groupId).pipe(
+              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+            )
+            if (Option.isNone(maybeGroup)) {
+              return yield* Effect.fail(new NotFoundError({ resource: "ConsolidationGroup", id: groupId }))
+            }
+            if (!maybeGroup.value.isActive) {
+              return yield* Effect.fail(new BusinessRuleError({
+                code: "GROUP_INACTIVE",
+                message: "Cannot initiate run for inactive group",
+                details: Option.none()
+              }))
+            }
 
-          // Create the run
-          const newRun = ConsolidationRun.make({
-            id: ConsolidationRunId.make(crypto.randomUUID()),
-            groupId,
-            periodRef: req.periodRef,
-            asOfDate: req.asOfDate,
-            status: "Pending",
-            steps: createInitialSteps(),
-            validationResult: Option.none(),
-            consolidatedTrialBalance: Option.none(),
-            eliminationEntryIds: Chunk.empty(),
-            options: ConsolidationRunOptions.make({
-              skipValidation: req.skipValidation ?? false,
-              continueOnWarnings: req.continueOnWarnings ?? true,
-              includeEquityMethodInvestments: req.includeEquityMethodInvestments ?? true,
-              forceRegeneration: req.forceRegeneration ?? false
-            }),
-            initiatedBy: req.initiatedBy,
-            initiatedAt: timestampNow(),
-            startedAt: Option.none(),
-            completedAt: Option.none(),
-            totalDurationMs: Option.none(),
-            errorMessage: Option.none()
+            // Check for existing run for this period
+            const existingRun = yield* consolidationRepo.findRunByGroupAndPeriod(organizationId, groupId, req.periodRef).pipe(
+              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+            )
+            if (Option.isSome(existingRun) && !req.forceRegeneration) {
+              return yield* Effect.fail(new BusinessRuleError({
+                code: "RUN_EXISTS",
+                message: `A consolidation run already exists for period ${req.periodRef.year}-${req.periodRef.period}`,
+                details: Option.none()
+              }))
+            }
+
+            // Create the run
+            const newRun = ConsolidationRun.make({
+              id: ConsolidationRunId.make(crypto.randomUUID()),
+              groupId,
+              periodRef: req.periodRef,
+              asOfDate: req.asOfDate,
+              status: "Pending",
+              steps: createInitialSteps(),
+              validationResult: Option.none(),
+              consolidatedTrialBalance: Option.none(),
+              eliminationEntryIds: Chunk.empty(),
+              options: ConsolidationRunOptions.make({
+                skipValidation: req.skipValidation ?? false,
+                continueOnWarnings: req.continueOnWarnings ?? true,
+                includeEquityMethodInvestments: req.includeEquityMethodInvestments ?? true,
+                forceRegeneration: req.forceRegeneration ?? false
+              }),
+              initiatedBy: req.initiatedBy,
+              initiatedAt: timestampNow(),
+              startedAt: Option.none(),
+              completedAt: Option.none(),
+              totalDurationMs: Option.none(),
+              errorMessage: Option.none()
+            })
+
+            return yield* consolidationRepo.createRun(newRun).pipe(
+              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+            )
           })
-
-          return yield* consolidationRepo.createRun(newRun).pipe(
-            Effect.mapError((e) => mapPersistenceToBusinessRule(e))
-          )
-        })
+        )
       )
       .handle("cancelConsolidationRun", (_) =>
-        Effect.gen(function* () {
-          const runId = _.path.id
-          const organizationId = _.urlParams.organizationId
+        requireOrganizationContext(_.urlParams.organizationId,
+          Effect.gen(function* () {
+            yield* requirePermission("consolidation_group:run")
 
-          const maybeRun = yield* consolidationRepo.findRun(organizationId, runId).pipe(
-            Effect.mapError((e) => mapPersistenceToBusinessRule(e))
-          )
-          if (Option.isNone(maybeRun)) {
-            return yield* Effect.fail(new NotFoundError({ resource: "ConsolidationRun", id: runId }))
-          }
-          const existing = maybeRun.value
+            const runId = _.path.id
+            const organizationId = _.urlParams.organizationId
 
-          // Can only cancel pending or in-progress runs
-          if (existing.status !== "Pending" && existing.status !== "InProgress") {
-            return yield* Effect.fail(new BusinessRuleError({
-              code: "CANNOT_CANCEL",
-              message: `Cannot cancel run with status: ${existing.status}`,
-              details: Option.none()
-            }))
-          }
+            const maybeRun = yield* consolidationRepo.findRun(organizationId, runId).pipe(
+              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+            )
+            if (Option.isNone(maybeRun)) {
+              return yield* Effect.fail(new NotFoundError({ resource: "ConsolidationRun", id: runId }))
+            }
+            const existing = maybeRun.value
 
-          const updatedRun = ConsolidationRun.make({
-            ...existing,
-            status: "Cancelled",
-            completedAt: Option.some(timestampNow())
+            // Can only cancel pending or in-progress runs
+            if (existing.status !== "Pending" && existing.status !== "InProgress") {
+              return yield* Effect.fail(new BusinessRuleError({
+                code: "CANNOT_CANCEL",
+                message: `Cannot cancel run with status: ${existing.status}`,
+                details: Option.none()
+              }))
+            }
+
+            const updatedRun = ConsolidationRun.make({
+              ...existing,
+              status: "Cancelled",
+              completedAt: Option.some(timestampNow())
+            })
+
+            return yield* consolidationRepo.updateRun(organizationId, updatedRun).pipe(
+              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+            )
           })
-
-          return yield* consolidationRepo.updateRun(organizationId, updatedRun).pipe(
-            Effect.mapError((e) => mapPersistenceToBusinessRule(e))
-          )
-        })
+        )
       )
       .handle("deleteConsolidationRun", (_) =>
-        Effect.gen(function* () {
-          const runId = _.path.id
-          const organizationId = _.urlParams.organizationId
+        requireOrganizationContext(_.urlParams.organizationId,
+          Effect.gen(function* () {
+            yield* requirePermission("consolidation_group:run")
 
-          const maybeRun = yield* consolidationRepo.findRun(organizationId, runId).pipe(
-            Effect.mapError((e) => mapPersistenceToBusinessRule(e))
-          )
-          if (Option.isNone(maybeRun)) {
-            return yield* Effect.fail(new NotFoundError({ resource: "ConsolidationRun", id: runId }))
-          }
-          const existing = maybeRun.value
+            const runId = _.path.id
+            const organizationId = _.urlParams.organizationId
 
-          // Can only delete pending or failed runs
-          if (existing.status !== "Pending" && existing.status !== "Failed") {
-            return yield* Effect.fail(new BusinessRuleError({
-              code: "CANNOT_DELETE",
-              message: `Cannot delete run with status: ${existing.status}`,
-              details: Option.none()
-            }))
-          }
+            const maybeRun = yield* consolidationRepo.findRun(organizationId, runId).pipe(
+              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+            )
+            if (Option.isNone(maybeRun)) {
+              return yield* Effect.fail(new NotFoundError({ resource: "ConsolidationRun", id: runId }))
+            }
+            const existing = maybeRun.value
 
-          yield* consolidationRepo.deleteRun(organizationId, runId).pipe(
-            Effect.mapError((e) => mapPersistenceToBusinessRule(e))
-          )
-        })
+            // Can only delete pending or failed runs
+            if (existing.status !== "Pending" && existing.status !== "Failed") {
+              return yield* Effect.fail(new BusinessRuleError({
+                code: "CANNOT_DELETE",
+                message: `Cannot delete run with status: ${existing.status}`,
+                details: Option.none()
+              }))
+            }
+
+            yield* consolidationRepo.deleteRun(organizationId, runId).pipe(
+              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+            )
+          })
+        )
       )
       .handle("getConsolidatedTrialBalance", (_) =>
-        Effect.gen(function* () {
-          const runId = _.path.id
-          const organizationId = _.urlParams.organizationId
+        requireOrganizationContext(_.urlParams.organizationId,
+          Effect.gen(function* () {
+            yield* requirePermission("consolidation_group:read")
 
-          const maybeRun = yield* consolidationRepo.findRun(organizationId, runId).pipe(
-            Effect.mapError((e) => mapPersistenceToBusinessRule(e))
-          )
-          if (Option.isNone(maybeRun)) {
-            return yield* Effect.fail(new NotFoundError({ resource: "ConsolidationRun", id: runId }))
-          }
-          const run = maybeRun.value
+            const runId = _.path.id
+            const organizationId = _.urlParams.organizationId
 
-          if (run.status !== "Completed") {
-            return yield* Effect.fail(new BusinessRuleError({
-              code: "RUN_NOT_COMPLETED",
-              message: `Consolidation run status is ${run.status}, not Completed`,
-              details: Option.none()
-            }))
-          }
+            const maybeRun = yield* consolidationRepo.findRun(organizationId, runId).pipe(
+              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+            )
+            if (Option.isNone(maybeRun)) {
+              return yield* Effect.fail(new NotFoundError({ resource: "ConsolidationRun", id: runId }))
+            }
+            const run = maybeRun.value
 
-          if (Option.isNone(run.consolidatedTrialBalance)) {
-            return yield* Effect.fail(new BusinessRuleError({
-              code: "NO_TRIAL_BALANCE",
-              message: "Consolidated trial balance not available for this run",
-              details: Option.none()
-            }))
-          }
+            if (run.status !== "Completed") {
+              return yield* Effect.fail(new BusinessRuleError({
+                code: "RUN_NOT_COMPLETED",
+                message: `Consolidation run status is ${run.status}, not Completed`,
+                details: Option.none()
+              }))
+            }
 
-          return run.consolidatedTrialBalance.value
-        })
+            if (Option.isNone(run.consolidatedTrialBalance)) {
+              return yield* Effect.fail(new BusinessRuleError({
+                code: "NO_TRIAL_BALANCE",
+                message: "Consolidated trial balance not available for this run",
+                details: Option.none()
+              }))
+            }
+
+            return run.consolidatedTrialBalance.value
+          })
+        )
       )
       .handle("getLatestCompletedRun", (_) =>
-        Effect.gen(function* () {
-          const groupId = _.path.groupId
-          const organizationId = _.urlParams.organizationId
+        requireOrganizationContext(_.urlParams.organizationId,
+          Effect.gen(function* () {
+            yield* requirePermission("consolidation_group:read")
 
-          // Check group exists
-          const exists = yield* consolidationRepo.groupExists(organizationId, groupId).pipe(Effect.orDie)
-          if (!exists) {
-            return yield* Effect.fail(new NotFoundError({ resource: "ConsolidationGroup", id: groupId }))
-          }
+            const groupId = _.path.groupId
+            const organizationId = _.urlParams.organizationId
 
-          const maybeRun = yield* consolidationRepo.findLatestCompletedRun(organizationId, groupId).pipe(
-            Effect.orDie
-          )
+            // Check group exists
+            const exists = yield* consolidationRepo.groupExists(organizationId, groupId).pipe(Effect.orDie)
+            if (!exists) {
+              return yield* Effect.fail(new NotFoundError({ resource: "ConsolidationGroup", id: groupId }))
+            }
 
-          return maybeRun
-        })
+            const maybeRun = yield* consolidationRepo.findLatestCompletedRun(organizationId, groupId).pipe(
+              Effect.orDie
+            )
+
+            return maybeRun
+          })
+        )
       )
       .handle("getConsolidatedBalanceSheet", (_) =>
-        Effect.gen(function* () {
-          const runId = _.path.id
-          const organizationId = _.urlParams.organizationId
+        requireOrganizationContext(_.urlParams.organizationId,
+          Effect.gen(function* () {
+            yield* requirePermission("report:read")
 
-          // Check run exists and is completed
-          const maybeRun = yield* consolidationRepo.findRun(organizationId, runId).pipe(
-            Effect.mapError((e) => mapPersistenceToBusinessRule(e))
-          )
-          if (Option.isNone(maybeRun)) {
-            return yield* Effect.fail(new NotFoundError({ resource: "ConsolidationRun", id: runId }))
-          }
-          const run = maybeRun.value
+            const runId = _.path.id
+            const organizationId = _.urlParams.organizationId
 
-          if (run.status !== "Completed") {
-            return yield* Effect.fail(new BusinessRuleError({
-              code: "RUN_NOT_COMPLETED",
-              message: `Consolidation run status is ${run.status}, not Completed`,
-              details: Option.none()
-            }))
-          }
+            // Check run exists and is completed
+            const maybeRun = yield* consolidationRepo.findRun(organizationId, runId).pipe(
+              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+            )
+            if (Option.isNone(maybeRun)) {
+              return yield* Effect.fail(new NotFoundError({ resource: "ConsolidationRun", id: runId }))
+            }
+            const run = maybeRun.value
 
-          // Get consolidated trial balance
-          if (Option.isNone(run.consolidatedTrialBalance)) {
-            return yield* Effect.fail(new BusinessRuleError({
-              code: "NO_TRIAL_BALANCE",
-              message: "Consolidated trial balance not available for this run",
-              details: Option.none()
-            }))
-          }
-          const trialBalance = run.consolidatedTrialBalance.value
+            if (run.status !== "Completed") {
+              return yield* Effect.fail(new BusinessRuleError({
+                code: "RUN_NOT_COMPLETED",
+                message: `Consolidation run status is ${run.status}, not Completed`,
+                details: Option.none()
+              }))
+            }
 
-          // Get group name
-          const maybeGroup = yield* consolidationRepo.findGroup(organizationId, run.groupId).pipe(
-            Effect.mapError((e) => mapPersistenceToBusinessRule(e))
-          )
-          const groupName = Option.isSome(maybeGroup) ? maybeGroup.value.name : "Consolidation Group"
+            // Get consolidated trial balance
+            if (Option.isNone(run.consolidatedTrialBalance)) {
+              return yield* Effect.fail(new BusinessRuleError({
+                code: "NO_TRIAL_BALANCE",
+                message: "Consolidated trial balance not available for this run",
+                details: Option.none()
+              }))
+            }
+            const trialBalance = run.consolidatedTrialBalance.value
 
-          // Generate the balance sheet report
-          const report = yield* reportService.generateBalanceSheet({
-            trialBalance,
-            groupName
-          }).pipe(
-            Effect.mapError((e) => {
-              if (isConsolidatedBalanceSheetNotBalancedError(e)) {
+            // Get group name
+            const maybeGroup = yield* consolidationRepo.findGroup(organizationId, run.groupId).pipe(
+              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+            )
+            const groupName = Option.isSome(maybeGroup) ? maybeGroup.value.name : "Consolidation Group"
+
+            // Generate the balance sheet report
+            const report = yield* reportService.generateBalanceSheet({
+              trialBalance,
+              groupName
+            }).pipe(
+              Effect.mapError((e) => {
+                if (isConsolidatedBalanceSheetNotBalancedError(e)) {
+                  return new BusinessRuleError({
+                    code: "BALANCE_SHEET_NOT_BALANCED",
+                    message: e.message,
+                    details: Option.none()
+                  })
+                }
                 return new BusinessRuleError({
-                  code: "BALANCE_SHEET_NOT_BALANCED",
-                  message: e.message,
+                  code: "REPORT_GENERATION_ERROR",
+                  message: "Failed to generate balance sheet report",
                   details: Option.none()
                 })
-              }
-              return new BusinessRuleError({
-                code: "REPORT_GENERATION_ERROR",
-                message: "Failed to generate balance sheet report",
-                details: Option.none()
               })
-            })
-          )
+            )
 
-          return report
-        })
+            return report
+          })
+        )
       )
       .handle("getConsolidatedIncomeStatement", (_) =>
-        Effect.gen(function* () {
-          const runId = _.path.id
-          const organizationId = _.urlParams.organizationId
+        requireOrganizationContext(_.urlParams.organizationId,
+          Effect.gen(function* () {
+            yield* requirePermission("report:read")
 
-          // Check run exists and is completed
-          const maybeRun = yield* consolidationRepo.findRun(organizationId, runId).pipe(
-            Effect.mapError((e) => mapPersistenceToBusinessRule(e))
-          )
-          if (Option.isNone(maybeRun)) {
-            return yield* Effect.fail(new NotFoundError({ resource: "ConsolidationRun", id: runId }))
-          }
-          const run = maybeRun.value
+            const runId = _.path.id
+            const organizationId = _.urlParams.organizationId
 
-          if (run.status !== "Completed") {
-            return yield* Effect.fail(new BusinessRuleError({
-              code: "RUN_NOT_COMPLETED",
-              message: `Consolidation run status is ${run.status}, not Completed`,
-              details: Option.none()
-            }))
-          }
+            // Check run exists and is completed
+            const maybeRun = yield* consolidationRepo.findRun(organizationId, runId).pipe(
+              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+            )
+            if (Option.isNone(maybeRun)) {
+              return yield* Effect.fail(new NotFoundError({ resource: "ConsolidationRun", id: runId }))
+            }
+            const run = maybeRun.value
 
-          // Get consolidated trial balance
-          if (Option.isNone(run.consolidatedTrialBalance)) {
-            return yield* Effect.fail(new BusinessRuleError({
-              code: "NO_TRIAL_BALANCE",
-              message: "Consolidated trial balance not available for this run",
-              details: Option.none()
-            }))
-          }
-          const trialBalance = run.consolidatedTrialBalance.value
+            if (run.status !== "Completed") {
+              return yield* Effect.fail(new BusinessRuleError({
+                code: "RUN_NOT_COMPLETED",
+                message: `Consolidation run status is ${run.status}, not Completed`,
+                details: Option.none()
+              }))
+            }
 
-          // Get group name
-          const maybeGroup = yield* consolidationRepo.findGroup(organizationId, run.groupId).pipe(
-            Effect.mapError((e) => mapPersistenceToBusinessRule(e))
-          )
-          const groupName = Option.isSome(maybeGroup) ? maybeGroup.value.name : "Consolidation Group"
+            // Get consolidated trial balance
+            if (Option.isNone(run.consolidatedTrialBalance)) {
+              return yield* Effect.fail(new BusinessRuleError({
+                code: "NO_TRIAL_BALANCE",
+                message: "Consolidated trial balance not available for this run",
+                details: Option.none()
+              }))
+            }
+            const trialBalance = run.consolidatedTrialBalance.value
 
-          // Generate the income statement report
-          const report = yield* reportService.generateIncomeStatement({
-            trialBalance,
-            groupName
+            // Get group name
+            const maybeGroup = yield* consolidationRepo.findGroup(organizationId, run.groupId).pipe(
+              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+            )
+            const groupName = Option.isSome(maybeGroup) ? maybeGroup.value.name : "Consolidation Group"
+
+            // Generate the income statement report
+            const report = yield* reportService.generateIncomeStatement({
+              trialBalance,
+              groupName
+            })
+
+            return report
           })
-
-          return report
-        })
+        )
       )
       .handle("getConsolidatedCashFlowStatement", (_) =>
-        Effect.gen(function* () {
-          const runId = _.path.id
-          const organizationId = _.urlParams.organizationId
+        requireOrganizationContext(_.urlParams.organizationId,
+          Effect.gen(function* () {
+            yield* requirePermission("report:read")
 
-          // Check run exists and is completed
-          const maybeRun = yield* consolidationRepo.findRun(organizationId, runId).pipe(
-            Effect.mapError((e) => mapPersistenceToBusinessRule(e))
-          )
-          if (Option.isNone(maybeRun)) {
-            return yield* Effect.fail(new NotFoundError({ resource: "ConsolidationRun", id: runId }))
-          }
-          const run = maybeRun.value
+            const runId = _.path.id
+            const organizationId = _.urlParams.organizationId
 
-          if (run.status !== "Completed") {
-            return yield* Effect.fail(new BusinessRuleError({
-              code: "RUN_NOT_COMPLETED",
-              message: `Consolidation run status is ${run.status}, not Completed`,
-              details: Option.none()
-            }))
-          }
+            // Check run exists and is completed
+            const maybeRun = yield* consolidationRepo.findRun(organizationId, runId).pipe(
+              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+            )
+            if (Option.isNone(maybeRun)) {
+              return yield* Effect.fail(new NotFoundError({ resource: "ConsolidationRun", id: runId }))
+            }
+            const run = maybeRun.value
 
-          // Get consolidated trial balance
-          if (Option.isNone(run.consolidatedTrialBalance)) {
-            return yield* Effect.fail(new BusinessRuleError({
-              code: "NO_TRIAL_BALANCE",
-              message: "Consolidated trial balance not available for this run",
-              details: Option.none()
-            }))
-          }
-          const trialBalance = run.consolidatedTrialBalance.value
+            if (run.status !== "Completed") {
+              return yield* Effect.fail(new BusinessRuleError({
+                code: "RUN_NOT_COMPLETED",
+                message: `Consolidation run status is ${run.status}, not Completed`,
+                details: Option.none()
+              }))
+            }
 
-          // Get group name
-          const maybeGroup = yield* consolidationRepo.findGroup(organizationId, run.groupId).pipe(
-            Effect.mapError((e) => mapPersistenceToBusinessRule(e))
-          )
-          const groupName = Option.isSome(maybeGroup) ? maybeGroup.value.name : "Consolidation Group"
+            // Get consolidated trial balance
+            if (Option.isNone(run.consolidatedTrialBalance)) {
+              return yield* Effect.fail(new BusinessRuleError({
+                code: "NO_TRIAL_BALANCE",
+                message: "Consolidated trial balance not available for this run",
+                details: Option.none()
+              }))
+            }
+            const trialBalance = run.consolidatedTrialBalance.value
 
-          // Generate the cash flow report
-          const report = yield* reportService.generateCashFlow({
-            trialBalance,
-            groupName
+            // Get group name
+            const maybeGroup = yield* consolidationRepo.findGroup(organizationId, run.groupId).pipe(
+              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+            )
+            const groupName = Option.isSome(maybeGroup) ? maybeGroup.value.name : "Consolidation Group"
+
+            // Generate the cash flow report
+            const report = yield* reportService.generateCashFlow({
+              trialBalance,
+              groupName
+            })
+
+            return report
           })
-
-          return report
-        })
+        )
       )
       .handle("getConsolidatedEquityStatement", (_) =>
-        Effect.gen(function* () {
-          const runId = _.path.id
-          const organizationId = _.urlParams.organizationId
+        requireOrganizationContext(_.urlParams.organizationId,
+          Effect.gen(function* () {
+            yield* requirePermission("report:read")
 
-          // Check run exists and is completed
-          const maybeRun = yield* consolidationRepo.findRun(organizationId, runId).pipe(
-            Effect.mapError((e) => mapPersistenceToBusinessRule(e))
-          )
-          if (Option.isNone(maybeRun)) {
-            return yield* Effect.fail(new NotFoundError({ resource: "ConsolidationRun", id: runId }))
-          }
-          const run = maybeRun.value
+            const runId = _.path.id
+            const organizationId = _.urlParams.organizationId
 
-          if (run.status !== "Completed") {
-            return yield* Effect.fail(new BusinessRuleError({
-              code: "RUN_NOT_COMPLETED",
-              message: `Consolidation run status is ${run.status}, not Completed`,
-              details: Option.none()
-            }))
-          }
+            // Check run exists and is completed
+            const maybeRun = yield* consolidationRepo.findRun(organizationId, runId).pipe(
+              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+            )
+            if (Option.isNone(maybeRun)) {
+              return yield* Effect.fail(new NotFoundError({ resource: "ConsolidationRun", id: runId }))
+            }
+            const run = maybeRun.value
 
-          // Get consolidated trial balance
-          if (Option.isNone(run.consolidatedTrialBalance)) {
-            return yield* Effect.fail(new BusinessRuleError({
-              code: "NO_TRIAL_BALANCE",
-              message: "Consolidated trial balance not available for this run",
-              details: Option.none()
-            }))
-          }
-          const trialBalance = run.consolidatedTrialBalance.value
+            if (run.status !== "Completed") {
+              return yield* Effect.fail(new BusinessRuleError({
+                code: "RUN_NOT_COMPLETED",
+                message: `Consolidation run status is ${run.status}, not Completed`,
+                details: Option.none()
+              }))
+            }
 
-          // Get group name
-          const maybeGroup = yield* consolidationRepo.findGroup(organizationId, run.groupId).pipe(
-            Effect.mapError((e) => mapPersistenceToBusinessRule(e))
-          )
-          const groupName = Option.isSome(maybeGroup) ? maybeGroup.value.name : "Consolidation Group"
+            // Get consolidated trial balance
+            if (Option.isNone(run.consolidatedTrialBalance)) {
+              return yield* Effect.fail(new BusinessRuleError({
+                code: "NO_TRIAL_BALANCE",
+                message: "Consolidated trial balance not available for this run",
+                details: Option.none()
+              }))
+            }
+            const trialBalance = run.consolidatedTrialBalance.value
 
-          // Generate the equity statement report
-          const report = yield* reportService.generateEquityStatement({
-            trialBalance,
-            groupName
+            // Get group name
+            const maybeGroup = yield* consolidationRepo.findGroup(organizationId, run.groupId).pipe(
+              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+            )
+            const groupName = Option.isSome(maybeGroup) ? maybeGroup.value.name : "Consolidation Group"
+
+            // Generate the equity statement report
+            const report = yield* reportService.generateEquityStatement({
+              trialBalance,
+              groupName
+            })
+
+            return report
           })
-
-          return report
-        })
+        )
       )
   })
 )

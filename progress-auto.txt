@@ -429,3 +429,8 @@
 **Task**: Implemented Phase E9 - Permission Checks in JournalEntriesApi. Added organization context and permission checks to all 10 journal entry API handlers (list, get, create, update, delete, submit, approve, reject, post, reverse). Updated JournalEntriesApi.ts to add ForbiddenError to all endpoints and NotFoundError to createJournalEntry. Updated JournalEntriesApiLive.ts to wrap all handlers with requireOrganizationContext and requirePermission. Updated HttpApiIntegration tests to expect 403 ForbiddenError for unauthorized access. All 3620 unit tests pass, typecheck clean, lint clean.
 **Status**: complete
 ---
+
+## Iteration 3 - 2026-01-18 01:05
+**Task**: Implemented Phase E10 (N/A) and E11 - Permission Checks in ConsolidationApi. Added organization context and permission checks to all 21 consolidation API handlers. Added ForbiddenError to all endpoints. Permission mapping: consolidation_group:read for list/get, consolidation_group:create for create, consolidation_group:update for update/activate/deactivate/member ops, consolidation_group:delete for delete, consolidation_group:run for run ops, report:read for reports. All 3620 tests pass, typecheck clean, lint clean.
+**Status**: complete
+---
