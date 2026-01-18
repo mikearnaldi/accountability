@@ -16,7 +16,9 @@ import {
   type AuditLogServiceShape
 } from "@accountability/core/AuditLog/AuditLogService"
 import { AuditLogError } from "@accountability/core/AuditLog/AuditLogErrors"
+import type { AuthUserId } from "@accountability/core/Auth/AuthUserId"
 import { AuditLogRepository } from "../Services/AuditLogRepository.ts"
+import { UserRepository } from "../Services/UserRepository.ts"
 
 // =============================================================================
 // Change Detection Helpers
@@ -136,10 +138,19 @@ const entityToDeleteChanges = <T>(entity: T): AuditChanges => {
 // =============================================================================
 
 /**
+ * User info for denormalization into audit entries
+ */
+interface UserInfo {
+  readonly displayName: Option.Option<string>
+  readonly email: Option.Option<string>
+}
+
+/**
  * Create the AuditLogService implementation
  */
 const make = Effect.gen(function* () {
   const auditRepo = yield* AuditLogRepository
+  const userRepo = yield* UserRepository
 
   /**
    * Wrap repository errors in AuditLogError
@@ -148,9 +159,37 @@ const make = Effect.gen(function* () {
     <A, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<A, AuditLogError, R> =>
       Effect.mapError(effect, (cause) => new AuditLogError({ operation, cause }))
 
+  /**
+   * Look up user display name and email for denormalization
+   * Returns none options if user not found (graceful degradation)
+   */
+  const lookupUserInfo = (userId: AuthUserId): Effect.Effect<UserInfo, never> =>
+    userRepo.findById(userId).pipe(
+      Effect.map((userOpt) =>
+        Option.match(userOpt, {
+          onNone: () => ({
+            displayName: Option.none<string>(),
+            email: Option.none<string>()
+          }),
+          onSome: (user) => ({
+            displayName: Option.some(user.displayName),
+            email: Option.some(user.email)
+          })
+        })
+      ),
+      // If lookup fails, gracefully degrade to no user info
+      Effect.catchAll(() =>
+        Effect.succeed({
+          displayName: Option.none<string>(),
+          email: Option.none<string>()
+        })
+      )
+    )
+
   const logCreate: AuditLogServiceShape["logCreate"] = (organizationId, entityType, entityId, entityName, entity, userId) =>
     Effect.gen(function* () {
       const changes = entityToCreateChanges(entity)
+      const userInfo = yield* lookupUserInfo(userId)
       yield* auditRepo.create({
         organizationId,
         entityType,
@@ -158,6 +197,8 @@ const make = Effect.gen(function* () {
         entityName: Option.fromNullable(entityName),
         action: "Create",
         userId: Option.some(userId),
+        userDisplayName: userInfo.displayName,
+        userEmail: userInfo.email,
         changes: Option.some(changes)
       })
     }).pipe(
@@ -169,6 +210,7 @@ const make = Effect.gen(function* () {
       const changes = computeChanges(before, after)
       // Only create audit entry if there are actual changes
       if (Object.keys(changes).length > 0) {
+        const userInfo = yield* lookupUserInfo(userId)
         yield* auditRepo.create({
           organizationId,
           entityType,
@@ -176,6 +218,8 @@ const make = Effect.gen(function* () {
           entityName: Option.fromNullable(entityName),
           action: "Update",
           userId: Option.some(userId),
+          userDisplayName: userInfo.displayName,
+          userEmail: userInfo.email,
           changes: Option.some(changes)
         })
       }
@@ -186,6 +230,7 @@ const make = Effect.gen(function* () {
   const logDelete: AuditLogServiceShape["logDelete"] = (organizationId, entityType, entityId, entityName, entity, userId) =>
     Effect.gen(function* () {
       const changes = entityToDeleteChanges(entity)
+      const userInfo = yield* lookupUserInfo(userId)
       yield* auditRepo.create({
         organizationId,
         entityType,
@@ -193,6 +238,8 @@ const make = Effect.gen(function* () {
         entityName: Option.fromNullable(entityName),
         action: "Delete",
         userId: Option.some(userId),
+        userDisplayName: userInfo.displayName,
+        userEmail: userInfo.email,
         changes: Option.some(changes)
       })
     }).pipe(
@@ -217,6 +264,7 @@ const make = Effect.gen(function* () {
         baseEntries.push(["reason", { from: null, to: reason }])
       }
       const changes = buildChanges(baseEntries)
+      const userInfo = yield* lookupUserInfo(userId)
       yield* auditRepo.create({
         organizationId,
         entityType,
@@ -224,6 +272,8 @@ const make = Effect.gen(function* () {
         entityName: Option.fromNullable(entityName),
         action: "StatusChange",
         userId: Option.some(userId),
+        userDisplayName: userInfo.displayName,
+        userEmail: userInfo.email,
         changes: Option.some(changes)
       })
     }).pipe(
@@ -240,6 +290,7 @@ const make = Effect.gen(function* () {
     userId
   ) =>
     Effect.gen(function* () {
+      const userInfo = yield* lookupUserInfo(userId)
       yield* auditRepo.create({
         organizationId,
         entityType,
@@ -247,6 +298,8 @@ const make = Effect.gen(function* () {
         entityName: Option.fromNullable(entityName),
         action,
         userId: Option.some(userId),
+        userDisplayName: userInfo.displayName,
+        userEmail: userInfo.email,
         changes: Option.some(changes)
       })
     }).pipe(
@@ -265,6 +318,6 @@ const make = Effect.gen(function* () {
 /**
  * AuditLogServiceLive - Layer providing AuditLogService implementation
  *
- * Requires AuditLogRepository in context.
+ * Requires AuditLogRepository and UserRepository in context.
  */
 export const AuditLogServiceLive = Layer.effect(AuditLogService, make)

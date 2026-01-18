@@ -37,6 +37,10 @@ export class AuditLogEntry extends Schema.Class<AuditLogEntry>("AuditLogEntry")(
   entityName: Schema.OptionFromNullOr(Schema.String),
   action: AuditAction,
   userId: Schema.OptionFromNullOr(Schema.UUID),
+  /** Denormalized user display name at time of action */
+  userDisplayName: Schema.OptionFromNullOr(Schema.String),
+  /** Denormalized user email at time of action */
+  userEmail: Schema.OptionFromNullOr(Schema.String),
   timestamp: Schema.DateTimeUtc,
   changes: Schema.OptionFromNullOr(AuditChanges)
 }) {}

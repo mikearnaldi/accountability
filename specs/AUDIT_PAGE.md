@@ -12,7 +12,7 @@ The existing audit log page has several problems:
 2. ~~**Truncated changes** - Shows "+17 more" without ability to expand~~ ✅ FIXED (expandable rows)
 3. ~~**No detail view** - Cannot click to see full entry details~~ ✅ FIXED (expandable detail panel)
 4. ~~**Truncated IDs** - Entity IDs are cut off with no way to copy~~ ✅ FIXED (copy buttons)
-5. **No user names** - Shows raw UUIDs instead of user display names (Phase 2 - denormalization)
+5. ~~**No user names** - Shows raw UUIDs instead of user display names (Phase 2 - denormalization)~~ ✅ FIXED (Migration 0021, user names denormalized)
 6. ~~**No entity names** - Shows raw IDs instead of entity names (e.g., account name)~~ ✅ FIXED
 7. ~~**No organization scoping** - Shows entries from all organizations (security issue)~~ ✅ FIXED
 
@@ -506,10 +506,10 @@ Denormalize user info to avoid joins and preserve historical names.
    - ✅ Changes table with Before/After columns in detail panel
    - ✅ Long values are collapsible with `<details>` element
 
-5. **Add user display names**
-   - Denormalize user name/email into audit entries
+5. **Add user display names** ✅ DONE
+   - ✅ Denormalize user name/email into audit entries (Migration 0021, updated AuditLogServiceLive to look up user info)
    - ✅ Display "System" for null users (italic styling)
-   - Show email in tooltip
+   - ✅ Show email in tooltip (Tooltip on user display name shows email)
 
 6. **Improve changes display** ✅ DONE
    - ✅ Format null as styled dash (—)

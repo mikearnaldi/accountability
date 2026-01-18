@@ -84,6 +84,8 @@ const createTestAuditEntry = (
       entityName: Option.fromNullable(entityName),
       action,
       userId: Option.fromNullable(userId),
+      userDisplayName: Option.none(),
+      userEmail: Option.none(),
       changes: Option.fromNullable(changes)
     })
   })

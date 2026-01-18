@@ -290,10 +290,11 @@ const InvitationServiceWithDeps = InvitationServiceLive.pipe(
 )
 
 /**
- * AuditLogServiceWithDeps - AuditLogService with repository
+ * AuditLogServiceWithDeps - AuditLogService with repository and user lookup
  */
 const AuditLogServiceWithDeps = AuditLogServiceLive.pipe(
-  Layer.provide(AuditLogRepositoryLive)
+  Layer.provide(AuditLogRepositoryLive),
+  Layer.provide(UserRepositoryLive)
 )
 
 /**

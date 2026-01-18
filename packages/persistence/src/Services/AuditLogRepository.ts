@@ -35,6 +35,10 @@ export interface AuditLogEntry {
   readonly entityName: Option.Option<string>
   readonly action: AuditAction
   readonly userId: Option.Option<string>
+  /** Denormalized user display name at time of action */
+  readonly userDisplayName: Option.Option<string>
+  /** Denormalized user email at time of action */
+  readonly userEmail: Option.Option<string>
   readonly timestamp: DateTime.Utc
   readonly changes: Option.Option<AuditChanges>
 }
@@ -51,6 +55,10 @@ export interface AuditLogInsert {
   readonly entityName: Option.Option<string>
   readonly action: AuditAction
   readonly userId: Option.Option<string>
+  /** Denormalized user display name at time of action */
+  readonly userDisplayName: Option.Option<string>
+  /** Denormalized user email at time of action */
+  readonly userEmail: Option.Option<string>
   readonly changes: Option.Option<AuditChanges>
 }
 

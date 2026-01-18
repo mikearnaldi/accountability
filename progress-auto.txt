@@ -747,3 +747,8 @@
 **Task**: Added CSV export and View Entity linking to audit log page
 **Status**: complete
 ---
+
+## Iteration 9 - 2026-01-18 22:55
+**Task**: Added user display name denormalization to audit log with database migration, AuditLogServiceLive user lookup, API schema updates, and frontend display with email tooltip
+**Status**: complete
+---

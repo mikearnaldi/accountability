@@ -14,6 +14,7 @@ import { AuditLogService } from "@accountability/core/AuditLog/AuditLogService"
 import { AuditLogRepositoryLive } from "../src/Layers/AuditLogRepositoryLive.ts"
 import { AuditLogServiceLive } from "../src/Layers/AuditLogServiceLive.ts"
 import { AuditLogRepository } from "../src/Services/AuditLogRepository.ts"
+import { UserRepositoryLive } from "../src/Layers/UserRepositoryLive.ts"
 import { SharedPgClientLive } from "./Utils.ts"
 
 /**
@@ -22,6 +23,7 @@ import { SharedPgClientLive } from "./Utils.ts"
  */
 const TestLayer = AuditLogServiceLive.pipe(
   Layer.provideMerge(AuditLogRepositoryLive),
+  Layer.provideMerge(UserRepositoryLive),
   Layer.provideMerge(SharedPgClientLive)
 )
 

@@ -46,6 +46,10 @@ interface AuditLogEntry {
   readonly entityName: string | null
   readonly action: AuditAction
   readonly userId: string | null
+  /** Denormalized user display name at time of action */
+  readonly userDisplayName: string | null
+  /** Denormalized user email at time of action */
+  readonly userEmail: string | null
   readonly timestamp: string
   readonly changes: Record<string, { from: unknown; to: unknown }> | null
 }
@@ -855,6 +859,8 @@ function exportToCSV(entries: readonly AuditLogEntry[], organizationName: string
     "Entity Type",
     "Entity Name",
     "Entity ID",
+    "User Name",
+    "User Email",
     "User ID",
     "Changes"
   ]
@@ -884,7 +890,9 @@ function exportToCSV(entries: readonly AuditLogEntry[], organizationName: string
       escapeCSV(formatEntityType(entry.entityType)),
       escapeCSV(entry.entityName ?? ""),
       escapeCSV(entry.entityId),
-      escapeCSV(entry.userId ?? "System"),
+      escapeCSV(entry.userDisplayName ?? "System"),
+      escapeCSV(entry.userEmail ?? ""),
+      escapeCSV(entry.userId ?? ""),
       escapeCSV(formatChangesForCSV(entry.changes))
     ].join(","))
   ]
@@ -1145,20 +1153,41 @@ function AuditLogDetailPanel({ entry, organizationId }: AuditLogDetailPanelProps
           </div>
         </div>
 
-        {/* User ID */}
+        {/* User */}
         <div className="rounded-lg border border-gray-200 bg-white p-3">
           <p className="text-xs font-medium uppercase tracking-wide text-gray-500">User</p>
-          <div className="mt-1 flex items-center gap-2">
+          <div className="mt-1">
             {entry.userId ? (
-              <>
-                <code className="flex-1 truncate text-sm text-gray-900">{entry.userId}</code>
-                <CopyButton
-                  value={entry.userId}
-                  fieldName="userId"
-                  copiedField={copiedField}
-                  onCopy={handleCopy}
-                />
-              </>
+              <div className="space-y-1">
+                {entry.userDisplayName ? (
+                  <Tooltip content={entry.userEmail ?? entry.userId}>
+                    <span className="cursor-help text-sm font-medium text-gray-900">
+                      {entry.userDisplayName}
+                    </span>
+                  </Tooltip>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 truncate text-sm text-gray-900">{entry.userId}</code>
+                    <CopyButton
+                      value={entry.userId}
+                      fieldName="userId"
+                      copiedField={copiedField}
+                      onCopy={handleCopy}
+                    />
+                  </div>
+                )}
+                {entry.userEmail && entry.userDisplayName && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-500">{entry.userEmail}</span>
+                    <CopyButton
+                      value={entry.userEmail}
+                      fieldName="userEmail"
+                      copiedField={copiedField}
+                      onCopy={handleCopy}
+                    />
+                  </div>
+                )}
+              </div>
             ) : (
               <span className="text-sm text-gray-500 italic">System</span>
             )}

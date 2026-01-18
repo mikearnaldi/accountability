@@ -2816,6 +2816,8 @@ export interface components {
             entityName: string | null;
             action: components["schemas"]["AuditAction"];
             userId: components["schemas"]["UUID"] | null;
+            userDisplayName: string | null;
+            userEmail: string | null;
             timestamp: components["schemas"]["DateTimeUtc"];
             changes: {
                 [key: string]: {
