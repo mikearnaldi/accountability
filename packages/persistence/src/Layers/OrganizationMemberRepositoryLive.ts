@@ -443,6 +443,78 @@ const make = Effect.gen(function* () {
       return updated
     })
 
+  const suspend: OrganizationMemberRepositoryService["suspend"] = (id, suspendedBy, reason) =>
+    Effect.gen(function* () {
+      // Check if membership exists
+      const maybeMembership = yield* findById(id)
+      if (Option.isNone(maybeMembership)) {
+        return yield* Effect.fail(
+          new EntityNotFoundError({ entityType: "OrganizationMembership", entityId: id })
+        )
+      }
+
+      const now = new Date()
+
+      // Suspend the member - reuse removed_at/removed_by/removal_reason fields for suspension tracking
+      // (they serve the same purpose: tracking who made the status change and why)
+      yield* sql`
+        UPDATE user_organization_members
+        SET
+          status = 'suspended'::membership_status,
+          removed_at = ${now},
+          removed_by = ${suspendedBy},
+          removal_reason = ${reason ?? null}
+        WHERE id = ${id}
+      `.pipe(wrapSqlError("suspend"))
+
+      // Return updated membership
+      const updated = yield* findById(id).pipe(
+        Effect.flatMap(
+          Option.match({
+            onNone: () =>
+              Effect.fail(new EntityNotFoundError({ entityType: "OrganizationMembership", entityId: id })),
+            onSome: Effect.succeed
+          })
+        )
+      )
+      return updated
+    })
+
+  const unsuspend: OrganizationMemberRepositoryService["unsuspend"] = (id, unsuspendedBy) =>
+    Effect.gen(function* () {
+      // Check if membership exists
+      const maybeMembership = yield* findById(id)
+      if (Option.isNone(maybeMembership)) {
+        return yield* Effect.fail(
+          new EntityNotFoundError({ entityType: "OrganizationMembership", entityId: id })
+        )
+      }
+
+      const now = new Date()
+
+      // Unsuspend uses the reinstated_at/reinstated_by fields to track restoration
+      yield* sql`
+        UPDATE user_organization_members
+        SET
+          status = 'active'::membership_status,
+          reinstated_at = ${now},
+          reinstated_by = ${unsuspendedBy}
+        WHERE id = ${id}
+      `.pipe(wrapSqlError("unsuspend"))
+
+      // Return updated membership
+      const updated = yield* findById(id).pipe(
+        Effect.flatMap(
+          Option.match({
+            onNone: () =>
+              Effect.fail(new EntityNotFoundError({ entityType: "OrganizationMembership", entityId: id })),
+            onSome: Effect.succeed
+          })
+        )
+      )
+      return updated
+    })
+
   const getById: OrganizationMemberRepositoryService["getById"] = (id) =>
     Effect.gen(function* () {
       const maybeMembership = yield* findById(id)
@@ -476,6 +548,8 @@ const make = Effect.gen(function* () {
     update,
     remove,
     reinstate,
+    suspend,
+    unsuspend,
     getById,
     isMember,
     findOwner

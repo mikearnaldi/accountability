@@ -287,23 +287,35 @@ Platform admin capability exists in the database with a read-only viewer for pla
 
 ### 9. Member Suspension State
 
-**Status: DEFINED BUT UNUSED**
+**Status: IMPLEMENTED** ✓
 
-The membership status includes "suspended" but it's never used:
+The membership status includes "suspended" and is now fully functional:
 
 **What's Implemented:**
 - Database column: `status TEXT CHECK (status IN ('active', 'suspended', 'removed'))`
 - `MembershipStatus.ts` union type includes `suspended`
 - Permission checks validate `status = 'active'`
+- [x] **Suspend action** in member actions menu - "Suspend" button with Pause icon
+- [x] **Unsuspend action** in member actions menu - "Unsuspend" button with Play icon
+- [x] **API endpoint to suspend** - `POST /api/v1/organizations/{orgId}/members/{userId}/suspend`
+- [x] **API endpoint to unsuspend** - `POST /api/v1/organizations/{orgId}/members/{userId}/unsuspend`
+- [x] **Service method `suspendMember()`** - Validates owner cannot be suspended
+- [x] **Service method `unsuspendMember()`** - Validates member must be in suspended status
+- [x] **Repository methods `suspend()` and `unsuspend()`** - Database operations with audit tracking
+- [x] **Suspension reason tracking** - Uses `removal_reason` field for suspension reason
+- [x] **Error types** - `OwnerCannotBeSuspendedError`, `MemberNotSuspendedError`
 
-**What's Missing:**
-- [ ] **No suspend action** in member actions menu
-- [ ] **No API endpoint** to suspend a member
-- [ ] **No service method** `suspendMember()`
-- [ ] **No suspension reason/duration tracking**
-- [ ] **No auto-unsuspend logic**
+**What's NOT Implemented (Lower Priority):**
+- [ ] **Suspension duration/expiry** - Auto-unsuspend after a period is not implemented
+- [ ] **Suspension notification** - Email notification to suspended user is not implemented
 
-**Note:** The application only uses "active" and "removed" states. Suspension as a temporary state between them is not implemented.
+**Workflow:**
+1. Admin clicks member's action menu (three dots)
+2. Selects "Suspend" action (only shown for active non-owner members)
+3. Confirmation dialog appears
+4. Member status changes to "suspended"
+5. Member appears in "Inactive Members" section with "Suspended" status badge
+6. To restore access, admin clicks "Unsuspend" on the suspended member
 
 ---
 

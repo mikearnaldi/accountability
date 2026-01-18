@@ -16,7 +16,7 @@ import { createFileRoute, redirect, useRouter } from "@tanstack/react-router"
 import { createServerFn } from "@tanstack/react-start"
 import { getCookie } from "@tanstack/react-start/server"
 import { useState } from "react"
-import { Users, Mail, MoreVertical, UserPlus, Shield, RefreshCw, UserMinus, Clock, X, Copy, Check, Link, Crown, ArrowRightLeft, AlertTriangle, Eye } from "lucide-react"
+import { Users, Mail, MoreVertical, UserPlus, Shield, RefreshCw, UserMinus, Clock, X, Copy, Check, Link, Crown, ArrowRightLeft, AlertTriangle, Eye, Pause, Play } from "lucide-react"
 import { clsx } from "clsx"
 import { api } from "@/api/client"
 import { createServerApi } from "@/api/server"
@@ -629,6 +629,8 @@ interface MemberActionsMenuProps {
 function MemberActionsMenu({ member, isCurrentUser, isCurrentUserOwner, organizationId, onClose, onEdit, onRefresh, onTransferOwnership }: MemberActionsMenuProps) {
   const [isRemoving, setIsRemoving] = useState(false)
   const [isReinstating, setIsReinstating] = useState(false)
+  const [isSuspending, setIsSuspending] = useState(false)
+  const [isUnsuspending, setIsUnsuspending] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const handleRemove = async () => {
@@ -686,8 +688,65 @@ function MemberActionsMenu({ member, isCurrentUser, isCurrentUserOwner, organiza
     }
   }
 
+  const handleSuspend = async () => {
+    if (!window.confirm(`Are you sure you want to suspend ${member.displayName}? They will temporarily lose access to this organization.`)) {
+      return
+    }
+
+    setIsSuspending(true)
+    setError(null)
+    try {
+      const { error: apiError } = await api.POST("/api/v1/organizations/{orgId}/members/{userId}/suspend", {
+        params: { path: { orgId: organizationId, userId: member.userId } },
+        body: { reason: null }
+      })
+
+      if (apiError) {
+        const errorMessage = typeof apiError === "object" && "message" in apiError
+          ? String(apiError.message)
+          : "Failed to suspend member"
+        setError(errorMessage)
+        return
+      }
+
+      onRefresh()
+      onClose()
+    } catch {
+      setError("An unexpected error occurred")
+    } finally {
+      setIsSuspending(false)
+    }
+  }
+
+  const handleUnsuspend = async () => {
+    setIsUnsuspending(true)
+    setError(null)
+    try {
+      const { error: apiError } = await api.POST("/api/v1/organizations/{orgId}/members/{userId}/unsuspend", {
+        params: { path: { orgId: organizationId, userId: member.userId } }
+      })
+
+      if (apiError) {
+        const errorMessage = typeof apiError === "object" && "message" in apiError
+          ? String(apiError.message)
+          : "Failed to unsuspend member"
+        setError(errorMessage)
+        return
+      }
+
+      onRefresh()
+      onClose()
+    } catch {
+      setError("An unexpected error occurred")
+    } finally {
+      setIsUnsuspending(false)
+    }
+  }
+
   const isOwner = member.role === "owner"
   const canRemove = !isCurrentUser && !isOwner && member.status === "active"
+  const canSuspend = !isCurrentUser && !isOwner && member.status === "active"
+  const canUnsuspend = member.status === "suspended"
   const canReinstate = member.status === "removed"
   const canEdit = !isOwner && member.status === "active"
 
@@ -710,6 +769,30 @@ function MemberActionsMenu({ member, isCurrentUser, isCurrentUserOwner, organiza
         >
           <Shield className="h-4 w-4" />
           Edit Role
+        </button>
+      )}
+
+      {canSuspend && (
+        <button
+          onClick={handleSuspend}
+          disabled={isSuspending}
+          className="flex items-center gap-2 w-full px-4 py-2 text-sm text-yellow-700 hover:bg-yellow-50 disabled:opacity-50"
+          data-testid="member-suspend"
+        >
+          <Pause className={clsx("h-4 w-4", isSuspending && "animate-pulse")} />
+          Suspend
+        </button>
+      )}
+
+      {canUnsuspend && (
+        <button
+          onClick={handleUnsuspend}
+          disabled={isUnsuspending}
+          className="flex items-center gap-2 w-full px-4 py-2 text-sm text-green-700 hover:bg-green-50 disabled:opacity-50"
+          data-testid="member-unsuspend"
+        >
+          <Play className={clsx("h-4 w-4", isUnsuspending && "animate-spin")} />
+          Unsuspend
         </button>
       )}
 

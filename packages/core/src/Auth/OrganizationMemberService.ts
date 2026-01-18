@@ -20,6 +20,8 @@ import type { FunctionalRole } from "./FunctionalRole.ts"
 import type {
   MembershipNotFoundError,
   OwnerCannotBeRemovedError,
+  OwnerCannotBeSuspendedError,
+  MemberNotSuspendedError,
   CannotTransferToNonAdminError,
   UserAlreadyMemberError
 } from "./AuthorizationErrors.ts"
@@ -153,6 +155,53 @@ export interface OrganizationMemberServiceShape {
   >
 
   /**
+   * Suspend a member temporarily
+   *
+   * Changes the membership status to 'suspended'. The owner cannot be suspended;
+   * ownership must be transferred first. Suspended members cannot access the organization.
+   *
+   * @param organizationId - The organization ID
+   * @param userId - The user to suspend
+   * @param suspendedBy - The user performing the suspension
+   * @param reason - Optional reason for suspension
+   * @returns Effect containing the updated membership
+   * @errors MembershipNotFoundError - User is not a member
+   * @errors OwnerCannotBeSuspendedError - Cannot suspend the organization owner
+   * @errors PersistenceError - Database operation failed
+   */
+  readonly suspendMember: (
+    organizationId: OrganizationId,
+    userId: AuthUserId,
+    suspendedBy: AuthUserId,
+    reason?: string
+  ) => Effect.Effect<
+    OrganizationMembership,
+    MembershipNotFoundError | OwnerCannotBeSuspendedError | PersistenceError | EntityNotFoundError
+  >
+
+  /**
+   * Unsuspend a previously suspended member
+   *
+   * Changes the membership status back to 'active'.
+   *
+   * @param organizationId - The organization ID
+   * @param userId - The user to unsuspend
+   * @param unsuspendedBy - The user performing the unsuspension
+   * @returns Effect containing the updated membership
+   * @errors MembershipNotFoundError - User is not a member
+   * @errors MemberNotSuspendedError - Member is not in suspended status
+   * @errors PersistenceError - Database operation failed
+   */
+  readonly unsuspendMember: (
+    organizationId: OrganizationId,
+    userId: AuthUserId,
+    unsuspendedBy: AuthUserId
+  ) => Effect.Effect<
+    OrganizationMembership,
+    MembershipNotFoundError | MemberNotSuspendedError | PersistenceError | EntityNotFoundError
+  >
+
+  /**
    * Transfer organization ownership
    *
    * Atomically transfers ownership from the current owner to another admin.
@@ -268,6 +317,24 @@ export type UpdateRoleError =
  */
 export type ReinstateMemberError =
   | MembershipNotFoundError
+  | PersistenceError
+  | EntityNotFoundError
+
+/**
+ * SuspendMemberError - Union of errors for suspending a member
+ */
+export type SuspendMemberError =
+  | MembershipNotFoundError
+  | OwnerCannotBeSuspendedError
+  | PersistenceError
+  | EntityNotFoundError
+
+/**
+ * UnsuspendMemberError - Union of errors for unsuspending a member
+ */
+export type UnsuspendMemberError =
+  | MembershipNotFoundError
+  | MemberNotSuspendedError
   | PersistenceError
   | EntityNotFoundError
 

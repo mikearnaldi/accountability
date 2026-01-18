@@ -643,3 +643,8 @@
 **Task**: Integrated period status into journal entry authorization - AuthorizationService.checkPermission now accepts ResourceContext, added requirePermissionWithResource helper, journal entry handlers lookup and pass periodStatus for ABAC policy evaluation
 **Status**: complete
 ---
+
+## Iteration 17 - 2026-01-18 15:03
+**Task**: Implemented member suspension feature - added suspend/unsuspend API endpoints, service methods, repository methods, error types, and UI actions
+**Status**: complete
+---

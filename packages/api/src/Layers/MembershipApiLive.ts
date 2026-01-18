@@ -362,6 +362,171 @@ export const MembershipApiLive = HttpApiBuilder.group(AppApi, "membership", (han
       )
 
       // =======================================================================
+      // Suspend Member
+      // =======================================================================
+      .handle("suspendMember", ({ path, payload }) =>
+        Effect.gen(function* () {
+          const orgId = yield* Schema.decodeUnknown(OrganizationId)(path.orgId).pipe(
+            Effect.mapError(() => new NotFoundError({
+              resource: "Organization",
+              id: path.orgId
+            }))
+          )
+
+          const userId = yield* Schema.decodeUnknown(AuthUserId)(path.userId).pipe(
+            Effect.mapError(() => new NotFoundError({
+              resource: "User",
+              id: path.userId
+            }))
+          )
+
+          const currentUserInfo = yield* CurrentUser
+          const currentUserId = AuthUserId.make(currentUserInfo.userId)
+
+          // Suspend the member
+          const membership = yield* memberService.suspendMember(
+            orgId,
+            userId,
+            currentUserId,
+            Option.getOrUndefined(payload.reason)
+          ).pipe(
+            Effect.mapError((error) => {
+              if ("_tag" in error && error._tag === "MembershipNotFoundError") {
+                return new NotFoundError({
+                  resource: "Membership",
+                  id: `user ${path.userId} in org ${path.orgId}`
+                })
+              }
+              if ("_tag" in error && error._tag === "OwnerCannotBeSuspendedError") {
+                return new BusinessRuleError({
+                  code: "OWNER_CANNOT_BE_SUSPENDED",
+                  message: "The organization owner cannot be suspended. Transfer ownership first.",
+                  details: Option.none()
+                })
+              }
+              if ("_tag" in error && error._tag === "EntityNotFoundError") {
+                return new NotFoundError({
+                  resource: "Membership",
+                  id: `user ${path.userId}`
+                })
+              }
+              // Map PersistenceError to BusinessRuleError
+              return new BusinessRuleError({
+                code: "SUSPEND_FAILED",
+                message: "message" in error ? String(error.message) : "Failed to suspend member",
+                details: Option.none()
+              })
+            })
+          )
+
+          // Look up user details
+          const userOption = yield* userRepository.findById(membership.userId).pipe(
+            Effect.orDie
+          )
+
+          if (Option.isNone(userOption)) {
+            return yield* Effect.fail(new NotFoundError({
+              resource: "User",
+              id: membership.userId
+            }))
+          }
+
+          const user = userOption.value
+          return MemberInfo.make({
+            userId: membership.userId,
+            email: user.email,
+            displayName: user.displayName,
+            role: membership.role,
+            functionalRoles: membership.getFunctionalRoles(),
+            status: membership.status,
+            joinedAt: membership.createdAt
+          })
+        })
+      )
+
+      // =======================================================================
+      // Unsuspend Member
+      // =======================================================================
+      .handle("unsuspendMember", ({ path }) =>
+        Effect.gen(function* () {
+          const orgId = yield* Schema.decodeUnknown(OrganizationId)(path.orgId).pipe(
+            Effect.mapError(() => new NotFoundError({
+              resource: "Organization",
+              id: path.orgId
+            }))
+          )
+
+          const userId = yield* Schema.decodeUnknown(AuthUserId)(path.userId).pipe(
+            Effect.mapError(() => new NotFoundError({
+              resource: "User",
+              id: path.userId
+            }))
+          )
+
+          const currentUserInfo = yield* CurrentUser
+          const currentUserId = AuthUserId.make(currentUserInfo.userId)
+
+          // Unsuspend the member
+          const membership = yield* memberService.unsuspendMember(
+            orgId,
+            userId,
+            currentUserId
+          ).pipe(
+            Effect.mapError((error) => {
+              if ("_tag" in error && error._tag === "MembershipNotFoundError") {
+                return new NotFoundError({
+                  resource: "Membership",
+                  id: `user ${path.userId} in org ${path.orgId}`
+                })
+              }
+              if ("_tag" in error && error._tag === "MemberNotSuspendedError") {
+                return new BusinessRuleError({
+                  code: "MEMBER_NOT_SUSPENDED",
+                  message: "Cannot unsuspend: member is not currently suspended.",
+                  details: Option.none()
+                })
+              }
+              if ("_tag" in error && error._tag === "EntityNotFoundError") {
+                return new NotFoundError({
+                  resource: "Membership",
+                  id: `user ${path.userId}`
+                })
+              }
+              // Map PersistenceError to BusinessRuleError
+              return new BusinessRuleError({
+                code: "UNSUSPEND_FAILED",
+                message: "message" in error ? String(error.message) : "Failed to unsuspend member",
+                details: Option.none()
+              })
+            })
+          )
+
+          // Look up user details
+          const userOption = yield* userRepository.findById(membership.userId).pipe(
+            Effect.orDie
+          )
+
+          if (Option.isNone(userOption)) {
+            return yield* Effect.fail(new NotFoundError({
+              resource: "User",
+              id: membership.userId
+            }))
+          }
+
+          const user = userOption.value
+          return MemberInfo.make({
+            userId: membership.userId,
+            email: user.email,
+            displayName: user.displayName,
+            role: membership.role,
+            functionalRoles: membership.getFunctionalRoles(),
+            status: membership.status,
+            joinedAt: membership.createdAt
+          })
+        })
+      )
+
+      // =======================================================================
       // Transfer Ownership
       // =======================================================================
       .handle("transferOwnership", ({ path, payload }) =>

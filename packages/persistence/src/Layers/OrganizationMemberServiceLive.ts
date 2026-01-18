@@ -30,6 +30,8 @@ import * as Timestamp from "@accountability/core/Domains/Timestamp"
 import {
   MembershipNotFoundError,
   OwnerCannotBeRemovedError,
+  OwnerCannotBeSuspendedError,
+  MemberNotSuspendedError,
   CannotTransferToNonAdminError,
   UserAlreadyMemberError
 } from "@accountability/core/Auth/AuthorizationErrors"
@@ -186,6 +188,48 @@ const make = Effect.gen(function* () {
 
         // Reinstate the membership
         return yield* memberRepo.reinstate(membership.id, reinstatedBy)
+      }),
+
+    /**
+     * Suspend a member temporarily
+     */
+    suspendMember: (organizationId, userId, suspendedBy, reason) =>
+      Effect.gen(function* () {
+        // Get the membership
+        const membership = yield* getMembershipOrFail(organizationId, userId)
+
+        // Owner cannot be suspended
+        if (membership.isOwner()) {
+          return yield* Effect.fail(
+            new OwnerCannotBeSuspendedError({ organizationId })
+          )
+        }
+
+        // Suspend the membership
+        return yield* memberRepo.suspend(membership.id, suspendedBy, reason)
+      }),
+
+    /**
+     * Unsuspend a previously suspended member
+     */
+    unsuspendMember: (organizationId, userId, unsuspendedBy) =>
+      Effect.gen(function* () {
+        // Get the membership
+        const membership = yield* getMembershipOrFail(organizationId, userId)
+
+        // Check that member is actually suspended
+        if (membership.status !== "suspended") {
+          return yield* Effect.fail(
+            new MemberNotSuspendedError({
+              userId,
+              organizationId,
+              currentStatus: membership.status
+            })
+          )
+        }
+
+        // Unsuspend the membership
+        return yield* memberRepo.unsuspend(membership.id, unsuspendedBy)
       }),
 
     /**

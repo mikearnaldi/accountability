@@ -92,6 +92,13 @@ export class RemoveMemberRequest extends Schema.Class<RemoveMemberRequest>("Remo
 }) {}
 
 /**
+ * SuspendMemberRequest - Request to suspend a member
+ */
+export class SuspendMemberRequest extends Schema.Class<SuspendMemberRequest>("SuspendMemberRequest")({
+  reason: Schema.OptionFromNullOr(Schema.String)
+}) {}
+
+/**
  * TransferOwnershipRequest - Request to transfer organization ownership
  */
 export class TransferOwnershipRequest extends Schema.Class<TransferOwnershipRequest>("TransferOwnershipRequest")({
@@ -180,6 +187,35 @@ const reinstateMember = HttpApiEndpoint.post("reinstateMember", "/organizations/
   }))
 
 /**
+ * Suspend a member (temporarily deny access)
+ */
+const suspendMember = HttpApiEndpoint.post("suspendMember", "/organizations/:orgId/members/:userId/suspend")
+  .setPath(Schema.Struct({ orgId: Schema.String, userId: Schema.String }))
+  .setPayload(SuspendMemberRequest)
+  .addSuccess(MemberInfo)
+  .addError(NotFoundError)
+  .addError(ForbiddenError)
+  .addError(BusinessRuleError)
+  .annotateContext(OpenApi.annotations({
+    summary: "Suspend member",
+    description: "Temporarily suspend a member's access to the organization. The owner cannot be suspended."
+  }))
+
+/**
+ * Unsuspend a suspended member (restore access)
+ */
+const unsuspendMember = HttpApiEndpoint.post("unsuspendMember", "/organizations/:orgId/members/:userId/unsuspend")
+  .setPath(Schema.Struct({ orgId: Schema.String, userId: Schema.String }))
+  .addSuccess(MemberInfo)
+  .addError(NotFoundError)
+  .addError(ForbiddenError)
+  .addError(BusinessRuleError)
+  .annotateContext(OpenApi.annotations({
+    summary: "Unsuspend member",
+    description: "Restore access for a previously suspended member."
+  }))
+
+/**
  * Transfer organization ownership
  */
 const transferOwnership = HttpApiEndpoint.post("transferOwnership", "/organizations/:orgId/transfer-ownership")
@@ -211,6 +247,8 @@ export class MembershipApi extends HttpApiGroup.make("membership")
   .add(updateMember)
   .add(removeMember)
   .add(reinstateMember)
+  .add(suspendMember)
+  .add(unsuspendMember)
   .add(transferOwnership)
   .middleware(AuthMiddleware)
   .prefix("/v1")

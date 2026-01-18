@@ -149,6 +149,34 @@ export interface OrganizationMemberRepositoryService {
   ) => Effect.Effect<OrganizationMembership, EntityNotFoundError | PersistenceError>
 
   /**
+   * Suspend a member (temporary access denial)
+   *
+   * @param id - The membership ID to suspend
+   * @param suspendedBy - The user who is suspending the member
+   * @param reason - Optional reason for suspension
+   * @returns Effect containing the updated membership
+   * @throws EntityNotFoundError if membership doesn't exist
+   */
+  readonly suspend: (
+    id: OrganizationMembershipId,
+    suspendedBy: AuthUserId,
+    reason?: string
+  ) => Effect.Effect<OrganizationMembership, EntityNotFoundError | PersistenceError>
+
+  /**
+   * Unsuspend a member (restore access)
+   *
+   * @param id - The membership ID to unsuspend
+   * @param unsuspendedBy - The user who is unsuspending the member
+   * @returns Effect containing the updated membership
+   * @throws EntityNotFoundError if membership doesn't exist
+   */
+  readonly unsuspend: (
+    id: OrganizationMembershipId,
+    unsuspendedBy: AuthUserId
+  ) => Effect.Effect<OrganizationMembership, EntityNotFoundError | PersistenceError>
+
+  /**
    * Find membership by ID, throwing if not found
    *
    * @param id - The membership ID to search for

@@ -206,6 +206,63 @@ export class OwnerCannotBeRemovedError extends Schema.TaggedError<OwnerCannotBeR
 export const isOwnerCannotBeRemovedError = Schema.is(OwnerCannotBeRemovedError)
 
 /**
+ * OwnerCannotBeSuspendedError - Cannot suspend the organization owner
+ *
+ * Returned when attempting to suspend the owner of an organization.
+ * Ownership must be transferred before the owner can be suspended.
+ *
+ * HTTP Status: 409 Conflict
+ */
+export class OwnerCannotBeSuspendedError extends Schema.TaggedError<OwnerCannotBeSuspendedError>()(
+  "OwnerCannotBeSuspendedError",
+  {
+    organizationId: OrganizationId.annotations({
+      description: "The organization where the owner cannot be suspended"
+    })
+  }
+) {
+  get message(): string {
+    return `The organization owner cannot be suspended. Transfer ownership first.`
+  }
+}
+
+/**
+ * Type guard for OwnerCannotBeSuspendedError
+ */
+export const isOwnerCannotBeSuspendedError = Schema.is(OwnerCannotBeSuspendedError)
+
+/**
+ * MemberNotSuspendedError - Cannot unsuspend a member who is not suspended
+ *
+ * Returned when attempting to unsuspend a member whose status is not 'suspended'.
+ *
+ * HTTP Status: 409 Conflict
+ */
+export class MemberNotSuspendedError extends Schema.TaggedError<MemberNotSuspendedError>()(
+  "MemberNotSuspendedError",
+  {
+    userId: AuthUserId.annotations({
+      description: "The user who is not suspended"
+    }),
+    organizationId: OrganizationId.annotations({
+      description: "The organization"
+    }),
+    currentStatus: MembershipStatus.annotations({
+      description: "The current status of the membership"
+    })
+  }
+) {
+  get message(): string {
+    return `Cannot unsuspend member: current status is '${this.currentStatus}', not 'suspended'`
+  }
+}
+
+/**
+ * Type guard for MemberNotSuspendedError
+ */
+export const isMemberNotSuspendedError = Schema.is(MemberNotSuspendedError)
+
+/**
  * CannotTransferToNonAdminError - Cannot transfer ownership to a non-admin
  *
  * Returned when attempting to transfer ownership to a user who is not an admin.
@@ -302,6 +359,8 @@ export type AuthorizationError =
   | InvalidInvitationError
   | InvitationExpiredError
   | OwnerCannotBeRemovedError
+  | OwnerCannotBeSuspendedError
+  | MemberNotSuspendedError
   | CannotTransferToNonAdminError
   | InvitationAlreadyExistsError
   | UserAlreadyMemberError
@@ -320,6 +379,8 @@ export const AUTHORIZATION_ERROR_STATUS_CODES = {
   InvitationExpiredError: 400,
   // 409 Conflict
   OwnerCannotBeRemovedError: 409,
+  OwnerCannotBeSuspendedError: 409,
+  MemberNotSuspendedError: 409,
   CannotTransferToNonAdminError: 409,
   InvitationAlreadyExistsError: 409,
   UserAlreadyMemberError: 409
