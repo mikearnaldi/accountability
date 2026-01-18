@@ -44,10 +44,24 @@ import {
   NotFoundError,
   ValidationError,
   ConflictError,
-  BusinessRuleError
+  BusinessRuleError,
+  AuditLogError
 } from "../Definitions/ApiErrors.ts"
+import type { AuditLogError as CoreAuditLogError } from "@accountability/core/AuditLog/AuditLogErrors"
 import { CurrentUser } from "../Definitions/AuthMiddleware.ts"
 import { requireOrganizationContext, requirePermission } from "./OrganizationContextMiddlewareLive.ts"
+
+/**
+ * Map core AuditLogError to API AuditLogError
+ *
+ * The core AuditLogError and API AuditLogError have the same shape,
+ * but different types. This maps between them for proper API error handling.
+ */
+const mapCoreAuditErrorToApi = (error: CoreAuditLogError): AuditLogError =>
+  new AuditLogError({
+    operation: error.operation,
+    cause: error.cause
+  })
 
 /**
  * Convert persistence errors to BusinessRuleError
@@ -103,14 +117,15 @@ const mapPersistenceToConflict = (
  * Helper to log company creation to audit log
  *
  * Uses the AuditLogService and CurrentUserId from the Effect context.
- * Errors are caught and silently ignored to not block business operations.
+ * Per AUDIT_PAGE.md spec: audit logging must NOT silently fail.
+ * If audit logging fails, the operation fails - this ensures audit trail integrity.
  *
  * @param company - The created company
- * @returns Effect that completes when audit logging is attempted
+ * @returns Effect that completes when audit logging succeeds
  */
 const logCompanyCreate = (
   company: Company
-): Effect.Effect<void, never, AuditLogService | CurrentUserId> =>
+): Effect.Effect<void, AuditLogError, AuditLogService | CurrentUserId> =>
   Effect.gen(function* () {
     const auditService = yield* AuditLogService
     const userId = yield* CurrentUserId
@@ -124,20 +139,23 @@ const logCompanyCreate = (
       userId
     )
   }).pipe(
-    Effect.catchAll(() => Effect.void) // Silent failure - don't block business operations
+    Effect.mapError(mapCoreAuditErrorToApi)
   )
 
 /**
  * Helper to log company update to audit log
  *
+ * Per AUDIT_PAGE.md spec: audit logging must NOT silently fail.
+ * If audit logging fails, the operation fails - this ensures audit trail integrity.
+ *
  * @param before - The company state before the update
  * @param after - The company state after the update
- * @returns Effect that completes when audit logging is attempted
+ * @returns Effect that completes when audit logging succeeds
  */
 const logCompanyUpdate = (
   before: Company,
   after: Company
-): Effect.Effect<void, never, AuditLogService | CurrentUserId> =>
+): Effect.Effect<void, AuditLogError, AuditLogService | CurrentUserId> =>
   Effect.gen(function* () {
     const auditService = yield* AuditLogService
     const userId = yield* CurrentUserId
@@ -152,20 +170,22 @@ const logCompanyUpdate = (
       userId
     )
   }).pipe(
-    Effect.catchAll(() => Effect.void) // Silent failure - don't block business operations
+    Effect.mapError(mapCoreAuditErrorToApi)
   )
 
 /**
  * Helper to log company deactivation to audit log
  *
  * Uses logStatusChange since deactivation is a status transition (active → inactive).
+ * Per AUDIT_PAGE.md spec: audit logging must NOT silently fail.
+ * If audit logging fails, the operation fails - this ensures audit trail integrity.
  *
  * @param company - The company being deactivated
- * @returns Effect that completes when audit logging is attempted
+ * @returns Effect that completes when audit logging succeeds
  */
 const logCompanyDeactivate = (
   company: Company
-): Effect.Effect<void, never, AuditLogService | CurrentUserId> =>
+): Effect.Effect<void, AuditLogError, AuditLogService | CurrentUserId> =>
   Effect.gen(function* () {
     const auditService = yield* AuditLogService
     const userId = yield* CurrentUserId
@@ -181,7 +201,7 @@ const logCompanyDeactivate = (
       "Company deactivated"
     )
   }).pipe(
-    Effect.catchAll(() => Effect.void) // Silent failure - don't block business operations
+    Effect.mapError(mapCoreAuditErrorToApi)
   )
 
 /**
@@ -287,15 +307,17 @@ export const CompaniesApiLive = HttpApiBuilder.group(AppApi, "companies", (handl
 
             // Try to create membership - may fail if user doesn't exist in auth_users table
             // (e.g., in test environments with simple token validator)
+            // Error is intentionally handled to allow org creation to succeed
             yield* memberRepo.create(membership).pipe(
-              Effect.catchAll(() => Effect.void)
+              Effect.catchAll(() => Effect.succeed(undefined))
             )
           }
 
           // Seed system policies for the new organization
           // These are the 4 built-in policies that cannot be modified by users
+          // Error is intentionally handled - org creation should succeed even if policy seeding fails
           yield* seedSystemPolicies(createdOrg.id, policyRepo).pipe(
-            Effect.catchAll(() => Effect.void)
+            Effect.catchAll(() => Effect.succeed(undefined))
           )
 
           return createdOrg

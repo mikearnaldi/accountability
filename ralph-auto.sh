@@ -9,12 +9,14 @@
 #
 # Options:
 #   --e2e                    Run E2E tests as part of CI checks (slower but more thorough)
+#   --skip-checks            Skip all CI checks (typecheck, lint, build, tests)
 #   --max-iterations <n>     Stop after n iterations (default: unlimited)
 #
 # Examples:
 #   ./ralph-auto.sh "Fix the authentication bug in login flow"
 #   ./ralph-auto.sh "Implement the exchange rate sync feature" --max-iterations 5
 #   ./ralph-auto.sh "Add E2E tests for consolidated reports" --e2e
+#   ./ralph-auto.sh "Quick experiment" --skip-checks
 #
 # The loop continues until the task is complete (TASK_COMPLETE signal)
 # COMMITS ARE HANDLED BY THIS SCRIPT, NOT THE AGENT.
@@ -24,6 +26,7 @@ set -o pipefail  # Propagate exit status through pipelines (important for tee)
 
 # Parse arguments
 RUN_E2E=false
+SKIP_CHECKS=false
 FOCUS_PROMPT=""
 MAX_ITERATIONS=0  # 0 means unlimited
 
@@ -31,6 +34,10 @@ while [[ $# -gt 0 ]]; do
     case $1 in
         --e2e)
             RUN_E2E=true
+            shift
+            ;;
+        --skip-checks)
+            SKIP_CHECKS=true
             shift
             ;;
         --max-iterations)
@@ -49,6 +56,7 @@ while [[ $# -gt 0 ]]; do
             echo ""
             echo "Options:"
             echo "  --e2e                    Run E2E tests as part of CI checks"
+            echo "  --skip-checks            Skip all CI checks (typecheck, lint, build, tests)"
             echo "  --max-iterations <n>     Stop after n iterations (default: unlimited)"
             echo "  --help, -h               Show this help message"
             echo ""
@@ -56,6 +64,7 @@ while [[ $# -gt 0 ]]; do
             echo "  ./ralph-auto.sh \"Fix the authentication bug\""
             echo "  ./ralph-auto.sh \"Implement exchange rate sync\" --max-iterations 5"
             echo "  ./ralph-auto.sh \"Add E2E tests\" --e2e"
+            echo "  ./ralph-auto.sh \"Quick fix\" --skip-checks"
             exit 0
             ;;
         -*)
@@ -579,8 +588,15 @@ run_iteration() {
 
         local task_desc=$(extract_task_description "$output_file")
 
-        # Run CI checks before committing
-        if run_ci_checks; then
+        # Run CI checks before committing (unless skipped)
+        local ci_passed=true
+        if [ "$SKIP_CHECKS" = true ]; then
+            log "INFO" "Skipping CI checks (--skip-checks)"
+        elif ! run_ci_checks; then
+            ci_passed=false
+        fi
+
+        if [ "$ci_passed" = true ]; then
             # Update progress log BEFORE committing so it's included
             echo "" >> "$PROGRESS_FILE"
             echo "## Iteration $iteration - $(date '+%Y-%m-%d %H:%M')" >> "$PROGRESS_FILE"
@@ -607,8 +623,19 @@ run_iteration() {
     elif has_changes; then
         # No TASK_COMPLETE but there are changes - commit as partial work
         log "WARN" "Agent did not signal TASK_COMPLETE but has uncommitted changes"
-        log "INFO" "Found uncommitted changes, running CI checks..."
-        if run_ci_checks; then
+
+        # Run CI checks (unless skipped)
+        local ci_passed=true
+        if [ "$SKIP_CHECKS" = true ]; then
+            log "INFO" "Skipping CI checks (--skip-checks)"
+        else
+            log "INFO" "Found uncommitted changes, running CI checks..."
+            if ! run_ci_checks; then
+                ci_passed=false
+            fi
+        fi
+
+        if [ "$ci_passed" = true ]; then
             echo "" >> "$PROGRESS_FILE"
             echo "## Iteration $iteration - $(date '+%Y-%m-%d %H:%M')" >> "$PROGRESS_FILE"
             echo "**Task**: Partial work (no explicit completion signal)" >> "$PROGRESS_FILE"
@@ -643,6 +670,9 @@ main() {
     if [ "$MAX_ITERATIONS" -gt 0 ]; then
         log "INFO" "Max iterations: $MAX_ITERATIONS"
     fi
+    if [ "$SKIP_CHECKS" = true ]; then
+        log "WARN" "Skip checks: enabled (no CI validation)"
+    fi
 
     check_prerequisites
 
@@ -650,15 +680,20 @@ main() {
     local iteration=1
     local completed=false
 
-    # Run initial CI checks before first iteration
+    # Run initial CI checks before first iteration (unless skipped)
     # This ensures the agent knows about any pre-existing errors
-    log "INFO" "Running initial CI checks..."
-    if ! run_ci_checks; then
-        log "WARN" "Initial CI checks failed - errors will be included in prompt for agent to fix"
-    else
-        log "SUCCESS" "Initial CI checks passed - starting with clean slate"
-        # Clear any stale error file
+    if [ "$SKIP_CHECKS" = true ]; then
+        log "INFO" "Skipping initial CI checks (--skip-checks)"
         rm -f "$OUTPUT_DIR/ci_errors.txt"
+    else
+        log "INFO" "Running initial CI checks..."
+        if ! run_ci_checks; then
+            log "WARN" "Initial CI checks failed - errors will be included in prompt for agent to fix"
+        else
+            log "SUCCESS" "Initial CI checks passed - starting with clean slate"
+            # Clear any stale error file
+            rm -f "$OUTPUT_DIR/ci_errors.txt"
+        fi
     fi
 
     while true; do

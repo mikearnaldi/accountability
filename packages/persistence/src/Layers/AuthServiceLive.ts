@@ -474,9 +474,10 @@ const make = Effect.gen(function* () {
         // Check if expired
         const now = Timestamp.now()
         if (session.isExpired(now)) {
-          // Delete expired session
+          // Delete expired session - errors are intentionally ignored
+          // since the main goal is to fail with SessionExpiredError
           yield* sessionRepo.delete(sessionId).pipe(
-            Effect.catchAll(() => Effect.void)
+            Effect.catchAll(() => Effect.succeed(undefined))
           )
           return yield* Effect.fail(
             new SessionExpiredError({ sessionId })

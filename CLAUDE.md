@@ -89,8 +89,10 @@ All specifications and context documentation live in `specs/`. Use focus mode to
 | [specs/EFFECT_SQL.md](specs/EFFECT_SQL.md) | SqlSchema, Model.Class, repository patterns |
 | [specs/EFFECT_TESTING.md](specs/EFFECT_TESTING.md) | @effect/vitest, testcontainers, property testing |
 | [specs/EXCHANGE_RATE_SYNC.md](specs/EXCHANGE_RATE_SYNC.md) | ECB exchange rate sync and cross-rate triangulation |
+| [specs/FISCAL_PERIODS.md](specs/FISCAL_PERIODS.md) | Fiscal year/period management, mandatory period 13 |
 | [specs/HTTP_API_TANSTACK.md](specs/HTTP_API_TANSTACK.md) | Effect HttpApi + TanStack Start SSR + openapi-fetch |
 | [specs/PAST_DATE_JOURNAL_ENTRIES.md](specs/PAST_DATE_JOURNAL_ENTRIES.md) | Fix for creating journal entries with past dates |
+| [specs/POLICY_UX_IMPROVEMENTS.md](specs/POLICY_UX_IMPROVEMENTS.md) | Policy creation UX redesign - multi-resource, user picker |
 | [specs/REACT_BEST_PRACTICES.md](specs/REACT_BEST_PRACTICES.md) | React patterns, loaders, mutations, Tailwind |
 | [specs/REFERENCE_REPOS.md](specs/REFERENCE_REPOS.md) | Reference repository documentation |
 | [specs/SYNTHETIC_DATA_GENERATOR.md](specs/SYNTHETIC_DATA_GENERATOR.md) | Playwright script to generate synthetic demo data |

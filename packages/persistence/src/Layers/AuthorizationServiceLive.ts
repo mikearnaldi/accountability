@@ -264,11 +264,12 @@ const make = Effect.gen(function* () {
           }
 
           // Log the denial to audit log (fire-and-forget, don't block on logging)
+          // Error is intentionally handled - permission denial should still fail with
+          // PermissionDeniedError even if the audit logging fails
           yield* auditRepo
             .logDenial(auditEntry)
             .pipe(
-              // Don't fail the main operation if logging fails
-              Effect.catchAll(() => Effect.void)
+              Effect.catchAll(() => Effect.succeed(undefined))
             )
 
           return yield* Effect.fail(

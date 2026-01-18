@@ -347,7 +347,7 @@ A fiscal year for a company.
 
 **Relationships:**
 - Belongs to **Company**
-- Has many **FiscalPeriods** (typically 12-13)
+- Has many **FiscalPeriods** (always 13: periods 1-12 regular + period 13 adjustment)
 
 ### 5.2 FiscalPeriod
 
@@ -357,7 +357,7 @@ A period within a fiscal year (typically monthly).
 |-------|------|----------|-------------|
 | id | UUID | Yes | Primary key |
 | fiscalYearId | UUID | Yes | FK to FiscalYear |
-| periodNumber | number | Yes | 1-12 regular, 13 adjustment |
+| periodNumber | number | Yes | 1-12 regular, 13 adjustment (always created) |
 | startDate | LocalDate | Yes | First day of period |
 | endDate | LocalDate | Yes | Last day of period |
 | status | FiscalPeriodStatus | Yes | Workflow state |
@@ -370,6 +370,11 @@ Future → Open → SoftClose → Closed → Locked
                     ↑           │
                     └───────────┘ (reopen with reason)
 ```
+
+**Business Rules:**
+- Period 13 (adjustment period) must ALWAYS be created with every fiscal year
+- This ensures compatibility with consolidation runs which support periods 1-13
+- See [specs/FISCAL_PERIODS.md](FISCAL_PERIODS.md) for full specification and implementation tasks
 
 ### 5.3 PeriodReopenAuditEntry
 

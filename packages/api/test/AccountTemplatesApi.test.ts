@@ -370,11 +370,13 @@ layer(HttpLive, { timeout: "120 seconds" })("AccountTemplatesApi", (it) => {
       Effect.gen(function* () {
         const httpClient = yield* HttpClient.HttpClient
         const fakeCompanyId = crypto.randomUUID()
-        const fakeOrgId = crypto.randomUUID()
+
+        // Create a real organization so the organization context check passes
+        const org = yield* createTestOrganizationViaApi(httpClient)
 
         const response = yield* HttpClientRequest.post("/api/v1/account-templates/GeneralBusiness/apply").pipe(
           HttpClientRequest.bearerToken(TEST_TOKEN),
-          HttpClientRequest.bodyUnsafeJson({ organizationId: fakeOrgId, companyId: fakeCompanyId }),
+          HttpClientRequest.bodyUnsafeJson({ organizationId: org.id, companyId: fakeCompanyId }),
           httpClient.execute,
           Effect.scoped
         )
@@ -442,6 +444,53 @@ layer(HttpLive, { timeout: "120 seconds" })("AccountTemplatesApi", (it) => {
 
         expect(response.templateType).toBe("ServiceBusiness")
         expect(response.createdCount).toBeGreaterThan(0)
+      })
+    )
+
+    it.effect("creates audit log entries when applying template", () =>
+      Effect.gen(function* () {
+        const httpClient = yield* HttpClient.HttpClient
+
+        // Create test organization and company via API
+        const org = yield* createTestOrganizationViaApi(httpClient)
+        const company = yield* createTestCompanyViaApi(httpClient, org.id)
+
+        const client = yield* HttpApiClient.makeWith(AppApi, {
+          httpClient: httpClient.pipe(
+            HttpClient.mapRequest(HttpClientRequest.bearerToken(TEST_TOKEN))
+          )
+        })
+
+        // Apply HoldingCompany template (smallest template for faster test)
+        const applyResponse = yield* client.accountTemplates.applyAccountTemplate({
+          path: { type: "HoldingCompany" },
+          payload: { organizationId: org.id, companyId: company.id }
+        })
+
+        expect(applyResponse.createdCount).toBeGreaterThan(0)
+
+        // Query audit log for Account Create entries in this organization
+        const auditResponse = yield* client.auditLog.listAuditLog({
+          path: { organizationId: org.id },
+          urlParams: {
+            entityType: "Account",
+            action: "Create",
+            limit: 100
+          }
+        })
+
+        // Should have audit entries for each account created from template
+        expect(auditResponse.entries.length).toBe(applyResponse.createdCount)
+
+        // Each entry should have the correct entity type and action
+        for (const entry of auditResponse.entries) {
+          expect(entry.entityType).toBe("Account")
+          expect(entry.action).toBe("Create")
+          // Should have entity name captured
+          expect(entry.entityName._tag).toBe("Some")
+          // Should have user ID from the test token
+          expect(entry.userId._tag).toBe("Some")
+        }
       })
     )
   })

@@ -224,6 +224,87 @@ const wrapSqlError = (operation: string) =>
 - `catchAllCause` catches both, hiding bugs that should be fixed
 - Use `catchAll` or `mapError` to transform only expected errors
 
+### 7. NEVER Silently Swallow Errors - Errors Must Be Represented in the Type System
+
+**Principle: If something can fail, the failure MUST be visible in the Effect's error channel `E`.**
+
+The error type `E` in `Effect<A, E, R>` is a contract. It tells callers exactly what can go wrong. When you swallow errors with `() => Effect.void`, you're breaking that contract and lying to the type system.
+
+```typescript
+// WRONG - silently swallowing errors hides bugs
+yield* auditLogService.log(entry).pipe(
+  Effect.catchTag("AuditLogError", () => Effect.void)  // LINT ERROR: local/no-silent-error-swallow
+)
+
+// WRONG - catchAll with void hides all errors
+yield* someEffect.pipe(
+  Effect.catchAll(() => Effect.void)  // LINT ERROR
+)
+
+// WRONG - Effect.ignore silently discards errors
+yield* someEffect.pipe(Effect.ignore)  // LINT ERROR: local/no-effect-ignore
+
+// CORRECT - let error propagate (caller decides how to handle)
+yield* auditLogService.log(entry)
+
+// CORRECT - transform error to different type (still visible in types)
+yield* auditLogService.log(entry).pipe(
+  Effect.mapError((e) => new MyError({ cause: e }))
+)
+
+// CORRECT - log and re-raise
+yield* auditLogService.log(entry).pipe(
+  Effect.tapError((e) => Effect.logError("Audit logging failed", e))
+)
+
+// CORRECT - provide fallback value (for queries, not side effects)
+const result = yield* findAccount(id).pipe(
+  Effect.catchTag("NotFoundError", () => Effect.succeed(null))
+)
+
+// CORRECT - handle with meaningful recovery logic
+yield* auditLogService.log(entry).pipe(
+  Effect.catchTag("AuditLogError", (e) =>
+    Effect.gen(function* () {
+      yield* Effect.logError("Audit logging failed, queuing for retry", e)
+      yield* retryQueue.enqueue(entry)
+    })
+  )
+)
+```
+
+**Why errors must be in the type system:**
+
+1. **The type system is the source of truth** - `Effect<Account, NotFoundError | ValidationError, AccountRepo>` tells you exactly what can fail. This is Effect's killer feature. When you swallow errors, you're lying to callers about what can go wrong.
+
+2. **Compiler-enforced error handling** - With errors in types, the compiler ensures every error is handled. Swallowing errors defeats this - you're back to "hope nothing fails" programming.
+
+3. **Explicit > Implicit** - `Effect<void, AuditLogError>` is honest. `Effect<void, never>` after swallowing `AuditLogError` is a lie. Explicit error types let callers make informed decisions.
+
+4. **The caller should decide** - Let errors propagate. The caller knows the context and can decide: retry? fallback? fail the whole operation? Don't make that decision by silently swallowing.
+
+5. **Silent failures hide bugs** - If audit logging fails silently, you won't know until an audit reveals gaps. In accounting software, this is a compliance violation.
+
+**Lint rules that enforce this:**
+- `local/no-silent-error-swallow` - Bans `() => Effect.void` in catch handlers
+- `local/no-effect-ignore` - Bans `Effect.ignore`
+- `local/no-effect-catchallcause` - Bans `Effect.catchAllCause`
+
+**The only valid reason to swallow an error** is when:
+1. You've documented WHY it's safe to ignore
+2. You've logged the error (so it's not truly silent)
+3. There's genuinely no recovery action possible AND the operation is non-critical
+
+Even then, prefer logging over complete silence:
+```typescript
+// If you MUST ignore an error, at least log it
+yield* nonCriticalOperation.pipe(
+  Effect.tapError((e) => Effect.logWarning("Non-critical operation failed", e)),
+  Effect.catchAll(() => Effect.void)
+)
+// And add a comment explaining why this is acceptable
+```
+
 ---
 
 ## Pipe Composition

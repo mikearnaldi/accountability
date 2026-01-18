@@ -35,11 +35,25 @@ import {
   NotFoundError,
   ValidationError,
   ConflictError,
-  BusinessRuleError
+  BusinessRuleError,
+  AuditLogError
 } from "../Definitions/ApiErrors.ts"
+import type { AuditLogError as CoreAuditLogError } from "@accountability/core/AuditLog/AuditLogErrors"
 import { requireOrganizationContext, requirePermission } from "./OrganizationContextMiddlewareLive.ts"
 import { AuditLogService } from "@accountability/core/AuditLog/AuditLogService"
 import { CurrentUserId } from "@accountability/core/AuditLog/CurrentUserId"
+
+/**
+ * Map core AuditLogError to API AuditLogError
+ *
+ * The core AuditLogError and API AuditLogError have the same shape,
+ * but different types. This maps between them for proper API error handling.
+ */
+const mapCoreAuditErrorToApi = (error: CoreAuditLogError): AuditLogError =>
+  new AuditLogError({
+    operation: error.operation,
+    cause: error.cause
+  })
 
 /**
  * Convert persistence errors to NotFoundError
@@ -89,16 +103,17 @@ const mapPersistenceToValidation = (
  * Helper to log account creation to audit log
  *
  * Uses the AuditLogService and CurrentUserId from the Effect context.
- * Errors are caught and silently ignored to not block business operations.
+ * Per AUDIT_PAGE.md spec: audit logging must NOT silently fail.
+ * If audit logging fails, the operation fails - this ensures audit trail integrity.
  *
  * @param organizationId - The organization this account belongs to
  * @param account - The created account
- * @returns Effect that completes when audit logging is attempted
+ * @returns Effect that completes when audit logging succeeds
  */
 const logAccountCreate = (
   organizationId: string,
   account: Account
-): Effect.Effect<void, never, AuditLogService | CurrentUserId> =>
+): Effect.Effect<void, AuditLogError, AuditLogService | CurrentUserId> =>
   Effect.gen(function* () {
     const auditService = yield* AuditLogService
     const userId = yield* CurrentUserId
@@ -112,24 +127,26 @@ const logAccountCreate = (
       userId
     )
   }).pipe(
-    Effect.catchAll(() => Effect.void) // Silent failure - don't block business operations
+    Effect.mapError(mapCoreAuditErrorToApi)
   )
 
 /**
  * Helper to log account update to audit log
  *
  * Records the before/after state of the account for auditing.
+ * Per AUDIT_PAGE.md spec: audit logging must NOT silently fail.
+ * If audit logging fails, the operation fails - this ensures audit trail integrity.
  *
  * @param organizationId - The organization this account belongs to
  * @param before - The account state before the update
  * @param after - The account state after the update
- * @returns Effect that completes when audit logging is attempted
+ * @returns Effect that completes when audit logging succeeds
  */
 const logAccountUpdate = (
   organizationId: string,
   before: Account,
   after: Account
-): Effect.Effect<void, never, AuditLogService | CurrentUserId> =>
+): Effect.Effect<void, AuditLogError, AuditLogService | CurrentUserId> =>
   Effect.gen(function* () {
     const auditService = yield* AuditLogService
     const userId = yield* CurrentUserId
@@ -144,21 +161,24 @@ const logAccountUpdate = (
       userId
     )
   }).pipe(
-    Effect.catchAll(() => Effect.void) // Silent failure - don't block business operations
+    Effect.mapError(mapCoreAuditErrorToApi)
   )
 
 /**
  * Helper to log account deactivation (status change) to audit log
  *
+ * Per AUDIT_PAGE.md spec: audit logging must NOT silently fail.
+ * If audit logging fails, the operation fails - this ensures audit trail integrity.
+ *
  * @param organizationId - The organization this account belongs to
  * @param accountId - The account ID
- * @returns Effect that completes when audit logging is attempted
+ * @returns Effect that completes when audit logging succeeds
  */
 const logAccountDeactivate = (
   organizationId: string,
   accountId: AccountId,
   accountName: string | null
-): Effect.Effect<void, never, AuditLogService | CurrentUserId> =>
+): Effect.Effect<void, AuditLogError, AuditLogService | CurrentUserId> =>
   Effect.gen(function* () {
     const auditService = yield* AuditLogService
     const userId = yield* CurrentUserId
@@ -174,7 +194,7 @@ const logAccountDeactivate = (
       "Account deactivated"
     )
   }).pipe(
-    Effect.catchAll(() => Effect.void) // Silent failure - don't block business operations
+    Effect.mapError(mapCoreAuditErrorToApi)
   )
 
 /**

@@ -192,6 +192,35 @@ export class BusinessRuleError extends Schema.TaggedError<BusinessRuleError>()(
 export const isBusinessRuleError = Schema.is(BusinessRuleError)
 
 /**
+ * AuditLogError - Audit logging failed (500)
+ *
+ * Used when an audit log operation fails. Per AUDIT_PAGE.md spec,
+ * audit logging failures should NOT be silently swallowed - they
+ * must propagate through the type system.
+ */
+export class AuditLogError extends Schema.TaggedError<AuditLogError>()(
+  "AuditLogError",
+  {
+    operation: Schema.String.annotations({
+      description: "The audit operation that failed (e.g., 'logCreate', 'logUpdate')"
+    }),
+    cause: Schema.Defect.annotations({
+      description: "The underlying cause of the failure"
+    })
+  },
+  HttpApiSchema.annotations({ status: 500 })
+) {
+  get message(): string {
+    return `Audit log error during ${this.operation}: ${String(this.cause)}`
+  }
+}
+
+/**
+ * Type guard for AuditLogError
+ */
+export const isAuditLogError = Schema.is(AuditLogError)
+
+/**
  * Union of all API error types
  */
 export type ApiError =
@@ -202,3 +231,4 @@ export type ApiError =
   | ConflictError
   | InternalServerError
   | BusinessRuleError
+  | AuditLogError

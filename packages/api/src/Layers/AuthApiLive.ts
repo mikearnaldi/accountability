@@ -591,9 +591,10 @@ export const AuthSessionApiLive = HttpApiBuilder.group(AppApi, "authSession", (h
             })
           )
 
-          // Logout old session
+          // Logout old session - errors are intentionally ignored during refresh
+          // since we want to proceed with creating a new session even if logout fails
           yield* authService.logout(sessionId).pipe(
-            Effect.catchAll(() => Effect.void) // Ignore logout errors
+            Effect.catchAll(() => Effect.succeed(undefined))
           )
 
           // Generate new session token

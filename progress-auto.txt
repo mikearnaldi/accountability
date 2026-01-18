@@ -757,3 +757,8 @@
 **Task**: Implemented formatEffectValue() helper for human-readable Effect-TS types in audit log (Option, DateTime, Date, BigDecimal, booleans)
 **Status**: complete
 ---
+
+## Iteration 1 - 2026-01-19 00:21
+**Task**: Created specs/ERROR_TRACKER.md documenting 15 error swallowing issues across 9 files with detailed analysis, fix recommendations, and phased implementation plan
+**Status**: complete
+---

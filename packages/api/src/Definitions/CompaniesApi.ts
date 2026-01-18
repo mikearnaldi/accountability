@@ -21,6 +21,7 @@ import { CurrencyCode } from "@accountability/core/Domains/CurrencyCode"
 import { JurisdictionCode } from "@accountability/core/Domains/JurisdictionCode"
 import { Percentage } from "@accountability/core/Domains/Percentage"
 import {
+  AuditLogError,
   BusinessRuleError,
   ConflictError,
   ForbiddenError,
@@ -241,6 +242,7 @@ const createCompany = HttpApiEndpoint.post("createCompany", "/companies")
   .addError(BusinessRuleError)
   .addError(ForbiddenError)
   .addError(NotFoundError)
+  .addError(AuditLogError)
   .annotateContext(OpenApi.annotations({
     summary: "Create company",
     description: "Create a new company within an organization. Companies can have parent-child relationships for consolidation purposes."
@@ -258,6 +260,7 @@ const updateCompany = HttpApiEndpoint.put("updateCompany", "/organizations/:orga
   .addError(ConflictError)
   .addError(BusinessRuleError)
   .addError(ForbiddenError)
+  .addError(AuditLogError)
   .annotateContext(OpenApi.annotations({
     summary: "Update company",
     description: "Update an existing company within an organization. Only provided fields will be updated."
@@ -272,6 +275,7 @@ const deactivateCompany = HttpApiEndpoint.del("deactivateCompany", "/organizatio
   .addError(NotFoundError)
   .addError(BusinessRuleError)
   .addError(ForbiddenError)
+  .addError(AuditLogError)
   .annotateContext(OpenApi.annotations({
     summary: "Deactivate company",
     description: "Deactivate a company within an organization (soft delete). Companies with active subsidiaries or unposted entries cannot be deactivated."

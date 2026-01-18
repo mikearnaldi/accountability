@@ -26,11 +26,22 @@ import { AppApi } from "../Definitions/AppApi.ts"
 import {
   NotFoundError,
   ValidationError,
-  BusinessRuleError
+  BusinessRuleError,
+  AuditLogError
 } from "../Definitions/ApiErrors.ts"
+import type { AuditLogError as CoreAuditLogError } from "@accountability/core/AuditLog/AuditLogErrors"
 import { requireOrganizationContext, requirePermission } from "./OrganizationContextMiddlewareLive.ts"
 import { AuditLogService } from "@accountability/core/AuditLog/AuditLogService"
 import { CurrentUserId } from "@accountability/core/AuditLog/CurrentUserId"
+
+/**
+ * Map core AuditLogError to API AuditLogError
+ */
+const mapCoreAuditErrorToApi = (error: CoreAuditLogError): AuditLogError =>
+  new AuditLogError({
+    operation: error.operation,
+    cause: error.cause
+  })
 
 /**
  * Convert persistence errors to NotFoundError
@@ -80,16 +91,16 @@ const mapPersistenceToValidation = (
  * Helper to log exchange rate creation to audit log
  *
  * Uses the AuditLogService and CurrentUserId from the Effect context.
- * Errors are caught and silently ignored to not block business operations.
+ * Per AUDIT_PAGE.md spec: audit logging must NOT silently fail.
  *
  * @param organizationId - The organization this rate belongs to
  * @param rate - The created exchange rate
- * @returns Effect that completes when audit logging is attempted
+ * @returns Effect that completes when audit logging succeeds
  */
 const logExchangeRateCreate = (
   organizationId: string,
   rate: ExchangeRate
-): Effect.Effect<void, never, AuditLogService | CurrentUserId> =>
+): Effect.Effect<void, AuditLogError, AuditLogService | CurrentUserId> =>
   Effect.gen(function* () {
     const auditService = yield* AuditLogService
     const userId = yield* CurrentUserId
@@ -103,22 +114,23 @@ const logExchangeRateCreate = (
       userId
     )
   }).pipe(
-    Effect.catchAll(() => Effect.void) // Silent failure - don't block business operations
+    Effect.mapError(mapCoreAuditErrorToApi)
   )
 
 /**
  * Helper to log bulk exchange rate creation to audit log
  *
  * Logs each created rate as a separate audit entry.
+ * Per AUDIT_PAGE.md spec: audit logging must NOT silently fail.
  *
  * @param organizationId - The organization these rates belong to
  * @param rates - The created exchange rates
- * @returns Effect that completes when audit logging is attempted
+ * @returns Effect that completes when audit logging succeeds
  */
 const logExchangeRateBulkCreate = (
   organizationId: string,
   rates: ReadonlyArray<ExchangeRate>
-): Effect.Effect<void, never, AuditLogService | CurrentUserId> =>
+): Effect.Effect<void, AuditLogError, AuditLogService | CurrentUserId> =>
   Effect.gen(function* () {
     const auditService = yield* AuditLogService
     const userId = yield* CurrentUserId
@@ -135,20 +147,22 @@ const logExchangeRateBulkCreate = (
       )
     }
   }).pipe(
-    Effect.catchAll(() => Effect.void) // Silent failure - don't block business operations
+    Effect.mapError(mapCoreAuditErrorToApi)
   )
 
 /**
  * Helper to log exchange rate deletion to audit log
  *
+ * Per AUDIT_PAGE.md spec: audit logging must NOT silently fail.
+ *
  * @param organizationId - The organization this rate belongs to
  * @param rate - The exchange rate being deleted
- * @returns Effect that completes when audit logging is attempted
+ * @returns Effect that completes when audit logging succeeds
  */
 const logExchangeRateDelete = (
   organizationId: string,
   rate: ExchangeRate
-): Effect.Effect<void, never, AuditLogService | CurrentUserId> =>
+): Effect.Effect<void, AuditLogError, AuditLogService | CurrentUserId> =>
   Effect.gen(function* () {
     const auditService = yield* AuditLogService
     const userId = yield* CurrentUserId
@@ -162,7 +176,7 @@ const logExchangeRateDelete = (
       userId
     )
   }).pipe(
-    Effect.catchAll(() => Effect.void) // Silent failure - don't block business operations
+    Effect.mapError(mapCoreAuditErrorToApi)
   )
 
 /**

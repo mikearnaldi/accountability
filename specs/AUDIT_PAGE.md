@@ -15,6 +15,7 @@ The existing audit log page has several problems:
 5. ~~**No user names** - Shows raw UUIDs instead of user display names (Phase 2 - denormalization)~~ ✅ FIXED (Migration 0021, user names denormalized)
 6. ~~**No entity names** - Shows raw IDs instead of entity names (e.g., account name)~~ ✅ FIXED
 7. ~~**No organization scoping** - Shows entries from all organizations (security issue)~~ ✅ FIXED
+8. ~~**Account entities not tracked** - Account create/update/delete operations are not being logged to the audit trail. This is a compliance gap - all account changes must be audited for SOX/GAAP requirements. Need to add `AuditLogService` calls to `AccountServiceLive`.~~ ✅ FIXED (Audit logging added to AccountsApiLive for create, update, and deactivate operations, AND AccountTemplatesApiLive for template-based account creation. Verified with integration test `AccountTemplatesApi.test.ts` "creates audit log entries when applying template". Updated to use `Effect.catchTag("AuditLogError")` instead of `Effect.catchAll` per spec requirements - ensures context issues surface as errors rather than being silently swallowed.)
 
 ---
 

@@ -21,6 +21,7 @@ import { CompanyId } from "@accountability/core/Domains/Company"
 import { OrganizationId } from "@accountability/core/Domains/Organization"
 import { CurrencyCode } from "@accountability/core/Domains/CurrencyCode"
 import {
+  AuditLogError,
   BusinessRuleError,
   ConflictError,
   ForbiddenError,
@@ -155,6 +156,7 @@ const createAccount = HttpApiEndpoint.post("createAccount", "/")
   .addError(BusinessRuleError)
   .addError(ForbiddenError)
   .addError(NotFoundError)
+  .addError(AuditLogError)
   .annotateContext(OpenApi.annotations({
     summary: "Create account",
     description: "Create a new account in the Chart of Accounts. The account number must be unique within the company."
@@ -172,6 +174,7 @@ const updateAccount = HttpApiEndpoint.put("updateAccount", "/organizations/:orga
   .addError(ConflictError)
   .addError(BusinessRuleError)
   .addError(ForbiddenError)
+  .addError(AuditLogError)
   .annotateContext(OpenApi.annotations({
     summary: "Update account",
     description: "Update an existing account. Only provided fields will be updated. Account type and category cannot be changed after creation."
@@ -186,6 +189,7 @@ const deactivateAccount = HttpApiEndpoint.del("deactivateAccount", "/organizatio
   .addError(NotFoundError)
   .addError(BusinessRuleError)
   .addError(ForbiddenError)
+  .addError(AuditLogError)
   .annotateContext(OpenApi.annotations({
     summary: "Deactivate account",
     description: "Deactivate an account (soft delete). Accounts with posted transactions cannot be deactivated."

@@ -794,7 +794,7 @@ Each company has fiscal years containing:
 Each fiscal period within a year contains:
 - Unique identifier
 - Fiscal year reference
-- Period number (1-12 for months, 13+ for adjustments)
+- Period number (1-12 for months, 13 for adjustment period - always created)
 - Period name (e.g., "January 2025", "Adjustment Period")
 - Period type: Regular, Adjustment, or Closing
 - Start date

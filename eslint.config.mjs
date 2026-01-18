@@ -459,6 +459,134 @@ const noEffectCatchAllCauseRule = {
 }
 
 /**
+ * Custom ESLint rule to ban silently swallowing errors with catch handlers that return Effect.void.
+ * Patterns like:
+ *   Effect.catchTag("SomeError", () => Effect.void)
+ *   Effect.catchAll(() => Effect.void)
+ *   .pipe(Effect.catchTag("SomeError", () => Effect.void))
+ *
+ * These silently discard errors which hides bugs. Errors should be:
+ * - Logged and re-raised
+ * - Transformed to a different error type
+ * - Handled with meaningful recovery logic
+ */
+const noSilentErrorSwallowRule = {
+  meta: {
+    type: "problem",
+    docs: {
+      description: "Disallow catch handlers that silently swallow errors by returning Effect.void"
+    },
+    messages: {
+      noSilentSwallow: "Do not silently swallow errors with '() => Effect.void'. Errors should be represented in the type system, not ignored. Either: (1) let the error propagate to the caller, (2) transform it with mapError to a different error type, or (3) handle it with meaningful recovery logic. Silent error swallowing hides bugs and breaks type safety."
+    },
+    schema: []
+  },
+  create(context) {
+    // Check if a node is Effect.void or Effect.unit
+    function isEffectVoidOrUnit(node) {
+      if (!node) return false
+      if (node.type === "MemberExpression") {
+        return (
+          node.object.type === "Identifier" &&
+          node.object.name === "Effect" &&
+          node.property.type === "Identifier" &&
+          (node.property.name === "void" || node.property.name === "unit")
+        )
+      }
+      return false
+    }
+
+    // Check if a node is an arrow function or function returning Effect.void
+    function isVoidReturningHandler(node) {
+      if (!node) return false
+
+      // Arrow function: () => Effect.void
+      if (node.type === "ArrowFunctionExpression") {
+        // Direct return: () => Effect.void
+        if (isEffectVoidOrUnit(node.body)) {
+          return true
+        }
+        // Block with return: () => { return Effect.void }
+        if (node.body.type === "BlockStatement") {
+          const body = node.body.body
+          if (body.length === 1 && body[0].type === "ReturnStatement") {
+            return isEffectVoidOrUnit(body[0].argument)
+          }
+        }
+      }
+
+      // Regular function: function() { return Effect.void }
+      if (node.type === "FunctionExpression") {
+        const body = node.body.body
+        if (body.length === 1 && body[0].type === "ReturnStatement") {
+          return isEffectVoidOrUnit(body[0].argument)
+        }
+      }
+
+      return false
+    }
+
+    // Check if a CallExpression is a catch method (catchTag, catchAll, catchTags)
+    function isCatchCall(node) {
+      if (node.type !== "CallExpression") return false
+      const callee = node.callee
+
+      // Effect.catchTag(), Effect.catchAll(), Effect.catchTags()
+      if (callee.type === "MemberExpression") {
+        const propName = callee.property.type === "Identifier" ? callee.property.name : null
+        if (propName === "catchTag" || propName === "catchAll" || propName === "catchTags") {
+          // Check if it's Effect.catchX or something.pipe(Effect.catchX)
+          if (callee.object.type === "Identifier" && callee.object.name === "Effect") {
+            return propName
+          }
+        }
+      }
+
+      return null
+    }
+
+    return {
+      CallExpression(node) {
+        const catchType = isCatchCall(node)
+        if (!catchType) return
+
+        // For catchTag("ErrorName", handler), handler is the second argument
+        // For catchAll(handler), handler is the first argument
+        // For catchTags({ ErrorName: handler }), check the object values
+        let handlerArg = null
+
+        if (catchType === "catchTag" && node.arguments.length >= 2) {
+          handlerArg = node.arguments[1]
+        } else if (catchType === "catchAll" && node.arguments.length >= 1) {
+          handlerArg = node.arguments[0]
+        } else if (catchType === "catchTags" && node.arguments.length >= 1) {
+          // catchTags({ ErrorA: handler1, ErrorB: handler2 })
+          const obj = node.arguments[0]
+          if (obj.type === "ObjectExpression") {
+            for (const prop of obj.properties) {
+              if (prop.type === "Property" && isVoidReturningHandler(prop.value)) {
+                context.report({
+                  node: prop.value,
+                  messageId: "noSilentSwallow"
+                })
+              }
+            }
+          }
+          return
+        }
+
+        if (handlerArg && isVoidReturningHandler(handlerArg)) {
+          context.report({
+            node: handlerArg,
+            messageId: "noSilentSwallow"
+          })
+        }
+      }
+    }
+  }
+}
+
+/**
  * Custom ESLint rule to ban void expressions (e.g., void someValue).
  * void X is a no-op that evaluates X and discards the result.
  * This is usually a mistake or unnecessary.
@@ -639,7 +767,8 @@ const localPlugin = {
     "no-void-expression": noVoidExpressionRule,
     "no-effect-ignore": noEffectIgnoreRule,
     "no-effect-catchallcause": noEffectCatchAllCauseRule,
-    "no-effect-asvoid": noEffectAsVoidRule
+    "no-effect-asvoid": noEffectAsVoidRule,
+    "no-silent-error-swallow": noSilentErrorSwallowRule
   }
 }
 
@@ -724,6 +853,8 @@ export default [
       "local/no-effect-catchallcause": "error",
       // Ban Effect.asVoid - void already allows any value
       "local/no-effect-asvoid": "error",
+      // Ban silently swallowing errors with () => Effect.void
+      "local/no-silent-error-swallow": "error",
       // Allow unused variables starting with underscore
       "no-unused-vars": "off",
       "@typescript-eslint/no-unused-vars": [

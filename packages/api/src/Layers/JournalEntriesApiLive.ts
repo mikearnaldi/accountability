@@ -42,8 +42,10 @@ import {
   NotFoundError,
   ValidationError,
   BusinessRuleError,
-  ConflictError
+  ConflictError,
+  AuditLogError
 } from "../Definitions/ApiErrors.ts"
+import type { AuditLogError as CoreAuditLogError } from "@accountability/core/AuditLog/AuditLogErrors"
 import { requireOrganizationContext, requirePermission, requirePermissionWithResource } from "./OrganizationContextMiddlewareLive.ts"
 import { FiscalPeriodService } from "@accountability/core/FiscalPeriod/FiscalPeriodService"
 import { FiscalPeriodNotFoundForDateError } from "@accountability/core/FiscalPeriod/FiscalPeriodErrors"
@@ -52,6 +54,15 @@ import type { LocalDate } from "@accountability/core/Domains/LocalDate"
 import type { CompanyId } from "@accountability/core/Domains/Company"
 import { AuditLogService } from "@accountability/core/AuditLog/AuditLogService"
 import { CurrentUserId } from "@accountability/core/AuditLog/CurrentUserId"
+
+/**
+ * Map core AuditLogError to API AuditLogError
+ */
+const mapCoreAuditErrorToApi = (error: CoreAuditLogError): AuditLogError =>
+  new AuditLogError({
+    operation: error.operation,
+    cause: error.cause
+  })
 
 /**
  * Convert persistence errors to NotFoundError
@@ -207,16 +218,16 @@ const buildJournalEntryResourceContext = (
  * Helper to log journal entry creation to audit log
  *
  * Uses the AuditLogService and CurrentUserId from the Effect context.
- * Errors are caught and silently ignored to not block business operations.
+ * Per AUDIT_PAGE.md spec: audit logging must NOT silently fail.
  *
  * @param organizationId - The organization this entry belongs to
  * @param entry - The created journal entry
- * @returns Effect that completes when audit logging is attempted
+ * @returns Effect that completes when audit logging succeeds
  */
 const logJournalEntryCreate = (
   organizationId: string,
   entry: JournalEntry
-): Effect.Effect<void, never, AuditLogService | CurrentUserId> =>
+): Effect.Effect<void, AuditLogError, AuditLogService | CurrentUserId> =>
   Effect.gen(function* () {
     const auditService = yield* AuditLogService
     const userId = yield* CurrentUserId
@@ -233,18 +244,20 @@ const logJournalEntryCreate = (
       userId
     )
   }).pipe(
-    Effect.catchAll(() => Effect.void) // Silent failure - don't block business operations
+    Effect.mapError(mapCoreAuditErrorToApi)
   )
 
 /**
  * Helper to log journal entry status change (post, reverse) to audit log
+ *
+ * Per AUDIT_PAGE.md spec: audit logging must NOT silently fail.
  *
  * @param organizationId - The organization this entry belongs to
  * @param entryId - The journal entry ID
  * @param previousStatus - The status before the change
  * @param newStatus - The status after the change
  * @param reason - Optional reason for the status change
- * @returns Effect that completes when audit logging is attempted
+ * @returns Effect that completes when audit logging succeeds
  */
 const logJournalEntryStatusChange = (
   organizationId: string,
@@ -253,7 +266,7 @@ const logJournalEntryStatusChange = (
   previousStatus: string,
   newStatus: string,
   reason?: string
-): Effect.Effect<void, never, AuditLogService | CurrentUserId> =>
+): Effect.Effect<void, AuditLogError, AuditLogService | CurrentUserId> =>
   Effect.gen(function* () {
     const auditService = yield* AuditLogService
     const userId = yield* CurrentUserId
@@ -269,7 +282,7 @@ const logJournalEntryStatusChange = (
       reason
     )
   }).pipe(
-    Effect.catchAll(() => Effect.void) // Silent failure - don't block business operations
+    Effect.mapError(mapCoreAuditErrorToApi)
   )
 
 /**
