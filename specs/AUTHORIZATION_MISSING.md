@@ -167,7 +167,8 @@ The audit log infrastructure is **100% complete** and the **AuditLogService** ha
 | **FiscalPeriodService integration** | ✅ Complete | Logs fiscal year create and period status changes |
 | **JournalEntriesApiLive integration** | ✅ Complete | Logs create/post/reverse operations |
 | **AccountsApiLive integration** | ✅ Complete | Logs create/update/deactivate operations |
-| **Other service integrations** | ❌ Pending | Company, ExchangeRate, etc. |
+| **CompaniesApiLive integration** | ✅ Complete | Logs create/update/deactivate operations |
+| **Other service integrations** | ❌ Pending | ExchangeRate, etc. |
 
 **What IS Being Audited:**
 
@@ -177,13 +178,13 @@ The audit log infrastructure is **100% complete** and the **AuditLogService** ha
 | FiscalPeriod | Open, Close, Lock, Reopen | ✅ Complete |
 | JournalEntry | Create, Post, Reverse | ✅ Complete |
 | Account | Create, Update, Deactivate | ✅ Complete |
+| Company | Create, Update, Deactivate | ✅ Complete |
 
 **What's NOT Being Audited:**
 
 | Entity Type | Operations | Impact |
 |-------------|------------|--------|
 | Organization | Create, Update, Delete | Cannot track org changes |
-| Company | Create, Update, Delete | Cannot track company setup |
 | JournalEntryLine | Create, Update, Delete | Cannot track line-level changes |
 | ExchangeRate | Create, Update, Delete | Cannot track rate changes |
 | ConsolidationGroup | Create, Update, Delete | Cannot track consolidation config |
@@ -242,7 +243,7 @@ Add audit logging to services that handle sensitive data:
 - [ ] `ExchangeRateServiceLive` - Log rate creates/updates (affects valuations)
 
 **Priority 2: Configuration Changes**
-- [ ] `CompanyServiceLive` - Log company create/update/delete
+- [x] `CompaniesApiLive` - Log company create/update/deactivate ✅ COMPLETE
 - [x] `AccountsApiLive` - Log chart of accounts changes ✅ Done (create/update/deactivate)
 - [ ] `ConsolidationServiceLive` - Log group/rule changes
 
@@ -320,7 +321,7 @@ Migrate `PeriodReopenAuditEntry` to use the general audit log:
 | `packages/api/src/Layers/JournalEntriesApiLive.ts` | Add audit logging to create/post/reverse | ✅ Done |
 | `packages/persistence/src/Layers/FiscalPeriodServiceLive.ts` | Add audit logging to all operations | ✅ Done |
 | `packages/api/src/Layers/AccountsApiLive.ts` | Add audit logging to create/update/delete | ✅ Done |
-| `packages/persistence/src/Layers/CompanyServiceLive.ts` | Add audit logging to create/update/delete | ❌ Pending |
+| `packages/api/src/Layers/CompaniesApiLive.ts` | Add audit logging to create/update/deactivate | ✅ Done |
 | `packages/persistence/src/Layers/ExchangeRateServiceLive.ts` | Add audit logging to sync operations | ❌ Pending |
 | `packages/persistence/src/Layers/OrganizationMemberServiceLive.ts` | Add audit logging to member changes | ❌ Pending |
 
@@ -717,8 +718,8 @@ The database has this constraint and the UI now handles the duplicate invitation
 18. ~~**Add CurrentUserId context tag** - Pass authenticated user ID through Effect context~~ ✅ DONE
 19. ~~**Integrate with JournalEntriesApi** - Log create, post, reverse operations~~ ✅ DONE
 20. ~~**Integrate with FiscalPeriodService** - Log fiscal year/period lifecycle events~~ ✅ DONE
-21. **Integrate with AccountsApi** - Log chart of accounts changes ✅ Done
-22. **Integrate with CompanyService** - Log company configuration changes ❌ Pending
+21. ~~**Integrate with AccountsApi** - Log chart of accounts changes~~ ✅ DONE
+22. ~~**Integrate with CompaniesApi** - Log company configuration changes~~ ✅ DONE
 23. **Integrate with OrganizationMemberService** - Log member management events ❌ Pending
 24. **Consolidate PeriodReopenAuditEntry** - Migrate to general audit log ❌ Pending
 25. **Add CurrentUserId to API context** - Provide user ID to services from middleware ❌ Pending
@@ -770,7 +771,7 @@ The database has this constraint and the UI now handles the duplicate invitation
 - `packages/api/src/Layers/JournalEntriesApiLive.ts` - Add audit logging to create/post/reverse ✅ Done
 - `packages/persistence/src/Layers/FiscalPeriodServiceLive.ts` - Add audit logging to all operations ✅ Done
 - `packages/api/src/Layers/AccountsApiLive.ts` - Add audit logging to create/update/delete ✅ Done
-- `packages/persistence/src/Layers/CompanyServiceLive.ts` - Add audit logging to create/update/delete ❌ Pending
+- `packages/api/src/Layers/CompaniesApiLive.ts` - Add audit logging to create/update/deactivate ✅ Done
 - `packages/persistence/src/Layers/ExchangeRateServiceLive.ts` - Add audit logging to sync operations ❌ Pending
 - `packages/persistence/src/Layers/OrganizationMemberServiceLive.ts` - Add audit logging to member changes ❌ Pending
 

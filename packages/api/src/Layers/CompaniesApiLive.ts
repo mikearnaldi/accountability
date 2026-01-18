@@ -27,6 +27,8 @@ import { now as timestampNow } from "@accountability/core/Domains/Timestamp"
 import { OrganizationMembership } from "@accountability/core/Auth/OrganizationMembership"
 import { OrganizationMembershipId } from "@accountability/core/Auth/OrganizationMembershipId"
 import { AuthUserId } from "@accountability/core/Auth/AuthUserId"
+import { AuditLogService } from "@accountability/core/AuditLog/AuditLogService"
+import { CurrentUserId } from "@accountability/core/AuditLog/CurrentUserId"
 import { CompanyRepository } from "@accountability/persistence/Services/CompanyRepository"
 import { OrganizationRepository } from "@accountability/persistence/Services/OrganizationRepository"
 import { OrganizationMemberRepository } from "@accountability/persistence/Services/OrganizationMemberRepository"
@@ -93,6 +95,96 @@ const mapPersistenceToConflict = (
   })
 }
 
+// =============================================================================
+// Audit Log Helpers
+// =============================================================================
+
+/**
+ * Helper to log company creation to audit log
+ *
+ * Uses Effect.serviceOption to gracefully skip audit logging when
+ * AuditLogService or CurrentUserId is not available (e.g., in tests).
+ * Errors are caught and silently ignored to not block business operations.
+ *
+ * @param company - The created company
+ * @returns Effect that completes when audit logging is attempted
+ */
+const logCompanyCreate = (
+  company: Company
+): Effect.Effect<void, never, never> =>
+  Effect.gen(function* () {
+    const maybeAuditService = yield* Effect.serviceOption(AuditLogService)
+    const maybeUserId = yield* Effect.serviceOption(CurrentUserId)
+
+    if (Option.isSome(maybeAuditService) && Option.isSome(maybeUserId)) {
+      yield* maybeAuditService.value.logCreate(
+        "Company",
+        company.id,
+        company,
+        maybeUserId.value
+      )
+    }
+  }).pipe(
+    Effect.catchAll(() => Effect.void) // Silent failure - don't block business operations
+  )
+
+/**
+ * Helper to log company update to audit log
+ *
+ * @param before - The company state before the update
+ * @param after - The company state after the update
+ * @returns Effect that completes when audit logging is attempted
+ */
+const logCompanyUpdate = (
+  before: Company,
+  after: Company
+): Effect.Effect<void, never, never> =>
+  Effect.gen(function* () {
+    const maybeAuditService = yield* Effect.serviceOption(AuditLogService)
+    const maybeUserId = yield* Effect.serviceOption(CurrentUserId)
+
+    if (Option.isSome(maybeAuditService) && Option.isSome(maybeUserId)) {
+      yield* maybeAuditService.value.logUpdate(
+        "Company",
+        after.id,
+        before,
+        after,
+        maybeUserId.value
+      )
+    }
+  }).pipe(
+    Effect.catchAll(() => Effect.void) // Silent failure - don't block business operations
+  )
+
+/**
+ * Helper to log company deactivation to audit log
+ *
+ * Uses logStatusChange since deactivation is a status transition (active → inactive).
+ *
+ * @param company - The company being deactivated
+ * @returns Effect that completes when audit logging is attempted
+ */
+const logCompanyDeactivate = (
+  company: Company
+): Effect.Effect<void, never, never> =>
+  Effect.gen(function* () {
+    const maybeAuditService = yield* Effect.serviceOption(AuditLogService)
+    const maybeUserId = yield* Effect.serviceOption(CurrentUserId)
+
+    if (Option.isSome(maybeAuditService) && Option.isSome(maybeUserId)) {
+      yield* maybeAuditService.value.logStatusChange(
+        "Company",
+        company.id,
+        "active",
+        "inactive",
+        maybeUserId.value,
+        "Company deactivated"
+      )
+    }
+  }).pipe(
+    Effect.catchAll(() => Effect.void) // Silent failure - don't block business operations
+  )
+
 /**
  * CompaniesApiLive - Layer providing CompaniesApi handlers
  *
@@ -100,6 +192,9 @@ const mapPersistenceToConflict = (
  * - CompanyRepository
  * - OrganizationRepository
  * - OrganizationMemberRepository
+ * - PolicyRepository
+ * - AuditLogService (optional, for audit logging)
+ * - CurrentUserId (optional, for audit logging)
  */
 export const CompaniesApiLive = HttpApiBuilder.group(AppApi, "companies", (handlers) =>
   Effect.gen(function* () {
@@ -107,6 +202,9 @@ export const CompaniesApiLive = HttpApiBuilder.group(AppApi, "companies", (handl
     const orgRepo = yield* OrganizationRepository
     const memberRepo = yield* OrganizationMemberRepository
     const policyRepo = yield* PolicyRepository
+    // AuditLogService and CurrentUserId are accessed via Effect.serviceOption in helper functions
+    void AuditLogService
+    void CurrentUserId
 
     return handlers
       // =============================================================================
@@ -408,9 +506,14 @@ export const CompaniesApiLive = HttpApiBuilder.group(AppApi, "companies", (handl
               createdAt: timestampNow()
             })
 
-            return yield* companyRepo.create(newCompany).pipe(
+            const createdCompany = yield* companyRepo.create(newCompany).pipe(
               Effect.mapError((e) => mapPersistenceToConflict(e))
             )
+
+            // Log company creation to audit log
+            yield* logCompanyCreate(createdCompany)
+
+            return createdCompany
           })
         )
       )
@@ -515,9 +618,14 @@ export const CompaniesApiLive = HttpApiBuilder.group(AppApi, "companies", (handl
               isActive: Option.isSome(req.isActive) ? req.isActive.value : existing.isActive
             })
 
-            return yield* companyRepo.update(organizationId, updatedCompany).pipe(
+            const result = yield* companyRepo.update(organizationId, updatedCompany).pipe(
               Effect.mapError((e) => mapPersistenceToConflict(e))
             )
+
+            // Log company update to audit log
+            yield* logCompanyUpdate(existing, result)
+
+            return result
           })
         )
       )
@@ -557,6 +665,9 @@ export const CompaniesApiLive = HttpApiBuilder.group(AppApi, "companies", (handl
             yield* companyRepo.update(organizationId, deactivatedCompany).pipe(
               Effect.mapError((e) => mapPersistenceToBusinessRule(e))
             )
+
+            // Log company deactivation to audit log
+            yield* logCompanyDeactivate(existing)
           })
         )
       )
