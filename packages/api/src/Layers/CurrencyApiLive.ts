@@ -29,6 +29,8 @@ import {
   BusinessRuleError
 } from "../Definitions/ApiErrors.ts"
 import { requireOrganizationContext, requirePermission } from "./OrganizationContextMiddlewareLive.ts"
+import { AuditLogService } from "@accountability/core/AuditLog/AuditLogService"
+import { CurrentUserId } from "@accountability/core/AuditLog/CurrentUserId"
 
 /**
  * Convert persistence errors to NotFoundError
@@ -74,6 +76,90 @@ const mapPersistenceToValidation = (
     details: Option.none()
   })
 }
+
+/**
+ * Helper to log exchange rate creation to audit log
+ *
+ * Uses Effect.serviceOption to gracefully skip audit logging when
+ * AuditLogService or CurrentUserId is not available (e.g., in tests).
+ * Errors are caught and silently ignored to not block business operations.
+ *
+ * @param rate - The created exchange rate
+ * @returns Effect that completes when audit logging is attempted
+ */
+const logExchangeRateCreate = (
+  rate: ExchangeRate
+): Effect.Effect<void, never, never> =>
+  Effect.gen(function* () {
+    const maybeAuditService = yield* Effect.serviceOption(AuditLogService)
+    const maybeUserId = yield* Effect.serviceOption(CurrentUserId)
+
+    if (Option.isSome(maybeAuditService) && Option.isSome(maybeUserId)) {
+      yield* maybeAuditService.value.logCreate(
+        "ExchangeRate",
+        rate.id,
+        rate,
+        maybeUserId.value
+      )
+    }
+  }).pipe(
+    Effect.catchAll(() => Effect.void) // Silent failure - don't block business operations
+  )
+
+/**
+ * Helper to log bulk exchange rate creation to audit log
+ *
+ * Logs each created rate as a separate audit entry.
+ *
+ * @param rates - The created exchange rates
+ * @returns Effect that completes when audit logging is attempted
+ */
+const logExchangeRateBulkCreate = (
+  rates: ReadonlyArray<ExchangeRate>
+): Effect.Effect<void, never, never> =>
+  Effect.gen(function* () {
+    const maybeAuditService = yield* Effect.serviceOption(AuditLogService)
+    const maybeUserId = yield* Effect.serviceOption(CurrentUserId)
+
+    if (Option.isSome(maybeAuditService) && Option.isSome(maybeUserId)) {
+      // Log each rate creation individually
+      for (const rate of rates) {
+        yield* maybeAuditService.value.logCreate(
+          "ExchangeRate",
+          rate.id,
+          rate,
+          maybeUserId.value
+        )
+      }
+    }
+  }).pipe(
+    Effect.catchAll(() => Effect.void) // Silent failure - don't block business operations
+  )
+
+/**
+ * Helper to log exchange rate deletion to audit log
+ *
+ * @param rate - The exchange rate being deleted
+ * @returns Effect that completes when audit logging is attempted
+ */
+const logExchangeRateDelete = (
+  rate: ExchangeRate
+): Effect.Effect<void, never, never> =>
+  Effect.gen(function* () {
+    const maybeAuditService = yield* Effect.serviceOption(AuditLogService)
+    const maybeUserId = yield* Effect.serviceOption(CurrentUserId)
+
+    if (Option.isSome(maybeAuditService) && Option.isSome(maybeUserId)) {
+      yield* maybeAuditService.value.logDelete(
+        "ExchangeRate",
+        rate.id,
+        rate,
+        maybeUserId.value
+      )
+    }
+  }).pipe(
+    Effect.catchAll(() => Effect.void) // Silent failure - don't block business operations
+  )
 
 /**
  * CurrencyApiLive - Layer providing CurrencyApi handlers
@@ -188,9 +274,14 @@ export const CurrencyApiLive = HttpApiBuilder.group(AppApi, "currency", (handler
               createdAt: timestampNow()
             })
 
-            return yield* exchangeRateRepo.create(newRate).pipe(
+            const createdRate = yield* exchangeRateRepo.create(newRate).pipe(
               Effect.mapError((e) => mapPersistenceToBusinessRule(e))
             )
+
+            // Log exchange rate creation to audit log
+            yield* logExchangeRateCreate(createdRate)
+
+            return createdRate
           })
         )
       )
@@ -253,6 +344,9 @@ export const CurrencyApiLive = HttpApiBuilder.group(AppApi, "currency", (handler
                 Effect.mapError((e) => mapPersistenceToValidation(e))
               )
 
+              // Log all exchange rate creations to audit log
+              yield* logExchangeRateBulkCreate(created)
+
               return {
                 created: Array.fromIterable(created),
                 count: created.length
@@ -283,6 +377,9 @@ export const CurrencyApiLive = HttpApiBuilder.group(AppApi, "currency", (handler
               yield* exchangeRateRepo.delete(rateId).pipe(
                 Effect.mapError((e) => mapPersistenceToBusinessRule(e))
               )
+
+              // Log exchange rate deletion to audit log
+              yield* logExchangeRateDelete(rate)
             })
           )
         })

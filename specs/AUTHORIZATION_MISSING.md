@@ -169,7 +169,8 @@ The audit log infrastructure is **100% complete** and the **AuditLogService** ha
 | **AccountsApiLive integration** | ✅ Complete | Logs create/update/deactivate operations |
 | **CompaniesApiLive integration** | ✅ Complete | Logs create/update/deactivate operations |
 | **OrganizationMemberServiceLive integration** | ✅ Complete | Logs add/remove/suspend/unsuspend/role update/reinstate/ownership transfer |
-| **Other service integrations** | ❌ Pending | ExchangeRate, ConsolidationGroup, etc. |
+| **CurrencyApiLive integration** | ✅ Complete | Logs create/bulkCreate/delete operations |
+| **Other service integrations** | ❌ Pending | ConsolidationGroup, etc. |
 
 **What IS Being Audited:**
 
@@ -181,6 +182,7 @@ The audit log infrastructure is **100% complete** and the **AuditLogService** ha
 | Account | Create, Update, Deactivate | ✅ Complete |
 | Company | Create, Update, Deactivate | ✅ Complete |
 | OrganizationMember | Add, Remove, Suspend, Unsuspend, Role Update, Reinstate, Ownership Transfer | ✅ Complete |
+| ExchangeRate | Create, BulkCreate, Delete | ✅ Complete |
 
 **What's NOT Being Audited:**
 
@@ -188,7 +190,6 @@ The audit log infrastructure is **100% complete** and the **AuditLogService** ha
 |-------------|------------|--------|
 | Organization | Create, Update, Delete | Cannot track org changes |
 | JournalEntryLine | Create, Update, Delete | Cannot track line-level changes |
-| ExchangeRate | Create, Update, Delete | Cannot track rate changes |
 | ConsolidationGroup | Create, Update, Delete | Cannot track consolidation config |
 | IntercompanyTransaction | Create, Reconcile | Cannot track intercompany activity |
 | User | Create, Update | Cannot track user changes |
@@ -242,7 +243,7 @@ Add audit logging to services that handle sensitive data:
 **Priority 1: Financial Operations (Compliance Critical)**
 - [x] `JournalEntriesApiLive` - Log create, post, reverse operations ✅ COMPLETE
 - [x] `FiscalPeriodServiceLive` - Log fiscal year create, period status changes ✅ COMPLETE
-- [ ] `ExchangeRateServiceLive` - Log rate creates/updates (affects valuations)
+- [x] `CurrencyApiLive` - Log rate create, bulk create, delete operations ✅ COMPLETE
 
 **Priority 2: Configuration Changes**
 - [x] `CompaniesApiLive` - Log company create/update/deactivate ✅ COMPLETE
@@ -774,7 +775,7 @@ The database has this constraint and the UI now handles the duplicate invitation
 - `packages/persistence/src/Layers/FiscalPeriodServiceLive.ts` - Add audit logging to all operations ✅ Done
 - `packages/api/src/Layers/AccountsApiLive.ts` - Add audit logging to create/update/delete ✅ Done
 - `packages/api/src/Layers/CompaniesApiLive.ts` - Add audit logging to create/update/deactivate ✅ Done
-- `packages/persistence/src/Layers/ExchangeRateServiceLive.ts` - Add audit logging to sync operations ❌ Pending
+- `packages/api/src/Layers/CurrencyApiLive.ts` - Add audit logging to create/bulkCreate/delete ✅ Done
 - `packages/persistence/src/Layers/OrganizationMemberServiceLive.ts` - Add audit logging to member changes ✅ Done
 
 ### Files to Modify (Fiscal Period Enforcement): ✓ DONE
