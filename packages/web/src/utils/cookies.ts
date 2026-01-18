@@ -9,7 +9,7 @@
  * @returns The cookie value or null if not found
  */
 export function parseCookie(cookieString: string | null | undefined, cookieName: string): string | null {
-  if (!cookieString) {
+  if (cookieString === null || cookieString === undefined || cookieString === "") {
     return null
   }
 

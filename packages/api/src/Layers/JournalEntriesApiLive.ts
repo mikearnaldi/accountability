@@ -221,10 +221,14 @@ const logJournalEntryCreate = (
     const auditService = yield* AuditLogService
     const userId = yield* CurrentUserId
 
+    // Use entryNumber if present, otherwise fall back to description for audit display
+    const entityName = Option.getOrNull(entry.entryNumber) ?? entry.description
+
     yield* auditService.logCreate(
       organizationId,
       "JournalEntry",
       entry.id,
+      entityName,
       entry,
       userId
     )
@@ -245,6 +249,7 @@ const logJournalEntryCreate = (
 const logJournalEntryStatusChange = (
   organizationId: string,
   entryId: JournalEntryId,
+  entryReference: string | null,
   previousStatus: string,
   newStatus: string,
   reason?: string
@@ -257,6 +262,7 @@ const logJournalEntryStatusChange = (
       organizationId,
       "JournalEntry",
       entryId,
+      entryReference, // Human-readable reference (e.g., "JE-00001") for audit display
       previousStatus,
       newStatus,
       userId,
@@ -823,6 +829,7 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
             yield* logJournalEntryStatusChange(
               organizationId,
               entryId,
+              Option.getOrNull(existing.entryNumber) ?? existing.description,
               "Approved",
               "Posted",
               "Journal entry posted to general ledger"
@@ -951,12 +958,15 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
 
             // Log audit entries for journal entry reversal
             // 1. Log the original entry being reversed
+            const existingName = Option.getOrNull(existing.entryNumber) ?? existing.description
+            const reversalName = Option.getOrNull(reversalEntry.entryNumber) ?? reversalEntry.description
             yield* logJournalEntryStatusChange(
               organizationId,
               entryId,
+              existingName,
               "Posted",
               "Reversed",
-              `Reversed by entry ${reversalEntry.id}`
+              `Reversed by entry ${reversalName}`
             )
             // 2. Log the creation of the reversing entry
             yield* logJournalEntryCreate(organizationId, reversalEntry)

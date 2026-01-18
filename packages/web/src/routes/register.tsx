@@ -10,7 +10,7 @@ import { api } from "@/api/client"
 export const Route = createFileRoute("/register")({
   beforeLoad: async ({ context }) => {
     // If user is already authenticated, redirect to home
-    if (context.user) {
+    if (context.user !== null) {
       throw redirect({ to: "/" })
     }
   },
@@ -28,7 +28,7 @@ interface ValidationState {
 }
 
 function validateEmail(email: string): string | null {
-  if (!email) {
+  if (email === "") {
     return "Email is required"
   }
   // Basic email regex - server validates more thoroughly
@@ -41,7 +41,7 @@ function validateEmail(email: string): string | null {
 
 function validateDisplayName(displayName: string): string | null {
   const trimmed = displayName.trim()
-  if (!trimmed) {
+  if (trimmed === "") {
     return "Display name is required"
   }
   if (trimmed.length < 2) {
@@ -71,7 +71,7 @@ function validatePassword(password: string): PasswordValidation {
   const isValid = hasMinLength && hasUppercase && hasLowercase && hasNumber
 
   let message: string | null = null
-  if (!password) {
+  if (password === "") {
     message = "Password is required"
   } else if (!isValid) {
     message = "Password does not meet requirements"
@@ -188,7 +188,7 @@ function RegisterPage() {
       password: true
     })
 
-    return !emailError && !displayNameError && !passwordError
+    return emailError === null && displayNameError === null && passwordError === null
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -213,7 +213,7 @@ function RegisterPage() {
         }
       })
 
-      if (registerError) {
+      if (registerError !== undefined) {
         // Handle specific error types
         const errorMessage = getErrorMessage(registerError)
         setApiError(errorMessage)
@@ -232,7 +232,7 @@ function RegisterPage() {
         }
       })
 
-      if (loginError || !loginData) {
+      if (loginError !== undefined || loginData === undefined) {
         // Registration succeeded but login failed - redirect to login page
         navigate({ to: "/login" })
         return
@@ -299,14 +299,14 @@ function RegisterPage() {
                 onBlur={() => handleBlur("email")}
                 disabled={isSubmitting}
                 placeholder="you@example.com"
-                aria-describedby={touched.email && errors.email ? "email-error" : undefined}
+                aria-describedby={touched.email && errors.email !== null ? "email-error" : undefined}
                 className={`mt-1 w-full rounded-lg border px-3 py-2 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-1 disabled:bg-gray-50 disabled:text-gray-500 ${
-                  touched.email && errors.email
+                  touched.email && errors.email !== null
                     ? "border-red-500 focus:border-red-500 focus:ring-red-500"
                     : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                 }`}
               />
-              {touched.email && errors.email && (
+              {touched.email && errors.email !== null && (
                 <p id="email-error" className="mt-1 text-sm text-red-600">
                   {errors.email}
                 </p>
@@ -332,14 +332,14 @@ function RegisterPage() {
                 onBlur={() => handleBlur("displayName")}
                 disabled={isSubmitting}
                 placeholder="Your name"
-                aria-describedby={touched.displayName && errors.displayName ? "displayName-error" : undefined}
+                aria-describedby={touched.displayName && errors.displayName !== null ? "displayName-error" : undefined}
                 className={`mt-1 w-full rounded-lg border px-3 py-2 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-1 disabled:bg-gray-50 disabled:text-gray-500 ${
-                  touched.displayName && errors.displayName
+                  touched.displayName && errors.displayName !== null
                     ? "border-red-500 focus:border-red-500 focus:ring-red-500"
                     : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                 }`}
               />
-              {touched.displayName && errors.displayName && (
+              {touched.displayName && errors.displayName !== null && (
                 <p id="displayName-error" className="mt-1 text-sm text-red-600">
                   {errors.displayName}
                 </p>
@@ -371,14 +371,14 @@ function RegisterPage() {
                   disabled={isSubmitting}
                   placeholder="••••••••"
                   aria-describedby={
-                    touched.password && errors.password
+                    touched.password && errors.password !== null
                       ? "password-error"
                       : passwordFocused && password.length > 0
                         ? "password-requirements"
                         : undefined
                   }
                   className={`w-full rounded-lg border px-3 py-2 pr-10 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-1 disabled:bg-gray-50 disabled:text-gray-500 ${
-                    touched.password && errors.password
+                    touched.password && errors.password !== null
                       ? "border-red-500 focus:border-red-500 focus:ring-red-500"
                       : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                   }`}
@@ -447,7 +447,7 @@ function RegisterPage() {
               )}
 
               {/* Password Error */}
-              {touched.password && errors.password && !passwordFocused && (
+              {touched.password && errors.password !== null && !passwordFocused && (
                 <p id="password-error" className="mt-1 text-sm text-red-600">
                   {errors.password}
                 </p>

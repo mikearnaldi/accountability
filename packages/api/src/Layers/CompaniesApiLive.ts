@@ -119,6 +119,7 @@ const logCompanyCreate = (
       company.organizationId,
       "Company",
       company.id,
+      company.name, // Human-readable company name for audit display
       company,
       userId
     )
@@ -145,6 +146,7 @@ const logCompanyUpdate = (
       after.organizationId,
       "Company",
       after.id,
+      after.name, // Human-readable company name for audit display
       before,
       after,
       userId
@@ -172,6 +174,7 @@ const logCompanyDeactivate = (
       company.organizationId,
       "Company",
       company.id,
+      company.name, // Human-readable company name for audit display
       "active",
       "inactive",
       userId,

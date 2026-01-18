@@ -111,6 +111,7 @@ const logConsolidationGroupCreate = (
       group.organizationId,
       "ConsolidationGroup",
       group.id,
+      group.name, // Human-readable group name for audit display
       group,
       userId
     )
@@ -139,6 +140,7 @@ const logConsolidationGroupUpdate = (
       after.organizationId,
       "ConsolidationGroup",
       groupId,
+      after.name, // Human-readable group name for audit display
       before,
       after,
       userId
@@ -159,6 +161,7 @@ const logConsolidationGroupUpdate = (
 const logConsolidationGroupStatusChange = (
   organizationId: string,
   groupId: ConsolidationGroupId,
+  groupName: string | null,
   previousStatus: string,
   newStatus: string
 ): Effect.Effect<void, never, AuditLogService | CurrentUserId> =>
@@ -170,6 +173,7 @@ const logConsolidationGroupStatusChange = (
       organizationId,
       "ConsolidationGroup",
       groupId,
+      groupName, // Human-readable group name for audit display
       previousStatus,
       newStatus,
       userId
@@ -187,7 +191,8 @@ const logConsolidationGroupStatusChange = (
  */
 const logConsolidationRunCreate = (
   organizationId: string,
-  run: ConsolidationRun
+  run: ConsolidationRun,
+  groupName: string | null
 ): Effect.Effect<void, never, AuditLogService | CurrentUserId> =>
   Effect.gen(function* () {
     const auditService = yield* AuditLogService
@@ -197,6 +202,7 @@ const logConsolidationRunCreate = (
       organizationId,
       "ConsolidationRun",
       run.id,
+      groupName, // Use group name as the run name for audit display
       run,
       userId
     )
@@ -217,6 +223,7 @@ const logConsolidationRunCreate = (
 const logConsolidationRunStatusChange = (
   organizationId: string,
   runId: ConsolidationRunId,
+  runName: string | null,
   previousStatus: string,
   newStatus: string,
   reason?: string
@@ -229,6 +236,7 @@ const logConsolidationRunStatusChange = (
       organizationId,
       "ConsolidationRun",
       runId,
+      runName, // Use group name as the run name for audit display
       previousStatus,
       newStatus,
       userId,
@@ -247,7 +255,8 @@ const logConsolidationRunStatusChange = (
  */
 const logConsolidationRunDelete = (
   organizationId: string,
-  run: ConsolidationRun
+  run: ConsolidationRun,
+  groupName: string | null
 ): Effect.Effect<void, never, AuditLogService | CurrentUserId> =>
   Effect.gen(function* () {
     const auditService = yield* AuditLogService
@@ -257,6 +266,7 @@ const logConsolidationRunDelete = (
       organizationId,
       "ConsolidationRun",
       run.id,
+      groupName, // Use group name as the run name for audit display
       run,
       userId
     )
@@ -503,6 +513,7 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
             yield* logConsolidationGroupStatusChange(
               organizationId,
               groupId,
+              existing.name,
               existing.isActive ? "Active" : "Inactive",
               "Active"
             )
@@ -540,6 +551,7 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
             yield* logConsolidationGroupStatusChange(
               organizationId,
               groupId,
+              existing.name,
               existing.isActive ? "Active" : "Inactive",
               "Inactive"
             )
@@ -854,7 +866,7 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
             )
 
             // Log audit entry for consolidation run creation
-            yield* logConsolidationRunCreate(organizationId, createdRun)
+            yield* logConsolidationRunCreate(organizationId, createdRun, maybeGroup.value.name)
 
             return createdRun
           })
@@ -896,9 +908,11 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
             )
 
             // Log audit entry for consolidation run cancellation
+            // Note: We pass null for group name since we don't have it loaded in this context
             yield* logConsolidationRunStatusChange(
               organizationId,
               runId,
+              null,
               existing.status,
               "Cancelled",
               "Run cancelled by user"
@@ -934,7 +948,8 @@ export const ConsolidationApiLive = HttpApiBuilder.group(AppApi, "consolidation"
             }
 
             // Log audit entry for consolidation run deletion (before deletion)
-            yield* logConsolidationRunDelete(organizationId, existing)
+            // Note: We pass null for group name since we don't have it loaded in this context
+            yield* logConsolidationRunDelete(organizationId, existing, null)
 
             yield* consolidationRepo.deleteRun(organizationId, runId).pipe(
               Effect.mapError((e) => mapPersistenceToBusinessRule(e))

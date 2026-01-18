@@ -92,7 +92,7 @@ export interface ProfileLoaderResult {
 const fetchUserProfile = createServerFn({ method: "GET" }).handler(async (): Promise<ProfileLoaderResult | null> => {
   const sessionToken = getCookie("accountability_session")
 
-  if (!sessionToken) {
+  if (sessionToken === undefined || sessionToken === null || sessionToken === "") {
     return null
   }
 
@@ -106,7 +106,7 @@ const fetchUserProfile = createServerFn({ method: "GET" }).handler(async (): Pro
       serverApi.GET("/api/v1/users/me/organizations", { headers })
     ])
 
-    if (userResult.error || !userResult.data) {
+    if (userResult.error !== undefined || userResult.data === undefined) {
       return null
     }
 
@@ -163,7 +163,7 @@ export const Route = createFileRoute("/profile")({
     }
   },
   beforeLoad: async ({ context }) => {
-    if (!context.user) {
+    if (context.user === null) {
       throw redirect({
         to: "/login",
         search: {
@@ -174,7 +174,7 @@ export const Route = createFileRoute("/profile")({
   },
   loader: async () => {
     const result = await fetchUserProfile()
-    if (!result) {
+    if (result === null) {
       throw redirect({ to: "/login" })
     }
     return result
@@ -193,7 +193,7 @@ function ProfilePage() {
   const router = useRouter()
 
   // Find the current organization from the search param, or default to first org
-  const currentOrganization = currentOrgId
+  const currentOrganization = currentOrgId !== undefined
     ? organizations.find((o) => o.id === currentOrgId) ?? organizations[0] ?? null
     : organizations[0] ?? null
 
@@ -228,7 +228,7 @@ function ProfilePage() {
         }
       })
 
-      if (error) {
+      if (error !== undefined) {
         setSaveError("Failed to update profile. Please try again.")
       } else {
         setSaveSuccess(true)

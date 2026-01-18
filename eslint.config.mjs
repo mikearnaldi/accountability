@@ -354,6 +354,41 @@ const pipeMaxArgumentsRule = {
 }
 
 /**
+ * Custom ESLint rule to ban Effect.asVoid usage.
+ * Effect.asVoid is usually unnecessary because `void` allows any value to be returned.
+ * The return type Effect<void, E, R> already accepts any success value.
+ */
+const noEffectAsVoidRule = {
+  meta: {
+    type: "problem",
+    docs: {
+      description: "Disallow Effect.asVoid - it is usually unnecessary"
+    },
+    messages: {
+      noEffectAsVoid: "Effect.asVoid is usually unnecessary. The `void` return type already allows any value to be returned from an effect. Remove it."
+    },
+    schema: []
+  },
+  create(context) {
+    return {
+      MemberExpression(node) {
+        if (
+          node.object.type === "Identifier" &&
+          node.object.name === "Effect" &&
+          node.property.type === "Identifier" &&
+          node.property.name === "asVoid"
+        ) {
+          context.report({
+            node,
+            messageId: "noEffectAsVoid"
+          })
+        }
+      }
+    }
+  }
+}
+
+/**
  * Custom ESLint rule to ban Effect.ignore usage.
  * Effect.ignore silently discards errors which hides bugs.
  * Errors should be explicitly handled or propagated.
@@ -603,7 +638,8 @@ const localPlugin = {
     "no-service-option": noServiceOptionRule,
     "no-void-expression": noVoidExpressionRule,
     "no-effect-ignore": noEffectIgnoreRule,
-    "no-effect-catchallcause": noEffectCatchAllCauseRule
+    "no-effect-catchallcause": noEffectCatchAllCauseRule,
+    "no-effect-asvoid": noEffectAsVoidRule
   }
 }
 
@@ -686,6 +722,8 @@ export default [
       "local/no-effect-ignore": "error",
       // Ban Effect.catchAllCause - it catches defects which should not be caught
       "local/no-effect-catchallcause": "error",
+      // Ban Effect.asVoid - void already allows any value
+      "local/no-effect-asvoid": "error",
       // Allow unused variables starting with underscore
       "no-unused-vars": "off",
       "@typescript-eslint/no-unused-vars": [

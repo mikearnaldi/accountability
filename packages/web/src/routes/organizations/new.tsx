@@ -59,7 +59,7 @@ const fetchCurrencies = createServerFn({ method: "GET" }).handler(async (): Prom
 }> => {
   const sessionToken = getCookie("accountability_session")
 
-  if (!sessionToken) {
+  if (sessionToken === undefined || sessionToken === null || sessionToken === "") {
     return { currencies: [], error: "unauthorized" }
   }
 
@@ -69,7 +69,7 @@ const fetchCurrencies = createServerFn({ method: "GET" }).handler(async (): Prom
       headers: { Authorization: `Bearer ${sessionToken}` }
     })
 
-    if (error || !data) {
+    if (error !== undefined || data === undefined) {
       return { currencies: [], error: "Failed to load currencies" }
     }
 
@@ -84,7 +84,7 @@ const fetchOrganizations = createServerFn({ method: "GET" }).handler(async (): P
 }> => {
   const sessionToken = getCookie("accountability_session")
 
-  if (!sessionToken) {
+  if (sessionToken === undefined || sessionToken === null || sessionToken === "") {
     return { organizations: [] }
   }
 
@@ -94,7 +94,7 @@ const fetchOrganizations = createServerFn({ method: "GET" }).handler(async (): P
       headers: { Authorization: `Bearer ${sessionToken}` }
     })
 
-    if (error || !data) {
+    if (error !== undefined || data === undefined) {
       return { organizations: [] }
     }
 
@@ -110,7 +110,7 @@ const fetchOrganizations = createServerFn({ method: "GET" }).handler(async (): P
 
 export const Route = createFileRoute("/organizations/new")({
   beforeLoad: async ({ context }) => {
-    if (!context.user) {
+    if (context.user === null) {
       throw redirect({
         to: "/login",
         search: {
@@ -169,7 +169,7 @@ function CreateOrganizationPage() {
         }
       })
 
-      if (error) {
+      if (error !== undefined) {
         // Extract error message
         let errorMessage = "Failed to create organization"
         if (typeof error === "object" && error !== null) {
@@ -183,7 +183,7 @@ function CreateOrganizationPage() {
       }
 
       // Navigate to the new organization's detail page
-      if (data?.id) {
+      if (data !== undefined && data.id !== undefined) {
         // Invalidate to refresh any cached data
         await router.invalidate()
         await navigate({

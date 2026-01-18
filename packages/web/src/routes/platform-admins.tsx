@@ -52,7 +52,7 @@ const getPlatformAdmins = createServerFn({ method: "GET" }).handler(
   async (): Promise<LoaderResult> => {
     const sessionToken = getCookie("accountability_session")
 
-    if (!sessionToken) {
+    if (sessionToken === undefined || sessionToken === null || sessionToken === "") {
       return { admins: [], count: 0 }
     }
 
@@ -62,7 +62,7 @@ const getPlatformAdmins = createServerFn({ method: "GET" }).handler(
 
       const { data, error } = await serverApi.GET("/api/v1/platform-admins", { headers })
 
-      if (error) {
+      if (error !== undefined) {
         // If 403 Forbidden, user is not a platform admin - return empty
         return { admins: [], count: 0 }
       }
@@ -84,7 +84,7 @@ const getPlatformAdmins = createServerFn({ method: "GET" }).handler(
 export const Route = createFileRoute("/platform-admins")({
   beforeLoad: async ({ context }) => {
     // Require authentication
-    if (!context.user) {
+    if (context.user === null) {
       throw redirect({
         to: "/login",
         search: {

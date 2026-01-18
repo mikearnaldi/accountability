@@ -2813,6 +2813,7 @@ export interface components {
             id: components["schemas"]["AuditLogEntryId"];
             entityType: components["schemas"]["AuditEntityType"];
             entityId: string;
+            entityName: string | null;
             action: components["schemas"]["AuditAction"];
             userId: components["schemas"]["UUID"] | null;
             timestamp: components["schemas"]["DateTimeUtc"];

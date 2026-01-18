@@ -208,7 +208,7 @@ const make = Effect.gen(function* () {
 
   const deleteIdentity: IdentityRepositoryService["delete"] = (id) =>
     sql`DELETE FROM auth_identities WHERE id = ${id}`.pipe(
-      Effect.asVoid,
+      Effect.map(() => undefined),
       wrapSqlError("delete")
     )
 

@@ -69,7 +69,7 @@ export interface OrganizationsSearchParams {
 const fetchOrganizationsWithStats = createServerFn({ method: "GET" }).handler(async (): Promise<LoaderResult> => {
   const sessionToken = getCookie("accountability_session")
 
-  if (!sessionToken) {
+  if (sessionToken === undefined || sessionToken === null || sessionToken === "") {
     return {
       organizations: [],
       total: 0,
@@ -85,7 +85,7 @@ const fetchOrganizationsWithStats = createServerFn({ method: "GET" }).handler(as
     // Fetch organizations
     const { data, error } = await serverApi.GET("/api/v1/organizations", { headers })
 
-    if (error || !data) {
+    if (error !== undefined || data === undefined) {
       return {
         organizations: [],
         total: 0,
@@ -148,7 +148,7 @@ export const Route = createFileRoute("/organizations/")({
     }
   },
   beforeLoad: async ({ context }) => {
-    if (!context.user) {
+    if (context.user === null) {
       throw redirect({
         to: "/login",
         search: {
@@ -161,7 +161,7 @@ export const Route = createFileRoute("/organizations/")({
     const result = await fetchOrganizationsWithStats()
 
     // If exactly one org, redirect to its dashboard immediately
-    if (result.shouldAutoRedirect && result.autoRedirectId) {
+    if (result.shouldAutoRedirect && result.autoRedirectId !== null) {
       throw redirect({
         to: "/organizations/$organizationId/dashboard",
         params: { organizationId: result.autoRedirectId }
@@ -186,13 +186,13 @@ function OrganizationsPage() {
   const user = context.user
 
   // Find the current organization from the search param, or default to first org
-  const currentOrganization = currentOrgId
+  const currentOrganization = currentOrgId !== undefined
     ? organizations.find((o) => o.id === currentOrgId) ?? organizations[0] ?? null
     : organizations[0] ?? null
 
   // Filter organizations based on search query
   const filteredOrganizations = useMemo(() => {
-    if (!searchQuery.trim()) {
+    if (searchQuery.trim() === "") {
       return organizations
     }
     const query = searchQuery.toLowerCase()
@@ -313,7 +313,7 @@ function OrganizationsList({
       )}
 
       {/* Organizations Grid */}
-      {organizations.length === 0 && searchQuery ? (
+      {organizations.length === 0 && searchQuery !== "" ? (
         <div
           className="rounded-lg border border-gray-200 bg-white p-8 text-center"
           data-testid="organizations-no-results"

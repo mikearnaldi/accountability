@@ -107,6 +107,7 @@ const logAccountCreate = (
       organizationId,
       "Account",
       account.id,
+      account.name, // Human-readable account name for audit display
       account,
       userId
     )
@@ -137,6 +138,7 @@ const logAccountUpdate = (
       organizationId,
       "Account",
       after.id,
+      after.name, // Human-readable account name for audit display
       before,
       after,
       userId
@@ -154,7 +156,8 @@ const logAccountUpdate = (
  */
 const logAccountDeactivate = (
   organizationId: string,
-  accountId: AccountId
+  accountId: AccountId,
+  accountName: string | null
 ): Effect.Effect<void, never, AuditLogService | CurrentUserId> =>
   Effect.gen(function* () {
     const auditService = yield* AuditLogService
@@ -164,6 +167,7 @@ const logAccountDeactivate = (
       organizationId,
       "Account",
       accountId,
+      accountName, // Human-readable account name for audit display
       "active",
       "inactive",
       userId,
@@ -511,7 +515,7 @@ export const AccountsApiLive = HttpApiBuilder.group(AppApi, "accounts", (handler
             )
 
             // Log account deactivation to audit log
-            yield* logAccountDeactivate(_.path.organizationId, accountId)
+            yield* logAccountDeactivate(_.path.organizationId, accountId, existing.name)
           })
         )
       )

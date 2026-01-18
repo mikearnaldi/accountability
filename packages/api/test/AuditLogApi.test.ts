@@ -72,7 +72,8 @@ const createTestAuditEntry = (
   action: "Create" | "Update" | "Delete" | "StatusChange",
   userId?: string,
   changes?: Record<string, { from: unknown; to: unknown }>,
-  organizationId: string = testOrganizationId
+  organizationId: string = testOrganizationId,
+  entityName?: string
 ) =>
   Effect.gen(function* () {
     const repo = yield* AuditLogRepository
@@ -80,6 +81,7 @@ const createTestAuditEntry = (
       organizationId,
       entityType,
       entityId,
+      entityName: Option.fromNullable(entityName),
       action,
       userId: Option.fromNullable(userId),
       changes: Option.fromNullable(changes)

@@ -32,6 +32,7 @@ export interface AuditLogEntry {
   readonly organizationId: string
   readonly entityType: AuditEntityType
   readonly entityId: string
+  readonly entityName: Option.Option<string>
   readonly action: AuditAction
   readonly userId: Option.Option<string>
   readonly timestamp: DateTime.Utc
@@ -47,6 +48,7 @@ export interface AuditLogInsert {
   readonly organizationId: string
   readonly entityType: AuditEntityType
   readonly entityId: string
+  readonly entityName: Option.Option<string>
   readonly action: AuditAction
   readonly userId: Option.Option<string>
   readonly changes: Option.Option<AuditChanges>

@@ -8,13 +8,13 @@ This document specifies the design and implementation of a professional audit lo
 
 The existing audit log page has several problems:
 
-1. **Shows "null" values** - User ID displays as "null" because CurrentUserId is not passed to audit service
-2. **Truncated changes** - Shows "+17 more" without ability to expand
-3. **No detail view** - Cannot click to see full entry details
-4. **Truncated IDs** - Entity IDs are cut off with no way to copy
-5. **No user names** - Shows raw UUIDs instead of user display names
-6. **No entity names** - Shows raw IDs instead of entity names (e.g., account name)
-7. **No organization scoping** - Shows entries from all organizations (security issue)
+1. ~~**Shows "null" values** - User ID displays as "null" because CurrentUserId is not passed to audit service~~ ✅ FIXED
+2. ~~**Truncated changes** - Shows "+17 more" without ability to expand~~ ✅ FIXED (expandable rows)
+3. ~~**No detail view** - Cannot click to see full entry details~~ ✅ FIXED (expandable detail panel)
+4. ~~**Truncated IDs** - Entity IDs are cut off with no way to copy~~ ✅ FIXED (copy buttons)
+5. **No user names** - Shows raw UUIDs instead of user display names (Phase 2 - denormalization)
+6. ~~**No entity names** - Shows raw IDs instead of entity names (e.g., account name)~~ ✅ FIXED
+7. ~~**No organization scoping** - Shows entries from all organizations (security issue)~~ ✅ FIXED
 
 ---
 
@@ -478,20 +478,21 @@ Denormalize user info to avoid joins and preserve historical names.
 
 ### Phase 1: Fix Critical Issues
 
-1. **Add organization scoping to API**
-   - Add `organizationId` parameter to audit log endpoint
-   - Filter entries by organization in repository
-   - Update page to pass current organization ID
+1. **Add organization scoping to API** ✅ DONE
+   - ✅ Add `organizationId` parameter to audit log endpoint
+   - ✅ Filter entries by organization in repository
+   - ✅ Update page to pass current organization ID
 
-2. **Capture user context**
-   - Implement `CurrentUserId` in API middleware (from AUTHORIZATION_MISSING.md)
-   - Pass user ID to audit service calls
-   - Update audit entries to include user info
+2. **Capture user context** ✅ DONE
+   - ✅ Implement `CurrentUserId` in API middleware (from AUTHORIZATION_MISSING.md)
+   - ✅ Pass user ID to audit service calls
+   - ✅ Update audit entries to include user info
 
-3. **Add entity name capture**
-   - Update `AuditLogService.logCreate/Update/Delete` to accept entity name
-   - Update all service integrations to pass entity names
-   - Add migration for `entity_name` column
+3. **Add entity name capture** ✅ DONE
+   - ✅ Update `AuditLogService.logCreate/Update/Delete` to accept entity name
+   - ✅ Update all service integrations to pass entity names
+   - ✅ Add migration for `entity_name` column
+   - ✅ Update frontend to display entity names in table and detail panel
 
 ### Phase 2: Improve Display
 

@@ -49,7 +49,7 @@ describe("AuditLogServiceLive", () => {
         }
 
         // Log the creation
-        yield* service.logCreate(testOrganizationId, "Account", testEntityId, entity, testUserId)
+        yield* service.logCreate(testOrganizationId, "Account", testEntityId, entity.name, entity, testUserId)
 
         // Verify the entry was created
         const entries = yield* repo.findByEntity("Account", testEntityId)
@@ -59,7 +59,7 @@ describe("AuditLogServiceLive", () => {
         const createEntry = Chunk.toArray(entries).find(e => e.action === "Create")
         expect(createEntry).toBeDefined()
 
-        if (createEntry) {
+        if (createEntry !== undefined) {
           expect(createEntry.entityType).toBe("Account")
           expect(createEntry.entityId).toBe(testEntityId)
           expect(createEntry.action).toBe("Create")
@@ -102,14 +102,14 @@ describe("AuditLogServiceLive", () => {
         }
 
         // Log the update
-        yield* service.logUpdate(testOrganizationId, "Company", updateEntityId, before, after, testUserId)
+        yield* service.logUpdate(testOrganizationId, "Company", updateEntityId, after.name, before, after, testUserId)
 
         // Verify the entry was created
         const entries = yield* repo.findByEntity("Company", updateEntityId)
         const updateEntry = Chunk.toArray(entries).find(e => e.action === "Update")
         expect(updateEntry).toBeDefined()
 
-        if (updateEntry) {
+        if (updateEntry !== undefined) {
           expect(updateEntry.entityType).toBe("Company")
           expect(updateEntry.entityId).toBe(updateEntityId)
           expect(updateEntry.action).toBe("Update")
@@ -145,7 +145,7 @@ describe("AuditLogServiceLive", () => {
         const countBefore = Chunk.size(beforeEntries)
 
         // Log update with identical before/after
-        yield* service.logUpdate(testOrganizationId, "Company", noChangeEntityId, entity, entity, testUserId)
+        yield* service.logUpdate(testOrganizationId, "Company", noChangeEntityId, entity.name, entity, entity, testUserId)
 
         // Count should be the same - no entry created
         const afterEntries = yield* repo.findByEntity("Company", noChangeEntityId)
@@ -169,13 +169,13 @@ describe("AuditLogServiceLive", () => {
           settings: { timezone: "America/New_York", locale: "en-US" }
         }
 
-        yield* service.logUpdate(testOrganizationId, "Organization", nestedEntityId, before, after, testUserId)
+        yield* service.logUpdate(testOrganizationId, "Organization", nestedEntityId, "Test Organization", before, after, testUserId)
 
         const entries = yield* repo.findByEntity("Organization", nestedEntityId)
         const updateEntry = Chunk.toArray(entries).find(e => e.action === "Update")
         expect(updateEntry).toBeDefined()
 
-        if (updateEntry && Option.isSome(updateEntry.changes)) {
+        if (updateEntry !== undefined && Option.isSome(updateEntry.changes)) {
           const changes = updateEntry.changes.value
           // Nested objects are compared via JSON stringification
           expect(changes.settings).toBeDefined()
@@ -198,13 +198,13 @@ describe("AuditLogServiceLive", () => {
           balance: 1000
         }
 
-        yield* service.logDelete(testOrganizationId, "Account", deleteEntityId, entity, testUserId)
+        yield* service.logDelete(testOrganizationId, "Account", deleteEntityId, entity.name, entity, testUserId)
 
         const entries = yield* repo.findByEntity("Account", deleteEntityId)
         const deleteEntry = Chunk.toArray(entries).find(e => e.action === "Delete")
         expect(deleteEntry).toBeDefined()
 
-        if (deleteEntry) {
+        if (deleteEntry !== undefined) {
           expect(deleteEntry.entityType).toBe("Account")
           expect(deleteEntry.entityId).toBe(deleteEntityId)
           expect(deleteEntry.action).toBe("Delete")
@@ -238,6 +238,7 @@ describe("AuditLogServiceLive", () => {
           testOrganizationId,
           "FiscalPeriod",
           statusEntityId,
+          "Q4 2024", // entityName for fiscal period
           "Open",
           "Closed",
           testUserId
@@ -247,7 +248,7 @@ describe("AuditLogServiceLive", () => {
         const statusEntry = Chunk.toArray(entries).find(e => e.action === "StatusChange")
         expect(statusEntry).toBeDefined()
 
-        if (statusEntry) {
+        if (statusEntry !== undefined) {
           expect(statusEntry.entityType).toBe("FiscalPeriod")
           expect(statusEntry.action).toBe("StatusChange")
           expect(Option.isSome(statusEntry.changes)).toBe(true)
@@ -272,6 +273,7 @@ describe("AuditLogServiceLive", () => {
           testOrganizationId,
           "FiscalPeriod",
           reasonEntityId,
+          "Q3 2024", // entityName for fiscal period
           "Locked",
           "Open",
           testUserId,
@@ -282,7 +284,7 @@ describe("AuditLogServiceLive", () => {
         const statusEntry = Chunk.toArray(entries).find(e => e.action === "StatusChange")
         expect(statusEntry).toBeDefined()
 
-        if (statusEntry && Option.isSome(statusEntry.changes)) {
+        if (statusEntry !== undefined && Option.isSome(statusEntry.changes)) {
           const changes = statusEntry.changes.value
           expect(changes.status?.from).toBe("Locked")
           expect(changes.status?.to).toBe("Open")
@@ -310,6 +312,7 @@ describe("AuditLogServiceLive", () => {
           testOrganizationId,
           "JournalEntry",
           precomputedEntityId,
+          "JE-00001", // entityName for journal entry
           "Update",
           customChanges,
           testUserId
@@ -319,7 +322,7 @@ describe("AuditLogServiceLive", () => {
         const entry = Chunk.toArray(entries).find(e => e.action === "Update")
         expect(entry).toBeDefined()
 
-        if (entry && Option.isSome(entry.changes)) {
+        if (entry !== undefined && Option.isSome(entry.changes)) {
           const changes = entry.changes.value
           expect(changes.field1?.from).toBe("a")
           expect(changes.field1?.to).toBe("b")
@@ -340,13 +343,13 @@ describe("AuditLogServiceLive", () => {
         const emptyEntityId = "55555555-5555-5555-5555-555555555555"
         const emptyEntity = {}
 
-        yield* service.logCreate(testOrganizationId, "Account", emptyEntityId, emptyEntity, testUserId)
+        yield* service.logCreate(testOrganizationId, "Account", emptyEntityId, null, emptyEntity, testUserId)
 
         const entries = yield* repo.findByEntity("Account", emptyEntityId)
         const entry = Chunk.toArray(entries).find(e => e.action === "Create")
         expect(entry).toBeDefined()
 
-        if (entry && Option.isSome(entry.changes)) {
+        if (entry !== undefined && Option.isSome(entry.changes)) {
           // Empty entity should have empty changes object
           expect(Object.keys(entry.changes.value).length).toBe(0)
         }
@@ -369,13 +372,13 @@ describe("AuditLogServiceLive", () => {
           newField: "added"
         }
 
-        yield* service.logUpdate(testOrganizationId, "Company", fieldChangeEntityId, before, after, testUserId)
+        yield* service.logUpdate(testOrganizationId, "Company", fieldChangeEntityId, "Test Company", before, after, testUserId)
 
         const entries = yield* repo.findByEntity("Company", fieldChangeEntityId)
         const entry = Chunk.toArray(entries).find(e => e.action === "Update")
         expect(entry).toBeDefined()
 
-        if (entry && Option.isSome(entry.changes)) {
+        if (entry !== undefined && Option.isSome(entry.changes)) {
           const changes = entry.changes.value
           // oldField was removed (value is undefined)
           expect(changes.oldField?.from).toBe("exists")
@@ -400,13 +403,13 @@ describe("AuditLogServiceLive", () => {
           normalField: "value"
         }
 
-        yield* service.logCreate(testOrganizationId, "Account", nullEntityId, entityWithNulls, testUserId)
+        yield* service.logCreate(testOrganizationId, "Account", nullEntityId, null, entityWithNulls, testUserId)
 
         const entries = yield* repo.findByEntity("Account", nullEntityId)
         const entry = Chunk.toArray(entries).find(e => e.action === "Create")
         expect(entry).toBeDefined()
 
-        if (entry && Option.isSome(entry.changes)) {
+        if (entry !== undefined && Option.isSome(entry.changes)) {
           const changes = entry.changes.value
           expect(changes.normalField?.to).toBe("value")
           // null values should be recorded

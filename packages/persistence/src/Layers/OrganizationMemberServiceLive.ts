@@ -66,7 +66,8 @@ import { OrganizationMemberRepository } from "../Services/OrganizationMemberRepo
  */
 const logMemberCreate = (
   organizationId: string,
-  membership: OrganizationMembership
+  membership: OrganizationMembership,
+  memberName: string | null
 ): Effect.Effect<void, AuditLogError, AuditLogService | CurrentUserId> =>
   Effect.gen(function* () {
     const auditService = yield* AuditLogService
@@ -75,6 +76,7 @@ const logMemberCreate = (
       organizationId,
       "OrganizationMember",
       membership.id,
+      memberName,
       membership,
       userId
     )
@@ -94,7 +96,8 @@ const logMemberCreate = (
 const logMemberUpdate = (
   organizationId: string,
   before: OrganizationMembership,
-  after: OrganizationMembership
+  after: OrganizationMembership,
+  memberName: string | null
 ): Effect.Effect<void, AuditLogError, AuditLogService | CurrentUserId> =>
   Effect.gen(function* () {
     const auditService = yield* AuditLogService
@@ -103,6 +106,7 @@ const logMemberUpdate = (
       organizationId,
       "OrganizationMember",
       after.id,
+      memberName,
       before,
       after,
       userId
@@ -131,6 +135,7 @@ const logMemberUpdate = (
 const logMemberStatusChange = (
   organizationId: string,
   membership: OrganizationMembership,
+  memberName: string | null,
   previousStatus: string,
   newStatus: string,
   reason?: string
@@ -142,6 +147,7 @@ const logMemberStatusChange = (
       organizationId,
       "OrganizationMember",
       membership.id,
+      memberName,
       previousStatus,
       newStatus,
       userId,
@@ -237,7 +243,8 @@ const make = Effect.gen(function* () {
         const createdMembership = yield* memberRepo.create(membership)
 
         // Log member creation to audit log
-        yield* logMemberCreate(input.organizationId, createdMembership)
+        // Note: User display name denormalization is Phase 2 work per AUDIT_PAGE.md
+        yield* logMemberCreate(input.organizationId, createdMembership, null)
 
         return createdMembership
       }),
@@ -261,9 +268,11 @@ const make = Effect.gen(function* () {
         const removedMembership = yield* memberRepo.remove(membership.id, removedBy, reason)
 
         // Log member removal to audit log
+        // Note: User display name denormalization is Phase 2 work per AUDIT_PAGE.md
         yield* logMemberStatusChange(
           organizationId,
           removedMembership,
+          null,
           "active",
           "removed",
           reason ?? "Member removed from organization"
@@ -306,7 +315,8 @@ const make = Effect.gen(function* () {
         const updatedMembership = yield* memberRepo.update(membership.id, updateInput)
 
         // Log member role update to audit log
-        yield* logMemberUpdate(organizationId, membership, updatedMembership)
+        // Note: User display name denormalization is Phase 2 work per AUDIT_PAGE.md
+        yield* logMemberUpdate(organizationId, membership, updatedMembership, null)
 
         return updatedMembership
       }),
@@ -324,9 +334,11 @@ const make = Effect.gen(function* () {
         const reinstatedMembership = yield* memberRepo.reinstate(membership.id, reinstatedBy)
 
         // Log member reinstatement to audit log
+        // Note: User display name denormalization is Phase 2 work per AUDIT_PAGE.md
         yield* logMemberStatusChange(
           organizationId,
           reinstatedMembership,
+          null,
           previousStatus,
           "active",
           "Member reinstated"
@@ -354,9 +366,11 @@ const make = Effect.gen(function* () {
         const suspendedMembership = yield* memberRepo.suspend(membership.id, suspendedBy, reason)
 
         // Log member suspension to audit log
+        // Note: User display name denormalization is Phase 2 work per AUDIT_PAGE.md
         yield* logMemberStatusChange(
           organizationId,
           suspendedMembership,
+          null,
           "active",
           "suspended",
           reason ?? "Member suspended"
@@ -388,9 +402,11 @@ const make = Effect.gen(function* () {
         const unsuspendedMembership = yield* memberRepo.unsuspend(membership.id, unsuspendedBy)
 
         // Log member unsuspension to audit log
+        // Note: User display name denormalization is Phase 2 work per AUDIT_PAGE.md
         yield* logMemberStatusChange(
           organizationId,
           unsuspendedMembership,
+          null,
           "suspended",
           "active",
           "Member unsuspended"
@@ -444,8 +460,9 @@ const make = Effect.gen(function* () {
         })
 
         // Log ownership transfer to audit log
-        yield* logMemberUpdate(input.organizationId, fromMembership, updatedPreviousOwner)
-        yield* logMemberUpdate(input.organizationId, toMembership, updatedNewOwner)
+        // Note: User display name denormalization is Phase 2 work per AUDIT_PAGE.md
+        yield* logMemberUpdate(input.organizationId, fromMembership, updatedPreviousOwner, null)
+        yield* logMemberUpdate(input.organizationId, toMembership, updatedNewOwner, null)
 
         return {
           previousOwner: updatedPreviousOwner,

@@ -34,6 +34,7 @@ export class AuditLogEntry extends Schema.Class<AuditLogEntry>("AuditLogEntry")(
   id: AuditLogEntryId,
   entityType: AuditEntityType,
   entityId: Schema.String,
+  entityName: Schema.OptionFromNullOr(Schema.String),
   action: AuditAction,
   userId: Schema.OptionFromNullOr(Schema.UUID),
   timestamp: Schema.DateTimeUtc,

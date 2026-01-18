@@ -73,6 +73,7 @@ export const AuditLogApiLive = HttpApiBuilder.group(AppApi, "auditLog", (handler
               id: entry.id,
               entityType: entry.entityType,
               entityId: entry.entityId,
+              entityName: entry.entityName,
               action: entry.action,
               userId: entry.userId,
               timestamp: entry.timestamp,

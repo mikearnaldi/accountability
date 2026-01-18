@@ -98,6 +98,7 @@ const logExchangeRateCreate = (
       organizationId,
       "ExchangeRate",
       rate.id,
+      `${rate.fromCurrency}/${rate.toCurrency}`, // Human-readable currency pair for audit display
       rate,
       userId
     )
@@ -128,6 +129,7 @@ const logExchangeRateBulkCreate = (
         organizationId,
         "ExchangeRate",
         rate.id,
+        `${rate.fromCurrency}/${rate.toCurrency}`, // Human-readable currency pair for audit display
         rate,
         userId
       )
@@ -155,6 +157,7 @@ const logExchangeRateDelete = (
       organizationId,
       "ExchangeRate",
       rate.id,
+      `${rate.fromCurrency}/${rate.toCurrency}`, // Human-readable currency pair for audit display
       rate,
       userId
     )

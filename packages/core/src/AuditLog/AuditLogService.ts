@@ -35,6 +35,7 @@ export interface AuditLogServiceShape {
    * @param organizationId - The organization this entity belongs to
    * @param entityType - The type of entity being created
    * @param entityId - The ID of the created entity
+   * @param entityName - Human-readable name of the entity (e.g., account name)
    * @param entity - The created entity data (will be stored as changes)
    * @param userId - The ID of the user who created the entity
    * @returns Effect that completes when the audit entry is recorded
@@ -45,6 +46,7 @@ export interface AuditLogServiceShape {
    *   organizationId,
    *   "Account",
    *   account.id,
+   *   account.name,
    *   account,
    *   currentUserId
    * )
@@ -54,6 +56,7 @@ export interface AuditLogServiceShape {
     organizationId: string,
     entityType: AuditEntityType,
     entityId: string,
+    entityName: string | null,
     entity: T,
     userId: AuthUserId
   ) => Effect.Effect<void, AuditLogError>
@@ -67,6 +70,7 @@ export interface AuditLogServiceShape {
    * @param organizationId - The organization this entity belongs to
    * @param entityType - The type of entity being updated
    * @param entityId - The ID of the updated entity
+   * @param entityName - Human-readable name of the entity (e.g., account name)
    * @param before - The entity state before the update
    * @param after - The entity state after the update
    * @param userId - The ID of the user who made the update
@@ -80,6 +84,7 @@ export interface AuditLogServiceShape {
    *   organizationId,
    *   "Account",
    *   id,
+   *   after.name,
    *   before,
    *   after,
    *   currentUserId
@@ -90,6 +95,7 @@ export interface AuditLogServiceShape {
     organizationId: string,
     entityType: AuditEntityType,
     entityId: string,
+    entityName: string | null,
     before: T,
     after: T,
     userId: AuthUserId
@@ -103,6 +109,7 @@ export interface AuditLogServiceShape {
    * @param organizationId - The organization this entity belongs to
    * @param entityType - The type of entity being deleted
    * @param entityId - The ID of the deleted entity
+   * @param entityName - Human-readable name of the entity (e.g., account name)
    * @param entity - The entity data at time of deletion
    * @param userId - The ID of the user who deleted the entity
    * @returns Effect that completes when the audit entry is recorded
@@ -115,6 +122,7 @@ export interface AuditLogServiceShape {
    *   organizationId,
    *   "Account",
    *   id,
+   *   entity.name,
    *   entity,
    *   currentUserId
    * )
@@ -124,6 +132,7 @@ export interface AuditLogServiceShape {
     organizationId: string,
     entityType: AuditEntityType,
     entityId: string,
+    entityName: string | null,
     entity: T,
     userId: AuthUserId
   ) => Effect.Effect<void, AuditLogError>
@@ -137,6 +146,7 @@ export interface AuditLogServiceShape {
    * @param organizationId - The organization this entity belongs to
    * @param entityType - The type of entity with status change
    * @param entityId - The ID of the entity
+   * @param entityName - Human-readable name of the entity (e.g., "JE-00123")
    * @param previousStatus - The status before the change
    * @param newStatus - The status after the change
    * @param userId - The ID of the user who changed the status
@@ -149,6 +159,7 @@ export interface AuditLogServiceShape {
    *   organizationId,
    *   "FiscalPeriod",
    *   periodId,
+   *   periodName,
    *   "Open",
    *   "Closed",
    *   currentUserId,
@@ -160,6 +171,7 @@ export interface AuditLogServiceShape {
     organizationId: string,
     entityType: AuditEntityType,
     entityId: string,
+    entityName: string | null,
     previousStatus: string,
     newStatus: string,
     userId: AuthUserId,
@@ -175,6 +187,7 @@ export interface AuditLogServiceShape {
    * @param organizationId - The organization this entity belongs to
    * @param entityType - The type of entity
    * @param entityId - The ID of the entity
+   * @param entityName - Human-readable name of the entity
    * @param action - The action being performed
    * @param changes - Pre-computed changes to record
    * @param userId - The ID of the user performing the action
@@ -184,6 +197,7 @@ export interface AuditLogServiceShape {
     organizationId: string,
     entityType: AuditEntityType,
     entityId: string,
+    entityName: string | null,
     action: "Create" | "Update" | "Delete" | "StatusChange",
     changes: AuditChanges,
     userId: AuthUserId

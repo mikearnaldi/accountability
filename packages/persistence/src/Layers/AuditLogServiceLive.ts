@@ -40,7 +40,7 @@ function safeGetProperty(obj: unknown, key: string): unknown {
   if (obj !== null && typeof obj === "object" && key in obj) {
     const entries = Object.entries(obj)
     const found = entries.find(([k]) => k === key)
-    return found ? found[1] : undefined
+    return found !== undefined ? found[1] : undefined
   }
   return undefined
 }
@@ -148,23 +148,23 @@ const make = Effect.gen(function* () {
     <A, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<A, AuditLogError, R> =>
       Effect.mapError(effect, (cause) => new AuditLogError({ operation, cause }))
 
-  const logCreate: AuditLogServiceShape["logCreate"] = (organizationId, entityType, entityId, entity, userId) =>
+  const logCreate: AuditLogServiceShape["logCreate"] = (organizationId, entityType, entityId, entityName, entity, userId) =>
     Effect.gen(function* () {
       const changes = entityToCreateChanges(entity)
       yield* auditRepo.create({
         organizationId,
         entityType,
         entityId,
+        entityName: Option.fromNullable(entityName),
         action: "Create",
         userId: Option.some(userId),
         changes: Option.some(changes)
       })
     }).pipe(
-      Effect.asVoid,
       wrapError("logCreate")
     )
 
-  const logUpdate: AuditLogServiceShape["logUpdate"] = (organizationId, entityType, entityId, before, after, userId) =>
+  const logUpdate: AuditLogServiceShape["logUpdate"] = (organizationId, entityType, entityId, entityName, before, after, userId) =>
     Effect.gen(function* () {
       const changes = computeChanges(before, after)
       // Only create audit entry if there are actual changes
@@ -173,29 +173,29 @@ const make = Effect.gen(function* () {
           organizationId,
           entityType,
           entityId,
+          entityName: Option.fromNullable(entityName),
           action: "Update",
           userId: Option.some(userId),
           changes: Option.some(changes)
         })
       }
     }).pipe(
-      Effect.asVoid,
       wrapError("logUpdate")
     )
 
-  const logDelete: AuditLogServiceShape["logDelete"] = (organizationId, entityType, entityId, entity, userId) =>
+  const logDelete: AuditLogServiceShape["logDelete"] = (organizationId, entityType, entityId, entityName, entity, userId) =>
     Effect.gen(function* () {
       const changes = entityToDeleteChanges(entity)
       yield* auditRepo.create({
         organizationId,
         entityType,
         entityId,
+        entityName: Option.fromNullable(entityName),
         action: "Delete",
         userId: Option.some(userId),
         changes: Option.some(changes)
       })
     }).pipe(
-      Effect.asVoid,
       wrapError("logDelete")
     )
 
@@ -203,6 +203,7 @@ const make = Effect.gen(function* () {
     organizationId,
     entityType,
     entityId,
+    entityName,
     previousStatus,
     newStatus,
     userId,
@@ -220,12 +221,12 @@ const make = Effect.gen(function* () {
         organizationId,
         entityType,
         entityId,
+        entityName: Option.fromNullable(entityName),
         action: "StatusChange",
         userId: Option.some(userId),
         changes: Option.some(changes)
       })
     }).pipe(
-      Effect.asVoid,
       wrapError("logStatusChange")
     )
 
@@ -233,6 +234,7 @@ const make = Effect.gen(function* () {
     organizationId,
     entityType,
     entityId,
+    entityName,
     action,
     changes,
     userId
@@ -242,12 +244,12 @@ const make = Effect.gen(function* () {
         organizationId,
         entityType,
         entityId,
+        entityName: Option.fromNullable(entityName),
         action,
         userId: Option.some(userId),
         changes: Option.some(changes)
       })
     }).pipe(
-      Effect.asVoid,
       wrapError("logWithChanges")
     )
 

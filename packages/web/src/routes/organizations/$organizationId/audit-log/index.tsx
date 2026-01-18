@@ -43,6 +43,7 @@ interface AuditLogEntry {
   readonly id: string
   readonly entityType: AuditEntityType
   readonly entityId: string
+  readonly entityName: string | null
   readonly action: AuditAction
   readonly userId: string | null
   readonly timestamp: string
@@ -460,8 +461,8 @@ function AuditLogPage() {
                       </Tooltip>
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                      <Tooltip content="The unique identifier of the affected entity">
-                        <span className="cursor-help">Entity ID</span>
+                      <Tooltip content="The name or identifier of the affected entity">
+                        <span className="cursor-help">Entity</span>
                       </Tooltip>
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
@@ -729,9 +730,16 @@ function AuditLogRow({ entry, isExpanded, onToggle, onKeyDown }: AuditLogRowProp
           </span>
         </td>
         <td className="whitespace-nowrap px-4 py-4">
-          <span className="font-mono text-sm text-gray-500">
-            {entry.entityId.slice(0, 8)}...
-          </span>
+          {entry.entityName ? (
+            <div>
+              <span className="text-sm font-medium text-gray-900">{entry.entityName}</span>
+              <div className="font-mono text-xs text-gray-400">{entry.entityId.slice(0, 8)}...</div>
+            </div>
+          ) : (
+            <span className="font-mono text-sm text-gray-500">
+              {entry.entityId.slice(0, 8)}...
+            </span>
+          )}
         </td>
         <td className="whitespace-nowrap px-4 py-4">
           <div className="flex items-center gap-2 text-sm text-gray-500">
@@ -828,6 +836,14 @@ function AuditLogDetailPanel({ entry }: AuditLogDetailPanelProps) {
           <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Entity Type</p>
           <p className="mt-1 text-sm font-medium text-gray-900">{formatEntityType(entry.entityType)}</p>
         </div>
+
+        {/* Entity Name */}
+        {entry.entityName && (
+          <div className="rounded-lg border border-gray-200 bg-white p-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Entity Name</p>
+            <p className="mt-1 text-sm font-medium text-gray-900">{entry.entityName}</p>
+          </div>
+        )}
 
         {/* Entity ID */}
         <div className="rounded-lg border border-gray-200 bg-white p-3">

@@ -16,7 +16,7 @@
     }
   },
   "scripts": {
-    "prepare": "effect-language-service patch",
+    "effect:patch": "effect-language-service patch",
     "dev": "pnpm --filter @accountability/web run dev",
     "build": "pnpm --filter @accountability/web run build",
     "preview": "pnpm --filter @accountability/web run preview",

@@ -35,6 +35,7 @@ const AuditLogRow = Schema.Struct({
   organization_id: Schema.NullOr(Schema.String),
   entity_type: AuditEntityType,
   entity_id: Schema.String,
+  entity_name: Schema.NullOr(Schema.String),
   action: AuditAction,
   user_id: Schema.NullOr(Schema.String),
   timestamp: Schema.DateFromSelf,
@@ -72,6 +73,7 @@ const rowToAuditLogEntry = (row: AuditLogRow): Effect.Effect<AuditLogEntry, neve
       organizationId: row.organization_id ?? "",
       entityType: row.entity_type,
       entityId: row.entity_id,
+      entityName: Option.fromNullable(row.entity_name),
       action: row.action,
       userId: Option.fromNullable(row.user_id),
       timestamp: DateTime.unsafeMake(row.timestamp.getTime()),
@@ -230,6 +232,7 @@ const make = Effect.gen(function* () {
     Effect.gen(function* () {
       const now = new Date()
       const userIdValue = Option.getOrNull(entry.userId)
+      const entityNameValue = Option.getOrNull(entry.entityName)
       const changesValue = Option.match(entry.changes, {
         onNone: () => null,
         onSome: (c) => JSON.stringify(c)
@@ -237,11 +240,12 @@ const make = Effect.gen(function* () {
 
       const result = yield* sql`
         INSERT INTO audit_log (
-          organization_id, entity_type, entity_id, action, user_id, timestamp, changes
+          organization_id, entity_type, entity_id, entity_name, action, user_id, timestamp, changes
         ) VALUES (
           ${entry.organizationId},
           ${entry.entityType},
           ${entry.entityId},
+          ${entityNameValue},
           ${entry.action},
           ${userIdValue},
           ${now},

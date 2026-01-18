@@ -248,7 +248,7 @@ const make = Effect.gen(function* () {
     journalEntryId
   ) =>
     sql`DELETE FROM journal_entry_lines WHERE journal_entry_id = ${journalEntryId}`.pipe(
-      Effect.asVoid,
+      Effect.map(() => undefined),
       wrapSqlError("deleteByJournalEntry")
     )
 

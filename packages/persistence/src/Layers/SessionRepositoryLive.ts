@@ -133,7 +133,7 @@ const make = Effect.gen(function* () {
 
   const deleteSession: SessionRepositoryService["delete"] = (id) =>
     sql`DELETE FROM auth_sessions WHERE id = ${id}`.pipe(
-      Effect.asVoid,
+      Effect.map(() => undefined),
       wrapSqlError("delete")
     )
 

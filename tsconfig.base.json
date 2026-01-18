@@ -29,7 +29,47 @@
     "jsx": "react-jsx",
     "plugins": [
       {
-        "name": "@effect/language-service"
+        "name": "@effect/language-service",
+        "diagnostics": true,
+        "diagnosticSeverity": {
+          "anyUnknownInErrorContext": "warning",
+          "catchUnfailableEffect": "error",
+          "classSelfMismatch": "error",
+          "deterministicKeys": "warning",
+          "duplicatePackage": "error",
+          "effectGenUsesAdapter": "error",
+          "effectInVoidSuccess": "error",
+          "floatingEffect": "error",
+          "genericEffectServices": "error",
+          "globalErrorInEffectCatch": "error",
+          "globalErrorInEffectFailure": "error",
+          "importFromBarrel": "error",
+          "layerMergeAllWithDependencies": "error",
+          "leakingRequirements": "warning",
+          "missingEffectContext": "error",
+          "missingEffectError": "error",
+          "missingEffectServiceDependency": "error",
+          "missingLayerContext": "error",
+          "missingReturnYieldStar": "error",
+          "missingStarInYieldEffectGen": "error",
+          "multipleEffectProvide": "error",
+          "nonObjectEffectServiceType": "error",
+          "outdatedEffectCodegen": "error",
+          "overriddenSchemaConstructor": "error",
+          "returnEffectInGen": "error",
+          "runEffectInsideEffect": "warning",
+          "schemaUnionOfLiterals": "error",
+          "scopeInLayerEffect": "error",
+          "strictBooleanExpressions": "warning",
+          "strictEffectProvide": "warning",
+          "tryCatchInEffectGen": "error",
+          "unknownInEffectCatch": "warning",
+          "unnecessaryEffectGen": "warning",
+          "unnecessaryFailYieldableError": "warning",
+          "unnecessaryPipe": "warning",
+          "unnecessaryPipeChain": "warning",
+          "unsupportedServiceAccessors": "error"
+        }
       }
     ]
   }

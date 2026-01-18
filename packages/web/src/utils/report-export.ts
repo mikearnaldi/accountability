@@ -69,10 +69,10 @@ export function exportToExcel(config: TableExportConfig, filename: string): void
 
   // Add title and metadata
   data.push([metadata.title])
-  if (metadata.subtitle) data.push([metadata.subtitle])
-  if (metadata.company) data.push([`Company: ${metadata.company}`])
-  if (metadata.asOfDate) data.push([`As of: ${metadata.asOfDate}`])
-  if (metadata.currency) data.push([`Currency: ${metadata.currency}`])
+  if (metadata.subtitle !== undefined) data.push([metadata.subtitle])
+  if (metadata.company !== undefined) data.push([`Company: ${metadata.company}`])
+  if (metadata.asOfDate !== undefined) data.push([`As of: ${metadata.asOfDate}`])
+  if (metadata.currency !== undefined) data.push([`Currency: ${metadata.currency}`])
   data.push([]) // Empty row before data
 
   // Add headers
@@ -91,7 +91,7 @@ export function exportToExcel(config: TableExportConfig, filename: string): void
   const worksheet = XLSX.utils.aoa_to_sheet(data)
 
   // Set column widths (default to auto)
-  if (config.columnWidths) {
+  if (config.columnWidths !== undefined) {
     worksheet["!cols"] = config.columnWidths.map((w) => ({ wch: w }))
   } else {
     // Auto-calculate column widths based on content
@@ -127,10 +127,10 @@ export function exportMultiSectionToExcel(
 
   // Add title and metadata
   data.push([metadata.title])
-  if (metadata.subtitle) data.push([metadata.subtitle])
-  if (metadata.company) data.push([`Company: ${metadata.company}`])
-  if (metadata.asOfDate) data.push([`As of: ${metadata.asOfDate}`])
-  if (metadata.currency) data.push([`Currency: ${metadata.currency}`])
+  if (metadata.subtitle !== undefined) data.push([metadata.subtitle])
+  if (metadata.company !== undefined) data.push([`Company: ${metadata.company}`])
+  if (metadata.asOfDate !== undefined) data.push([`As of: ${metadata.asOfDate}`])
+  if (metadata.currency !== undefined) data.push([`Currency: ${metadata.currency}`])
   data.push([]) // Empty row before data
 
   // Add each section
@@ -199,7 +199,7 @@ export function exportToPdf(config: TableExportConfig, filename: string): void {
   yPos += 8
 
   // Add subtitle if present
-  if (metadata.subtitle) {
+  if (metadata.subtitle !== undefined) {
     doc.setFontSize(12)
     doc.setFont("helvetica", "normal")
     doc.text(metadata.subtitle, 14, yPos)
@@ -209,15 +209,15 @@ export function exportToPdf(config: TableExportConfig, filename: string): void {
   // Add metadata
   doc.setFontSize(10)
   doc.setFont("helvetica", "normal")
-  if (metadata.company) {
+  if (metadata.company !== undefined) {
     doc.text(`Company: ${metadata.company}`, 14, yPos)
     yPos += 5
   }
-  if (metadata.asOfDate) {
+  if (metadata.asOfDate !== undefined) {
     doc.text(`As of: ${metadata.asOfDate}`, 14, yPos)
     yPos += 5
   }
-  if (metadata.currency) {
+  if (metadata.currency !== undefined) {
     doc.text(`Currency: ${metadata.currency}`, 14, yPos)
     yPos += 5
   }
@@ -295,7 +295,7 @@ export function exportMultiSectionToPdf(
   yPos += 8
 
   // Add subtitle if present
-  if (metadata.subtitle) {
+  if (metadata.subtitle !== undefined) {
     doc.setFontSize(12)
     doc.setFont("helvetica", "normal")
     doc.text(metadata.subtitle, 14, yPos)
@@ -305,15 +305,15 @@ export function exportMultiSectionToPdf(
   // Add metadata
   doc.setFontSize(10)
   doc.setFont("helvetica", "normal")
-  if (metadata.company) {
+  if (metadata.company !== undefined) {
     doc.text(`Company: ${metadata.company}`, 14, yPos)
     yPos += 5
   }
-  if (metadata.asOfDate) {
+  if (metadata.asOfDate !== undefined) {
     doc.text(`As of: ${metadata.asOfDate}`, 14, yPos)
     yPos += 5
   }
-  if (metadata.currency) {
+  if (metadata.currency !== undefined) {
     doc.text(`Currency: ${metadata.currency}`, 14, yPos)
     yPos += 5
   }
@@ -359,7 +359,7 @@ export function exportMultiSectionToPdf(
         didParseCell: (data) => {
           // Style rows based on their type
           const row = section.rows[data.row.index]
-          if (row) {
+          if (row !== undefined) {
             if (row.style === "header" || row.style === "subtotal") {
               data.cell.styles.fontStyle = "bold"
               data.cell.styles.fillColor = [249, 250, 251]
@@ -477,7 +477,7 @@ export function formatAmount(amount: number, currency?: string): string {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   }).format(amount)
-  return currency ? `${currency} ${formatted}` : formatted
+  return currency !== undefined ? `${currency} ${formatted}` : formatted
 }
 
 /**
@@ -489,7 +489,7 @@ export function generateFilename(title: string, asOfDate?: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "")
 
-  if (asOfDate) {
+  if (asOfDate !== undefined) {
     const datePart = asOfDate.replace(/[^0-9]/g, "")
     return `${sanitized}-${datePart}`
   }
