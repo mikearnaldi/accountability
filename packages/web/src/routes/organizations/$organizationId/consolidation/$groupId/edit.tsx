@@ -17,7 +17,8 @@ import { MinimalRouteError } from "@/components/ui/RouteError"
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
 import { Select } from "@/components/ui/Select"
-import { ArrowLeft, Plus, Trash2 } from "lucide-react"
+import { usePermissions } from "@/hooks/usePermissions"
+import { ArrowLeft, Plus, Trash2, ShieldAlert } from "lucide-react"
 
 // =============================================================================
 // Types
@@ -192,6 +193,8 @@ function EditConsolidationGroupPage() {
   const router = useRouter()
   const user = context.user
   const organizations = context.organizations ?? []
+  const { canPerform } = usePermissions()
+  const canUpdateGroup = canPerform("consolidation_group:update")
 
   /* eslint-disable @typescript-eslint/consistent-type-assertions -- Loader data typing */
   const organization = loaderData.organization as Organization | null
@@ -276,6 +279,35 @@ function EditConsolidationGroupPage() {
       href: `/organizations/${params.organizationId}/consolidation/${params.groupId}/edit`
     }
   ]
+
+  // Permission denied state
+  if (!canUpdateGroup) {
+    return (
+      <AppLayout
+        user={user}
+        organizations={organizations}
+        currentOrganization={organization}
+        breadcrumbItems={breadcrumbItems}
+        companies={companiesForSidebar}
+      >
+        <div data-testid="permission-denied" className="rounded-lg border border-red-200 bg-red-50 p-8 text-center">
+          <ShieldAlert className="mx-auto h-12 w-12 text-red-400" />
+          <h2 className="mt-4 text-lg font-semibold text-gray-900">Permission Denied</h2>
+          <p className="mt-2 text-sm text-gray-600">
+            You do not have permission to edit consolidation groups.
+          </p>
+          <Link
+            to="/organizations/$organizationId/consolidation/$groupId"
+            params={{ organizationId: params.organizationId, groupId: params.groupId }}
+          >
+            <Button variant="secondary" className="mt-4">
+              Back to Consolidation Group
+            </Button>
+          </Link>
+        </div>
+      </AppLayout>
+    )
+  }
 
   // Validation
   const validateForm = (): boolean => {

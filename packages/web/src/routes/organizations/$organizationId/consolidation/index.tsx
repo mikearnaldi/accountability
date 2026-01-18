@@ -15,6 +15,7 @@ import { AppLayout } from "@/components/layout/AppLayout"
 import { MinimalRouteError } from "@/components/ui/RouteError"
 import { Button } from "@/components/ui/Button"
 import { Tooltip } from "@/components/ui/Tooltip"
+import { usePermissions } from "@/hooks/usePermissions"
 import {
   Globe2,
   Plus,
@@ -161,6 +162,8 @@ function ConsolidationPage() {
   // Organizations come from the parent layout route's beforeLoad
   const organizations = context.organizations ?? []
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all")
+  const { canPerform } = usePermissions()
+  const canCreateGroup = canPerform("consolidation_group:create")
 
   /* eslint-disable @typescript-eslint/consistent-type-assertions -- Loader data typing */
   const organization = loaderData.organization as Organization | null
@@ -246,7 +249,7 @@ function ConsolidationPage() {
               </p>
             </div>
 
-            {groups.length > 0 && (
+            {groups.length > 0 && canCreateGroup && (
               <Link
                 to="/organizations/$organizationId/consolidation/new"
                 params={{ organizationId: params.organizationId }}
@@ -288,7 +291,7 @@ function ConsolidationPage() {
 
         {/* Groups List or Empty State */}
         {groups.length === 0 ? (
-          <EmptyState organizationId={params.organizationId} />
+          <EmptyState organizationId={params.organizationId} canCreateGroup={canCreateGroup} />
         ) : filteredGroups.length === 0 ? (
           <div
             className="rounded-lg border border-gray-200 bg-white p-8 text-center"
@@ -460,9 +463,10 @@ function FeatureCard({ icon: Icon, title, description }: FeatureCardProps) {
 
 interface EmptyStateProps {
   readonly organizationId: string
+  readonly canCreateGroup: boolean
 }
 
-function EmptyState({ organizationId }: EmptyStateProps) {
+function EmptyState({ organizationId, canCreateGroup }: EmptyStateProps) {
   return (
     <div
       className="rounded-lg border border-gray-200 bg-white p-12 text-center"
@@ -478,16 +482,18 @@ function EmptyState({ organizationId }: EmptyStateProps) {
         currency translation, and minority interest calculations.
       </p>
 
-      <div className="mt-6">
-        <Link
-          to="/organizations/$organizationId/consolidation/new"
-          params={{ organizationId }}
-        >
-          <Button icon={<Plus className="h-4 w-4" />} data-testid="create-first-group-button">
-            Create First Consolidation Group
-          </Button>
-        </Link>
-      </div>
+      {canCreateGroup && (
+        <div className="mt-6">
+          <Link
+            to="/organizations/$organizationId/consolidation/new"
+            params={{ organizationId }}
+          >
+            <Button icon={<Plus className="h-4 w-4" />} data-testid="create-first-group-button">
+              Create First Consolidation Group
+            </Button>
+          </Link>
+        </div>
+      )}
 
       <div className="mt-8 grid gap-4 sm:grid-cols-3 max-w-2xl mx-auto text-left">
         <FeatureCard

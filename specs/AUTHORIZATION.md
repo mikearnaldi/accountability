@@ -862,13 +862,35 @@ Same pattern for journal entry pages.
 
 ---
 
-#### Phase G7: Protected UI Elements - Periods
-Same pattern for fiscal period pages.
+#### Phase G7: Protected UI Elements - Periods ✅ N/A
+Fiscal period pages do not exist in the codebase - fiscal periods are computed automatically from journal entry dates and stored as FiscalPeriodRef value objects.
 
 ---
 
-#### Phase G8: Protected UI Elements - Consolidation
+#### Phase G8: Protected UI Elements - Consolidation ✅ COMPLETE
 Same pattern for consolidation pages.
+
+**Completed**:
+- Updated `consolidation/index.tsx` (list page):
+  - Import and use `usePermissions` hook
+  - Hide "New Consolidation Group" header button if user lacks `consolidation_group:create` permission
+  - Hide empty state CTA button if user lacks `consolidation_group:create` permission
+  - Updated EmptyState component to accept `canCreateGroup` prop
+- Updated `consolidation/new.tsx` (create page):
+  - Import and use `usePermissions` hook
+  - Show permission denied message with back button if user lacks `consolidation_group:create` permission
+- Updated `consolidation/$groupId/index.tsx` (detail page):
+  - Import and use `usePermissions` hook
+  - Hide "Activate/Deactivate" button if user lacks `consolidation_group:update` permission
+  - Hide "Edit" button if user lacks `consolidation_group:update` permission
+  - Hide "Delete" button if user lacks `consolidation_group:delete` permission
+  - Hide "Add Member" button if user lacks `consolidation_group:update` permission
+  - Hide "New Run" button if user lacks `consolidation_group:run` permission
+  - Hide empty state run CTA if user lacks `consolidation_group:run` permission
+- Updated `consolidation/$groupId/edit.tsx` (edit page):
+  - Import and use `usePermissions` hook
+  - Show permission denied message with back button if user lacks `consolidation_group:update` permission
+- All 3899 tests pass, typecheck clean, lint clean
 
 ---
 

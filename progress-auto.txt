@@ -519,3 +519,8 @@
 **Task**: Implemented Phase G6 - Protected UI Elements for Journal Entries pages using usePermissions hook to hide create/edit/delete/submit/approve/reject/post/reverse buttons based on permissions
 **Status**: complete
 ---
+
+## Iteration 21 - 2026-01-18 02:48
+**Task**: Implemented Phase G7 (N/A - no fiscal period pages) and G8 - Protected UI Elements for Consolidation pages using usePermissions hook to hide create/edit/delete/activate/deactivate/run buttons based on permissions
+**Status**: complete
+---

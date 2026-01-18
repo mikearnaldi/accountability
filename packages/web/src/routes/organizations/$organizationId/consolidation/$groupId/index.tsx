@@ -16,6 +16,7 @@ import { AppLayout } from "@/components/layout/AppLayout"
 import { MinimalRouteError } from "@/components/ui/RouteError"
 import { Button } from "@/components/ui/Button"
 import { Tooltip } from "@/components/ui/Tooltip"
+import { usePermissions } from "@/hooks/usePermissions"
 import {
   ArrowLeft,
   Edit,
@@ -200,6 +201,12 @@ function ConsolidationGroupDetailPage() {
   const router = useRouter()
   const user = context.user
   const organizations = context.organizations ?? []
+  const { canPerform } = usePermissions()
+
+  // Permission checks
+  const canUpdateGroup = canPerform("consolidation_group:update")
+  const canDeleteGroup = canPerform("consolidation_group:delete")
+  const canRunConsolidation = canPerform("consolidation_group:run")
 
   /* eslint-disable @typescript-eslint/consistent-type-assertions -- Loader data typing */
   const organization = loaderData.organization as Organization | null
@@ -405,43 +412,49 @@ function ConsolidationGroupDetailPage() {
             </div>
 
             <div className="flex items-center gap-2">
-              <Button
-                variant="secondary"
-                onClick={handleToggleActive}
-                disabled={isActivating || isDeactivating}
-                icon={group.isActive
-                  ? <PowerOff className="h-4 w-4" />
-                  : <Power className="h-4 w-4" />
-                }
-                data-testid="toggle-active-button"
-              >
-                {isActivating || isDeactivating
-                  ? "Processing..."
-                  : group.isActive
-                    ? "Deactivate"
-                    : "Activate"
-                }
-              </Button>
-              <Link
-                to="/organizations/$organizationId/consolidation/$groupId/edit"
-                params={{ organizationId: params.organizationId, groupId: params.groupId }}
-              >
+              {canUpdateGroup && (
                 <Button
                   variant="secondary"
-                  icon={<Edit className="h-4 w-4" />}
-                  data-testid="edit-button"
+                  onClick={handleToggleActive}
+                  disabled={isActivating || isDeactivating}
+                  icon={group.isActive
+                    ? <PowerOff className="h-4 w-4" />
+                    : <Power className="h-4 w-4" />
+                  }
+                  data-testid="toggle-active-button"
                 >
-                  Edit
+                  {isActivating || isDeactivating
+                    ? "Processing..."
+                    : group.isActive
+                      ? "Deactivate"
+                      : "Activate"
+                  }
                 </Button>
-              </Link>
-              <Button
-                variant="danger"
-                onClick={() => setShowDeleteModal(true)}
-                icon={<Trash2 className="h-4 w-4" />}
-                data-testid="delete-button"
-              >
-                Delete
-              </Button>
+              )}
+              {canUpdateGroup && (
+                <Link
+                  to="/organizations/$organizationId/consolidation/$groupId/edit"
+                  params={{ organizationId: params.organizationId, groupId: params.groupId }}
+                >
+                  <Button
+                    variant="secondary"
+                    icon={<Edit className="h-4 w-4" />}
+                    data-testid="edit-button"
+                  >
+                    Edit
+                  </Button>
+                </Link>
+              )}
+              {canDeleteGroup && (
+                <Button
+                  variant="danger"
+                  onClick={() => setShowDeleteModal(true)}
+                  icon={<Trash2 className="h-4 w-4" />}
+                  data-testid="delete-button"
+                >
+                  Delete
+                </Button>
+              )}
             </div>
           </div>
 
@@ -487,32 +500,36 @@ function ConsolidationGroupDetailPage() {
             <h2 className="text-lg font-medium text-gray-900">
               Members ({group.members.length})
             </h2>
-            <Link
-              to="/organizations/$organizationId/consolidation/$groupId/edit"
-              params={{ organizationId: params.organizationId, groupId: params.groupId }}
-            >
-              <Button
-                variant="secondary"
-                size="sm"
-                icon={<Plus className="h-4 w-4" />}
-                data-testid="add-member-button"
+            {canUpdateGroup && (
+              <Link
+                to="/organizations/$organizationId/consolidation/$groupId/edit"
+                params={{ organizationId: params.organizationId, groupId: params.groupId }}
               >
-                Add Member
-              </Button>
-            </Link>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  icon={<Plus className="h-4 w-4" />}
+                  data-testid="add-member-button"
+                >
+                  Add Member
+                </Button>
+              </Link>
+            )}
           </div>
 
           {group.members.length === 0 ? (
             <div className="p-8 text-center">
               <Building className="h-8 w-8 text-gray-300 mx-auto" />
               <p className="mt-2 text-sm text-gray-500">No subsidiary companies in this group yet.</p>
-              <Link
-                to="/organizations/$organizationId/consolidation/$groupId/edit"
-                params={{ organizationId: params.organizationId, groupId: params.groupId }}
-                className="mt-3 inline-block text-sm text-blue-600 hover:text-blue-800"
-              >
-                Add members →
-              </Link>
+              {canUpdateGroup && (
+                <Link
+                  to="/organizations/$organizationId/consolidation/$groupId/edit"
+                  params={{ organizationId: params.organizationId, groupId: params.groupId }}
+                  className="mt-3 inline-block text-sm text-blue-600 hover:text-blue-800"
+                >
+                  Add members →
+                </Link>
+              )}
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -584,32 +601,34 @@ function ConsolidationGroupDetailPage() {
             <h2 className="text-lg font-medium text-gray-900">
               Consolidation Runs
             </h2>
-            <Button
-              onClick={() => setShowInitiateRunModal(true)}
-              disabled={!group.isActive}
-              icon={<Play className="h-4 w-4" />}
-              data-testid="initiate-run-button"
-            >
-              New Run
-            </Button>
+            {canRunConsolidation && (
+              <Button
+                onClick={() => setShowInitiateRunModal(true)}
+                disabled={!group.isActive}
+                icon={<Play className="h-4 w-4" />}
+                data-testid="initiate-run-button"
+              >
+                New Run
+              </Button>
+            )}
           </div>
 
           {runs.length === 0 ? (
             <div className="p-8 text-center">
               <Clock className="h-8 w-8 text-gray-300 mx-auto" />
               <p className="mt-2 text-sm text-gray-500">No consolidation runs yet.</p>
-              {group.isActive ? (
+              {group.isActive && canRunConsolidation ? (
                 <button
                   onClick={() => setShowInitiateRunModal(true)}
                   className="mt-3 inline-block text-sm text-blue-600 hover:text-blue-800"
                 >
                   Start your first run →
                 </button>
-              ) : (
+              ) : !group.isActive ? (
                 <p className="mt-3 text-xs text-gray-400">
                   Activate this group to run consolidations.
                 </p>
-              )}
+              ) : null}
             </div>
           ) : (
             <div className="overflow-x-auto">
