@@ -6,7 +6,7 @@
  * Route: /organizations/:organizationId/audit-log
  */
 
-import { createFileRoute, redirect, useRouter } from "@tanstack/react-router"
+import { createFileRoute, redirect, useRouter, Link } from "@tanstack/react-router"
 import { createServerFn } from "@tanstack/react-start"
 import { getCookie } from "@tanstack/react-start/server"
 import { useState, useEffect, useRef, useCallback } from "react"
@@ -18,7 +18,7 @@ import { Select } from "@/components/ui/Select"
 import { Input } from "@/components/ui/Input"
 import { Button } from "@/components/ui/Button"
 import { Tooltip } from "@/components/ui/Tooltip"
-import { ClipboardList, FileText, User, Calendar, Search, ChevronLeft, ChevronRight, RefreshCw, ChevronDown, ChevronUp, Copy, Check, Clock } from "lucide-react"
+import { ClipboardList, FileText, User, Calendar, Search, ChevronLeft, ChevronRight, RefreshCw, ChevronDown, ChevronUp, Copy, Check, Clock, Download, ExternalLink } from "lucide-react"
 
 // =============================================================================
 // Types
@@ -461,15 +461,26 @@ function AuditLogPage() {
               </p>
             </div>
 
-            <Button
-              variant="secondary"
-              onClick={handleRefresh}
-              disabled={isLoading}
-              icon={<RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />}
-              data-testid="refresh-button"
-            >
-              Refresh
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="secondary"
+                onClick={() => exportToCSV(entries, organization.name)}
+                disabled={entries.length === 0}
+                icon={<Download className="h-4 w-4" />}
+                data-testid="export-csv-button"
+              >
+                Export CSV
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={handleRefresh}
+                disabled={isLoading}
+                icon={<RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />}
+                data-testid="refresh-button"
+              >
+                Refresh
+              </Button>
+            </div>
           </div>
 
           {/* Filters - auto-apply on change */}
@@ -596,6 +607,7 @@ function AuditLogPage() {
                         isExpanded={isExpanded}
                         onToggle={() => toggleRowExpansion(entry.id)}
                         onKeyDown={(e) => handleRowKeyDown(e, entry.id)}
+                        organizationId={params.organizationId}
                       />
                     )
                   })}
@@ -832,6 +844,132 @@ function formatFullTimestamp(timestamp: string): string {
   }
 }
 
+/**
+ * Exports audit log entries to CSV format
+ */
+function exportToCSV(entries: readonly AuditLogEntry[], organizationName: string): void {
+  // CSV headers
+  const headers = [
+    "Timestamp",
+    "Action",
+    "Entity Type",
+    "Entity Name",
+    "Entity ID",
+    "User ID",
+    "Changes"
+  ]
+
+  // Helper to escape CSV fields (handle commas, quotes, newlines)
+  const escapeCSV = (value: string): string => {
+    if (value.includes(",") || value.includes('"') || value.includes("\n")) {
+      return `"${value.replace(/"/g, '""')}"`
+    }
+    return value
+  }
+
+  // Format changes for CSV
+  const formatChangesForCSV = (changes: Record<string, { from: unknown; to: unknown }> | null): string => {
+    if (!changes || Object.keys(changes).length === 0) return ""
+    return Object.entries(changes)
+      .map(([field, { from, to }]) => `${field}: ${JSON.stringify(from)} → ${JSON.stringify(to)}`)
+      .join("; ")
+  }
+
+  // Build CSV content
+  const csvRows = [
+    headers.map(escapeCSV).join(","),
+    ...entries.map((entry) => [
+      escapeCSV(formatFullTimestamp(entry.timestamp)),
+      escapeCSV(entry.action),
+      escapeCSV(formatEntityType(entry.entityType)),
+      escapeCSV(entry.entityName ?? ""),
+      escapeCSV(entry.entityId),
+      escapeCSV(entry.userId ?? "System"),
+      escapeCSV(formatChangesForCSV(entry.changes))
+    ].join(","))
+  ]
+
+  const csvContent = csvRows.join("\n")
+
+  // Create and download file
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement("a")
+  link.setAttribute("href", url)
+  const timestamp = new Date().toISOString().split("T")[0]
+  link.setAttribute("download", `audit-log-${organizationName.toLowerCase().replace(/\s+/g, "-")}-${timestamp}.csv`)
+  link.style.visibility = "hidden"
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}
+
+/**
+ * Generates the URL for an entity based on its type
+ * Returns null if the entity type doesn't have a detail page
+ */
+function getEntityUrl(
+  entityType: AuditEntityType,
+  entityId: string,
+  organizationId: string,
+  changes: Record<string, { from: unknown; to: unknown }> | null
+): string | null {
+  // For company-scoped entities, we need the companyId from changes
+  const getCompanyId = (): string | null => {
+    if (!changes) return null
+    // Look for companyId in changes (it's stored during create/update)
+    const companyIdChange = changes.companyId
+    if (companyIdChange?.to && typeof companyIdChange.to === "string") {
+      return companyIdChange.to
+    }
+    if (companyIdChange?.from && typeof companyIdChange.from === "string") {
+      return companyIdChange.from
+    }
+    return null
+  }
+
+  switch (entityType) {
+    case "Organization":
+      return `/organizations/${entityId}/dashboard`
+    case "Company":
+      return `/organizations/${organizationId}/companies/${entityId}`
+    case "Account": {
+      const companyId = getCompanyId()
+      if (companyId) {
+        return `/organizations/${organizationId}/companies/${companyId}/accounts`
+      }
+      // If no companyId, can't link to specific account
+      return null
+    }
+    case "JournalEntry": {
+      const companyId = getCompanyId()
+      if (companyId) {
+        return `/organizations/${organizationId}/companies/${companyId}/journal-entries/${entityId}`
+      }
+      return null
+    }
+    case "ConsolidationGroup":
+      return `/organizations/${organizationId}/consolidation/${entityId}`
+    case "ExchangeRate":
+      return `/organizations/${organizationId}/exchange-rates`
+    case "FiscalYear":
+      return `/organizations/${organizationId}/settings/fiscal-periods`
+    case "FiscalPeriod":
+      return `/organizations/${organizationId}/settings/fiscal-periods`
+    // These entity types don't have detail pages
+    case "JournalEntryLine":
+    case "ConsolidationRun":
+    case "EliminationRule":
+    case "IntercompanyTransaction":
+    case "User":
+    case "Session":
+      return null
+    default:
+      return null
+  }
+}
+
 // =============================================================================
 // Expandable Row Components
 // =============================================================================
@@ -841,9 +979,10 @@ interface AuditLogRowProps {
   readonly isExpanded: boolean
   readonly onToggle: () => void
   readonly onKeyDown: (e: React.KeyboardEvent) => void
+  readonly organizationId: string
 }
 
-function AuditLogRow({ entry, isExpanded, onToggle, onKeyDown }: AuditLogRowProps) {
+function AuditLogRow({ entry, isExpanded, onToggle, onKeyDown, organizationId }: AuditLogRowProps) {
   return (
     <>
       <tr
@@ -897,7 +1036,7 @@ function AuditLogRow({ entry, isExpanded, onToggle, onKeyDown }: AuditLogRowProp
       {isExpanded && (
         <tr data-testid={`audit-detail-${entry.id}`}>
           <td colSpan={6} className="bg-gray-50 px-6 py-4">
-            <AuditLogDetailPanel entry={entry} />
+            <AuditLogDetailPanel entry={entry} organizationId={organizationId} />
           </td>
         </tr>
       )}
@@ -931,10 +1070,14 @@ function ChangesSummary({ changes, action }: ChangesSummaryProps) {
 
 interface AuditLogDetailPanelProps {
   readonly entry: AuditLogEntry
+  readonly organizationId: string
 }
 
-function AuditLogDetailPanel({ entry }: AuditLogDetailPanelProps) {
+function AuditLogDetailPanel({ entry, organizationId }: AuditLogDetailPanelProps) {
   const [copiedField, setCopiedField] = useState<string | null>(null)
+
+  // Get entity URL for "View Entity" button
+  const entityUrl = getEntityUrl(entry.entityType, entry.entityId, organizationId, entry.changes)
 
   const handleCopy = async (value: string, fieldName: string) => {
     try {
@@ -1064,11 +1207,29 @@ function AuditLogDetailPanel({ entry }: AuditLogDetailPanelProps) {
         </div>
       )}
 
-      {/* Copy as JSON button */}
-      <div className="flex justify-end">
+      {/* Action buttons */}
+      <div className="flex items-center justify-end gap-2">
+        {/* View Entity button - only shown if entity has a detail page */}
+        {entityUrl && entry.action !== "Delete" && (
+          <Link
+            to={entityUrl}
+            className="inline-flex items-center gap-1.5 rounded-md border border-blue-300 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 hover:bg-blue-100"
+            onClick={(e) => e.stopPropagation()}
+            data-testid="view-entity-button"
+          >
+            <ExternalLink className="h-4 w-4" />
+            View Entity
+          </Link>
+        )}
+
+        {/* Copy as JSON button */}
         <button
-          onClick={() => handleCopy(JSON.stringify(entry, null, 2), "json")}
+          onClick={(e) => {
+            e.stopPropagation()
+            handleCopy(JSON.stringify(entry, null, 2), "json").catch(() => {})
+          }}
           className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          data-testid="copy-json-button"
         >
           {copiedField === "json" ? (
             <>

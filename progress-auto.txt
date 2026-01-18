@@ -742,3 +742,8 @@
 **Task**: Added date range presets (Today, Last 7 days, Last 30 days, This month) to audit log page
 **Status**: complete
 ---
+
+## Iteration 8 - 2026-01-18 22:46
+**Task**: Added CSV export and View Entity linking to audit log page
+**Status**: complete
+---

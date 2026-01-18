@@ -531,13 +531,14 @@ Denormalize user info to avoid joins and preserve historical names.
    - ✅ Active preset is highlighted
    - ✅ Presets immediately apply and fetch filtered data
 
-9. **Add export functionality**
-   - Export filtered results as CSV
-   - Export single entry as JSON
+9. **Add export functionality** ✅ DONE
+   - ✅ Export filtered results as CSV (Export CSV button in page header)
+   - ✅ Export single entry as JSON (Copy as JSON button in detail panel)
 
-10. **Add entity linking**
-    - "View Entity" button on detail panel
-    - Links to entity detail page (with permission check)
+10. **Add entity linking** ✅ DONE
+    - ✅ "View Entity" button on detail panel
+    - ✅ Links to entity detail page based on entity type (Organization, Company, Account, JournalEntry, ConsolidationGroup, ExchangeRate, FiscalYear, FiscalPeriod)
+    - ✅ Button hidden for deleted entities and entity types without detail pages
 
 ---
 
