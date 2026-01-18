@@ -816,8 +816,21 @@ Hide/disable UI elements in company pages based on permissions:
 
 ---
 
-#### Phase G5: Protected UI Elements - Accounts
+#### Phase G5: Protected UI Elements - Accounts ✅ COMPLETE
 Same pattern for accounts pages.
+
+**Completed**:
+- Updated `accounts/index.tsx` (list page):
+  - Import and use `usePermissions` hook
+  - Hide "New Account" header button if user lacks `account:create` permission
+  - Hide empty state create/apply template buttons if user lacks `account:create` permission
+  - Hide edit buttons in AccountTreeView if user lacks `account:update` permission
+  - Updated AccountsEmptyState component to accept `canCreateAccount` prop
+  - Updated AccountTreeView and AccountTreeRow components to accept `canEditAccount` prop
+- Updated `accounts/new.tsx` (create page):
+  - Import and use `usePermissions` hook
+  - Show permission denied message with back button if user lacks `account:create` permission
+- All 3899 tests pass, typecheck clean, lint clean
 
 ---
 

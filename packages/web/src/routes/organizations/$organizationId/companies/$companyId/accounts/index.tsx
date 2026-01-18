@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/Button"
 import { Tooltip } from "@/components/ui/Tooltip"
 import { Input } from "@/components/ui/Input"
 import { Select } from "@/components/ui/Select"
+import { usePermissions } from "@/hooks/usePermissions"
 
 // =============================================================================
 // Types
@@ -211,6 +212,11 @@ function ChartOfAccountsPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
 
+  // Permission checks for UI element visibility
+  const { canPerform } = usePermissions()
+  const canCreateAccount = canPerform("account:create")
+  const canUpdateAccount = canPerform("account:update")
+
   // Filter and search accounts
   const filteredAccounts = useMemo(() => {
     let result = [...accounts]
@@ -322,13 +328,15 @@ function ChartOfAccountsPage() {
               </p>
             </div>
 
-            <Button
-              onClick={() => setShowCreateForm(true)}
-              icon={<Plus className="h-4 w-4" />}
-              data-testid="create-account-button"
-            >
-              New Account
-            </Button>
+            {canCreateAccount && (
+              <Button
+                onClick={() => setShowCreateForm(true)}
+                icon={<Plus className="h-4 w-4" />}
+                data-testid="create-account-button"
+              >
+                New Account
+              </Button>
+            )}
           </div>
         </div>
 
@@ -458,6 +466,7 @@ function ChartOfAccountsPage() {
           <AccountsEmptyState
             onCreateClick={() => setShowCreateForm(true)}
             onApplyTemplateClick={() => setShowApplyTemplate(true)}
+            canCreateAccount={canCreateAccount}
           />
         ) : filteredAccounts.length === 0 ? (
           <div className="rounded-lg border border-gray-200 bg-white p-8 text-center">
@@ -482,6 +491,7 @@ function ChartOfAccountsPage() {
             expandedIds={expandedIds}
             onToggleExpand={toggleExpand}
             onEditAccount={setEditingAccount}
+            canEditAccount={canUpdateAccount}
           />
         )}
       </div>
@@ -537,12 +547,14 @@ function AccountTreeView({
   tree,
   expandedIds,
   onToggleExpand,
-  onEditAccount
+  onEditAccount,
+  canEditAccount
 }: {
   readonly tree: readonly AccountTreeNode[]
   readonly expandedIds: Set<string>
   readonly onToggleExpand: (id: string) => void
   readonly onEditAccount: (account: Account) => void
+  readonly canEditAccount: boolean
 }) {
   return (
     <div className="rounded-lg border border-gray-200 bg-white overflow-x-auto" data-testid="accounts-tree">
@@ -595,6 +607,7 @@ function AccountTreeView({
               expandedIds={expandedIds}
               onToggleExpand={onToggleExpand}
               onEditAccount={onEditAccount}
+              canEditAccount={canEditAccount}
             />
           ))}
         </tbody>
@@ -608,13 +621,15 @@ function AccountTreeRow({
   depth,
   expandedIds,
   onToggleExpand,
-  onEditAccount
+  onEditAccount,
+  canEditAccount
 }: {
   readonly node: AccountTreeNode
   readonly depth: number
   readonly expandedIds: Set<string>
   readonly onToggleExpand: (id: string) => void
   readonly onEditAccount: (account: Account) => void
+  readonly canEditAccount: boolean
 }) {
   const { account, children } = node
   const hasChildren = children.length > 0
@@ -727,27 +742,29 @@ function AccountTreeRow({
 
         {/* Actions */}
         <td className="px-4 py-3 text-right">
-          <button
-            onClick={() => onEditAccount(account)}
-            data-testid={`edit-account-${account.accountNumber}`}
-            data-account-id={account.id}
-            aria-label={`Edit ${account.name}`}
-            className="rounded p-1 text-gray-400 hover:bg-gray-200 hover:text-gray-600"
-          >
-            <svg
-              className="h-4 w-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+          {canEditAccount && (
+            <button
+              onClick={() => onEditAccount(account)}
+              data-testid={`edit-account-${account.accountNumber}`}
+              data-account-id={account.id}
+              aria-label={`Edit ${account.name}`}
+              className="rounded p-1 text-gray-400 hover:bg-gray-200 hover:text-gray-600"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-              />
-            </svg>
-          </button>
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                />
+              </svg>
+            </button>
+          )}
         </td>
       </tr>
 
@@ -762,6 +779,7 @@ function AccountTreeRow({
             expandedIds={expandedIds}
             onToggleExpand={onToggleExpand}
             onEditAccount={onEditAccount}
+            canEditAccount={canEditAccount}
           />
         ))}
     </>
@@ -774,10 +792,12 @@ function AccountTreeRow({
 
 function AccountsEmptyState({
   onCreateClick,
-  onApplyTemplateClick
+  onApplyTemplateClick,
+  canCreateAccount
 }: {
   readonly onCreateClick: () => void
   readonly onApplyTemplateClick: () => void
+  readonly canCreateAccount: boolean
 }) {
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-8 text-center" data-testid="accounts-empty-state">
@@ -788,25 +808,29 @@ function AccountsEmptyState({
         No accounts yet
       </h3>
       <p className="mb-6 text-gray-500">
-        Get started by applying a template or creating your first account manually.
+        {canCreateAccount
+          ? "Get started by applying a template or creating your first account manually."
+          : "No accounts have been created for this company yet."}
       </p>
-      <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-        <Button
-          onClick={onApplyTemplateClick}
-          icon={<ClipboardList className="h-5 w-5" />}
-          data-testid="apply-template-button"
-        >
-          Apply Template
-        </Button>
-        <Button
-          variant="secondary"
-          onClick={onCreateClick}
-          icon={<Plus className="h-5 w-5" />}
-          data-testid="create-account-empty-button"
-        >
-          Create Account
-        </Button>
-      </div>
+      {canCreateAccount && (
+        <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+          <Button
+            onClick={onApplyTemplateClick}
+            icon={<ClipboardList className="h-5 w-5" />}
+            data-testid="apply-template-button"
+          >
+            Apply Template
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={onCreateClick}
+            icon={<Plus className="h-5 w-5" />}
+            data-testid="create-account-empty-button"
+          >
+            Create Account
+          </Button>
+        </div>
+      )}
     </div>
   )
 }

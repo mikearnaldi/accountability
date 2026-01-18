@@ -9,10 +9,13 @@ import { createFileRoute, redirect, useRouter } from "@tanstack/react-router"
 import { createServerFn } from "@tanstack/react-start"
 import { getCookie } from "@tanstack/react-start/server"
 import { useMemo } from "react"
+import { ArrowLeft, ShieldAlert } from "lucide-react"
 import { createServerApi } from "@/api/server"
 import { AccountForm, type Account } from "@/components/forms/AccountForm"
 import { AppLayout } from "@/components/layout/AppLayout"
 import { MinimalRouteError } from "@/components/ui/RouteError"
+import { Button } from "@/components/ui/Button"
+import { usePermissions } from "@/hooks/usePermissions"
 
 // =============================================================================
 // Types
@@ -168,6 +171,10 @@ function NewAccountPage() {
   // Organizations come from the parent layout route's beforeLoad
   const organizations = context.organizations ?? []
 
+  // Permission checks
+  const { canPerform } = usePermissions()
+  const canCreateAccount = canPerform("account:create")
+
   /* eslint-disable @typescript-eslint/consistent-type-assertions -- Type assertions needed for loader data typing */
   const accounts = loaderData.accounts as readonly Account[]
   const company = loaderData.company as Company | null
@@ -228,6 +235,41 @@ function NewAccountPage() {
         companyId: params.companyId
       }
     })
+  }
+
+  // Permission denied UI
+  if (!canCreateAccount) {
+    return (
+      <AppLayout
+        user={user}
+        organizations={organizations}
+        currentOrganization={organization}
+        breadcrumbItems={breadcrumbItems}
+        companies={companiesForSidebar}
+      >
+        <div data-testid="new-account-page">
+          <div className="rounded-lg border border-gray-200 bg-white p-8 text-center">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
+              <ShieldAlert className="h-6 w-6 text-red-600" />
+            </div>
+            <h2 className="mb-2 text-lg font-medium text-gray-900">
+              Permission Denied
+            </h2>
+            <p className="mb-6 text-gray-500">
+              You don&apos;t have permission to create accounts. Contact your organization administrator for access.
+            </p>
+            <Button
+              variant="secondary"
+              onClick={handleCancel}
+              icon={<ArrowLeft className="h-4 w-4" />}
+              data-testid="back-to-accounts-button"
+            >
+              Back to Chart of Accounts
+            </Button>
+          </div>
+        </div>
+      </AppLayout>
+    )
   }
 
   return (
