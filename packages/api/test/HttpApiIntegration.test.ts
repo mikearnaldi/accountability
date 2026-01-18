@@ -28,6 +28,9 @@ import { SimpleTokenValidatorLive } from "@accountability/api/Layers/AuthMiddlew
 import { RepositoriesWithAuthLive } from "@accountability/persistence/Layers/RepositoriesLive"
 import { MigrationLayer } from "@accountability/persistence/Layers/MigrationsLive"
 import { AccountId } from "@accountability/core/Domains/Account"
+import { AuthUserId } from "@accountability/core/Auth/AuthUserId"
+import { Email } from "@accountability/core/Auth/Email"
+import { UserRepository } from "@accountability/persistence/Services/UserRepository"
 import { SharedPgClientLive } from "./PgTestUtils.ts"
 
 // =============================================================================
@@ -67,7 +70,8 @@ const HttpLive = HttpApiBuilder.serve().pipe(
   Layer.provide(AppApiLive),
   // Use simple token validator for tests (user_<id>_<role> format)
   Layer.provide(SimpleTokenValidatorLive),
-  Layer.provide(DatabaseLayer),
+  // Use provideMerge so UserRepository is accessible to tests
+  Layer.provideMerge(DatabaseLayer),
   Layer.provideMerge(NodeHttpServer.layerTest)
 )
 
@@ -415,9 +419,25 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
 
       it.effect("POST /api/v1/organizations creates organization in database", () =>
         Effect.gen(function* () {
+          // Use valid UUID for user ID - non-UUID IDs are no longer accepted for organization creation
+          const testUserId = "550e8400-e29b-41d4-a716-446655440001"
+
+          // Ensure test user exists in database for membership creation (foreign key constraint)
+          const userRepo = yield* UserRepository
+          const existingUser = yield* userRepo.findById(AuthUserId.make(testUserId))
+          if (existingUser._tag === "None") {
+            yield* userRepo.create({
+              id: AuthUserId.make(testUserId),
+              email: Email.make("testorg@example.com"),
+              displayName: "Test Org Creator",
+              role: "admin",
+              primaryProvider: "local"
+            })
+          }
+
           const httpClient = yield* HttpClient.HttpClient
           const response = yield* HttpClientRequest.post("/api/v1/organizations").pipe(
-            HttpClientRequest.bearerToken("user_123_admin"),
+            HttpClientRequest.bearerToken(`user_${testUserId}_admin`),
             HttpClientRequest.bodyUnsafeJson({
               name: "Test Org",
               reportingCurrency: "USD",

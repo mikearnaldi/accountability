@@ -48,6 +48,7 @@ import type { Action } from "@accountability/core/Auth/Action"
 import { CurrentUser } from "../Definitions/AuthMiddleware.ts"
 import { ForbiddenError, NotFoundError } from "../Definitions/ApiErrors.ts"
 import type { ResourceContext } from "@accountability/core/Auth/matchers/ResourceMatcher"
+import { isPermissionDeniedError } from "@accountability/core/Auth/AuthorizationErrors"
 
 // Re-export CurrentUserId for convenience
 export { CurrentUserId } from "@accountability/core/AuditLog/CurrentUserId"
@@ -424,13 +425,22 @@ export const requirePermission = (action: Action) =>
     const authService = yield* AuthorizationService
 
     yield* authService.checkPermission(action).pipe(
-      Effect.mapError((error) =>
-        new ForbiddenError({
-          message: error.reason,
-          resource: Option.fromNullable(error.resourceType),
+      Effect.mapError((error) => {
+        // Handle different error types from authorization
+        if (isPermissionDeniedError(error)) {
+          return new ForbiddenError({
+            message: error.reason,
+            resource: Option.fromNullable(error.resourceType),
+            action: Option.some(action)
+          })
+        }
+        // PolicyLoadError or AuthorizationAuditError - internal system failure
+        return new ForbiddenError({
+          message: error.message,
+          resource: Option.none(),
           action: Option.some(action)
         })
-      )
+      })
     )
   })
 
@@ -482,13 +492,22 @@ export const requirePermissionWithResource = (action: Action, resourceContext: R
     const authService = yield* AuthorizationService
 
     yield* authService.checkPermission(action, resourceContext).pipe(
-      Effect.mapError((error) =>
-        new ForbiddenError({
-          message: error.reason,
-          resource: Option.fromNullable(error.resourceType),
+      Effect.mapError((error) => {
+        // Handle different error types from authorization
+        if (isPermissionDeniedError(error)) {
+          return new ForbiddenError({
+            message: error.reason,
+            resource: Option.fromNullable(error.resourceType),
+            action: Option.some(action)
+          })
+        }
+        // PolicyLoadError or AuthorizationAuditError - internal system failure
+        return new ForbiddenError({
+          message: error.message,
+          resource: Option.none(),
           action: Option.some(action)
         })
-      )
+      })
     )
   })
 

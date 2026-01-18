@@ -168,6 +168,7 @@ const createOrganization = HttpApiEndpoint.post("createOrganization", "/organiza
   .addSuccess(Organization, { status: 201 })
   .addError(ValidationError)
   .addError(ConflictError)
+  .addError(BusinessRuleError)
   .annotateContext(OpenApi.annotations({
     summary: "Create organization",
     description: "Create a new organization. Organizations are the top-level container for companies and shared settings."

@@ -29,7 +29,11 @@ import {
   CurrentEnvironmentContext,
   type EnvironmentContextWithMeta
 } from "@accountability/core/Auth/CurrentEnvironmentContext"
-import { PermissionDeniedError } from "@accountability/core/Auth/AuthorizationErrors"
+import {
+  PermissionDeniedError,
+  PolicyLoadError,
+  AuthorizationAuditError
+} from "@accountability/core/Auth/AuthorizationErrors"
 import type { Action } from "@accountability/core/Auth/Action"
 import type { BaseRole } from "@accountability/core/Auth/BaseRole"
 import type { FunctionalRole } from "@accountability/core/Auth/FunctionalRole"
@@ -192,9 +196,14 @@ const make = Effect.gen(function* () {
         const envWithMeta = yield* getEnvironmentContextWithMeta
 
         // Load active policies for the organization
+        // Policy loading failures must propagate - authorization decisions must be
+        // based on actual policy data, not empty defaults
         const policies = yield* policyRepo
           .findActiveByOrganization(membership.organizationId)
-          .pipe(Effect.catchAll(() => Effect.succeed([] as const)))
+          .pipe(Effect.mapError((cause) => new PolicyLoadError({
+            organizationId: membership.organizationId,
+            cause
+          })))
 
         let denialReason: string | undefined
 
@@ -263,14 +272,15 @@ const make = Effect.gen(function* () {
             auditEntry.userAgent = envWithMeta.userAgent
           }
 
-          // Log the denial to audit log (fire-and-forget, don't block on logging)
-          // Error is intentionally handled - permission denial should still fail with
-          // PermissionDeniedError even if the audit logging fails
+          // Log the denial to audit log - audit logging is essential for security
+          // compliance and must not silently fail. If audit logging fails, the entire
+          // operation fails to ensure audit trail integrity.
           yield* auditRepo
             .logDenial(auditEntry)
-            .pipe(
-              Effect.catchAll(() => Effect.succeed(undefined))
-            )
+            .pipe(Effect.mapError((cause) => new AuthorizationAuditError({
+              operation: "logDenial",
+              cause
+            })))
 
           return yield* Effect.fail(
             new PermissionDeniedError({
@@ -298,9 +308,14 @@ const make = Effect.gen(function* () {
         const environmentContext = yield* getEnvironmentContext
 
         // Load active policies for the organization
+        // Policy loading failures must propagate - authorization decisions must be
+        // based on actual policy data, not empty defaults
         const policies = yield* policyRepo
           .findActiveByOrganization(membership.organizationId)
-          .pipe(Effect.catchAll(() => Effect.succeed([] as const)))
+          .pipe(Effect.mapError((cause) => new PolicyLoadError({
+            organizationId: membership.organizationId,
+            cause
+          })))
 
         const result: Partial<Record<Action, boolean>> = {}
 
@@ -380,9 +395,14 @@ const make = Effect.gen(function* () {
         const environmentContext = yield* getEnvironmentContext
 
         // Load active policies for the organization
+        // Policy loading failures must propagate - authorization decisions must be
+        // based on actual policy data, not empty defaults
         const policies = yield* policyRepo
           .findActiveByOrganization(membership.organizationId)
-          .pipe(Effect.catchAll(() => Effect.succeed([] as const)))
+          .pipe(Effect.mapError((cause) => new PolicyLoadError({
+            organizationId: membership.organizationId,
+            cause
+          })))
 
         if (policies.length === 0) {
           // No policies - fall back to RBAC permission matrix

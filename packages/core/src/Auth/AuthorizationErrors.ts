@@ -346,6 +346,70 @@ export class UserAlreadyMemberError extends Schema.TaggedError<UserAlreadyMember
 export const isUserAlreadyMemberError = Schema.is(UserAlreadyMemberError)
 
 // =============================================================================
+// 500 Internal Server Errors - System failures
+// =============================================================================
+
+/**
+ * PolicyLoadError - Failed to load policies from the policy repository
+ *
+ * Returned when the authorization system cannot load policies from the database.
+ * This is a critical error that should not be silently ignored - authorization
+ * decisions must be based on actual policy data, not empty defaults.
+ *
+ * HTTP Status: 500 Internal Server Error
+ */
+export class PolicyLoadError extends Schema.TaggedError<PolicyLoadError>()(
+  "PolicyLoadError",
+  {
+    organizationId: OrganizationId.annotations({
+      description: "The organization for which policy loading failed"
+    }),
+    cause: Schema.Unknown.annotations({
+      description: "The underlying error that caused the policy load to fail"
+    })
+  }
+) {
+  get message(): string {
+    return `Failed to load authorization policies for organization: ${String(this.cause)}`
+  }
+}
+
+/**
+ * Type guard for PolicyLoadError
+ */
+export const isPolicyLoadError = Schema.is(PolicyLoadError)
+
+/**
+ * AuthorizationAuditError - Failed to log authorization audit entry
+ *
+ * Returned when the authorization system cannot log a denial to the audit log.
+ * Per ERROR_TRACKER.md, audit logging is essential for compliance and security
+ * monitoring - failures must not be silently ignored.
+ *
+ * HTTP Status: 500 Internal Server Error
+ */
+export class AuthorizationAuditError extends Schema.TaggedError<AuthorizationAuditError>()(
+  "AuthorizationAuditError",
+  {
+    operation: Schema.String.annotations({
+      description: "The audit operation that failed"
+    }),
+    cause: Schema.Unknown.annotations({
+      description: "The underlying error that caused the audit to fail"
+    })
+  }
+) {
+  get message(): string {
+    return `Failed to log authorization audit: ${this.operation} - ${String(this.cause)}`
+  }
+}
+
+/**
+ * Type guard for AuthorizationAuditError
+ */
+export const isAuthorizationAuditError = Schema.is(AuthorizationAuditError)
+
+// =============================================================================
 // Union Types
 // =============================================================================
 
@@ -364,6 +428,8 @@ export type AuthorizationError =
   | CannotTransferToNonAdminError
   | InvitationAlreadyExistsError
   | UserAlreadyMemberError
+  | PolicyLoadError
+  | AuthorizationAuditError
 
 /**
  * HTTP status code mapping for API layer
@@ -383,5 +449,8 @@ export const AUTHORIZATION_ERROR_STATUS_CODES = {
   MemberNotSuspendedError: 409,
   CannotTransferToNonAdminError: 409,
   InvitationAlreadyExistsError: 409,
-  UserAlreadyMemberError: 409
+  UserAlreadyMemberError: 409,
+  // 500 Internal Server Error
+  PolicyLoadError: 500,
+  AuthorizationAuditError: 500
 } as const

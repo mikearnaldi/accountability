@@ -591,10 +591,14 @@ export const AuthSessionApiLive = HttpApiBuilder.group(AppApi, "authSession", (h
             })
           )
 
-          // Logout old session - errors are intentionally ignored during refresh
-          // since we want to proceed with creating a new session even if logout fails
+          // Logout old session - session cleanup is critical for security.
+          // If logout fails, multiple active sessions could exist for the same user,
+          // creating a session hijacking risk. Refresh should fail if we can't
+          // clean up the old session.
           yield* authService.logout(sessionId).pipe(
-            Effect.catchAll(() => Effect.succeed(undefined))
+            Effect.mapError(() => new SessionInvalidError({
+              message: "Failed to clean up old session during refresh"
+            }))
           )
 
           // Generate new session token

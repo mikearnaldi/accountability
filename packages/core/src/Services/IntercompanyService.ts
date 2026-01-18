@@ -28,7 +28,7 @@ import {
   type MatchingStatus
 } from "../Domains/IntercompanyTransaction.ts"
 import { LocalDate, diffInDays } from "../Domains/LocalDate.ts"
-import { MonetaryAmount, subtract } from "../Domains/MonetaryAmount.ts"
+import { type CurrencyMismatchError, MonetaryAmount, subtract } from "../Domains/MonetaryAmount.ts"
 import { Timestamp, nowEffect } from "../Domains/Timestamp.ts"
 
 // =============================================================================
@@ -79,6 +79,7 @@ export const isFiscalPeriodNotFoundError = Schema.is(FiscalPeriodNotFoundError)
 export type IntercompanyServiceError =
   | ConsolidationGroupNotFoundError
   | FiscalPeriodNotFoundError
+  | CurrencyMismatchError
 
 // =============================================================================
 // Matching Configuration
@@ -800,12 +801,10 @@ const make = Effect.gen(function* () {
             if (Option.isSome(pair.varianceAmount)) {
               const variance = Option.getOrThrow(pair.varianceAmount)
               if (variance.currency === firstCurrency) {
-                totalVarianceAmount = Effect.runSync(
-                  Effect.map(
-                    subtract(totalVarianceAmount, variance.negate()),
-                    (result) => result
-                  ).pipe(Effect.orElseSucceed(() => totalVarianceAmount))
-                )
+                // Subtract variance from total - currency mismatch is impossible here
+                // since we already filter by currency, but if it happens, let it fail
+                // rather than silently swallowing the error
+                totalVarianceAmount = yield* subtract(totalVarianceAmount, variance.negate())
               }
             }
           }

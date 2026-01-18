@@ -34,6 +34,7 @@ import type {
   ProviderAuthFailedError,
   SessionExpiredError,
   SessionNotFoundError,
+  SessionCleanupError,
   IdentityAlreadyLinkedError,
   PasswordTooWeakError,
   OAuthStateError
@@ -185,10 +186,11 @@ export interface AuthServiceShape {
    * @returns Effect containing the user and session
    * @errors SessionNotFoundError - Session does not exist
    * @errors SessionExpiredError - Session has expired
+   * @errors SessionCleanupError - Failed to delete expired session
    */
   readonly validateSession: (
     sessionId: SessionId
-  ) => Effect.Effect<ValidatedSession, SessionNotFoundError | SessionExpiredError>
+  ) => Effect.Effect<ValidatedSession, SessionNotFoundError | SessionExpiredError | SessionCleanupError>
 
   /**
    * Link an external identity to an existing user

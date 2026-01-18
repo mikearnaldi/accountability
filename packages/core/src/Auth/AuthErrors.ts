@@ -305,6 +305,43 @@ export class OAuthStateError extends Schema.TaggedError<OAuthStateError>()(
 export const isOAuthStateError = Schema.is(OAuthStateError)
 
 // =============================================================================
+// 500 Internal Server Errors - System failures
+// =============================================================================
+
+/**
+ * SessionCleanupError - Failed to delete expired or old session
+ *
+ * Returned when the system fails to clean up an expired session during validation
+ * or an old session during refresh. Session cleanup is critical for security
+ * (prevents session hijacking) and database hygiene (prevents stale data accumulation).
+ *
+ * HTTP Status: 500 Internal Server Error
+ */
+export class SessionCleanupError extends Schema.TaggedError<SessionCleanupError>()(
+  "SessionCleanupError",
+  {
+    sessionId: SessionId.annotations({
+      description: "The session that could not be deleted"
+    }),
+    operation: Schema.String.annotations({
+      description: "The cleanup operation that failed (e.g., 'expiry', 'refresh')"
+    }),
+    cause: Schema.Unknown.annotations({
+      description: "The underlying error that caused the cleanup to fail"
+    })
+  }
+) {
+  get message(): string {
+    return `Failed to clean up session during ${this.operation}: ${String(this.cause)}`
+  }
+}
+
+/**
+ * Type guard for SessionCleanupError
+ */
+export const isSessionCleanupError = Schema.is(SessionCleanupError)
+
+// =============================================================================
 // Union Types
 // =============================================================================
 
@@ -322,6 +359,7 @@ export type AuthError =
   | SessionNotFoundError
   | PasswordTooWeakError
   | OAuthStateError
+  | SessionCleanupError
 
 /**
  * HTTP status code mapping for API layer
@@ -351,5 +389,7 @@ export const AUTH_ERROR_STATUS_CODES = {
   IdentityAlreadyLinkedError: 409,
   // 400 Bad Request
   PasswordTooWeakError: 400,
-  OAuthStateError: 400
+  OAuthStateError: 400,
+  // 500 Internal Server Error
+  SessionCleanupError: 500
 } as const

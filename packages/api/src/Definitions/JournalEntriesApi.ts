@@ -25,6 +25,7 @@ import { FiscalPeriodRef } from "@accountability/core/Domains/FiscalPeriodRef"
 import { LocalDateFromString } from "@accountability/core/Domains/LocalDate"
 import { MonetaryAmount } from "@accountability/core/Domains/MonetaryAmount"
 import {
+  AuditLogError,
   BusinessRuleError,
   ConflictError,
   ForbiddenError,
@@ -203,6 +204,7 @@ const createJournalEntry = HttpApiEndpoint.post("createJournalEntry", "/")
   .addError(ValidationError)
   .addError(BusinessRuleError)
   .addError(ForbiddenError)
+  .addError(AuditLogError)
   .annotateContext(OpenApi.annotations({
     summary: "Create journal entry",
     description: "Create a new journal entry in draft status. Entries must have at least two lines and debits must equal credits."
@@ -298,6 +300,7 @@ const postJournalEntry = HttpApiEndpoint.post("postJournalEntry", "/:id/post")
   .addError(NotFoundError)
   .addError(BusinessRuleError)
   .addError(ForbiddenError)
+  .addError(AuditLogError)
   .annotateContext(OpenApi.annotations({
     summary: "Post journal entry",
     description: "Post an approved journal entry to the general ledger. This updates account balances and changes the status to posted."
@@ -313,6 +316,7 @@ const reverseJournalEntry = HttpApiEndpoint.post("reverseJournalEntry", "/:id/re
   .addError(NotFoundError)
   .addError(BusinessRuleError)
   .addError(ForbiddenError)
+  .addError(AuditLogError)
   .annotateContext(OpenApi.annotations({
     summary: "Reverse journal entry",
     description: "Reverse a posted journal entry by creating a new entry with opposite debits and credits."

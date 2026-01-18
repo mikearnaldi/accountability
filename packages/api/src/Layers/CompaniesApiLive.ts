@@ -276,48 +276,59 @@ export const CompaniesApiLive = HttpApiBuilder.group(AppApi, "companies", (handl
 
           // Add the creating user as owner with all functional roles
           // Parse the user ID as AuthUserId (validates UUID format)
-          const maybeAuthUserId = yield* Schema.decodeUnknown(AuthUserId)(currentUser.userId).pipe(
-            Effect.option
+          // If user ID is not a valid UUID, organization creation fails - test infrastructure
+          // must use valid UUIDs for proper authorization to work
+          const authUserId = yield* Schema.decodeUnknown(AuthUserId)(currentUser.userId).pipe(
+            Effect.mapError(() => new ValidationError({
+              message: `Invalid user ID format: user ID must be a valid UUID`,
+              field: Option.some("userId"),
+              details: Option.none()
+            }))
           )
 
-          // Only create membership if user ID is a valid UUID
-          // (test tokens may use non-UUID IDs like "123")
-          if (Option.isSome(maybeAuthUserId)) {
-            const now = timestampNow()
-            const membership = OrganizationMembership.make({
-              id: OrganizationMembershipId.make(crypto.randomUUID()),
-              userId: maybeAuthUserId.value,
-              organizationId: createdOrg.id,
-              role: "owner",
-              isController: true,
-              isFinanceManager: true,
-              isAccountant: true,
-              isPeriodAdmin: true,
-              isConsolidationManager: true,
-              status: "active",
-              removedAt: Option.none(),
-              removedBy: Option.none(),
-              removalReason: Option.none(),
-              reinstatedAt: Option.none(),
-              reinstatedBy: Option.none(),
-              createdAt: now,
-              updatedAt: now,
-              invitedBy: Option.none()
-            })
+          const now = timestampNow()
+          const membership = OrganizationMembership.make({
+            id: OrganizationMembershipId.make(crypto.randomUUID()),
+            userId: authUserId,
+            organizationId: createdOrg.id,
+            role: "owner",
+            isController: true,
+            isFinanceManager: true,
+            isAccountant: true,
+            isPeriodAdmin: true,
+            isConsolidationManager: true,
+            status: "active",
+            removedAt: Option.none(),
+            removedBy: Option.none(),
+            removalReason: Option.none(),
+            reinstatedAt: Option.none(),
+            reinstatedBy: Option.none(),
+            createdAt: now,
+            updatedAt: now,
+            invitedBy: Option.none()
+          })
 
-            // Try to create membership - may fail if user doesn't exist in auth_users table
-            // (e.g., in test environments with simple token validator)
-            // Error is intentionally handled to allow org creation to succeed
-            yield* memberRepo.create(membership).pipe(
-              Effect.catchAll(() => Effect.succeed(undefined))
-            )
-          }
+          // Create membership - this is critical for proper authorization
+          // If membership creation fails, organization creation must fail to maintain
+          // data integrity (organization creator must be auto-added as owner)
+          yield* memberRepo.create(membership).pipe(
+            Effect.mapError((e) => new BusinessRuleError({
+              code: "MEMBERSHIP_CREATION_FAILED",
+              message: `Failed to create owner membership: ${e.message}`,
+              details: Option.none()
+            }))
+          )
 
           // Seed system policies for the new organization
           // These are the 4 built-in policies that cannot be modified by users
-          // Error is intentionally handled - org creation should succeed even if policy seeding fails
+          // If policy seeding fails, organization creation fails - system policies
+          // are essential baseline access controls that must always exist
           yield* seedSystemPolicies(createdOrg.id, policyRepo).pipe(
-            Effect.catchAll(() => Effect.succeed(undefined))
+            Effect.mapError(() => new BusinessRuleError({
+              code: "SYSTEM_POLICY_SEEDING_FAILED",
+              message: "Failed to seed system policies for organization",
+              details: Option.none()
+            }))
           )
 
           return createdOrg

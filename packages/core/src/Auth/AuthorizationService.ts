@@ -16,7 +16,7 @@ import type * as Effect from "effect/Effect"
 import type { Action } from "./Action.ts"
 import type { BaseRole } from "./BaseRole.ts"
 import type { FunctionalRole } from "./FunctionalRole.ts"
-import type { PermissionDeniedError } from "./AuthorizationErrors.ts"
+import type { PermissionDeniedError, PolicyLoadError, AuthorizationAuditError } from "./AuthorizationErrors.ts"
 import type { CurrentOrganizationMembership } from "./CurrentOrganizationMembership.ts"
 import type { CurrentEnvironmentContext } from "./CurrentEnvironmentContext.ts"
 import type { ResourceContext } from "./matchers/ResourceMatcher.ts"
@@ -67,7 +67,7 @@ export interface AuthorizationServiceShape {
   readonly checkPermission: (
     action: Action,
     resourceContext?: ResourceContext
-  ) => Effect.Effect<void, PermissionDeniedError, CurrentOrganizationMembership | CurrentEnvironmentContext>
+  ) => Effect.Effect<void, PermissionDeniedError | PolicyLoadError | AuthorizationAuditError, CurrentOrganizationMembership | CurrentEnvironmentContext>
 
   /**
    * Check multiple permissions at once
@@ -95,7 +95,7 @@ export interface AuthorizationServiceShape {
    */
   readonly checkPermissions: (
     actions: readonly Action[]
-  ) => Effect.Effect<Partial<Record<Action, boolean>>, never, CurrentOrganizationMembership | CurrentEnvironmentContext>
+  ) => Effect.Effect<Partial<Record<Action, boolean>>, PolicyLoadError, CurrentOrganizationMembership | CurrentEnvironmentContext>
 
   /**
    * Check if current user has a specific base role
@@ -127,7 +127,7 @@ export interface AuthorizationServiceShape {
    */
   readonly getEffectivePermissions: () => Effect.Effect<
     ReadonlyArray<Action>,
-    never,
+    PolicyLoadError,
     CurrentOrganizationMembership | CurrentEnvironmentContext
   >
 }

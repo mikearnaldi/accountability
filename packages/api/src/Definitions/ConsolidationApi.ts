@@ -27,6 +27,7 @@ import { FiscalPeriodRef } from "@accountability/core/Domains/FiscalPeriodRef"
 import { LocalDateFromString } from "@accountability/core/Domains/LocalDate"
 import { Percentage } from "@accountability/core/Domains/Percentage"
 import {
+  AuditLogError,
   BusinessRuleError,
   ConflictError,
   ForbiddenError,
@@ -209,6 +210,7 @@ const createConsolidationGroup = HttpApiEndpoint.post("createConsolidationGroup"
   .addError(BusinessRuleError)
   .addError(ForbiddenError)
   .addError(NotFoundError)
+  .addError(AuditLogError)
   .annotateContext(OpenApi.annotations({
     summary: "Create consolidation group",
     description: "Create a new consolidation group with its initial members."
@@ -226,6 +228,7 @@ const updateConsolidationGroup = HttpApiEndpoint.put("updateConsolidationGroup",
   .addError(ValidationError)
   .addError(BusinessRuleError)
   .addError(ForbiddenError)
+  .addError(AuditLogError)
   .annotateContext(OpenApi.annotations({
     summary: "Update consolidation group",
     description: "Update an existing consolidation group's details."
@@ -241,6 +244,7 @@ const deleteConsolidationGroup = HttpApiEndpoint.del("deleteConsolidationGroup",
   .addError(NotFoundError)
   .addError(BusinessRuleError)
   .addError(ForbiddenError)
+  .addError(AuditLogError)
   .annotateContext(OpenApi.annotations({
     summary: "Delete consolidation group",
     description: "Delete a consolidation group. Groups with completed runs may not be deleted."
@@ -256,6 +260,7 @@ const activateConsolidationGroup = HttpApiEndpoint.post("activateConsolidationGr
   .addError(NotFoundError)
   .addError(BusinessRuleError)
   .addError(ForbiddenError)
+  .addError(AuditLogError)
   .annotateContext(OpenApi.annotations({
     summary: "Activate consolidation group",
     description: "Activate a consolidation group for use in consolidation runs."
@@ -271,6 +276,7 @@ const deactivateConsolidationGroup = HttpApiEndpoint.post("deactivateConsolidati
   .addError(NotFoundError)
   .addError(BusinessRuleError)
   .addError(ForbiddenError)
+  .addError(AuditLogError)
   .annotateContext(OpenApi.annotations({
     summary: "Deactivate consolidation group",
     description: "Deactivate a consolidation group. Deactivated groups cannot be used in new consolidation runs."
@@ -293,6 +299,7 @@ const addGroupMember = HttpApiEndpoint.post("addGroupMember", "/groups/:id/membe
   .addError(ConflictError)
   .addError(BusinessRuleError)
   .addError(ForbiddenError)
+  .addError(AuditLogError)
   .annotateContext(OpenApi.annotations({
     summary: "Add group member",
     description: "Add a new member (company) to a consolidation group."
@@ -310,6 +317,7 @@ const updateGroupMember = HttpApiEndpoint.put("updateGroupMember", "/groups/:id/
   .addError(ValidationError)
   .addError(BusinessRuleError)
   .addError(ForbiddenError)
+  .addError(AuditLogError)
   .annotateContext(OpenApi.annotations({
     summary: "Update group member",
     description: "Update a member's ownership percentage or consolidation method."
@@ -325,6 +333,7 @@ const removeGroupMember = HttpApiEndpoint.del("removeGroupMember", "/groups/:id/
   .addError(NotFoundError)
   .addError(BusinessRuleError)
   .addError(ForbiddenError)
+  .addError(AuditLogError)
   .annotateContext(OpenApi.annotations({
     summary: "Remove group member",
     description: "Remove a member (company) from a consolidation group."
@@ -375,6 +384,7 @@ const initiateConsolidationRun = HttpApiEndpoint.post("initiateConsolidationRun"
   .addError(ConflictError)
   .addError(BusinessRuleError)
   .addError(ForbiddenError)
+  .addError(AuditLogError)
   .annotateContext(OpenApi.annotations({
     summary: "Initiate consolidation run",
     description: "Start a new consolidation run for a group and period. The run will execute asynchronously."
@@ -390,6 +400,7 @@ const cancelConsolidationRun = HttpApiEndpoint.post("cancelConsolidationRun", "/
   .addError(NotFoundError)
   .addError(BusinessRuleError)
   .addError(ForbiddenError)
+  .addError(AuditLogError)
   .annotateContext(OpenApi.annotations({
     summary: "Cancel consolidation run",
     description: "Cancel an in-progress consolidation run. Completed runs cannot be cancelled."
@@ -405,6 +416,7 @@ const deleteConsolidationRun = HttpApiEndpoint.del("deleteConsolidationRun", "/r
   .addError(NotFoundError)
   .addError(BusinessRuleError)
   .addError(ForbiddenError)
+  .addError(AuditLogError)
   .annotateContext(OpenApi.annotations({
     summary: "Delete consolidation run",
     description: "Delete a consolidation run. Only pending or failed runs can be deleted."

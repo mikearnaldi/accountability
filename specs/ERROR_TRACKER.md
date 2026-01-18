@@ -2,15 +2,48 @@
 
 This document tracks all instances where errors are being swallowed, ignored, or where business rules are bent for testing purposes in the Accountability codebase.
 
+## Core Principle: No Silent Failures
+
+**Logging errors is NOT a valid fix.** Every single error must fail the request.
+
+- If an operation can fail, that failure MUST propagate to the caller
+- "Log and continue" is not acceptable - it hides problems and creates inconsistent state
+- If something is truly optional, it should be modeled as optional in the type system, not caught and ignored at runtime
+- The only valid responses to an error are: propagate it, recover with a well-defined fallback value that is part of the API contract, or transform it into a more appropriate error type
+
+When fixing issues in this document:
+- Remove `catchAll(() => succeed(...))` patterns entirely
+- Do NOT replace them with `catchAll(() => { log(error); return succeed(...) })`
+- Let errors propagate - the caller will handle them appropriately
+- If an operation genuinely cannot fail the request, reconsider whether it should be in the request path at all
+
+## Core Principle: Use Proper Domain Types
+
+**If you need to call `.make()` or `Schema.decode` on a value that should already be typed, the source type is wrong.**
+
+- Domain objects must use proper branded/newtype IDs, not primitive strings
+- If `CurrentUser.sessionId` requires `SessionId.make(currentUser.sessionId)`, then `CurrentUser` should have `sessionId: SessionId` not `sessionId: string`
+- Runtime conversions indicate type system gaps - fix the source, don't patch at usage sites
+- Every manual type conversion is a potential runtime error waiting to happen
+
+Signs of improper typing:
+- `SomeId.make(obj.someId)` - the field should already be `SomeId`
+- `Schema.decodeUnknown(SomeSchema)(obj.field)` on internal data - internal data should already be decoded
+- Type assertions or casts on domain objects
+- `as unknown as SomeType` patterns
+
 ## Summary
 
-**Total Issues Found:** 15 instances across 9 files
+**Total Issues Found:** 17 instances across 10 files
+**Issues Fixed:** 7 (Issues 1-6, 9)
+**Issues Remaining:** 10
 
-| Severity | Count | Description |
-|----------|-------|-------------|
-| CRITICAL | 6 | Business rules bent, data integrity at risk |
-| MEDIUM | 5 | Audit/security gaps, cleanup failures |
-| LOW | 4 | Minor data loss, debugging hindered |
+| Severity | Count | Fixed | Remaining | Description |
+|----------|-------|-------|-----------|-------------|
+| CRITICAL | 6 | 4 | 2 | Business rules bent, data integrity at risk |
+| MEDIUM | 5 | 3 | 2 | Audit/security gaps, cleanup failures |
+| LOW | 4 | 0 | 4 | Minor data loss, debugging hindered |
+| TYPE | 2 | 0 | 2 | Domain objects using primitive types instead of branded types |
 
 ---
 
@@ -41,12 +74,12 @@ yield* memberRepo.create(membership).pipe(
 **Business Rule Bent:** Users created via test tokens won't have membership records, breaking the fundamental assumption that organization creators are auto-added as owners.
 
 **Fix:**
-- [ ] Remove test-specific code path - test infrastructure should use valid UUIDs
-- [ ] Replace `Effect.option` with proper error handling that fails for invalid user IDs
-- [ ] Remove `catchAll` wrapper - membership creation failure should fail the organization creation
+- [x] Remove test-specific code path - test infrastructure should use valid UUIDs
+- [x] Replace `Effect.option` with proper error handling that fails for invalid user IDs
+- [x] Remove `catchAll` wrapper - membership creation failure should fail the organization creation
 - [ ] Add a transaction to ensure atomicity (org + membership created together or neither)
 
-**Status:** ❌ Not Fixed
+**Status:** ✅ Fixed (validation + membership creation propagate errors)
 
 ---
 
@@ -69,11 +102,11 @@ yield* seedSystemPolicies(createdOrg.id, policyRepo).pipe(
 **Business Rule Bent:** Organizations created without system policies will have no baseline access controls, potentially leaving them inaccessible or with incorrect permissions.
 
 **Fix:**
-- [ ] Remove `catchAll` - policy seeding failure should fail organization creation
+- [x] Remove `catchAll` - policy seeding failure should fail organization creation
 - [ ] Or: Add retry logic with eventual failure
-- [ ] Log the error before swallowing if truly optional (but it shouldn't be)
+- [x] Policy seeding is NOT optional - organization creation must fail if policies cannot be seeded
 
-**Status:** ❌ Not Fixed
+**Status:** ✅ Fixed (policy seeding errors now propagate as BusinessRuleError)
 
 ---
 
@@ -102,11 +135,11 @@ const policies = yield* policyRepo
 - Line 385: `listPermissions` (permission enumeration)
 
 **Fix:**
-- [ ] Replace `catchAll(() => [])` with proper error propagation
-- [ ] Let callers decide how to handle policy loading failures
-- [ ] At minimum, log the error before falling back to RBAC
+- [x] Replace `catchAll(() => [])` with proper error propagation
+- [x] Let callers decide how to handle policy loading failures
+- [x] Authorization must fail if policies cannot be loaded - silent fallback to RBAC is NOT acceptable
 
-**Status:** ❌ Not Fixed
+**Status:** ✅ Fixed (PolicyLoadError now propagates through interface)
 
 ---
 
@@ -132,11 +165,11 @@ totalVarianceAmount = Effect.runSync(
 **Business Rule Bent:** Calculation errors in consolidation variance reconciliation produce incorrect variance amounts in financial reports without any indication.
 
 **Fix:**
-- [ ] Remove `Effect.orElseSucceed` - let arithmetic errors propagate
-- [ ] Use proper error handling that surfaces the calculation failure
-- [ ] Consider what would cause `subtract` to fail and handle that case explicitly
+- [x] Remove `Effect.orElseSucceed` - let arithmetic errors propagate
+- [x] Use proper error handling that surfaces the calculation failure
+- [x] Consider what would cause `subtract` to fail and handle that case explicitly
 
-**Status:** ❌ Not Fixed
+**Status:** ✅ Fixed (CurrencyMismatchError now propagates through interface)
 
 ---
 
@@ -163,11 +196,11 @@ yield* sessionRepo.delete(sessionId).pipe(
 **Business Rule Bent:** Session cleanup is not guaranteed, potentially leaving stale session data in the database.
 
 **Fix:**
-- [ ] Log deletion failures even if proceeding with SessionExpiredError
-- [ ] Consider background cleanup job for orphaned sessions
-- [ ] Monitor session table growth
+- [x] Session deletion failure should fail the request - don't proceed with SessionExpiredError if cleanup fails
+- [ ] Or: Move session cleanup to a background job that retries failures
+- [x] Stale sessions are a security risk - cleanup failures must be addressed, not ignored
 
-**Status:** ❌ Not Fixed
+**Status:** ✅ Fixed (SessionCleanupError now propagates through interface)
 
 ---
 
@@ -192,11 +225,11 @@ yield* authService.logout(sessionId).pipe(
 **Business Rule Bent:** Session lifecycle management is not guaranteed, potentially leaving security vulnerabilities.
 
 **Fix:**
-- [ ] Log logout failures
-- [ ] Consider making this a hard error (fail refresh if can't cleanup old session)
-- [ ] Add monitoring for users with multiple active sessions
+- [x] Make this a hard error - fail refresh if can't cleanup old session
+- [x] Multiple active sessions per user is a security risk
+- [x] Session refresh must be atomic: cleanup old + create new, or neither
 
-**Status:** ❌ Not Fixed
+**Status:** ✅ Fixed (refresh endpoint maps logout failure to SessionInvalidError)
 
 ---
 
@@ -223,9 +256,9 @@ Effect.catchAll(() =>
 **Business Rule Bent:** Audit trail may be incomplete, which could violate compliance requirements.
 
 **Fix:**
-- [ ] Log the lookup failure separately
-- [ ] Store the userId even when displayName/email lookup fails
-- [ ] Consider retry logic for transient failures
+- [ ] User lookup failure should fail audit log creation - incomplete audit data is worse than no audit data
+- [ ] Or: Store userId with explicit "lookup failed" marker in the audit record (not silent None)
+- [ ] Audit integrity is non-negotiable - partial data hides compliance gaps
 
 **Status:** ❌ Not Fixed
 
@@ -253,9 +286,9 @@ const changesOption: Option.Option<AuditChanges> = row.changes !== null
 **Business Rule Bent:** Historical audit data may become inaccessible without any indication of data corruption.
 
 **Fix:**
-- [ ] Log parse errors with the raw JSON for investigation
-- [ ] Consider a "raw_changes" fallback that stores unparsed JSON
-- [ ] Alert on repeated parse failures (indicates corruption pattern)
+- [ ] Parse failures should fail the request - don't return audit entries with missing change data
+- [ ] If data is corrupted, surface the corruption to the caller as an error
+- [ ] Data integrity issues must be visible, not hidden behind Option.none()
 
 **Status:** ❌ Not Fixed
 
@@ -285,11 +318,11 @@ yield* auditRepo
 **Business Rule Bent:** Security audit trail may have gaps, potentially violating security compliance requirements.
 
 **Fix:**
-- [ ] At minimum, log to console/error tracker when audit fails
-- [ ] Consider queuing failed audit logs for retry
-- [ ] Monitor audit log write failures
+- [x] Audit logging failure should fail the permission denial response
+- [x] Security audit gaps are unacceptable - if we can't record the denial, the request must fail
+- [ ] Or: Use a transactional approach where denial + audit happen atomically
 
-**Status:** ❌ Not Fixed
+**Status:** ✅ Fixed (AuthorizationAuditError now propagates through interface)
 
 ---
 
@@ -311,8 +344,9 @@ const lineItemsRaw = yield* Schema.decodeUnknown(Schema.Array(LineItemSchema))(r
 - Consolidation trial balance could lose account details silently
 
 **Fix:**
-- [ ] Log parse errors with context
-- [ ] Consider failing loudly for critical financial data
+- [ ] Parse failures must fail the request - financial data corruption cannot be silent
+- [ ] Empty array fallback hides data integrity issues
+- [ ] Fail fast so the problem is discovered and fixed
 
 **Status:** ❌ Not Fixed
 
@@ -332,8 +366,8 @@ Effect.catchAll(() => Effect.succeed(Option.none<ValidationResult>()))
 - Consolidation validation history becomes incomplete
 
 **Fix:**
-- [ ] Log parse errors
-- [ ] Consider failing for corrupted validation data
+- [ ] Parse failures must fail the request
+- [ ] Corrupted validation data indicates a serious problem that needs immediate attention
 
 **Status:** ❌ Not Fixed
 
@@ -355,8 +389,9 @@ const errorBody = yield* tokenResponse.text.pipe(
 - OAuth authentication failure debugging is hindered
 
 **Fix:**
-- [ ] Log the actual error that prevented reading the body
-- [ ] Include HTTP status code in fallback message
+- [ ] If we can't read the error body, include what we know (status code, headers) in the error
+- [ ] Don't fallback to "Unknown error" - propagate a structured error with available context
+- [ ] The auth failure itself should already be failing the request; ensure error details are preserved
 
 **Status:** ❌ Not Fixed
 
@@ -378,8 +413,66 @@ const errorBody = yield* tokenResponse.text.pipe(
 - WorkOS authentication failure debugging is hindered
 
 **Fix:**
-- [ ] Log the actual error that prevented reading the body
-- [ ] Include HTTP status code in fallback message
+- [ ] If we can't read the error body, include what we know (status code, headers) in the error
+- [ ] Don't fallback to "Unknown error" - propagate a structured error with available context
+- [ ] The auth failure itself should already be failing the request; ensure error details are preserved
+
+**Status:** ❌ Not Fixed
+
+---
+
+## Type System Issues
+
+These are logical mistakes where domain objects don't use proper types, requiring runtime conversions that should be unnecessary.
+
+### Issue 14: CurrentUser Uses Primitive Strings Instead of Branded Types
+
+**File:** `packages/api/src/Layers/AuthApiLive.ts`
+**Line:** 580
+
+```typescript
+const sessionId = SessionId.make(currentUser.sessionId)
+```
+
+**Problem:**
+- `CurrentUser.sessionId` is typed as `string` instead of `SessionId`
+- Every usage site must call `SessionId.make()` to get a properly typed value
+- This is error-prone and indicates the `CurrentUser` type is incorrectly defined
+
+**Business Rule Bent:** Type safety is circumvented - the compiler can't catch misuse of session IDs because they're stored as plain strings.
+
+**Fix:**
+- [ ] Update `CurrentUser` schema to use `SessionId` type for the `sessionId` field
+- [ ] Update `CurrentUser` schema to use `AuthUserId` type for the `userId` field
+- [ ] Remove all `SomeId.make(currentUser.field)` conversions - they should be unnecessary
+- [ ] Audit all domain objects for similar primitive-instead-of-branded-type issues
+
+**Status:** ❌ Not Fixed
+
+---
+
+### Issue 15: CurrentUser.userId Requires Schema.decodeUnknown
+
+**File:** `packages/api/src/Layers/CompaniesApiLive.ts`
+**Lines:** 279-281
+
+```typescript
+const maybeAuthUserId = yield* Schema.decodeUnknown(AuthUserId)(currentUser.userId).pipe(
+  Effect.option
+)
+```
+
+**Problem:**
+- `CurrentUser.userId` is typed as `string` instead of `AuthUserId`
+- Code must decode it at runtime, which can fail
+- The `Effect.option` swallows decode failures (see Issue 1)
+
+**Business Rule Bent:** Internal data requires runtime validation that should be guaranteed by the type system.
+
+**Fix:**
+- [ ] Update `CurrentUser` schema to use `AuthUserId` type for the `userId` field
+- [ ] This decode should become unnecessary once the type is correct
+- [ ] If test tokens need non-UUID IDs, fix the test infrastructure, don't weaken the types
 
 **Status:** ❌ Not Fixed
 
@@ -412,7 +505,7 @@ Security-critical audit logging uses fire-and-forget pattern.
 
 **Root Cause:** Not wanting to block the main operation for logging.
 
-**Solution:** Queue failed audits for retry; alert on audit failures.
+**Solution:** Audit logging must be part of the operation - if audit fails, the operation fails. Security audit gaps are unacceptable.
 
 ### 4. JSON Corruption Handling
 **Files:** AuditLogRepositoryLive.ts (line 67), ConsolidationRepositoryLive.ts (lines 468, 524)
@@ -421,7 +514,7 @@ Corrupted JSON data silently replaced with empty/none values.
 
 **Root Cause:** Defensive coding to avoid crashing on bad data.
 
-**Solution:** Log corruption, alert, and consider data migration to fix.
+**Solution:** Fail the request with a clear corruption error. Data corruption must be surfaced immediately, not hidden.
 
 ### 5. Graceful Degradation Masking Real Issues
 **Files:** AuditLogServiceLive.ts (lines 180-187)
@@ -430,7 +523,16 @@ User lookup failures silently degrade audit logs.
 
 **Root Cause:** Wanting audit log creation to succeed even when metadata lookup fails.
 
-**Solution:** Log the degradation, store partial data with error flag.
+**Solution:** Fail the audit log creation. Incomplete audit data is worse than failing the operation - it creates false confidence in audit completeness.
+
+### 6. Primitive Types in Domain Objects
+**Files:** CurrentUser type definition, AuthApiLive.ts, CompaniesApiLive.ts
+
+Domain objects use primitive `string` types instead of branded types like `SessionId`, `AuthUserId`.
+
+**Root Cause:** Likely evolved from early prototyping or external API boundaries not being properly mapped to domain types.
+
+**Solution:** Update domain object schemas to use proper branded types. Remove all `.make()` and `Schema.decodeUnknown()` calls on internal data - if the type system is correct, these conversions are unnecessary.
 
 ---
 
@@ -450,6 +552,9 @@ User lookup failures silently degrade audit logs.
 7. Fix consolidation JSON parsing (Issues 10, 11)
 8. Improve OAuth error handling (Issues 12, 13)
 
+### Phase 4: Type System Cleanup
+9. Fix CurrentUser to use branded types (Issues 14, 15) - this will also simplify fixes for Issues 1, 2
+
 ---
 
 ## Test Infrastructure Changes Required
@@ -468,9 +573,9 @@ The root cause of Issues 1-2 is that test infrastructure uses non-UUID user IDs.
 For each issue to be marked as fixed:
 
 1. ✅ Error is no longer swallowed silently
-2. ✅ Appropriate error type is returned or logged
+2. ✅ Error propagates and fails the request (logging alone is NOT acceptable)
 3. ✅ Business rule is no longer bent
-4. ✅ Unit tests verify correct error handling
+4. ✅ Unit tests verify correct error handling (error cases return errors, not success)
 5. ✅ Integration tests pass with proper test infrastructure
 6. ✅ No regressions in existing functionality
 
@@ -480,16 +585,18 @@ For each issue to be marked as fixed:
 
 | Issue | Status | PR/Commit | Notes |
 |-------|--------|-----------|-------|
-| 1 | ❌ | - | Requires test infrastructure changes |
-| 2 | ❌ | - | Blocked by Issue 1 |
-| 3 | ❌ | - | 3 instances to fix |
-| 4 | ❌ | - | Financial calculation fix |
-| 5 | ❌ | - | - |
-| 6 | ❌ | - | - |
+| 1 | ✅ | - | User ID validation + membership creation must succeed |
+| 2 | ✅ | - | Policy seeding failure now fails organization creation |
+| 3 | ✅ | - | PolicyLoadError now propagates in AuthorizationService |
+| 4 | ✅ | - | CurrencyMismatchError now propagates in IntercompanyService |
+| 5 | ✅ | - | SessionCleanupError now propagates in validateSession |
+| 6 | ✅ | - | Refresh endpoint fails if old session cleanup fails |
 | 7 | ❌ | - | - |
 | 8 | ❌ | - | - |
-| 9 | ❌ | - | - |
+| 9 | ✅ | - | AuthorizationAuditError now propagates in checkPermission |
 | 10 | ❌ | - | - |
 | 11 | ❌ | - | - |
 | 12 | ❌ | - | - |
 | 13 | ❌ | - | - |
+| 14 | ❌ | - | CurrentUser.sessionId should be SessionId |
+| 15 | ❌ | - | CurrentUser.userId should be AuthUserId |

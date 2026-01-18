@@ -39,7 +39,8 @@ import {
   IdentityAlreadyLinkedError,
   SessionNotFoundError,
   SessionExpiredError,
-  PasswordTooWeakError
+  PasswordTooWeakError,
+  SessionCleanupError
 } from "@accountability/core/Auth/AuthErrors"
 import { UserRepository } from "../Services/UserRepository.ts"
 import { IdentityRepository } from "../Services/IdentityRepository.ts"
@@ -474,10 +475,16 @@ const make = Effect.gen(function* () {
         // Check if expired
         const now = Timestamp.now()
         if (session.isExpired(now)) {
-          // Delete expired session - errors are intentionally ignored
-          // since the main goal is to fail with SessionExpiredError
+          // Delete expired session - session cleanup is critical for security and
+          // database hygiene. If deletion fails, the operation fails with SessionCleanupError.
+          // Expired sessions accumulating in the database is a serious issue that
+          // must be visible and not silently ignored.
           yield* sessionRepo.delete(sessionId).pipe(
-            Effect.catchAll(() => Effect.succeed(undefined))
+            Effect.mapError((cause) => new SessionCleanupError({
+              sessionId,
+              operation: "expiry",
+              cause
+            }))
           )
           return yield* Effect.fail(
             new SessionExpiredError({ sessionId })
