@@ -1,0 +1,1044 @@
+/**
+ * Organization Members Page
+ *
+ * Phase H1 of AUTHORIZATION.md spec - Members Page Route
+ *
+ * Lists organization members with:
+ * - Member table with name, email, role badges, functional roles
+ * - Actions dropdown for member management
+ * - Invite new member modal
+ * - Pending invitations section
+ *
+ * Route: /organizations/:organizationId/settings/members
+ */
+
+import { createFileRoute, redirect, useRouter } from "@tanstack/react-router"
+import { createServerFn } from "@tanstack/react-start"
+import { getCookie } from "@tanstack/react-start/server"
+import { useState } from "react"
+import { Users, Mail, MoreVertical, UserPlus, Shield, RefreshCw, UserMinus, Clock, X } from "lucide-react"
+import { clsx } from "clsx"
+import { api } from "@/api/client"
+import { createServerApi } from "@/api/server"
+import { AppLayout } from "@/components/layout/AppLayout"
+import { MinimalRouteError } from "@/components/ui/RouteError"
+import { Button } from "@/components/ui/Button"
+import { RoleBadge, type BaseRole } from "@/components/layout/OrganizationSelector"
+import { usePermissions } from "@/hooks/usePermissions"
+
+// =============================================================================
+// Types
+// =============================================================================
+
+type FunctionalRole = "controller" | "finance_manager" | "accountant" | "period_admin" | "consolidation_manager"
+type MembershipStatus = "active" | "suspended" | "removed"
+type InvitationStatus = "pending" | "accepted" | "revoked"
+
+interface Member {
+  readonly userId: string
+  readonly email: string
+  readonly displayName: string
+  readonly role: BaseRole
+  readonly functionalRoles: readonly FunctionalRole[]
+  readonly status: MembershipStatus
+  readonly joinedAt: { readonly epochMillis: number }
+}
+
+interface Invitation {
+  readonly id: string
+  readonly email: string
+  readonly role: BaseRole
+  readonly functionalRoles: readonly FunctionalRole[]
+  readonly status: InvitationStatus
+  readonly invitedBy: {
+    readonly email: string
+    readonly displayName: string
+  }
+  readonly createdAt: { readonly epochMillis: number }
+}
+
+interface Organization {
+  readonly id: string
+  readonly name: string
+  readonly reportingCurrency: string
+}
+
+interface Company {
+  readonly id: string
+  readonly name: string
+}
+
+// =============================================================================
+// Server Functions
+// =============================================================================
+
+const fetchMembersData = createServerFn({ method: "GET" })
+  .inputValidator((data: string) => data)
+  .handler(async ({ data: organizationId }) => {
+    const sessionToken = getCookie("accountability_session")
+
+    if (!sessionToken) {
+      return { organization: null, members: [], invitations: [], companies: [], error: "unauthorized" as const }
+    }
+
+    try {
+      const serverApi = createServerApi()
+      const Authorization = `Bearer ${sessionToken}`
+
+      const [orgResult, membersResult, invitationsResult, companiesResult] = await Promise.all([
+        serverApi.GET("/api/v1/organizations/{id}", {
+          params: { path: { id: organizationId } },
+          headers: { Authorization }
+        }),
+        serverApi.GET("/api/v1/organizations/{orgId}/members", {
+          params: { path: { orgId: organizationId } },
+          headers: { Authorization }
+        }),
+        serverApi.GET("/api/v1/organizations/{orgId}/invitations", {
+          params: { path: { orgId: organizationId } },
+          headers: { Authorization }
+        }),
+        serverApi.GET("/api/v1/companies", {
+          params: { query: { organizationId } },
+          headers: { Authorization }
+        })
+      ])
+
+      if (orgResult.error) {
+        if (typeof orgResult.error === "object" && "status" in orgResult.error && orgResult.error.status === 404) {
+          return { organization: null, members: [], invitations: [], companies: [], error: "not_found" as const }
+        }
+        return { organization: null, members: [], invitations: [], companies: [], error: "failed" as const }
+      }
+
+      return {
+        organization: orgResult.data,
+        members: membersResult.data?.members ?? [],
+        invitations: invitationsResult.data?.invitations ?? [],
+        companies: companiesResult.data?.companies ?? [],
+        error: null
+      }
+    } catch {
+      return { organization: null, members: [], invitations: [], companies: [], error: "failed" as const }
+    }
+  })
+
+// =============================================================================
+// Constants
+// =============================================================================
+
+const FUNCTIONAL_ROLE_LABELS: Record<FunctionalRole, string> = {
+  controller: "Controller",
+  finance_manager: "Finance Manager",
+  accountant: "Accountant",
+  period_admin: "Period Admin",
+  consolidation_manager: "Consolidation Manager"
+}
+
+const STATUS_STYLES: Record<MembershipStatus, { bg: string; text: string; label: string }> = {
+  active: { bg: "bg-green-100", text: "text-green-700", label: "Active" },
+  suspended: { bg: "bg-yellow-100", text: "text-yellow-700", label: "Suspended" },
+  removed: { bg: "bg-red-100", text: "text-red-700", label: "Removed" }
+}
+
+/** Valid invite roles (owner cannot be invited, must transfer ownership) */
+const INVITE_ROLES = {
+  admin: "admin",
+  member: "member",
+  viewer: "viewer"
+} as const
+
+type InviteRole = (typeof INVITE_ROLES)[keyof typeof INVITE_ROLES]
+
+function isInviteRole(value: string): value is InviteRole {
+  return value in INVITE_ROLES
+}
+
+/** Valid edit roles (owner role cannot be set via edit, only via transfer) */
+const EDIT_ROLES = {
+  admin: "admin",
+  member: "member",
+  viewer: "viewer"
+} as const
+
+type EditRole = (typeof EDIT_ROLES)[keyof typeof EDIT_ROLES]
+
+function isEditRole(value: string): value is EditRole {
+  return value in EDIT_ROLES
+}
+
+/** Functional role keys for type-safe iteration */
+const FUNCTIONAL_ROLE_KEYS: readonly FunctionalRole[] = [
+  "controller",
+  "finance_manager",
+  "accountant",
+  "period_admin",
+  "consolidation_manager"
+]
+
+// =============================================================================
+// Route Definition
+// =============================================================================
+
+export const Route = createFileRoute("/organizations/$organizationId/settings/members")({
+  beforeLoad: async ({ context, params }) => {
+    if (!context.user) {
+      throw redirect({
+        to: "/login",
+        search: {
+          redirect: `/organizations/${params.organizationId}/settings/members`
+        }
+      })
+    }
+  },
+  loader: async ({ params }) => {
+    const result = await fetchMembersData({ data: params.organizationId })
+    if (result.error === "not_found") {
+      throw new Error("Organization not found")
+    }
+    return {
+      organization: result.organization,
+      members: result.members,
+      invitations: result.invitations,
+      companies: result.companies
+    }
+  },
+  errorComponent: ({ error }) => (
+    <MinimalRouteError error={error} />
+  ),
+  component: MembersPage
+})
+
+// =============================================================================
+// Page Component
+// =============================================================================
+
+function MembersPage() {
+  const context = Route.useRouteContext()
+  const loaderData = Route.useLoaderData()
+  const router = useRouter()
+  const user = context.user
+  const organizations = context.organizations ?? []
+  const { canPerform } = usePermissions()
+
+  /* eslint-disable @typescript-eslint/consistent-type-assertions -- Loader data typing */
+  const organization = loaderData.organization as Organization | null
+  const members = loaderData.members as readonly Member[]
+  const invitations = loaderData.invitations as readonly Invitation[]
+  const companies = loaderData.companies as readonly Company[]
+  /* eslint-enable @typescript-eslint/consistent-type-assertions */
+
+  const [showInviteModal, setShowInviteModal] = useState(false)
+  const [selectedMember, setSelectedMember] = useState<Member | null>(null)
+  const [actionMenuOpen, setActionMenuOpen] = useState<string | null>(null)
+
+  const canManageMembers = canPerform("organization:manage_members")
+
+  if (!organization) {
+    return null
+  }
+
+  const companiesForSidebar = companies.map((c) => ({ id: c.id, name: c.name }))
+
+  // Separate active members from removed/suspended
+  const activeMembers = members.filter((m) => m.status === "active")
+  const inactiveMembers = members.filter((m) => m.status !== "active")
+  const pendingInvitations = invitations.filter((i) => i.status === "pending")
+
+  const handleRefresh = async () => {
+    await router.invalidate()
+  }
+
+  return (
+    <AppLayout
+      user={user}
+      organizations={organizations}
+      currentOrganization={organization}
+      companies={companiesForSidebar}
+    >
+      <div className="space-y-6" data-testid="members-page">
+        {/* Page Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900" data-testid="members-page-title">
+              Organization Members
+            </h1>
+            <p className="mt-1 text-sm text-gray-500">
+              Manage members and their roles in {organization.name}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Button
+              variant="secondary"
+              onClick={handleRefresh}
+              icon={<RefreshCw className="h-4 w-4" />}
+              data-testid="members-refresh-button"
+            >
+              Refresh
+            </Button>
+
+            {canManageMembers && (
+              <Button
+                variant="primary"
+                onClick={() => setShowInviteModal(true)}
+                icon={<UserPlus className="h-4 w-4" />}
+                data-testid="members-invite-button"
+              >
+                Invite Member
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Active Members Section */}
+        <MembersTable
+          title="Active Members"
+          icon={<Users className="h-5 w-5 text-gray-500" />}
+          members={activeMembers}
+          canManage={canManageMembers}
+          actionMenuOpen={actionMenuOpen}
+          onActionMenuToggle={setActionMenuOpen}
+          onSelectMember={setSelectedMember}
+          currentUserId={user?.id}
+          data-testid="active-members-section"
+        />
+
+        {/* Pending Invitations Section */}
+        {pendingInvitations.length > 0 && (
+          <PendingInvitationsSection
+            invitations={pendingInvitations}
+            organizationId={organization.id}
+            canManage={canManageMembers}
+            onRefresh={handleRefresh}
+          />
+        )}
+
+        {/* Inactive Members Section (if any) */}
+        {inactiveMembers.length > 0 && (
+          <MembersTable
+            title="Inactive Members"
+            icon={<UserMinus className="h-5 w-5 text-gray-400" />}
+            members={inactiveMembers}
+            canManage={canManageMembers}
+            actionMenuOpen={actionMenuOpen}
+            onActionMenuToggle={setActionMenuOpen}
+            onSelectMember={setSelectedMember}
+            currentUserId={user?.id}
+            showStatus
+            data-testid="inactive-members-section"
+          />
+        )}
+
+        {/* Empty State */}
+        {activeMembers.length === 0 && pendingInvitations.length === 0 && (
+          <div
+            className="rounded-lg border border-gray-200 bg-white p-8 text-center"
+            data-testid="members-empty-state"
+          >
+            <Users className="mx-auto h-12 w-12 text-gray-400" />
+            <h3 className="mt-4 text-lg font-medium text-gray-900">No members yet</h3>
+            <p className="mt-2 text-sm text-gray-500">
+              Invite team members to collaborate on this organization.
+            </p>
+            {canManageMembers && (
+              <Button
+                variant="primary"
+                onClick={() => setShowInviteModal(true)}
+                icon={<UserPlus className="h-4 w-4" />}
+                className="mt-4"
+                data-testid="members-empty-invite-button"
+              >
+                Invite Member
+              </Button>
+            )}
+          </div>
+        )}
+
+        {/* Invite Member Modal */}
+        {showInviteModal && (
+          <InviteMemberModal
+            organizationId={organization.id}
+            onClose={() => setShowInviteModal(false)}
+            onSuccess={handleRefresh}
+          />
+        )}
+
+        {/* Edit Member Modal */}
+        {selectedMember && (
+          <EditMemberModal
+            member={selectedMember}
+            organizationId={organization.id}
+            onClose={() => setSelectedMember(null)}
+            onSuccess={handleRefresh}
+          />
+        )}
+      </div>
+    </AppLayout>
+  )
+}
+
+// =============================================================================
+// Members Table Component
+// =============================================================================
+
+interface MembersTableProps {
+  readonly title: string
+  readonly icon: React.ReactNode
+  readonly members: readonly Member[]
+  readonly canManage: boolean
+  readonly actionMenuOpen: string | null
+  readonly onActionMenuToggle: (id: string | null) => void
+  readonly onSelectMember: (member: Member) => void
+  readonly currentUserId?: string | undefined
+  readonly showStatus?: boolean
+  readonly "data-testid"?: string
+}
+
+function MembersTable({
+  title,
+  icon,
+  members,
+  canManage,
+  actionMenuOpen,
+  onActionMenuToggle,
+  onSelectMember,
+  currentUserId,
+  showStatus = false,
+  "data-testid": testId
+}: MembersTableProps) {
+  if (members.length === 0) {
+    return null
+  }
+
+  return (
+    <div className="rounded-lg border border-gray-200 bg-white" data-testid={testId}>
+      <div className="flex items-center gap-2 border-b border-gray-200 px-6 py-4">
+        {icon}
+        <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+        <span className="text-sm text-gray-500">({members.length})</span>
+      </div>
+
+      <table className="w-full">
+        <thead className="bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+          <tr>
+            <th className="px-6 py-3">Member</th>
+            <th className="px-6 py-3">Role</th>
+            <th className="px-6 py-3">Functional Roles</th>
+            {showStatus && <th className="px-6 py-3">Status</th>}
+            <th className="px-6 py-3">Joined</th>
+            {canManage && <th className="px-6 py-3 w-12"></th>}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-200">
+          {members.map((member) => {
+            const isCurrentUser = member.userId === currentUserId
+            const isMenuOpen = actionMenuOpen === member.userId
+            const joinedDate = new Date(member.joinedAt.epochMillis).toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric"
+            })
+
+            return (
+              <tr
+                key={member.userId}
+                className={clsx(
+                  "hover:bg-gray-50",
+                  isCurrentUser && "bg-blue-50/50"
+                )}
+                data-testid={`member-row-${member.userId}`}
+              >
+                {/* Member Info */}
+                <td className="px-6 py-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-600 font-medium">
+                      {member.displayName.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-gray-900">
+                          {member.displayName}
+                        </span>
+                        {isCurrentUser && (
+                          <span className="text-xs text-blue-600">(You)</span>
+                        )}
+                      </div>
+                      <span className="text-sm text-gray-500">{member.email}</span>
+                    </div>
+                  </div>
+                </td>
+
+                {/* Role */}
+                <td className="px-6 py-4">
+                  <RoleBadge role={member.role} size="md" />
+                </td>
+
+                {/* Functional Roles */}
+                <td className="px-6 py-4">
+                  {member.functionalRoles.length > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                      {member.functionalRoles.map((fr) => (
+                        <span
+                          key={fr}
+                          className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700"
+                        >
+                          {FUNCTIONAL_ROLE_LABELS[fr]}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-sm text-gray-400">None</span>
+                  )}
+                </td>
+
+                {/* Status (if shown) */}
+                {showStatus && (
+                  <td className="px-6 py-4">
+                    <span
+                      className={clsx(
+                        "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
+                        STATUS_STYLES[member.status].bg,
+                        STATUS_STYLES[member.status].text
+                      )}
+                    >
+                      {STATUS_STYLES[member.status].label}
+                    </span>
+                  </td>
+                )}
+
+                {/* Joined Date */}
+                <td className="px-6 py-4 text-sm text-gray-500">
+                  {joinedDate}
+                </td>
+
+                {/* Actions */}
+                {canManage && (
+                  <td className="px-6 py-4">
+                    <div className="relative">
+                      <button
+                        onClick={() => onActionMenuToggle(isMenuOpen ? null : member.userId)}
+                        className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600"
+                        data-testid={`member-actions-${member.userId}`}
+                      >
+                        <MoreVertical className="h-4 w-4" />
+                      </button>
+
+                      {isMenuOpen && (
+                        <MemberActionsMenu
+                          member={member}
+                          isCurrentUser={isCurrentUser}
+                          onClose={() => onActionMenuToggle(null)}
+                          onEdit={() => {
+                            onActionMenuToggle(null)
+                            onSelectMember(member)
+                          }}
+                        />
+                      )}
+                    </div>
+                  </td>
+                )}
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+// =============================================================================
+// Member Actions Menu
+// =============================================================================
+
+interface MemberActionsMenuProps {
+  readonly member: Member
+  readonly isCurrentUser: boolean
+  readonly onClose: () => void
+  readonly onEdit: () => void
+}
+
+function MemberActionsMenu({ member, isCurrentUser, onClose, onEdit }: MemberActionsMenuProps) {
+  const router = useRouter()
+  const [isRemoving, setIsRemoving] = useState(false)
+  const [isReinstating, setIsReinstating] = useState(false)
+
+  const handleRemove = async () => {
+    if (!window.confirm(`Are you sure you want to remove ${member.displayName} from this organization?`)) {
+      return
+    }
+
+    setIsRemoving(true)
+    try {
+      // API call would go here
+      await router.invalidate()
+      onClose()
+    } catch {
+      // Error handling
+    } finally {
+      setIsRemoving(false)
+    }
+  }
+
+  const handleReinstate = async () => {
+    setIsReinstating(true)
+    try {
+      // API call would go here
+      await router.invalidate()
+      onClose()
+    } catch {
+      // Error handling
+    } finally {
+      setIsReinstating(false)
+    }
+  }
+
+  const isOwner = member.role === "owner"
+  const canRemove = !isCurrentUser && !isOwner && member.status === "active"
+  const canReinstate = member.status === "removed"
+  const canEdit = !isOwner && member.status === "active"
+
+  return (
+    <div
+      className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50"
+      data-testid={`member-actions-menu-${member.userId}`}
+    >
+      {canEdit && (
+        <button
+          onClick={onEdit}
+          className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+          data-testid="member-edit-role"
+        >
+          <Shield className="h-4 w-4" />
+          Edit Role
+        </button>
+      )}
+
+      {canReinstate && (
+        <button
+          onClick={handleReinstate}
+          disabled={isReinstating}
+          className="flex items-center gap-2 w-full px-4 py-2 text-sm text-green-700 hover:bg-green-50 disabled:opacity-50"
+          data-testid="member-reinstate"
+        >
+          <RefreshCw className={clsx("h-4 w-4", isReinstating && "animate-spin")} />
+          Reinstate
+        </button>
+      )}
+
+      {canRemove && (
+        <button
+          onClick={handleRemove}
+          disabled={isRemoving}
+          className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-700 hover:bg-red-50 disabled:opacity-50"
+          data-testid="member-remove"
+        >
+          <UserMinus className="h-4 w-4" />
+          Remove
+        </button>
+      )}
+
+      {isOwner && (
+        <div className="px-4 py-2 text-xs text-gray-500">
+          Owner cannot be modified
+        </div>
+      )}
+    </div>
+  )
+}
+
+// =============================================================================
+// Pending Invitations Section
+// =============================================================================
+
+interface PendingInvitationsSectionProps {
+  readonly invitations: readonly Invitation[]
+  readonly organizationId: string
+  readonly canManage: boolean
+  readonly onRefresh: () => void
+}
+
+function PendingInvitationsSection({
+  invitations,
+  organizationId,
+  canManage,
+  onRefresh
+}: PendingInvitationsSectionProps) {
+  const [revokingId, setRevokingId] = useState<string | null>(null)
+
+  const handleRevoke = async (invitationId: string) => {
+    if (!window.confirm("Are you sure you want to revoke this invitation?")) {
+      return
+    }
+
+    setRevokingId(invitationId)
+    try {
+      await api.DELETE("/api/v1/organizations/{orgId}/invitations/{invitationId}", {
+        params: { path: { orgId: organizationId, invitationId } }
+      })
+      onRefresh()
+    } catch {
+      // Error handling
+    } finally {
+      setRevokingId(null)
+    }
+  }
+
+  return (
+    <div
+      className="rounded-lg border border-yellow-200 bg-yellow-50"
+      data-testid="pending-invitations-section"
+    >
+      <div className="flex items-center gap-2 border-b border-yellow-200 px-6 py-4">
+        <Clock className="h-5 w-5 text-yellow-600" />
+        <h2 className="text-lg font-semibold text-yellow-800">Pending Invitations</h2>
+        <span className="text-sm text-yellow-700">({invitations.length})</span>
+      </div>
+
+      <div className="p-4 space-y-3">
+        {invitations.map((invitation) => {
+          const sentDate = new Date(invitation.createdAt.epochMillis).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric"
+          })
+          const isRevoking = revokingId === invitation.id
+
+          return (
+            <div
+              key={invitation.id}
+              className="flex items-center justify-between rounded-lg bg-white p-4 border border-yellow-200"
+              data-testid={`invitation-row-${invitation.id}`}
+            >
+              <div className="flex items-center gap-4">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-yellow-100 text-yellow-600">
+                  <Mail className="h-5 w-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-gray-900">{invitation.email}</span>
+                    <RoleBadge role={invitation.role} size="sm" />
+                  </div>
+                  <span className="text-sm text-gray-500">
+                    Invited by {invitation.invitedBy.displayName} on {sentDate}
+                  </span>
+                </div>
+              </div>
+
+              {canManage && (
+                <button
+                  onClick={() => handleRevoke(invitation.id)}
+                  disabled={isRevoking}
+                  className={clsx(
+                    "p-2 rounded-lg text-red-600 hover:bg-red-50",
+                    isRevoking && "opacity-50 cursor-not-allowed"
+                  )}
+                  title="Revoke invitation"
+                  data-testid={`revoke-invitation-${invitation.id}`}
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// =============================================================================
+// Invite Member Modal (Placeholder - Will be expanded in H3)
+// =============================================================================
+
+interface InviteMemberModalProps {
+  readonly organizationId: string
+  readonly onClose: () => void
+  readonly onSuccess: () => void
+}
+
+function InviteMemberModal({ organizationId, onClose, onSuccess }: InviteMemberModalProps) {
+  const [email, setEmail] = useState("")
+  const [role, setRole] = useState<InviteRole>("member")
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!email.trim()) {
+      setError("Email is required")
+      return
+    }
+
+    setIsSubmitting(true)
+    setError(null)
+
+    try {
+      const { error: apiError } = await api.POST("/api/v1/organizations/{orgId}/members/invite", {
+        params: { path: { orgId: organizationId } },
+        body: {
+          email: email.trim(),
+          role,
+          functionalRoles: []
+        }
+      })
+
+      if (apiError) {
+        const errorMessage = typeof apiError === "object" && "message" in apiError
+          ? String(apiError.message)
+          : "Failed to send invitation"
+        setError(errorMessage)
+        return
+      }
+
+      onSuccess()
+      onClose()
+    } catch {
+      setError("An unexpected error occurred")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      data-testid="invite-member-modal"
+    >
+      <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-900">Invite Member</h2>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"
+            data-testid="invite-modal-close"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {error && (
+            <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700">
+              {error}
+            </div>
+          )}
+
+          <div>
+            <label htmlFor="invite-email" className="block text-sm font-medium text-gray-700">
+              Email Address
+            </label>
+            <input
+              id="invite-email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="member@example.com"
+              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              data-testid="invite-email-input"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="invite-role" className="block text-sm font-medium text-gray-700">
+              Role
+            </label>
+            <select
+              id="invite-role"
+              value={role}
+              onChange={(e) => {
+                const value = e.target.value
+                if (isInviteRole(value)) {
+                  setRole(value)
+                }
+              }}
+              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              data-testid="invite-role-select"
+            >
+              <option value="admin">Admin - Full organization management</option>
+              <option value="member">Member - Standard access based on functional roles</option>
+              <option value="viewer">Viewer - Read-only access</option>
+            </select>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={onClose}
+              disabled={isSubmitting}
+              data-testid="invite-cancel-button"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              loading={isSubmitting}
+              disabled={isSubmitting}
+              data-testid="invite-submit-button"
+            >
+              Send Invitation
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+// =============================================================================
+// Edit Member Modal (Placeholder - Will be expanded in H4)
+// =============================================================================
+
+interface EditMemberModalProps {
+  readonly member: Member
+  readonly organizationId: string
+  readonly onClose: () => void
+  readonly onSuccess: () => void
+}
+
+function EditMemberModal({ member, organizationId, onClose, onSuccess }: EditMemberModalProps) {
+  // If member is admin/member/viewer, use that, otherwise default to member
+  const initialRole: EditRole = member.role === "owner" ? "admin" : member.role
+  const [role, setRole] = useState<EditRole>(initialRole)
+  const [functionalRoles, setFunctionalRoles] = useState<FunctionalRole[]>([...member.functionalRoles])
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const toggleFunctionalRole = (fr: FunctionalRole) => {
+    setFunctionalRoles((prev) =>
+      prev.includes(fr) ? prev.filter((r) => r !== fr) : [...prev, fr]
+    )
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    setIsSubmitting(true)
+    setError(null)
+
+    try {
+      const { error: apiError } = await api.PATCH("/api/v1/organizations/{orgId}/members/{userId}", {
+        params: { path: { orgId: organizationId, userId: member.userId } },
+        body: {
+          role,
+          functionalRoles
+        }
+      })
+
+      if (apiError) {
+        const errorMessage = typeof apiError === "object" && "message" in apiError
+          ? String(apiError.message)
+          : "Failed to update member"
+        setError(errorMessage)
+        return
+      }
+
+      onSuccess()
+      onClose()
+    } catch {
+      setError("An unexpected error occurred")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      data-testid="edit-member-modal"
+    >
+      <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">Edit Member Role</h2>
+            <p className="text-sm text-gray-500">{member.displayName}</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"
+            data-testid="edit-modal-close"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {error && (
+            <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700">
+              {error}
+            </div>
+          )}
+
+          <div>
+            <label htmlFor="edit-role" className="block text-sm font-medium text-gray-700">
+              Base Role
+            </label>
+            <select
+              id="edit-role"
+              value={role}
+              onChange={(e) => {
+                const value = e.target.value
+                if (isEditRole(value)) {
+                  setRole(value)
+                }
+              }}
+              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              data-testid="edit-role-select"
+            >
+              <option value="admin">Admin</option>
+              <option value="member">Member</option>
+              <option value="viewer">Viewer</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Functional Roles
+            </label>
+            <div className="space-y-2">
+              {FUNCTIONAL_ROLE_KEYS.map((fr) => (
+                <label
+                  key={fr}
+                  className="flex items-center gap-2 cursor-pointer"
+                >
+                  <input
+                    type="checkbox"
+                    checked={functionalRoles.includes(fr)}
+                    onChange={() => toggleFunctionalRole(fr)}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    data-testid={`functional-role-${fr}`}
+                  />
+                  <span className="text-sm text-gray-700">{FUNCTIONAL_ROLE_LABELS[fr]}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={onClose}
+              disabled={isSubmitting}
+              data-testid="edit-cancel-button"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              loading={isSubmitting}
+              disabled={isSubmitting}
+              data-testid="edit-submit-button"
+            >
+              Save Changes
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}

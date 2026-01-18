@@ -26,6 +26,7 @@ import { Route as OrganizationsOrganizationIdExchangeRatesIndexRouteImport } fro
 import { Route as OrganizationsOrganizationIdConsolidationIndexRouteImport } from './routes/organizations/$organizationId/consolidation/index'
 import { Route as OrganizationsOrganizationIdCompaniesIndexRouteImport } from './routes/organizations/$organizationId/companies/index'
 import { Route as OrganizationsOrganizationIdAuditLogIndexRouteImport } from './routes/organizations/$organizationId/audit-log/index'
+import { Route as OrganizationsOrganizationIdSettingsMembersRouteImport } from './routes/organizations/$organizationId/settings/members'
 import { Route as OrganizationsOrganizationIdIntercompanyNewRouteImport } from './routes/organizations/$organizationId/intercompany/new'
 import { Route as OrganizationsOrganizationIdExchangeRatesNewRouteImport } from './routes/organizations/$organizationId/exchange-rates/new'
 import { Route as OrganizationsOrganizationIdConsolidationNewRouteImport } from './routes/organizations/$organizationId/consolidation/new'
@@ -148,6 +149,12 @@ const OrganizationsOrganizationIdAuditLogIndexRoute =
     id: '/audit-log/',
     path: '/audit-log/',
     getParentRoute: () => OrganizationsOrganizationIdRouteRoute,
+  } as any)
+const OrganizationsOrganizationIdSettingsMembersRoute =
+  OrganizationsOrganizationIdSettingsMembersRouteImport.update({
+    id: '/members',
+    path: '/members',
+    getParentRoute: () => OrganizationsOrganizationIdSettingsRoute,
   } as any)
 const OrganizationsOrganizationIdIntercompanyNewRoute =
   OrganizationsOrganizationIdIntercompanyNewRouteImport.update({
@@ -355,12 +362,13 @@ export interface FileRoutesByFullPath {
   '/organizations/new': typeof OrganizationsNewRoute
   '/organizations': typeof OrganizationsIndexRoute
   '/organizations/$organizationId/dashboard': typeof OrganizationsOrganizationIdDashboardRoute
-  '/organizations/$organizationId/settings': typeof OrganizationsOrganizationIdSettingsRoute
+  '/organizations/$organizationId/settings': typeof OrganizationsOrganizationIdSettingsRouteWithChildren
   '/organizations/$organizationId/': typeof OrganizationsOrganizationIdIndexRoute
   '/organizations/$organizationId/companies/new': typeof OrganizationsOrganizationIdCompaniesNewRoute
   '/organizations/$organizationId/consolidation/new': typeof OrganizationsOrganizationIdConsolidationNewRoute
   '/organizations/$organizationId/exchange-rates/new': typeof OrganizationsOrganizationIdExchangeRatesNewRoute
   '/organizations/$organizationId/intercompany/new': typeof OrganizationsOrganizationIdIntercompanyNewRoute
+  '/organizations/$organizationId/settings/members': typeof OrganizationsOrganizationIdSettingsMembersRoute
   '/organizations/$organizationId/audit-log': typeof OrganizationsOrganizationIdAuditLogIndexRoute
   '/organizations/$organizationId/companies': typeof OrganizationsOrganizationIdCompaniesIndexRoute
   '/organizations/$organizationId/consolidation': typeof OrganizationsOrganizationIdConsolidationIndexRoute
@@ -400,12 +408,13 @@ export interface FileRoutesByTo {
   '/organizations/new': typeof OrganizationsNewRoute
   '/organizations': typeof OrganizationsIndexRoute
   '/organizations/$organizationId/dashboard': typeof OrganizationsOrganizationIdDashboardRoute
-  '/organizations/$organizationId/settings': typeof OrganizationsOrganizationIdSettingsRoute
+  '/organizations/$organizationId/settings': typeof OrganizationsOrganizationIdSettingsRouteWithChildren
   '/organizations/$organizationId': typeof OrganizationsOrganizationIdIndexRoute
   '/organizations/$organizationId/companies/new': typeof OrganizationsOrganizationIdCompaniesNewRoute
   '/organizations/$organizationId/consolidation/new': typeof OrganizationsOrganizationIdConsolidationNewRoute
   '/organizations/$organizationId/exchange-rates/new': typeof OrganizationsOrganizationIdExchangeRatesNewRoute
   '/organizations/$organizationId/intercompany/new': typeof OrganizationsOrganizationIdIntercompanyNewRoute
+  '/organizations/$organizationId/settings/members': typeof OrganizationsOrganizationIdSettingsMembersRoute
   '/organizations/$organizationId/audit-log': typeof OrganizationsOrganizationIdAuditLogIndexRoute
   '/organizations/$organizationId/companies': typeof OrganizationsOrganizationIdCompaniesIndexRoute
   '/organizations/$organizationId/consolidation': typeof OrganizationsOrganizationIdConsolidationIndexRoute
@@ -447,12 +456,13 @@ export interface FileRoutesById {
   '/organizations/new': typeof OrganizationsNewRoute
   '/organizations/': typeof OrganizationsIndexRoute
   '/organizations/$organizationId/dashboard': typeof OrganizationsOrganizationIdDashboardRoute
-  '/organizations/$organizationId/settings': typeof OrganizationsOrganizationIdSettingsRoute
+  '/organizations/$organizationId/settings': typeof OrganizationsOrganizationIdSettingsRouteWithChildren
   '/organizations/$organizationId/': typeof OrganizationsOrganizationIdIndexRoute
   '/organizations/$organizationId/companies/new': typeof OrganizationsOrganizationIdCompaniesNewRoute
   '/organizations/$organizationId/consolidation/new': typeof OrganizationsOrganizationIdConsolidationNewRoute
   '/organizations/$organizationId/exchange-rates/new': typeof OrganizationsOrganizationIdExchangeRatesNewRoute
   '/organizations/$organizationId/intercompany/new': typeof OrganizationsOrganizationIdIntercompanyNewRoute
+  '/organizations/$organizationId/settings/members': typeof OrganizationsOrganizationIdSettingsMembersRoute
   '/organizations/$organizationId/audit-log/': typeof OrganizationsOrganizationIdAuditLogIndexRoute
   '/organizations/$organizationId/companies/': typeof OrganizationsOrganizationIdCompaniesIndexRoute
   '/organizations/$organizationId/consolidation/': typeof OrganizationsOrganizationIdConsolidationIndexRoute
@@ -501,6 +511,7 @@ export interface FileRouteTypes {
     | '/organizations/$organizationId/consolidation/new'
     | '/organizations/$organizationId/exchange-rates/new'
     | '/organizations/$organizationId/intercompany/new'
+    | '/organizations/$organizationId/settings/members'
     | '/organizations/$organizationId/audit-log'
     | '/organizations/$organizationId/companies'
     | '/organizations/$organizationId/consolidation'
@@ -546,6 +557,7 @@ export interface FileRouteTypes {
     | '/organizations/$organizationId/consolidation/new'
     | '/organizations/$organizationId/exchange-rates/new'
     | '/organizations/$organizationId/intercompany/new'
+    | '/organizations/$organizationId/settings/members'
     | '/organizations/$organizationId/audit-log'
     | '/organizations/$organizationId/companies'
     | '/organizations/$organizationId/consolidation'
@@ -592,6 +604,7 @@ export interface FileRouteTypes {
     | '/organizations/$organizationId/consolidation/new'
     | '/organizations/$organizationId/exchange-rates/new'
     | '/organizations/$organizationId/intercompany/new'
+    | '/organizations/$organizationId/settings/members'
     | '/organizations/$organizationId/audit-log/'
     | '/organizations/$organizationId/companies/'
     | '/organizations/$organizationId/consolidation/'
@@ -754,6 +767,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/organizations/$organizationId/audit-log'
       preLoaderRoute: typeof OrganizationsOrganizationIdAuditLogIndexRouteImport
       parentRoute: typeof OrganizationsOrganizationIdRouteRoute
+    }
+    '/organizations/$organizationId/settings/members': {
+      id: '/organizations/$organizationId/settings/members'
+      path: '/members'
+      fullPath: '/organizations/$organizationId/settings/members'
+      preLoaderRoute: typeof OrganizationsOrganizationIdSettingsMembersRouteImport
+      parentRoute: typeof OrganizationsOrganizationIdSettingsRoute
     }
     '/organizations/$organizationId/intercompany/new': {
       id: '/organizations/$organizationId/intercompany/new'
@@ -947,6 +967,21 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface OrganizationsOrganizationIdSettingsRouteChildren {
+  OrganizationsOrganizationIdSettingsMembersRoute: typeof OrganizationsOrganizationIdSettingsMembersRoute
+}
+
+const OrganizationsOrganizationIdSettingsRouteChildren: OrganizationsOrganizationIdSettingsRouteChildren =
+  {
+    OrganizationsOrganizationIdSettingsMembersRoute:
+      OrganizationsOrganizationIdSettingsMembersRoute,
+  }
+
+const OrganizationsOrganizationIdSettingsRouteWithChildren =
+  OrganizationsOrganizationIdSettingsRoute._addFileChildren(
+    OrganizationsOrganizationIdSettingsRouteChildren,
+  )
+
 interface OrganizationsOrganizationIdConsolidationGroupIdRunsRunIdRouteChildren {
   OrganizationsOrganizationIdConsolidationGroupIdRunsRunIdReportsBalanceSheetRoute: typeof OrganizationsOrganizationIdConsolidationGroupIdRunsRunIdReportsBalanceSheetRoute
   OrganizationsOrganizationIdConsolidationGroupIdRunsRunIdReportsCashFlowRoute: typeof OrganizationsOrganizationIdConsolidationGroupIdRunsRunIdReportsCashFlowRoute
@@ -976,7 +1011,7 @@ const OrganizationsOrganizationIdConsolidationGroupIdRunsRunIdRouteWithChildren 
 
 interface OrganizationsOrganizationIdRouteRouteChildren {
   OrganizationsOrganizationIdDashboardRoute: typeof OrganizationsOrganizationIdDashboardRoute
-  OrganizationsOrganizationIdSettingsRoute: typeof OrganizationsOrganizationIdSettingsRoute
+  OrganizationsOrganizationIdSettingsRoute: typeof OrganizationsOrganizationIdSettingsRouteWithChildren
   OrganizationsOrganizationIdIndexRoute: typeof OrganizationsOrganizationIdIndexRoute
   OrganizationsOrganizationIdCompaniesNewRoute: typeof OrganizationsOrganizationIdCompaniesNewRoute
   OrganizationsOrganizationIdConsolidationNewRoute: typeof OrganizationsOrganizationIdConsolidationNewRoute
@@ -1013,7 +1048,7 @@ const OrganizationsOrganizationIdRouteRouteChildren: OrganizationsOrganizationId
     OrganizationsOrganizationIdDashboardRoute:
       OrganizationsOrganizationIdDashboardRoute,
     OrganizationsOrganizationIdSettingsRoute:
-      OrganizationsOrganizationIdSettingsRoute,
+      OrganizationsOrganizationIdSettingsRouteWithChildren,
     OrganizationsOrganizationIdIndexRoute:
       OrganizationsOrganizationIdIndexRoute,
     OrganizationsOrganizationIdCompaniesNewRoute:

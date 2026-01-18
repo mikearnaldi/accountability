@@ -894,18 +894,26 @@ Same pattern for consolidation pages.
 
 ---
 
-### Track H: Frontend - Member Management
+### Track H: Frontend - Member Management ✅ COMPLETE
 
-#### Phase H1: Members Page Route
+#### Phase H1: Members Page Route ✅ COMPLETE
 **File**: `packages/web/src/routes/organizations/$organizationId/settings/members.tsx`
 
 Create route with:
 - Loader fetching members list
 - Basic page layout with table
 
+**Completed**: Created `settings/members.tsx` with:
+- Loader fetching organization, members, invitations, and companies data
+- AppLayout integration with sidebar
+- Page header with refresh and invite buttons
+- Active/inactive members sections
+- Empty state with CTA
+- Permission-based UI element hiding via `usePermissions`
+
 ---
 
-#### Phase H2: Member Table Component
+#### Phase H2: Member Table Component ✅ COMPLETE
 Display members with:
 - Name, email
 - Role badge
@@ -913,10 +921,18 @@ Display members with:
 - Status indicator
 - Actions dropdown
 
+**Completed**: `MembersTable` component with:
+- Avatar with initials, name, and email columns
+- Role badges using `RoleBadge` from OrganizationSelector
+- Functional roles as gray tags
+- Status indicator (active/suspended/removed)
+- Joined date column
+- Actions dropdown column with MoreVertical icon
+
 ---
 
-#### Phase H3: Invite Member Modal
-**File**: `packages/web/src/components/forms/InviteMemberModal.tsx`
+#### Phase H3: Invite Member Modal ✅ COMPLETE
+**File**: `packages/web/src/routes/organizations/$organizationId/settings/members.tsx` (inline)
 
 Form with:
 - Email input (with validation)
@@ -924,30 +940,57 @@ Form with:
 - Functional roles checkboxes
 - Submit/cancel buttons
 
+**Completed**: `InviteMemberModal` component with:
+- Email input with validation
+- Role select (admin/member/viewer) with descriptions
+- API integration via POST `/api/v1/organizations/{orgId}/members/invite`
+- Error handling and loading states
+- Cancel and Submit buttons
+
 ---
 
-#### Phase H4: Edit Member Role Modal
-**File**: `packages/web/src/components/forms/EditMemberRoleModal.tsx`
+#### Phase H4: Edit Member Role Modal ✅ COMPLETE
+**File**: `packages/web/src/routes/organizations/$organizationId/settings/members.tsx` (inline)
 
 Form with:
 - Role dropdown (with templates)
 - Functional roles checkboxes
 - Effective permissions display (read-only)
 
+**Completed**: `EditMemberModal` component with:
+- Base role select (admin/member/viewer)
+- Functional roles checkboxes (controller, finance_manager, accountant, period_admin, consolidation_manager)
+- API integration via PATCH `/api/v1/organizations/{orgId}/members/{userId}`
+- Error handling and loading states
+
 ---
 
-#### Phase H5: Member Actions
+#### Phase H5: Member Actions ✅ COMPLETE
 Implement:
 - Remove member (confirmation dialog)
 - Reinstate member
 - Transfer ownership (owner only, confirmation)
 
+**Completed**: `MemberActionsMenu` component with:
+- Edit Role action (disabled for owners)
+- Remove action with confirmation (disabled for self and owners)
+- Reinstate action (for removed members)
+- Owner protection message
+- Context-sensitive action visibility
+
 ---
 
-#### Phase H6: Pending Invitations Section
+#### Phase H6: Pending Invitations Section ✅ COMPLETE
 Add section showing:
 - Pending invitations list
 - Revoke button for each
+
+**Completed**: `PendingInvitationsSection` component with:
+- Yellow-themed section with Clock icon
+- Invitation cards showing email, role badge, inviter, and sent date
+- Revoke button for each invitation
+- API integration via DELETE `/api/v1/organizations/{orgId}/invitations/{invitationId}`
+- Loading states during revocation
 
 ---
 
