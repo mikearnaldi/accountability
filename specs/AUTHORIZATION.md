@@ -616,7 +616,7 @@ Function to match request context against EnvironmentCondition:
 
 ---
 
-#### Phase F5: Policy Engine Service
+#### Phase F5: Policy Engine Service ✅ COMPLETE
 **Files**:
 - `packages/core/src/Auth/PolicyEngine.ts` - Interface
 - `packages/persistence/src/Layers/PolicyEngineLive.ts` - Implementation
@@ -632,6 +632,24 @@ Function to match request context against EnvironmentCondition:
 4. Default deny
 
 **Test**: Integration tests.
+
+**Completed**:
+- Created `PolicyEngine.ts` interface with Context.Tag pattern for the policy engine service
+- Defined `PolicyEvaluationContext` interface (subject, resource, action, optional environment)
+- Defined `PolicyMatchResult` and `PolicyEvaluationResult` types for evaluation results
+- Implemented `PolicyEngineLive.ts` with full evaluation logic:
+  - `evaluatePolicy` - evaluates single policy against context using all 4 matchers
+  - `evaluatePolicies` - evaluates multiple policies with deny-first, priority-ordered logic
+  - `wouldDeny` - quick check if any deny policy matches
+  - `findMatchingPolicies` - returns all matching policies for debugging
+- Evaluation follows spec: (1) filter to active, (2) deny policies first, (3) allow by priority, (4) default deny
+- Added exports to packages/core/package.json and packages/persistence/package.json
+- Created comprehensive unit tests (34 tests) covering:
+  - Wildcard matching, role matching, resource type matching, action matching
+  - Environment condition handling, functional role matching, resource attribute matching
+  - Priority ordering, deny-first precedence, default deny behavior
+  - Complex policy combinations demonstrating locked period enforcement
+- All 3882 tests pass, typecheck clean, lint clean
 
 ---
 

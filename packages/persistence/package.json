@@ -58,6 +58,7 @@
     "./Layers/OrganizationMemberServiceLive": "./src/Layers/OrganizationMemberServiceLive.ts",
     "./Layers/InvitationServiceLive": "./src/Layers/InvitationServiceLive.ts",
     "./Layers/AuthorizationServiceLive": "./src/Layers/AuthorizationServiceLive.ts",
+    "./Layers/PolicyEngineLive": "./src/Layers/PolicyEngineLive.ts",
     "./Migrations/Migration0001_CreateOrganizations": "./src/Migrations/Migration0001_CreateOrganizations.ts",
     "./Migrations/Migration0002_CreateCompanies": "./src/Migrations/Migration0002_CreateCompanies.ts",
     "./Migrations/Migration0003_CreateAccounts": "./src/Migrations/Migration0003_CreateAccounts.ts",
