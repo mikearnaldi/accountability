@@ -45,22 +45,28 @@ The AUTHORIZATION.md spec defines actions for fiscal period management, but the 
 
 ### 2. Owner Transfer UI
 
-**Status: BACKEND ONLY - NO UI**
+**Status: IMPLEMENTED** ✓
 
-The backend supports ownership transfer, but there's no way to trigger it from the UI:
+~~The backend supports ownership transfer, but there's no way to trigger it from the UI~~
 
 **What's Implemented:**
 - `POST /v1/organizations/:orgId/transfer-ownership` API endpoint
 - `OrganizationMemberService.transferOwnership()` with business rules
 - Validation: Target must be admin, atomic transaction
+- [x] **Transfer ownership button/action** in members page - appears in owner's action menu
+- [x] **Confirmation modal** with warnings about implications - two-step flow with warning
+- [x] **Role selection** for previous owner's new role (admin/member/viewer)
+- [x] **Visual indicator** showing who the current owner is - Crown icon next to Owner badge
 
-**What's Missing:**
-- [ ] **Transfer ownership button/action** in members page
-- [ ] **Confirmation modal** with warnings about implications
-- [ ] **Role selection** for previous owner's new role (admin/member/viewer)
-- [ ] **Visual indicator** showing who the current owner is
+**Workflow:**
+1. Owner clicks their own action menu (three dots)
+2. Selects "Transfer Ownership" action
+3. Modal appears to select new owner (from admin members) and choose their new role
+4. Clicking "Continue" shows confirmation with warnings
+5. Clicking "Transfer Ownership" completes the transfer
 
-**Location:** Should be added to `/packages/web/src/routes/organizations/$organizationId/settings/members.tsx`
+**Files Modified:**
+- `packages/web/src/routes/organizations/$organizationId/settings/members.tsx` - Added TransferOwnershipModal, Crown icon indicator, transfer action in menu
 
 ---
 
@@ -403,10 +409,10 @@ The database has this constraint, but the UI doesn't handle the duplicate invita
 
 ### Phase 1: Quick Wins (Low effort, High impact)
 1. **Fix profile page** - Preserve org context, remove broken Role field, add memberships list (1-2 hours)
-2. **Show invitation link after creation** - Display shareable URL with copy button (30 min)
-3. **Complete member removal API calls** - Fix stub implementations (30 min)
-4. **Add owner transfer modal** - UI for existing backend (2-3 hours)
-5. **Show current owner indicator** - Visual badge in members list (30 min)
+2. ~~**Show invitation link after creation** - Display shareable URL with copy button (30 min)~~ ✓ DONE
+3. ~~**Complete member removal API calls** - Fix stub implementations (30 min)~~ ✓ DONE
+4. ~~**Add owner transfer modal** - UI for existing backend (2-3 hours)~~ ✓ DONE
+5. ~~**Show current owner indicator** - Visual badge in members list (30 min)~~ ✓ DONE (Crown icon)
 
 ### Phase 2: Environment Integration (Medium effort)
 6. **Capture request context in middleware** - Time, IP, user agent (2-3 hours)

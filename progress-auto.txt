@@ -584,3 +584,8 @@
 **Task**: Implemented member removal and reinstatement API calls in MemberActionsMenu component with proper error handling and auto-refresh
 **Status**: complete
 ---
+
+## Iteration 4 - 2026-01-18 13:09
+**Task**: Added owner transfer UI with modal, confirmation flow, and crown indicator
+**Status**: complete
+---

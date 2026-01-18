@@ -16,7 +16,7 @@ import { createFileRoute, redirect, useRouter } from "@tanstack/react-router"
 import { createServerFn } from "@tanstack/react-start"
 import { getCookie } from "@tanstack/react-start/server"
 import { useState } from "react"
-import { Users, Mail, MoreVertical, UserPlus, Shield, RefreshCw, UserMinus, Clock, X, Copy, Check, Link } from "lucide-react"
+import { Users, Mail, MoreVertical, UserPlus, Shield, RefreshCw, UserMinus, Clock, X, Copy, Check, Link, Crown, ArrowRightLeft, AlertTriangle } from "lucide-react"
 import { clsx } from "clsx"
 import { api } from "@/api/client"
 import { createServerApi } from "@/api/server"
@@ -239,8 +239,13 @@ function MembersPage() {
   const [showInviteModal, setShowInviteModal] = useState(false)
   const [selectedMember, setSelectedMember] = useState<Member | null>(null)
   const [actionMenuOpen, setActionMenuOpen] = useState<string | null>(null)
+  const [showTransferModal, setShowTransferModal] = useState(false)
 
   const canManageMembers = canPerform("organization:manage_members")
+
+  // Find the current owner
+  const owner = members.find((m) => m.role === "owner")
+  const isCurrentUserOwner = owner?.userId === user?.id
 
   if (!organization) {
     return null
@@ -311,6 +316,8 @@ function MembersPage() {
           organizationId={organization.id}
           onRefresh={handleRefresh}
           currentUserId={user?.id}
+          isCurrentUserOwner={isCurrentUserOwner}
+          onTransferOwnership={() => setShowTransferModal(true)}
           data-testid="active-members-section"
         />
 
@@ -385,6 +392,16 @@ function MembersPage() {
             onSuccess={handleRefresh}
           />
         )}
+
+        {/* Transfer Ownership Modal */}
+        {showTransferModal && (
+          <TransferOwnershipModal
+            organizationId={organization.id}
+            adminMembers={activeMembers.filter((m) => m.role === "admin")}
+            onClose={() => setShowTransferModal(false)}
+            onSuccess={handleRefresh}
+          />
+        )}
       </div>
     </AppLayout>
   )
@@ -405,6 +422,8 @@ interface MembersTableProps {
   readonly organizationId: string
   readonly onRefresh: () => void
   readonly currentUserId?: string | undefined
+  readonly isCurrentUserOwner?: boolean
+  readonly onTransferOwnership?: () => void
   readonly showStatus?: boolean
   readonly "data-testid"?: string
 }
@@ -420,6 +439,8 @@ function MembersTable({
   organizationId,
   onRefresh,
   currentUserId,
+  isCurrentUserOwner = false,
+  onTransferOwnership,
   showStatus = false,
   "data-testid": testId
 }: MembersTableProps) {
@@ -487,7 +508,14 @@ function MembersTable({
 
                 {/* Role */}
                 <td className="px-6 py-4">
-                  <RoleBadge role={member.role} size="md" />
+                  <div className="flex items-center gap-2">
+                    <RoleBadge role={member.role} size="md" />
+                    {member.role === "owner" && (
+                      <span title="Organization Owner" data-testid="owner-indicator">
+                        <Crown className="h-4 w-4 text-amber-500" aria-label="Organization Owner" />
+                      </span>
+                    )}
+                  </div>
                 </td>
 
                 {/* Functional Roles */}
@@ -544,6 +572,7 @@ function MembersTable({
                         <MemberActionsMenu
                           member={member}
                           isCurrentUser={isCurrentUser}
+                          isCurrentUserOwner={isCurrentUserOwner}
                           organizationId={organizationId}
                           onClose={() => onActionMenuToggle(null)}
                           onEdit={() => {
@@ -551,6 +580,7 @@ function MembersTable({
                             onSelectMember(member)
                           }}
                           onRefresh={onRefresh}
+                          onTransferOwnership={onTransferOwnership}
                         />
                       )}
                     </div>
@@ -572,13 +602,15 @@ function MembersTable({
 interface MemberActionsMenuProps {
   readonly member: Member
   readonly isCurrentUser: boolean
+  readonly isCurrentUserOwner: boolean
   readonly organizationId: string
   readonly onClose: () => void
   readonly onEdit: () => void
   readonly onRefresh: () => void
+  readonly onTransferOwnership: (() => void) | undefined
 }
 
-function MemberActionsMenu({ member, isCurrentUser, organizationId, onClose, onEdit, onRefresh }: MemberActionsMenuProps) {
+function MemberActionsMenu({ member, isCurrentUser, isCurrentUserOwner, organizationId, onClose, onEdit, onRefresh, onTransferOwnership }: MemberActionsMenuProps) {
   const [isRemoving, setIsRemoving] = useState(false)
   const [isReinstating, setIsReinstating] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -689,10 +721,25 @@ function MemberActionsMenu({ member, isCurrentUser, organizationId, onClose, onE
         </button>
       )}
 
-      {isOwner && (
+      {isOwner && !isCurrentUserOwner && (
         <div className="px-4 py-2 text-xs text-gray-500">
           Owner cannot be modified
         </div>
+      )}
+
+      {/* Show transfer ownership option for the current owner viewing their own menu */}
+      {isOwner && isCurrentUserOwner && isCurrentUser && onTransferOwnership && (
+        <button
+          onClick={() => {
+            onClose()
+            onTransferOwnership()
+          }}
+          className="flex items-center gap-2 w-full px-4 py-2 text-sm text-amber-700 hover:bg-amber-50"
+          data-testid="member-transfer-ownership"
+        >
+          <ArrowRightLeft className="h-4 w-4" />
+          Transfer Ownership
+        </button>
       )}
     </div>
   )
@@ -1278,6 +1325,288 @@ function EditMemberModal({ member, organizationId, onClose, onSuccess }: EditMem
             </Button>
           </div>
         </form>
+      </div>
+    </div>
+  )
+}
+
+// =============================================================================
+// Transfer Ownership Modal
+// =============================================================================
+
+interface TransferOwnershipModalProps {
+  readonly organizationId: string
+  readonly adminMembers: readonly Member[]
+  readonly onClose: () => void
+  readonly onSuccess: () => void
+}
+
+type MyNewRole = "admin" | "member" | "viewer"
+
+const MY_NEW_ROLE_OPTIONS: readonly { readonly value: MyNewRole; readonly label: string; readonly description: string }[] = [
+  { value: "admin", label: "Admin", description: "Full organization management" },
+  { value: "member", label: "Member", description: "Access based on functional roles" },
+  { value: "viewer", label: "Viewer", description: "Read-only access" }
+]
+
+function isMyNewRole(value: string): value is MyNewRole {
+  return value === "admin" || value === "member" || value === "viewer"
+}
+
+function TransferOwnershipModal({ organizationId, adminMembers, onClose, onSuccess }: TransferOwnershipModalProps) {
+  const [selectedUserId, setSelectedUserId] = useState<string>("")
+  const [myNewRole, setMyNewRole] = useState<MyNewRole>("admin")
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [showConfirm, setShowConfirm] = useState(false)
+
+  const selectedMember = adminMembers.find((m) => m.userId === selectedUserId)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!selectedUserId) {
+      setError("Please select a new owner")
+      return
+    }
+
+    // First step: show confirmation
+    if (!showConfirm) {
+      setShowConfirm(true)
+      return
+    }
+
+    // Second step: actually transfer
+    setIsSubmitting(true)
+    setError(null)
+
+    try {
+      const { error: apiError } = await api.POST("/api/v1/organizations/{orgId}/transfer-ownership", {
+        params: { path: { orgId: organizationId } },
+        body: {
+          toUserId: selectedUserId,
+          myNewRole
+        }
+      })
+
+      if (apiError) {
+        const errorMessage = typeof apiError === "object" && "message" in apiError
+          ? String(apiError.message)
+          : "Failed to transfer ownership"
+        setError(errorMessage)
+        setShowConfirm(false)
+        return
+      }
+
+      onSuccess()
+      onClose()
+    } catch {
+      setError("An unexpected error occurred")
+      setShowConfirm(false)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  // Confirmation view
+  if (showConfirm && selectedMember) {
+    return (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+        data-testid="transfer-ownership-modal"
+      >
+        <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">Confirm Ownership Transfer</h2>
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"
+              data-testid="transfer-modal-close"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            <div className="rounded-lg bg-amber-50 border border-amber-200 p-4">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  <h3 className="font-medium text-amber-800">This action cannot be undone</h3>
+                  <p className="text-sm text-amber-700 mt-1">
+                    You are about to transfer organization ownership to <strong>{selectedMember.displayName}</strong>.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2 text-sm text-gray-600">
+              <p><strong>After transfer:</strong></p>
+              <ul className="list-disc list-inside space-y-1 ml-2">
+                <li><strong>{selectedMember.displayName}</strong> will become the new owner</li>
+                <li>Your role will change to <strong>{MY_NEW_ROLE_OPTIONS.find(r => r.value === myNewRole)?.label}</strong></li>
+                <li>Only the new owner can transfer ownership again</li>
+              </ul>
+            </div>
+
+            {error && (
+              <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700">
+                {error}
+              </div>
+            )}
+
+            <div className="flex justify-end gap-3 pt-4">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setShowConfirm(false)}
+                disabled={isSubmitting}
+                data-testid="transfer-back-button"
+              >
+                Back
+              </Button>
+              <Button
+                type="button"
+                variant="danger"
+                loading={isSubmitting}
+                disabled={isSubmitting}
+                onClick={handleSubmit}
+                data-testid="transfer-confirm-button"
+              >
+                Transfer Ownership
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Selection form view
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      data-testid="transfer-ownership-modal"
+    >
+      <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Crown className="h-5 w-5 text-amber-500" />
+            <h2 className="text-lg font-semibold text-gray-900">Transfer Ownership</h2>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"
+            data-testid="transfer-modal-close"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {adminMembers.length === 0 ? (
+          <div className="space-y-4">
+            <div className="rounded-lg bg-yellow-50 border border-yellow-200 p-4">
+              <p className="text-sm text-yellow-800">
+                <strong>No eligible members.</strong> Ownership can only be transferred to admin members.
+                First promote a member to admin, then you can transfer ownership to them.
+              </p>
+            </div>
+            <div className="flex justify-end">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={onClose}
+                data-testid="transfer-close-button"
+              >
+                Close
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+              <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700">
+                {error}
+              </div>
+            )}
+
+            <div>
+              <label htmlFor="transfer-target" className="block text-sm font-medium text-gray-700">
+                New Owner
+              </label>
+              <p className="text-xs text-gray-500 mb-2">
+                Select an admin member to become the new organization owner.
+              </p>
+              <select
+                id="transfer-target"
+                value={selectedUserId}
+                onChange={(e) => setSelectedUserId(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                data-testid="transfer-target-select"
+              >
+                <option value="">Select a member...</option>
+                {adminMembers.map((member) => (
+                  <option key={member.userId} value={member.userId}>
+                    {member.displayName} ({member.email})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="my-new-role" className="block text-sm font-medium text-gray-700">
+                Your New Role
+              </label>
+              <p className="text-xs text-gray-500 mb-2">
+                What role do you want after transferring ownership?
+              </p>
+              <select
+                id="my-new-role"
+                value={myNewRole}
+                onChange={(e) => {
+                  const value = e.target.value
+                  if (isMyNewRole(value)) {
+                    setMyNewRole(value)
+                  }
+                }}
+                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                data-testid="my-new-role-select"
+              >
+                {MY_NEW_ROLE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label} - {option.description}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="rounded-lg bg-blue-50 border border-blue-200 p-3">
+              <p className="text-sm text-blue-700">
+                <strong>Note:</strong> Ownership can only be transferred to admin members.
+                If you don&apos;t see the member you want, promote them to admin first.
+              </p>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={onClose}
+                data-testid="transfer-cancel-button"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="primary"
+                disabled={!selectedUserId}
+                data-testid="transfer-continue-button"
+              >
+                Continue
+              </Button>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   )
