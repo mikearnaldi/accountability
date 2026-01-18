@@ -609,3 +609,8 @@
 **Task**: Implemented Authorization Denial Audit Log UI with API endpoint, filtering, and navigation
 **Status**: complete
 ---
+
+## Iteration 10 - 2026-01-18 14:07
+**Task**: Implemented Effective Permissions Display UI with categorized permission matrix on Members page
+**Status**: complete
+---

@@ -254,33 +254,35 @@ The membership status includes "suspended" but it's never used:
 
 ### 10. Effective Permissions Display
 
-**Status: CACHED INTERNALLY - NOT SHOWN TO USERS**
+**Status: IMPLEMENTED** ✓
 
-Permissions are calculated and cached, but users can't see what permissions they or others have:
+~~Permissions are calculated and cached, but users can't see what permissions they or others have~~
 
 **What's Implemented:**
 - `AuthorizationService.getEffectivePermissions()` returns all allowed actions
 - `usePermissions()` hook with `canPerform()` helper
 - UI elements conditionally shown/hidden based on permissions
 - Policy test modal shows allow/deny decision
+- [x] **"My Permissions" button** on Members page to view current user's effective permissions
+- [x] **Permission matrix visualization** showing categorized actions with allowed/denied indicators
+- [x] **EffectivePermissionsView component** with expandable categories:
+  - Organization, Companies, Chart of Accounts, Journal Entries
+  - Fiscal Periods, Consolidation, Reports, Exchange Rates, Audit Log
+  - Shows count (allowed/total) for each category
+  - Visual indicators (green checkmarks, gray X marks) for each action
+- [x] **EffectivePermissionsModal** displaying:
+  - User info (name, email)
+  - Base role badge
+  - Functional roles badges
+  - Full categorized permissions view
 
-**What's Missing:**
-- [ ] **"View permissions" UI** to see all effective permissions for a user
-- [ ] **Permission matrix visualization** showing role → action mappings
-- [ ] **Member detail permission breakdown** in edit member modal
-- [ ] **Policy impact preview** showing how a policy change affects permissions
+**Files Added:**
+- `packages/web/src/components/members/EffectivePermissionsView.tsx` - Reusable permission display component
+- Updated `packages/web/src/routes/organizations/$organizationId/settings/members.tsx` - Added modal and button
 
-**Spec Reference:** AUTHORIZATION.md shows "Effective Permissions View" mockup with checkmarks/crosses:
-```
-│ Effective Permissions:                      │
-│ ✓ journal_entry:create                      │
-│ ✓ journal_entry:edit                        │
-│ ✓ journal_entry:post                        │
-│ ✓ fiscal_period:open                        │
-│ ✗ fiscal_period:lock (requires controller)  │
-```
-
-This UI component is not implemented.
+**What's NOT Implemented (Lower Priority):**
+- [ ] **View other members' permissions** - Would require new API endpoint to fetch permissions for arbitrary users
+- [ ] **Policy impact preview** - Would show how a policy change affects permissions before saving
 
 ---
 

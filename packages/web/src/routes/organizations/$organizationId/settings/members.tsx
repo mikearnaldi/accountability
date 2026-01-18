@@ -16,7 +16,7 @@ import { createFileRoute, redirect, useRouter } from "@tanstack/react-router"
 import { createServerFn } from "@tanstack/react-start"
 import { getCookie } from "@tanstack/react-start/server"
 import { useState } from "react"
-import { Users, Mail, MoreVertical, UserPlus, Shield, RefreshCw, UserMinus, Clock, X, Copy, Check, Link, Crown, ArrowRightLeft, AlertTriangle } from "lucide-react"
+import { Users, Mail, MoreVertical, UserPlus, Shield, RefreshCw, UserMinus, Clock, X, Copy, Check, Link, Crown, ArrowRightLeft, AlertTriangle, Eye } from "lucide-react"
 import { clsx } from "clsx"
 import { api } from "@/api/client"
 import { createServerApi } from "@/api/server"
@@ -25,6 +25,7 @@ import { MinimalRouteError } from "@/components/ui/RouteError"
 import { Button } from "@/components/ui/Button"
 import { RoleBadge, type BaseRole } from "@/components/layout/OrganizationSelector"
 import { usePermissions } from "@/hooks/usePermissions"
+import { EffectivePermissionsView } from "@/components/members/EffectivePermissionsView"
 
 // =============================================================================
 // Types
@@ -227,7 +228,7 @@ function MembersPage() {
   const router = useRouter()
   const user = context.user
   const organizations = context.organizations ?? []
-  const { canPerform } = usePermissions()
+  const { canPerform, currentOrganization: permissionsOrg } = usePermissions()
 
   /* eslint-disable @typescript-eslint/consistent-type-assertions -- Loader data typing */
   const organization = loaderData.organization as Organization | null
@@ -240,6 +241,7 @@ function MembersPage() {
   const [selectedMember, setSelectedMember] = useState<Member | null>(null)
   const [actionMenuOpen, setActionMenuOpen] = useState<string | null>(null)
   const [showTransferModal, setShowTransferModal] = useState(false)
+  const [showPermissionsModal, setShowPermissionsModal] = useState(false)
 
   const canManageMembers = canPerform("organization:manage_members")
 
@@ -282,6 +284,15 @@ function MembersPage() {
           </div>
 
           <div className="flex items-center gap-3">
+            <Button
+              variant="secondary"
+              onClick={() => setShowPermissionsModal(true)}
+              icon={<Eye className="h-4 w-4" />}
+              data-testid="members-view-permissions-button"
+            >
+              My Permissions
+            </Button>
+
             <Button
               variant="secondary"
               onClick={handleRefresh}
@@ -400,6 +411,18 @@ function MembersPage() {
             adminMembers={activeMembers.filter((m) => m.role === "admin")}
             onClose={() => setShowTransferModal(false)}
             onSuccess={handleRefresh}
+          />
+        )}
+
+        {/* View My Permissions Modal */}
+        {showPermissionsModal && permissionsOrg && (
+          <EffectivePermissionsModal
+            memberName={user?.displayName ?? "You"}
+            memberEmail={user?.email ?? ""}
+            effectivePermissions={permissionsOrg.effectivePermissions}
+            role={permissionsOrg.role}
+            functionalRoles={permissionsOrg.functionalRoles}
+            onClose={() => setShowPermissionsModal(false)}
           />
         )}
       </div>
@@ -1600,6 +1623,99 @@ function TransferOwnershipModal({ organizationId, adminMembers, onClose, onSucce
             </div>
           </form>
         )}
+      </div>
+    </div>
+  )
+}
+
+// =============================================================================
+// Effective Permissions Modal
+// =============================================================================
+
+interface EffectivePermissionsModalProps {
+  readonly memberName: string
+  readonly memberEmail: string
+  readonly effectivePermissions: readonly string[]
+  readonly role: BaseRole
+  readonly functionalRoles: readonly string[]
+  readonly onClose: () => void
+}
+
+function EffectivePermissionsModal({
+  memberName,
+  memberEmail,
+  effectivePermissions,
+  role,
+  functionalRoles,
+  onClose
+}: EffectivePermissionsModalProps) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      data-testid="effective-permissions-modal"
+    >
+      <div className="w-full max-w-2xl rounded-lg bg-white shadow-xl max-h-[90vh] flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">Effective Permissions</h2>
+            <p className="text-sm text-gray-500 mt-0.5">
+              {memberName} ({memberEmail})
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"
+            data-testid="permissions-modal-close"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Role Info */}
+        <div className="px-6 py-3 bg-gray-50 border-b border-gray-200">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-500">Base Role:</span>
+              <RoleBadge role={role} size="md" />
+            </div>
+            {functionalRoles.length > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-500">Functional Roles:</span>
+                <div className="flex flex-wrap gap-1">
+                  {functionalRoles.map((fr) => {
+                    const labelLookup: Record<string, string> = FUNCTIONAL_ROLE_LABELS
+                    const label = labelLookup[fr]
+                    return (
+                      <span
+                        key={fr}
+                        className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700"
+                      >
+                        {label ?? fr}
+                      </span>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Permissions View */}
+        <div className="flex-1 overflow-y-auto px-6 py-4">
+          <EffectivePermissionsView effectivePermissions={effectivePermissions} />
+        </div>
+
+        {/* Footer */}
+        <div className="flex justify-end px-6 py-4 border-t border-gray-200">
+          <Button
+            variant="primary"
+            onClick={onClose}
+            data-testid="permissions-modal-done"
+          >
+            Done
+          </Button>
+        </div>
       </div>
     </div>
   )
