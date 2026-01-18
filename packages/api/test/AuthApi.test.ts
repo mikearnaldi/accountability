@@ -45,6 +45,15 @@ import { MembershipApiLive } from "@accountability/api/Layers/MembershipApiLive"
 import { ReportsApiLive } from "@accountability/api/Layers/ReportsApiLive"
 import { UserOrganizationsApiLive } from "@accountability/api/Layers/UserOrganizationsApiLive"
 import { AuthorizationServiceLive } from "@accountability/persistence/Layers/AuthorizationServiceLive"
+import { PolicyEngineLive } from "@accountability/persistence/Layers/PolicyEngineLive"
+
+/**
+ * AuthorizationServiceWithDependencies - AuthorizationServiceLive with PolicyEngineLive
+ */
+const AuthorizationServiceWithDependencies = Layer.provide(
+  AuthorizationServiceLive,
+  PolicyEngineLive
+)
 
 // =============================================================================
 // Test Layer Setup
@@ -105,7 +114,7 @@ const AppApiLiveWithSessionAuth = HttpApiBuilder.api(AppApi)
   .pipe(Layer.provide(ConsolidatedReportServiceLive))
   .pipe(Layer.provide(EliminationRulesApiLive))
   .pipe(Layer.provide(UserOrganizationsApiLive))
-  .pipe(Layer.provide(AuthorizationServiceLive))
+  .pipe(Layer.provide(AuthorizationServiceWithDependencies))
   .pipe(Layer.provide(AuthMiddlewareWithSessionValidation))
 
 /**

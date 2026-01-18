@@ -13,6 +13,7 @@ import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import { ConsolidatedReportServiceLive } from "@accountability/core/Services/ConsolidatedReportService"
 import { AuthorizationServiceLive } from "@accountability/persistence/Layers/AuthorizationServiceLive"
+import { PolicyEngineLive } from "@accountability/persistence/Layers/PolicyEngineLive"
 import { AppApi, HealthCheckResponse } from "../Definitions/AppApi.ts"
 import { AuthMiddlewareLive } from "./AuthMiddlewareLive.ts"
 import { AccountsApiLive } from "./AccountsApiLive.ts"
@@ -62,6 +63,17 @@ const HealthApiLive = HttpApiBuilder.group(AppApi, "health", (handlers) =>
 const ConsolidationApiWithDependencies = Layer.provide(
   ConsolidationApiLive,
   ConsolidatedReportServiceLive
+)
+
+/**
+ * AuthorizationServiceWithDependencies - AuthorizationServiceLive with PolicyEngineLive
+ *
+ * AuthorizationServiceLive depends on PolicyEngine for ABAC policy evaluation.
+ * We compose them here to reduce the number of Layer.provide calls in the main chain.
+ */
+const AuthorizationServiceWithDependencies = Layer.provide(
+  AuthorizationServiceLive,
+  PolicyEngineLive
 )
 
 // =============================================================================
@@ -120,8 +132,10 @@ export const AppApiLive = HttpApiBuilder.api(AppApi).pipe(
   Layer.provide(ConsolidationApiWithDependencies),
   Layer.provide(EliminationRulesApiLive),
   Layer.provide(UserOrganizationsApiLive),
-  // AuthorizationServiceLive provides RBAC permission checking
-  Layer.provide(AuthorizationServiceLive),
+  // AuthorizationServiceWithDependencies provides ABAC+RBAC permission checking
+  // Uses ABAC when policies exist, falls back to RBAC when no policies
+  // Includes PolicyEngineLive for ABAC policy evaluation
+  Layer.provide(AuthorizationServiceWithDependencies),
   // AuthMiddlewareLive requires TokenValidator to be provided externally
   // - For production: use SessionTokenValidatorLive (validates against database)
   // - For testing: use SimpleTokenValidatorLive (user_<id>_<role> format)

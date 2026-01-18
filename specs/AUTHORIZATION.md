@@ -676,13 +676,27 @@ Update organization creation to insert system policies.
 
 ---
 
-#### Phase F7: Integrate ABAC into AuthorizationService
+#### Phase F7: Integrate ABAC into AuthorizationService ✅ COMPLETE
 Update `AuthorizationServiceLive.ts`:
 - Replace hardcoded matrix with `PolicyEngine.evaluatePolicies()`
 - Load policies from `PolicyRepository`
 - Fall back to RBAC matrix if no policies (backward compat)
 
 **Test**: Policy-based authorization works.
+
+**Completed**:
+- Updated `AuthorizationServiceLive.ts` to integrate ABAC policy engine:
+  - Added dependencies on `PolicyRepository` and `PolicyEngine`
+  - Updated `checkPermission` to load policies and use ABAC when policies exist
+  - Updated `checkPermissions` to evaluate each action with ABAC
+  - Updated `getEffectivePermissions` to check all actions against ABAC policies
+  - Falls back to RBAC permission matrix when no policies exist for organization
+  - Falls back to RBAC for unknown resource types
+- Created type-safe `RESOURCE_TYPE_MAP` lookup table to convert resource type strings
+- Created `createResourceContext` helper to avoid type assertions
+- Updated `AppApiLive.ts` to compose `AuthorizationServiceLive` with `PolicyEngineLive`
+- Updated `AuthApi.test.ts` to include `PolicyEngineLive` in test layer
+- All 3899 tests pass, typecheck clean, lint clean
 
 ---
 
