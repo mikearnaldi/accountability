@@ -579,3 +579,8 @@
 **Task**: Implemented invitation link display with copy button after creating member invitations
 **Status**: complete
 ---
+
+## Iteration 3 - 2026-01-18 13:03
+**Task**: Implemented member removal and reinstatement API calls in MemberActionsMenu component with proper error handling and auto-refresh
+**Status**: complete
+---

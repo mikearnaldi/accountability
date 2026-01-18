@@ -308,6 +308,8 @@ function MembersPage() {
           actionMenuOpen={actionMenuOpen}
           onActionMenuToggle={setActionMenuOpen}
           onSelectMember={setSelectedMember}
+          organizationId={organization.id}
+          onRefresh={handleRefresh}
           currentUserId={user?.id}
           data-testid="active-members-section"
         />
@@ -332,6 +334,8 @@ function MembersPage() {
             actionMenuOpen={actionMenuOpen}
             onActionMenuToggle={setActionMenuOpen}
             onSelectMember={setSelectedMember}
+            organizationId={organization.id}
+            onRefresh={handleRefresh}
             currentUserId={user?.id}
             showStatus
             data-testid="inactive-members-section"
@@ -398,6 +402,8 @@ interface MembersTableProps {
   readonly actionMenuOpen: string | null
   readonly onActionMenuToggle: (id: string | null) => void
   readonly onSelectMember: (member: Member) => void
+  readonly organizationId: string
+  readonly onRefresh: () => void
   readonly currentUserId?: string | undefined
   readonly showStatus?: boolean
   readonly "data-testid"?: string
@@ -411,6 +417,8 @@ function MembersTable({
   actionMenuOpen,
   onActionMenuToggle,
   onSelectMember,
+  organizationId,
+  onRefresh,
   currentUserId,
   showStatus = false,
   "data-testid": testId
@@ -536,11 +544,13 @@ function MembersTable({
                         <MemberActionsMenu
                           member={member}
                           isCurrentUser={isCurrentUser}
+                          organizationId={organizationId}
                           onClose={() => onActionMenuToggle(null)}
                           onEdit={() => {
                             onActionMenuToggle(null)
                             onSelectMember(member)
                           }}
+                          onRefresh={onRefresh}
                         />
                       )}
                     </div>
@@ -562,14 +572,16 @@ function MembersTable({
 interface MemberActionsMenuProps {
   readonly member: Member
   readonly isCurrentUser: boolean
+  readonly organizationId: string
   readonly onClose: () => void
   readonly onEdit: () => void
+  readonly onRefresh: () => void
 }
 
-function MemberActionsMenu({ member, isCurrentUser, onClose, onEdit }: MemberActionsMenuProps) {
-  const router = useRouter()
+function MemberActionsMenu({ member, isCurrentUser, organizationId, onClose, onEdit, onRefresh }: MemberActionsMenuProps) {
   const [isRemoving, setIsRemoving] = useState(false)
   const [isReinstating, setIsReinstating] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const handleRemove = async () => {
     if (!window.confirm(`Are you sure you want to remove ${member.displayName} from this organization?`)) {
@@ -577,12 +589,25 @@ function MemberActionsMenu({ member, isCurrentUser, onClose, onEdit }: MemberAct
     }
 
     setIsRemoving(true)
+    setError(null)
     try {
-      // API call would go here
-      await router.invalidate()
+      const { error: apiError } = await api.DELETE("/api/v1/organizations/{orgId}/members/{userId}", {
+        params: { path: { orgId: organizationId, userId: member.userId } },
+        body: { reason: null }
+      })
+
+      if (apiError) {
+        const errorMessage = typeof apiError === "object" && "message" in apiError
+          ? String(apiError.message)
+          : "Failed to remove member"
+        setError(errorMessage)
+        return
+      }
+
+      onRefresh()
       onClose()
     } catch {
-      // Error handling
+      setError("An unexpected error occurred")
     } finally {
       setIsRemoving(false)
     }
@@ -590,12 +615,24 @@ function MemberActionsMenu({ member, isCurrentUser, onClose, onEdit }: MemberAct
 
   const handleReinstate = async () => {
     setIsReinstating(true)
+    setError(null)
     try {
-      // API call would go here
-      await router.invalidate()
+      const { error: apiError } = await api.POST("/api/v1/organizations/{orgId}/members/{userId}/reinstate", {
+        params: { path: { orgId: organizationId, userId: member.userId } }
+      })
+
+      if (apiError) {
+        const errorMessage = typeof apiError === "object" && "message" in apiError
+          ? String(apiError.message)
+          : "Failed to reinstate member"
+        setError(errorMessage)
+        return
+      }
+
+      onRefresh()
       onClose()
     } catch {
-      // Error handling
+      setError("An unexpected error occurred")
     } finally {
       setIsReinstating(false)
     }
@@ -608,9 +645,15 @@ function MemberActionsMenu({ member, isCurrentUser, onClose, onEdit }: MemberAct
 
   return (
     <div
-      className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50"
+      className="absolute right-0 mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50"
       data-testid={`member-actions-menu-${member.userId}`}
     >
+      {error && (
+        <div className="px-4 py-2 text-xs text-red-600 border-b border-gray-200">
+          {error}
+        </div>
+      )}
+
       {canEdit && (
         <button
           onClick={onEdit}

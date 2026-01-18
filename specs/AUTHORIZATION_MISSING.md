@@ -236,28 +236,21 @@ Option B: **Make profile truly global** with membership list
 
 ### 8. Member Removal/Reinstatement API Calls
 
-**Status: UI EXISTS - API CALLS STUBBED**
+**Status: IMPLEMENTED** ✓
 
-The member actions menu has Remove and Reinstate buttons, but they don't actually call the API:
+~~The member actions menu has Remove and Reinstate buttons, but they don't actually call the API~~
 
 **What's Implemented:**
-- UI buttons and confirmation dialogs
-- Backend API endpoints (`DELETE /members/:userId`, `POST /members/:userId/reinstate`)
-- Inactive members section showing removed members
+- [x] UI buttons and confirmation dialogs
+- [x] Backend API endpoints (`DELETE /members/:userId`, `POST /members/:userId/reinstate`)
+- [x] Inactive members section showing removed members
+- [x] **Remove handler** - calls `DELETE /api/v1/organizations/{orgId}/members/{userId}` with error handling
+- [x] **Reinstate handler** - calls `POST /api/v1/organizations/{orgId}/members/{userId}/reinstate` with error handling
+- [x] **Error display** - shows error message in actions menu if API call fails
+- [x] **Auto-refresh** - refreshes member list after successful remove/reinstate
 
-**What's Missing (in members.tsx lines 574-602):**
-```typescript
-// Remove handler - TODO: Add actual API call
-// Currently shows success message but doesn't call DELETE endpoint
-
-// Reinstate handler - TODO: Add actual API call
-// Currently shows success message but doesn't call POST reinstate endpoint
-```
-
-**Fix Required:**
-- [ ] Replace stub implementations with actual `fetch()` calls to API
-- [ ] Add error handling for API failures
-- [ ] Refresh member list after successful actions
+**Files Modified:**
+- `packages/web/src/routes/organizations/$organizationId/settings/members.tsx` - Updated `MemberActionsMenu` component with actual API calls
 
 ---
 
@@ -338,6 +331,45 @@ The organization selector currently shows role badges next to each organization 
 - [ ] Keep selector focused on its single purpose: switching organizations
 
 **File:** `packages/web/src/components/layout/OrganizationSelector.tsx`
+
+---
+
+### Policies Page UX Issues
+
+**Status: IMPLEMENTED BUT POOR UX**
+
+The policies page shows policy summaries that are too vague to be useful, and system policies are listed but cannot be investigated.
+
+**Current Problems:**
+
+1. **Vague action counts** - Shows "4 actions" but no way to see which actions:
+   ```
+   Who: Owner, Admin, Member, Viewer
+   What: Journal Entry (with conditions)
+   Can: 4 actions
+   ```
+
+2. **System policies are opaque** - Listed but:
+   - Cannot click to view details
+   - Cannot see the actual conditions
+   - Cannot understand what they do without reading code/spec
+
+3. **No policy detail view** - No way to expand or click into a policy to see:
+   - Full list of actions (not just count)
+   - Actual conditions (not just "with conditions")
+   - Environment restrictions if any
+
+**What Needs to Change:**
+- [ ] **Add expandable/detail view for policies** - Click to see full policy details
+- [ ] **Show actual action list** - List the actions, not just "4 actions"
+- [ ] **Show actual conditions** - Display attribute conditions in readable format
+- [ ] **Consider removing system policies section** - Or make them viewable in read-only detail mode
+- [ ] **Simplify the page** - Focus on custom policies that users can actually manage
+
+**Alternative Approach:**
+Remove the system policies section entirely from the UI. They're immutable and documented in the spec - showing them as grayed-out unclickable rows adds no value and creates confusion.
+
+**File:** `packages/web/src/routes/organizations/$organizationId/settings/policies.tsx`
 
 ---
 
