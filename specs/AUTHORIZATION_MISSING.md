@@ -409,12 +409,20 @@ The membership status includes "suspended" and is now fully functional:
 
 **Spec States:** Unique constraint `(organization_id, email, status)` for pending invites
 
-**Status:** IMPLEMENTED IN DATABASE
+**Status: IMPLEMENTED** ✓
 
-The database has this constraint, but the UI doesn't handle the duplicate invitation error gracefully:
+The database has this constraint and the UI now handles the duplicate invitation error gracefully:
 
-- [ ] Friendlier error message when inviting same email twice
-- [ ] Show existing pending invitation for that email
+- [x] Friendlier error message when inviting same email twice - Yellow warning style with helpful message
+- [x] Show existing pending invitation for that email - Directs user to view "Pending Invitations" section
+
+**Implementation Details:**
+- InviteMemberModal now detects the `INVITATION_ALREADY_EXISTS` error code
+- Shows a yellow warning box (vs red error) with clear explanation
+- Primary button changes to "View Pending Invitations" to close modal and show pending section
+- User can revoke the existing invitation from there and create a new one if needed
+
+**File Modified:** `packages/web/src/routes/organizations/$organizationId/settings/members.tsx`
 
 ---
 
@@ -496,11 +504,27 @@ The database has this constraint, but the UI doesn't handle the duplicate invita
 
 The following test coverage is missing for authorization features:
 
-- [ ] E2E tests for owner transfer flow
-- [ ] E2E tests for member removal/reinstatement
+- [x] E2E tests for owner transfer flow - Added in `packages/web/test-e2e/member-management.spec.ts`
+  - Display transfer ownership option for owner
+  - Show no eligible members message when no admins exist
+  - Show member in list after accepting invitation
+  - Transfer ownership to admin successfully
+- [x] E2E tests for duplicate invitation error handling - Added in same file
+- [ ] E2E tests for member removal/reinstatement - **BLOCKED** by API bug (listMembers only returns active members)
 - [ ] Integration tests for environment condition evaluation
 - [ ] E2E tests for fiscal period management (once implemented)
 - [ ] Load tests for permission checking latency
+
+### API Bug Discovered: listMembers returns only active members
+
+The `MembershipApiLive.listMembers` handler calls `memberService.listActiveMembers(orgId)` which only returns active members.
+The UI expects to show both active and inactive (removed/suspended) members in separate sections.
+
+**Fix Required:**
+1. Add `listAllMembers` method to `OrganizationMemberService` interface
+2. Implement it in `OrganizationMemberServiceLive` using `memberRepo.findByOrganization`
+3. Update `MembershipApiLive.listMembers` to use the new method
+4. This will unblock the E2E tests for member removal/reinstatement
 
 ---
 

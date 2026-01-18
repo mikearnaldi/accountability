@@ -960,6 +960,7 @@ function InviteMemberModal({ organizationId, onClose, onSuccess }: InviteMemberM
   const [functionalRoles, setFunctionalRoles] = useState<FunctionalRole[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isDuplicateError, setIsDuplicateError] = useState(false)
   // Success state - stores the invitation link after successful creation
   const [invitationLink, setInvitationLink] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
@@ -980,6 +981,7 @@ function InviteMemberModal({ organizationId, onClose, onSuccess }: InviteMemberM
 
     setIsSubmitting(true)
     setError(null)
+    setIsDuplicateError(false)
 
     try {
       const { data, error: apiError } = await api.POST("/api/v1/organizations/{orgId}/members/invite", {
@@ -992,6 +994,11 @@ function InviteMemberModal({ organizationId, onClose, onSuccess }: InviteMemberM
       })
 
       if (apiError) {
+        // Check for duplicate invitation error
+        const isDuplicate = typeof apiError === "object" && "code" in apiError &&
+          apiError.code === "INVITATION_ALREADY_EXISTS"
+        setIsDuplicateError(isDuplicate)
+
         const errorMessage = typeof apiError === "object" && "message" in apiError
           ? String(apiError.message)
           : "Failed to send invitation"
@@ -1144,8 +1151,21 @@ function InviteMemberModal({ organizationId, onClose, onSuccess }: InviteMemberM
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700">
-              {error}
+            <div
+              className={clsx(
+                "rounded-lg border p-3 text-sm",
+                isDuplicateError
+                  ? "bg-yellow-50 border-yellow-200 text-yellow-800"
+                  : "bg-red-50 border-red-200 text-red-700"
+              )}
+              data-testid="invite-error-message"
+            >
+              <p className="font-medium">{isDuplicateError ? "Invitation already exists" : error}</p>
+              {isDuplicateError && (
+                <p className="mt-1 text-yellow-700">
+                  A pending invitation for <strong>{email}</strong> already exists. You can view it in the &quot;Pending Invitations&quot; section below, or revoke it and create a new one.
+                </p>
+              )}
             </div>
           )}
 
@@ -1232,15 +1252,26 @@ function InviteMemberModal({ organizationId, onClose, onSuccess }: InviteMemberM
             >
               Cancel
             </Button>
-            <Button
-              type="submit"
-              variant="primary"
-              loading={isSubmitting}
-              disabled={isSubmitting}
-              data-testid="invite-submit-button"
-            >
-              Create Invitation
-            </Button>
+            {isDuplicateError ? (
+              <Button
+                type="button"
+                variant="primary"
+                onClick={onClose}
+                data-testid="invite-view-pending-button"
+              >
+                View Pending Invitations
+              </Button>
+            ) : (
+              <Button
+                type="submit"
+                variant="primary"
+                loading={isSubmitting}
+                disabled={isSubmitting}
+                data-testid="invite-submit-button"
+              >
+                Create Invitation
+              </Button>
+            )}
           </div>
         </form>
       </div>

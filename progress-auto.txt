@@ -648,3 +648,8 @@
 **Task**: Implemented member suspension feature - added suspend/unsuspend API endpoints, service methods, repository methods, error types, and UI actions
 **Status**: complete
 ---
+
+## Iteration 18 - 2026-01-18 15:19
+**Task**: Added improved duplicate invitation error handling with friendly UI and E2E tests for owner transfer and member management flows
+**Status**: complete
+---
