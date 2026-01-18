@@ -1203,6 +1203,35 @@ Add `AUTHORIZATION_ENFORCEMENT` env var:
 
 ---
 
+### UI Improvements (Post-Implementation)
+
+#### Policies Page Responsive Layout
+- Fixed text breaking badly when resized by adding mobile-responsive card layout
+- Desktop view uses table with proper min-width constraints and text wrapping
+- Mobile/tablet view uses card layout with badges and wrapped text
+- PolicyTargetSummary component now uses flex-wrap for proper text flow
+
+#### Members Page Functional Roles
+- Updated InviteMemberModal to show functional role selection when "Member" role is selected
+- Functional roles displayed with descriptions explaining each role's capabilities
+- Conditional section that only appears for Member role (Admin/Viewer don't need functional roles)
+- Updated EditMemberModal with same functional role selection pattern
+- Info banners explain when functional roles are/aren't applicable
+
+#### Policy Builder Simplification
+- Removed IP allow/deny fields (backend has matching logic but API doesn't extract IP addresses)
+- Removed periodStatus from journal entry attributes (fiscal period management not yet implemented)
+- Added "Coming Soon" labels to time-based conditions section (stored but not evaluated at runtime)
+- Added "(not yet implemented)" labels to fiscal period actions in action list
+- Environment conditions section now clearly indicates these are stored but not enforced
+
+#### Known Limitations
+- **Environment conditions**: Time-of-day and day-of-week conditions are stored in policies but not currently evaluated at runtime because the API layer doesn't extract environment context
+- **Fiscal period management**: Actions like `fiscal_period:lock`, `fiscal_period:open`, etc. are defined but there's no UI or API to actually manage fiscal periods yet. Fiscal periods are computed automatically from journal entry dates.
+- **IP-based restrictions**: Removed from UI. The backend matcher exists but the API doesn't capture client IP addresses.
+
+---
+
 ### Phase Summary
 
 | Track | Phases | Focus |

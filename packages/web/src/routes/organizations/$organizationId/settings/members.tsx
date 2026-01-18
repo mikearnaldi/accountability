@@ -135,6 +135,14 @@ const FUNCTIONAL_ROLE_LABELS: Record<FunctionalRole, string> = {
   consolidation_manager: "Consolidation Manager"
 }
 
+const FUNCTIONAL_ROLE_DESCRIPTIONS: Record<FunctionalRole, string> = {
+  controller: "Full financial oversight, period lock/unlock, consolidation run/approval",
+  finance_manager: "Account management, exchange rates, period soft close, elimination rules",
+  accountant: "Create, edit, and post journal entries, reconciliation",
+  period_admin: "Open/close fiscal periods, create adjustment periods",
+  consolidation_manager: "Manage consolidation groups, elimination rules"
+}
+
 const STATUS_STYLES: Record<MembershipStatus, { bg: string; text: string; label: string }> = {
   active: { bg: "bg-green-100", text: "text-green-700", label: "Active" },
   suspended: { bg: "bg-yellow-100", text: "text-yellow-700", label: "Suspended" },
@@ -760,8 +768,15 @@ interface InviteMemberModalProps {
 function InviteMemberModal({ organizationId, onClose, onSuccess }: InviteMemberModalProps) {
   const [email, setEmail] = useState("")
   const [role, setRole] = useState<InviteRole>("member")
+  const [functionalRoles, setFunctionalRoles] = useState<FunctionalRole[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const toggleFunctionalRole = (fr: FunctionalRole) => {
+    setFunctionalRoles((prev) =>
+      prev.includes(fr) ? prev.filter((r) => r !== fr) : [...prev, fr]
+    )
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -780,7 +795,7 @@ function InviteMemberModal({ organizationId, onClose, onSuccess }: InviteMemberM
         body: {
           email: email.trim(),
           role,
-          functionalRoles: []
+          functionalRoles
         }
       })
 
@@ -801,12 +816,15 @@ function InviteMemberModal({ organizationId, onClose, onSuccess }: InviteMemberM
     }
   }
 
+  // Show functional roles for member role
+  const showFunctionalRoles = role === "member"
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
       data-testid="invite-member-modal"
     >
-      <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+      <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-gray-900">Invite Member</h2>
           <button
@@ -842,7 +860,7 @@ function InviteMemberModal({ organizationId, onClose, onSuccess }: InviteMemberM
 
           <div>
             <label htmlFor="invite-role" className="block text-sm font-medium text-gray-700">
-              Role
+              Base Role
             </label>
             <select
               id="invite-role"
@@ -857,10 +875,46 @@ function InviteMemberModal({ organizationId, onClose, onSuccess }: InviteMemberM
               data-testid="invite-role-select"
             >
               <option value="admin">Admin - Full organization management</option>
-              <option value="member">Member - Standard access based on functional roles</option>
+              <option value="member">Member - Access based on functional roles</option>
               <option value="viewer">Viewer - Read-only access</option>
             </select>
+            <p className="mt-1 text-xs text-gray-500">
+              {role === "admin" && "Admins have full access to manage the organization."}
+              {role === "member" && "Members need functional roles to access features."}
+              {role === "viewer" && "Viewers can only view data, not make changes."}
+            </p>
           </div>
+
+          {showFunctionalRoles && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Functional Roles
+              </label>
+              <p className="text-xs text-gray-500 mb-3">
+                Assign specific capabilities. Members without functional roles have very limited access.
+              </p>
+              <div className="space-y-2">
+                {FUNCTIONAL_ROLE_KEYS.map((fr) => (
+                  <label
+                    key={fr}
+                    className="flex items-start gap-3 p-3 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={functionalRoles.includes(fr)}
+                      onChange={() => toggleFunctionalRole(fr)}
+                      className="mt-0.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      data-testid={`invite-functional-role-${fr}`}
+                    />
+                    <div>
+                      <span className="text-sm font-medium text-gray-900">{FUNCTIONAL_ROLE_LABELS[fr]}</span>
+                      <p className="text-xs text-gray-500 mt-0.5">{FUNCTIONAL_ROLE_DESCRIPTIONS[fr]}</p>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="flex justify-end gap-3 pt-4">
             <Button
@@ -945,16 +999,19 @@ function EditMemberModal({ member, organizationId, onClose, onSuccess }: EditMem
     }
   }
 
+  // Show functional roles for member role
+  const showFunctionalRoles = role === "member"
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
       data-testid="edit-member-modal"
     >
-      <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+      <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">Edit Member Role</h2>
-            <p className="text-sm text-gray-500">{member.displayName}</p>
+            <p className="text-sm text-gray-500">{member.displayName} ({member.email})</p>
           </div>
           <button
             onClick={onClose}
@@ -988,34 +1045,57 @@ function EditMemberModal({ member, organizationId, onClose, onSuccess }: EditMem
               className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               data-testid="edit-role-select"
             >
-              <option value="admin">Admin</option>
-              <option value="member">Member</option>
-              <option value="viewer">Viewer</option>
+              <option value="admin">Admin - Full organization management</option>
+              <option value="member">Member - Access based on functional roles</option>
+              <option value="viewer">Viewer - Read-only access</option>
             </select>
+            <p className="mt-1 text-xs text-gray-500">
+              {role === "admin" && "Admins have full access to manage the organization."}
+              {role === "member" && "Members need functional roles to access features."}
+              {role === "viewer" && "Viewers can only view data, not make changes."}
+            </p>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Functional Roles
-            </label>
-            <div className="space-y-2">
-              {FUNCTIONAL_ROLE_KEYS.map((fr) => (
-                <label
-                  key={fr}
-                  className="flex items-center gap-2 cursor-pointer"
-                >
-                  <input
-                    type="checkbox"
-                    checked={functionalRoles.includes(fr)}
-                    onChange={() => toggleFunctionalRole(fr)}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    data-testid={`functional-role-${fr}`}
-                  />
-                  <span className="text-sm text-gray-700">{FUNCTIONAL_ROLE_LABELS[fr]}</span>
-                </label>
-              ))}
+          {showFunctionalRoles && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Functional Roles
+              </label>
+              <p className="text-xs text-gray-500 mb-3">
+                Assign specific capabilities. Members without functional roles have very limited access.
+              </p>
+              <div className="space-y-2">
+                {FUNCTIONAL_ROLE_KEYS.map((fr) => (
+                  <label
+                    key={fr}
+                    className="flex items-start gap-3 p-3 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={functionalRoles.includes(fr)}
+                      onChange={() => toggleFunctionalRole(fr)}
+                      className="mt-0.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      data-testid={`functional-role-${fr}`}
+                    />
+                    <div>
+                      <span className="text-sm font-medium text-gray-900">{FUNCTIONAL_ROLE_LABELS[fr]}</span>
+                      <p className="text-xs text-gray-500 mt-0.5">{FUNCTIONAL_ROLE_DESCRIPTIONS[fr]}</p>
+                    </div>
+                  </label>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
+
+          {!showFunctionalRoles && (
+            <div className="rounded-lg bg-blue-50 border border-blue-200 p-3">
+              <p className="text-sm text-blue-700">
+                {role === "admin"
+                  ? "Admins have all permissions and don't need functional roles."
+                  : "Viewers have read-only access and don't need functional roles."}
+              </p>
+            </div>
+          )}
 
           <div className="flex justify-end gap-3 pt-4">
             <Button

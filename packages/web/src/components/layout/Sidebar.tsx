@@ -394,7 +394,7 @@ function NavItemComponent({ item, isCollapsed, currentOrganization, isMobile, on
 
       {/* Subitems (expandable) */}
       {isExpanded && !isCollapsed && (
-        <div className="ml-4 mt-1 space-y-1 border-l border-gray-200 pl-3">
+        <div className="mt-1 space-y-0.5 pl-9">
           {item.subItems?.map((subItem) => {
             // Check if this sub-item's path matches the current location
             // For the "General" settings (which has the same href as the parent), check for exact match
@@ -409,10 +409,10 @@ function NavItemComponent({ item, isCollapsed, currentOrganization, isMobile, on
                 <div
                   key={subItem.testId}
                   data-testid={isMobile ? `mobile-${subItem.testId}` : subItem.testId}
-                  className="flex items-center gap-2 px-3 py-2 text-sm text-gray-400 cursor-not-allowed"
+                  className="flex items-center gap-3 px-3 py-2 text-gray-400 cursor-not-allowed rounded-lg"
                   title="Coming soon"
                 >
-                  <subItem.icon className="h-4 w-4 flex-shrink-0" />
+                  <subItem.icon className="h-5 w-5 flex-shrink-0" />
                   <span>{subItem.label}</span>
                   <span className="ml-auto text-xs bg-gray-100 px-1.5 py-0.5 rounded text-gray-500">Soon</span>
                 </div>
@@ -426,13 +426,13 @@ function NavItemComponent({ item, isCollapsed, currentOrganization, isMobile, on
                 data-testid={isMobile ? `mobile-${subItem.testId}` : subItem.testId}
                 onClick={onNavigate}
                 className={clsx(
-                  "flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors",
+                  "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors",
                   subIsActive
-                    ? "text-blue-700 font-medium"
+                    ? "bg-blue-50 text-blue-700 font-medium"
                     : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                 )}
               >
-                <subItem.icon className="h-4 w-4 flex-shrink-0" />
+                <subItem.icon className="h-5 w-5 flex-shrink-0" />
                 <span>{subItem.label}</span>
               </Link>
             )

@@ -491,130 +491,233 @@ function PolicyTable({
         <span className="text-sm text-gray-500">({policies.length})</span>
       </div>
 
-      {/* Table */}
+      {/* Table - Desktop */}
       {policies.length > 0 && (
-        <table className="w-full">
-          <thead className="bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-            <tr>
-              <th className="px-6 py-3">Policy Name</th>
-              <th className="px-6 py-3">Effect</th>
-              <th className="px-6 py-3">Priority</th>
-              <th className="px-6 py-3">Target</th>
-              <th className="px-6 py-3">Status</th>
-              {canManage && <th className="px-6 py-3 w-12"></th>}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {policies.map((policy) => {
-              const isMenuOpen = actionMenuOpen === policy.id
-              const effectStyle = EFFECT_STYLES[policy.effect]
+        <div className="hidden lg:block overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <tr>
+                <th className="px-6 py-3 min-w-[200px]">Policy Name</th>
+                <th className="px-6 py-3 whitespace-nowrap">Effect</th>
+                <th className="px-6 py-3 whitespace-nowrap">Priority</th>
+                <th className="px-6 py-3 min-w-[200px]">Target</th>
+                <th className="px-6 py-3 whitespace-nowrap">Status</th>
+                {canManage && <th className="px-6 py-3 w-12"></th>}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {policies.map((policy) => {
+                const isMenuOpen = actionMenuOpen === policy.id
+                const effectStyle = EFFECT_STYLES[policy.effect]
 
-              return (
-                <tr
-                  key={policy.id}
-                  className={clsx(
-                    "hover:bg-gray-50",
-                    isSystemSection && "bg-gray-50/50"
-                  )}
-                  data-testid={`policy-row-${policy.id}`}
-                >
-                  {/* Policy Name */}
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      {isSystemSection && (
-                        <span title="System policy">
-                          <Lock className="h-4 w-4 text-gray-400" />
-                        </span>
-                      )}
-                      <div>
-                        <span className={clsx(
-                          "font-medium",
-                          isSystemSection ? "text-gray-600" : "text-gray-900"
-                        )}>
-                          {policy.name}
-                        </span>
-                        {policy.description && (
-                          <p className="text-sm text-gray-500 mt-0.5">{policy.description}</p>
-                        )}
-                      </div>
-                    </div>
-                  </td>
-
-                  {/* Effect */}
-                  <td className="px-6 py-4">
-                    <span
-                      className={clsx(
-                        "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium",
-                        effectStyle.bg,
-                        effectStyle.text
-                      )}
-                    >
-                      {effectStyle.icon}
-                      {policy.effect.charAt(0).toUpperCase() + policy.effect.slice(1)}
-                    </span>
-                  </td>
-
-                  {/* Priority */}
-                  <td className="px-6 py-4">
-                    <span className={clsx(
-                      "text-sm font-mono",
-                      isSystemSection ? "text-gray-500" : "text-gray-700"
-                    )}>
-                      {policy.priority}
-                    </span>
-                  </td>
-
-                  {/* Target Summary */}
-                  <td className="px-6 py-4">
-                    <PolicyTargetSummary policy={policy} isSystemSection={isSystemSection} />
-                  </td>
-
-                  {/* Status */}
-                  <td className="px-6 py-4">
-                    <span
-                      className={clsx(
-                        "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
-                        policy.isActive
-                          ? "bg-green-100 text-green-700"
-                          : "bg-gray-100 text-gray-500"
-                      )}
-                    >
-                      {policy.isActive ? "Active" : "Disabled"}
-                    </span>
-                  </td>
-
-                  {/* Actions */}
-                  {canManage && (
+                return (
+                  <tr
+                    key={policy.id}
+                    className={clsx(
+                      "hover:bg-gray-50",
+                      isSystemSection && "bg-gray-50/50"
+                    )}
+                    data-testid={`policy-row-${policy.id}`}
+                  >
+                    {/* Policy Name */}
                     <td className="px-6 py-4">
-                      {!isSystemSection && (
-                        <div className="relative">
-                          <button
-                            onClick={() => onActionMenuToggle(isMenuOpen ? null : policy.id)}
-                            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600"
-                            data-testid={`policy-actions-${policy.id}`}
-                          >
-                            <MoreVertical className="h-4 w-4" />
-                          </button>
-
-                          {isMenuOpen && (
-                            <PolicyActionsMenu
-                              policy={policy}
-                              organizationId={organizationId ?? ""}
-                              onClose={() => onActionMenuToggle(null)}
-                              onEdit={onEditPolicy ? () => onEditPolicy(policy) : undefined}
-                              onTest={onTestPolicy}
-                              {...(onRefresh ? { onRefresh } : {})}
-                            />
+                      <div className="flex items-start gap-2">
+                        {isSystemSection && (
+                          <span title="System policy" className="flex-shrink-0 mt-0.5">
+                            <Lock className="h-4 w-4 text-gray-400" />
+                          </span>
+                        )}
+                        <div className="min-w-0">
+                          <span className={clsx(
+                            "font-medium block break-words",
+                            isSystemSection ? "text-gray-600" : "text-gray-900"
+                          )}>
+                            {policy.name}
+                          </span>
+                          {policy.description && (
+                            <p className="text-sm text-gray-500 mt-0.5 break-words">{policy.description}</p>
                           )}
                         </div>
-                      )}
+                      </div>
                     </td>
+
+                    {/* Effect */}
+                    <td className="px-6 py-4">
+                      <span
+                        className={clsx(
+                          "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium whitespace-nowrap",
+                          effectStyle.bg,
+                          effectStyle.text
+                        )}
+                      >
+                        {effectStyle.icon}
+                        {policy.effect.charAt(0).toUpperCase() + policy.effect.slice(1)}
+                      </span>
+                    </td>
+
+                    {/* Priority */}
+                    <td className="px-6 py-4">
+                      <span className={clsx(
+                        "text-sm font-mono whitespace-nowrap",
+                        isSystemSection ? "text-gray-500" : "text-gray-700"
+                      )}>
+                        {policy.priority}
+                      </span>
+                    </td>
+
+                    {/* Target Summary */}
+                    <td className="px-6 py-4">
+                      <PolicyTargetSummary policy={policy} isSystemSection={isSystemSection} />
+                    </td>
+
+                    {/* Status */}
+                    <td className="px-6 py-4">
+                      <span
+                        className={clsx(
+                          "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap",
+                          policy.isActive
+                            ? "bg-green-100 text-green-700"
+                            : "bg-gray-100 text-gray-500"
+                        )}
+                      >
+                        {policy.isActive ? "Active" : "Disabled"}
+                      </span>
+                    </td>
+
+                    {/* Actions */}
+                    {canManage && (
+                      <td className="px-6 py-4">
+                        {!isSystemSection && (
+                          <div className="relative">
+                            <button
+                              onClick={() => onActionMenuToggle(isMenuOpen ? null : policy.id)}
+                              className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600"
+                              data-testid={`policy-actions-${policy.id}`}
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </button>
+
+                            {isMenuOpen && (
+                              <PolicyActionsMenu
+                                policy={policy}
+                                organizationId={organizationId ?? ""}
+                                onClose={() => onActionMenuToggle(null)}
+                                onEdit={onEditPolicy ? () => onEditPolicy(policy) : undefined}
+                                onTest={onTestPolicy}
+                                {...(onRefresh ? { onRefresh } : {})}
+                              />
+                            )}
+                          </div>
+                        )}
+                      </td>
+                    )}
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Card layout - Mobile/Tablet */}
+      {policies.length > 0 && (
+        <div className="lg:hidden divide-y divide-gray-200">
+          {policies.map((policy) => {
+            const isMenuOpen = actionMenuOpen === policy.id
+            const effectStyle = EFFECT_STYLES[policy.effect]
+
+            return (
+              <div
+                key={policy.id}
+                className={clsx(
+                  "p-4",
+                  isSystemSection && "bg-gray-50/50"
+                )}
+                data-testid={`policy-card-${policy.id}`}
+              >
+                {/* Header row */}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-2 min-w-0 flex-1">
+                    {isSystemSection && (
+                      <span title="System policy" className="flex-shrink-0 mt-0.5">
+                        <Lock className="h-4 w-4 text-gray-400" />
+                      </span>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <span className={clsx(
+                        "font-medium block break-words",
+                        isSystemSection ? "text-gray-600" : "text-gray-900"
+                      )}>
+                        {policy.name}
+                      </span>
+                      {policy.description && (
+                        <p className="text-sm text-gray-500 mt-0.5 break-words">{policy.description}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {canManage && !isSystemSection && (
+                    <div className="relative flex-shrink-0">
+                      <button
+                        onClick={() => onActionMenuToggle(isMenuOpen ? null : policy.id)}
+                        className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600"
+                        data-testid={`policy-actions-mobile-${policy.id}`}
+                      >
+                        <MoreVertical className="h-4 w-4" />
+                      </button>
+
+                      {isMenuOpen && (
+                        <PolicyActionsMenu
+                          policy={policy}
+                          organizationId={organizationId ?? ""}
+                          onClose={() => onActionMenuToggle(null)}
+                          onEdit={onEditPolicy ? () => onEditPolicy(policy) : undefined}
+                          onTest={onTestPolicy}
+                          {...(onRefresh ? { onRefresh } : {})}
+                        />
+                      )}
+                    </div>
                   )}
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
+                </div>
+
+                {/* Badges row */}
+                <div className="flex flex-wrap items-center gap-2 mt-3">
+                  <span
+                    className={clsx(
+                      "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium",
+                      effectStyle.bg,
+                      effectStyle.text
+                    )}
+                  >
+                    {effectStyle.icon}
+                    {policy.effect.charAt(0).toUpperCase() + policy.effect.slice(1)}
+                  </span>
+                  <span className={clsx(
+                    "inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium",
+                    isSystemSection ? "text-gray-500" : "text-gray-700"
+                  )}>
+                    Priority: {policy.priority}
+                  </span>
+                  <span
+                    className={clsx(
+                      "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
+                      policy.isActive
+                        ? "bg-green-100 text-green-700"
+                        : "bg-gray-100 text-gray-500"
+                    )}
+                  >
+                    {policy.isActive ? "Active" : "Disabled"}
+                  </span>
+                </div>
+
+                {/* Target summary */}
+                <div className="mt-3 pt-3 border-t border-gray-100">
+                  <PolicyTargetSummary policy={policy} isSystemSection={isSystemSection} />
+                </div>
+              </div>
+            )
+          })}
+        </div>
       )}
     </div>
   )
@@ -671,20 +774,20 @@ function PolicyTargetSummary({ policy, isSystemSection }: PolicyTargetSummaryPro
 
   return (
     <div className={clsx(
-      "text-sm",
+      "text-sm space-y-0.5",
       isSystemSection ? "text-gray-500" : "text-gray-700"
     )}>
-      <div className="flex items-center gap-1">
-        <span className="font-medium">Who:</span>
-        <span>{subjectSummary}</span>
+      <div className="flex flex-wrap items-baseline gap-x-1">
+        <span className="font-medium flex-shrink-0">Who:</span>
+        <span className="break-words">{subjectSummary}</span>
       </div>
-      <div className="flex items-center gap-1">
-        <span className="font-medium">What:</span>
-        <span>{resourceSummary}</span>
+      <div className="flex flex-wrap items-baseline gap-x-1">
+        <span className="font-medium flex-shrink-0">What:</span>
+        <span className="break-words">{resourceSummary}</span>
       </div>
-      <div className="flex items-center gap-1">
-        <span className="font-medium">Can:</span>
-        <span>{actionSummary}</span>
+      <div className="flex flex-wrap items-baseline gap-x-1">
+        <span className="font-medium flex-shrink-0">Can:</span>
+        <span className="break-words">{actionSummary}</span>
       </div>
     </div>
   )

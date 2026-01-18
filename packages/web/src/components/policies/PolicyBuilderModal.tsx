@@ -249,14 +249,14 @@ const ACTION_GROUPS: readonly { resource: string; actions: readonly { value: str
     ]
   },
   {
-    resource: "Fiscal Period",
+    resource: "Fiscal Period (Coming Soon)",
     actions: [
-      { value: "fiscal_period:read", label: "Read" },
-      { value: "fiscal_period:open", label: "Open" },
-      { value: "fiscal_period:soft_close", label: "Soft Close" },
-      { value: "fiscal_period:close", label: "Close" },
-      { value: "fiscal_period:lock", label: "Lock" },
-      { value: "fiscal_period:reopen", label: "Reopen" }
+      { value: "fiscal_period:read", label: "Read (not yet implemented)" },
+      { value: "fiscal_period:open", label: "Open (not yet implemented)" },
+      { value: "fiscal_period:soft_close", label: "Soft Close (not yet implemented)" },
+      { value: "fiscal_period:close", label: "Close (not yet implemented)" },
+      { value: "fiscal_period:lock", label: "Lock (not yet implemented)" },
+      { value: "fiscal_period:reopen", label: "Reopen (not yet implemented)" }
     ]
   },
   {
@@ -344,7 +344,7 @@ export function PolicyBuilderModal({
   )
   const [actionSearch, setActionSearch] = useState("")
 
-  // Phase I6: Environment conditions
+  // Phase I6: Environment conditions (Note: currently stored but not evaluated at runtime)
   const [hasTimeRestriction, setHasTimeRestriction] = useState(
     Boolean(existingPolicy?.environment?.timeOfDay)
   )
@@ -352,12 +352,6 @@ export function PolicyBuilderModal({
   const [timeEnd, setTimeEnd] = useState(existingPolicy?.environment?.timeOfDay?.end ?? "17:00")
   const [selectedDays, setSelectedDays] = useState<number[]>(
     [...(existingPolicy?.environment?.daysOfWeek ?? [])]
-  )
-  const [ipAllowList, setIpAllowList] = useState(
-    existingPolicy?.environment?.ipAllowList?.join(", ") ?? ""
-  )
-  const [ipDenyList, setIpDenyList] = useState(
-    existingPolicy?.environment?.ipDenyList?.join(", ") ?? ""
   )
 
   // UI state
@@ -482,26 +476,18 @@ export function PolicyBuilderModal({
     const actionsArray: ActionType[] = validatedActions.length > 0 ? validatedActions : ["*"]
     const action = { actions: actionsArray }
 
-    // Build environment condition
+    // Build environment condition (Note: currently stored but not evaluated at runtime)
     let environment: {
       timeOfDay?: { start: string; end: string }
       daysOfWeek?: number[]
-      ipAllowList?: string[]
-      ipDenyList?: string[]
     } | null = null
-    if (hasTimeRestriction || selectedDays.length > 0 || ipAllowList || ipDenyList) {
+    if (hasTimeRestriction || selectedDays.length > 0) {
       environment = {}
       if (hasTimeRestriction) {
         environment.timeOfDay = { start: timeStart, end: timeEnd }
       }
       if (selectedDays.length > 0) {
         environment.daysOfWeek = [...selectedDays]
-      }
-      if (ipAllowList.trim()) {
-        environment.ipAllowList = ipAllowList.split(",").map((ip) => ip.trim()).filter(Boolean)
-      }
-      if (ipDenyList.trim()) {
-        environment.ipDenyList = ipDenyList.split(",").map((ip) => ip.trim()).filter(Boolean)
       }
     }
 
@@ -863,65 +849,37 @@ export function PolicyBuilderModal({
               {resourceType === "journal_entry" && (
                 <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 space-y-3">
                   <p className="text-sm font-medium text-gray-700">Journal Entry Attributes</p>
-                  <div className="grid grid-cols-2 gap-3">
-                    <Select
-                      label="Entry Type"
-                      value={resourceAttributes.entryType?.[0] ?? ""}
-                      onChange={(e) => {
-                        const value = e.target.value
-                        const etMap: Record<string, EntryType> = {
-                          Standard: "Standard", Adjusting: "Adjusting", Closing: "Closing",
-                          Reversing: "Reversing", Elimination: "Elimination",
-                          Consolidation: "Consolidation", Intercompany: "Intercompany"
+                  <Select
+                    label="Entry Type"
+                    value={resourceAttributes.entryType?.[0] ?? ""}
+                    onChange={(e) => {
+                      const value = e.target.value
+                      const etMap: Record<string, EntryType> = {
+                        Standard: "Standard", Adjusting: "Adjusting", Closing: "Closing",
+                        Reversing: "Reversing", Elimination: "Elimination",
+                        Consolidation: "Consolidation", Intercompany: "Intercompany"
+                      }
+                      setResourceAttributes((prev) => {
+                        const mapped = etMap[value]
+                        if (mapped) {
+                          return { ...prev, entryType: [mapped] }
                         }
-                        setResourceAttributes((prev) => {
-                          const mapped = etMap[value]
-                          if (mapped) {
-                            return { ...prev, entryType: [mapped] }
-                          }
-                          const { entryType: _, ...rest } = prev
-                          return rest
-                        })
-                      }}
-                      options={[
-                        { value: "", label: "Any" },
-                        { value: "Standard", label: "Standard" },
-                        { value: "Adjusting", label: "Adjusting" },
-                        { value: "Closing", label: "Closing" },
-                        { value: "Reversing", label: "Reversing" },
-                        { value: "Elimination", label: "Elimination" },
-                        { value: "Consolidation", label: "Consolidation" },
-                        { value: "Intercompany", label: "Intercompany" }
-                      ]}
-                      data-testid="policy-entry-type"
-                    />
-                    <Select
-                      label="Period Status"
-                      value={resourceAttributes.periodStatus?.[0] ?? ""}
-                      onChange={(e) => {
-                        const value = e.target.value
-                        const psMap: Record<string, PeriodStatus> = {
-                          Open: "Open", SoftClose: "SoftClose", Closed: "Closed", Locked: "Locked"
-                        }
-                        setResourceAttributes((prev) => {
-                          const mapped = psMap[value]
-                          if (mapped) {
-                            return { ...prev, periodStatus: [mapped] }
-                          }
-                          const { periodStatus: _, ...rest } = prev
-                          return rest
-                        })
-                      }}
-                      options={[
-                        { value: "", label: "Any" },
-                        { value: "Open", label: "Open" },
-                        { value: "SoftClose", label: "Soft Closed" },
-                        { value: "Closed", label: "Closed" },
-                        { value: "Locked", label: "Locked" }
-                      ]}
-                      data-testid="policy-period-status"
-                    />
-                  </div>
+                        const { entryType: _, ...rest } = prev
+                        return rest
+                      })
+                    }}
+                    options={[
+                      { value: "", label: "Any" },
+                      { value: "Standard", label: "Standard" },
+                      { value: "Adjusting", label: "Adjusting" },
+                      { value: "Closing", label: "Closing" },
+                      { value: "Reversing", label: "Reversing" },
+                      { value: "Elimination", label: "Elimination" },
+                      { value: "Consolidation", label: "Consolidation" },
+                      { value: "Intercompany", label: "Intercompany" }
+                    ]}
+                    data-testid="policy-entry-type"
+                  />
                   <label className="flex items-center gap-2">
                     <input
                       type="checkbox"
@@ -1012,20 +970,20 @@ export function PolicyBuilderModal({
             </div>
           </section>
 
-          {/* Phase I6: Environment Conditions */}
+          {/* Phase I6: Environment Conditions - Note: Currently stored but not evaluated at runtime */}
           <section>
             <h3 className="text-sm font-medium text-gray-900 mb-4 flex items-center gap-2">
               <Shield className="h-4 w-4 text-gray-400" />
-              When/Where (Environment Conditions)
-              <span className="text-xs text-gray-400 font-normal">(Optional)</span>
+              When (Time Conditions)
+              <span className="text-xs text-gray-400 font-normal">(Optional - Coming Soon)</span>
             </h3>
             <div className="space-y-4">
               {/* Info Banner */}
-              <div className="flex items-start gap-2 rounded-lg bg-blue-50 border border-blue-100 p-3">
-                <Info className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                <p className="text-xs text-blue-700">
-                  Environment conditions restrict when and from where this policy applies.
-                  Leave empty to apply the policy regardless of time, day, or location.
+              <div className="flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 p-3">
+                <Info className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-amber-700">
+                  <strong>Note:</strong> Time-based conditions are stored but not currently enforced at runtime.
+                  This feature is planned for a future release.
                 </p>
               </div>
 
@@ -1064,7 +1022,7 @@ export function PolicyBuilderModal({
               {/* Days of Week */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Days of Week</label>
-                <div className="flex gap-1">
+                <div className="flex flex-wrap gap-1">
                   {DAYS_OF_WEEK.map((day) => (
                     <button
                       key={day.value}
@@ -1086,26 +1044,6 @@ export function PolicyBuilderModal({
                 {selectedDays.length === 0 && (
                   <p className="mt-1 text-xs text-gray-500">No restriction (all days)</p>
                 )}
-              </div>
-
-              {/* IP Restrictions */}
-              <div className="grid grid-cols-2 gap-4">
-                <Input
-                  label="IP Allow List"
-                  value={ipAllowList}
-                  onChange={(e) => setIpAllowList(e.target.value)}
-                  placeholder="192.168.1.0/24, 10.0.0.1"
-                  helperText="Comma-separated CIDR notation"
-                  data-testid="policy-ip-allow"
-                />
-                <Input
-                  label="IP Deny List"
-                  value={ipDenyList}
-                  onChange={(e) => setIpDenyList(e.target.value)}
-                  placeholder="0.0.0.0/0"
-                  helperText="Comma-separated CIDR notation"
-                  data-testid="policy-ip-deny"
-                />
               </div>
             </div>
           </section>
