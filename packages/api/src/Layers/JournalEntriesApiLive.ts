@@ -50,6 +50,8 @@ import { FiscalPeriodNotFoundForDateError } from "@accountability/core/FiscalPer
 import type { ResourceContext } from "@accountability/core/Auth/matchers/ResourceMatcher"
 import type { LocalDate } from "@accountability/core/Domains/LocalDate"
 import type { CompanyId } from "@accountability/core/Domains/Company"
+import { AuditLogService } from "@accountability/core/AuditLog/AuditLogService"
+import { CurrentUserId } from "@accountability/core/AuditLog/CurrentUserId"
 
 /**
  * Convert persistence errors to NotFoundError
@@ -203,6 +205,68 @@ const buildJournalEntryResourceContext = (
   })
 
 /**
+ * Helper to log journal entry creation to audit log
+ *
+ * Uses Effect.serviceOption to gracefully skip audit logging when
+ * AuditLogService or CurrentUserId is not available (e.g., in tests).
+ * Errors are caught and silently ignored to not block business operations.
+ *
+ * @param entry - The created journal entry
+ * @returns Effect that completes when audit logging is attempted
+ */
+const logJournalEntryCreate = (
+  entry: JournalEntry
+): Effect.Effect<void, never, never> =>
+  Effect.gen(function* () {
+    const maybeAuditService = yield* Effect.serviceOption(AuditLogService)
+    const maybeUserId = yield* Effect.serviceOption(CurrentUserId)
+
+    if (Option.isSome(maybeAuditService) && Option.isSome(maybeUserId)) {
+      yield* maybeAuditService.value.logCreate(
+        "JournalEntry",
+        entry.id,
+        entry,
+        maybeUserId.value
+      )
+    }
+  }).pipe(
+    Effect.catchAll(() => Effect.void) // Silent failure - don't block business operations
+  )
+
+/**
+ * Helper to log journal entry status change (post, reverse) to audit log
+ *
+ * @param entryId - The journal entry ID
+ * @param previousStatus - The status before the change
+ * @param newStatus - The status after the change
+ * @param reason - Optional reason for the status change
+ * @returns Effect that completes when audit logging is attempted
+ */
+const logJournalEntryStatusChange = (
+  entryId: JournalEntryId,
+  previousStatus: string,
+  newStatus: string,
+  reason?: string
+): Effect.Effect<void, never, never> =>
+  Effect.gen(function* () {
+    const maybeAuditService = yield* Effect.serviceOption(AuditLogService)
+    const maybeUserId = yield* Effect.serviceOption(CurrentUserId)
+
+    if (Option.isSome(maybeAuditService) && Option.isSome(maybeUserId)) {
+      yield* maybeAuditService.value.logStatusChange(
+        "JournalEntry",
+        entryId,
+        previousStatus,
+        newStatus,
+        maybeUserId.value,
+        reason
+      )
+    }
+  }).pipe(
+    Effect.catchAll(() => Effect.void) // Silent failure - don't block business operations
+  )
+
+/**
  * JournalEntriesApiLive - Layer providing JournalEntriesApi handlers
  *
  * Dependencies:
@@ -210,6 +274,8 @@ const buildJournalEntryResourceContext = (
  * - JournalEntryLineRepository
  * - CompanyRepository
  * - FiscalPeriodService (for period status checks)
+ * - AuditLogService (optional, for audit logging)
+ * - CurrentUserId (optional, for audit logging)
  */
 export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entries", (handlers) =>
   Effect.gen(function* () {
@@ -218,6 +284,9 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
     const companyRepo = yield* CompanyRepository
     // FiscalPeriodService is used by buildJournalEntryResourceContext via Effect context
     void FiscalPeriodService
+    // AuditLogService and CurrentUserId are accessed via Effect.serviceOption in helper functions
+    void AuditLogService
+    void CurrentUserId
 
     return handlers
       .handle("listJournalEntries", (_) =>
@@ -429,6 +498,9 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
             yield* lineRepo.createMany(lines).pipe(
               Effect.mapError((e) => mapPersistenceToBusinessRule(e))
             )
+
+            // Log audit entry for journal entry creation
+            yield* logJournalEntryCreate(entry)
 
             return { entry, lines }
           })
@@ -752,6 +824,14 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
               Effect.mapError((e) => mapPersistenceToBusinessRule(e))
             )
 
+            // Log audit entry for journal entry posting
+            yield* logJournalEntryStatusChange(
+              entryId,
+              "Approved",
+              "Posted",
+              "Journal entry posted to general ledger"
+            )
+
             return updated
           })
         )
@@ -872,6 +952,17 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
             yield* entryRepo.update(organizationId, updatedOriginal).pipe(
               Effect.mapError((e) => mapPersistenceToBusinessRule(e))
             )
+
+            // Log audit entries for journal entry reversal
+            // 1. Log the original entry being reversed
+            yield* logJournalEntryStatusChange(
+              entryId,
+              "Posted",
+              "Reversed",
+              `Reversed by entry ${reversalEntry.id}`
+            )
+            // 2. Log the creation of the reversing entry
+            yield* logJournalEntryCreate(reversalEntry)
 
             return { entry: reversalEntry, lines: reversalLines }
           })

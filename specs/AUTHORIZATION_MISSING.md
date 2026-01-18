@@ -231,7 +231,7 @@ Created a service that encapsulates audit logging with user context:
 Add audit logging to services that handle sensitive data:
 
 **Priority 1: Financial Operations (Compliance Critical)**
-- [ ] `JournalEntryServiceLive` - Log create, post, reverse operations
+- [x] `JournalEntriesApiLive` - Log create, post, reverse operations ✅ COMPLETE
 - [x] `FiscalPeriodServiceLive` - Log fiscal year create, period status changes ✅ COMPLETE
 - [ ] `ExchangeRateServiceLive` - Log rate creates/updates (affects valuations)
 
@@ -311,7 +311,7 @@ Migrate `PeriodReopenAuditEntry` to use the general audit log:
 | `packages/persistence/src/Layers/AuditLogServiceLive.ts` | CREATE - Implementation | ✅ Done |
 | `packages/persistence/src/Layers/RepositoriesLive.ts` | Add AuditLogServiceLive to layer composition | ✅ Done |
 | `packages/api/src/Layers/OrganizationContextMiddlewareLive.ts` | Add `CurrentUserId` to context | ✅ Done |
-| `packages/persistence/src/Layers/JournalEntryServiceLive.ts` | Add audit logging to create/post/reverse | ❌ Pending |
+| `packages/api/src/Layers/JournalEntriesApiLive.ts` | Add audit logging to create/post/reverse | ✅ Done |
 | `packages/persistence/src/Layers/FiscalPeriodServiceLive.ts` | Add audit logging to all operations | ✅ Done |
 | `packages/persistence/src/Layers/AccountServiceLive.ts` | Add audit logging to create/update/delete | ❌ Pending |
 | `packages/persistence/src/Layers/CompanyServiceLive.ts` | Add audit logging to create/update/delete | ❌ Pending |
@@ -709,7 +709,7 @@ The database has this constraint and the UI now handles the duplicate invitation
 ### Phase 5: Audit Log Integration (High effort, Compliance Critical)
 17. ~~**Create AuditLogService** - Service interface and implementation for audit entry creation~~ ✅ DONE
 18. ~~**Add CurrentUserId context tag** - Pass authenticated user ID through Effect context~~ ✅ DONE
-19. **Integrate with JournalEntryService** - Log create, post, reverse operations ❌ Pending
+19. ~~**Integrate with JournalEntriesApi** - Log create, post, reverse operations~~ ✅ DONE
 20. ~~**Integrate with FiscalPeriodService** - Log fiscal year/period lifecycle events~~ ✅ DONE
 21. **Integrate with AccountService** - Log chart of accounts changes ❌ Pending
 22. **Integrate with CompanyService** - Log company configuration changes ❌ Pending
@@ -761,7 +761,7 @@ The database has this constraint and the UI now handles the duplicate invitation
 
 ### Files to Modify (Audit Log Integration):
 - `packages/api/src/Layers/OrganizationContextMiddlewareLive.ts` - Add `CurrentUserId` to Effect context ✅ Done
-- `packages/persistence/src/Layers/JournalEntryServiceLive.ts` - Add audit logging to create/post/reverse ❌ Pending
+- `packages/api/src/Layers/JournalEntriesApiLive.ts` - Add audit logging to create/post/reverse ✅ Done
 - `packages/persistence/src/Layers/FiscalPeriodServiceLive.ts` - Add audit logging to all operations ✅ Done
 - `packages/persistence/src/Layers/AccountServiceLive.ts` - Add audit logging to create/update/delete ❌ Pending
 - `packages/persistence/src/Layers/CompanyServiceLive.ts` - Add audit logging to create/update/delete ❌ Pending
@@ -794,7 +794,7 @@ The following test coverage is missing for authorization features:
 
 ### Audit Log Integration Tests (PARTIALLY IMPLEMENTED):
 - [ ] Unit tests for `AuditLogServiceLive` - Verify entry creation with correct fields
-- [ ] Integration tests for JournalEntryService - Verify audit entries created on create/post/reverse
+- [x] Integration tests for JournalEntriesApi - Audit logging integrated for create/post/reverse ✅ Added
 - [x] Integration tests for FiscalPeriodService - Audit logging integrated (manual verification)
 - [ ] Integration tests for AccountService - Verify audit entries for chart of accounts changes
 - [ ] E2E test - Create fiscal year → verify appears in audit log UI (needs CurrentUserId in API context)

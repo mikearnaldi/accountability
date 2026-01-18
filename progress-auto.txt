@@ -683,3 +683,8 @@
 **Task**: Fixed failing E2E test and added CurrentUserId to organization context middleware for audit logging
 **Status**: complete
 ---
+
+## Iteration 6 - 2026-01-18 19:19
+**Task**: Added audit logging to JournalEntriesApiLive for create, post, and reverse operations
+**Status**: complete
+---
