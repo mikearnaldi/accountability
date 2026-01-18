@@ -333,7 +333,7 @@ Migrate `PeriodReopenAuditEntry` to use the general audit log:
 
 **Testing:**
 
-- [ ] Unit tests for `AuditLogServiceLive` - verify entry creation
+- [x] Unit tests for `AuditLogServiceLive` - verify entry creation ✅ `packages/persistence/test/AuditLogServiceLive.test.ts` (11 tests)
 - [ ] Integration tests for each service - verify audit entries created
 - [ ] E2E test - create fiscal year, verify appears in audit log UI
 - [ ] E2E test - create journal entry, verify appears in audit log UI
@@ -806,7 +806,7 @@ The following test coverage is missing for authorization features:
 - [ ] Load tests for permission checking latency
 
 ### Audit Log Integration Tests (PARTIALLY IMPLEMENTED):
-- [ ] Unit tests for `AuditLogServiceLive` - Verify entry creation with correct fields
+- [x] Unit tests for `AuditLogServiceLive` - Verify entry creation with correct fields ✅ `packages/persistence/test/AuditLogServiceLive.test.ts` (11 tests)
 - [x] Integration tests for JournalEntriesApi - Audit logging integrated for create/post/reverse ✅ Added
 - [x] Integration tests for FiscalPeriodService - Audit logging integrated (manual verification)
 - [ ] Integration tests for AccountService - Verify audit entries for chart of accounts changes
