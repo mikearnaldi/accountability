@@ -499,3 +499,8 @@
 **Task**: Implemented Phase G2 - Permission Hook with usePermissions hook, PermissionProvider component, and organization layout route integration for fetching user permissions
 **Status**: complete
 ---
+
+## Iteration 17 - 2026-01-18 02:29
+**Task**: Implemented Phase G3 - Updated OrganizationSelector to show role badges (owner, admin, member, viewer) with distinct styling and icons, merged role info from permissions API into organization data
+**Status**: complete
+---

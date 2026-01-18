@@ -24,11 +24,19 @@ import { parseUserOrganizations, type UserOrganization } from "@/hooks/usePermis
 // Types
 // =============================================================================
 
-// Exported so TypeScript's declaration file generation can reference it
+/** Base role from authorization system */
+export type BaseRole = "owner" | "admin" | "member" | "viewer"
+
+/**
+ * Organization with optional role info from permissions API
+ * Exported so TypeScript's declaration file generation can reference it
+ */
 export interface OrganizationListItem {
   readonly id: string
   readonly name: string
   readonly reportingCurrency: string
+  /** User's role in this organization (from permissions API) */
+  readonly role?: BaseRole
 }
 
 // =============================================================================
@@ -97,7 +105,24 @@ const fetchUserOrganizations = createServerFn({ method: "GET" }).handler(
 export const Route = createFileRoute("/organizations/$organizationId")({
   beforeLoad: async () => {
     // Fetch organizations and user permissions in parallel for all child routes
-    const [organizations, userOrganizations] = await Promise.all([fetchOrganizations(), fetchUserOrganizations()])
+    const [rawOrganizations, userOrganizations] = await Promise.all([fetchOrganizations(), fetchUserOrganizations()])
+
+    // Create a role lookup map from userOrganizations
+    const roleMap = new Map<string, BaseRole>()
+    for (const userOrg of userOrganizations) {
+      roleMap.set(userOrg.id, userOrg.role)
+    }
+
+    // Merge role info into organizations for the OrganizationSelector
+    // Only include role property if we have a role (satisfies exactOptionalPropertyTypes)
+    const organizations: readonly OrganizationListItem[] = rawOrganizations.map((org) => {
+      const role = roleMap.get(org.id)
+      if (role) {
+        return { ...org, role }
+      }
+      return org
+    })
+
     return { organizations, userOrganizations }
   },
   component: OrganizationLayoutComponent

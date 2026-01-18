@@ -771,13 +771,26 @@ Hook that:
 
 ---
 
-#### Phase G3: Update Organization Selector
+#### Phase G3: Update Organization Selector ✅ COMPLETE
 **File**: `packages/web/src/components/layout/OrganizationSelector.tsx`
 
 Changes:
 - Fetch from `/v1/users/me/organizations` instead of all orgs
 - Show role badge next to org name
 - Handle empty state (no orgs)
+
+**Completed**:
+- Updated `OrganizationSelector.tsx` with role badge support:
+  - Added `BaseRole` type and `RoleBadge` component with distinct styling for owner (amber), admin (purple), member (blue), and viewer (gray)
+  - Added `role?: BaseRole` optional field to `Organization` interface
+  - Role badges display next to organization names in the dropdown list with appropriate icons (Crown, Shield, Users, Eye)
+  - Exported `RoleBadge` component for reuse in other places (members page)
+- Updated `route.tsx` organization layout route:
+  - Added `BaseRole` type and `role` field to `OrganizationListItem` interface
+  - Modified `beforeLoad` to merge role info from `userOrganizations` (permissions API) into `organizations` data
+  - Organizations now include role data when available from the authorization API
+- Empty state already handled (shows "No organizations yet" with prompt to create)
+- All 3899 tests pass, typecheck clean, lint clean
 
 ---
 

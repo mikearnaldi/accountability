@@ -4,25 +4,33 @@
  * Dropdown to select the current organization context.
  * Features:
  * - Shows current organization name prominently
- * - Dropdown list of user's organizations
+ * - Dropdown list of user's organizations with role badges
  * - Navigation to organization on selection
- * - Option to view all organizations
+ * - Option to create new organization
  * - Data-testid attributes for E2E testing
+ *
+ * Phase G3 of AUTHORIZATION.md specification.
  */
 
 import { useNavigate, Link } from "@tanstack/react-router"
 import { clsx } from "clsx"
 import { useState, useRef, useEffect } from "react"
-import { Building2, ChevronDown, Check, Plus } from "lucide-react"
+import { Building2, ChevronDown, Check, Plus, Crown, Shield, Users, Eye } from "lucide-react"
 
 // =============================================================================
 // Types
 // =============================================================================
 
+/** Base role from authorization system */
+export type BaseRole = "owner" | "admin" | "member" | "viewer"
+
+/** Organization with optional role info */
 export interface Organization {
   readonly id: string
   readonly name: string
   readonly reportingCurrency?: string
+  /** User's role in this organization (from permissions API) */
+  readonly role?: BaseRole
 }
 
 interface OrganizationSelectorProps {
@@ -34,6 +42,42 @@ interface OrganizationSelectorProps {
   readonly loading?: boolean
   /** Compact mode for smaller displays */
   readonly compact?: boolean
+}
+
+// =============================================================================
+// Role Badge Component
+// =============================================================================
+
+interface RoleBadgeProps {
+  readonly role: BaseRole
+  readonly size?: "sm" | "md"
+}
+
+const roleConfig: Record<BaseRole, { label: string; icon: typeof Crown; bgColor: string; textColor: string }> = {
+  owner: { label: "Owner", icon: Crown, bgColor: "bg-amber-100", textColor: "text-amber-700" },
+  admin: { label: "Admin", icon: Shield, bgColor: "bg-purple-100", textColor: "text-purple-700" },
+  member: { label: "Member", icon: Users, bgColor: "bg-blue-100", textColor: "text-blue-700" },
+  viewer: { label: "Viewer", icon: Eye, bgColor: "bg-gray-100", textColor: "text-gray-700" }
+}
+
+export function RoleBadge({ role, size = "sm" }: RoleBadgeProps) {
+  const config = roleConfig[role]
+  const Icon = config.icon
+
+  return (
+    <span
+      className={clsx(
+        "inline-flex items-center gap-1 rounded-full font-medium",
+        config.bgColor,
+        config.textColor,
+        size === "sm" ? "px-1.5 py-0.5 text-[10px]" : "px-2 py-0.5 text-xs"
+      )}
+      data-testid={`role-badge-${role}`}
+    >
+      <Icon className={size === "sm" ? "h-2.5 w-2.5" : "h-3 w-3"} />
+      {config.label}
+    </span>
+  )
 }
 
 // =============================================================================
@@ -178,7 +222,7 @@ export function OrganizationSelector({
                     {/* Organization Icon */}
                     <div
                       className={clsx(
-                        "flex h-8 w-8 items-center justify-center rounded-lg",
+                        "flex h-8 w-8 items-center justify-center rounded-lg flex-shrink-0",
                         isSelected ? "bg-blue-100 text-blue-600" : "bg-gray-100 text-gray-600"
                       )}
                     >
@@ -187,14 +231,18 @@ export function OrganizationSelector({
 
                     {/* Organization Info */}
                     <div className="flex-1 min-w-0">
-                      <p
-                        className={clsx(
-                          "text-sm font-medium truncate",
-                          isSelected ? "text-blue-700" : "text-gray-900"
-                        )}
-                      >
-                        {org.name}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <p
+                          className={clsx(
+                            "text-sm font-medium truncate",
+                            isSelected ? "text-blue-700" : "text-gray-900"
+                          )}
+                        >
+                          {org.name}
+                        </p>
+                        {/* Role Badge */}
+                        {org.role && <RoleBadge role={org.role} size="sm" />}
+                      </div>
                       {org.reportingCurrency && (
                         <p className="text-xs text-gray-500">{org.reportingCurrency}</p>
                       )}
