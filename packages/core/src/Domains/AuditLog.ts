@@ -59,6 +59,7 @@ export type AuditAction = typeof AuditAction.Type
  */
 export const AuditEntityType = Schema.Literal(
   "Organization",
+  "OrganizationMember",
   "Company",
   "Account",
   "JournalEntry",

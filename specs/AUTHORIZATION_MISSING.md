@@ -168,7 +168,8 @@ The audit log infrastructure is **100% complete** and the **AuditLogService** ha
 | **JournalEntriesApiLive integration** | ✅ Complete | Logs create/post/reverse operations |
 | **AccountsApiLive integration** | ✅ Complete | Logs create/update/deactivate operations |
 | **CompaniesApiLive integration** | ✅ Complete | Logs create/update/deactivate operations |
-| **Other service integrations** | ❌ Pending | ExchangeRate, etc. |
+| **OrganizationMemberServiceLive integration** | ✅ Complete | Logs add/remove/suspend/unsuspend/role update/reinstate/ownership transfer |
+| **Other service integrations** | ❌ Pending | ExchangeRate, ConsolidationGroup, etc. |
 
 **What IS Being Audited:**
 
@@ -179,6 +180,7 @@ The audit log infrastructure is **100% complete** and the **AuditLogService** ha
 | JournalEntry | Create, Post, Reverse | ✅ Complete |
 | Account | Create, Update, Deactivate | ✅ Complete |
 | Company | Create, Update, Deactivate | ✅ Complete |
+| OrganizationMember | Add, Remove, Suspend, Unsuspend, Role Update, Reinstate, Ownership Transfer | ✅ Complete |
 
 **What's NOT Being Audited:**
 
@@ -248,7 +250,7 @@ Add audit logging to services that handle sensitive data:
 - [ ] `ConsolidationServiceLive` - Log group/rule changes
 
 **Priority 3: User Management**
-- [ ] `OrganizationMemberServiceLive` - Log member add/remove/suspend/role changes
+- [x] `OrganizationMemberServiceLive` - Log member add/remove/suspend/role changes ✅ COMPLETE
 - [ ] `SessionServiceLive` - Log login/logout events
 
 #### Phase 3: Pass User Context Through Services ✅ COMPLETE
@@ -720,7 +722,7 @@ The database has this constraint and the UI now handles the duplicate invitation
 20. ~~**Integrate with FiscalPeriodService** - Log fiscal year/period lifecycle events~~ ✅ DONE
 21. ~~**Integrate with AccountsApi** - Log chart of accounts changes~~ ✅ DONE
 22. ~~**Integrate with CompaniesApi** - Log company configuration changes~~ ✅ DONE
-23. **Integrate with OrganizationMemberService** - Log member management events ❌ Pending
+23. ~~**Integrate with OrganizationMemberService** - Log member management events~~ ✅ DONE
 24. **Consolidate PeriodReopenAuditEntry** - Migrate to general audit log ❌ Pending
 25. **Add CurrentUserId to API context** - Provide user ID to services from middleware ❌ Pending
 
@@ -773,7 +775,7 @@ The database has this constraint and the UI now handles the duplicate invitation
 - `packages/api/src/Layers/AccountsApiLive.ts` - Add audit logging to create/update/delete ✅ Done
 - `packages/api/src/Layers/CompaniesApiLive.ts` - Add audit logging to create/update/deactivate ✅ Done
 - `packages/persistence/src/Layers/ExchangeRateServiceLive.ts` - Add audit logging to sync operations ❌ Pending
-- `packages/persistence/src/Layers/OrganizationMemberServiceLive.ts` - Add audit logging to member changes ❌ Pending
+- `packages/persistence/src/Layers/OrganizationMemberServiceLive.ts` - Add audit logging to member changes ✅ Done
 
 ### Files to Modify (Fiscal Period Enforcement): ✓ DONE
 - [x] `packages/core/src/Auth/AuthorizationPolicy.ts` - Added new priority constants for period protection

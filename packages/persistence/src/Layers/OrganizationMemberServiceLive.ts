@@ -9,6 +9,15 @@
  * - Reinstating removed members
  * - Transferring ownership atomically
  *
+ * Includes audit logging for all member management operations:
+ * - Member added (Create)
+ * - Member removed (StatusChange: active → removed)
+ * - Member role updated (Update)
+ * - Member reinstated (StatusChange: removed → active)
+ * - Member suspended (StatusChange: active → suspended)
+ * - Member unsuspended (StatusChange: suspended → active)
+ * - Ownership transferred (Update)
+ *
  * @module OrganizationMemberServiceLive
  */
 
@@ -35,7 +44,109 @@ import {
   CannotTransferToNonAdminError,
   UserAlreadyMemberError
 } from "@accountability/core/Auth/AuthorizationErrors"
+import { AuditLogService } from "@accountability/core/AuditLog/AuditLogService"
+import { CurrentUserId } from "@accountability/core/AuditLog/CurrentUserId"
 import { OrganizationMemberRepository } from "../Services/OrganizationMemberRepository.ts"
+
+// =============================================================================
+// Audit Log Helpers
+// =============================================================================
+
+/**
+ * Helper to log member creation to audit log
+ *
+ * Uses Effect.serviceOption to gracefully skip audit logging when
+ * AuditLogService or CurrentUserId is not available (e.g., in tests).
+ * Errors are caught and silently ignored to not block business operations.
+ *
+ * @param membership - The created membership
+ * @returns Effect that completes when audit logging is attempted
+ */
+const logMemberCreate = (
+  membership: OrganizationMembership
+): Effect.Effect<void, never, never> =>
+  Effect.gen(function* () {
+    const maybeAuditService = yield* Effect.serviceOption(AuditLogService)
+    const maybeUserId = yield* Effect.serviceOption(CurrentUserId)
+
+    if (Option.isSome(maybeAuditService) && Option.isSome(maybeUserId)) {
+      yield* maybeAuditService.value.logCreate(
+        "OrganizationMember",
+        membership.id,
+        membership,
+        maybeUserId.value
+      )
+    }
+  }).pipe(
+    Effect.catchAll(() => Effect.void) // Silent failure - don't block business operations
+  )
+
+/**
+ * Helper to log member role update to audit log
+ *
+ * @param before - The membership state before the update
+ * @param after - The membership state after the update
+ * @returns Effect that completes when audit logging is attempted
+ */
+const logMemberUpdate = (
+  before: OrganizationMembership,
+  after: OrganizationMembership
+): Effect.Effect<void, never, never> =>
+  Effect.gen(function* () {
+    const maybeAuditService = yield* Effect.serviceOption(AuditLogService)
+    const maybeUserId = yield* Effect.serviceOption(CurrentUserId)
+
+    if (Option.isSome(maybeAuditService) && Option.isSome(maybeUserId)) {
+      yield* maybeAuditService.value.logUpdate(
+        "OrganizationMember",
+        after.id,
+        before,
+        after,
+        maybeUserId.value
+      )
+    }
+  }).pipe(
+    Effect.catchAll(() => Effect.void) // Silent failure - don't block business operations
+  )
+
+/**
+ * Helper to log member status change to audit log
+ *
+ * Used for status transitions like:
+ * - active → removed (member removed)
+ * - removed → active (member reinstated)
+ * - active → suspended (member suspended)
+ * - suspended → active (member unsuspended)
+ *
+ * @param membership - The membership being changed
+ * @param previousStatus - The status before the change
+ * @param newStatus - The status after the change
+ * @param reason - Optional reason for the status change
+ * @returns Effect that completes when audit logging is attempted
+ */
+const logMemberStatusChange = (
+  membership: OrganizationMembership,
+  previousStatus: string,
+  newStatus: string,
+  reason?: string
+): Effect.Effect<void, never, never> =>
+  Effect.gen(function* () {
+    const maybeAuditService = yield* Effect.serviceOption(AuditLogService)
+    const maybeUserId = yield* Effect.serviceOption(CurrentUserId)
+
+    if (Option.isSome(maybeAuditService) && Option.isSome(maybeUserId)) {
+      yield* maybeAuditService.value.logStatusChange(
+        "OrganizationMember",
+        membership.id,
+        previousStatus,
+        newStatus,
+        maybeUserId.value,
+        reason
+      )
+    }
+  }).pipe(
+    Effect.catchAll(() => Effect.void) // Silent failure - don't block business operations
+  )
 
 /**
  * Creates the OrganizationMemberService implementation
@@ -122,7 +233,12 @@ const make = Effect.gen(function* () {
           invitedBy: Option.fromNullable(input.invitedBy)
         })
 
-        return yield* memberRepo.create(membership)
+        const createdMembership = yield* memberRepo.create(membership)
+
+        // Log member creation to audit log
+        yield* logMemberCreate(createdMembership)
+
+        return createdMembership
       }),
 
     /**
@@ -141,7 +257,17 @@ const make = Effect.gen(function* () {
         }
 
         // Remove the membership
-        return yield* memberRepo.remove(membership.id, removedBy, reason)
+        const removedMembership = yield* memberRepo.remove(membership.id, removedBy, reason)
+
+        // Log member removal to audit log
+        yield* logMemberStatusChange(
+          removedMembership,
+          "active",
+          "removed",
+          reason ?? "Member removed from organization"
+        )
+
+        return removedMembership
       }),
 
     /**
@@ -175,7 +301,12 @@ const make = Effect.gen(function* () {
           updateInput.isConsolidationManager = flags.isConsolidationManager
         }
 
-        return yield* memberRepo.update(membership.id, updateInput)
+        const updatedMembership = yield* memberRepo.update(membership.id, updateInput)
+
+        // Log member role update to audit log
+        yield* logMemberUpdate(membership, updatedMembership)
+
+        return updatedMembership
       }),
 
     /**
@@ -185,9 +316,20 @@ const make = Effect.gen(function* () {
       Effect.gen(function* () {
         // Get the membership (including removed ones)
         const membership = yield* getMembershipOrFail(organizationId, userId)
+        const previousStatus = membership.status
 
         // Reinstate the membership
-        return yield* memberRepo.reinstate(membership.id, reinstatedBy)
+        const reinstatedMembership = yield* memberRepo.reinstate(membership.id, reinstatedBy)
+
+        // Log member reinstatement to audit log
+        yield* logMemberStatusChange(
+          reinstatedMembership,
+          previousStatus,
+          "active",
+          "Member reinstated"
+        )
+
+        return reinstatedMembership
       }),
 
     /**
@@ -206,7 +348,17 @@ const make = Effect.gen(function* () {
         }
 
         // Suspend the membership
-        return yield* memberRepo.suspend(membership.id, suspendedBy, reason)
+        const suspendedMembership = yield* memberRepo.suspend(membership.id, suspendedBy, reason)
+
+        // Log member suspension to audit log
+        yield* logMemberStatusChange(
+          suspendedMembership,
+          "active",
+          "suspended",
+          reason ?? "Member suspended"
+        )
+
+        return suspendedMembership
       }),
 
     /**
@@ -229,7 +381,17 @@ const make = Effect.gen(function* () {
         }
 
         // Unsuspend the membership
-        return yield* memberRepo.unsuspend(membership.id, unsuspendedBy)
+        const unsuspendedMembership = yield* memberRepo.unsuspend(membership.id, unsuspendedBy)
+
+        // Log member unsuspension to audit log
+        yield* logMemberStatusChange(
+          unsuspendedMembership,
+          "suspended",
+          "active",
+          "Member unsuspended"
+        )
+
+        return unsuspendedMembership
       }),
 
     /**
@@ -275,6 +437,10 @@ const make = Effect.gen(function* () {
         const updatedNewOwner = yield* memberRepo.update(toMembership.id, {
           role: "owner"
         })
+
+        // Log ownership transfer to audit log
+        yield* logMemberUpdate(fromMembership, updatedPreviousOwner)
+        yield* logMemberUpdate(toMembership, updatedNewOwner)
 
         return {
           previousOwner: updatedPreviousOwner,
