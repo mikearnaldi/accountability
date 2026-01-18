@@ -48,7 +48,8 @@ export const AuditLogApiLive = HttpApiBuilder.group(AppApi, "auditLog", (handler
             userId: Option.fromNullable(urlParams.userId),
             action: Option.fromNullable(urlParams.action),
             fromDate: Option.fromNullable(urlParams.fromDate),
-            toDate: Option.fromNullable(urlParams.toDate)
+            toDate: Option.fromNullable(urlParams.toDate),
+            search: Option.fromNullable(urlParams.search)
           }
 
           // Pagination with defaults

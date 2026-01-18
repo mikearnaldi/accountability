@@ -172,6 +172,7 @@ function AuditLogPage() {
   const [actionFilter, setActionFilter] = useState<string>("all")
   const [fromDate, setFromDate] = useState<string>("")
   const [toDate, setToDate] = useState<string>("")
+  const [searchTerm, setSearchTerm] = useState<string>("")
   const [currentPage, setCurrentPage] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [entries, setEntries] = useState<readonly AuditLogEntry[]>([])
@@ -180,8 +181,9 @@ function AuditLogPage() {
   // Expanded rows state
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set())
 
-  // Debounce timeout ref for date inputs
+  // Debounce timeout refs
   const dateDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Fetch with current filters (memoized to avoid recreating on every render)
   const fetchWithCurrentFilters = useCallback(async (
@@ -189,7 +191,8 @@ function AuditLogPage() {
     entityType: string,
     action: string,
     from: string,
-    to: string
+    to: string,
+    search: string
   ) => {
     setIsLoading(true)
     try {
@@ -201,6 +204,7 @@ function AuditLogPage() {
       if (action !== "all") query.action = action
       if (from) query.fromDate = new Date(from).toISOString()
       if (to) query.toDate = new Date(to).toISOString()
+      if (search.trim()) query.search = search.trim()
 
       // Use organization-scoped endpoint for security
       const { data, error } = await api.GET("/api/v1/audit-log/{organizationId}", {
@@ -224,21 +228,21 @@ function AuditLogPage() {
 
   // Load audit entries on mount (empty deps for initial load only)
   useEffect(() => {
-    fetchWithCurrentFilters(0, entityTypeFilter, actionFilter, fromDate, toDate).catch(() => {})
+    fetchWithCurrentFilters(0, entityTypeFilter, actionFilter, fromDate, toDate, searchTerm).catch(() => {})
   }, [])
 
   // Handle entity type filter change - auto-apply immediately
   const handleEntityTypeChange = (value: string) => {
     setEntityTypeFilter(value)
     setCurrentPage(0)
-    fetchWithCurrentFilters(0, value, actionFilter, fromDate, toDate).catch(() => {})
+    fetchWithCurrentFilters(0, value, actionFilter, fromDate, toDate, searchTerm).catch(() => {})
   }
 
   // Handle action filter change - auto-apply immediately
   const handleActionChange = (value: string) => {
     setActionFilter(value)
     setCurrentPage(0)
-    fetchWithCurrentFilters(0, entityTypeFilter, value, fromDate, toDate).catch(() => {})
+    fetchWithCurrentFilters(0, entityTypeFilter, value, fromDate, toDate, searchTerm).catch(() => {})
   }
 
   // Handle date filter changes - debounced to avoid excessive API calls
@@ -253,7 +257,7 @@ function AuditLogPage() {
     // Debounce the API call for 500ms
     dateDebounceRef.current = setTimeout(() => {
       setCurrentPage(0)
-      fetchWithCurrentFilters(0, entityTypeFilter, actionFilter, value, toDate).catch(() => {})
+      fetchWithCurrentFilters(0, entityTypeFilter, actionFilter, value, toDate, searchTerm).catch(() => {})
     }, 500)
   }
 
@@ -268,14 +272,30 @@ function AuditLogPage() {
     // Debounce the API call for 500ms
     dateDebounceRef.current = setTimeout(() => {
       setCurrentPage(0)
-      fetchWithCurrentFilters(0, entityTypeFilter, actionFilter, fromDate, value).catch(() => {})
+      fetchWithCurrentFilters(0, entityTypeFilter, actionFilter, fromDate, value, searchTerm).catch(() => {})
     }, 500)
+  }
+
+  // Handle search change - debounced with 300ms per spec
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value)
+
+    // Clear existing debounce timer
+    if (searchDebounceRef.current) {
+      clearTimeout(searchDebounceRef.current)
+    }
+
+    // Debounce the API call for 300ms (per spec)
+    searchDebounceRef.current = setTimeout(() => {
+      setCurrentPage(0)
+      fetchWithCurrentFilters(0, entityTypeFilter, actionFilter, fromDate, toDate, value).catch(() => {})
+    }, 300)
   }
 
   // Handle page change
   const handlePageChange = async (newPage: number) => {
     setCurrentPage(newPage)
-    await fetchWithCurrentFilters(newPage, entityTypeFilter, actionFilter, fromDate, toDate)
+    await fetchWithCurrentFilters(newPage, entityTypeFilter, actionFilter, fromDate, toDate, searchTerm)
   }
 
   // Clear filters
@@ -284,13 +304,17 @@ function AuditLogPage() {
     if (dateDebounceRef.current) {
       clearTimeout(dateDebounceRef.current)
     }
+    if (searchDebounceRef.current) {
+      clearTimeout(searchDebounceRef.current)
+    }
 
     setEntityTypeFilter("all")
     setActionFilter("all")
     setFromDate("")
     setToDate("")
+    setSearchTerm("")
     setCurrentPage(0)
-    fetchWithCurrentFilters(0, "all", "all", "", "").catch(() => {})
+    fetchWithCurrentFilters(0, "all", "all", "", "", "").catch(() => {})
   }
 
   // Cleanup debounce on unmount
@@ -298,6 +322,9 @@ function AuditLogPage() {
     return () => {
       if (dateDebounceRef.current) {
         clearTimeout(dateDebounceRef.current)
+      }
+      if (searchDebounceRef.current) {
+        clearTimeout(searchDebounceRef.current)
       }
     }
   }, [])
@@ -344,7 +371,7 @@ function AuditLogPage() {
   // Map companies for sidebar
   const companiesForSidebar = companies.map((c) => ({ id: c.id, name: c.name }))
 
-  const hasFilters = entityTypeFilter !== "all" || actionFilter !== "all" || fromDate !== "" || toDate !== ""
+  const hasFilters = entityTypeFilter !== "all" || actionFilter !== "all" || fromDate !== "" || toDate !== "" || searchTerm !== ""
   const totalPages = Math.ceil(total / PAGE_SIZE)
 
   return (
@@ -381,6 +408,16 @@ function AuditLogPage() {
 
           {/* Filters - auto-apply on change */}
           <div className="mt-4 flex flex-wrap items-center gap-3" data-testid="audit-filters">
+            <Input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              placeholder="Search by entity name or ID..."
+              className="w-64"
+              inputPrefix={<Search className="h-4 w-4 text-gray-400" />}
+              data-testid="search-input"
+            />
+
             <Select
               value={actionFilter}
               onChange={(e) => handleActionChange(e.target.value)}

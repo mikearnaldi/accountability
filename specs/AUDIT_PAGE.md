@@ -519,10 +519,11 @@ Denormalize user info to avoid joins and preserve historical names.
 
 ### Phase 3: Enhanced Features
 
-7. **Add search functionality**
-   - Full-text search across user, entity name
-   - Debounced input
-   - Highlight search matches
+7. **Add search functionality** ✅ DONE
+   - ✅ Full-text search across entity name and entity ID (case-insensitive ILIKE)
+   - ✅ Debounced input (300ms)
+   - ✅ Search icon in input field
+   - ✅ Search included in "Clear Filters" functionality
 
 8. **Add date range presets**
    - "Today", "Last 7 days", "Last 30 days"

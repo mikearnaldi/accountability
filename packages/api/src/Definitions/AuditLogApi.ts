@@ -78,6 +78,9 @@ export const AuditLogListParams = Schema.Struct({
   action: Schema.optional(AuditAction),
   fromDate: Schema.optional(Schema.DateTimeUtc),
   toDate: Schema.optional(Schema.DateTimeUtc),
+  search: Schema.optional(Schema.String.annotations({
+    description: "Search term for filtering by entity name or entity ID (case-insensitive)"
+  })),
   limit: Schema.optional(
     Schema.NumberFromString.pipe(
       Schema.int(),

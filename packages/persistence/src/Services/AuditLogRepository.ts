@@ -65,6 +65,8 @@ export interface AuditLogFilter {
   readonly action: Option.Option<AuditAction>
   readonly fromDate: Option.Option<DateTime.Utc>
   readonly toDate: Option.Option<DateTime.Utc>
+  /** Search term for filtering by entity name or entity ID (case-insensitive) */
+  readonly search: Option.Option<string>
 }
 
 /**

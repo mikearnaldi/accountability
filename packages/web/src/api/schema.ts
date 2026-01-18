@@ -5859,6 +5859,8 @@ export interface operations {
                 action?: components["schemas"]["AuditAction"];
                 fromDate?: components["schemas"]["DateTimeUtc"];
                 toDate?: components["schemas"]["DateTimeUtc"];
+                /** @description Search term for filtering by entity name or entity ID (case-insensitive) */
+                search?: string;
                 /** @description a string to be decoded into a number */
                 limit?: string;
                 /** @description a string to be decoded into a number */

@@ -732,3 +732,8 @@
 **Task**: Fixed CI failures by removing Effect.asVoid lint errors, adjusting @effect/language-service diagnostic settings to warnings, and removing auto-patch from prepare script
 **Status**: complete
 ---
+
+## Iteration 6 - 2026-01-18 22:37
+**Task**: Added search functionality to audit log page with debounced input, case-insensitive search on entity name/ID, and API backend support
+**Status**: complete
+---

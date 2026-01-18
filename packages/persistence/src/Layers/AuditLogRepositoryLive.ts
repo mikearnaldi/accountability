@@ -131,6 +131,13 @@ const make = Effect.gen(function* () {
         paramIndex++
       }
 
+      if (Option.isSome(filter.search)) {
+        const searchTerm = `%${filter.search.value}%`
+        conditions.push(`(entity_name ILIKE $${paramIndex} OR entity_id ILIKE $${paramIndex})`)
+        values.push(searchTerm)
+        paramIndex++
+      }
+
       const whereClause = `WHERE ${conditions.join(" AND ")}`
 
       // Use raw SQL with parameter substitution
@@ -190,6 +197,13 @@ const make = Effect.gen(function* () {
       if (Option.isSome(filter.toDate)) {
         conditions.push(`timestamp <= $${paramIndex}`)
         values.push(new Date(filter.toDate.value.epochMillis))
+        paramIndex++
+      }
+
+      if (Option.isSome(filter.search)) {
+        const searchTerm = `%${filter.search.value}%`
+        conditions.push(`(entity_name ILIKE $${paramIndex} OR entity_id ILIKE $${paramIndex})`)
+        values.push(searchTerm)
         paramIndex++
       }
 
