@@ -13,7 +13,7 @@
 import { useRouter, Link } from "@tanstack/react-router"
 import { clsx } from "clsx"
 import { useState, useRef, useEffect } from "react"
-import { ChevronDown, LogOut, User, Settings } from "lucide-react"
+import { ChevronDown, LogOut, User } from "lucide-react"
 import { api } from "@/api/client"
 import { MobileSidebar } from "./Sidebar.tsx"
 import { OrganizationSelector, type Organization } from "./OrganizationSelector.tsx"
@@ -180,22 +180,6 @@ export function Header({
                       <User className="h-4 w-4" />
                       Profile
                     </Link>
-                    {normalizedOrg && (
-                      <button
-                        data-testid="user-menu-settings"
-                        className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                        onClick={() => {
-                          setShowUserMenu(false)
-                          router.navigate({
-                            to: "/organizations/$organizationId/settings",
-                            params: { organizationId: normalizedOrg.id }
-                          })
-                        }}
-                      >
-                        <Settings className="h-4 w-4" />
-                        Organization Settings
-                      </button>
-                    )}
                   </div>
 
                   {/* Logout */}

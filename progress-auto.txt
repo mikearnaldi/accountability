@@ -564,3 +564,8 @@
 **Task**: Fixed authorization UI - responsive policy layout, functional roles in member forms, removed unimplemented features
 **Status**: complete
 ---
+
+## Iteration 1 - 2026-01-18 12:33
+**Task**: Created comprehensive AUTHORIZATION_MISSING.md documenting 12 missing/partial features including fiscal period management, owner transfer UI, platform admin management, email sending, environment condition runtime evaluation, and more
+**Status**: complete
+---

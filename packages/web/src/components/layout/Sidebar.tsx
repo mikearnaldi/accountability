@@ -34,7 +34,8 @@ import {
   ChevronDown,
   BarChart3,
   Users,
-  Shield
+  Shield,
+  SlidersHorizontal
 } from "lucide-react"
 import type { Organization } from "./OrganizationSelector.tsx"
 
@@ -152,7 +153,7 @@ function getNavItems(organizationId?: string): readonly NavItem[] {
         {
           label: "General",
           href: `/organizations/${organizationId}/settings`,
-          icon: Settings,
+          icon: SlidersHorizontal,
           testId: "nav-settings-general"
         },
         {
@@ -394,7 +395,7 @@ function NavItemComponent({ item, isCollapsed, currentOrganization, isMobile, on
 
       {/* Subitems (expandable) */}
       {isExpanded && !isCollapsed && (
-        <div className="mt-1 space-y-0.5 pl-9">
+        <div className="mt-1 space-y-0.5">
           {item.subItems?.map((subItem) => {
             // Check if this sub-item's path matches the current location
             // For the "General" settings (which has the same href as the parent), check for exact match
