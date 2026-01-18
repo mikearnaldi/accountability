@@ -249,14 +249,14 @@ const ACTION_GROUPS: readonly { resource: string; actions: readonly { value: str
     ]
   },
   {
-    resource: "Fiscal Period (Coming Soon)",
+    resource: "Fiscal Period",
     actions: [
-      { value: "fiscal_period:read", label: "Read (not yet implemented)" },
-      { value: "fiscal_period:open", label: "Open (not yet implemented)" },
-      { value: "fiscal_period:soft_close", label: "Soft Close (not yet implemented)" },
-      { value: "fiscal_period:close", label: "Close (not yet implemented)" },
-      { value: "fiscal_period:lock", label: "Lock (not yet implemented)" },
-      { value: "fiscal_period:reopen", label: "Reopen (not yet implemented)" }
+      { value: "fiscal_period:read", label: "Read" },
+      { value: "fiscal_period:open", label: "Open" },
+      { value: "fiscal_period:soft_close", label: "Soft Close" },
+      { value: "fiscal_period:close", label: "Close" },
+      { value: "fiscal_period:lock", label: "Lock" },
+      { value: "fiscal_period:reopen", label: "Reopen" }
     ]
   },
   {

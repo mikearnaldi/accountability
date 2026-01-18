@@ -658,3 +658,8 @@
 **Task**: Fixed listMembers API to return all members including removed/suspended
 **Status**: complete
 ---
+
+## Iteration 1 - 2026-01-18 17:28
+**Task**: Removed fiscal period Coming Soon labels and added 10 E2E tests
+**Status**: complete
+---

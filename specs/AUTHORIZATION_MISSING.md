@@ -188,7 +188,7 @@ Platform admin capability exists in the database with a read-only viewer for pla
   - `matchesIPPattern()` - IPv4 CIDR and basic IPv6 matching
   - `matchesIPAllowList()` / `matchesIPDenyList()`
 - Environment condition storage in policies
-- UI to configure environment conditions (marked "Coming Soon")
+- UI to configure environment conditions (fully functional)
 - [x] **API middleware captures request context** - `OrganizationContextMiddlewareLive.ts` provides:
   - `captureEnvironmentContext` - Captures current time, day of week, IP address, user agent
   - `getClientIP()` - Extracts IP from X-Forwarded-For, X-Real-IP, CF-Connecting-IP, or socket
@@ -206,7 +206,7 @@ Platform admin capability exists in the database with a read-only viewer for pla
 - `packages/core/src/Auth/CurrentEnvironmentContext.ts` - Service tag and helpers for environment context
 - `packages/api/src/Layers/OrganizationContextMiddlewareLive.ts` - Captures environment from HTTP request
 - `packages/persistence/src/Layers/AuthorizationServiceLive.ts` - Uses environment in policy evaluation
-- `packages/web/src/components/policies/PolicyBuilderModal.tsx` - Has environment section but limited (Coming Soon)
+- `packages/web/src/components/policies/PolicyBuilderModal.tsx` - Full environment section with IP restrictions
 
 ---
 
@@ -512,7 +512,7 @@ The following test coverage is missing for authorization features:
 - [x] E2E tests for duplicate invitation error handling - Added in same file
 - [ ] E2E tests for member removal/reinstatement - Now unblocked, can be implemented
 - [ ] Integration tests for environment condition evaluation
-- [ ] E2E tests for fiscal period management (once implemented)
+- [x] E2E tests for fiscal period management - `packages/web/test-e2e/fiscal-periods.spec.ts` (10 tests)
 - [ ] Load tests for permission checking latency
 
 ### API Bug Fixed: listMembers now returns all members ✓
