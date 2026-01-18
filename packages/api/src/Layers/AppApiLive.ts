@@ -12,6 +12,7 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import { ConsolidatedReportServiceLive } from "@accountability/core/Services/ConsolidatedReportService"
+import { AuthorizationConfigLive } from "@accountability/core/Auth/AuthorizationConfig"
 import { AuthorizationServiceLive } from "@accountability/persistence/Layers/AuthorizationServiceLive"
 import { PolicyEngineLive } from "@accountability/persistence/Layers/PolicyEngineLive"
 import { AppApi, HealthCheckResponse } from "../Definitions/AppApi.ts"
@@ -91,6 +92,49 @@ const AuthorizationServiceWithDependencies = Layer.provide(
   PolicyEngineLive
 )
 
+/**
+ * CoreApiGroup1 - First group of core API implementations
+ *
+ * Merged to reduce the number of Layer.provide calls in the main chain
+ * (TypeScript has a limit of ~20 arguments in pipe).
+ */
+const CoreApiGroup1 = Layer.mergeAll(
+  HealthApiLive,
+  AuthApiLive,
+  AuthSessionApiLive,
+  AccountsApiLive,
+  AccountTemplatesApiLive
+)
+
+/**
+ * CoreApiGroup2 - Second group of core API implementations
+ */
+const CoreApiGroup2 = Layer.mergeAll(
+  AuditLogApiLive,
+  CompaniesApiLive,
+  InvitationApiLive,
+  JournalEntriesApiLive,
+  ReportsApiLive
+)
+
+/**
+ * MasterDataApiGroup - Master data API implementations
+ */
+const MasterDataApiGroup = Layer.mergeAll(
+  CurrenciesApiLive,
+  JurisdictionsApiLive,
+  CurrencyApiLive,
+  UserOrganizationsApiLive
+)
+
+/**
+ * AdvancedApiGroup - Advanced feature API implementations
+ */
+const AdvancedApiGroup = Layer.mergeAll(
+  IntercompanyTransactionsApiLive,
+  EliminationRulesApiLive
+)
+
 // =============================================================================
 // Complete API Layer
 // =============================================================================
@@ -130,28 +174,22 @@ const AuthorizationServiceWithDependencies = Layer.provide(
  * - AuditLogRepository
  */
 export const AppApiLive = HttpApiBuilder.api(AppApi).pipe(
-  Layer.provide(HealthApiLive),
-  Layer.provide(AuthApiLive),
-  Layer.provide(AuthSessionApiLive),
-  Layer.provide(AccountsApiLive),
-  Layer.provide(AccountTemplatesApiLive),
-  Layer.provide(AuditLogApiLive),
-  Layer.provide(CompaniesApiLive),
-  Layer.provide(InvitationApiLive),
-  Layer.provide(JournalEntriesApiLive),
+  // Core API groups (merged to reduce pipe arguments)
+  Layer.provide(CoreApiGroup1),
+  Layer.provide(CoreApiGroup2),
+  Layer.provide(MasterDataApiGroup),
+  Layer.provide(AdvancedApiGroup),
+  // Feature-specific APIs with dependencies
   Layer.provide(MembershipPolicyApiGroup),
-  Layer.provide(ReportsApiLive),
-  Layer.provide(CurrenciesApiLive),
-  Layer.provide(JurisdictionsApiLive),
-  Layer.provide(CurrencyApiLive),
-  Layer.provide(IntercompanyTransactionsApiLive),
   Layer.provide(ConsolidationApiWithDependencies),
-  Layer.provide(EliminationRulesApiLive),
-  Layer.provide(UserOrganizationsApiLive),
+  // Authorization infrastructure
   // AuthorizationServiceWithDependencies provides ABAC+RBAC permission checking
   // Uses ABAC when policies exist, falls back to RBAC when no policies
   // Includes PolicyEngineLive for ABAC policy evaluation
   Layer.provide(AuthorizationServiceWithDependencies),
+  // AuthorizationConfigLive provides AUTHORIZATION_ENFORCEMENT env var
+  // Set to false for grace period (skip membership checks), true for strict enforcement
+  Layer.provide(AuthorizationConfigLive),
   // AuthMiddlewareLive requires TokenValidator to be provided externally
   // - For production: use SessionTokenValidatorLive (validates against database)
   // - For testing: use SimpleTokenValidatorLive (user_<id>_<role> format)

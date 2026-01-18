@@ -7,6 +7,7 @@
     "./Auth/Action": "./src/Auth/Action.ts",
     "./Auth/AuthConfig": "./src/Auth/AuthConfig.ts",
     "./Auth/AuthErrors": "./src/Auth/AuthErrors.ts",
+    "./Auth/AuthorizationConfig": "./src/Auth/AuthorizationConfig.ts",
     "./Auth/AuthorizationErrors": "./src/Auth/AuthorizationErrors.ts",
     "./Auth/AuthorizationPolicy": "./src/Auth/AuthorizationPolicy.ts",
     "./Auth/AuthorizationService": "./src/Auth/AuthorizationService.ts",

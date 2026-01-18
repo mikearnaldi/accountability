@@ -334,7 +334,7 @@ Since Effect HttpApiMiddleware doesn't have direct access to path parameters, th
 
 ---
 
-### Track E: Enforcement (Backend)
+### Track E: Enforcement (Backend) ✅ COMPLETE
 
 #### Phase E1: Add Org Filtering to CompanyRepository ✅ COMPLETE
 Update `packages/persistence/src/Services/CompanyRepository.ts` and implementation:
@@ -514,7 +514,7 @@ Update `AuthorizationServiceLive.ts`:
 
 ---
 
-### Track F: ABAC Policy Engine (Backend)
+### Track F: ABAC Policy Engine (Backend) ✅ COMPLETE
 
 #### Phase F1: Action Matcher ✅ COMPLETE
 **File**: `packages/core/src/Auth/matchers/ActionMatcher.ts`
@@ -727,7 +727,7 @@ Update `AuthorizationServiceLive.ts`:
 
 ---
 
-### Track G: Frontend - Core
+### Track G: Frontend - Core ✅ COMPLETE
 
 #### Phase G1: Generate API Client ✅ COMPLETE
 Run `pnpm generate:api` in packages/web.
@@ -1120,7 +1120,7 @@ Form with:
 
 ---
 
-### Track J: Frontend - Invitations & Migration
+### Track J: Frontend - Invitations & Migration ✅ COMPLETE
 
 #### Phase J1: User Invitations Page ✅ COMPLETE
 **File**: `packages/web/src/routes/invitations.tsx`
@@ -1179,10 +1179,27 @@ SQL to seed existing org creators as owners.
 
 ---
 
-#### Phase J4: Grace Period Feature Flag
+#### Phase J4: Grace Period Feature Flag ✅ COMPLETE
 Add `AUTHORIZATION_ENFORCEMENT` env var:
 - When `false`: skip membership check in middleware
 - When `true`: enforce strictly
+
+**Completed**:
+- Created `packages/core/src/Auth/AuthorizationConfig.ts` with:
+  - `AuthorizationConfig` Context.Tag for dependency injection
+  - `AuthorizationConfigData` interface with `enforcementEnabled` boolean
+  - `AuthorizationConfigLive` Layer that reads `AUTHORIZATION_ENFORCEMENT` env var (defaults to `true`)
+  - `AuthorizationConfigEnforced` preset layer for strict enforcement
+  - `AuthorizationConfigGracePeriod` preset layer for grace period mode
+  - `makeAuthorizationConfigLayer` helper for tests
+- Updated `packages/api/src/Layers/OrganizationContextMiddlewareLive.ts`:
+  - `loadOrganizationMembership` now checks `AuthorizationConfig.enforcementEnabled`
+  - When enforcement disabled, creates synthetic admin membership for authenticated users
+  - Uses `Effect.serviceOption` to default to strict enforcement when config unavailable
+- Updated `packages/api/src/Layers/AppApiLive.ts` to provide `AuthorizationConfigLive`
+- Added export to `packages/core/package.json`
+- Created unit tests in `packages/core/test/Auth/AuthorizationConfig.test.ts`
+- All 3906 unit tests pass, typecheck clean, lint clean
 
 ---
 
