@@ -618,3 +618,8 @@
 ## Iteration 11 - 2026-01-18 14:18
 **Task**: Partial work (no explicit completion signal)
 ---
+
+## Iteration 12 - 2026-01-18 14:26
+**Task**: Added FiscalYear/FiscalPeriod domain models and FiscalPeriodRepository for period management
+**Status**: complete
+---

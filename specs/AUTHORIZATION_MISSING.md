@@ -14,32 +14,48 @@ The authorization system has all 57 specification phases marked as complete. How
 
 ### 1. Fiscal Period Management
 
-**Status: NOT IMPLEMENTED**
+**Status: IN PROGRESS**
 
-The AUTHORIZATION.md spec defines actions for fiscal period management, but the application has no way to actually manage fiscal periods:
+The AUTHORIZATION.md spec defines actions for fiscal period management. Implementation is underway:
 
 **What's Defined:**
 - Actions: `fiscal_period:read`, `fiscal_period:open`, `fiscal_period:soft_close`, `fiscal_period:close`, `fiscal_period:lock`, `fiscal_period:reopen`
 - Permission matrix with role-based access to these actions
 - "Locked Period Protection" system policy to prevent journal entry modifications in locked periods
 
+**What's Implemented:**
+- [x] **Domain models** - `FiscalYear`, `FiscalPeriod`, `FiscalPeriodStatus`, `FiscalPeriodType`, `FiscalYearStatus`
+  - `packages/core/src/Domains/FiscalYear.ts` - Fiscal year entity with status tracking
+  - `packages/core/src/Domains/FiscalPeriod.ts` - Fiscal period entity with status tracking
+  - `packages/core/src/Domains/FiscalPeriodStatus.ts` - Status enum (Future/Open/SoftClose/Closed/Locked)
+  - `packages/core/src/Domains/FiscalPeriodType.ts` - Type enum (Regular/Adjustment/Closing)
+  - `packages/core/src/Domains/FiscalYearStatus.ts` - Year status enum (Open/Closing/Closed)
+- [x] **Database tables** - Already exist from Migration0004 (fiscal_years, fiscal_periods, period_reopen_audit_entries)
+- [x] **FiscalPeriodRepository** - Full CRUD operations for fiscal years and periods
+  - `packages/persistence/src/Services/FiscalPeriodRepository.ts` - Repository interface
+  - `packages/persistence/src/Layers/FiscalPeriodRepositoryLive.ts` - PostgreSQL implementation
+
 **What's Missing:**
-- [ ] **No FiscalPeriodApi endpoints** - No API to create, open, close, or lock fiscal periods
-- [ ] **No FiscalPeriodService** - No business logic for period state transitions
-- [ ] **No FiscalPeriodRepository** - No database table for tracking period lock/close status
-- [ ] **No Fiscal Period Management UI** - No pages to view or manage period states
-- [ ] **Period status attribute** - ResourceMatcher supports `periodStatus` but there's no source of period status data
+- [ ] **FiscalPeriodService** - Business logic for period state transitions and validation
+- [ ] **FiscalPeriodApi endpoints** - REST API to create, open, close, or lock fiscal periods
+- [ ] **Fiscal Period Management UI** - Pages to view or manage period states
+- [ ] **Period status integration** - Connect ResourceMatcher `periodStatus` attribute to actual period data
 
-**Current Behavior:** Fiscal periods are computed automatically from journal entry dates as `FiscalPeriodRef` value objects. They are purely calculated, not managed entities.
+**Current Behavior:** Fiscal periods can now be persisted and queried through the repository layer. However, there is no service layer for business logic or API endpoints for frontend access.
 
-**Impact:** The "Locked Period Protection" system policy cannot function because:
-1. No period has a "Locked" status (there's no status to check)
-2. Journal entries can be created/modified for any past date
-3. Period-based access control is not enforceable
+**Impact:** The "Locked Period Protection" system policy cannot function until:
+1. FiscalPeriodService implements period creation and status transitions
+2. FiscalPeriodApi exposes endpoints for period management
+3. Period status is integrated with journal entry authorization checks
 
-**Files Involved:**
-- `packages/core/src/Domains/FiscalPeriodRef.ts` - Value object (read-only)
-- `packages/core/src/Auth/Action.ts` - Actions defined but unused
+**Files Created:**
+- `packages/core/src/Domains/FiscalYear.ts` - Fiscal year domain entity
+- `packages/core/src/Domains/FiscalPeriod.ts` - Fiscal period domain entity
+- `packages/core/src/Domains/FiscalPeriodStatus.ts` - Period status enum
+- `packages/core/src/Domains/FiscalPeriodType.ts` - Period type enum
+- `packages/core/src/Domains/FiscalYearStatus.ts` - Year status enum
+- `packages/persistence/src/Services/FiscalPeriodRepository.ts` - Repository interface
+- `packages/persistence/src/Layers/FiscalPeriodRepositoryLive.ts` - Repository implementation
 
 ---
 
