@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as InvitationsRouteImport } from './routes/invitations'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as OrganizationsIndexRouteImport } from './routes/organizations/index'
 import { Route as OrganizationsNewRouteImport } from './routes/organizations/new'
@@ -69,6 +70,11 @@ const ProfileRoute = ProfileRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InvitationsRoute = InvitationsRouteImport.update({
+  id: '/invitations',
+  path: '/invitations',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -361,6 +367,7 @@ const OrganizationsOrganizationIdConsolidationGroupIdRunsRunIdReportsBalanceShee
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/invitations': typeof InvitationsRoute
   '/login': typeof LoginRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
@@ -409,6 +416,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/invitations': typeof InvitationsRoute
   '/login': typeof LoginRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
@@ -457,6 +465,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/invitations': typeof InvitationsRoute
   '/login': typeof LoginRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
@@ -507,6 +516,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/invitations'
     | '/login'
     | '/profile'
     | '/register'
@@ -555,6 +565,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/invitations'
     | '/login'
     | '/profile'
     | '/register'
@@ -602,6 +613,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/invitations'
     | '/login'
     | '/profile'
     | '/register'
@@ -651,6 +663,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  InvitationsRoute: typeof InvitationsRoute
   LoginRoute: typeof LoginRoute
   ProfileRoute: typeof ProfileRoute
   RegisterRoute: typeof RegisterRoute
@@ -681,6 +694,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/invitations': {
+      id: '/invitations'
+      path: '/invitations'
+      fullPath: '/invitations'
+      preLoaderRoute: typeof InvitationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -1139,6 +1159,7 @@ const OrganizationsOrganizationIdRouteRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  InvitationsRoute: InvitationsRoute,
   LoginRoute: LoginRoute,
   ProfileRoute: ProfileRoute,
   RegisterRoute: RegisterRoute,

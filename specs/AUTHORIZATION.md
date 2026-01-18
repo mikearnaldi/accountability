@@ -1122,13 +1122,23 @@ Form with:
 
 ### Track J: Frontend - Invitations & Migration
 
-#### Phase J1: User Invitations Page
+#### Phase J1: User Invitations Page ✅ COMPLETE
 **File**: `packages/web/src/routes/invitations.tsx`
 
 Page showing:
 - List of pending invitations
 - Accept/decline buttons
 - Org name, role, invited by
+
+**Completed**: Created `/invitations` route with:
+- Server function to fetch user's pending invitations from `/api/v1/users/me/invitations`
+- AppLayout integration without organization context (global page)
+- Invitation cards showing organization name, role badge, inviter info, and date
+- Accept button that calls POST `/api/v1/invitations/{token}/accept` and redirects to org
+- Decline button with confirmation that calls POST `/api/v1/invitations/{token}/decline`
+- Empty state with helpful message and link to organizations page
+- Refresh button to reload invitations
+- Info banner explaining how invitations work
 
 ---
 
