@@ -16,6 +16,7 @@ import { Route as InvitationsRouteImport } from './routes/invitations'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as OrganizationsIndexRouteImport } from './routes/organizations/index'
 import { Route as OrganizationsNewRouteImport } from './routes/organizations/new'
+import { Route as InvitationsTokenRouteImport } from './routes/invitations/$token'
 import { Route as ApiSplatRouteImport } from './routes/api/$'
 import { Route as OrganizationsOrganizationIdRouteRouteImport } from './routes/organizations/$organizationId/route'
 import { Route as OrganizationsOrganizationIdIndexRouteImport } from './routes/organizations/$organizationId/index'
@@ -91,6 +92,11 @@ const OrganizationsNewRoute = OrganizationsNewRouteImport.update({
   id: '/organizations/new',
   path: '/organizations/new',
   getParentRoute: () => rootRouteImport,
+} as any)
+const InvitationsTokenRoute = InvitationsTokenRouteImport.update({
+  id: '/$token',
+  path: '/$token',
+  getParentRoute: () => InvitationsRoute,
 } as any)
 const ApiSplatRoute = ApiSplatRouteImport.update({
   id: '/api/$',
@@ -367,12 +373,13 @@ const OrganizationsOrganizationIdConsolidationGroupIdRunsRunIdReportsBalanceShee
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/invitations': typeof InvitationsRoute
+  '/invitations': typeof InvitationsRouteWithChildren
   '/login': typeof LoginRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
   '/organizations/$organizationId': typeof OrganizationsOrganizationIdRouteRouteWithChildren
   '/api/$': typeof ApiSplatRoute
+  '/invitations/$token': typeof InvitationsTokenRoute
   '/organizations/new': typeof OrganizationsNewRoute
   '/organizations': typeof OrganizationsIndexRoute
   '/organizations/$organizationId/dashboard': typeof OrganizationsOrganizationIdDashboardRoute
@@ -416,11 +423,12 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/invitations': typeof InvitationsRoute
+  '/invitations': typeof InvitationsRouteWithChildren
   '/login': typeof LoginRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
   '/api/$': typeof ApiSplatRoute
+  '/invitations/$token': typeof InvitationsTokenRoute
   '/organizations/new': typeof OrganizationsNewRoute
   '/organizations': typeof OrganizationsIndexRoute
   '/organizations/$organizationId/dashboard': typeof OrganizationsOrganizationIdDashboardRoute
@@ -465,12 +473,13 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/invitations': typeof InvitationsRoute
+  '/invitations': typeof InvitationsRouteWithChildren
   '/login': typeof LoginRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
   '/organizations/$organizationId': typeof OrganizationsOrganizationIdRouteRouteWithChildren
   '/api/$': typeof ApiSplatRoute
+  '/invitations/$token': typeof InvitationsTokenRoute
   '/organizations/new': typeof OrganizationsNewRoute
   '/organizations/': typeof OrganizationsIndexRoute
   '/organizations/$organizationId/dashboard': typeof OrganizationsOrganizationIdDashboardRoute
@@ -522,6 +531,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/organizations/$organizationId'
     | '/api/$'
+    | '/invitations/$token'
     | '/organizations/new'
     | '/organizations'
     | '/organizations/$organizationId/dashboard'
@@ -570,6 +580,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/register'
     | '/api/$'
+    | '/invitations/$token'
     | '/organizations/new'
     | '/organizations'
     | '/organizations/$organizationId/dashboard'
@@ -619,6 +630,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/organizations/$organizationId'
     | '/api/$'
+    | '/invitations/$token'
     | '/organizations/new'
     | '/organizations/'
     | '/organizations/$organizationId/dashboard'
@@ -663,7 +675,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  InvitationsRoute: typeof InvitationsRoute
+  InvitationsRoute: typeof InvitationsRouteWithChildren
   LoginRoute: typeof LoginRoute
   ProfileRoute: typeof ProfileRoute
   RegisterRoute: typeof RegisterRoute
@@ -723,6 +735,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/organizations/new'
       preLoaderRoute: typeof OrganizationsNewRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/invitations/$token': {
+      id: '/invitations/$token'
+      path: '/$token'
+      fullPath: '/invitations/$token'
+      preLoaderRoute: typeof InvitationsTokenRouteImport
+      parentRoute: typeof InvitationsRoute
     }
     '/api/$': {
       id: '/api/$'
@@ -1007,6 +1026,18 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface InvitationsRouteChildren {
+  InvitationsTokenRoute: typeof InvitationsTokenRoute
+}
+
+const InvitationsRouteChildren: InvitationsRouteChildren = {
+  InvitationsTokenRoute: InvitationsTokenRoute,
+}
+
+const InvitationsRouteWithChildren = InvitationsRoute._addFileChildren(
+  InvitationsRouteChildren,
+)
+
 interface OrganizationsOrganizationIdSettingsRouteChildren {
   OrganizationsOrganizationIdSettingsMembersRoute: typeof OrganizationsOrganizationIdSettingsMembersRoute
   OrganizationsOrganizationIdSettingsPoliciesRoute: typeof OrganizationsOrganizationIdSettingsPoliciesRoute
@@ -1159,7 +1190,7 @@ const OrganizationsOrganizationIdRouteRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  InvitationsRoute: InvitationsRoute,
+  InvitationsRoute: InvitationsRouteWithChildren,
   LoginRoute: LoginRoute,
   ProfileRoute: ProfileRoute,
   RegisterRoute: RegisterRoute,

@@ -1142,12 +1142,23 @@ Page showing:
 
 ---
 
-#### Phase J2: Invitation Accept Deep Link
+#### Phase J2: Invitation Accept Deep Link ✅ COMPLETE
 **File**: `packages/web/src/routes/invitations/$token.tsx`
 
 Handle:
 - Logged in: accept and redirect to org
 - Logged out: redirect to login with return URL
+
+**Completed**:
+- Created `invitations/$token.tsx` deep link route
+- Redirects unauthenticated users to `/login?redirect=/invitations/{token}` for post-login return
+- Shows confirmation page for authenticated users with Accept/Decline buttons
+- Accept calls POST `/api/v1/invitations/{token}/accept` and redirects to organization dashboard
+- Decline calls POST `/api/v1/invitations/{token}/decline` and redirects to invitations list
+- Shows invalid token state for malformed tokens
+- Shows success/declined states with auto-redirect
+- Displays current user email so they can verify correct account
+- All 3899 tests pass, typecheck clean, lint clean
 
 ---
 
