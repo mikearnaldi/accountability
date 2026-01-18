@@ -1162,10 +1162,20 @@ Handle:
 
 ---
 
-#### Phase J3: Owner Seeding Migration
-**File**: `packages/persistence/src/Migrations/Migration00XX_SeedOwners.ts`
+#### Phase J3: Owner Seeding Migration ✅ COMPLETE
+**File**: `packages/persistence/src/Migrations/Migration0018_SeedOwners.ts`
 
 SQL to seed existing org creators as owners.
+
+**Completed**:
+- Created `Migration0018_SeedOwners.ts` that:
+  1. Finds organizations without any members
+  2. Looks up the audit_log for Organization Create events to find the original creator
+  3. Inserts the creator as owner with all functional roles enabled
+  4. Also seeds system policies for organizations that don't have them yet
+- Migration uses `ON CONFLICT DO NOTHING` to be idempotent
+- Handles the type difference between audit_log.entity_id (VARCHAR) and organizations.id (UUID)
+- All 3899 tests pass, typecheck clean, lint clean
 
 ---
 
