@@ -745,13 +745,29 @@ Verified: 87 endpoints, 231 schemas. Typecheck clean, lint clean.
 
 ---
 
-#### Phase G2: Permission Hook
+#### Phase G2: Permission Hook ✅ COMPLETE
 **File**: `packages/web/src/hooks/usePermissions.ts`
 
 Hook that:
 - Fetches effective permissions from `/v1/users/me/organizations`
 - Caches in context
 - Exposes `canPerform(action)` function
+
+**Completed**:
+- Created `packages/web/src/hooks/usePermissions.ts` with:
+  - `usePermissions()` hook with `canPerform(action)`, `canPerformAny(actions)`, `canPerformAll(actions)`, `hasRole(role)`, `hasAnyRole(roles)`, `isAdminOrOwner`, `isOwner` helpers
+  - `PermissionContext` React context for permission state
+  - `createPermissionContextValue()` helper for creating context values
+  - `parseUserOrganizations()` helper for parsing API responses
+  - Types for `Action`, `BaseRole`, `FunctionalRoles`, `UserOrganization`, `PermissionContextValue`
+- Created `packages/web/src/components/auth/PermissionProvider.tsx`:
+  - Provider component that wraps children with permission context
+  - Uses `useMemo` for performance optimization
+- Updated `packages/web/src/routes/organizations/$organizationId/route.tsx`:
+  - Added `fetchUserOrganizations()` server function to fetch from `/api/v1/users/me/organizations`
+  - Fetches both organizations and user permissions in parallel in `beforeLoad`
+  - Wraps child routes in `PermissionProvider` with current organization context
+- All 3899 tests pass, typecheck clean, lint clean
 
 ---
 
