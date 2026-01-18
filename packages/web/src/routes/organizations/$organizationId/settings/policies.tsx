@@ -18,10 +18,13 @@ import { useState } from "react"
 import { Shield, Plus, RefreshCw, MoreVertical, Lock, Pencil, Trash2, CheckCircle, XCircle, Play } from "lucide-react"
 import { clsx } from "clsx"
 import { createServerApi } from "@/api/server"
+import { api } from "@/api/client"
 import { AppLayout } from "@/components/layout/AppLayout"
 import { MinimalRouteError } from "@/components/ui/RouteError"
 import { Button } from "@/components/ui/Button"
 import { usePermissions } from "@/hooks/usePermissions"
+import { PolicyBuilderModal } from "@/components/policies/PolicyBuilderModal"
+import { PolicyTestModal } from "@/components/policies/PolicyTestModal"
 
 // =============================================================================
 // Types
@@ -103,6 +106,14 @@ interface Company {
   readonly name: string
 }
 
+interface Member {
+  readonly userId: string
+  readonly email: string
+  readonly displayName: string
+  readonly role: BaseRole
+  readonly functionalRoles: readonly FunctionalRole[]
+}
+
 // =============================================================================
 // Server Functions
 // =============================================================================
@@ -113,14 +124,14 @@ const fetchPoliciesData = createServerFn({ method: "GET" })
     const sessionToken = getCookie("accountability_session")
 
     if (!sessionToken) {
-      return { organization: null, policies: [], companies: [], error: "unauthorized" as const }
+      return { organization: null, policies: [], companies: [], members: [], error: "unauthorized" as const }
     }
 
     try {
       const serverApi = createServerApi()
       const Authorization = `Bearer ${sessionToken}`
 
-      const [orgResult, policiesResult, companiesResult] = await Promise.all([
+      const [orgResult, policiesResult, companiesResult, membersResult] = await Promise.all([
         serverApi.GET("/api/v1/organizations/{id}", {
           params: { path: { id: organizationId } },
           headers: { Authorization }
@@ -132,24 +143,33 @@ const fetchPoliciesData = createServerFn({ method: "GET" })
         serverApi.GET("/api/v1/companies", {
           params: { query: { organizationId } },
           headers: { Authorization }
+        }),
+        serverApi.GET("/api/v1/organizations/{orgId}/members", {
+          params: { path: { orgId: organizationId } },
+          headers: { Authorization }
         })
       ])
 
       if (orgResult.error) {
         if (typeof orgResult.error === "object" && "status" in orgResult.error && orgResult.error.status === 404) {
-          return { organization: null, policies: [], companies: [], error: "not_found" as const }
+          return { organization: null, policies: [], companies: [], members: [], error: "not_found" as const }
         }
-        return { organization: null, policies: [], companies: [], error: "failed" as const }
+        return { organization: null, policies: [], companies: [], members: [], error: "failed" as const }
       }
+
+      // Filter to active members only for the test modal
+      const allMembers = membersResult.data?.members ?? []
+      const activeMembers = allMembers.filter((m: { status?: string }) => m.status === "active")
 
       return {
         organization: orgResult.data,
         policies: policiesResult.data?.policies ?? [],
         companies: companiesResult.data?.companies ?? [],
+        members: activeMembers,
         error: null
       }
     } catch {
-      return { organization: null, policies: [], companies: [], error: "failed" as const }
+      return { organization: null, policies: [], companies: [], members: [], error: "failed" as const }
     }
   })
 
@@ -204,7 +224,8 @@ export const Route = createFileRoute("/organizations/$organizationId/settings/po
     return {
       organization: result.organization,
       policies: result.policies,
-      companies: result.companies
+      companies: result.companies,
+      members: result.members
     }
   },
   errorComponent: ({ error }) => (
@@ -229,9 +250,13 @@ function PoliciesPage() {
   const organization = loaderData.organization as Organization | null
   const policies = loaderData.policies as readonly Policy[]
   const companies = loaderData.companies as readonly Company[]
+  const members = loaderData.members as readonly Member[]
   /* eslint-enable @typescript-eslint/consistent-type-assertions */
 
   const [actionMenuOpen, setActionMenuOpen] = useState<string | null>(null)
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [editingPolicy, setEditingPolicy] = useState<Policy | null>(null)
+  const [showTestModal, setShowTestModal] = useState(false)
 
   if (!organization) {
     return null
@@ -281,17 +306,24 @@ function PoliciesPage() {
             </Button>
 
             {isAdminOrOwner && (
-              <Button
-                variant="primary"
-                onClick={() => {
-                  // TODO: Open create policy modal (Phase I2)
-                  alert("Create policy modal - coming in Phase I2")
-                }}
-                icon={<Plus className="h-4 w-4" />}
-                data-testid="policies-create-button"
-              >
-                Create Policy
-              </Button>
+              <>
+                <Button
+                  variant="secondary"
+                  onClick={() => setShowTestModal(true)}
+                  icon={<Play className="h-4 w-4" />}
+                  data-testid="policies-test-button"
+                >
+                  Test Policies
+                </Button>
+                <Button
+                  variant="primary"
+                  onClick={() => setShowCreateModal(true)}
+                  icon={<Plus className="h-4 w-4" />}
+                  data-testid="policies-create-button"
+                >
+                  Create Policy
+                </Button>
+              </>
             )}
           </div>
         </div>
@@ -335,6 +367,8 @@ function PoliciesPage() {
           actionMenuOpen={actionMenuOpen}
           onActionMenuToggle={setActionMenuOpen}
           onRefresh={handleRefresh}
+          onEditPolicy={setEditingPolicy}
+          onTestPolicy={() => setShowTestModal(true)}
           organizationId={organization.id}
           data-testid="custom-policies-section"
         />
@@ -353,10 +387,7 @@ function PoliciesPage() {
             {isAdminOrOwner && (
               <Button
                 variant="primary"
-                onClick={() => {
-                  // TODO: Open create policy modal (Phase I2)
-                  alert("Create policy modal - coming in Phase I2")
-                }}
+                onClick={() => setShowCreateModal(true)}
                 icon={<Plus className="h-4 w-4" />}
                 className="mt-4"
                 data-testid="policies-empty-create-button"
@@ -365,6 +396,36 @@ function PoliciesPage() {
               </Button>
             )}
           </div>
+        )}
+
+        {/* Create Policy Modal */}
+        {showCreateModal && (
+          <PolicyBuilderModal
+            organizationId={organization.id}
+            mode="create"
+            onClose={() => setShowCreateModal(false)}
+            onSuccess={handleRefresh}
+          />
+        )}
+
+        {/* Edit Policy Modal */}
+        {editingPolicy && (
+          <PolicyBuilderModal
+            organizationId={organization.id}
+            mode="edit"
+            existingPolicy={editingPolicy}
+            onClose={() => setEditingPolicy(null)}
+            onSuccess={handleRefresh}
+          />
+        )}
+
+        {/* Test Policy Modal */}
+        {showTestModal && (
+          <PolicyTestModal
+            organizationId={organization.id}
+            members={members}
+            onClose={() => setShowTestModal(false)}
+          />
         )}
       </div>
     </AppLayout>
@@ -385,6 +446,8 @@ interface PolicyTableProps {
   readonly actionMenuOpen: string | null
   readonly onActionMenuToggle: (id: string | null) => void
   readonly onRefresh?: () => void
+  readonly onEditPolicy?: (policy: Policy) => void
+  readonly onTestPolicy?: () => void
   readonly organizationId?: string
   readonly "data-testid"?: string
 }
@@ -399,6 +462,8 @@ function PolicyTable({
   actionMenuOpen,
   onActionMenuToggle,
   onRefresh,
+  onEditPolicy,
+  onTestPolicy,
   organizationId,
   "data-testid": testId
 }: PolicyTableProps) {
@@ -536,6 +601,8 @@ function PolicyTable({
                               policy={policy}
                               organizationId={organizationId ?? ""}
                               onClose={() => onActionMenuToggle(null)}
+                              onEdit={onEditPolicy ? () => onEditPolicy(policy) : undefined}
+                              onTest={onTestPolicy}
                               {...(onRefresh ? { onRefresh } : {})}
                             />
                           )}
@@ -631,19 +698,21 @@ interface PolicyActionsMenuProps {
   readonly policy: Policy
   readonly organizationId: string
   readonly onClose: () => void
-  readonly onRefresh?: () => void
+  readonly onRefresh?: (() => void) | undefined
+  readonly onEdit?: (() => void) | undefined
+  readonly onTest?: (() => void) | undefined
 }
 
-function PolicyActionsMenu({ policy, onClose, onRefresh }: PolicyActionsMenuProps) {
+function PolicyActionsMenu({ policy, organizationId, onClose, onRefresh, onEdit, onTest }: PolicyActionsMenuProps) {
+  const [isDeleting, setIsDeleting] = useState(false)
+
   const handleEdit = () => {
-    // TODO: Open edit policy modal (Phase I2)
-    alert("Edit policy modal - coming in Phase I2")
+    onEdit?.()
     onClose()
   }
 
   const handleTest = () => {
-    // TODO: Open test policy modal (Phase I7)
-    alert("Test policy modal - coming in Phase I7")
+    onTest?.()
     onClose()
   }
 
@@ -652,10 +721,28 @@ function PolicyActionsMenu({ policy, onClose, onRefresh }: PolicyActionsMenuProp
       return
     }
 
-    // TODO: Implement delete (Phase I2)
-    alert("Delete policy - coming in Phase I2")
-    onRefresh?.()
-    onClose()
+    setIsDeleting(true)
+    try {
+      const { error: apiError } = await api.DELETE("/api/v1/organizations/{orgId}/policies/{policyId}", {
+        params: { path: { orgId: organizationId, policyId: policy.id } }
+      })
+
+      if (apiError) {
+        const errorMessage =
+          typeof apiError === "object" && apiError !== null && "message" in apiError
+            ? String(apiError.message)
+            : "Failed to delete policy"
+        alert(errorMessage)
+        return
+      }
+
+      onRefresh?.()
+    } catch {
+      alert("An unexpected error occurred")
+    } finally {
+      setIsDeleting(false)
+      onClose()
+    }
   }
 
   return (
@@ -683,11 +770,12 @@ function PolicyActionsMenu({ policy, onClose, onRefresh }: PolicyActionsMenuProp
 
       <button
         onClick={handleDelete}
-        className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-700 hover:bg-red-50"
+        disabled={isDeleting}
+        className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-700 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
         data-testid="policy-delete"
       >
         <Trash2 className="h-4 w-4" />
-        Delete Policy
+        {isDeleting ? "Deleting..." : "Delete Policy"}
       </button>
     </div>
   )

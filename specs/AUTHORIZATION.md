@@ -1018,48 +1018,79 @@ Create route with:
 
 ---
 
-#### Phase I2: Policy Builder Modal - Basic
-**File**: `packages/web/src/components/forms/PolicyBuilderModal.tsx`
+#### Phase I2: Policy Builder Modal - Basic ✅ COMPLETE
+**File**: `packages/web/src/components/policies/PolicyBuilderModal.tsx`
 
 Basic form with:
 - Name, description
 - Effect (allow/deny)
 - Priority slider
 
+**Completed**: Created `PolicyBuilderModal.tsx` implementing all I2-I6 phases in a single comprehensive component:
+- Name and description inputs with validation
+- Effect selector (allow/deny) with visual icons
+- Priority slider (0-899 range for custom policies)
+- Active toggle checkbox
+- Create and Edit modes with proper API integration
+- Error handling and loading states
+
 ---
 
-#### Phase I3: Policy Builder - Subject Conditions
+#### Phase I3: Policy Builder - Subject Conditions ✅ COMPLETE
 Add to modal:
 - Role multi-select
 - Functional role multi-select
 - User selector (optional)
 
+**Completed** in `PolicyBuilderModal.tsx`:
+- Base role checkboxes with labels and descriptions (owner, admin, member, viewer)
+- Functional role toggle buttons (controller, finance_manager, accountant, period_admin, consolidation_manager)
+- Validation requiring at least one role or functional role
+
 ---
 
-#### Phase I4: Policy Builder - Resource Conditions
+#### Phase I4: Policy Builder - Resource Conditions ✅ COMPLETE
 Add to modal:
 - Resource type dropdown
 - Attribute editors (account range, etc.)
 
+**Completed** in `PolicyBuilderModal.tsx`:
+- Resource type dropdown with all types (*, organization, company, account, journal_entry, fiscal_period, consolidation_group, report)
+- Conditional attribute editors for account resources (account type, intercompany flag)
+- Conditional attribute editors for journal entry resources (entry type, period status, own entry flag)
+
 ---
 
-#### Phase I5: Policy Builder - Action Selection
+#### Phase I5: Policy Builder - Action Selection ✅ COMPLETE
 Add to modal:
 - Action multi-select with search
 - Group by resource type
 
+**Completed** in `PolicyBuilderModal.tsx`:
+- "All Actions" toggle for wildcard permission
+- Searchable action list
+- Actions grouped by resource type (Organization, Company, Account, Journal Entry, Fiscal Period, Consolidation, Report, Exchange Rate, Audit Log)
+- Selected action count display
+
 ---
 
-#### Phase I6: Policy Builder - Environment Conditions
+#### Phase I6: Policy Builder - Environment Conditions ✅ COMPLETE
 Add to modal:
 - Time range inputs
 - Day of week checkboxes
 - IP allowlist/denylist inputs
 
+**Completed** in `PolicyBuilderModal.tsx`:
+- Optional section with info banner explaining purpose
+- Time restriction toggle with start/end time inputs
+- Day of week button group (Su-Sa)
+- IP allow list input (comma-separated CIDR notation)
+- IP deny list input (comma-separated CIDR notation)
+
 ---
 
-#### Phase I7: Policy Testing Tool
-**File**: `packages/web/src/components/forms/PolicyTestModal.tsx`
+#### Phase I7: Policy Testing Tool ✅ COMPLETE
+**File**: `packages/web/src/components/policies/PolicyTestModal.tsx`
 
 Form with:
 - User selector
@@ -1067,6 +1098,25 @@ Form with:
 - Resource inputs
 - Test button
 - Result display (decision + matched policies)
+
+**Completed**:
+- Created `PolicyTestModal.tsx` in `packages/web/src/components/policies/` with:
+  - User selector dropdown populated from active organization members
+  - Resource type dropdown (organization, company, account, journal_entry, fiscal_period, consolidation_group, report)
+  - Action dropdown filtered by selected resource type
+  - Optional resource ID input
+  - Conditional attribute inputs for account resources (account type, intercompany flag)
+  - Conditional attribute inputs for journal entry resources (entry type, period status, own entry flag)
+  - Test button that calls POST `/api/v1/organizations/{orgId}/policies/test` endpoint
+  - Result display showing allow/deny decision with reason
+  - Matched policies list showing policy name, effect, priority, and system policy indicator
+- Updated `policies.tsx` to:
+  - Fetch members data for the test modal
+  - Added "Test Policies" button in page header for admins/owners
+  - Added "Test Policy" action in policy action menu
+  - Integrated PolicyTestModal component
+- Used type-safe lookup tables (ACTION_MAP, ACTION_TYPE_MAP) to validate action values
+- All 3899 tests pass, typecheck clean, lint clean
 
 ---
 
