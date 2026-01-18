@@ -679,7 +679,7 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
 
   describe("Reports API", () => {
     describe("Report endpoints", () => {
-      it.effect("GET /api/v1/reports/trial-balance returns 404 for non-existent company", () =>
+      it.effect("GET /api/v1/reports/trial-balance returns 403 for non-member organization", () =>
         Effect.gen(function* () {
           const httpClient = yield* HttpClient.HttpClient
           const response = yield* HttpClientRequest.get("/api/v1/reports/trial-balance").pipe(
@@ -693,14 +693,14 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
             Effect.scoped
           )
 
-          expect(response.status).toBe(404)
+          // Authorization check runs first - user is not a member of this organization
+          expect(response.status).toBe(403)
           const body = yield* response.json
-          expect(body).toHaveProperty("_tag", "NotFoundError")
-          expect(body).toHaveProperty("resource", "Company")
+          expect(body).toHaveProperty("_tag", "ForbiddenError")
         })
       )
 
-      it.effect("GET /api/v1/reports/balance-sheet returns 404 for non-existent company", () =>
+      it.effect("GET /api/v1/reports/balance-sheet returns 403 for non-member organization", () =>
         Effect.gen(function* () {
           const httpClient = yield* HttpClient.HttpClient
           const response = yield* HttpClientRequest.get("/api/v1/reports/balance-sheet").pipe(
@@ -714,14 +714,14 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
             Effect.scoped
           )
 
-          expect(response.status).toBe(404)
+          // Authorization check runs first - user is not a member of this organization
+          expect(response.status).toBe(403)
           const body = yield* response.json
-          expect(body).toHaveProperty("_tag", "NotFoundError")
-          expect(body).toHaveProperty("resource", "Company")
+          expect(body).toHaveProperty("_tag", "ForbiddenError")
         })
       )
 
-      it.effect("GET /api/v1/reports/income-statement returns 404 for non-existent company", () =>
+      it.effect("GET /api/v1/reports/income-statement returns 403 for non-member organization", () =>
         Effect.gen(function* () {
           const httpClient = yield* HttpClient.HttpClient
           const response = yield* HttpClientRequest.get("/api/v1/reports/income-statement").pipe(
@@ -736,14 +736,14 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
             Effect.scoped
           )
 
-          expect(response.status).toBe(404)
+          // Authorization check runs first - user is not a member of this organization
+          expect(response.status).toBe(403)
           const body = yield* response.json
-          expect(body).toHaveProperty("_tag", "NotFoundError")
-          expect(body).toHaveProperty("resource", "Company")
+          expect(body).toHaveProperty("_tag", "ForbiddenError")
         })
       )
 
-      it.effect("GET /api/v1/reports/cash-flow returns 404 for non-existent company", () =>
+      it.effect("GET /api/v1/reports/cash-flow returns 403 for non-member organization", () =>
         Effect.gen(function* () {
           const httpClient = yield* HttpClient.HttpClient
           const response = yield* HttpClientRequest.get("/api/v1/reports/cash-flow").pipe(
@@ -758,14 +758,14 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
             Effect.scoped
           )
 
-          expect(response.status).toBe(404)
+          // Authorization check runs first - user is not a member of this organization
+          expect(response.status).toBe(403)
           const body = yield* response.json
-          expect(body).toHaveProperty("_tag", "NotFoundError")
-          expect(body).toHaveProperty("resource", "Company")
+          expect(body).toHaveProperty("_tag", "ForbiddenError")
         })
       )
 
-      it.effect("GET /api/v1/reports/equity-statement returns 404 for non-existent company", () =>
+      it.effect("GET /api/v1/reports/equity-statement returns 403 for non-member organization", () =>
         Effect.gen(function* () {
           const httpClient = yield* HttpClient.HttpClient
           const response = yield* HttpClientRequest.get("/api/v1/reports/equity-statement").pipe(
@@ -780,10 +780,10 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
             Effect.scoped
           )
 
-          expect(response.status).toBe(404)
+          // Authorization check runs first - user is not a member of this organization
+          expect(response.status).toBe(403)
           const body = yield* response.json
-          expect(body).toHaveProperty("_tag", "NotFoundError")
-          expect(body).toHaveProperty("resource", "Company")
+          expect(body).toHaveProperty("_tag", "ForbiddenError")
         })
       )
     })

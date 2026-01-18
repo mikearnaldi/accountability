@@ -481,8 +481,17 @@ Same pattern as E7.
 
 ---
 
-#### Phase E13: Permission Checks in ReportsApi
+#### Phase E13: Permission Checks in ReportsApi ✅ COMPLETE
 Same pattern as E7.
+
+**Completed**:
+- Added permission checks to all Report endpoints (generateTrialBalance, generateBalanceSheet, generateIncomeStatement, generateCashFlowStatement, generateEquityStatement)
+- Wrapped handlers with `requireOrganizationContext` and `requirePermission`
+- Permission mapping:
+  - `report:read` - all report generation endpoints
+- Added ForbiddenError to all API endpoint error types
+- Updated tests to expect ForbiddenError for unauthorized access
+- All 3620 tests pass, typecheck clean, lint clean
 
 ---
 

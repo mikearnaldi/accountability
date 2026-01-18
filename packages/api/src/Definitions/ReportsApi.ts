@@ -21,6 +21,7 @@ import { Timestamp } from "@accountability/core/Domains/Timestamp"
 import { AccountId } from "@accountability/core/Domains/Account"
 import {
   BusinessRuleError,
+  ForbiddenError,
   NotFoundError,
   ValidationError
 } from "./ApiErrors.ts"
@@ -396,6 +397,7 @@ const generateTrialBalance = HttpApiEndpoint.get("generateTrialBalance", "/trial
   .addError(NotFoundError)
   .addError(ValidationError)
   .addError(BusinessRuleError)
+  .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "Generate trial balance",
     description: "Generate a trial balance report showing all account balances with total debits and credits. The report validates that the books are balanced."
@@ -410,6 +412,7 @@ const generateBalanceSheet = HttpApiEndpoint.get("generateBalanceSheet", "/balan
   .addError(NotFoundError)
   .addError(ValidationError)
   .addError(BusinessRuleError)
+  .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "Generate balance sheet",
     description: "Generate a balance sheet report per ASC 210 showing Assets, Liabilities, and Equity at a point in time. Supports comparative periods."
@@ -424,6 +427,7 @@ const generateIncomeStatement = HttpApiEndpoint.get("generateIncomeStatement", "
   .addError(NotFoundError)
   .addError(ValidationError)
   .addError(BusinessRuleError)
+  .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "Generate income statement",
     description: "Generate an income statement per ASC 220 showing Revenue, Expenses, and Net Income for a period. Supports comparative periods."
@@ -438,6 +442,7 @@ const generateCashFlowStatement = HttpApiEndpoint.get("generateCashFlowStatement
   .addError(NotFoundError)
   .addError(ValidationError)
   .addError(BusinessRuleError)
+  .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "Generate cash flow statement",
     description: "Generate a cash flow statement per ASC 230 showing Operating, Investing, and Financing activities. Supports direct or indirect method."
@@ -452,6 +457,7 @@ const generateEquityStatement = HttpApiEndpoint.get("generateEquityStatement", "
   .addError(NotFoundError)
   .addError(ValidationError)
   .addError(BusinessRuleError)
+  .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "Generate equity statement",
     description: "Generate a statement of changes in equity showing movements in common stock, retained earnings, treasury stock, and other comprehensive income."

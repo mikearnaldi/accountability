@@ -61,6 +61,7 @@ import {
   NotFoundError,
   BusinessRuleError
 } from "../Definitions/ApiErrors.ts"
+import { requireOrganizationContext, requirePermission } from "./OrganizationContextMiddlewareLive.ts"
 import {
   TrialBalanceReport,
   TrialBalanceLineItem,
@@ -521,188 +522,208 @@ export const ReportsApiLive = HttpApiBuilder.group(AppApi, "reports", (handlers)
   Effect.gen(function* () {
     return handlers
       .handle("generateTrialBalance", (_) =>
-        Effect.gen(function* () {
-          const { organizationId: orgIdStr, companyId: companyIdStr, asOfDate, periodStartDate, excludeZeroBalances } = _.urlParams
+        requireOrganizationContext(_.urlParams.organizationId,
+          Effect.gen(function* () {
+            yield* requirePermission("report:read")
 
-          // Parse IDs (still strings in URL params)
-          const organizationId = OrganizationId.make(orgIdStr)
-          const companyId = CompanyId.make(companyIdStr)
-          // Note: asOfDate and periodStartDate are already LocalDate instances
-          // thanks to LocalDateFromString schema in URL params
+            const { organizationId: orgIdStr, companyId: companyIdStr, asOfDate, periodStartDate, excludeZeroBalances } = _.urlParams
 
-          // Fetch data
-          const { accounts, entriesWithLines, functionalCurrency } = yield* fetchReportData(organizationId, companyId)
+            // Parse IDs (still strings in URL params)
+            const organizationId = OrganizationId.make(orgIdStr)
+            const companyId = CompanyId.make(companyIdStr)
+            // Note: asOfDate and periodStartDate are already LocalDate instances
+            // thanks to LocalDateFromString schema in URL params
 
-          // Generate report
-          const options = periodStartDate !== undefined
-            ? { excludeZeroBalances: excludeZeroBalances ?? true, periodStartDate }
-            : { excludeZeroBalances: excludeZeroBalances ?? true }
-          const coreReport = yield* generateTrialBalanceFromData(
-            companyId,
-            accounts,
-            entriesWithLines,
-            asOfDate,
-            functionalCurrency,
-            options
-          ).pipe(
-            Effect.mapError((error) =>
-              new BusinessRuleError({
-                code: "TRIAL_BALANCE_NOT_BALANCED",
-                message: error.message,
-                details: Option.none()
-              })
+            // Fetch data
+            const { accounts, entriesWithLines, functionalCurrency } = yield* fetchReportData(organizationId, companyId)
+
+            // Generate report
+            const options = periodStartDate !== undefined
+              ? { excludeZeroBalances: excludeZeroBalances ?? true, periodStartDate }
+              : { excludeZeroBalances: excludeZeroBalances ?? true }
+            const coreReport = yield* generateTrialBalanceFromData(
+              companyId,
+              accounts,
+              entriesWithLines,
+              asOfDate,
+              functionalCurrency,
+              options
+            ).pipe(
+              Effect.mapError((error) =>
+                new BusinessRuleError({
+                  code: "TRIAL_BALANCE_NOT_BALANCED",
+                  message: error.message,
+                  details: Option.none()
+                })
+              )
             )
-          )
 
-          return transformTrialBalanceReport(coreReport, companyId)
-        })
+            return transformTrialBalanceReport(coreReport, companyId)
+          })
+        )
       )
       .handle("generateBalanceSheet", (_) =>
-        Effect.gen(function* () {
-          const { organizationId: orgIdStr, companyId: companyIdStr, asOfDate, comparativeDate, includeZeroBalances } = _.urlParams
+        requireOrganizationContext(_.urlParams.organizationId,
+          Effect.gen(function* () {
+            yield* requirePermission("report:read")
 
-          // Parse IDs (still strings in URL params)
-          const organizationId = OrganizationId.make(orgIdStr)
-          const companyId = CompanyId.make(companyIdStr)
-          // Note: asOfDate and comparativeDate are already LocalDate instances
+            const { organizationId: orgIdStr, companyId: companyIdStr, asOfDate, comparativeDate, includeZeroBalances } = _.urlParams
 
-          // Fetch data
-          const { accounts, entriesWithLines, functionalCurrency } = yield* fetchReportData(organizationId, companyId)
+            // Parse IDs (still strings in URL params)
+            const organizationId = OrganizationId.make(orgIdStr)
+            const companyId = CompanyId.make(companyIdStr)
+            // Note: asOfDate and comparativeDate are already LocalDate instances
 
-          // Generate report
-          const balanceSheetOptions = comparativeDate !== undefined
-            ? { includeZeroBalances: includeZeroBalances ?? false, comparativeDate }
-            : { includeZeroBalances: includeZeroBalances ?? false }
-          const coreReport = yield* generateBalanceSheetFromData(
-            companyId,
-            accounts,
-            entriesWithLines,
-            asOfDate,
-            functionalCurrency,
-            balanceSheetOptions
-          ).pipe(
-            Effect.mapError((error) =>
-              new BusinessRuleError({
-                code: "BALANCE_SHEET_NOT_BALANCED",
-                message: error.message,
-                details: Option.none()
-              })
+            // Fetch data
+            const { accounts, entriesWithLines, functionalCurrency } = yield* fetchReportData(organizationId, companyId)
+
+            // Generate report
+            const balanceSheetOptions = comparativeDate !== undefined
+              ? { includeZeroBalances: includeZeroBalances ?? false, comparativeDate }
+              : { includeZeroBalances: includeZeroBalances ?? false }
+            const coreReport = yield* generateBalanceSheetFromData(
+              companyId,
+              accounts,
+              entriesWithLines,
+              asOfDate,
+              functionalCurrency,
+              balanceSheetOptions
+            ).pipe(
+              Effect.mapError((error) =>
+                new BusinessRuleError({
+                  code: "BALANCE_SHEET_NOT_BALANCED",
+                  message: error.message,
+                  details: Option.none()
+                })
+              )
             )
-          )
 
-          return transformBalanceSheetReport(coreReport, companyId)
-        })
+            return transformBalanceSheetReport(coreReport, companyId)
+          })
+        )
       )
       .handle("generateIncomeStatement", (_) =>
-        Effect.gen(function* () {
-          const {
-            organizationId: orgIdStr,
-            companyId: companyIdStr,
-            periodStartDate,
-            periodEndDate,
-            comparativeStartDate,
-            comparativeEndDate
-          } = _.urlParams
+        requireOrganizationContext(_.urlParams.organizationId,
+          Effect.gen(function* () {
+            yield* requirePermission("report:read")
 
-          // Parse IDs (still strings in URL params)
-          const organizationId = OrganizationId.make(orgIdStr)
-          const companyId = CompanyId.make(companyIdStr)
-          // Note: date params are already LocalDate instances
+            const {
+              organizationId: orgIdStr,
+              companyId: companyIdStr,
+              periodStartDate,
+              periodEndDate,
+              comparativeStartDate,
+              comparativeEndDate
+            } = _.urlParams
 
-          // Fetch data
-          const { accounts, entriesWithLines, functionalCurrency } = yield* fetchReportData(organizationId, companyId)
+            // Parse IDs (still strings in URL params)
+            const organizationId = OrganizationId.make(orgIdStr)
+            const companyId = CompanyId.make(companyIdStr)
+            // Note: date params are already LocalDate instances
 
-          // Generate report - build options conditionally
-          const incomeStatementOptions: {
-            includeZeroBalances?: boolean
-            comparativePeriodStart?: LocalDate
-            comparativePeriodEnd?: LocalDate
-          } = {}
-          if (comparativeStartDate !== undefined) {
-            incomeStatementOptions.comparativePeriodStart = comparativeStartDate
-          }
-          if (comparativeEndDate !== undefined) {
-            incomeStatementOptions.comparativePeriodEnd = comparativeEndDate
-          }
+            // Fetch data
+            const { accounts, entriesWithLines, functionalCurrency } = yield* fetchReportData(organizationId, companyId)
 
-          const coreReport = yield* generateIncomeStatementFromData(
-            companyId,
-            accounts,
-            entriesWithLines,
-            periodStartDate,
-            periodEndDate,
-            functionalCurrency,
-            incomeStatementOptions
-          ).pipe(
-            Effect.mapError((error) => mapInvalidPeriodToBusinessRule(error))
-          )
+            // Generate report - build options conditionally
+            const incomeStatementOptions: {
+              includeZeroBalances?: boolean
+              comparativePeriodStart?: LocalDate
+              comparativePeriodEnd?: LocalDate
+            } = {}
+            if (comparativeStartDate !== undefined) {
+              incomeStatementOptions.comparativePeriodStart = comparativeStartDate
+            }
+            if (comparativeEndDate !== undefined) {
+              incomeStatementOptions.comparativePeriodEnd = comparativeEndDate
+            }
 
-          return transformIncomeStatementReport(coreReport, companyId)
-        })
+            const coreReport = yield* generateIncomeStatementFromData(
+              companyId,
+              accounts,
+              entriesWithLines,
+              periodStartDate,
+              periodEndDate,
+              functionalCurrency,
+              incomeStatementOptions
+            ).pipe(
+              Effect.mapError((error) => mapInvalidPeriodToBusinessRule(error))
+            )
+
+            return transformIncomeStatementReport(coreReport, companyId)
+          })
+        )
       )
       .handle("generateCashFlowStatement", (_) =>
-        Effect.gen(function* () {
-          const {
-            organizationId: orgIdStr,
-            companyId: companyIdStr,
-            periodStartDate,
-            periodEndDate
-          } = _.urlParams
+        requireOrganizationContext(_.urlParams.organizationId,
+          Effect.gen(function* () {
+            yield* requirePermission("report:read")
 
-          // Parse IDs (still strings in URL params)
-          const organizationId = OrganizationId.make(orgIdStr)
-          const companyId = CompanyId.make(companyIdStr)
-          // Note: date params are already LocalDate instances
+            const {
+              organizationId: orgIdStr,
+              companyId: companyIdStr,
+              periodStartDate,
+              periodEndDate
+            } = _.urlParams
 
-          // Fetch data
-          const { accounts, entriesWithLines, functionalCurrency } = yield* fetchReportData(organizationId, companyId)
+            // Parse IDs (still strings in URL params)
+            const organizationId = OrganizationId.make(orgIdStr)
+            const companyId = CompanyId.make(companyIdStr)
+            // Note: date params are already LocalDate instances
 
-          // Generate report - indirect method is the default
-          const coreReport = yield* generateCashFlowStatementFromData(
-            companyId,
-            accounts,
-            entriesWithLines,
-            periodStartDate,
-            periodEndDate,
-            functionalCurrency
-          ).pipe(
-            Effect.mapError((error) => mapInvalidPeriodToBusinessRule(error))
-          )
+            // Fetch data
+            const { accounts, entriesWithLines, functionalCurrency } = yield* fetchReportData(organizationId, companyId)
 
-          return transformCashFlowStatementReport(coreReport, companyId)
-        })
+            // Generate report - indirect method is the default
+            const coreReport = yield* generateCashFlowStatementFromData(
+              companyId,
+              accounts,
+              entriesWithLines,
+              periodStartDate,
+              periodEndDate,
+              functionalCurrency
+            ).pipe(
+              Effect.mapError((error) => mapInvalidPeriodToBusinessRule(error))
+            )
+
+            return transformCashFlowStatementReport(coreReport, companyId)
+          })
+        )
       )
       .handle("generateEquityStatement", (_) =>
-        Effect.gen(function* () {
-          const {
-            organizationId: orgIdStr,
-            companyId: companyIdStr,
-            periodStartDate,
-            periodEndDate
-          } = _.urlParams
+        requireOrganizationContext(_.urlParams.organizationId,
+          Effect.gen(function* () {
+            yield* requirePermission("report:read")
 
-          // Parse IDs (still strings in URL params)
-          const organizationId = OrganizationId.make(orgIdStr)
-          const companyId = CompanyId.make(companyIdStr)
-          // Note: date params are already LocalDate instances
+            const {
+              organizationId: orgIdStr,
+              companyId: companyIdStr,
+              periodStartDate,
+              periodEndDate
+            } = _.urlParams
 
-          // Fetch data
-          const { accounts, entriesWithLines, functionalCurrency } = yield* fetchReportData(organizationId, companyId)
+            // Parse IDs (still strings in URL params)
+            const organizationId = OrganizationId.make(orgIdStr)
+            const companyId = CompanyId.make(companyIdStr)
+            // Note: date params are already LocalDate instances
 
-          // Generate report
-          const coreReport = yield* generateEquityStatementFromData(
-            companyId,
-            accounts,
-            entriesWithLines,
-            periodStartDate,
-            periodEndDate,
-            functionalCurrency
-          ).pipe(
-            Effect.mapError((error) => mapInvalidPeriodToBusinessRule(error))
-          )
+            // Fetch data
+            const { accounts, entriesWithLines, functionalCurrency } = yield* fetchReportData(organizationId, companyId)
 
-          return transformEquityStatementReport(coreReport, companyId)
-        })
+            // Generate report
+            const coreReport = yield* generateEquityStatementFromData(
+              companyId,
+              accounts,
+              entriesWithLines,
+              periodStartDate,
+              periodEndDate,
+              functionalCurrency
+            ).pipe(
+              Effect.mapError((error) => mapInvalidPeriodToBusinessRule(error))
+            )
+
+            return transformEquityStatementReport(coreReport, companyId)
+          })
+        )
       )
   })
 )
