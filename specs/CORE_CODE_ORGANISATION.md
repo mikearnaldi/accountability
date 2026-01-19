@@ -587,9 +587,11 @@ Within the domain, what type is this?
 - [x] Migrate all errors to domain-specific files - DONE (Phase 5)
 - [x] Update all imports in persistence/api packages to use new domain paths - DONE (Phase 6)
 - [x] Update package.json exports to include new domain paths - DONE (Phase 7)
-- [ ] Delete old /Errors/ directory (keep for backward compatibility - currently provides re-exports)
-- [ ] Delete old /Domains/ directory (keep for now - source files still here, re-exports point to them)
-- [ ] Delete old /Services/ directory (keep for now - source files still here, re-exports point to them)
+- [x] Delete old /Errors/ directory - DONE (directory removed)
+- [x] Delete old /Domains/ directory - DONE (directory removed)
+- [x] Delete old /Services/ directory - DONE (directory removed)
+- [x] Delete old /AuditLog/ directory - DONE (directory removed)
+- [x] Delete old /FiscalPeriod/ directory - DONE (directory removed)
 - [x] Run full test suite - DONE (3915 tests pass)
 - [x] Update this spec to mark progress - DONE
 
@@ -949,31 +951,41 @@ Moving actual source files from old directories to new domain directories, conve
 
 ---
 
-### Remaining Work
+### ✅ REORGANIZATION COMPLETE (2026-01-19)
 
-The core package reorganization is **in progress**. Source files are being moved to their canonical domain locations.
+The core package reorganization is **complete**. All source files have been moved to their canonical domain locations and all old directories have been removed.
 
-**What's already working:**
-- New import paths are fully functional via re-exports
-- External packages (api, persistence, web) use new paths
-- package.json exports include all new domain paths
-- Error files have been migrated to domain-specific files
-- 56 domain files migrated from Domains/ to canonical locations
-- 13 service files migrated from Services/ to canonical locations
-- 3 audit files migrated from AuditLog/ to canonical locations
-- 13 authorization files migrated from Auth/ to authorization/
-- 10 membership files migrated from Auth/ to membership/
-- 2 fiscal period files migrated from FiscalPeriod/ to fiscal/
+**Final Directory Structure:**
+```
+packages/core/src/
+├── accounting/       # Account, AccountNumber, AccountHierarchy, etc.
+├── audit/            # AuditLog, AuditLogService, AuditLogErrors
+├── Auth/             # Authentication: AuthUser, Session, PasswordHasher, etc.
+├── authorization/    # AuthorizationPolicy, PolicyEngine, matchers/
+├── company/          # Company, CompanyType, CompanyErrors
+├── consolidation/    # ConsolidationGroup, ConsolidationRun, CurrencyTranslationService
+├── currency/         # Currency, CurrencyCode, ExchangeRate, CurrencyService
+├── fiscal/           # FiscalYear, FiscalPeriod, FiscalPeriodService
+├── journal/          # JournalEntry, JournalEntryLine, JournalEntryService
+├── jurisdiction/     # Jurisdiction, JurisdictionCode
+├── membership/       # OrganizationMembership, OrganizationInvitation
+├── organization/     # Organization, OrganizationErrors
+├── reporting/        # BalanceSheetService, IncomeStatementService, etc.
+└── shared/           # values/, context/, errors/
+    ├── values/       # LocalDate, Timestamp, MonetaryAmount, Percentage, Address
+    ├── context/      # CurrentUserId
+    └── errors/       # SharedErrors, RepositoryError
+```
 
-**What's done:**
-- All domain files are now in their canonical locations
-- Old directories (Domains/, Services/, AuditLog/, FiscalPeriod/) now contain re-exports for backward compatibility
-- Internal imports within moved files use domain-relative paths
-- 97+ files successfully migrated to new domain structure
+**What was achieved:**
+- All domain files are in their canonical locations (97+ files migrated)
+- All old directories removed: Domains/, Services/, Errors/, AuditLog/, FiscalPeriod/
+- No re-export files remain - all imports go directly to source files
+- package.json exports updated to use canonical paths
+- External packages (api, persistence, web) use new domain paths
+- All 3915 tests pass, typecheck clean, lint clean
 
-**Remaining considerations:**
-1. auth/ directory - macOS case-insensitivity means Auth/ and auth/ are the same directory
-   - Authentication files remain in Auth/ as the canonical location
-   - This is acceptable as Auth/ is already a valid directory name
-2. Consider deleting old re-export files once all consumers are migrated
-3. Update documentation and onboarding guides to use new paths
+**Note on Auth/ directory:**
+- On macOS, Auth/ and auth/ are the same directory (case-insensitive filesystem)
+- Authentication files remain in Auth/ as the canonical location
+- This is acceptable - Auth/ is a valid directory name for authentication domain

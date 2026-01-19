@@ -972,3 +972,8 @@
 ## Iteration 1 - 2026-01-19 19:46
 **Task**: Partial work (no explicit completion signal)
 ---
+
+## Iteration 2 - 2026-01-19 19:50
+**Task**: Removed last re-export file (CurrencyTranslationService) and updated spec to mark core reorganization complete
+**Status**: complete
+---

@@ -62,7 +62,7 @@
     "./currency/Currency": "./src/currency/Currency.ts",
     "./currency/ExchangeRate": "./src/currency/ExchangeRate.ts",
     "./currency/CurrencyService": "./src/currency/CurrencyService.ts",
-    "./currency/CurrencyTranslationService": "./src/currency/CurrencyTranslationService.ts",
+    "./consolidation/CurrencyTranslationService": "./src/consolidation/CurrencyTranslationService.ts",
     "./currency/CurrencyErrors": "./src/currency/CurrencyErrors.ts",
 
     "./consolidation/ConsolidationGroup": "./src/consolidation/ConsolidationGroup.ts",
