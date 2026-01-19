@@ -866,3 +866,8 @@
 **Task**: Converted JournalEntriesApi to domain-specific errors and fixed frontend 404 handling
 **Status**: complete
 ---
+
+## Iteration 3 - 2026-01-19 14:19
+**Task**: Converted FiscalPeriodApi to domain-specific errors, removing generic NotFoundError/ValidationError/BusinessRuleError mappings
+**Status**: complete
+---

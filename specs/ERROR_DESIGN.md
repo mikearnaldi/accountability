@@ -633,7 +633,7 @@ Created `packages/core/src/Errors/DomainErrors.ts` with ~35 shared domain error 
 | `CompaniesApiLive.ts` | ✅ COMPLETE | Replaced all generic errors |
 | `AccountsApiLive.ts` | ✅ COMPLETE | Replaced all generic errors |
 | `JournalEntriesApiLive.ts` | ✅ COMPLETE | All NotFoundError replaced with domain-specific errors |
-| `FiscalPeriodApiLive.ts` | ⏳ PENDING | |
+| `FiscalPeriodApiLive.ts` | ✅ COMPLETE | All generic errors replaced with domain-specific errors |
 | `MembershipApiLive.ts` | ⏳ PENDING | |
 | `ConsolidationApiLive.ts` | ⏳ PENDING | |
 | `CurrencyApiLive.ts` | ⏳ PENDING | |
@@ -679,7 +679,7 @@ No additional tests needed - this is framework behavior, already tested by Effec
 | Phase | Status | Notes |
 |-------|--------|-------|
 | Phase 1: Add HttpApiSchema annotations | ✅ COMPLETE | 81 errors across 15 files |
-| Phase 2: Remove generic API errors | 🔄 IN PROGRESS | ~35 domain errors created, 4 API files converted |
+| Phase 2: Remove generic API errors | 🔄 IN PROGRESS | ~35 domain errors created, 5 API files converted |
 | Phase 3: Verify error flow-through | ✅ COMPLETE | Framework behavior, works automatically |
 | Phase 4: Documentation cleanup | ✅ COMPLETE | Spec updated with accurate current/target state |
 
@@ -690,8 +690,8 @@ No additional tests needed - this is framework behavior, already tested by Effec
 | Error layers | Two (domain + generic API) | One (domain only) |
 | Domain errors created | ~116 (81 + 35 new) | ~116 |
 | Shared domain errors file | ✅ `packages/core/src/Errors/DomainErrors.ts` | ✅ Created |
-| API files converted | 4 of ~20 | All (~20) |
-| Error mapping in handlers | Reduced (~3 files done) | None (errors flow through) |
+| API files converted | 5 of ~20 | All (~20) |
+| Error mapping in handlers | Reduced (~5 files done) | None (errors flow through) |
 | Error context preserved | Improved (3 core files) | Full (domain-specific) |
 
 **Progress made:**
@@ -704,9 +704,10 @@ No additional tests needed - this is framework behavior, already tested by Effec
 - ✅ Converted `JournalEntriesApi.ts` - replaced all `NotFoundError` with `JournalEntryNotFoundError` and `CompanyNotFoundError`
 - ✅ Converted `JournalEntriesApiLive.ts` - all handlers now use domain-specific errors, removed unused `NotFoundError` import
 - ✅ Updated frontend routes to handle domain-specific errors (`CompanyNotFoundError`, `JournalEntryNotFoundError`)
+- ✅ Converted `FiscalPeriodApiLive.ts` - all handlers now use domain-specific errors (FiscalYearNotFoundError, FiscalPeriodNotFoundError, InvalidStatusTransitionError, etc.)
 
 **Remaining work:**
-- ⏳ Convert remaining ~16 API Live files to use domain errors
+- ⏳ Convert remaining ~15 API Live files to use domain errors
 - ⏳ Remove unused generic errors from `ApiErrors.ts`
 - ⏳ Final cleanup pass
 
