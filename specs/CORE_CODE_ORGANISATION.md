@@ -913,6 +913,13 @@ Moving actual source files from old directories to new domain directories, conve
 | OrganizationMemberService.ts | Auth/ | membership/ | ✅ Done |
 | MembershipErrors.ts | (new) | membership/ | ✅ Done |
 
+**FiscalPeriod files migrated (Iteration 17):**
+
+| File | Old Location | New Location | Status |
+|------|-------------|--------------|--------|
+| FiscalPeriodService.ts | FiscalPeriod/ | fiscal/ | ✅ Done |
+| FiscalPeriodErrors.ts | FiscalPeriod/ | fiscal/ | ✅ Done |
+
 **Migration status:**
 
 1. **Services/** - ✅ ALL DONE (13 files migrated)
@@ -930,7 +937,11 @@ Moving actual source files from old directories to new domain directories, conve
    - CurrentOrganizationMembership, MembershipErrors
    - Old Auth/ files now re-export from membership/ for backward compatibility
 
-4. **auth/** - Pending (19 files)
+4. **FiscalPeriod/** - ✅ ALL DONE (2 files migrated)
+   - FiscalPeriodService.ts, FiscalPeriodErrors.ts migrated to fiscal/
+   - Old FiscalPeriod/ files now re-export from fiscal/ for backward compatibility
+
+5. **auth/** - Pending (19 files)
    - Note: On macOS, Auth/ and auth/ are the same directory (case-insensitive)
    - Authentication files remain in Auth/ as the canonical location
 
@@ -952,12 +963,13 @@ The core package reorganization is **in progress**. Source files are being moved
 - 3 audit files migrated from AuditLog/ to canonical locations
 - 13 authorization files migrated from Auth/ to authorization/
 - 10 membership files migrated from Auth/ to membership/
+- 2 fiscal period files migrated from FiscalPeriod/ to fiscal/
 
 **What's done:**
 - All domain files are now in their canonical locations
-- Old directories (Domains/, Services/, AuditLog/) now contain re-exports for backward compatibility
+- Old directories (Domains/, Services/, AuditLog/, FiscalPeriod/) now contain re-exports for backward compatibility
 - Internal imports within moved files use domain-relative paths
-- 95+ files successfully migrated to new domain structure
+- 97+ files successfully migrated to new domain structure
 
 **Remaining considerations:**
 1. auth/ directory - macOS case-insensitivity means Auth/ and auth/ are the same directory
