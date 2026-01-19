@@ -22,8 +22,8 @@ import type {
   ActionCondition,
   EnvironmentCondition
 } from "@accountability/core/Auth/PolicyConditions"
-import { OrganizationId } from "@accountability/core/Domains/Organization"
-import { Timestamp } from "@accountability/core/Domains/Timestamp"
+import { OrganizationId } from "@accountability/core/organization/Organization"
+import { Timestamp } from "@accountability/core/shared/values/Timestamp"
 import {
   PolicyRepository,
   type PolicyRepositoryService,

@@ -15,10 +15,10 @@ import {
   Rate,
   RateType,
   RateSource
-} from "@accountability/core/Domains/ExchangeRate"
-import { CurrencyCode } from "@accountability/core/Domains/CurrencyCode"
-import { LocalDateFromString } from "@accountability/core/Domains/LocalDate"
-import { OrganizationId } from "@accountability/core/Domains/Organization"
+} from "@accountability/core/currency/ExchangeRate"
+import { CurrencyCode } from "@accountability/core/currency/CurrencyCode"
+import { LocalDateFromString } from "@accountability/core/shared/values/LocalDate"
+import { OrganizationId } from "@accountability/core/organization/Organization"
 import {
   AuditLogError,
   ForbiddenError,

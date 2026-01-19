@@ -17,7 +17,7 @@ import {
   TemplateType,
   type AccountTemplate,
   type TemplateAccountDefinition
-} from "@accountability/core/Domains/AccountTemplate"
+} from "@accountability/core/accounting/AccountTemplate"
 import {
   CompanyNotFoundError,
   AccountsAlreadyExistError,

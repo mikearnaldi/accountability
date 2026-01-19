@@ -8,5 +8,8 @@
  */
 
 export {
-  TrialBalanceService
+  TrialBalanceService,
+  generateTrialBalanceFromData,
+  type TrialBalanceReport,
+  type TrialBalanceLineItem
 } from "../Services/TrialBalanceService.ts"

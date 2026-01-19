@@ -15,7 +15,7 @@ import type { Session, UserAgent } from "@accountability/core/Auth/Session"
 import type { SessionId } from "@accountability/core/Auth/SessionId"
 import type { AuthUserId } from "@accountability/core/Auth/AuthUserId"
 import type { AuthProviderType } from "@accountability/core/Auth/AuthProviderType"
-import type { Timestamp } from "@accountability/core/Domains/Timestamp"
+import type { Timestamp } from "@accountability/core/shared/values/Timestamp"
 import type { EntityNotFoundError, PersistenceError } from "../Errors/RepositoryError.ts"
 
 /**

@@ -16,20 +16,20 @@ import {
   ConsolidationGroup,
   ConsolidationGroupId,
   ConsolidationMember
-} from "@accountability/core/Domains/ConsolidationGroup"
-import { LocalDate } from "@accountability/core/Domains/LocalDate"
-import { Percentage } from "@accountability/core/Domains/Percentage"
+} from "@accountability/core/consolidation/ConsolidationGroup"
+import { LocalDate } from "@accountability/core/shared/values/LocalDate"
+import { Percentage } from "@accountability/core/shared/values/Percentage"
 import {
   ConsolidationRun,
   ConsolidationRunId,
   ConsolidationRunOptions,
   createInitialSteps
-} from "@accountability/core/Domains/ConsolidationRun"
-import { now as timestampNow } from "@accountability/core/Domains/Timestamp"
+} from "@accountability/core/consolidation/ConsolidationRun"
+import { now as timestampNow } from "@accountability/core/shared/values/Timestamp"
 import {
   ConsolidatedReportService,
   isConsolidatedBalanceSheetNotBalancedError
-} from "@accountability/core/Services/ConsolidatedReportService"
+} from "@accountability/core/reporting/ConsolidatedReportService"
 import { ConsolidationRepository } from "@accountability/persistence/Services/ConsolidationRepository"
 import { CompanyRepository } from "@accountability/persistence/Services/CompanyRepository"
 import { AppApi } from "../Definitions/AppApi.ts"
@@ -37,10 +37,10 @@ import {
   AuditLogError,
   UserLookupError
 } from "../Definitions/ApiErrors.ts"
-import type { AuditLogError as CoreAuditLogError, UserLookupError as CoreUserLookupError } from "@accountability/core/AuditLog/AuditLogErrors"
+import type { AuditLogError as CoreAuditLogError, UserLookupError as CoreUserLookupError } from "@accountability/core/audit/AuditLogErrors"
 import { requireOrganizationContext, requirePermission } from "./OrganizationContextMiddlewareLive.ts"
-import { AuditLogService } from "@accountability/core/AuditLog/AuditLogService"
-import { CurrentUserId } from "@accountability/core/AuditLog/CurrentUserId"
+import { AuditLogService } from "@accountability/core/audit/AuditLogService"
+import { CurrentUserId } from "@accountability/core/shared/context/CurrentUserId"
 import {
   CompanyNotFoundError,
   ConsolidationGroupNotFoundError,

@@ -13,37 +13,37 @@
 import { HttpApiBuilder } from "@effect/platform"
 import * as Effect from "effect/Effect"
 import * as Option from "effect/Option"
-import { CompanyId } from "@accountability/core/Domains/Company"
-import { OrganizationId } from "@accountability/core/Domains/Organization"
-import type { LocalDate } from "@accountability/core/Domains/LocalDate"
-import { MonetaryAmount } from "@accountability/core/Domains/MonetaryAmount"
-import type { JournalEntryWithLines } from "@accountability/core/Domains/AccountBalance"
+import { CompanyId } from "@accountability/core/company/Company"
+import { OrganizationId } from "@accountability/core/organization/Organization"
+import type { LocalDate } from "@accountability/core/shared/values/LocalDate"
+import { MonetaryAmount } from "@accountability/core/shared/values/MonetaryAmount"
+import type { JournalEntryWithLines } from "@accountability/core/accounting/AccountBalance"
 import {
   generateTrialBalanceFromData,
   type TrialBalanceLineItem as CoreTrialBalanceLineItem,
   type TrialBalanceReport as CoreTrialBalanceReport
-} from "@accountability/core/Services/TrialBalanceService"
+} from "@accountability/core/accounting/TrialBalanceService"
 import {
   generateBalanceSheetFromData,
   type BalanceSheetReport as CoreBalanceSheetReport,
   type BalanceSheetSection as CoreBalanceSheetSection,
   type BalanceSheetLineItem as CoreBalanceSheetLineItem
-} from "@accountability/core/Services/BalanceSheetService"
+} from "@accountability/core/reporting/BalanceSheetService"
 import {
   generateIncomeStatementFromData,
   type IncomeStatementReport as CoreIncomeStatementReport,
   type IncomeStatementSection as CoreIncomeStatementSection,
   type IncomeStatementLineItem as CoreIncomeStatementLineItem
-} from "@accountability/core/Services/IncomeStatementService"
+} from "@accountability/core/reporting/IncomeStatementService"
 import {
   generateCashFlowStatementFromData,
   type CashFlowStatementReport as CoreCashFlowStatementReport
-} from "@accountability/core/Services/CashFlowStatementService"
+} from "@accountability/core/reporting/CashFlowStatementService"
 import {
   generateEquityStatementFromData,
   type EquityStatementReport as CoreEquityStatementReport,
   type EquityMovementRow as CoreEquityMovementRow
-} from "@accountability/core/Services/EquityStatementService"
+} from "@accountability/core/reporting/EquityStatementService"
 import { AccountRepository } from "@accountability/persistence/Services/AccountRepository"
 import { CompanyRepository } from "@accountability/persistence/Services/CompanyRepository"
 import { JournalEntryRepository } from "@accountability/persistence/Services/JournalEntryRepository"

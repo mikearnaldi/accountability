@@ -16,9 +16,9 @@ import {
   Organization,
   OrganizationId,
   OrganizationSettings
-} from "@accountability/core/Domains/Organization"
-import { CurrencyCode } from "@accountability/core/Domains/CurrencyCode"
-import { Timestamp } from "@accountability/core/Domains/Timestamp"
+} from "@accountability/core/organization/Organization"
+import { CurrencyCode } from "@accountability/core/currency/CurrencyCode"
+import { Timestamp } from "@accountability/core/shared/values/Timestamp"
 import { OrganizationRepository, type OrganizationRepositoryService } from "../Services/OrganizationRepository.ts"
 import { EntityNotFoundError, wrapSqlError } from "../Errors/RepositoryError.ts"
 

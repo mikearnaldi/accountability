@@ -9,9 +9,9 @@
 
 import { HttpApiEndpoint, HttpApiGroup, OpenApi } from "@effect/platform"
 import * as Schema from "effect/Schema"
-import type { Jurisdiction } from "@accountability/core/Domains/Jurisdiction"
-import { JurisdictionCode } from "@accountability/core/Domains/JurisdictionCode"
-import { CurrencyCode } from "@accountability/core/Domains/CurrencyCode"
+import type { Jurisdiction } from "@accountability/core/jurisdiction/Jurisdiction"
+import { JurisdictionCode } from "@accountability/core/jurisdiction/JurisdictionCode"
+import { CurrencyCode } from "@accountability/core/currency/CurrencyCode"
 import { AuthMiddleware } from "./AuthMiddleware.ts"
 
 // =============================================================================

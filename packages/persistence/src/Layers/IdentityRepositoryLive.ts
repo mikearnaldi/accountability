@@ -18,7 +18,7 @@ import { AuthUserId } from "@accountability/core/Auth/AuthUserId"
 import { AuthProviderType } from "@accountability/core/Auth/AuthProviderType"
 import { ProviderId } from "@accountability/core/Auth/ProviderId"
 import { HashedPassword } from "@accountability/core/Auth/HashedPassword"
-import { Timestamp } from "@accountability/core/Domains/Timestamp"
+import { Timestamp } from "@accountability/core/shared/values/Timestamp"
 import { IdentityRepository, type IdentityRepositoryService } from "../Services/IdentityRepository.ts"
 import { EntityNotFoundError, wrapSqlError } from "../Errors/RepositoryError.ts"
 

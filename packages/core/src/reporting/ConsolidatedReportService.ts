@@ -8,5 +8,7 @@
  */
 
 export {
-  ConsolidatedReportService
+  ConsolidatedReportService,
+  ConsolidatedReportServiceLive,
+  isConsolidatedBalanceSheetNotBalancedError
 } from "../Services/ConsolidatedReportService.ts"

@@ -13,19 +13,19 @@ import {
   ConsolidationGroup,
   ConsolidationGroupId,
   ConsolidationMember
-} from "@accountability/core/Domains/ConsolidationGroup"
+} from "@accountability/core/consolidation/ConsolidationGroup"
 import {
   ConsolidationRun,
   ConsolidationRunId,
   ConsolidationRunStatus,
   ConsolidatedTrialBalance
-} from "@accountability/core/Domains/ConsolidationRun"
-import { OrganizationId } from "@accountability/core/Domains/Organization"
-import { CompanyId, ConsolidationMethod } from "@accountability/core/Domains/Company"
-import { CurrencyCode } from "@accountability/core/Domains/CurrencyCode"
-import { FiscalPeriodRef } from "@accountability/core/Domains/FiscalPeriodRef"
-import { LocalDateFromString } from "@accountability/core/Domains/LocalDate"
-import { Percentage } from "@accountability/core/Domains/Percentage"
+} from "@accountability/core/consolidation/ConsolidationRun"
+import { OrganizationId } from "@accountability/core/organization/Organization"
+import { CompanyId, ConsolidationMethod } from "@accountability/core/company/Company"
+import { CurrencyCode } from "@accountability/core/currency/CurrencyCode"
+import { FiscalPeriodRef } from "@accountability/core/fiscal/FiscalPeriodRef"
+import { LocalDateFromString } from "@accountability/core/shared/values/LocalDate"
+import { Percentage } from "@accountability/core/shared/values/Percentage"
 import {
   AuditLogError,
   ForbiddenError,

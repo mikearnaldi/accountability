@@ -13,16 +13,16 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
-import { AccountId } from "@accountability/core/Domains/Account"
-import { CompanyId } from "@accountability/core/Domains/Company"
-import { JournalEntryId } from "@accountability/core/Domains/JournalEntry"
+import { AccountId } from "@accountability/core/accounting/Account"
+import { CompanyId } from "@accountability/core/company/Company"
+import { JournalEntryId } from "@accountability/core/journal/JournalEntry"
 import {
   Dimensions,
   JournalEntryLine,
   JournalEntryLineId
-} from "@accountability/core/Domains/JournalEntryLine"
-import { CurrencyCode } from "@accountability/core/Domains/CurrencyCode"
-import { MonetaryAmount } from "@accountability/core/Domains/MonetaryAmount"
+} from "@accountability/core/journal/JournalEntryLine"
+import { CurrencyCode } from "@accountability/core/currency/CurrencyCode"
+import { MonetaryAmount } from "@accountability/core/shared/values/MonetaryAmount"
 import {
   JournalEntryLineRepository,
   type JournalEntryLineRepositoryService

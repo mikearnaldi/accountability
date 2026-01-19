@@ -13,12 +13,12 @@
 
 import { HttpApiEndpoint, HttpApiGroup, OpenApi } from "@effect/platform"
 import * as Schema from "effect/Schema"
-import { CompanyId } from "@accountability/core/Domains/Company"
-import { LocalDate, LocalDateFromString } from "@accountability/core/Domains/LocalDate"
-import { CurrencyCode } from "@accountability/core/Domains/CurrencyCode"
-import { MonetaryAmount } from "@accountability/core/Domains/MonetaryAmount"
-import { Timestamp } from "@accountability/core/Domains/Timestamp"
-import { AccountId } from "@accountability/core/Domains/Account"
+import { CompanyId } from "@accountability/core/company/Company"
+import { LocalDate, LocalDateFromString } from "@accountability/core/shared/values/LocalDate"
+import { CurrencyCode } from "@accountability/core/currency/CurrencyCode"
+import { MonetaryAmount } from "@accountability/core/shared/values/MonetaryAmount"
+import { Timestamp } from "@accountability/core/shared/values/Timestamp"
+import { AccountId } from "@accountability/core/accounting/Account"
 import {
   ForbiddenError
 } from "./ApiErrors.ts"

@@ -19,10 +19,10 @@ import {
   Account,
   AccountId,
   type AccountCategory
-} from "@accountability/core/Domains/Account"
-import { CompanyId } from "@accountability/core/Domains/Company"
-import { OrganizationId } from "@accountability/core/Domains/Organization"
-import { now as timestampNow } from "@accountability/core/Domains/Timestamp"
+} from "@accountability/core/accounting/Account"
+import { CompanyId } from "@accountability/core/company/Company"
+import { OrganizationId } from "@accountability/core/organization/Organization"
+import { now as timestampNow } from "@accountability/core/shared/values/Timestamp"
 import { AccountRepository } from "@accountability/persistence/Services/AccountRepository"
 import { CompanyRepository } from "@accountability/persistence/Services/CompanyRepository"
 import { AppApi } from "../Definitions/AppApi.ts"
@@ -30,22 +30,22 @@ import {
   AuditLogError,
   UserLookupError
 } from "../Definitions/ApiErrors.ts"
+import { CompanyNotFoundError } from "@accountability/core/company/CompanyErrors"
 import {
-  CompanyNotFoundError,
   AccountNotFoundError,
   ParentAccountNotFoundError,
   ParentAccountDifferentCompanyError,
   AccountNumberAlreadyExistsError,
   CircularAccountReferenceError,
   HasActiveChildAccountsError
-} from "@accountability/core/Errors/DomainErrors"
+} from "@accountability/core/accounting/AccountErrors"
 import type {
   AuditLogError as CoreAuditLogError,
   UserLookupError as CoreUserLookupError
-} from "@accountability/core/AuditLog/AuditLogErrors"
+} from "@accountability/core/audit/AuditLogErrors"
 import { requireOrganizationContext, requirePermission } from "./OrganizationContextMiddlewareLive.ts"
-import { AuditLogService } from "@accountability/core/AuditLog/AuditLogService"
-import { CurrentUserId } from "@accountability/core/AuditLog/CurrentUserId"
+import { AuditLogService } from "@accountability/core/audit/AuditLogService"
+import { CurrentUserId } from "@accountability/core/shared/context/CurrentUserId"
 
 /**
  * Map core audit errors to API errors

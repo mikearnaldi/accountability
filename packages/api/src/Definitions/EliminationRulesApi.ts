@@ -13,10 +13,10 @@ import {
   EliminationRule,
   EliminationType,
   AccountSelector
-} from "@accountability/core/Domains/EliminationRule"
-import { ConsolidationGroupId, EliminationRuleId } from "@accountability/core/Domains/ConsolidationGroup"
-import { OrganizationId } from "@accountability/core/Domains/Organization"
-import { AccountId } from "@accountability/core/Domains/Account"
+} from "@accountability/core/consolidation/EliminationRule"
+import { ConsolidationGroupId, EliminationRuleId } from "@accountability/core/consolidation/ConsolidationGroup"
+import { OrganizationId } from "@accountability/core/organization/Organization"
+import { AccountId } from "@accountability/core/accounting/Account"
 import {
   EliminationRuleNotFoundError,
   EliminationRuleOperationFailedError,

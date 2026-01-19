@@ -9,9 +9,9 @@
 
 import { HttpApiEndpoint, HttpApiGroup, OpenApi } from "@effect/platform"
 import * as Schema from "effect/Schema"
-import type { Currency } from "@accountability/core/Domains/Currency"
-import { DecimalPlaces } from "@accountability/core/Domains/Currency"
-import { CurrencyCode } from "@accountability/core/Domains/CurrencyCode"
+import type { Currency } from "@accountability/core/currency/Currency"
+import { DecimalPlaces } from "@accountability/core/currency/Currency"
+import { CurrencyCode } from "@accountability/core/currency/CurrencyCode"
 import { AuthMiddleware } from "./AuthMiddleware.ts"
 
 // =============================================================================

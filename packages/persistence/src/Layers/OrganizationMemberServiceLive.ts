@@ -34,8 +34,8 @@ import {
 import { OrganizationMembership } from "@accountability/core/Auth/OrganizationMembership"
 import { OrganizationMembershipId } from "@accountability/core/Auth/OrganizationMembershipId"
 import type { AuthUserId } from "@accountability/core/Auth/AuthUserId"
-import type { OrganizationId } from "@accountability/core/Domains/Organization"
-import * as Timestamp from "@accountability/core/Domains/Timestamp"
+import type { OrganizationId } from "@accountability/core/organization/Organization"
+import * as Timestamp from "@accountability/core/shared/values/Timestamp"
 import {
   MembershipNotFoundError,
   OwnerCannotBeRemovedError,
@@ -44,9 +44,9 @@ import {
   CannotTransferToNonAdminError,
   UserAlreadyMemberError
 } from "@accountability/core/Auth/AuthorizationErrors"
-import { AuditLogService } from "@accountability/core/AuditLog/AuditLogService"
-import type { AuditLogError, UserLookupError } from "@accountability/core/AuditLog/AuditLogErrors"
-import { CurrentUserId } from "@accountability/core/AuditLog/CurrentUserId"
+import { AuditLogService } from "@accountability/core/audit/AuditLogService"
+import type { AuditLogError, UserLookupError } from "@accountability/core/audit/AuditLogErrors"
+import { CurrentUserId } from "@accountability/core/shared/context/CurrentUserId"
 import { OrganizationMemberRepository } from "../Services/OrganizationMemberRepository.ts"
 
 // =============================================================================

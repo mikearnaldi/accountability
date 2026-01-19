@@ -11,10 +11,10 @@
 
 import { HttpApiEndpoint, HttpApiGroup, OpenApi } from "@effect/platform"
 import * as Schema from "effect/Schema"
-import { FiscalYear } from "@accountability/core/Domains/FiscalYear"
-import { FiscalPeriod, PeriodReopenAuditEntry } from "@accountability/core/Domains/FiscalPeriod"
-import { FiscalPeriodStatus } from "@accountability/core/Domains/FiscalPeriodStatus"
-import { LocalDate } from "@accountability/core/Domains/LocalDate"
+import { FiscalYear } from "@accountability/core/fiscal/FiscalYear"
+import { FiscalPeriod, PeriodReopenAuditEntry } from "@accountability/core/fiscal/FiscalPeriod"
+import { FiscalPeriodStatus } from "@accountability/core/fiscal/FiscalPeriodStatus"
+import { LocalDate } from "@accountability/core/shared/values/LocalDate"
 import { ForbiddenError } from "./ApiErrors.ts"
 import { AuthMiddleware } from "./AuthMiddleware.ts"
 import { OrganizationNotFoundError, CompanyNotFoundError } from "@accountability/core/Errors/DomainErrors"
@@ -27,7 +27,7 @@ import {
   InvalidStatusTransitionError,
   InvalidYearStatusTransitionError,
   PeriodsNotClosedError
-} from "@accountability/core/FiscalPeriod/FiscalPeriodErrors"
+} from "@accountability/core/fiscal/FiscalPeriodErrors"
 
 // =============================================================================
 // Fiscal Year Request/Response Schemas

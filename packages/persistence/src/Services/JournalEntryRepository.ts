@@ -15,10 +15,10 @@ import type {
   JournalEntryId,
   JournalEntryStatus,
   JournalEntryType
-} from "@accountability/core/Domains/JournalEntry"
-import type { CompanyId } from "@accountability/core/Domains/Company"
-import type { OrganizationId } from "@accountability/core/Domains/Organization"
-import type { FiscalPeriodRef } from "@accountability/core/Domains/FiscalPeriodRef"
+} from "@accountability/core/journal/JournalEntry"
+import type { CompanyId } from "@accountability/core/company/Company"
+import type { OrganizationId } from "@accountability/core/organization/Organization"
+import type { FiscalPeriodRef } from "@accountability/core/fiscal/FiscalPeriodRef"
 import type { EntityNotFoundError, PersistenceError } from "../Errors/RepositoryError.ts"
 
 /**

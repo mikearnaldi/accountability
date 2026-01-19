@@ -13,7 +13,7 @@ import type * as Option from "effect/Option"
 import type { OrganizationMembership } from "@accountability/core/Auth/OrganizationMembership"
 import type { OrganizationMembershipId } from "@accountability/core/Auth/OrganizationMembershipId"
 import type { AuthUserId } from "@accountability/core/Auth/AuthUserId"
-import type { OrganizationId } from "@accountability/core/Domains/Organization"
+import type { OrganizationId } from "@accountability/core/organization/Organization"
 import type { BaseRole } from "@accountability/core/Auth/BaseRole"
 import type { EntityNotFoundError, PersistenceError } from "../Errors/RepositoryError.ts"
 

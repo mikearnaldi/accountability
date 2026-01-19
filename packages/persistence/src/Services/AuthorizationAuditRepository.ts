@@ -13,10 +13,10 @@ import * as Context from "effect/Context"
 import * as Schema from "effect/Schema"
 import type * as Effect from "effect/Effect"
 import type { AuthUserId } from "@accountability/core/Auth/AuthUserId"
-import type { OrganizationId } from "@accountability/core/Domains/Organization"
+import type { OrganizationId } from "@accountability/core/organization/Organization"
 import type { Action } from "@accountability/core/Auth/Action"
 import type { PolicyId } from "@accountability/core/Auth/PolicyId"
-import type { Timestamp } from "@accountability/core/Domains/Timestamp"
+import type { Timestamp } from "@accountability/core/shared/values/Timestamp"
 import type { PersistenceError } from "../Errors/RepositoryError.ts"
 
 /**

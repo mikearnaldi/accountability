@@ -18,15 +18,15 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
-import { type AccountCategory, isAccountCategory } from "@accountability/core/Domains/Account"
-import { CompanyId, ConsolidationMethod } from "@accountability/core/Domains/Company"
+import { type AccountCategory, isAccountCategory } from "@accountability/core/accounting/Account"
+import { CompanyId, ConsolidationMethod } from "@accountability/core/company/Company"
 import {
   ConsolidationGroup,
   ConsolidationGroupId,
   ConsolidationMember,
   EliminationRuleId,
   VIEDetermination
-} from "@accountability/core/Domains/ConsolidationGroup"
+} from "@accountability/core/consolidation/ConsolidationGroup"
 import {
   ConsolidatedTrialBalance,
   ConsolidatedTrialBalanceLineItem,
@@ -38,16 +38,16 @@ import {
   ConsolidationStepStatus,
   ConsolidationStepType,
   ValidationResult
-} from "@accountability/core/Domains/ConsolidationRun"
-import { CurrencyCode } from "@accountability/core/Domains/CurrencyCode"
-import { FiscalPeriodRef } from "@accountability/core/Domains/FiscalPeriodRef"
-import { LocalDate } from "@accountability/core/Domains/LocalDate"
-import { MonetaryAmount } from "@accountability/core/Domains/MonetaryAmount"
-import { OrganizationId } from "@accountability/core/Domains/Organization"
-import { Timestamp } from "@accountability/core/Domains/Timestamp"
-import { UserId } from "@accountability/core/Domains/JournalEntry"
-import { Percentage } from "@accountability/core/Domains/Percentage"
-import { ConsolidationDataCorruptionError } from "@accountability/core/Services/ConsolidationService"
+} from "@accountability/core/consolidation/ConsolidationRun"
+import { CurrencyCode } from "@accountability/core/currency/CurrencyCode"
+import { FiscalPeriodRef } from "@accountability/core/fiscal/FiscalPeriodRef"
+import { LocalDate } from "@accountability/core/shared/values/LocalDate"
+import { MonetaryAmount } from "@accountability/core/shared/values/MonetaryAmount"
+import { OrganizationId } from "@accountability/core/organization/Organization"
+import { Timestamp } from "@accountability/core/shared/values/Timestamp"
+import { UserId } from "@accountability/core/journal/JournalEntry"
+import { Percentage } from "@accountability/core/shared/values/Percentage"
+import { ConsolidationDataCorruptionError } from "@accountability/core/consolidation/ConsolidationService"
 import { ConsolidationRepository, type ConsolidationRepositoryService } from "../Services/ConsolidationRepository.ts"
 import { EntityNotFoundError, wrapSqlError } from "../Errors/RepositoryError.ts"
 import type { PersistenceError } from "../Errors/RepositoryError.ts"

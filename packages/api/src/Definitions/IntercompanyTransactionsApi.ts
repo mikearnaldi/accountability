@@ -14,12 +14,12 @@ import {
   IntercompanyTransactionId,
   IntercompanyTransactionType,
   MatchingStatus
-} from "@accountability/core/Domains/IntercompanyTransaction"
-import { CompanyId } from "@accountability/core/Domains/Company"
-import { OrganizationId } from "@accountability/core/Domains/Organization"
-import { JournalEntryId } from "@accountability/core/Domains/JournalEntry"
-import { LocalDateFromString } from "@accountability/core/Domains/LocalDate"
-import { MonetaryAmount } from "@accountability/core/Domains/MonetaryAmount"
+} from "@accountability/core/consolidation/IntercompanyTransaction"
+import { CompanyId } from "@accountability/core/company/Company"
+import { OrganizationId } from "@accountability/core/organization/Organization"
+import { JournalEntryId } from "@accountability/core/journal/JournalEntry"
+import { LocalDateFromString } from "@accountability/core/shared/values/LocalDate"
+import { MonetaryAmount } from "@accountability/core/shared/values/MonetaryAmount"
 import { AuthMiddleware } from "./AuthMiddleware.ts"
 import {
   CompanyNotFoundError,

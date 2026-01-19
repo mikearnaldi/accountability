@@ -8,5 +8,7 @@
  */
 
 export {
-  CashFlowStatementService
+  CashFlowStatementService,
+  generateCashFlowStatementFromData,
+  type CashFlowStatementReport
 } from "../Services/CashFlowStatementService.ts"

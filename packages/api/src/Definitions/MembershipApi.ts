@@ -20,7 +20,7 @@ import { BaseRole } from "@accountability/core/Auth/BaseRole"
 import { FunctionalRoles } from "@accountability/core/Auth/FunctionalRole"
 import { MembershipStatus } from "@accountability/core/Auth/MembershipStatus"
 import { InvitationId } from "@accountability/core/Auth/InvitationId"
-import { Timestamp } from "@accountability/core/Domains/Timestamp"
+import { Timestamp } from "@accountability/core/shared/values/Timestamp"
 import { ForbiddenError } from "./ApiErrors.ts"
 import { AuthMiddleware } from "./AuthMiddleware.ts"
 import {

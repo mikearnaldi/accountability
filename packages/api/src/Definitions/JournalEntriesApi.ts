@@ -16,14 +16,14 @@ import {
   JournalEntryType,
   SourceModule,
   UserId
-} from "@accountability/core/Domains/JournalEntry"
-import { JournalEntryLine } from "@accountability/core/Domains/JournalEntryLine"
-import { AccountId } from "@accountability/core/Domains/Account"
-import { CompanyId } from "@accountability/core/Domains/Company"
-import { OrganizationId } from "@accountability/core/Domains/Organization"
-import { FiscalPeriodRef } from "@accountability/core/Domains/FiscalPeriodRef"
-import { LocalDateFromString } from "@accountability/core/Domains/LocalDate"
-import { MonetaryAmount } from "@accountability/core/Domains/MonetaryAmount"
+} from "@accountability/core/journal/JournalEntry"
+import { JournalEntryLine } from "@accountability/core/journal/JournalEntryLine"
+import { AccountId } from "@accountability/core/accounting/Account"
+import { CompanyId } from "@accountability/core/company/Company"
+import { OrganizationId } from "@accountability/core/organization/Organization"
+import { FiscalPeriodRef } from "@accountability/core/fiscal/FiscalPeriodRef"
+import { LocalDateFromString } from "@accountability/core/shared/values/LocalDate"
+import { MonetaryAmount } from "@accountability/core/shared/values/MonetaryAmount"
 import {
   AuditLogError,
   ForbiddenError,
@@ -38,7 +38,7 @@ import {
   OrganizationNotFoundError,
   UnbalancedJournalEntryError
 } from "@accountability/core/Errors/DomainErrors"
-import { FiscalPeriodNotFoundForDateError } from "@accountability/core/FiscalPeriod/FiscalPeriodErrors"
+import { FiscalPeriodNotFoundForDateError } from "@accountability/core/fiscal/FiscalPeriodErrors"
 
 // =============================================================================
 // Request/Response Schemas

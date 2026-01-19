@@ -23,7 +23,7 @@ import {
 import { OrganizationMembership } from "@accountability/core/Auth/OrganizationMembership"
 import { OrganizationMembershipId } from "@accountability/core/Auth/OrganizationMembershipId"
 import { InvitationId } from "@accountability/core/Auth/InvitationId"
-import * as Timestamp from "@accountability/core/Domains/Timestamp"
+import * as Timestamp from "@accountability/core/shared/values/Timestamp"
 import {
   InvalidInvitationError,
   InvitationExpiredError,

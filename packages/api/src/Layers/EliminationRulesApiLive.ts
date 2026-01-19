@@ -15,8 +15,8 @@ import * as Array from "effect/Array"
 import {
   EliminationRule,
   TriggerCondition
-} from "@accountability/core/Domains/EliminationRule"
-import { EliminationRuleId } from "@accountability/core/Domains/ConsolidationGroup"
+} from "@accountability/core/consolidation/EliminationRule"
+import { EliminationRuleId } from "@accountability/core/consolidation/ConsolidationGroup"
 import { EliminationRuleRepository } from "@accountability/persistence/Services/EliminationRuleRepository"
 import { ConsolidationRepository } from "@accountability/persistence/Services/ConsolidationRepository"
 import { isEntityNotFoundError } from "@accountability/persistence/Errors/RepositoryError"

@@ -15,7 +15,7 @@ import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
 import { AuthUserId } from "@accountability/core/Auth/AuthUserId"
 import { PolicyId } from "@accountability/core/Auth/PolicyId"
-import { OrganizationId } from "@accountability/core/Domains/Organization"
+import { OrganizationId } from "@accountability/core/organization/Organization"
 import {
   AuthorizationAuditRepository,
   AuthorizationDenialEntry,

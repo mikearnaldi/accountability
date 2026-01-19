@@ -13,17 +13,17 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
-import { CurrencyCode } from "@accountability/core/Domains/CurrencyCode"
+import { CurrencyCode } from "@accountability/core/currency/CurrencyCode"
 import {
   ExchangeRate,
   ExchangeRateId,
   Rate,
   RateSource,
   RateType
-} from "@accountability/core/Domains/ExchangeRate"
-import { LocalDate } from "@accountability/core/Domains/LocalDate"
-import { OrganizationId } from "@accountability/core/Domains/Organization"
-import { Timestamp } from "@accountability/core/Domains/Timestamp"
+} from "@accountability/core/currency/ExchangeRate"
+import { LocalDate } from "@accountability/core/shared/values/LocalDate"
+import { OrganizationId } from "@accountability/core/organization/Organization"
+import { Timestamp } from "@accountability/core/shared/values/Timestamp"
 import { ExchangeRateRepository, type ExchangeRateRepositoryService } from "../Services/ExchangeRateRepository.ts"
 import { EntityNotFoundError, wrapSqlError } from "../Errors/RepositoryError.ts"
 

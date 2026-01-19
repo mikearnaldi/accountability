@@ -9,7 +9,7 @@
 
 import { HttpApiBuilder } from "@effect/platform"
 import * as Effect from "effect/Effect"
-import { COMMON_CURRENCIES } from "@accountability/core/Domains/Currency"
+import { COMMON_CURRENCIES } from "@accountability/core/currency/Currency"
 import { AppApi } from "../Definitions/AppApi.ts"
 import { CurrencyItem } from "../Definitions/CurrenciesApi.ts"
 

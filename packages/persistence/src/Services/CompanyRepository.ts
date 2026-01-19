@@ -13,8 +13,8 @@
 import * as Context from "effect/Context"
 import type * as Effect from "effect/Effect"
 import type * as Option from "effect/Option"
-import type { Company, CompanyId } from "@accountability/core/Domains/Company"
-import type { OrganizationId } from "@accountability/core/Domains/Organization"
+import type { Company, CompanyId } from "@accountability/core/company/Company"
+import type { OrganizationId } from "@accountability/core/organization/Organization"
 import type { EntityNotFoundError, PersistenceError } from "../Errors/RepositoryError.ts"
 
 /**

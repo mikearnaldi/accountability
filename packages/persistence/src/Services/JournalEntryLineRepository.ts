@@ -12,9 +12,9 @@ import type * as Effect from "effect/Effect"
 import type {
   JournalEntryLine,
   JournalEntryLineId
-} from "@accountability/core/Domains/JournalEntryLine"
-import type { JournalEntryId } from "@accountability/core/Domains/JournalEntry"
-import type { AccountId } from "@accountability/core/Domains/Account"
+} from "@accountability/core/journal/JournalEntryLine"
+import type { JournalEntryId } from "@accountability/core/journal/JournalEntry"
+import type { AccountId } from "@accountability/core/accounting/Account"
 import type { EntityNotFoundError, PersistenceError } from "../Errors/RepositoryError.ts"
 
 /**

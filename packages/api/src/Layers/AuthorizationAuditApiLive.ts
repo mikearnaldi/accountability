@@ -12,9 +12,9 @@ import * as Effect from "effect/Effect"
 import * as Option from "effect/Option"
 import { AuthorizationAuditRepository, type QueryAuditLogOptions } from "@accountability/persistence/Services/AuthorizationAuditRepository"
 import { UserRepository } from "@accountability/persistence/Services/UserRepository"
-import { OrganizationId } from "@accountability/core/Domains/Organization"
+import { OrganizationId } from "@accountability/core/organization/Organization"
 import { AuthUserId } from "@accountability/core/Auth/AuthUserId"
-import * as Timestamp from "@accountability/core/Domains/Timestamp"
+import * as Timestamp from "@accountability/core/shared/values/Timestamp"
 import { AppApi } from "../Definitions/AppApi.ts"
 import {
   AuthorizationDenialEntryResponse,

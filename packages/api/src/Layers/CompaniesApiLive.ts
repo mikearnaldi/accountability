@@ -16,17 +16,17 @@ import * as Option from "effect/Option"
 import {
   Company,
   CompanyId
-} from "@accountability/core/Domains/Company"
+} from "@accountability/core/company/Company"
 import {
   Organization,
   OrganizationId,
   OrganizationSettings
-} from "@accountability/core/Domains/Organization"
-import { now as timestampNow } from "@accountability/core/Domains/Timestamp"
+} from "@accountability/core/organization/Organization"
+import { now as timestampNow } from "@accountability/core/shared/values/Timestamp"
 import { OrganizationMembership } from "@accountability/core/Auth/OrganizationMembership"
 import { OrganizationMembershipId } from "@accountability/core/Auth/OrganizationMembershipId"
-import { AuditLogService } from "@accountability/core/AuditLog/AuditLogService"
-import { CurrentUserId } from "@accountability/core/AuditLog/CurrentUserId"
+import { AuditLogService } from "@accountability/core/audit/AuditLogService"
+import { CurrentUserId } from "@accountability/core/shared/context/CurrentUserId"
 import { CompanyRepository } from "@accountability/persistence/Services/CompanyRepository"
 import { OrganizationRepository } from "@accountability/persistence/Services/OrganizationRepository"
 import { OrganizationMemberRepository } from "@accountability/persistence/Services/OrganizationMemberRepository"
@@ -51,7 +51,7 @@ import {
   CompanyNameAlreadyExistsError,
   OrganizationUpdateFailedError
 } from "@accountability/core/Errors/DomainErrors"
-import type { AuditLogError as CoreAuditLogError, UserLookupError as CoreUserLookupError } from "@accountability/core/AuditLog/AuditLogErrors"
+import type { AuditLogError as CoreAuditLogError, UserLookupError as CoreUserLookupError } from "@accountability/core/audit/AuditLogErrors"
 import { CurrentUser } from "../Definitions/AuthMiddleware.ts"
 import { requireOrganizationContext, requirePermission } from "./OrganizationContextMiddlewareLive.ts"
 

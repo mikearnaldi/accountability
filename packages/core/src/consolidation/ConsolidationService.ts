@@ -8,5 +8,6 @@
  */
 
 export {
-  ConsolidationService
+  ConsolidationService,
+  ConsolidationDataCorruptionError
 } from "../Services/ConsolidationService.ts"

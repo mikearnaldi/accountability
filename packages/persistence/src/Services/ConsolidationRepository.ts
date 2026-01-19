@@ -13,15 +13,15 @@ import type * as Option from "effect/Option"
 import type {
   ConsolidationGroup,
   ConsolidationGroupId
-} from "@accountability/core/Domains/ConsolidationGroup"
+} from "@accountability/core/consolidation/ConsolidationGroup"
 import type {
   ConsolidationRun,
   ConsolidationRunId,
   ConsolidationRunStatus
-} from "@accountability/core/Domains/ConsolidationRun"
-import type { OrganizationId } from "@accountability/core/Domains/Organization"
-import type { FiscalPeriodRef } from "@accountability/core/Domains/FiscalPeriodRef"
-import type { ConsolidationDataCorruptionError } from "@accountability/core/Services/ConsolidationService"
+} from "@accountability/core/consolidation/ConsolidationRun"
+import type { OrganizationId } from "@accountability/core/organization/Organization"
+import type { FiscalPeriodRef } from "@accountability/core/fiscal/FiscalPeriodRef"
+import type { ConsolidationDataCorruptionError } from "@accountability/core/consolidation/ConsolidationService"
 import type { EntityNotFoundError, PersistenceError } from "../Errors/RepositoryError.ts"
 
 /**

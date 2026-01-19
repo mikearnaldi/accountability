@@ -15,7 +15,7 @@
  */
 
 import * as Effect from "effect/Effect"
-import type { OrganizationId } from "@accountability/core/Domains/Organization"
+import type { OrganizationId } from "@accountability/core/organization/Organization"
 import { PolicyId } from "@accountability/core/Auth/PolicyId"
 import { SYSTEM_POLICY_PRIORITIES } from "@accountability/core/Auth/AuthorizationPolicy"
 import type { CreatePolicyInput } from "../Services/PolicyRepository.ts"

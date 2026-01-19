@@ -8,5 +8,6 @@
  */
 
 export {
-  AuditLogService
+  AuditLogService,
+  type AuditLogServiceShape
 } from "../AuditLog/AuditLogService.ts"

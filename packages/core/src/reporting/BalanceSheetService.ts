@@ -8,5 +8,9 @@
  */
 
 export {
-  BalanceSheetService
+  BalanceSheetService,
+  generateBalanceSheetFromData,
+  type BalanceSheetReport,
+  type BalanceSheetSection,
+  type BalanceSheetLineItem
 } from "../Services/BalanceSheetService.ts"

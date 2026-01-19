@@ -13,10 +13,10 @@
 import * as Context from "effect/Context"
 import type * as Effect from "effect/Effect"
 import type * as Option from "effect/Option"
-import type { CompanyId } from "@accountability/core/Domains/Company"
-import type { FiscalYear, FiscalYearId } from "@accountability/core/Domains/FiscalYear"
-import type { FiscalPeriod, FiscalPeriodId, PeriodReopenAuditEntry } from "@accountability/core/Domains/FiscalPeriod"
-import type { FiscalPeriodStatus } from "@accountability/core/Domains/FiscalPeriodStatus"
+import type { CompanyId } from "@accountability/core/company/Company"
+import type { FiscalYear, FiscalYearId } from "@accountability/core/fiscal/FiscalYear"
+import type { FiscalPeriod, FiscalPeriodId, PeriodReopenAuditEntry } from "@accountability/core/fiscal/FiscalPeriod"
+import type { FiscalPeriodStatus } from "@accountability/core/fiscal/FiscalPeriodStatus"
 import type { EntityNotFoundError, PersistenceError } from "../Errors/RepositoryError.ts"
 
 /**

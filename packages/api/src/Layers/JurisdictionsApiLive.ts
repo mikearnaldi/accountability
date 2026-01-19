@@ -9,7 +9,7 @@
 
 import { HttpApiBuilder } from "@effect/platform"
 import * as Effect from "effect/Effect"
-import { PREDEFINED_JURISDICTIONS } from "@accountability/core/Domains/Jurisdiction"
+import { PREDEFINED_JURISDICTIONS } from "@accountability/core/jurisdiction/Jurisdiction"
 import { AppApi } from "../Definitions/AppApi.ts"
 import { JurisdictionItem } from "../Definitions/JurisdictionsApi.ts"
 

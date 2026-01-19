@@ -10,12 +10,12 @@
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
-import type { AuditChanges } from "@accountability/core/Domains/AuditLog"
+import type { AuditChanges, AuditEntityType } from "@accountability/core/audit/AuditLog"
 import {
   AuditLogService,
   type AuditLogServiceShape
-} from "@accountability/core/AuditLog/AuditLogService"
-import { AuditLogError, UserLookupError } from "@accountability/core/AuditLog/AuditLogErrors"
+} from "@accountability/core/audit/AuditLogService"
+import { AuditLogError, UserLookupError } from "@accountability/core/audit/AuditLogErrors"
 import type { AuthUserId } from "@accountability/core/Auth/AuthUserId"
 import { AuditLogRepository } from "../Services/AuditLogRepository.ts"
 import { UserRepository } from "../Services/UserRepository.ts"
@@ -198,7 +198,7 @@ const make = Effect.gen(function* () {
       )
     )
 
-  const logCreate: AuditLogServiceShape["logCreate"] = (organizationId, entityType, entityId, entityName, entity, userId) =>
+  const logCreate: AuditLogServiceShape["logCreate"] = <T>(organizationId: string, entityType: AuditEntityType, entityId: string, entityName: string | null, entity: T, userId: AuthUserId) =>
     Effect.gen(function* () {
       const changes = entityToCreateChanges(entity)
       const userInfo = yield* lookupUserInfo(userId)
@@ -217,7 +217,7 @@ const make = Effect.gen(function* () {
       wrapError("logCreate")
     )
 
-  const logUpdate: AuditLogServiceShape["logUpdate"] = (organizationId, entityType, entityId, entityName, before, after, userId) =>
+  const logUpdate: AuditLogServiceShape["logUpdate"] = <T>(organizationId: string, entityType: AuditEntityType, entityId: string, entityName: string | null, before: T, after: T, userId: AuthUserId) =>
     Effect.gen(function* () {
       const changes = computeChanges(before, after)
       // Only create audit entry if there are actual changes
@@ -239,7 +239,7 @@ const make = Effect.gen(function* () {
       wrapError("logUpdate")
     )
 
-  const logDelete: AuditLogServiceShape["logDelete"] = (organizationId, entityType, entityId, entityName, entity, userId) =>
+  const logDelete: AuditLogServiceShape["logDelete"] = <T>(organizationId: string, entityType: AuditEntityType, entityId: string, entityName: string | null, entity: T, userId: AuthUserId) =>
     Effect.gen(function* () {
       const changes = entityToDeleteChanges(entity)
       const userInfo = yield* lookupUserInfo(userId)
@@ -259,14 +259,14 @@ const make = Effect.gen(function* () {
     )
 
   const logStatusChange: AuditLogServiceShape["logStatusChange"] = (
-    organizationId,
-    entityType,
-    entityId,
-    entityName,
-    previousStatus,
-    newStatus,
-    userId,
-    reason
+    organizationId: string,
+    entityType: AuditEntityType,
+    entityId: string,
+    entityName: string | null,
+    previousStatus: string,
+    newStatus: string,
+    userId: AuthUserId,
+    reason?: string
   ) =>
     Effect.gen(function* () {
       const baseEntries: Array<[string, { from: unknown; to: unknown }]> = [
@@ -293,13 +293,13 @@ const make = Effect.gen(function* () {
     )
 
   const logWithChanges: AuditLogServiceShape["logWithChanges"] = (
-    organizationId,
-    entityType,
-    entityId,
-    entityName,
-    action,
-    changes,
-    userId
+    organizationId: string,
+    entityType: AuditEntityType,
+    entityId: string,
+    entityName: string | null,
+    action: "Create" | "Update" | "Delete" | "StatusChange",
+    changes: AuditChanges,
+    userId: AuthUserId
   ) =>
     Effect.gen(function* () {
       const userInfo = yield* lookupUserInfo(userId)

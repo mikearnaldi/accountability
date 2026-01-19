@@ -17,9 +17,9 @@ import * as Schema from "effect/Schema"
 import {
   ConsolidationGroupId,
   EliminationRuleId
-} from "@accountability/core/Domains/ConsolidationGroup"
-import { AccountId, AccountCategory } from "@accountability/core/Domains/Account"
-import { AccountNumber } from "@accountability/core/Domains/AccountNumber"
+} from "@accountability/core/consolidation/ConsolidationGroup"
+import { AccountId, AccountCategory } from "@accountability/core/accounting/Account"
+import { AccountNumber } from "@accountability/core/accounting/AccountNumber"
 import {
   EliminationRule,
   EliminationType,
@@ -28,7 +28,7 @@ import {
   AccountSelectorById,
   AccountSelectorByRange,
   AccountSelectorByCategory
-} from "@accountability/core/Domains/EliminationRule"
+} from "@accountability/core/consolidation/EliminationRule"
 import {
   EliminationRuleRepository,
   type EliminationRuleRepositoryService

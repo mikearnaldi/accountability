@@ -904,3 +904,8 @@
 **Task**: Migrated all domain errors to domain-specific files for core package reorganization Phase 5
 **Status**: complete
 ---
+
+## Iteration 5 - 2026-01-19 16:56
+**Task**: Added new domain paths to core package.json exports to fix build failure
+**Status**: complete
+---

@@ -17,8 +17,8 @@ import type { BaseRole } from "@accountability/core/Auth/BaseRole"
 import type { MembershipStatus } from "@accountability/core/Auth/MembershipStatus"
 import { OrganizationMembership } from "@accountability/core/Auth/OrganizationMembership"
 import { OrganizationMembershipId } from "@accountability/core/Auth/OrganizationMembershipId"
-import { OrganizationId } from "@accountability/core/Domains/Organization"
-import { Timestamp } from "@accountability/core/Domains/Timestamp"
+import { OrganizationId } from "@accountability/core/organization/Organization"
+import { Timestamp } from "@accountability/core/shared/values/Timestamp"
 import {
   OrganizationMemberRepository,
   type OrganizationMemberRepositoryService

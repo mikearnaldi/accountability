@@ -16,12 +16,12 @@ import {
   AuditAction,
   AuditEntityType,
   AuditChanges
-} from "@accountability/core/Domains/AuditLog"
+} from "@accountability/core/audit/AuditLog"
 import { AuthMiddleware } from "./AuthMiddleware.ts"
 import { InternalServerError } from "./ApiErrors.ts"
 
 // Re-export domain types for convenience
-export { AuditLogEntryId, AuditAction, AuditEntityType, AuditChanges } from "@accountability/core/Domains/AuditLog"
+export { AuditLogEntryId, AuditAction, AuditEntityType, AuditChanges } from "@accountability/core/audit/AuditLog"
 
 // =============================================================================
 // Response Schemas

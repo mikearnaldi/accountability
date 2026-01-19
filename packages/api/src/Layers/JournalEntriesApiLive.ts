@@ -20,14 +20,14 @@ import {
   JournalEntryId,
   EntryNumber,
   UserId
-} from "@accountability/core/Domains/JournalEntry"
-import { JournalEntryLine, JournalEntryLineId } from "@accountability/core/Domains/JournalEntryLine"
-import { CurrencyCode } from "@accountability/core/Domains/CurrencyCode"
-import { OrganizationId } from "@accountability/core/Domains/Organization"
-import { MonetaryAmount } from "@accountability/core/Domains/MonetaryAmount"
-import { now as timestampNow } from "@accountability/core/Domains/Timestamp"
-import { FiscalPeriodRef } from "@accountability/core/Domains/FiscalPeriodRef"
-import { computeFiscalPeriod } from "@accountability/core/Domains/ComputedFiscalPeriod"
+} from "@accountability/core/journal/JournalEntry"
+import { JournalEntryLine, JournalEntryLineId } from "@accountability/core/journal/JournalEntryLine"
+import { CurrencyCode } from "@accountability/core/currency/CurrencyCode"
+import { OrganizationId } from "@accountability/core/organization/Organization"
+import { MonetaryAmount } from "@accountability/core/shared/values/MonetaryAmount"
+import { now as timestampNow } from "@accountability/core/shared/values/Timestamp"
+import { FiscalPeriodRef } from "@accountability/core/fiscal/FiscalPeriodRef"
+import { computeFiscalPeriod } from "@accountability/core/fiscal/ComputedFiscalPeriod"
 import { JournalEntryRepository } from "@accountability/persistence/Services/JournalEntryRepository"
 import { JournalEntryLineRepository } from "@accountability/persistence/Services/JournalEntryLineRepository"
 import { CompanyRepository } from "@accountability/persistence/Services/CompanyRepository"
@@ -37,10 +37,10 @@ import {
   AuditLogError,
   UserLookupError
 } from "../Definitions/ApiErrors.ts"
-import type { AuditLogError as CoreAuditLogError, UserLookupError as CoreUserLookupError } from "@accountability/core/AuditLog/AuditLogErrors"
+import type { AuditLogError as CoreAuditLogError, UserLookupError as CoreUserLookupError } from "@accountability/core/audit/AuditLogErrors"
 import { requireOrganizationContext, requirePermission, requirePermissionWithResource } from "./OrganizationContextMiddlewareLive.ts"
-import { FiscalPeriodService } from "@accountability/core/FiscalPeriod/FiscalPeriodService"
-import { FiscalPeriodNotFoundForDateError } from "@accountability/core/FiscalPeriod/FiscalPeriodErrors"
+import { FiscalPeriodService } from "@accountability/core/fiscal/FiscalPeriodService"
+import { FiscalPeriodNotFoundForDateError } from "@accountability/core/fiscal/FiscalPeriodErrors"
 import {
   CompanyNotFoundError,
   JournalEntryNotFoundError,
@@ -49,10 +49,10 @@ import {
   UnbalancedJournalEntryError
 } from "@accountability/core/Errors/DomainErrors"
 import type { ResourceContext } from "@accountability/core/Auth/matchers/ResourceMatcher"
-import type { LocalDate } from "@accountability/core/Domains/LocalDate"
-import type { CompanyId } from "@accountability/core/Domains/Company"
-import { AuditLogService } from "@accountability/core/AuditLog/AuditLogService"
-import { CurrentUserId } from "@accountability/core/AuditLog/CurrentUserId"
+import type { LocalDate } from "@accountability/core/shared/values/LocalDate"
+import type { CompanyId } from "@accountability/core/company/Company"
+import { AuditLogService } from "@accountability/core/audit/AuditLogService"
+import { CurrentUserId } from "@accountability/core/shared/context/CurrentUserId"
 
 /**
  * Map core AuditLogError to API AuditLogError

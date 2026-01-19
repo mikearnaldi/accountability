@@ -16,7 +16,7 @@ import { AuthUser, UserRole } from "@accountability/core/Auth/AuthUser"
 import { AuthUserId } from "@accountability/core/Auth/AuthUserId"
 import { AuthProviderType } from "@accountability/core/Auth/AuthProviderType"
 import { Email } from "@accountability/core/Auth/Email"
-import { Timestamp } from "@accountability/core/Domains/Timestamp"
+import { Timestamp } from "@accountability/core/shared/values/Timestamp"
 import { UserRepository, type UserRepositoryService } from "../Services/UserRepository.ts"
 import { EntityNotFoundError, wrapSqlError } from "../Errors/RepositoryError.ts"
 

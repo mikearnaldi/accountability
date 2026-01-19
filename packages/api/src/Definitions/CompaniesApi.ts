@@ -8,18 +8,18 @@
 
 import { HttpApiEndpoint, HttpApiGroup, HttpApiSchema, OpenApi } from "@effect/platform"
 import * as Schema from "effect/Schema"
-import { Address } from "@accountability/core/Domains/Address"
+import { Address } from "@accountability/core/shared/values/Address"
 import {
   Company,
   CompanyId,
   FiscalYearEnd
-} from "@accountability/core/Domains/Company"
-import { CompanyType } from "@accountability/core/Domains/CompanyType"
-import { LocalDate } from "@accountability/core/Domains/LocalDate"
-import { Organization, OrganizationId, OrganizationSettings } from "@accountability/core/Domains/Organization"
-import { CurrencyCode } from "@accountability/core/Domains/CurrencyCode"
-import { JurisdictionCode } from "@accountability/core/Domains/JurisdictionCode"
-import { Percentage } from "@accountability/core/Domains/Percentage"
+} from "@accountability/core/company/Company"
+import { CompanyType } from "@accountability/core/company/CompanyType"
+import { LocalDate } from "@accountability/core/shared/values/LocalDate"
+import { Organization, OrganizationId, OrganizationSettings } from "@accountability/core/organization/Organization"
+import { CurrencyCode } from "@accountability/core/currency/CurrencyCode"
+import { JurisdictionCode } from "@accountability/core/jurisdiction/JurisdictionCode"
+import { Percentage } from "@accountability/core/shared/values/Percentage"
 import {
   AuditLogError,
   ForbiddenError,
@@ -29,17 +29,19 @@ import { AuthMiddleware } from "./AuthMiddleware.ts"
 import {
   OrganizationNotFoundError,
   OrganizationHasCompaniesError,
+  MembershipCreationFailedError,
+  SystemPolicySeedingFailedError,
+  OrganizationNameAlreadyExistsError,
+  OrganizationUpdateFailedError
+} from "@accountability/core/organization/OrganizationErrors"
+import {
   CompanyNotFoundError,
   ParentCompanyNotFoundError,
   OwnershipPercentageRequiredError,
   CircularCompanyReferenceError,
   HasActiveSubsidiariesError,
-  MembershipCreationFailedError,
-  SystemPolicySeedingFailedError,
-  OrganizationNameAlreadyExistsError,
-  CompanyNameAlreadyExistsError,
-  OrganizationUpdateFailedError
-} from "@accountability/core/Errors/DomainErrors"
+  CompanyNameAlreadyExistsError
+} from "@accountability/core/company/CompanyErrors"
 
 // =============================================================================
 // Organization Request/Response Schemas

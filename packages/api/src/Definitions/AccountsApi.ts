@@ -15,11 +15,11 @@ import {
   AccountType,
   CashFlowCategory,
   NormalBalance
-} from "@accountability/core/Domains/Account"
-import { AccountNumber } from "@accountability/core/Domains/AccountNumber"
-import { CompanyId } from "@accountability/core/Domains/Company"
-import { OrganizationId } from "@accountability/core/Domains/Organization"
-import { CurrencyCode } from "@accountability/core/Domains/CurrencyCode"
+} from "@accountability/core/accounting/Account"
+import { AccountNumber } from "@accountability/core/accounting/AccountNumber"
+import { CompanyId } from "@accountability/core/company/Company"
+import { OrganizationId } from "@accountability/core/organization/Organization"
+import { CurrencyCode } from "@accountability/core/currency/CurrencyCode"
 import {
   AuditLogError,
   ForbiddenError,

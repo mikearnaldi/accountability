@@ -19,8 +19,8 @@ import type {
   AuditAction,
   AuditEntityType,
   AuditChanges
-} from "@accountability/core/Domains/AuditLog"
-import type { AuditDataCorruptionError } from "@accountability/core/AuditLog/AuditLogErrors"
+} from "@accountability/core/audit/AuditLog"
+import type { AuditDataCorruptionError } from "@accountability/core/audit/AuditLogErrors"
 import type { PersistenceError } from "../Errors/RepositoryError.ts"
 
 /**

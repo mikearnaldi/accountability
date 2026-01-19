@@ -30,7 +30,7 @@ import { type UserIdentity, UserIdentityId } from "@accountability/core/Auth/Use
 import { PasswordHasher } from "@accountability/core/Auth/PasswordHasher"
 import { SessionTokenGenerator } from "@accountability/core/Auth/SessionTokenGenerator"
 import { ProviderId } from "@accountability/core/Auth/ProviderId"
-import * as Timestamp from "@accountability/core/Domains/Timestamp"
+import * as Timestamp from "@accountability/core/shared/values/Timestamp"
 import {
   ProviderNotEnabledError,
   ProviderAuthFailedError,

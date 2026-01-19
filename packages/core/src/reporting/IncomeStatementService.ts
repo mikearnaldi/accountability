@@ -8,5 +8,9 @@
  */
 
 export {
-  IncomeStatementService
+  IncomeStatementService,
+  generateIncomeStatementFromData,
+  type IncomeStatementReport,
+  type IncomeStatementSection,
+  type IncomeStatementLineItem
 } from "../Services/IncomeStatementService.ts"

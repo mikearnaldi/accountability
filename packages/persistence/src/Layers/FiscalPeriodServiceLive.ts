@@ -21,7 +21,7 @@ import {
   type GeneratePeriodsInput,
   type ReopenPeriodInput,
   type ListPeriodsFilter
-} from "@accountability/core/FiscalPeriod/FiscalPeriodService"
+} from "@accountability/core/fiscal/FiscalPeriodService"
 import {
   FiscalYearNotFoundError,
   FiscalPeriodNotFoundError,
@@ -29,13 +29,13 @@ import {
   InvalidYearStatusTransitionError,
   FiscalYearAlreadyExistsError,
   PeriodsNotClosedError
-} from "@accountability/core/FiscalPeriod/FiscalPeriodErrors"
-import { FiscalYear, FiscalYearId } from "@accountability/core/Domains/FiscalYear"
-import { FiscalPeriod, FiscalPeriodId, FiscalPeriodUserId as FiscalPeriodUserIdSchema, PeriodReopenAuditEntry, PeriodReopenAuditEntryId } from "@accountability/core/Domains/FiscalPeriod"
-import type { FiscalPeriodStatus } from "@accountability/core/Domains/FiscalPeriodStatus"
-import { canTransitionTo } from "@accountability/core/Domains/FiscalPeriodStatus"
-import { LocalDate } from "@accountability/core/Domains/LocalDate"
-import * as Timestamp from "@accountability/core/Domains/Timestamp"
+} from "@accountability/core/fiscal/FiscalPeriodErrors"
+import { FiscalYear, FiscalYearId } from "@accountability/core/fiscal/FiscalYear"
+import { FiscalPeriod, FiscalPeriodId, FiscalPeriodUserId as FiscalPeriodUserIdSchema, PeriodReopenAuditEntry, PeriodReopenAuditEntryId } from "@accountability/core/fiscal/FiscalPeriod"
+import type { FiscalPeriodStatus } from "@accountability/core/fiscal/FiscalPeriodStatus"
+import { canTransitionTo } from "@accountability/core/fiscal/FiscalPeriodStatus"
+import { LocalDate } from "@accountability/core/shared/values/LocalDate"
+import * as Timestamp from "@accountability/core/shared/values/Timestamp"
 import type { AuthUserId } from "@accountability/core/Auth/AuthUserId"
 import { FiscalPeriodRepository } from "../Services/FiscalPeriodRepository.ts"
 

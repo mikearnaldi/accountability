@@ -14,8 +14,8 @@ import * as Array from "effect/Array"
 import {
   ExchangeRate,
   ExchangeRateId
-} from "@accountability/core/Domains/ExchangeRate"
-import { now as timestampNow } from "@accountability/core/Domains/Timestamp"
+} from "@accountability/core/currency/ExchangeRate"
+import { now as timestampNow } from "@accountability/core/shared/values/Timestamp"
 import { ExchangeRateRepository } from "@accountability/persistence/Services/ExchangeRateRepository"
 import { AppApi } from "../Definitions/AppApi.ts"
 import {
@@ -26,10 +26,10 @@ import {
   ExchangeRateNotFoundError,
   SameCurrencyExchangeRateError
 } from "@accountability/core/Errors/DomainErrors"
-import type { AuditLogError as CoreAuditLogError, UserLookupError as CoreUserLookupError } from "@accountability/core/AuditLog/AuditLogErrors"
+import type { AuditLogError as CoreAuditLogError, UserLookupError as CoreUserLookupError } from "@accountability/core/audit/AuditLogErrors"
 import { requireOrganizationContext, requirePermission } from "./OrganizationContextMiddlewareLive.ts"
-import { AuditLogService } from "@accountability/core/AuditLog/AuditLogService"
-import { CurrentUserId } from "@accountability/core/AuditLog/CurrentUserId"
+import { AuditLogService } from "@accountability/core/audit/AuditLogService"
+import { CurrentUserId } from "@accountability/core/shared/context/CurrentUserId"
 
 /**
  * Map core AuditLogError to API AuditLogError

@@ -9,7 +9,7 @@
 
 import { HttpApiEndpoint, HttpApiGroup, OpenApi } from "@effect/platform"
 import * as Schema from "effect/Schema"
-import { OrganizationId } from "@accountability/core/Domains/Organization"
+import { OrganizationId } from "@accountability/core/organization/Organization"
 import { BaseRole } from "@accountability/core/Auth/BaseRole"
 import { FunctionalRoles } from "@accountability/core/Auth/FunctionalRole"
 import { Action } from "@accountability/core/Auth/Action"

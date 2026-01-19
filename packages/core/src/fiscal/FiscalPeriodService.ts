@@ -14,6 +14,8 @@ export {
   type ChangePeriodStatusInput,
   type ReopenPeriodInput,
   type ListPeriodsFilter,
-  // Service interface and tag
+  // Service interface shape
+  type FiscalPeriodServiceShape,
+  // Service tag
   FiscalPeriodService
 } from "../FiscalPeriod/FiscalPeriodService.ts"

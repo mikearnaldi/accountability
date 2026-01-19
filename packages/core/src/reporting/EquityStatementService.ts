@@ -8,5 +8,8 @@
  */
 
 export {
-  EquityStatementService
+  EquityStatementService,
+  generateEquityStatementFromData,
+  type EquityStatementReport,
+  type EquityMovementRow
 } from "../Services/EquityStatementService.ts"

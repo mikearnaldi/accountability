@@ -26,7 +26,7 @@ import {
 } from "@accountability/core/Auth/PolicyConditions"
 import { AuthUserId } from "@accountability/core/Auth/AuthUserId"
 import { Action } from "@accountability/core/Auth/Action"
-import { Timestamp } from "@accountability/core/Domains/Timestamp"
+import { Timestamp } from "@accountability/core/shared/values/Timestamp"
 import { ForbiddenError } from "./ApiErrors.ts"
 import { AuthMiddleware } from "./AuthMiddleware.ts"
 import {

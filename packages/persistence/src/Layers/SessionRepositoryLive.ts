@@ -17,7 +17,7 @@ import { Session, UserAgent } from "@accountability/core/Auth/Session"
 import { SessionId } from "@accountability/core/Auth/SessionId"
 import { AuthUserId } from "@accountability/core/Auth/AuthUserId"
 import { AuthProviderType } from "@accountability/core/Auth/AuthProviderType"
-import { Timestamp } from "@accountability/core/Domains/Timestamp"
+import { Timestamp } from "@accountability/core/shared/values/Timestamp"
 import { SessionRepository, type SessionRepositoryService } from "../Services/SessionRepository.ts"
 import { EntityNotFoundError, wrapSqlError } from "../Errors/RepositoryError.ts"
 

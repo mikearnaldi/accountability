@@ -19,8 +19,8 @@ import {
   AuditAction,
   AuditEntityType,
   AuditChanges
-} from "@accountability/core/Domains/AuditLog"
-import { AuditDataCorruptionError } from "@accountability/core/AuditLog/AuditLogErrors"
+} from "@accountability/core/audit/AuditLog"
+import { AuditDataCorruptionError } from "@accountability/core/audit/AuditLogErrors"
 import {
   AuditLogRepository,
   type AuditLogRepositoryService,

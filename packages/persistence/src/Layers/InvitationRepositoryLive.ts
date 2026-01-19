@@ -20,8 +20,8 @@ import { InvitationId } from "@accountability/core/Auth/InvitationId"
 import type { InvitationStatus } from "@accountability/core/Auth/InvitationStatus"
 import type { InvitationRole } from "@accountability/core/Auth/OrganizationInvitation"
 import { OrganizationInvitation } from "@accountability/core/Auth/OrganizationInvitation"
-import { OrganizationId } from "@accountability/core/Domains/Organization"
-import { Timestamp } from "@accountability/core/Domains/Timestamp"
+import { OrganizationId } from "@accountability/core/organization/Organization"
+import { Timestamp } from "@accountability/core/shared/values/Timestamp"
 import {
   InvitationRepository,
   type InvitationRepositoryService

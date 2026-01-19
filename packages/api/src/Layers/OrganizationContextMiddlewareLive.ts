@@ -25,10 +25,10 @@ import { HttpServerRequest } from "@effect/platform"
 import * as Effect from "effect/Effect"
 import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
-import { OrganizationId } from "@accountability/core/Domains/Organization"
+import { OrganizationId } from "@accountability/core/organization/Organization"
 import type { AuthUserId } from "@accountability/core/Auth/AuthUserId"
-import type { CurrentUserId } from "@accountability/core/AuditLog/CurrentUserId"
-import { withCurrentUserId } from "@accountability/core/AuditLog/CurrentUserId"
+import type { CurrentUserId } from "@accountability/core/shared/context/CurrentUserId"
+import { withCurrentUserId } from "@accountability/core/shared/context/CurrentUserId"
 import { OrganizationMemberRepository } from "@accountability/persistence/Services/OrganizationMemberRepository"
 import {
   CurrentOrganizationMembership,
@@ -43,7 +43,7 @@ import { OrganizationMembership } from "@accountability/core/Auth/OrganizationMe
 import { OrganizationMembershipId } from "@accountability/core/Auth/OrganizationMembershipId"
 import { AuthorizationService } from "@accountability/core/Auth/AuthorizationService"
 import { AuthorizationConfig } from "@accountability/core/Auth/AuthorizationConfig"
-import * as Timestamp from "@accountability/core/Domains/Timestamp"
+import * as Timestamp from "@accountability/core/shared/values/Timestamp"
 import type { Action } from "@accountability/core/Auth/Action"
 import { CurrentUser } from "../Definitions/AuthMiddleware.ts"
 import { ForbiddenError } from "../Definitions/ApiErrors.ts"
@@ -52,7 +52,7 @@ import type { ResourceContext } from "@accountability/core/Auth/matchers/Resourc
 import { isPermissionDeniedError } from "@accountability/core/Auth/AuthorizationErrors"
 
 // Re-export CurrentUserId for convenience
-export { CurrentUserId } from "@accountability/core/AuditLog/CurrentUserId"
+export { CurrentUserId } from "@accountability/core/shared/context/CurrentUserId"
 
 // =============================================================================
 // Types

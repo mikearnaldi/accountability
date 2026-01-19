@@ -15,10 +15,10 @@ import {
   getAllTemplates,
   getTemplateByType,
   instantiateTemplate
-} from "@accountability/core/Domains/AccountTemplate"
-import { type Account, AccountId } from "@accountability/core/Domains/Account"
-import { CompanyId } from "@accountability/core/Domains/Company"
-import { OrganizationId } from "@accountability/core/Domains/Organization"
+} from "@accountability/core/accounting/AccountTemplate"
+import { type Account, AccountId } from "@accountability/core/accounting/Account"
+import { CompanyId } from "@accountability/core/company/Company"
+import { OrganizationId } from "@accountability/core/organization/Organization"
 import { AccountRepository } from "@accountability/persistence/Services/AccountRepository"
 import { CompanyRepository } from "@accountability/persistence/Services/CompanyRepository"
 import { AppApi } from "../Definitions/AppApi.ts"
@@ -34,10 +34,10 @@ import {
   CompanyNotFoundError,
   AccountsAlreadyExistError
 } from "@accountability/core/Errors/DomainErrors"
-import type { AuditLogError as CoreAuditLogError, UserLookupError as CoreUserLookupError } from "@accountability/core/AuditLog/AuditLogErrors"
+import type { AuditLogError as CoreAuditLogError, UserLookupError as CoreUserLookupError } from "@accountability/core/audit/AuditLogErrors"
 import { requireOrganizationContext, requirePermission } from "./OrganizationContextMiddlewareLive.ts"
-import { AuditLogService } from "@accountability/core/AuditLog/AuditLogService"
-import { CurrentUserId } from "@accountability/core/AuditLog/CurrentUserId"
+import { AuditLogService } from "@accountability/core/audit/AuditLogService"
+import { CurrentUserId } from "@accountability/core/shared/context/CurrentUserId"
 
 const mapCoreAuditErrorToApi = (error: CoreAuditLogError | CoreUserLookupError): AuditLogError | UserLookupError => {
   if (error._tag === "UserLookupError") {
