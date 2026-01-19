@@ -21,12 +21,12 @@ import { JournalEntryId } from "@accountability/core/journal/JournalEntry"
 import { LocalDateFromString } from "@accountability/core/shared/values/LocalDate"
 import { MonetaryAmount } from "@accountability/core/shared/values/MonetaryAmount"
 import { AuthMiddleware } from "./AuthMiddleware.ts"
+import { CompanyNotFoundError } from "@accountability/core/company/CompanyErrors"
 import {
-  CompanyNotFoundError,
   IntercompanyTransactionNotFoundError,
   IntercompanyTransactionCannotBeDeletedError,
   SameCompanyIntercompanyError
-} from "@accountability/core/Errors/DomainErrors"
+} from "@accountability/core/consolidation/ConsolidationErrors"
 
 // =============================================================================
 // Request/Response Schemas

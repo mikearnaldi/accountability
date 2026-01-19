@@ -41,14 +41,14 @@ import type { AuditLogError as CoreAuditLogError, UserLookupError as CoreUserLoo
 import { requireOrganizationContext, requirePermission, requirePermissionWithResource } from "./OrganizationContextMiddlewareLive.ts"
 import { FiscalPeriodService } from "@accountability/core/fiscal/FiscalPeriodService"
 import { FiscalPeriodNotFoundForDateError } from "@accountability/core/fiscal/FiscalPeriodErrors"
+import { CompanyNotFoundError } from "@accountability/core/company/CompanyErrors"
 import {
-  CompanyNotFoundError,
   JournalEntryNotFoundError,
   JournalEntryStatusError,
   JournalEntryAlreadyReversedError,
   UnbalancedJournalEntryError
-} from "@accountability/core/Errors/DomainErrors"
-import type { ResourceContext } from "@accountability/core/Auth/matchers/ResourceMatcher"
+} from "@accountability/core/journal/JournalErrors"
+import type { ResourceContext } from "@accountability/core/authorization/matchers/ResourceMatcher"
 import type { LocalDate } from "@accountability/core/shared/values/LocalDate"
 import type { CompanyId } from "@accountability/core/company/Company"
 import { AuditLogService } from "@accountability/core/audit/AuditLogService"

@@ -11,11 +11,11 @@ import { HttpApiBuilder } from "@effect/platform"
 import * as Effect from "effect/Effect"
 import * as Option from "effect/Option"
 import { AuthUserId } from "@accountability/core/Auth/AuthUserId"
-import type { FunctionalRole } from "@accountability/core/Auth/FunctionalRole"
+import type { FunctionalRole } from "@accountability/core/authorization/FunctionalRole"
 import {
   computeEffectivePermissions,
   permissionSetToArray
-} from "@accountability/core/Auth/PermissionMatrix"
+} from "@accountability/core/authorization/PermissionMatrix"
 import { OrganizationMemberRepository } from "@accountability/persistence/Services/OrganizationMemberRepository"
 import { OrganizationRepository } from "@accountability/persistence/Services/OrganizationRepository"
 import { CurrentUser } from "../Definitions/AuthMiddleware.ts"

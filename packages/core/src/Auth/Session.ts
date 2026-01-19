@@ -12,7 +12,7 @@ import * as Schema from "effect/Schema"
 import { SessionId } from "./SessionId.ts"
 import { AuthUserId } from "./AuthUserId.ts"
 import { AuthProviderType } from "./AuthProviderType.ts"
-import { Timestamp } from "../Domains/Timestamp.ts"
+import { Timestamp } from "../shared/values/Timestamp.ts"
 
 /**
  * UserAgent - Optional user agent string for session tracking

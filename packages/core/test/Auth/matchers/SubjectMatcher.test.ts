@@ -10,11 +10,11 @@ import {
   getSubjectMismatchReason,
   createSubjectContextFromMembership,
   type SubjectContext
-} from "../../../src/Auth/matchers/SubjectMatcher.ts"
-import type { SubjectCondition } from "../../../src/Auth/PolicyConditions.ts"
+} from "../../../src/authorization/matchers/SubjectMatcher.ts"
+import type { SubjectCondition } from "../../../src/authorization/PolicyConditions.ts"
 import { AuthUserId } from "../../../src/Auth/AuthUserId.ts"
-import type { BaseRole } from "../../../src/Auth/BaseRole.ts"
-import type { FunctionalRole } from "../../../src/Auth/FunctionalRole.ts"
+import type { BaseRole } from "../../../src/authorization/BaseRole.ts"
+import type { FunctionalRole } from "../../../src/authorization/FunctionalRole.ts"
 
 // Test UUIDs for user IDs
 const TEST_USER_UUID = "550e8400-e29b-41d4-a716-446655440001"

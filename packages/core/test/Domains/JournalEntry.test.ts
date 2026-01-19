@@ -16,11 +16,11 @@ import {
   isUserId,
   JournalEntry,
   isJournalEntry
-} from "../../src/Domains/JournalEntry.ts"
-import { CompanyId } from "../../src/Domains/Company.ts"
-import { FiscalPeriodRef } from "../../src/Domains/FiscalPeriodRef.ts"
-import { LocalDate } from "../../src/Domains/LocalDate.ts"
-import { Timestamp } from "../../src/Domains/Timestamp.ts"
+} from "../../src/journal/JournalEntry.ts"
+import { CompanyId } from "../../src/company/Company.ts"
+import { FiscalPeriodRef } from "../../src/fiscal/FiscalPeriodRef.ts"
+import { LocalDate } from "../../src/shared/values/LocalDate.ts"
+import { Timestamp } from "../../src/shared/values/Timestamp.ts"
 
 describe("JournalEntryId", () => {
   const validUUID = "550e8400-e29b-41d4-a716-446655440000"

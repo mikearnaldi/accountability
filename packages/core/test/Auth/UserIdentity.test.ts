@@ -10,7 +10,7 @@ import {
 } from "../../src/Auth/UserIdentity.ts"
 import { AuthUserId } from "../../src/Auth/AuthUserId.ts"
 import { ProviderId } from "../../src/Auth/ProviderId.ts"
-import { Timestamp } from "../../src/Domains/Timestamp.ts"
+import { Timestamp } from "../../src/shared/values/Timestamp.ts"
 
 describe("UserIdentityId", () => {
   const validUUID = "550e8400-e29b-41d4-a716-446655440000"

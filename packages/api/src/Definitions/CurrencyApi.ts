@@ -25,11 +25,11 @@ import {
   UserLookupError
 } from "./ApiErrors.ts"
 import { AuthMiddleware } from "./AuthMiddleware.ts"
+import { OrganizationNotFoundError } from "@accountability/core/organization/OrganizationErrors"
 import {
   ExchangeRateNotFoundError,
-  OrganizationNotFoundError,
   SameCurrencyExchangeRateError
-} from "@accountability/core/Errors/DomainErrors"
+} from "@accountability/core/currency/CurrencyErrors"
 
 // =============================================================================
 // Request/Response Schemas

@@ -50,12 +50,12 @@ import { JournalEntryRepository } from "@accountability/persistence/Services/Jou
 import { JournalEntryLineRepository } from "@accountability/persistence/Services/JournalEntryLineRepository"
 import { AppApi } from "../Definitions/AppApi.ts"
 import { requireOrganizationContext, requirePermission } from "./OrganizationContextMiddlewareLive.ts"
+import { CompanyNotFoundError } from "@accountability/core/company/CompanyErrors"
 import {
-  CompanyNotFoundError,
   InvalidReportPeriodError,
   TrialBalanceNotBalancedError,
   BalanceSheetNotBalancedError
-} from "@accountability/core/Errors/DomainErrors"
+} from "@accountability/core/reporting/ReportErrors"
 import {
   TrialBalanceReport,
   TrialBalanceLineItem,

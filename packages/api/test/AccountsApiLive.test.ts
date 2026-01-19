@@ -16,13 +16,13 @@ import {
   type AccountType,
   type NormalBalance,
   type CashFlowCategory
-} from "@accountability/core/Domains/Account"
-import { AccountNumber } from "@accountability/core/Domains/AccountNumber"
-import { Company, CompanyId, FiscalYearEnd } from "@accountability/core/Domains/Company"
-import { CurrencyCode } from "@accountability/core/Domains/CurrencyCode"
-import { JurisdictionCode } from "@accountability/core/Domains/JurisdictionCode"
-import { OrganizationId } from "@accountability/core/Domains/Organization"
-import { now as timestampNow } from "@accountability/core/Domains/Timestamp"
+} from "@accountability/core/accounting/Account"
+import { AccountNumber } from "@accountability/core/accounting/AccountNumber"
+import { Company, CompanyId, FiscalYearEnd } from "@accountability/core/company/Company"
+import { CurrencyCode } from "@accountability/core/currency/CurrencyCode"
+import { JurisdictionCode } from "@accountability/core/jurisdiction/JurisdictionCode"
+import { OrganizationId } from "@accountability/core/organization/Organization"
+import { now as timestampNow } from "@accountability/core/shared/values/Timestamp"
 import { AccountRepository, type AccountRepositoryService } from "@accountability/persistence/Services/AccountRepository"
 import { CompanyRepository, type CompanyRepositoryService } from "@accountability/persistence/Services/CompanyRepository"
 import { EntityNotFoundError } from "@accountability/persistence/Errors/RepositoryError"

@@ -16,28 +16,27 @@
 
 import { HttpApiEndpoint, HttpApiGroup, HttpApiSchema, OpenApi } from "@effect/platform"
 import * as Schema from "effect/Schema"
-import { PolicyId } from "@accountability/core/Auth/PolicyId"
-import { PolicyEffect } from "@accountability/core/Auth/PolicyEffect"
+import { PolicyId } from "@accountability/core/authorization/PolicyId"
+import { PolicyEffect } from "@accountability/core/authorization/PolicyEffect"
 import {
   SubjectCondition,
   ResourceCondition,
   ActionCondition,
   EnvironmentCondition
-} from "@accountability/core/Auth/PolicyConditions"
+} from "@accountability/core/authorization/PolicyConditions"
 import { AuthUserId } from "@accountability/core/Auth/AuthUserId"
-import { Action } from "@accountability/core/Auth/Action"
+import { Action } from "@accountability/core/authorization/Action"
 import { Timestamp } from "@accountability/core/shared/values/Timestamp"
 import { ForbiddenError } from "./ApiErrors.ts"
 import { AuthMiddleware } from "./AuthMiddleware.ts"
+import { OrganizationNotFoundError, UserNotMemberOfOrganizationError } from "@accountability/core/organization/OrganizationErrors"
 import {
-  OrganizationNotFoundError,
   PolicyNotFoundError,
   InvalidPolicyIdError,
   PolicyPriorityValidationError,
   InvalidResourceTypeError,
-  UserNotMemberOfOrganizationError,
   SystemPolicyCannotBeModifiedError
-} from "@accountability/core/Errors/DomainErrors"
+} from "@accountability/core/authorization/AuthorizationErrors"
 
 // =============================================================================
 // Policy Request/Response Schemas

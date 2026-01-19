@@ -23,13 +23,13 @@ import {
   ForbiddenError
 } from "./ApiErrors.ts"
 import { AuthMiddleware } from "./AuthMiddleware.ts"
+import { OrganizationNotFoundError } from "@accountability/core/organization/OrganizationErrors"
+import { CompanyNotFoundError } from "@accountability/core/company/CompanyErrors"
 import {
-  OrganizationNotFoundError,
-  CompanyNotFoundError,
   InvalidReportPeriodError,
   TrialBalanceNotBalancedError,
   BalanceSheetNotBalancedError
-} from "@accountability/core/Errors/DomainErrors"
+} from "@accountability/core/reporting/ReportErrors"
 
 // Note: URL params use LocalDateFromString schema to automatically parse
 // ISO date strings (YYYY-MM-DD) to LocalDate instances with validation.

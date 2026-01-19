@@ -13,16 +13,16 @@ import {
   Company,
   CompanyId,
   FiscalYearEnd
-} from "@accountability/core/Domains/Company"
-import { CurrencyCode } from "@accountability/core/Domains/CurrencyCode"
-import { JurisdictionCode } from "@accountability/core/Domains/JurisdictionCode"
+} from "@accountability/core/company/Company"
+import { CurrencyCode } from "@accountability/core/currency/CurrencyCode"
+import { JurisdictionCode } from "@accountability/core/jurisdiction/JurisdictionCode"
 import {
   Organization,
   OrganizationId,
   OrganizationSettings
-} from "@accountability/core/Domains/Organization"
-import { Percentage } from "@accountability/core/Domains/Percentage"
-import { now as timestampNow } from "@accountability/core/Domains/Timestamp"
+} from "@accountability/core/organization/Organization"
+import { Percentage } from "@accountability/core/shared/values/Percentage"
+import { now as timestampNow } from "@accountability/core/shared/values/Timestamp"
 import { CompanyRepository, type CompanyRepositoryService } from "@accountability/persistence/Services/CompanyRepository"
 import { OrganizationRepository, type OrganizationRepositoryService } from "@accountability/persistence/Services/OrganizationRepository"
 import { EntityNotFoundError } from "@accountability/persistence/Errors/RepositoryError"

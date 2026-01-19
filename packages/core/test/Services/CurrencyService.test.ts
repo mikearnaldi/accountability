@@ -17,13 +17,13 @@ import {
   type CreateExchangeRateInput,
   type UpdateExchangeRateInput,
   type ExchangeRateRepositoryService
-} from "../../src/Services/CurrencyService.ts"
-import { ExchangeRate, ExchangeRateId, Rate, type RateType } from "../../src/Domains/ExchangeRate.ts"
-import { CurrencyCode } from "../../src/Domains/CurrencyCode.ts"
-import { LocalDate } from "../../src/Domains/LocalDate.ts"
-import { OrganizationId } from "../../src/Domains/Organization.ts"
-import { Timestamp } from "../../src/Domains/Timestamp.ts"
-import { MonetaryAmount } from "../../src/Domains/MonetaryAmount.ts"
+} from "../../src/currency/CurrencyService.ts"
+import { ExchangeRate, ExchangeRateId, Rate, type RateType } from "../../src/currency/ExchangeRate.ts"
+import { CurrencyCode } from "../../src/currency/CurrencyCode.ts"
+import { LocalDate } from "../../src/shared/values/LocalDate.ts"
+import { OrganizationId } from "../../src/organization/Organization.ts"
+import { Timestamp } from "../../src/shared/values/Timestamp.ts"
+import { MonetaryAmount } from "../../src/shared/values/MonetaryAmount.ts"
 
 describe("CurrencyService", () => {
   // Test data constants

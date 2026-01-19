@@ -10,12 +10,12 @@
 import { HttpApiEndpoint, HttpApiGroup, OpenApi } from "@effect/platform"
 import * as Schema from "effect/Schema"
 import { OrganizationId } from "@accountability/core/organization/Organization"
-import { BaseRole } from "@accountability/core/Auth/BaseRole"
-import { FunctionalRoles } from "@accountability/core/Auth/FunctionalRole"
-import { Action } from "@accountability/core/Auth/Action"
+import { BaseRole } from "@accountability/core/authorization/BaseRole"
+import { FunctionalRoles } from "@accountability/core/authorization/FunctionalRole"
+import { Action } from "@accountability/core/authorization/Action"
 import { ForbiddenError } from "./ApiErrors.ts"
 import { AuthMiddleware } from "./AuthMiddleware.ts"
-import { OrganizationNotFoundError } from "@accountability/core/Errors/DomainErrors"
+import { OrganizationNotFoundError } from "@accountability/core/organization/OrganizationErrors"
 
 // =============================================================================
 // Response Schemas

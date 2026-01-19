@@ -22,7 +22,7 @@ import { AppApiLive } from "@accountability/api/Layers/AppApiLive"
 import { SimpleTokenValidatorLive } from "@accountability/api/Layers/AuthMiddlewareLive"
 import { RepositoriesWithAuthLive } from "@accountability/persistence/Layers/RepositoriesLive"
 import { MigrationLayer } from "@accountability/persistence/Layers/MigrationsLive"
-import { PREDEFINED_JURISDICTIONS } from "@accountability/core/Domains/Jurisdiction"
+import { PREDEFINED_JURISDICTIONS } from "@accountability/core/jurisdiction/Jurisdiction"
 import { SharedPgClientLive } from "./PgTestUtils.ts"
 
 // =============================================================================

@@ -9,9 +9,9 @@
 
 import { describe, expect, it } from "@effect/vitest"
 import { Effect, Layer, Option } from "effect"
-import { Organization, OrganizationId, OrganizationSettings } from "@accountability/core/Domains/Organization"
-import { CurrencyCode } from "@accountability/core/Domains/CurrencyCode"
-import { Timestamp } from "@accountability/core/Domains/Timestamp"
+import { Organization, OrganizationId, OrganizationSettings } from "@accountability/core/organization/Organization"
+import { CurrencyCode } from "@accountability/core/currency/CurrencyCode"
+import { Timestamp } from "@accountability/core/shared/values/Timestamp"
 import { OrganizationRepository } from "../src/Services/OrganizationRepository.ts"
 import { OrganizationRepositoryLive } from "../src/Layers/OrganizationRepositoryLive.ts"
 import { SharedPgClientLive } from "./Utils.ts"

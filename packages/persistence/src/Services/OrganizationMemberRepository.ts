@@ -10,11 +10,11 @@
 import * as Context from "effect/Context"
 import type * as Effect from "effect/Effect"
 import type * as Option from "effect/Option"
-import type { OrganizationMembership } from "@accountability/core/Auth/OrganizationMembership"
-import type { OrganizationMembershipId } from "@accountability/core/Auth/OrganizationMembershipId"
+import type { OrganizationMembership } from "@accountability/core/membership/OrganizationMembership"
+import type { OrganizationMembershipId } from "@accountability/core/membership/OrganizationMembershipId"
 import type { AuthUserId } from "@accountability/core/Auth/AuthUserId"
 import type { OrganizationId } from "@accountability/core/organization/Organization"
-import type { BaseRole } from "@accountability/core/Auth/BaseRole"
+import type { BaseRole } from "@accountability/core/authorization/BaseRole"
 import type { EntityNotFoundError, PersistenceError } from "../Errors/RepositoryError.ts"
 
 /**

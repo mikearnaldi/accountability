@@ -1,6 +1,6 @@
 import { describe, it, expect } from "@effect/vitest"
 import { BigDecimal, FastCheck, Option } from "effect"
-import type { JournalEntryWithLines } from "../../src/Domains/AccountBalance.ts"
+import type { JournalEntryWithLines } from "../../src/accounting/AccountBalance.ts"
 import {
   calculateBalance,
   calculatePeriodBalance,
@@ -8,16 +8,16 @@ import {
   calculateBeginningBalance,
   calculateDebitCreditTotals,
   calculatePeriodDebitCreditTotals
-} from "../../src/Domains/AccountBalance.ts"
-import { AccountId } from "../../src/Domains/Account.ts"
-import { JournalEntry, JournalEntryId, UserId, EntryNumber } from "../../src/Domains/JournalEntry.ts"
-import { JournalEntryLine, JournalEntryLineId } from "../../src/Domains/JournalEntryLine.ts"
-import { CompanyId } from "../../src/Domains/Company.ts"
-import { CurrencyCode } from "../../src/Domains/CurrencyCode.ts"
-import { MonetaryAmount } from "../../src/Domains/MonetaryAmount.ts"
-import { LocalDate } from "../../src/Domains/LocalDate.ts"
-import { FiscalPeriodRef } from "../../src/Domains/FiscalPeriodRef.ts"
-import { Timestamp } from "../../src/Domains/Timestamp.ts"
+} from "../../src/accounting/AccountBalance.ts"
+import { AccountId } from "../../src/accounting/Account.ts"
+import { JournalEntry, JournalEntryId, UserId, EntryNumber } from "../../src/journal/JournalEntry.ts"
+import { JournalEntryLine, JournalEntryLineId } from "../../src/journal/JournalEntryLine.ts"
+import { CompanyId } from "../../src/company/Company.ts"
+import { CurrencyCode } from "../../src/currency/CurrencyCode.ts"
+import { MonetaryAmount } from "../../src/shared/values/MonetaryAmount.ts"
+import { LocalDate } from "../../src/shared/values/LocalDate.ts"
+import { FiscalPeriodRef } from "../../src/fiscal/FiscalPeriodRef.ts"
+import { Timestamp } from "../../src/shared/values/Timestamp.ts"
 
 describe("AccountBalance", () => {
   // Test UUIDs (must be valid UUID format - hex characters only)

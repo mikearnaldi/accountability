@@ -1,7 +1,7 @@
 import { describe, it, expect } from "@effect/vitest"
 import { Chunk, Effect, Exit, Option } from "effect"
 import * as Schema from "effect/Schema"
-import type { AccountCategory } from "../../src/Domains/Account.ts"
+import type { AccountCategory } from "../../src/accounting/Account.ts"
 import {
   ConsolidationRunId,
   ConsolidationRunStatus,
@@ -28,15 +28,15 @@ import {
   isConsolidatedTrialBalance,
   isConsolidationRunOptions,
   isConsolidationRun
-} from "../../src/Domains/ConsolidationRun.ts"
-import { ConsolidationGroupId } from "../../src/Domains/ConsolidationGroup.ts"
-import { CurrencyCode } from "../../src/Domains/CurrencyCode.ts"
-import { FiscalPeriodRef } from "../../src/Domains/FiscalPeriodRef.ts"
-import { UserId } from "../../src/Domains/JournalEntry.ts"
-import { EliminationEntryId } from "../../src/Services/EliminationService.ts"
-import { LocalDate } from "../../src/Domains/LocalDate.ts"
-import { MonetaryAmount } from "../../src/Domains/MonetaryAmount.ts"
-import { Timestamp } from "../../src/Domains/Timestamp.ts"
+} from "../../src/consolidation/ConsolidationRun.ts"
+import { ConsolidationGroupId } from "../../src/consolidation/ConsolidationGroup.ts"
+import { CurrencyCode } from "../../src/currency/CurrencyCode.ts"
+import { FiscalPeriodRef } from "../../src/fiscal/FiscalPeriodRef.ts"
+import { UserId } from "../../src/journal/JournalEntry.ts"
+import { EliminationEntryId } from "../../src/consolidation/EliminationService.ts"
+import { LocalDate } from "../../src/shared/values/LocalDate.ts"
+import { MonetaryAmount } from "../../src/shared/values/MonetaryAmount.ts"
+import { Timestamp } from "../../src/shared/values/Timestamp.ts"
 
 // =============================================================================
 // Test Helpers

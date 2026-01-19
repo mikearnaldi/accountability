@@ -14,9 +14,9 @@ import {
   Organization,
   OrganizationId,
   OrganizationSettings
-} from "@accountability/core/Domains/Organization"
-import { CurrencyCode } from "@accountability/core/Domains/CurrencyCode"
-import { now as timestampNow } from "@accountability/core/Domains/Timestamp"
+} from "@accountability/core/organization/Organization"
+import { CurrencyCode } from "@accountability/core/currency/CurrencyCode"
+import { now as timestampNow } from "@accountability/core/shared/values/Timestamp"
 import { OrganizationRepository, type OrganizationRepositoryService } from "@accountability/persistence/Services/OrganizationRepository"
 import { EntityNotFoundError } from "@accountability/persistence/Errors/RepositoryError"
 

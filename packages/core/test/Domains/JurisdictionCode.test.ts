@@ -15,7 +15,7 @@ import {
   SG,
   HK,
   CH
-} from "../../src/Domains/JurisdictionCode.ts"
+} from "../../src/jurisdiction/JurisdictionCode.ts"
 
 describe("JurisdictionCode", () => {
   describe("validation", () => {

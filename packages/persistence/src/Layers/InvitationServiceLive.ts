@@ -19,17 +19,17 @@ import {
   type CreateInvitationInput,
   type CreateInvitationResult,
   type AcceptInvitationResult
-} from "@accountability/core/Auth/InvitationService"
-import { OrganizationMembership } from "@accountability/core/Auth/OrganizationMembership"
-import { OrganizationMembershipId } from "@accountability/core/Auth/OrganizationMembershipId"
-import { InvitationId } from "@accountability/core/Auth/InvitationId"
+} from "@accountability/core/membership/InvitationService"
+import { OrganizationMembership } from "@accountability/core/membership/OrganizationMembership"
+import { OrganizationMembershipId } from "@accountability/core/membership/OrganizationMembershipId"
+import { InvitationId } from "@accountability/core/membership/InvitationId"
 import * as Timestamp from "@accountability/core/shared/values/Timestamp"
 import {
   InvalidInvitationError,
   InvitationExpiredError,
   InvitationAlreadyExistsError,
   UserAlreadyMemberError
-} from "@accountability/core/Auth/AuthorizationErrors"
+} from "@accountability/core/authorization/AuthorizationErrors"
 import { InvitationRepository } from "../Services/InvitationRepository.ts"
 import { OrganizationMemberRepository } from "../Services/OrganizationMemberRepository.ts"
 

@@ -10,11 +10,11 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import * as Ref from "effect/Ref"
-import { CompanyId, Company, FiscalYearEnd } from "@accountability/core/Domains/Company"
-import { OrganizationId } from "@accountability/core/Domains/Organization"
-import { CurrencyCode } from "@accountability/core/Domains/CurrencyCode"
-import { JurisdictionCode } from "@accountability/core/Domains/JurisdictionCode"
-import { now as timestampNow } from "@accountability/core/Domains/Timestamp"
+import { CompanyId, Company, FiscalYearEnd } from "@accountability/core/company/Company"
+import { OrganizationId } from "@accountability/core/organization/Organization"
+import { CurrencyCode } from "@accountability/core/currency/CurrencyCode"
+import { JurisdictionCode } from "@accountability/core/jurisdiction/JurisdictionCode"
+import { now as timestampNow } from "@accountability/core/shared/values/Timestamp"
 import {
   JournalEntry,
   JournalEntryId,
@@ -23,12 +23,12 @@ import {
   type JournalEntryStatus,
   type JournalEntryType,
   type SourceModule
-} from "@accountability/core/Domains/JournalEntry"
-import { JournalEntryLine, JournalEntryLineId } from "@accountability/core/Domains/JournalEntryLine"
-import { AccountId } from "@accountability/core/Domains/Account"
-import { FiscalPeriodRef } from "@accountability/core/Domains/FiscalPeriodRef"
-import { LocalDate, today as localDateToday } from "@accountability/core/Domains/LocalDate"
-import { MonetaryAmount } from "@accountability/core/Domains/MonetaryAmount"
+} from "@accountability/core/journal/JournalEntry"
+import { JournalEntryLine, JournalEntryLineId } from "@accountability/core/journal/JournalEntryLine"
+import { AccountId } from "@accountability/core/accounting/Account"
+import { FiscalPeriodRef } from "@accountability/core/fiscal/FiscalPeriodRef"
+import { LocalDate, today as localDateToday } from "@accountability/core/shared/values/LocalDate"
+import { MonetaryAmount } from "@accountability/core/shared/values/MonetaryAmount"
 import { JournalEntryRepository, type JournalEntryRepositoryService } from "@accountability/persistence/Services/JournalEntryRepository"
 import { JournalEntryLineRepository, type JournalEntryLineRepositoryService } from "@accountability/persistence/Services/JournalEntryLineRepository"
 import { CompanyRepository, type CompanyRepositoryService } from "@accountability/persistence/Services/CompanyRepository"

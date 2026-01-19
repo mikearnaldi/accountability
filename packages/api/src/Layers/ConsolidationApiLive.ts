@@ -41,8 +41,8 @@ import type { AuditLogError as CoreAuditLogError, UserLookupError as CoreUserLoo
 import { requireOrganizationContext, requirePermission } from "./OrganizationContextMiddlewareLive.ts"
 import { AuditLogService } from "@accountability/core/audit/AuditLogService"
 import { CurrentUserId } from "@accountability/core/shared/context/CurrentUserId"
+import { CompanyNotFoundError } from "@accountability/core/company/CompanyErrors"
 import {
-  CompanyNotFoundError,
   ConsolidationGroupNotFoundError,
   ConsolidationRunNotFoundError,
   ConsolidationMemberNotFoundError,
@@ -57,7 +57,7 @@ import {
   ConsolidatedTrialBalanceNotAvailableError,
   ConsolidatedBalanceSheetNotBalancedError,
   ConsolidationReportGenerationError
-} from "@accountability/core/Errors/DomainErrors"
+} from "@accountability/core/consolidation/ConsolidationErrors"
 
 const mapCoreAuditErrorToApi = (error: CoreAuditLogError | CoreUserLookupError): AuditLogError | UserLookupError => {
   if (error._tag === "UserLookupError") {

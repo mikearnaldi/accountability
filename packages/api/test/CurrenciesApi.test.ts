@@ -22,7 +22,7 @@ import { AppApiLive } from "@accountability/api/Layers/AppApiLive"
 import { SimpleTokenValidatorLive } from "@accountability/api/Layers/AuthMiddlewareLive"
 import { RepositoriesWithAuthLive } from "@accountability/persistence/Layers/RepositoriesLive"
 import { MigrationLayer } from "@accountability/persistence/Layers/MigrationsLive"
-import { COMMON_CURRENCIES } from "@accountability/core/Domains/Currency"
+import { COMMON_CURRENCIES } from "@accountability/core/currency/Currency"
 import { SharedPgClientLive } from "./PgTestUtils.ts"
 
 // =============================================================================

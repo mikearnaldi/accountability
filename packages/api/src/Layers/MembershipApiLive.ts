@@ -11,8 +11,8 @@ import { HttpApiBuilder } from "@effect/platform"
 import * as Effect from "effect/Effect"
 import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
-import { OrganizationMemberService } from "@accountability/core/Auth/OrganizationMemberService"
-import { InvitationService } from "@accountability/core/Auth/InvitationService"
+import { OrganizationMemberService } from "@accountability/core/membership/OrganizationMemberService"
+import { InvitationService } from "@accountability/core/membership/InvitationService"
 import { UserRepository } from "@accountability/persistence/Services/UserRepository"
 import { CurrentUserId } from "@accountability/core/shared/context/CurrentUserId"
 import { CurrentUser } from "../Definitions/AuthMiddleware.ts"
@@ -24,10 +24,8 @@ import {
   MemberListResponse,
   InviteMemberResponse
 } from "../Definitions/MembershipApi.ts"
-import {
-  InvalidOrganizationIdError,
-  MemberNotFoundError
-} from "@accountability/core/Errors/DomainErrors"
+import { InvalidOrganizationIdError } from "@accountability/core/organization/OrganizationErrors"
+import { MemberNotFoundError } from "@accountability/core/membership/MembershipErrors"
 import { requireOrganizationContext } from "./OrganizationContextMiddlewareLive.ts"
 
 // =============================================================================

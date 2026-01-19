@@ -13,7 +13,7 @@ import { AuthUserId } from "@accountability/core/Auth/AuthUserId"
 import { Email } from "@accountability/core/Auth/Email"
 import { ForbiddenError } from "./ApiErrors.ts"
 import { AuthMiddleware } from "./AuthMiddleware.ts"
-import { OrganizationNotFoundError } from "@accountability/core/Errors/DomainErrors"
+import { OrganizationNotFoundError } from "@accountability/core/organization/OrganizationErrors"
 
 // =============================================================================
 // Response Schemas

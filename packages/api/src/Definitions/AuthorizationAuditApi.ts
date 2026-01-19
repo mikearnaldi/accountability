@@ -13,7 +13,7 @@ import { HttpApiEndpoint, HttpApiGroup, OpenApi } from "@effect/platform"
 import * as Schema from "effect/Schema"
 import { AuthMiddleware } from "./AuthMiddleware.ts"
 import { ForbiddenError } from "./ApiErrors.ts"
-import { OrganizationNotFoundError } from "@accountability/core/Errors/DomainErrors"
+import { OrganizationNotFoundError } from "@accountability/core/organization/OrganizationErrors"
 
 // =============================================================================
 // Response Schemas

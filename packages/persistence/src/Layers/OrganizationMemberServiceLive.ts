@@ -30,9 +30,9 @@ import {
   type AddMemberInput,
   type UpdateMemberRolesInput,
   type TransferOwnershipInput
-} from "@accountability/core/Auth/OrganizationMemberService"
-import { OrganizationMembership } from "@accountability/core/Auth/OrganizationMembership"
-import { OrganizationMembershipId } from "@accountability/core/Auth/OrganizationMembershipId"
+} from "@accountability/core/membership/OrganizationMemberService"
+import { OrganizationMembership } from "@accountability/core/membership/OrganizationMembership"
+import { OrganizationMembershipId } from "@accountability/core/membership/OrganizationMembershipId"
 import type { AuthUserId } from "@accountability/core/Auth/AuthUserId"
 import type { OrganizationId } from "@accountability/core/organization/Organization"
 import * as Timestamp from "@accountability/core/shared/values/Timestamp"
@@ -43,7 +43,7 @@ import {
   MemberNotSuspendedError,
   CannotTransferToNonAdminError,
   UserAlreadyMemberError
-} from "@accountability/core/Auth/AuthorizationErrors"
+} from "@accountability/core/authorization/AuthorizationErrors"
 import { AuditLogService } from "@accountability/core/audit/AuditLogService"
 import type { AuditLogError, UserLookupError } from "@accountability/core/audit/AuditLogErrors"
 import { CurrentUserId } from "@accountability/core/shared/context/CurrentUserId"

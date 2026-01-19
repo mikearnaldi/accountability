@@ -24,8 +24,8 @@ import {
   COMMON_CURRENCIES,
   CURRENCIES_BY_CODE,
   getCurrencyByCode
-} from "../../src/Domains/Currency.ts"
-import { CurrencyCode } from "../../src/Domains/CurrencyCode.ts"
+} from "../../src/currency/Currency.ts"
+import { CurrencyCode } from "../../src/currency/CurrencyCode.ts"
 
 describe("DecimalPlaces", () => {
   describe("validation", () => {

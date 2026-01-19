@@ -13,25 +13,25 @@
 import { HttpApiEndpoint, HttpApiGroup, HttpApiSchema, OpenApi } from "@effect/platform"
 import * as Schema from "effect/Schema"
 import { Email } from "@accountability/core/Auth/Email"
-import { InvitationId } from "@accountability/core/Auth/InvitationId"
-import { InvitationStatus } from "@accountability/core/Auth/InvitationStatus"
+import { InvitationId } from "@accountability/core/membership/InvitationId"
+import { InvitationStatus } from "@accountability/core/membership/InvitationStatus"
 import { OrganizationId } from "@accountability/core/organization/Organization"
 import { Timestamp } from "@accountability/core/shared/values/Timestamp"
-import { BaseRole } from "@accountability/core/Auth/BaseRole"
-import { FunctionalRoles } from "@accountability/core/Auth/FunctionalRole"
+import { BaseRole } from "@accountability/core/authorization/BaseRole"
+import { FunctionalRoles } from "@accountability/core/authorization/FunctionalRole"
 import { ForbiddenError } from "./ApiErrors.ts"
 import { AuthMiddleware } from "./AuthMiddleware.ts"
+import { OrganizationNotFoundError } from "@accountability/core/organization/OrganizationErrors"
 import {
-  OrganizationNotFoundError,
   InvitationNotFoundError,
-  InvalidOrganizationIdError,
   InvalidInvitationIdError
-} from "@accountability/core/Errors/DomainErrors"
+} from "@accountability/core/membership/MembershipErrors"
+import { InvalidOrganizationIdError } from "@accountability/core/organization/OrganizationErrors"
 import {
   InvalidInvitationError,
   InvitationExpiredError,
   UserAlreadyMemberError
-} from "@accountability/core/Auth/AuthorizationErrors"
+} from "@accountability/core/authorization/AuthorizationErrors"
 
 // =============================================================================
 // Invitation Request/Response Schemas

@@ -16,16 +16,16 @@ import { PolicyEngineLive } from "../src/Layers/PolicyEngineLive.ts"
 import {
   PolicyEngine,
   type PolicyEvaluationContext
-} from "@accountability/core/Auth/PolicyEngine"
-import { AuthorizationPolicy } from "@accountability/core/Auth/AuthorizationPolicy"
-import type { SubjectContext } from "@accountability/core/Auth/matchers/SubjectMatcher"
-import type { ResourceContext } from "@accountability/core/Auth/matchers/ResourceMatcher"
-import type { EnvironmentContext } from "@accountability/core/Auth/matchers/EnvironmentMatcher"
+} from "@accountability/core/authorization/PolicyEngine"
+import { AuthorizationPolicy } from "@accountability/core/authorization/AuthorizationPolicy"
+import type { SubjectContext } from "@accountability/core/authorization/matchers/SubjectMatcher"
+import type { ResourceContext } from "@accountability/core/authorization/matchers/ResourceMatcher"
+import type { EnvironmentContext } from "@accountability/core/authorization/matchers/EnvironmentMatcher"
 import { AuthUserId } from "@accountability/core/Auth/AuthUserId"
-import { OrganizationId } from "@accountability/core/Domains/Organization"
-import { PolicyId } from "@accountability/core/Auth/PolicyId"
-import * as Timestamp from "@accountability/core/Domains/Timestamp"
-import type { EnvironmentCondition } from "@accountability/core/Auth/PolicyConditions"
+import { OrganizationId } from "@accountability/core/organization/Organization"
+import { PolicyId } from "@accountability/core/authorization/PolicyId"
+import * as Timestamp from "@accountability/core/shared/values/Timestamp"
+import type { EnvironmentCondition } from "@accountability/core/authorization/PolicyConditions"
 
 // =============================================================================
 // Test Helpers

@@ -24,7 +24,7 @@ import {
   isICMatchResult,
   isNCICalculation,
   type ConsolidationRepositoryService
-} from "../../src/Services/ConsolidationService.ts"
+} from "../../src/consolidation/ConsolidationService.ts"
 import {
   ConsolidationRun,
   ConsolidationRunId,
@@ -33,22 +33,22 @@ import {
   ValidationIssue,
   createInitialSteps,
   defaultConsolidationRunOptions
-} from "../../src/Domains/ConsolidationRun.ts"
-import { ConsolidationGroupId, ConsolidationMember } from "../../src/Domains/ConsolidationGroup.ts"
-import { CompanyId } from "../../src/Domains/Company.ts"
-import { CurrencyCode } from "../../src/Domains/CurrencyCode.ts"
-import { FiscalPeriodRef } from "../../src/Domains/FiscalPeriodRef.ts"
-import { LocalDate } from "../../src/Domains/LocalDate.ts"
-import { MonetaryAmount } from "../../src/Domains/MonetaryAmount.ts"
-import { Timestamp } from "../../src/Domains/Timestamp.ts"
-import { TrialBalanceLineItem, TrialBalanceReport, TrialBalanceReportMetadata } from "../../src/Services/TrialBalanceService.ts"
-import { AccountId } from "../../src/Domains/Account.ts"
-import { UserId } from "../../src/Domains/JournalEntry.ts"
-import { EliminationEntryId } from "../../src/Services/EliminationService.ts"
+} from "../../src/consolidation/ConsolidationRun.ts"
+import { ConsolidationGroupId, ConsolidationMember } from "../../src/consolidation/ConsolidationGroup.ts"
+import { CompanyId } from "../../src/company/Company.ts"
+import { CurrencyCode } from "../../src/currency/CurrencyCode.ts"
+import { FiscalPeriodRef } from "../../src/fiscal/FiscalPeriodRef.ts"
+import { LocalDate } from "../../src/shared/values/LocalDate.ts"
+import { MonetaryAmount } from "../../src/shared/values/MonetaryAmount.ts"
+import { Timestamp } from "../../src/shared/values/Timestamp.ts"
+import { TrialBalanceLineItem, TrialBalanceReport, TrialBalanceReportMetadata } from "../../src/accounting/TrialBalanceService.ts"
+import { AccountId } from "../../src/accounting/Account.ts"
+import { UserId } from "../../src/journal/JournalEntry.ts"
+import { EliminationEntryId } from "../../src/consolidation/EliminationService.ts"
 import * as Schema from "effect/Schema"
-import { Percentage } from "../../src/Domains/Percentage.ts"
-import { EliminationRule, AccountSelectorById } from "../../src/Domains/EliminationRule.ts"
-import { EliminationRuleId } from "../../src/Domains/ConsolidationGroup.ts"
+import { Percentage } from "../../src/shared/values/Percentage.ts"
+import { EliminationRule, AccountSelectorById } from "../../src/consolidation/EliminationRule.ts"
+import { EliminationRuleId } from "../../src/consolidation/ConsolidationGroup.ts"
 
 // =============================================================================
 // Test Helpers

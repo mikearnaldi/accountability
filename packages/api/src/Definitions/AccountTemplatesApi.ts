@@ -18,11 +18,9 @@ import {
   type AccountTemplate,
   type TemplateAccountDefinition
 } from "@accountability/core/accounting/AccountTemplate"
-import {
-  CompanyNotFoundError,
-  AccountsAlreadyExistError,
-  OrganizationNotFoundError
-} from "@accountability/core/Errors/DomainErrors"
+import { OrganizationNotFoundError } from "@accountability/core/organization/OrganizationErrors"
+import { CompanyNotFoundError } from "@accountability/core/company/CompanyErrors"
+import { AccountsAlreadyExistError } from "@accountability/core/accounting/AccountErrors"
 import { AuthMiddleware } from "./AuthMiddleware.ts"
 import { AuditLogError, ForbiddenError, UserLookupError } from "./ApiErrors.ts"
 

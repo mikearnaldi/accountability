@@ -24,11 +24,11 @@ import {
   isCTACalculation,
   isTranslationRates,
   type TranslateMemberBalancesInput
-} from "../../src/Services/CurrencyTranslationService.ts"
-import { CompanyId } from "../../src/Domains/Company.ts"
-import { CurrencyCode } from "../../src/Domains/CurrencyCode.ts"
-import { LocalDate } from "../../src/Domains/LocalDate.ts"
-import { MonetaryAmount } from "../../src/Domains/MonetaryAmount.ts"
+} from "../../src/consolidation/CurrencyTranslationService.ts"
+import { CompanyId } from "../../src/company/Company.ts"
+import { CurrencyCode } from "../../src/currency/CurrencyCode.ts"
+import { LocalDate } from "../../src/shared/values/LocalDate.ts"
+import { MonetaryAmount } from "../../src/shared/values/MonetaryAmount.ts"
 
 // =============================================================================
 // Test Helpers

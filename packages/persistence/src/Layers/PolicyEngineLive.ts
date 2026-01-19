@@ -23,23 +23,23 @@ import {
   type PolicyEvaluationContext,
   type PolicyEvaluationResult,
   type PolicyMatchResult
-} from "@accountability/core/Auth/PolicyEngine"
-import type { AuthorizationPolicy } from "@accountability/core/Auth/AuthorizationPolicy"
+} from "@accountability/core/authorization/PolicyEngine"
+import type { AuthorizationPolicy } from "@accountability/core/authorization/AuthorizationPolicy"
 import {
   matchesSubjectCondition,
   getSubjectMismatchReason
-} from "@accountability/core/Auth/matchers/SubjectMatcher"
+} from "@accountability/core/authorization/matchers/SubjectMatcher"
 import {
   matchesResourceCondition,
   getResourceMismatchReason
-} from "@accountability/core/Auth/matchers/ResourceMatcher"
+} from "@accountability/core/authorization/matchers/ResourceMatcher"
 import {
   matchesActionCondition
-} from "@accountability/core/Auth/matchers/ActionMatcher"
+} from "@accountability/core/authorization/matchers/ActionMatcher"
 import {
   matchesEnvironmentCondition,
   getEnvironmentMismatchReason
-} from "@accountability/core/Auth/matchers/EnvironmentMatcher"
+} from "@accountability/core/authorization/matchers/EnvironmentMatcher"
 
 // =============================================================================
 // Policy Evaluation Helpers

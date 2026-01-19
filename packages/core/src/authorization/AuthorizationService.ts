@@ -17,7 +17,7 @@ import type { Action } from "./Action.ts"
 import type { BaseRole } from "./BaseRole.ts"
 import type { FunctionalRole } from "./FunctionalRole.ts"
 import type { PermissionDeniedError, PolicyLoadError, AuthorizationAuditError } from "./AuthorizationErrors.ts"
-import type { CurrentOrganizationMembership } from "../Auth/CurrentOrganizationMembership.ts"
+import type { CurrentOrganizationMembership } from "../membership/CurrentOrganizationMembership.ts"
 import type { CurrentEnvironmentContext } from "./CurrentEnvironmentContext.ts"
 import type { ResourceContext } from "./matchers/ResourceMatcher.ts"
 

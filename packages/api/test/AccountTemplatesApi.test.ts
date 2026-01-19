@@ -33,7 +33,7 @@ import { Email } from "@accountability/core/Auth/Email"
 import {
   getAllTemplates,
   getTemplateByType
-} from "@accountability/core/Domains/AccountTemplate"
+} from "@accountability/core/accounting/AccountTemplate"
 import { SharedPgClientLive } from "./PgTestUtils.ts"
 
 // =============================================================================

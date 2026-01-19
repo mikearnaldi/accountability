@@ -32,9 +32,9 @@ import {
   UserLookupError
 } from "./ApiErrors.ts"
 import { AuthMiddleware } from "./AuthMiddleware.ts"
+import { OrganizationNotFoundError } from "@accountability/core/organization/OrganizationErrors"
+import { CompanyNotFoundError } from "@accountability/core/company/CompanyErrors"
 import {
-  OrganizationNotFoundError,
-  CompanyNotFoundError,
   ConsolidationGroupNotFoundError,
   ConsolidationRunNotFoundError,
   ConsolidationMemberNotFoundError,
@@ -49,7 +49,7 @@ import {
   ConsolidatedTrialBalanceNotAvailableError,
   ConsolidatedBalanceSheetNotBalancedError,
   ConsolidationReportGenerationError
-} from "@accountability/core/Errors/DomainErrors"
+} from "@accountability/core/consolidation/ConsolidationErrors"
 
 // =============================================================================
 // Request/Response Schemas

@@ -11,7 +11,7 @@ import * as Schema from "effect/Schema"
 import { AuthUserId } from "./AuthUserId.ts"
 import { AuthProviderType } from "./AuthProviderType.ts"
 import { ProviderId } from "./ProviderId.ts"
-import { Timestamp } from "../Domains/Timestamp.ts"
+import { Timestamp } from "../shared/values/Timestamp.ts"
 
 /**
  * UserIdentityId - Branded UUID string for identity record identification

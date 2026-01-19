@@ -11,7 +11,7 @@ import * as Schema from "effect/Schema"
 import { AuthUserId } from "./AuthUserId.ts"
 import { AuthProviderType } from "./AuthProviderType.ts"
 import { Email } from "./Email.ts"
-import { Timestamp } from "../Domains/Timestamp.ts"
+import { Timestamp } from "../shared/values/Timestamp.ts"
 
 /**
  * UserRole - The role assigned to a user

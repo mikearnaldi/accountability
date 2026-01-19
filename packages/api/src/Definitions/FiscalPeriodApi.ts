@@ -17,7 +17,8 @@ import { FiscalPeriodStatus } from "@accountability/core/fiscal/FiscalPeriodStat
 import { LocalDate } from "@accountability/core/shared/values/LocalDate"
 import { ForbiddenError } from "./ApiErrors.ts"
 import { AuthMiddleware } from "./AuthMiddleware.ts"
-import { OrganizationNotFoundError, CompanyNotFoundError } from "@accountability/core/Errors/DomainErrors"
+import { OrganizationNotFoundError } from "@accountability/core/organization/OrganizationErrors"
+import { CompanyNotFoundError } from "@accountability/core/company/CompanyErrors"
 import {
   FiscalYearNotFoundError,
   FiscalPeriodNotFoundError,

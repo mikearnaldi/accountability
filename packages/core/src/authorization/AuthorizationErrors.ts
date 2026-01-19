@@ -18,7 +18,7 @@ import * as Schema from "effect/Schema"
 import { AuthUserId } from "../Auth/AuthUserId.ts"
 import { OrganizationId } from "../organization/Organization.ts"
 import { Action } from "./Action.ts"
-import { MembershipStatus } from "../Auth/MembershipStatus.ts"
+import { MembershipStatus } from "../membership/MembershipStatus.ts"
 
 // =============================================================================
 // 403 Forbidden Errors - Authorization failures

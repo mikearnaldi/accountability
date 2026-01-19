@@ -10,12 +10,12 @@ import {
   isMatchingStatus,
   IntercompanyTransaction,
   isIntercompanyTransaction
-} from "../../src/Domains/IntercompanyTransaction.ts"
-import { CompanyId } from "../../src/Domains/Company.ts"
-import { JournalEntryId } from "../../src/Domains/JournalEntry.ts"
-import { LocalDate } from "../../src/Domains/LocalDate.ts"
-import { MonetaryAmount } from "../../src/Domains/MonetaryAmount.ts"
-import { Timestamp } from "../../src/Domains/Timestamp.ts"
+} from "../../src/consolidation/IntercompanyTransaction.ts"
+import { CompanyId } from "../../src/company/Company.ts"
+import { JournalEntryId } from "../../src/journal/JournalEntry.ts"
+import { LocalDate } from "../../src/shared/values/LocalDate.ts"
+import { MonetaryAmount } from "../../src/shared/values/MonetaryAmount.ts"
+import { Timestamp } from "../../src/shared/values/Timestamp.ts"
 
 const makeTimestamp = () => Timestamp.make({ epochMillis: Date.now() })
 

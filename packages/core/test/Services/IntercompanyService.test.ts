@@ -23,19 +23,19 @@ import {
   isMatchingResult,
   defaultMatchingConfig,
   type IntercompanyTransactionRepositoryService
-} from "../../src/Services/IntercompanyService.ts"
-import { CompanyId } from "../../src/Domains/Company.ts"
-import { ConsolidationGroupId } from "../../src/Domains/ConsolidationGroup.ts"
-import { FiscalPeriodRef } from "../../src/Domains/FiscalPeriodRef.ts"
+} from "../../src/consolidation/IntercompanyService.ts"
+import { CompanyId } from "../../src/company/Company.ts"
+import { ConsolidationGroupId } from "../../src/consolidation/ConsolidationGroup.ts"
+import { FiscalPeriodRef } from "../../src/fiscal/FiscalPeriodRef.ts"
 import {
   IntercompanyTransaction,
   IntercompanyTransactionId,
   type IntercompanyTransactionType,
   type MatchingStatus
-} from "../../src/Domains/IntercompanyTransaction.ts"
-import { LocalDate } from "../../src/Domains/LocalDate.ts"
-import { MonetaryAmount } from "../../src/Domains/MonetaryAmount.ts"
-import { Timestamp } from "../../src/Domains/Timestamp.ts"
+} from "../../src/consolidation/IntercompanyTransaction.ts"
+import { LocalDate } from "../../src/shared/values/LocalDate.ts"
+import { MonetaryAmount } from "../../src/shared/values/MonetaryAmount.ts"
+import { Timestamp } from "../../src/shared/values/Timestamp.ts"
 
 // =============================================================================
 // Test Helpers

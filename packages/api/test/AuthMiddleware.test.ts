@@ -21,7 +21,7 @@ import { AuthUserId } from "@accountability/core/Auth/AuthUserId"
 import { Email } from "@accountability/core/Auth/Email"
 import { Session } from "@accountability/core/Auth/Session"
 import { SessionId } from "@accountability/core/Auth/SessionId"
-import { Timestamp } from "@accountability/core/Domains/Timestamp"
+import { Timestamp } from "@accountability/core/shared/values/Timestamp"
 import {
   AuthMiddleware,
   CurrentUser,

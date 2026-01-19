@@ -30,10 +30,8 @@ import {
   AuditLogError,
   UserLookupError
 } from "../Definitions/ApiErrors.ts"
-import {
-  CompanyNotFoundError,
-  AccountsAlreadyExistError
-} from "@accountability/core/Errors/DomainErrors"
+import { CompanyNotFoundError } from "@accountability/core/company/CompanyErrors"
+import { AccountsAlreadyExistError } from "@accountability/core/accounting/AccountErrors"
 import type { AuditLogError as CoreAuditLogError, UserLookupError as CoreUserLookupError } from "@accountability/core/audit/AuditLogErrors"
 import { requireOrganizationContext, requirePermission } from "./OrganizationContextMiddlewareLive.ts"
 import { AuditLogService } from "@accountability/core/audit/AuditLogService"

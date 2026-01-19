@@ -13,33 +13,33 @@ import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
 import { PolicyRepository } from "@accountability/persistence/Services/PolicyRepository"
 import { OrganizationMemberRepository } from "@accountability/persistence/Services/OrganizationMemberRepository"
-import { PolicyEngine, type PolicyEvaluationContext } from "@accountability/core/Auth/PolicyEngine"
-import { PolicyId } from "@accountability/core/Auth/PolicyId"
+import { PolicyEngine, type PolicyEvaluationContext } from "@accountability/core/authorization/PolicyEngine"
+import { PolicyId } from "@accountability/core/authorization/PolicyId"
 import { AuthUserId } from "@accountability/core/Auth/AuthUserId"
-import type { AuthorizationPolicy } from "@accountability/core/Auth/AuthorizationPolicy"
-import type { SubjectCondition, ResourceCondition, ActionCondition, EnvironmentCondition } from "@accountability/core/Auth/PolicyConditions"
-import type { ResourceContext, ResourceType } from "@accountability/core/Auth/matchers/ResourceMatcher"
-import type { SubjectContext } from "@accountability/core/Auth/matchers/SubjectMatcher"
+import type { AuthorizationPolicy } from "@accountability/core/authorization/AuthorizationPolicy"
+import type { SubjectCondition, ResourceCondition, ActionCondition, EnvironmentCondition } from "@accountability/core/authorization/PolicyConditions"
+import type { ResourceContext, ResourceType } from "@accountability/core/authorization/matchers/ResourceMatcher"
+import type { SubjectContext } from "@accountability/core/authorization/matchers/SubjectMatcher"
 import { AppApi } from "../Definitions/AppApi.ts"
 import {
   PolicyInfo,
   PolicyListResponse,
   TestPolicyResponse
 } from "../Definitions/PolicyApi.ts"
+import { UserNotMemberOfOrganizationError } from "@accountability/core/organization/OrganizationErrors"
 import {
   PolicyNotFoundError,
   InvalidPolicyIdError,
   PolicyPriorityValidationError,
   InvalidResourceTypeError,
-  UserNotMemberOfOrganizationError,
   SystemPolicyCannotBeModifiedError
-} from "@accountability/core/Errors/DomainErrors"
+} from "@accountability/core/authorization/AuthorizationErrors"
 import {
   requireOrganizationContext,
   requireAdminOrOwner
 } from "./OrganizationContextMiddlewareLive.ts"
 import { CurrentUser } from "../Definitions/AuthMiddleware.ts"
-import { getCurrentOrganizationMembership } from "@accountability/core/Auth/CurrentOrganizationMembership"
+import { getCurrentOrganizationMembership } from "@accountability/core/membership/CurrentOrganizationMembership"
 
 // =============================================================================
 // Helper Functions

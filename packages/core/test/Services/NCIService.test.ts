@@ -32,11 +32,11 @@ import {
   isInvalidOwnershipPercentageError,
   isNCICalculationError,
   type SubsidiaryData
-} from "../../src/Services/NCIService.ts"
-import { CompanyId } from "../../src/Domains/Company.ts"
-import { CurrencyCode } from "../../src/Domains/CurrencyCode.ts"
-import { MonetaryAmount } from "../../src/Domains/MonetaryAmount.ts"
-import { Percentage } from "../../src/Domains/Percentage.ts"
+} from "../../src/consolidation/NCIService.ts"
+import { CompanyId } from "../../src/company/Company.ts"
+import { CurrencyCode } from "../../src/currency/CurrencyCode.ts"
+import { MonetaryAmount } from "../../src/shared/values/MonetaryAmount.ts"
+import { Percentage } from "../../src/shared/values/Percentage.ts"
 
 // =============================================================================
 // Test Helpers

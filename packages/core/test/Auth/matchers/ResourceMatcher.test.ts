@@ -18,15 +18,15 @@ import {
   createOrganizationResourceContext,
   createConsolidationGroupResourceContext,
   createReportResourceContext
-} from "../../../src/Auth/matchers/ResourceMatcher.ts"
+} from "../../../src/authorization/matchers/ResourceMatcher.ts"
 import type {
   ResourceContext,
   ResourceType,
   AccountType,
   JournalEntryType,
   PeriodStatus
-} from "../../../src/Auth/matchers/ResourceMatcher.ts"
-import type { ResourceCondition } from "../../../src/Auth/PolicyConditions.ts"
+} from "../../../src/authorization/matchers/ResourceMatcher.ts"
+import type { ResourceCondition } from "../../../src/authorization/PolicyConditions.ts"
 
 describe("ResourceMatcher", () => {
   describe("matchesResourceType", () => {

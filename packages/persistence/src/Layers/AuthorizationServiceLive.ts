@@ -23,34 +23,34 @@ import * as Layer from "effect/Layer"
 import {
   AuthorizationService,
   type AuthorizationServiceShape
-} from "@accountability/core/Auth/AuthorizationService"
-import { getCurrentOrganizationMembership } from "@accountability/core/Auth/CurrentOrganizationMembership"
+} from "@accountability/core/authorization/AuthorizationService"
+import { getCurrentOrganizationMembership } from "@accountability/core/membership/CurrentOrganizationMembership"
 import {
   CurrentEnvironmentContext,
   type EnvironmentContextWithMeta
-} from "@accountability/core/Auth/CurrentEnvironmentContext"
+} from "@accountability/core/authorization/CurrentEnvironmentContext"
 import {
   PermissionDeniedError,
   PolicyLoadError,
   AuthorizationAuditError
-} from "@accountability/core/Auth/AuthorizationErrors"
-import type { Action } from "@accountability/core/Auth/Action"
-import type { BaseRole } from "@accountability/core/Auth/BaseRole"
-import type { FunctionalRole } from "@accountability/core/Auth/FunctionalRole"
+} from "@accountability/core/authorization/AuthorizationErrors"
+import type { Action } from "@accountability/core/authorization/Action"
+import type { BaseRole } from "@accountability/core/authorization/BaseRole"
+import type { FunctionalRole } from "@accountability/core/authorization/FunctionalRole"
 import {
   computeEffectivePermissions,
   hasPermission,
   getResourceType,
   permissionSetToArray
-} from "@accountability/core/Auth/PermissionMatrix"
+} from "@accountability/core/authorization/PermissionMatrix"
 import { AuthorizationAuditRepository } from "../Services/AuthorizationAuditRepository.ts"
 import { PolicyRepository } from "../Services/PolicyRepository.ts"
-import { PolicyEngine, type PolicyEvaluationContext } from "@accountability/core/Auth/PolicyEngine"
+import { PolicyEngine, type PolicyEvaluationContext } from "@accountability/core/authorization/PolicyEngine"
 import {
   createSubjectContextFromMembership
-} from "@accountability/core/Auth/matchers/SubjectMatcher"
-import type { ResourceType, ResourceContext } from "@accountability/core/Auth/matchers/ResourceMatcher"
-import type { EnvironmentContext } from "@accountability/core/Auth/matchers/EnvironmentMatcher"
+} from "@accountability/core/authorization/matchers/SubjectMatcher"
+import type { ResourceType, ResourceContext } from "@accountability/core/authorization/matchers/ResourceMatcher"
+import type { EnvironmentContext } from "@accountability/core/authorization/matchers/EnvironmentMatcher"
 
 // =============================================================================
 // Helper Functions

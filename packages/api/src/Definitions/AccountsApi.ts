@@ -26,16 +26,16 @@ import {
   UserLookupError
 } from "./ApiErrors.ts"
 import { AuthMiddleware } from "./AuthMiddleware.ts"
+import { OrganizationNotFoundError } from "@accountability/core/organization/OrganizationErrors"
+import { CompanyNotFoundError } from "@accountability/core/company/CompanyErrors"
 import {
-  OrganizationNotFoundError,
-  CompanyNotFoundError,
   AccountNotFoundError,
   ParentAccountNotFoundError,
   ParentAccountDifferentCompanyError,
   AccountNumberAlreadyExistsError,
   CircularAccountReferenceError,
   HasActiveChildAccountsError
-} from "@accountability/core/Errors/DomainErrors"
+} from "@accountability/core/accounting/AccountErrors"
 
 // =============================================================================
 // Request/Response Schemas

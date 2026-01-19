@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect } from "@effect/vitest"
-import type { EnvironmentCondition } from "../../src/Auth/PolicyConditions.ts"
+import type { EnvironmentCondition } from "../../src/authorization/PolicyConditions.ts"
 import {
   createEnvironmentContext,
   parseTimeToMinutes,
@@ -19,7 +19,7 @@ import {
   matchesAllEnvironmentConditions,
   getEnvironmentMismatchReason,
   type EnvironmentContext
-} from "../../src/Auth/matchers/EnvironmentMatcher.ts"
+} from "../../src/authorization/matchers/EnvironmentMatcher.ts"
 
 describe("EnvironmentMatcher", () => {
   // ==========================================================================

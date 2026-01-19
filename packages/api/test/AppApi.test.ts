@@ -16,12 +16,12 @@ import {
   ForbiddenError,
   InternalServerError
 } from "@accountability/api/Definitions/ApiErrors"
+import { OrganizationNotFoundError } from "@accountability/core/organization/OrganizationErrors"
+import { CompanyNotFoundError } from "@accountability/core/company/CompanyErrors"
 import {
   AccountNotFoundError,
-  CompanyNotFoundError,
-  OrganizationNotFoundError,
   AccountNumberAlreadyExistsError
-} from "@accountability/core/Errors/DomainErrors"
+} from "@accountability/core/accounting/AccountErrors"
 
 describe("AppApi", () => {
   describe("API structure", () => {

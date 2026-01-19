@@ -10,14 +10,14 @@ import { HttpApiBuilder } from "@effect/platform"
 import * as Effect from "effect/Effect"
 import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
-import { InvitationService } from "@accountability/core/Auth/InvitationService"
+import { InvitationService } from "@accountability/core/membership/InvitationService"
 import { Email } from "@accountability/core/Auth/Email"
 import { UserRepository } from "@accountability/persistence/Services/UserRepository"
 import { OrganizationRepository } from "@accountability/persistence/Services/OrganizationRepository"
 import { CurrentUser } from "../Definitions/AuthMiddleware.ts"
 import { OrganizationId } from "@accountability/core/organization/Organization"
 import { AuthUserId } from "@accountability/core/Auth/AuthUserId"
-import { InvitationId } from "@accountability/core/Auth/InvitationId"
+import { InvitationId } from "@accountability/core/membership/InvitationId"
 import { AppApi } from "../Definitions/AppApi.ts"
 import {
   PendingInvitationInfo,
@@ -27,11 +27,9 @@ import {
   OrgInvitationsResponse,
   AcceptInvitationResponse
 } from "../Definitions/InvitationApi.ts"
-import {
-  InvitationNotFoundError,
-  InvalidOrganizationIdError,
-  InvalidInvitationIdError
-} from "@accountability/core/Errors/DomainErrors"
+import { InvitationNotFoundError } from "@accountability/core/membership/MembershipErrors"
+import { InvalidOrganizationIdError } from "@accountability/core/organization/OrganizationErrors"
+import { InvalidInvitationIdError } from "@accountability/core/membership/MembershipErrors"
 
 // =============================================================================
 // Handler Implementation

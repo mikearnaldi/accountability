@@ -22,7 +22,7 @@ import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
 import { HttpApiBuilder, HttpApiClient, HttpClient, HttpClientRequest } from "@effect/platform"
 import { NodeHttpServer } from "@effect/platform-node"
-import { ConsolidatedReportServiceLive } from "@accountability/core/Services/ConsolidatedReportService"
+import { ConsolidatedReportServiceLive } from "@accountability/core/reporting/ConsolidatedReportService"
 import { AppApi, HealthCheckResponse } from "@accountability/api/Definitions/AppApi"
 import { RepositoriesWithAuthLive } from "@accountability/persistence/Layers/RepositoriesLive"
 import { MigrationLayer } from "@accountability/persistence/Layers/MigrationsLive"
@@ -50,7 +50,7 @@ import { UserOrganizationsApiLive } from "@accountability/api/Layers/UserOrganiz
 import { AuthorizationAuditApiLive } from "@accountability/api/Layers/AuthorizationAuditApiLive"
 import { AuthorizationServiceLive } from "@accountability/persistence/Layers/AuthorizationServiceLive"
 import { PolicyEngineLive } from "@accountability/persistence/Layers/PolicyEngineLive"
-import { AuthorizationConfigGracePeriod } from "@accountability/core/Auth/AuthorizationConfig"
+import { AuthorizationConfigGracePeriod } from "@accountability/core/authorization/AuthorizationConfig"
 
 /**
  * AuthorizationServiceWithDependencies - AuthorizationServiceLive with PolicyEngineLive

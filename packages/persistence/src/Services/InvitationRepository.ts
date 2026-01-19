@@ -12,11 +12,11 @@
 import * as Context from "effect/Context"
 import type * as Effect from "effect/Effect"
 import type * as Option from "effect/Option"
-import type { OrganizationInvitation, InvitationRole } from "@accountability/core/Auth/OrganizationInvitation"
-import type { InvitationId } from "@accountability/core/Auth/InvitationId"
+import type { OrganizationInvitation, InvitationRole } from "@accountability/core/membership/OrganizationInvitation"
+import type { InvitationId } from "@accountability/core/membership/InvitationId"
 import type { AuthUserId } from "@accountability/core/Auth/AuthUserId"
 import type { OrganizationId } from "@accountability/core/organization/Organization"
-import type { FunctionalRole } from "@accountability/core/Auth/FunctionalRole"
+import type { FunctionalRole } from "@accountability/core/authorization/FunctionalRole"
 import type { EntityNotFoundError, PersistenceError } from "../Errors/RepositoryError.ts"
 
 /**

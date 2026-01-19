@@ -26,18 +26,18 @@ import {
   getSiblings,
   findByType,
   getPath
-} from "../../src/Domains/AccountHierarchy.ts"
+} from "../../src/accounting/AccountHierarchy.ts"
 import type {
   AccountType,
   AccountCategory
-} from "../../src/Domains/Account.ts";
+} from "../../src/accounting/Account.ts";
 import {
   Account,
   AccountId
-} from "../../src/Domains/Account.ts"
-import { AccountNumber } from "../../src/Domains/AccountNumber.ts"
-import { CompanyId } from "../../src/Domains/Company.ts"
-import { Timestamp } from "../../src/Domains/Timestamp.ts"
+} from "../../src/accounting/Account.ts"
+import { AccountNumber } from "../../src/accounting/AccountNumber.ts"
+import { CompanyId } from "../../src/company/Company.ts"
+import { Timestamp } from "../../src/shared/values/Timestamp.ts"
 
 // Helper to create test accounts
 const createTestAccount = (

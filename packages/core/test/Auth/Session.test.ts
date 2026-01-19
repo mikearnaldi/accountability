@@ -4,7 +4,7 @@ import * as Schema from "effect/Schema"
 import { Session, isSession, UserAgent } from "../../src/Auth/Session.ts"
 import { SessionId } from "../../src/Auth/SessionId.ts"
 import { AuthUserId } from "../../src/Auth/AuthUserId.ts"
-import { Timestamp } from "../../src/Domains/Timestamp.ts"
+import { Timestamp } from "../../src/shared/values/Timestamp.ts"
 
 describe("UserAgent", () => {
   describe("validation", () => {

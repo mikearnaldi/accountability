@@ -33,23 +33,23 @@ import { OrganizationMemberRepository } from "@accountability/persistence/Servic
 import {
   CurrentOrganizationMembership,
   withOrganizationMembership
-} from "@accountability/core/Auth/CurrentOrganizationMembership"
+} from "@accountability/core/membership/CurrentOrganizationMembership"
 import {
   CurrentEnvironmentContext,
   createEnvironmentContextFromRequest,
   type EnvironmentContextWithMeta
-} from "@accountability/core/Auth/CurrentEnvironmentContext"
-import { OrganizationMembership } from "@accountability/core/Auth/OrganizationMembership"
-import { OrganizationMembershipId } from "@accountability/core/Auth/OrganizationMembershipId"
-import { AuthorizationService } from "@accountability/core/Auth/AuthorizationService"
-import { AuthorizationConfig } from "@accountability/core/Auth/AuthorizationConfig"
+} from "@accountability/core/authorization/CurrentEnvironmentContext"
+import { OrganizationMembership } from "@accountability/core/membership/OrganizationMembership"
+import { OrganizationMembershipId } from "@accountability/core/membership/OrganizationMembershipId"
+import { AuthorizationService } from "@accountability/core/authorization/AuthorizationService"
+import { AuthorizationConfig } from "@accountability/core/authorization/AuthorizationConfig"
 import * as Timestamp from "@accountability/core/shared/values/Timestamp"
-import type { Action } from "@accountability/core/Auth/Action"
+import type { Action } from "@accountability/core/authorization/Action"
 import { CurrentUser } from "../Definitions/AuthMiddleware.ts"
 import { ForbiddenError } from "../Definitions/ApiErrors.ts"
-import { OrganizationNotFoundError } from "@accountability/core/Errors/DomainErrors"
-import type { ResourceContext } from "@accountability/core/Auth/matchers/ResourceMatcher"
-import { isPermissionDeniedError } from "@accountability/core/Auth/AuthorizationErrors"
+import { OrganizationNotFoundError } from "@accountability/core/organization/OrganizationErrors"
+import type { ResourceContext } from "@accountability/core/authorization/matchers/ResourceMatcher"
+import { isPermissionDeniedError } from "@accountability/core/authorization/AuthorizationErrors"
 
 // Re-export CurrentUserId for convenience
 export { CurrentUserId } from "@accountability/core/shared/context/CurrentUserId"

@@ -12,7 +12,7 @@ import { UserIdentity, UserIdentityId } from "../../src/Auth/UserIdentity.ts"
 import { HashedPassword } from "../../src/Auth/HashedPassword.ts"
 import { LocalAuthRequest, isLocalAuthRequest } from "../../src/Auth/AuthRequest.ts"
 import { AuthResult } from "../../src/Auth/AuthResult.ts"
-import { Timestamp, addHours, addDays } from "../../src/Domains/Timestamp.ts"
+import { Timestamp, addHours, addDays } from "../../src/shared/values/Timestamp.ts"
 import type { AuthProviderType } from "../../src/Auth/AuthProviderType.ts"
 
 // Import auth services

@@ -7,10 +7,10 @@ import {
   anyActionMatchesCondition,
   filterMatchingActions,
   filterMatchingActionsFromPatterns
-} from "../../../src/Auth/matchers/ActionMatcher.ts"
-import type { Action } from "../../../src/Auth/Action.ts"
-import type { ActionCondition } from "../../../src/Auth/PolicyConditions.ts"
-import type { ActionPattern } from "../../../src/Auth/matchers/ActionMatcher.ts"
+} from "../../../src/authorization/matchers/ActionMatcher.ts"
+import type { Action } from "../../../src/authorization/Action.ts"
+import type { ActionCondition } from "../../../src/authorization/PolicyConditions.ts"
+import type { ActionPattern } from "../../../src/authorization/matchers/ActionMatcher.ts"
 
 describe("ActionMatcher", () => {
   describe("matchesActionPattern", () => {

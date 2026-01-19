@@ -15,11 +15,11 @@ import {
   convertAmount,
   getInverseRate,
   createInverse
-} from "../../src/Domains/ExchangeRate.ts"
-import { CurrencyCode } from "../../src/Domains/CurrencyCode.ts"
-import { LocalDate } from "../../src/Domains/LocalDate.ts"
-import { OrganizationId } from "../../src/Domains/Organization.ts"
-import { Timestamp } from "../../src/Domains/Timestamp.ts"
+} from "../../src/currency/ExchangeRate.ts"
+import { CurrencyCode } from "../../src/currency/CurrencyCode.ts"
+import { LocalDate } from "../../src/shared/values/LocalDate.ts"
+import { OrganizationId } from "../../src/organization/Organization.ts"
+import { Timestamp } from "../../src/shared/values/Timestamp.ts"
 
 // Test organization ID for all exchange rate tests
 const testOrganizationId = OrganizationId.make("a1b2c3d4-e5f6-7890-abcd-ef1234567890")

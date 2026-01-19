@@ -2,7 +2,7 @@ import { describe, it, expect } from "@effect/vitest"
 import { Cause, Chunk, Effect, Exit, Equal } from "effect"
 import * as BigDecimal from "effect/BigDecimal"
 import * as Schema from "effect/Schema"
-import { USD, EUR } from "../../src/Domains/CurrencyCode.ts"
+import { USD, EUR } from "../../src/currency/CurrencyCode.ts"
 import {
   MonetaryAmount,
   isMonetaryAmount,
@@ -27,7 +27,7 @@ import {
   DivisionByZeroError,
   isCurrencyMismatchError,
   isDivisionByZeroError
-} from "../../src/Domains/MonetaryAmount.ts"
+} from "../../src/shared/values/MonetaryAmount.ts"
 
 describe("MonetaryAmount", () => {
   describe("creation", () => {

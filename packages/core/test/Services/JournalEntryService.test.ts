@@ -26,18 +26,18 @@ import {
   type ReverseJournalEntryInput,
   type AccountRepositoryService,
   type EntryNumberGeneratorService
-} from "../../src/Services/JournalEntryService.ts"
-import { JournalEntry, JournalEntryId, UserId, EntryNumber } from "../../src/Domains/JournalEntry.ts"
-import { JournalEntryLine, JournalEntryLineId } from "../../src/Domains/JournalEntryLine.ts"
-import { Account, AccountId, type AccountType, type AccountCategory, type NormalBalance } from "../../src/Domains/Account.ts"
-import { CompanyId } from "../../src/Domains/Company.ts"
-import { CurrencyCode } from "../../src/Domains/CurrencyCode.ts"
-import { FiscalPeriodRef } from "../../src/Domains/FiscalPeriodRef.ts"
-import { LocalDate } from "../../src/Domains/LocalDate.ts"
-import { Timestamp } from "../../src/Domains/Timestamp.ts"
-import { AccountNumber } from "../../src/Domains/AccountNumber.ts"
-import { MonetaryAmount } from "../../src/Domains/MonetaryAmount.ts"
-import { isUnbalancedEntryError } from "../../src/Domains/BalanceValidation.ts"
+} from "../../src/journal/JournalEntryService.ts"
+import { JournalEntry, JournalEntryId, UserId, EntryNumber } from "../../src/journal/JournalEntry.ts"
+import { JournalEntryLine, JournalEntryLineId } from "../../src/journal/JournalEntryLine.ts"
+import { Account, AccountId, type AccountType, type AccountCategory, type NormalBalance } from "../../src/accounting/Account.ts"
+import { CompanyId } from "../../src/company/Company.ts"
+import { CurrencyCode } from "../../src/currency/CurrencyCode.ts"
+import { FiscalPeriodRef } from "../../src/fiscal/FiscalPeriodRef.ts"
+import { LocalDate } from "../../src/shared/values/LocalDate.ts"
+import { Timestamp } from "../../src/shared/values/Timestamp.ts"
+import { AccountNumber } from "../../src/accounting/AccountNumber.ts"
+import { MonetaryAmount } from "../../src/shared/values/MonetaryAmount.ts"
+import { isUnbalancedEntryError } from "../../src/accounting/BalanceValidation.ts"
 
 describe("JournalEntryService", () => {
   // Test data constants

@@ -24,7 +24,7 @@ import {
   EliminationRuleNotFoundError,
   EliminationRuleOperationFailedError,
   ConsolidationGroupNotFoundError
-} from "@accountability/core/Errors/DomainErrors"
+} from "@accountability/core/consolidation/ConsolidationErrors"
 import { AppApi } from "../Definitions/AppApi.ts"
 
 /**

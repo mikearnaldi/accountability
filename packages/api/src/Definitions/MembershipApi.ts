@@ -16,18 +16,16 @@ import { HttpApiEndpoint, HttpApiGroup, HttpApiSchema, OpenApi } from "@effect/p
 import * as Schema from "effect/Schema"
 import { AuthUserId } from "@accountability/core/Auth/AuthUserId"
 import { Email } from "@accountability/core/Auth/Email"
-import { BaseRole } from "@accountability/core/Auth/BaseRole"
-import { FunctionalRoles } from "@accountability/core/Auth/FunctionalRole"
-import { MembershipStatus } from "@accountability/core/Auth/MembershipStatus"
-import { InvitationId } from "@accountability/core/Auth/InvitationId"
+import { BaseRole } from "@accountability/core/authorization/BaseRole"
+import { FunctionalRoles } from "@accountability/core/authorization/FunctionalRole"
+import { MembershipStatus } from "@accountability/core/membership/MembershipStatus"
+import { InvitationId } from "@accountability/core/membership/InvitationId"
 import { Timestamp } from "@accountability/core/shared/values/Timestamp"
 import { ForbiddenError } from "./ApiErrors.ts"
 import { AuthMiddleware } from "./AuthMiddleware.ts"
-import {
-  InvalidOrganizationIdError,
-  MemberNotFoundError,
-  OrganizationNotFoundError
-} from "@accountability/core/Errors/DomainErrors"
+import { OrganizationNotFoundError } from "@accountability/core/organization/OrganizationErrors"
+import { MemberNotFoundError } from "@accountability/core/membership/MembershipErrors"
+import { InvalidOrganizationIdError } from "@accountability/core/organization/OrganizationErrors"
 import {
   MembershipNotFoundError,
   OwnerCannotBeRemovedError,
@@ -35,7 +33,7 @@ import {
   MemberNotSuspendedError,
   CannotTransferToNonAdminError,
   InvitationAlreadyExistsError
-} from "@accountability/core/Auth/AuthorizationErrors"
+} from "@accountability/core/authorization/AuthorizationErrors"
 
 // =============================================================================
 // Member Request/Response Schemas

@@ -13,15 +13,15 @@ import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
 import { AuthUserId } from "@accountability/core/Auth/AuthUserId"
-import { AuthorizationPolicy } from "@accountability/core/Auth/AuthorizationPolicy"
-import { PolicyId } from "@accountability/core/Auth/PolicyId"
-import type { PolicyEffect } from "@accountability/core/Auth/PolicyEffect"
+import { AuthorizationPolicy } from "@accountability/core/authorization/AuthorizationPolicy"
+import { PolicyId } from "@accountability/core/authorization/PolicyId"
+import type { PolicyEffect } from "@accountability/core/authorization/PolicyEffect"
 import type {
   SubjectCondition,
   ResourceCondition,
   ActionCondition,
   EnvironmentCondition
-} from "@accountability/core/Auth/PolicyConditions"
+} from "@accountability/core/authorization/PolicyConditions"
 import { OrganizationId } from "@accountability/core/organization/Organization"
 import { Timestamp } from "@accountability/core/shared/values/Timestamp"
 import {

@@ -30,14 +30,14 @@ import {
   UserLookupError
 } from "./ApiErrors.ts"
 import { AuthMiddleware } from "./AuthMiddleware.ts"
+import { OrganizationNotFoundError } from "@accountability/core/organization/OrganizationErrors"
+import { CompanyNotFoundError } from "@accountability/core/company/CompanyErrors"
 import {
-  CompanyNotFoundError,
   JournalEntryNotFoundError,
   JournalEntryStatusError,
   JournalEntryAlreadyReversedError,
-  OrganizationNotFoundError,
   UnbalancedJournalEntryError
-} from "@accountability/core/Errors/DomainErrors"
+} from "@accountability/core/journal/JournalErrors"
 import { FiscalPeriodNotFoundForDateError } from "@accountability/core/fiscal/FiscalPeriodErrors"
 
 // =============================================================================

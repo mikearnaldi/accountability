@@ -16,8 +16,8 @@
 
 import { describe, it, expect } from "@effect/vitest"
 import * as Effect from "effect/Effect"
-import { OrganizationId } from "@accountability/core/Domains/Organization"
-import { SYSTEM_POLICY_PRIORITIES } from "@accountability/core/Auth/AuthorizationPolicy"
+import { OrganizationId } from "@accountability/core/organization/Organization"
+import { SYSTEM_POLICY_PRIORITIES } from "@accountability/core/authorization/AuthorizationPolicy"
 import {
   createSystemPoliciesForOrganization,
   seedSystemPolicies,

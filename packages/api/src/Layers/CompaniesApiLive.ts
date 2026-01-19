@@ -23,8 +23,8 @@ import {
   OrganizationSettings
 } from "@accountability/core/organization/Organization"
 import { now as timestampNow } from "@accountability/core/shared/values/Timestamp"
-import { OrganizationMembership } from "@accountability/core/Auth/OrganizationMembership"
-import { OrganizationMembershipId } from "@accountability/core/Auth/OrganizationMembershipId"
+import { OrganizationMembership } from "@accountability/core/membership/OrganizationMembership"
+import { OrganizationMembershipId } from "@accountability/core/membership/OrganizationMembershipId"
 import { AuditLogService } from "@accountability/core/audit/AuditLogService"
 import { CurrentUserId } from "@accountability/core/shared/context/CurrentUserId"
 import { CompanyRepository } from "@accountability/persistence/Services/CompanyRepository"
@@ -40,17 +40,21 @@ import {
 import {
   OrganizationNotFoundError,
   OrganizationHasCompaniesError,
+  OrganizationNameAlreadyExistsError,
+  OrganizationUpdateFailedError
+} from "@accountability/core/organization/OrganizationErrors"
+import {
   CompanyNotFoundError,
   ParentCompanyNotFoundError,
   OwnershipPercentageRequiredError,
   CircularCompanyReferenceError,
   HasActiveSubsidiariesError,
+  CompanyNameAlreadyExistsError
+} from "@accountability/core/company/CompanyErrors"
+import {
   MembershipCreationFailedError,
-  SystemPolicySeedingFailedError,
-  OrganizationNameAlreadyExistsError,
-  CompanyNameAlreadyExistsError,
-  OrganizationUpdateFailedError
-} from "@accountability/core/Errors/DomainErrors"
+  SystemPolicySeedingFailedError
+} from "@accountability/core/organization/OrganizationErrors"
 import type { AuditLogError as CoreAuditLogError, UserLookupError as CoreUserLookupError } from "@accountability/core/audit/AuditLogErrors"
 import { CurrentUser } from "../Definitions/AuthMiddleware.ts"
 import { requireOrganizationContext, requirePermission } from "./OrganizationContextMiddlewareLive.ts"

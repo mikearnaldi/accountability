@@ -9,9 +9,9 @@ import {
   getVIEConsolidationMethod,
   FULL_CONSOLIDATION_THRESHOLD,
   EQUITY_METHOD_THRESHOLD
-} from "../../src/Domains/ConsolidationMethodDetermination.ts"
-import { Percentage } from "../../src/Domains/Percentage.ts"
-import type { ConsolidationMethod } from "../../src/Domains/Company.ts"
+} from "../../src/consolidation/ConsolidationMethodDetermination.ts"
+import { Percentage } from "../../src/shared/values/Percentage.ts"
+import type { ConsolidationMethod } from "../../src/company/Company.ts"
 
 describe("ConsolidationMethodDetermination", () => {
   describe("constants", () => {

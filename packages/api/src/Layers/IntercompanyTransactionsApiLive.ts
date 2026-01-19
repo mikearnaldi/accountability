@@ -21,12 +21,12 @@ import {
   isEntityNotFoundError
 } from "@accountability/persistence/Errors/RepositoryError"
 import { AppApi } from "../Definitions/AppApi.ts"
+import { CompanyNotFoundError } from "@accountability/core/company/CompanyErrors"
 import {
-  CompanyNotFoundError,
   IntercompanyTransactionNotFoundError,
   IntercompanyTransactionCannotBeDeletedError,
   SameCompanyIntercompanyError
-} from "@accountability/core/Errors/DomainErrors"
+} from "@accountability/core/consolidation/ConsolidationErrors"
 
 /**
  * IntercompanyTransactionsApiLive - Layer providing IntercompanyTransactionsApi handlers

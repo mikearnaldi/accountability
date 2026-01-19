@@ -13,7 +13,7 @@ import {
   AuthorizationConfigGracePeriod,
   makeAuthorizationConfigLayer,
   authorizationConfigDefaults
-} from "../../src/Auth/AuthorizationConfig.ts"
+} from "../../src/authorization/AuthorizationConfig.ts"
 
 describe("AuthorizationConfig", () => {
   describe("defaults", () => {

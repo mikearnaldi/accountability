@@ -25,7 +25,7 @@ import {
 import {
   ExchangeRateNotFoundError,
   SameCurrencyExchangeRateError
-} from "@accountability/core/Errors/DomainErrors"
+} from "@accountability/core/currency/CurrencyErrors"
 import type { AuditLogError as CoreAuditLogError, UserLookupError as CoreUserLookupError } from "@accountability/core/audit/AuditLogErrors"
 import { requireOrganizationContext, requirePermission } from "./OrganizationContextMiddlewareLive.ts"
 import { AuditLogService } from "@accountability/core/audit/AuditLogService"

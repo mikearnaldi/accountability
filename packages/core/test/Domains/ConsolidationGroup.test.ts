@@ -12,14 +12,14 @@ import {
   isConsolidationMember,
   ConsolidationGroup,
   isConsolidationGroup
-} from "../../src/Domains/ConsolidationGroup.ts"
-import type { ConsolidationMethod } from "../../src/Domains/Company.ts";
-import { CompanyId } from "../../src/Domains/Company.ts"
-import { OrganizationId } from "../../src/Domains/Organization.ts"
-import { USD, GBP, EUR } from "../../src/Domains/CurrencyCode.ts"
-import { Percentage } from "../../src/Domains/Percentage.ts"
-import { LocalDate } from "../../src/Domains/LocalDate.ts"
-import { MonetaryAmount } from "../../src/Domains/MonetaryAmount.ts"
+} from "../../src/consolidation/ConsolidationGroup.ts"
+import type { ConsolidationMethod } from "../../src/company/Company.ts";
+import { CompanyId } from "../../src/company/Company.ts"
+import { OrganizationId } from "../../src/organization/Organization.ts"
+import { USD, GBP, EUR } from "../../src/currency/CurrencyCode.ts"
+import { Percentage } from "../../src/shared/values/Percentage.ts"
+import { LocalDate } from "../../src/shared/values/LocalDate.ts"
+import { MonetaryAmount } from "../../src/shared/values/MonetaryAmount.ts"
 
 describe("ConsolidationGroupId", () => {
   const validUUID = "550e8400-e29b-41d4-a716-446655440000"

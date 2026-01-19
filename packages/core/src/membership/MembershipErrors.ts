@@ -142,4 +142,4 @@ export {
   isInvitationAlreadyExistsError,
   UserAlreadyMemberError,
   isUserAlreadyMemberError
-} from "../Auth/AuthorizationErrors.ts"
+} from "../authorization/AuthorizationErrors.ts"

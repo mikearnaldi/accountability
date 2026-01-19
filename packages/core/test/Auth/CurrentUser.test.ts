@@ -9,7 +9,7 @@ import {
 import { AuthUser } from "../../src/Auth/AuthUser.ts"
 import { AuthUserId } from "../../src/Auth/AuthUserId.ts"
 import { Email } from "../../src/Auth/Email.ts"
-import { Timestamp } from "../../src/Domains/Timestamp.ts"
+import { Timestamp } from "../../src/shared/values/Timestamp.ts"
 
 describe("CurrentUser", () => {
   // Helper to create a test user
