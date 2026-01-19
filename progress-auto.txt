@@ -948,3 +948,8 @@
 ## Iteration 13 - 2026-01-19 18:23
 **Task**: Partial work (no explicit completion signal)
 ---
+
+## Iteration 14 - 2026-01-19 18:29
+**Task**: Migrated 6 authorization files (AuthorizationPolicy, PolicyId, PolicyEffect, Action, BaseRole, FunctionalRole) from Auth/ to canonical authorization/ locations with backward-compatible re-exports
+**Status**: complete
+---

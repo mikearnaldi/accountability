@@ -1,35 +1,15 @@
 /**
- * PolicyId - Branded type for authorization policy identifiers
+ * PolicyId - Re-export from canonical location
  *
- * A branded UUID string type for uniquely identifying authorization policies.
- * Uses Effect's built-in UUID schema with additional branding for type safety.
+ * This file provides backward compatibility during the core package reorganization.
+ * The canonical location for this module is now: authorization/PolicyId.ts
  *
- * @module PolicyId
+ * @module Auth/PolicyId
+ * @deprecated Import from "@accountability/core/authorization/PolicyId" instead
  */
 
-import * as Schema from "effect/Schema"
-
-/**
- * PolicyId - Branded UUIDv4 string for policy identification
- *
- * Uses Effect's built-in UUID schema which validates UUIDv4 format.
- */
-export const PolicyId = Schema.UUID.pipe(
-  Schema.brand("PolicyId"),
-  Schema.annotations({
-    identifier: "PolicyId",
-    title: "Policy ID",
-    description:
-      "A unique identifier for an authorization policy (UUID format)"
-  })
-)
-
-/**
- * The branded PolicyId type
- */
-export type PolicyId = typeof PolicyId.Type
-
-/**
- * Type guard for PolicyId using Schema.is
- */
-export const isPolicyId = Schema.is(PolicyId)
+export {
+  PolicyId,
+  type PolicyId as PolicyIdType,
+  isPolicyId
+} from "../authorization/PolicyId.ts"
