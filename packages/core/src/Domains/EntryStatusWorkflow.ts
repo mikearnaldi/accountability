@@ -18,6 +18,7 @@
  * @module EntryStatusWorkflow
  */
 
+import { HttpApiSchema } from "@effect/platform"
 import * as Schema from "effect/Schema"
 import * as Effect from "effect/Effect"
 import * as Match from "effect/Match"
@@ -163,7 +164,8 @@ export class InvalidStatusTransitionError extends Schema.TaggedError<InvalidStat
      * Optional reason for why the transition is not allowed
      */
     reason: Schema.OptionFromNullOr(Schema.NonEmptyTrimmedString)
-  }
+  },
+  HttpApiSchema.annotations({ status: 400 })
 ) {
   /**
    * Human-readable error message
