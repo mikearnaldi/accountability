@@ -898,7 +898,22 @@ Moving actual source files from old directories to new domain directories, conve
 | CurrentEnvironmentContext.ts | Auth/ | authorization/ | ✅ Done |
 | AuthorizationErrors.ts | Auth/ | authorization/ | ✅ Done |
 
-**Files still needing migration:**
+**Membership domain files migrated (Iteration 16):**
+
+| File | Old Location | New Location | Status |
+|------|-------------|--------------|--------|
+| OrganizationMembershipId.ts | Auth/ | membership/ | ✅ Done |
+| MembershipStatus.ts | Auth/ | membership/ | ✅ Done |
+| OrganizationMembership.ts | Auth/ | membership/ | ✅ Done |
+| InvitationId.ts | Auth/ | membership/ | ✅ Done |
+| InvitationStatus.ts | Auth/ | membership/ | ✅ Done |
+| OrganizationInvitation.ts | Auth/ | membership/ | ✅ Done |
+| CurrentOrganizationMembership.ts | Auth/ | membership/ | ✅ Done |
+| InvitationService.ts | Auth/ | membership/ | ✅ Done |
+| OrganizationMemberService.ts | Auth/ | membership/ | ✅ Done |
+| MembershipErrors.ts | (new) | membership/ | ✅ Done |
+
+**Migration status:**
 
 1. **Services/** - ✅ ALL DONE (13 files migrated)
    - All service files have been migrated to their canonical domain locations
@@ -908,11 +923,12 @@ Moving actual source files from old directories to new domain directories, conve
    - All authorization files have been migrated to their canonical locations
    - Old Auth/ files now re-export from authorization/ for backward compatibility
 
-3. **membership/** - Pending (10 files)
+3. **membership/** - ✅ ALL DONE (10 files migrated)
    - OrganizationMembership, OrganizationMembershipId, MembershipStatus
    - OrganizationInvitation, InvitationId, InvitationStatus
    - OrganizationMemberService, InvitationService
    - CurrentOrganizationMembership, MembershipErrors
+   - Old Auth/ files now re-export from membership/ for backward compatibility
 
 4. **auth/** - Pending (19 files)
    - Note: On macOS, Auth/ and auth/ are the same directory (case-insensitive)
@@ -935,14 +951,17 @@ The core package reorganization is **in progress**. Source files are being moved
 - 13 service files migrated from Services/ to canonical locations
 - 3 audit files migrated from AuditLog/ to canonical locations
 - 13 authorization files migrated from Auth/ to authorization/
+- 10 membership files migrated from Auth/ to membership/
 
-**What's being done:**
-- Moving source files from old directories to new domain directories
-- Converting old file locations to re-exports for backward compatibility
-- Maintaining internal import consistency
+**What's done:**
+- All domain files are now in their canonical locations
+- Old directories (Domains/, Services/, AuditLog/) now contain re-exports for backward compatibility
+- Internal imports within moved files use domain-relative paths
+- 95+ files successfully migrated to new domain structure
 
-**Next steps:**
-1. Complete membership/ migration (10 files)
-2. Update internal imports within moved files to use domain-relative paths
-3. Evaluate auth/ directory - macOS case-insensitivity makes separate lowercase auth/ impossible
-4. Delete empty old directories (Domains/, Services/, Errors/)
+**Remaining considerations:**
+1. auth/ directory - macOS case-insensitivity means Auth/ and auth/ are the same directory
+   - Authentication files remain in Auth/ as the canonical location
+   - This is acceptable as Auth/ is already a valid directory name
+2. Consider deleting old re-export files once all consumers are migrated
+3. Update documentation and onboarding guides to use new paths

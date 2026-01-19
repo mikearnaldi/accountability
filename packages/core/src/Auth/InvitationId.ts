@@ -1,35 +1,15 @@
 /**
- * InvitationId - Branded type for invitation identifiers
+ * InvitationId - Re-export from canonical location
  *
- * A branded UUID string type for uniquely identifying organization invitations.
- * Uses Effect's built-in UUID schema with additional branding for type safety.
+ * This file maintains backward compatibility by re-exporting from the
+ * canonical membership/ location after the core package reorganization.
  *
- * @module InvitationId
+ * @deprecated Import from "@accountability/core/membership/InvitationId" instead
+ * @module Auth/InvitationId
  */
 
-import * as Schema from "effect/Schema"
-
-/**
- * InvitationId - Branded UUIDv4 string for invitation identification
- *
- * Uses Effect's built-in UUID schema which validates UUIDv4 format.
- */
-export const InvitationId = Schema.UUID.pipe(
-  Schema.brand("InvitationId"),
-  Schema.annotations({
-    identifier: "InvitationId",
-    title: "Invitation ID",
-    description:
-      "A unique identifier for an organization invitation (UUID format)"
-  })
-)
-
-/**
- * The branded InvitationId type
- */
-export type InvitationId = typeof InvitationId.Type
-
-/**
- * Type guard for InvitationId using Schema.is
- */
-export const isInvitationId = Schema.is(InvitationId)
+export {
+  InvitationId,
+  type InvitationId as InvitationIdType,
+  isInvitationId
+} from "../membership/InvitationId.ts"
