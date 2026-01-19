@@ -8,23 +8,17 @@ import {
   AccountNotFoundError,
   AccountNotPostableError,
   AccountNotActiveError,
-  PeriodNotOpenError,
-  PeriodNotFoundError,
   EmptyJournalEntryError,
   DuplicateLineNumberError,
   NotApprovedError,
-  PeriodClosedError,
   EntryNotPostedError,
   EntryAlreadyReversedError,
   isAccountNotFoundError,
   isAccountNotPostableError,
   isAccountNotActiveError,
-  isPeriodNotOpenError,
-  isPeriodNotFoundError,
   isEmptyJournalEntryError,
   isDuplicateLineNumberError,
   isNotApprovedError,
-  isPeriodClosedError,
   isEntryNotPostedError,
   isEntryAlreadyReversedError,
   type CreateJournalEntryInput,
@@ -664,24 +658,6 @@ describe("JournalEntryService", () => {
       expect(error._tag).toBe("AccountNotActiveError")
     })
 
-    it("isPeriodNotOpenError returns true for PeriodNotOpenError", () => {
-      const error = new PeriodNotOpenError({
-        fiscalPeriod: { year: 2025, period: 1 },
-        status: "Closed"
-      })
-      expect(isPeriodNotOpenError(error)).toBe(true)
-      expect(error._tag).toBe("PeriodNotOpenError")
-    })
-
-    it("isPeriodNotFoundError returns true for PeriodNotFoundError", () => {
-      const error = new PeriodNotFoundError({
-        fiscalPeriod: { year: 2025, period: 1 },
-        companyId: CompanyId.make(companyUUID)
-      })
-      expect(isPeriodNotFoundError(error)).toBe(true)
-      expect(error._tag).toBe("PeriodNotFoundError")
-    })
-
     it("isEmptyJournalEntryError returns true for EmptyJournalEntryError", () => {
       const error = new EmptyJournalEntryError()
       expect(isEmptyJournalEntryError(error)).toBe(true)
@@ -729,25 +705,6 @@ describe("JournalEntryService", () => {
       expect(error.message).toContain("not active")
     })
 
-    it("PeriodNotOpenError has correct message", () => {
-      const error = new PeriodNotOpenError({
-        fiscalPeriod: { year: 2025, period: 1 },
-        status: "Closed"
-      })
-      expect(error.message).toContain("FY2025-P01")
-      expect(error.message).toContain("not open")
-      expect(error.message).toContain("Closed")
-    })
-
-    it("PeriodNotFoundError has correct message", () => {
-      const error = new PeriodNotFoundError({
-        fiscalPeriod: { year: 2025, period: 1 },
-        companyId: CompanyId.make(companyUUID)
-      })
-      expect(error.message).toContain("FY2025-P01")
-      expect(error.message).toContain("not found")
-    })
-
     it("EmptyJournalEntryError has correct message", () => {
       const error = new EmptyJournalEntryError()
       expect(error.message).toContain("at least one line")
@@ -767,15 +724,6 @@ describe("JournalEntryService", () => {
       expect(error.message).toContain(journalEntryUUID)
       expect(error.message).toContain("Draft")
       expect(error.message).toContain("must be 'Approved'")
-    })
-
-    it("PeriodClosedError has correct message", () => {
-      const error = new PeriodClosedError({
-        fiscalPeriod: { year: 2025, period: 1 },
-        status: "Closed"
-      })
-      expect(error.message).toContain("FY2025-P01")
-      expect(error.message).toContain("Closed")
     })
   })
 
@@ -1010,25 +958,11 @@ describe("JournalEntryService", () => {
       expect(error._tag).toBe("NotApprovedError")
     })
 
-    it("isPeriodClosedError returns true for PeriodClosedError", () => {
-      const error = new PeriodClosedError({
-        fiscalPeriod: { year: 2025, period: 1 },
-        status: "Closed"
-      })
-      expect(isPeriodClosedError(error)).toBe(true)
-      expect(error._tag).toBe("PeriodClosedError")
-    })
-
     it("new type guards return false for other values", () => {
       expect(isNotApprovedError(null)).toBe(false)
       expect(isNotApprovedError(undefined)).toBe(false)
       expect(isNotApprovedError(new Error("test"))).toBe(false)
       expect(isNotApprovedError({ _tag: "NotApprovedError" })).toBe(false)
-
-      expect(isPeriodClosedError(null)).toBe(false)
-      expect(isPeriodClosedError(undefined)).toBe(false)
-      expect(isPeriodClosedError(new Error("test"))).toBe(false)
-      expect(isPeriodClosedError({ _tag: "PeriodClosedError" })).toBe(false)
     })
 
     it("isEntryNotPostedError returns true for EntryNotPostedError", () => {

@@ -98,54 +98,6 @@ export class AccountNotActiveError extends Schema.TaggedError<AccountNotActiveEr
 export const isAccountNotActiveError = Schema.is(AccountNotActiveError)
 
 /**
- * Error when the fiscal period is not open
- */
-export class PeriodNotOpenError extends Schema.TaggedError<PeriodNotOpenError>()(
-  "PeriodNotOpenError",
-  {
-    fiscalPeriod: Schema.Struct({
-      year: Schema.Number,
-      period: Schema.Number
-    }),
-    status: Schema.String
-  },
-  HttpApiSchema.annotations({ status: 409 })
-) {
-  get message(): string {
-    return `Fiscal period FY${this.fiscalPeriod.year}-P${String(this.fiscalPeriod.period).padStart(2, "0")} is not open (status: ${this.status})`
-  }
-}
-
-/**
- * Type guard for PeriodNotOpenError
- */
-export const isPeriodNotOpenError = Schema.is(PeriodNotOpenError)
-
-/**
- * Error when the fiscal period is not found
- */
-export class PeriodNotFoundError extends Schema.TaggedError<PeriodNotFoundError>()(
-  "PeriodNotFoundError",
-  {
-    fiscalPeriod: Schema.Struct({
-      year: Schema.Number,
-      period: Schema.Number
-    }),
-    companyId: Schema.UUID.pipe(Schema.brand("CompanyId"))
-  },
-  HttpApiSchema.annotations({ status: 400 })
-) {
-  get message(): string {
-    return `Fiscal period FY${this.fiscalPeriod.year}-P${String(this.fiscalPeriod.period).padStart(2, "0")} not found for company ${this.companyId}`
-  }
-}
-
-/**
- * Type guard for PeriodNotFoundError
- */
-export const isPeriodNotFoundError = Schema.is(PeriodNotFoundError)
-
-/**
  * Error when journal entry has no lines
  */
 export class EmptyJournalEntryError extends Schema.TaggedError<EmptyJournalEntryError>()(
@@ -205,30 +157,6 @@ export class NotApprovedError extends Schema.TaggedError<NotApprovedError>()(
 export const isNotApprovedError = Schema.is(NotApprovedError)
 
 /**
- * Error when attempting to post to a closed fiscal period
- */
-export class PeriodClosedError extends Schema.TaggedError<PeriodClosedError>()(
-  "PeriodClosedError",
-  {
-    fiscalPeriod: Schema.Struct({
-      year: Schema.Number,
-      period: Schema.Number
-    }),
-    status: Schema.String
-  },
-  HttpApiSchema.annotations({ status: 409 })
-) {
-  get message(): string {
-    return `Cannot post to fiscal period FY${this.fiscalPeriod.year}-P${String(this.fiscalPeriod.period).padStart(2, "0")}: period is ${this.status}`
-  }
-}
-
-/**
- * Type guard for PeriodClosedError
- */
-export const isPeriodClosedError = Schema.is(PeriodClosedError)
-
-/**
  * Error when attempting to reverse a journal entry that is not posted
  */
 export class EntryNotPostedError extends Schema.TaggedError<EntryNotPostedError>()(
@@ -278,12 +206,9 @@ export type JournalEntryError =
   | AccountNotFoundError
   | AccountNotPostableError
   | AccountNotActiveError
-  | PeriodNotOpenError
-  | PeriodNotFoundError
   | EmptyJournalEntryError
   | DuplicateLineNumberError
   | NotApprovedError
-  | PeriodClosedError
   | EntryNotPostedError
   | EntryAlreadyReversedError
 

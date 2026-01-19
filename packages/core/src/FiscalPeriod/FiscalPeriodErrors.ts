@@ -241,96 +241,6 @@ export class FiscalYearAlreadyExistsError extends Schema.TaggedError<FiscalYearA
 export const isFiscalYearAlreadyExistsError = Schema.is(FiscalYearAlreadyExistsError)
 
 /**
- * PeriodNotOpenError - Period is not in Open status
- *
- * Returned when attempting an operation that requires an open period.
- *
- * HTTP Status: 409 Conflict
- */
-export class PeriodNotOpenError extends Schema.TaggedError<PeriodNotOpenError>()(
-  "PeriodNotOpenError",
-  {
-    periodId: FiscalPeriodId.annotations({
-      description: "The fiscal period ID"
-    }),
-    currentStatus: FiscalPeriodStatus.annotations({
-      description: "The current status of the period"
-    })
-  },
-  HttpApiSchema.annotations({ status: 409 })
-) {
-  get message(): string {
-    return `Period is ${this.currentStatus}, not Open. Cannot perform this operation.`
-  }
-}
-
-/**
- * Type guard for PeriodNotOpenError
- */
-export const isPeriodNotOpenError = Schema.is(PeriodNotOpenError)
-
-/**
- * PeriodProtectedError - Period is closed or locked
- *
- * Returned when attempting to modify a protected period without proper authorization.
- *
- * HTTP Status: 409 Conflict
- */
-export class PeriodProtectedError extends Schema.TaggedError<PeriodProtectedError>()(
-  "PeriodProtectedError",
-  {
-    periodId: FiscalPeriodId.annotations({
-      description: "The fiscal period ID"
-    }),
-    currentStatus: FiscalPeriodStatus.annotations({
-      description: "The current status of the period"
-    }),
-    action: Schema.String.annotations({
-      description: "The action that was attempted"
-    })
-  },
-  HttpApiSchema.annotations({ status: 409 })
-) {
-  get message(): string {
-    return `Period is ${this.currentStatus} and protected. Cannot ${this.action}.`
-  }
-}
-
-/**
- * Type guard for PeriodProtectedError
- */
-export const isPeriodProtectedError = Schema.is(PeriodProtectedError)
-
-/**
- * YearNotClosedError - Fiscal year is not closed
- *
- * Returned when attempting to lock a year that isn't fully closed.
- *
- * HTTP Status: 409 Conflict
- */
-export class YearNotClosedError extends Schema.TaggedError<YearNotClosedError>()(
-  "YearNotClosedError",
-  {
-    fiscalYearId: FiscalYearId.annotations({
-      description: "The fiscal year ID"
-    }),
-    currentStatus: FiscalYearStatus.annotations({
-      description: "The current status of the fiscal year"
-    })
-  },
-  HttpApiSchema.annotations({ status: 409 })
-) {
-  get message(): string {
-    return `Fiscal year must be Closed to perform this operation. Current status: ${this.currentStatus}`
-  }
-}
-
-/**
- * Type guard for YearNotClosedError
- */
-export const isYearNotClosedError = Schema.is(YearNotClosedError)
-
-/**
  * PeriodsNotClosedError - Not all periods in the year are closed
  *
  * Returned when attempting to close a fiscal year with open periods.
@@ -374,9 +284,6 @@ export type FiscalPeriodError =
   | InvalidYearStatusTransitionError
   | FiscalYearOverlapError
   | FiscalYearAlreadyExistsError
-  | PeriodNotOpenError
-  | PeriodProtectedError
-  | YearNotClosedError
   | PeriodsNotClosedError
 
 /**
@@ -393,8 +300,5 @@ export const FISCAL_PERIOD_ERROR_STATUS_CODES = {
   FiscalPeriodNotFoundForDateError: 400,
   // 409 Conflict
   FiscalYearAlreadyExistsError: 409,
-  PeriodNotOpenError: 409,
-  PeriodProtectedError: 409,
-  YearNotClosedError: 409,
   PeriodsNotClosedError: 409
 } as const

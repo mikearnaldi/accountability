@@ -402,12 +402,11 @@ This section catalogs all error definitions and their required HTTP status codes
 | `InvalidYearStatusTransitionError` | 400 | Invalid year status transition |
 | `FiscalYearOverlapError` | 400 | Year dates overlap |
 | `FiscalYearAlreadyExistsError` | 409 | Fiscal year already exists |
-| `PeriodNotOpenError` | 409 | Period is not open |
-| `PeriodProtectedError` | 409 | Period is closed/locked |
-| `YearNotClosedError` | 409 | Year is not closed |
 | `PeriodsNotClosedError` | 409 | Periods not all closed |
 
 **Status:** ✅ All errors have `HttpApiSchema.annotations`
+
+**Removed unused errors:** `PeriodNotOpenError`, `PeriodProtectedError`, `YearNotClosedError` (defined but never instantiated)
 
 ### Audit Log Errors (`packages/core/src/AuditLog/AuditLogErrors.ts`)
 
@@ -426,16 +425,15 @@ This section catalogs all error definitions and their required HTTP status codes
 | `AccountNotFoundError` | 404 | Account not found |
 | `AccountNotPostableError` | 422 | Account is not postable |
 | `AccountNotActiveError` | 422 | Account is not active |
-| `PeriodNotOpenError` | 409 | Fiscal period is not open |
-| `PeriodNotFoundError` | 400 | Fiscal period not found |
 | `EmptyJournalEntryError` | 400 | Entry has no lines |
 | `DuplicateLineNumberError` | 400 | Duplicate line number |
 | `NotApprovedError` | 422 | Entry not approved for posting |
-| `PeriodClosedError` | 409 | Cannot post to closed period |
 | `EntryNotPostedError` | 422 | Entry must be posted to reverse |
 | `EntryAlreadyReversedError` | 409 | Entry already reversed |
 
 **Status:** ✅ All errors have `HttpApiSchema.annotations`
+
+**Removed unused errors:** `PeriodNotOpenError`, `PeriodNotFoundError`, `PeriodClosedError` (defined but never instantiated)
 
 ### Currency Errors (`packages/core/src/Services/CurrencyService.ts`)
 
@@ -488,12 +486,11 @@ This section catalogs all error definitions and their required HTTP status codes
 | Error Class | HTTP Status | Description |
 |-------------|-------------|-------------|
 | `EntityNotFoundError` | 404 | Entity not found in database |
-| `DuplicateEntityError` | 409 | Entity violates unique constraint |
 | `PersistenceError` | 500 | Database operation failed |
-| `ValidationError` | 400 | Schema validation failed |
-| `ConcurrencyError` | 409 | Optimistic locking conflict |
 
 **Status:** ✅ All errors have `HttpApiSchema.annotations`
+
+**Removed unused errors:** `DuplicateEntityError`, `ValidationError`, `ConcurrencyError` (defined but never instantiated)
 
 ---
 

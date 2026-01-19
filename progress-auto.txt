@@ -885,3 +885,8 @@
 **Task**: Completed single-layer error architecture - converted EliminationRulesApi to domain errors and removed unused generic errors from ApiErrors.ts
 **Status**: complete
 ---
+
+## Iteration 1 - 2026-01-19 16:04
+**Task**: Removed 9 unused error classes from codebase - DuplicateEntityError/ValidationError/ConcurrencyError from persistence, PeriodNotOpenError/PeriodProtectedError/YearNotClosedError from FiscalPeriodErrors, and PeriodNotOpenError/PeriodNotFoundError/PeriodClosedError from JournalEntryService
+**Status**: complete
+---
