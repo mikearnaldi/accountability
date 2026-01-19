@@ -806,14 +806,68 @@ The core package's `package.json` exports field was updated to include all new d
 
 ---
 
-### Remaining Work (Future Phase)
+### Phase 8: Source File Migration (In Progress)
 
-The reorganization is now **functionally complete** - all code can use new domain-based import paths.
+**Started: 2026-01-19**
 
-The following are **optional cleanup tasks** for a future phase:
-1. Move actual source files from `Domains/` to domain directories (replacing re-export files)
-2. Move actual source files from `Services/` to domain directories (replacing re-export files)
-3. Update internal imports within core package to use domain-relative paths
-4. Delete empty old directories once all imports are migrated
+Moving actual source files from old directories to new domain directories, converting old locations to re-exports for backward compatibility.
 
-These cleanup tasks are not blocking - the new import paths work now and the codebase is organized according to the spec's domain structure.
+**Files migrated to canonical locations:**
+
+| File | Old Location | New Location | Status |
+|------|-------------|--------------|--------|
+| LocalDate.ts | Domains/ | shared/values/ | ✅ Done |
+| Timestamp.ts | Domains/ | shared/values/ | ✅ Done |
+| MonetaryAmount.ts | Domains/ | shared/values/ | ✅ Done |
+| Percentage.ts | Domains/ | shared/values/ | ✅ Done |
+| Address.ts | Domains/ | shared/values/ | ✅ Done |
+| CurrencyCode.ts | Domains/ | currency/ | ✅ Done |
+
+**Files still needing migration:**
+
+1. **Domains/** (31 remaining files):
+   - Organization.ts → organization/
+   - Company.ts, CompanyType.ts → company/
+   - Jurisdiction.ts, JurisdictionCode.ts → jurisdiction/
+   - Account.ts, AccountNumber.ts, AccountHierarchy.ts, AccountTemplate.ts, AccountBalance.ts, AccountValidation.ts, BalanceValidation.ts → accounting/
+   - JournalEntry.ts, JournalEntryLine.ts, EntryStatusWorkflow.ts, MultiCurrencyLineHandling.ts → journal/
+   - FiscalYear.ts, FiscalPeriod.ts, FiscalPeriodRef.ts, FiscalPeriodStatus.ts, FiscalPeriodType.ts, FiscalYearStatus.ts, ComputedFiscalPeriod.ts → fiscal/
+   - Currency.ts, ExchangeRate.ts → currency/
+   - ConsolidationGroup.ts, ConsolidationRun.ts, EliminationRule.ts, IntercompanyTransaction.ts, ConsolidationMethodDetermination.ts → consolidation/
+   - AuditLog.ts → audit/
+
+2. **Services/** (13 files):
+   - TrialBalanceService.ts → accounting/
+   - JournalEntryService.ts → journal/
+   - ConsolidationService.ts, EliminationService.ts, IntercompanyService.ts, NCIService.ts, CurrencyTranslationService.ts → consolidation/
+   - CurrencyService.ts → currency/
+   - BalanceSheetService.ts, IncomeStatementService.ts, CashFlowStatementService.ts, EquityStatementService.ts, ConsolidatedReportService.ts → reporting/
+
+3. **AuditLog/** (3 files):
+   - AuditLogService.ts, AuditLogErrors.ts → audit/
+   - CurrentUserId.ts → shared/context/
+
+4. **Auth/** (19 authentication files → new auth/ directory)
+
+**CI Status:** All typecheck and 3254 tests pass.
+
+---
+
+### Remaining Work
+
+The core package reorganization is **in progress**. Source files are being moved to their canonical domain locations.
+
+**What's already working:**
+- New import paths are fully functional via re-exports
+- External packages (api, persistence, web) use new paths
+- package.json exports include all new domain paths
+- Error files have been migrated to domain-specific files
+
+**What's being done:**
+- Moving source files from old directories (Domains/, Services/) to new domain directories
+- Converting old file locations to re-exports for backward compatibility
+- Maintaining internal import consistency
+
+**Final cleanup (after all files migrated):**
+1. Update internal imports within moved files to use domain-relative paths
+2. Delete empty old directories (Domains/, Services/, Errors/)
