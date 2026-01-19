@@ -48,22 +48,27 @@ import {
 } from "@accountability/persistence/Services/UserRepository"
 import { PersistenceError } from "@accountability/persistence/Errors/RepositoryError"
 
+// Test UUIDs for proper AuthUserId format
+const testUserId1 = AuthUserId.make("11111111-1111-1111-1111-111111111111")
+const testUserId2 = AuthUserId.make("22222222-2222-2222-2222-222222222222")
+const testUserId3 = AuthUserId.make("33333333-3333-3333-3333-333333333333")
+
 describe("AuthMiddleware", () => {
   describe("User", () => {
     it("should create a valid user", () => {
       const user = User.make({
-        userId: "user-123",
+        userId: testUserId1,
         role: "admin"
       })
 
-      expect(user.userId).toBe("user-123")
+      expect(user.userId).toBe(testUserId1)
       expect(user.role).toBe("admin")
     })
 
     it("should accept all valid roles", () => {
-      const adminUser = User.make({ userId: "1", role: "admin" })
-      const regularUser = User.make({ userId: "2", role: "user" })
-      const readonlyUser = User.make({ userId: "3", role: "readonly" })
+      const adminUser = User.make({ userId: testUserId1, role: "admin" })
+      const regularUser = User.make({ userId: testUserId2, role: "user" })
+      const readonlyUser = User.make({ userId: testUserId3, role: "readonly" })
 
       expect(adminUser.role).toBe("admin")
       expect(regularUser.role).toBe("user")
@@ -74,7 +79,7 @@ describe("AuthMiddleware", () => {
   describe("CurrentUser", () => {
     it.effect("should be accessible in Effect.gen", () =>
       Effect.gen(function* () {
-        const user = User.make({ userId: "test-user", role: "user" })
+        const user = User.make({ userId: testUserId1, role: "user" })
 
         const result = yield* Effect.provideService(
           CurrentUser,
@@ -84,7 +89,7 @@ describe("AuthMiddleware", () => {
           return currentUser
         }))
 
-        expect(result.userId).toBe("test-user")
+        expect(result.userId).toBe(testUserId1)
         expect(result.role).toBe("user")
       })
     )
@@ -97,10 +102,10 @@ describe("AuthMiddleware", () => {
       it.effect("should validate a correctly formatted token", () =>
         Effect.gen(function* () {
           const validator = yield* TokenValidator
-          const token = Redacted.make("user_123_admin")
+          const token = Redacted.make("user_11111111-1111-1111-1111-111111111111_admin")
           const user = yield* validator.validate(token)
 
-          expect(user.userId).toBe("123")
+          expect(user.userId).toBe(testUserId1)
           expect(user.role).toBe("admin")
         })
       )
@@ -108,10 +113,10 @@ describe("AuthMiddleware", () => {
       it.effect("should validate token with user role", () =>
         Effect.gen(function* () {
           const validator = yield* TokenValidator
-          const token = Redacted.make("user_456_user")
+          const token = Redacted.make("user_22222222-2222-2222-2222-222222222222_user")
           const user = yield* validator.validate(token)
 
-          expect(user.userId).toBe("456")
+          expect(user.userId).toBe(testUserId2)
           expect(user.role).toBe("user")
         })
       )
@@ -119,10 +124,10 @@ describe("AuthMiddleware", () => {
       it.effect("should validate token with readonly role", () =>
         Effect.gen(function* () {
           const validator = yield* TokenValidator
-          const token = Redacted.make("user_789_readonly")
+          const token = Redacted.make("user_33333333-3333-3333-3333-333333333333_readonly")
           const user = yield* validator.validate(token)
 
-          expect(user.userId).toBe("789")
+          expect(user.userId).toBe(testUserId3)
           expect(user.role).toBe("readonly")
         })
       )
@@ -186,13 +191,27 @@ describe("AuthMiddleware", () => {
       it.effect("should reject token with invalid role", () =>
         Effect.gen(function* () {
           const validator = yield* TokenValidator
-          const token = Redacted.make("user_123_superuser")
+          const token = Redacted.make("user_11111111-1111-1111-1111-111111111111_superuser")
 
           const result = yield* Effect.either(validator.validate(token))
 
           expect(result._tag).toBe("Left")
           if (result._tag === "Left") {
             expect(result.left.message).toContain("invalid role")
+          }
+        })
+      )
+
+      it.effect("should reject token with non-UUID user ID", () =>
+        Effect.gen(function* () {
+          const validator = yield* TokenValidator
+          const token = Redacted.make("user_123_admin")
+
+          const result = yield* Effect.either(validator.validate(token))
+
+          expect(result._tag).toBe("Left")
+          if (result._tag === "Left") {
+            expect(result.left.message).toBe("Invalid token: user ID must be a valid UUID")
           }
         })
       )
@@ -240,12 +259,13 @@ describe("AuthMiddleware", () => {
   })
 
   describe("Custom TokenValidator", () => {
+    const customUserId = AuthUserId.make("cccccccc-cccc-cccc-cccc-cccccccccccc")
     const customValidator: TokenValidatorService = {
       validate: (token) =>
         Effect.gen(function* () {
           const value = Redacted.value(token)
           if (value === "valid-token") {
-            return User.make({ userId: "custom-user", role: "admin" })
+            return User.make({ userId: customUserId, role: "admin" })
           }
           return yield* Effect.fail(
             new UnauthorizedError({ message: "Custom validation failed" })
@@ -263,7 +283,7 @@ describe("AuthMiddleware", () => {
 
           const user = yield* validator.validate(token)
 
-          expect(user.userId).toBe("custom-user")
+          expect(user.userId).toBe(customUserId)
           expect(user.role).toBe("admin")
         })
       )

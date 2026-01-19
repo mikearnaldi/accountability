@@ -45,9 +45,10 @@ import {
   ValidationError,
   ConflictError,
   BusinessRuleError,
-  AuditLogError
+  AuditLogError,
+  UserLookupError
 } from "../Definitions/ApiErrors.ts"
-import type { AuditLogError as CoreAuditLogError } from "@accountability/core/AuditLog/AuditLogErrors"
+import type { AuditLogError as CoreAuditLogError, UserLookupError as CoreUserLookupError } from "@accountability/core/AuditLog/AuditLogErrors"
 import { CurrentUser } from "../Definitions/AuthMiddleware.ts"
 import { requireOrganizationContext, requirePermission } from "./OrganizationContextMiddlewareLive.ts"
 
@@ -57,11 +58,18 @@ import { requireOrganizationContext, requirePermission } from "./OrganizationCon
  * The core AuditLogError and API AuditLogError have the same shape,
  * but different types. This maps between them for proper API error handling.
  */
-const mapCoreAuditErrorToApi = (error: CoreAuditLogError): AuditLogError =>
-  new AuditLogError({
+const mapCoreAuditErrorToApi = (error: CoreAuditLogError | CoreUserLookupError): AuditLogError | UserLookupError => {
+  if (error._tag === "UserLookupError") {
+    return new UserLookupError({
+      userId: error.userId,
+      cause: error.cause
+    })
+  }
+  return new AuditLogError({
     operation: error.operation,
     cause: error.cause
   })
+}
 
 /**
  * Convert persistence errors to BusinessRuleError
@@ -125,7 +133,7 @@ const mapPersistenceToConflict = (
  */
 const logCompanyCreate = (
   company: Company
-): Effect.Effect<void, AuditLogError, AuditLogService | CurrentUserId> =>
+): Effect.Effect<void, AuditLogError | UserLookupError, AuditLogService | CurrentUserId> =>
   Effect.gen(function* () {
     const auditService = yield* AuditLogService
     const userId = yield* CurrentUserId
@@ -155,7 +163,7 @@ const logCompanyCreate = (
 const logCompanyUpdate = (
   before: Company,
   after: Company
-): Effect.Effect<void, AuditLogError, AuditLogService | CurrentUserId> =>
+): Effect.Effect<void, AuditLogError | UserLookupError, AuditLogService | CurrentUserId> =>
   Effect.gen(function* () {
     const auditService = yield* AuditLogService
     const userId = yield* CurrentUserId
@@ -185,7 +193,7 @@ const logCompanyUpdate = (
  */
 const logCompanyDeactivate = (
   company: Company
-): Effect.Effect<void, AuditLogError, AuditLogService | CurrentUserId> =>
+): Effect.Effect<void, AuditLogError | UserLookupError, AuditLogService | CurrentUserId> =>
   Effect.gen(function* () {
     const auditService = yield* AuditLogService
     const userId = yield* CurrentUserId

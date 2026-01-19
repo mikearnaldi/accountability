@@ -13,6 +13,7 @@ import * as Option from "effect/Option"
 import * as Redacted from "effect/Redacted"
 import * as Schema from "effect/Schema"
 import type { UserRole } from "@accountability/core/Auth/AuthUser"
+import { AuthUserId } from "@accountability/core/Auth/AuthUserId"
 import { SessionId } from "@accountability/core/Auth/SessionId"
 import * as Timestamp from "@accountability/core/Domains/Timestamp"
 import { SessionRepository } from "@accountability/persistence/Services/SessionRepository"
@@ -100,12 +101,19 @@ export const SimpleTokenValidatorLive: Layer.Layer<TokenValidator> = Layer.succe
           )
         }
 
-        const [, userId, roleStr] = parts
-        if (!userId || userId.trim() === "") {
+        const [, userIdStr, roleStr] = parts
+        if (!userIdStr || userIdStr.trim() === "") {
           return yield* Effect.fail(
             new UnauthorizedError({ message: "Invalid token: missing user ID" })
           )
         }
+
+        // Decode the userId as AuthUserId (UUID format)
+        const userId = yield* Schema.decodeUnknown(AuthUserId)(userIdStr).pipe(
+          Effect.mapError(() =>
+            new UnauthorizedError({ message: "Invalid token: user ID must be a valid UUID" })
+          )
+        )
 
         // Validate role
         if (roleStr === "admin" || roleStr === "user" || roleStr === "readonly") {

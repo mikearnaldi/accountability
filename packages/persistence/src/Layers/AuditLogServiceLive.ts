@@ -15,7 +15,7 @@ import {
   AuditLogService,
   type AuditLogServiceShape
 } from "@accountability/core/AuditLog/AuditLogService"
-import { AuditLogError } from "@accountability/core/AuditLog/AuditLogErrors"
+import { AuditLogError, UserLookupError } from "@accountability/core/AuditLog/AuditLogErrors"
 import type { AuthUserId } from "@accountability/core/Auth/AuthUserId"
 import { AuditLogRepository } from "../Services/AuditLogRepository.ts"
 import { UserRepository } from "../Services/UserRepository.ts"
@@ -153,17 +153,32 @@ const make = Effect.gen(function* () {
   const userRepo = yield* UserRepository
 
   /**
-   * Wrap repository errors in AuditLogError
+   * Wrap repository errors in AuditLogError, preserving UserLookupError as-is
+   *
+   * UserLookupError is a specific error that should propagate unchanged,
+   * while other errors (like repository errors) get wrapped in AuditLogError.
    */
   const wrapError = (operation: string) =>
-    <A, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<A, AuditLogError, R> =>
-      Effect.mapError(effect, (cause) => new AuditLogError({ operation, cause }))
+    <A, R>(effect: Effect.Effect<A, UserLookupError | unknown, R>): Effect.Effect<A, AuditLogError | UserLookupError, R> =>
+      Effect.catchAll(effect, (cause): Effect.Effect<never, AuditLogError | UserLookupError> => {
+        if (cause instanceof UserLookupError) {
+          return Effect.fail(cause)
+        }
+        return Effect.fail(new AuditLogError({ operation, cause }))
+      })
 
   /**
    * Look up user display name and email for denormalization
-   * Returns none options if user not found (graceful degradation)
+   *
+   * Audit logs must include complete actor information for compliance.
+   * If we cannot look up the user, we fail with UserLookupError rather
+   * than creating an incomplete audit entry.
+   *
+   * Note: If the user is not found (Option.none), we still succeed with
+   * empty display name/email - this handles legitimate cases like deleted
+   * users. We only fail if the lookup operation itself fails (database error).
    */
-  const lookupUserInfo = (userId: AuthUserId): Effect.Effect<UserInfo, never> =>
+  const lookupUserInfo = (userId: AuthUserId): Effect.Effect<UserInfo, UserLookupError> =>
     userRepo.findById(userId).pipe(
       Effect.map((userOpt) =>
         Option.match(userOpt, {
@@ -177,12 +192,9 @@ const make = Effect.gen(function* () {
           })
         })
       ),
-      // If lookup fails, gracefully degrade to no user info
-      Effect.catchAll(() =>
-        Effect.succeed({
-          displayName: Option.none<string>(),
-          email: Option.none<string>()
-        })
+      // User lookup failure must fail the audit log creation
+      Effect.mapError((cause) =>
+        new UserLookupError({ userId: String(userId), cause })
       )
     )
 

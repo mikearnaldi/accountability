@@ -20,6 +20,7 @@ import type {
   AuditEntityType,
   AuditChanges
 } from "@accountability/core/Domains/AuditLog"
+import type { AuditDataCorruptionError } from "@accountability/core/AuditLog/AuditLogErrors"
 import type { PersistenceError } from "../Errors/RepositoryError.ts"
 
 /**
@@ -102,7 +103,7 @@ export interface AuditLogRepositoryService {
   readonly findAll: (
     filter: AuditLogFilter,
     pagination: PaginationParams
-  ) => Effect.Effect<Chunk.Chunk<AuditLogEntry>, PersistenceError>
+  ) => Effect.Effect<Chunk.Chunk<AuditLogEntry>, PersistenceError | AuditDataCorruptionError>
 
   /**
    * Count audit log entries matching filter criteria
@@ -124,7 +125,7 @@ export interface AuditLogRepositoryService {
   readonly findByEntity: (
     entityType: AuditEntityType,
     entityId: string
-  ) => Effect.Effect<Chunk.Chunk<AuditLogEntry>, PersistenceError>
+  ) => Effect.Effect<Chunk.Chunk<AuditLogEntry>, PersistenceError | AuditDataCorruptionError>
 
   /**
    * Create a new audit log entry
@@ -136,7 +137,7 @@ export interface AuditLogRepositoryService {
    */
   readonly create: (
     entry: AuditLogInsert
-  ) => Effect.Effect<AuditLogEntry, PersistenceError>
+  ) => Effect.Effect<AuditLogEntry, PersistenceError | AuditDataCorruptionError>
 }
 
 /**

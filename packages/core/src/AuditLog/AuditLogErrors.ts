@@ -30,3 +30,52 @@ export class AuditLogError extends Schema.TaggedError<AuditLogError>()(
  * Type guard for AuditLogError
  */
 export const isAuditLogError = Schema.is(AuditLogError)
+
+/**
+ * UserLookupError - Error when user lookup fails during audit logging
+ *
+ * Audit logs must include complete actor information for compliance.
+ * If we cannot look up the user, the audit entry would be incomplete,
+ * which could violate compliance requirements.
+ */
+export class UserLookupError extends Schema.TaggedError<UserLookupError>()(
+  "UserLookupError",
+  {
+    userId: Schema.String,
+    cause: Schema.Defect
+  }
+) {
+  get message(): string {
+    return `Failed to look up user ${this.userId} for audit log: ${String(this.cause)}`
+  }
+}
+
+/**
+ * Type guard for UserLookupError
+ */
+export const isUserLookupError = Schema.is(UserLookupError)
+
+/**
+ * AuditDataCorruptionError - Error when audit log data cannot be parsed
+ *
+ * Audit data integrity is critical for compliance. If we cannot parse
+ * stored audit changes JSON, this indicates data corruption that must
+ * be surfaced rather than silently ignored.
+ */
+export class AuditDataCorruptionError extends Schema.TaggedError<AuditDataCorruptionError>()(
+  "AuditDataCorruptionError",
+  {
+    entryId: Schema.String,
+    field: Schema.String,
+    cause: Schema.Defect
+  }
+) {
+  get message(): string {
+    return `Audit log data corruption in entry ${this.entryId}, field ${this.field}: ${String(this.cause)}`
+  }
+}
+
+/**
+ * Type guard for AuditDataCorruptionError
+ */
+export const isAuditDataCorruptionError = Schema.is(AuditDataCorruptionError)

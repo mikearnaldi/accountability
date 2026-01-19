@@ -26,6 +26,7 @@ import {
   ConflictError,
   ForbiddenError,
   NotFoundError,
+  UserLookupError,
   ValidationError
 } from "./ApiErrors.ts"
 import { AuthMiddleware } from "./AuthMiddleware.ts"
@@ -157,6 +158,7 @@ const createAccount = HttpApiEndpoint.post("createAccount", "/")
   .addError(ForbiddenError)
   .addError(NotFoundError)
   .addError(AuditLogError)
+  .addError(UserLookupError)
   .annotateContext(OpenApi.annotations({
     summary: "Create account",
     description: "Create a new account in the Chart of Accounts. The account number must be unique within the company."
@@ -175,6 +177,7 @@ const updateAccount = HttpApiEndpoint.put("updateAccount", "/organizations/:orga
   .addError(BusinessRuleError)
   .addError(ForbiddenError)
   .addError(AuditLogError)
+  .addError(UserLookupError)
   .annotateContext(OpenApi.annotations({
     summary: "Update account",
     description: "Update an existing account. Only provided fields will be updated. Account type and category cannot be changed after creation."
@@ -190,6 +193,7 @@ const deactivateAccount = HttpApiEndpoint.del("deactivateAccount", "/organizatio
   .addError(BusinessRuleError)
   .addError(ForbiddenError)
   .addError(AuditLogError)
+  .addError(UserLookupError)
   .annotateContext(OpenApi.annotations({
     summary: "Deactivate account",
     description: "Deactivate an account (soft delete). Accounts with posted transactions cannot be deactivated."

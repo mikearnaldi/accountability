@@ -14,7 +14,7 @@ import * as Context from "effect/Context"
 import type * as Effect from "effect/Effect"
 import type { AuthUserId } from "../Auth/AuthUserId.ts"
 import type { AuditEntityType, AuditChanges } from "../Domains/AuditLog.ts"
-import type { AuditLogError } from "./AuditLogErrors.ts"
+import type { AuditLogError, UserLookupError } from "./AuditLogErrors.ts"
 
 // =============================================================================
 // Service Interface
@@ -59,7 +59,7 @@ export interface AuditLogServiceShape {
     entityName: string | null,
     entity: T,
     userId: AuthUserId
-  ) => Effect.Effect<void, AuditLogError>
+  ) => Effect.Effect<void, AuditLogError | UserLookupError>
 
   /**
    * Log an entity update with before/after changes
@@ -99,7 +99,7 @@ export interface AuditLogServiceShape {
     before: T,
     after: T,
     userId: AuthUserId
-  ) => Effect.Effect<void, AuditLogError>
+  ) => Effect.Effect<void, AuditLogError | UserLookupError>
 
   /**
    * Log an entity deletion
@@ -135,7 +135,7 @@ export interface AuditLogServiceShape {
     entityName: string | null,
     entity: T,
     userId: AuthUserId
-  ) => Effect.Effect<void, AuditLogError>
+  ) => Effect.Effect<void, AuditLogError | UserLookupError>
 
   /**
    * Log a status change (for workflow state transitions)
@@ -176,7 +176,7 @@ export interface AuditLogServiceShape {
     newStatus: string,
     userId: AuthUserId,
     reason?: string
-  ) => Effect.Effect<void, AuditLogError>
+  ) => Effect.Effect<void, AuditLogError | UserLookupError>
 
   /**
    * Log an operation with pre-computed changes
@@ -201,7 +201,7 @@ export interface AuditLogServiceShape {
     action: "Create" | "Update" | "Delete" | "StatusChange",
     changes: AuditChanges,
     userId: AuthUserId
-  ) => Effect.Effect<void, AuditLogError>
+  ) => Effect.Effect<void, AuditLogError | UserLookupError>
 }
 
 // =============================================================================

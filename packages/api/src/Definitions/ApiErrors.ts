@@ -221,6 +221,35 @@ export class AuditLogError extends Schema.TaggedError<AuditLogError>()(
 export const isAuditLogError = Schema.is(AuditLogError)
 
 /**
+ * UserLookupError - User lookup failed during audit logging (500)
+ *
+ * Audit logs must include complete actor information for compliance.
+ * If we cannot look up the user, the audit entry would be incomplete,
+ * which could violate compliance requirements.
+ */
+export class UserLookupError extends Schema.TaggedError<UserLookupError>()(
+  "UserLookupError",
+  {
+    userId: Schema.String.annotations({
+      description: "The user ID that could not be looked up"
+    }),
+    cause: Schema.Defect.annotations({
+      description: "The underlying cause of the lookup failure"
+    })
+  },
+  HttpApiSchema.annotations({ status: 500 })
+) {
+  get message(): string {
+    return `Failed to look up user ${this.userId} for audit log: ${String(this.cause)}`
+  }
+}
+
+/**
+ * Type guard for UserLookupError
+ */
+export const isUserLookupError = Schema.is(UserLookupError)
+
+/**
  * Union of all API error types
  */
 export type ApiError =
@@ -232,3 +261,4 @@ export type ApiError =
   | InternalServerError
   | BusinessRuleError
   | AuditLogError
+  | UserLookupError

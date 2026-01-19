@@ -12,14 +12,21 @@ import * as Effect from "effect/Effect"
 import * as Option from "effect/Option"
 import { AuditLogRepository } from "@accountability/persistence/Services/AuditLogRepository"
 import type { PersistenceError } from "@accountability/persistence/Errors/RepositoryError"
+import type { AuditDataCorruptionError } from "@accountability/core/AuditLog/AuditLogErrors"
 import { AppApi } from "../Definitions/AppApi.ts"
 import { AuditLogEntry, AuditLogListResponse } from "../Definitions/AuditLogApi.ts"
 import { InternalServerError } from "../Definitions/ApiErrors.ts"
 
 /**
- * Map persistence errors to InternalServerError
+ * Map persistence errors and audit data corruption errors to InternalServerError
  */
-const mapPersistenceError = (error: PersistenceError): InternalServerError => {
+const mapAuditLogError = (error: PersistenceError | AuditDataCorruptionError): InternalServerError => {
+  if (error._tag === "AuditDataCorruptionError") {
+    return new InternalServerError({
+      message: `Audit data corruption: ${error.message}`,
+      requestId: Option.none()
+    })
+  }
   return new InternalServerError({
     message: `Database error: ${error.operation}`,
     requestId: Option.none()
@@ -61,10 +68,10 @@ export const AuditLogApiLive = HttpApiBuilder.group(AppApi, "auditLog", (handler
           // Query repository with error mapping
           const [entriesChunk, total] = yield* Effect.all([
             auditLogRepo.findAll(filter, pagination).pipe(
-              Effect.mapError(mapPersistenceError)
+              Effect.mapError(mapAuditLogError)
             ),
             auditLogRepo.count(filter).pipe(
-              Effect.mapError(mapPersistenceError)
+              Effect.mapError(mapAuditLogError)
             )
           ])
 

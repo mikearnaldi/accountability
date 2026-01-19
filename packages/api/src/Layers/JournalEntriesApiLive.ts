@@ -43,9 +43,10 @@ import {
   ValidationError,
   BusinessRuleError,
   ConflictError,
-  AuditLogError
+  AuditLogError,
+  UserLookupError
 } from "../Definitions/ApiErrors.ts"
-import type { AuditLogError as CoreAuditLogError } from "@accountability/core/AuditLog/AuditLogErrors"
+import type { AuditLogError as CoreAuditLogError, UserLookupError as CoreUserLookupError } from "@accountability/core/AuditLog/AuditLogErrors"
 import { requireOrganizationContext, requirePermission, requirePermissionWithResource } from "./OrganizationContextMiddlewareLive.ts"
 import { FiscalPeriodService } from "@accountability/core/FiscalPeriod/FiscalPeriodService"
 import { FiscalPeriodNotFoundForDateError } from "@accountability/core/FiscalPeriod/FiscalPeriodErrors"
@@ -58,11 +59,18 @@ import { CurrentUserId } from "@accountability/core/AuditLog/CurrentUserId"
 /**
  * Map core AuditLogError to API AuditLogError
  */
-const mapCoreAuditErrorToApi = (error: CoreAuditLogError): AuditLogError =>
-  new AuditLogError({
+const mapCoreAuditErrorToApi = (error: CoreAuditLogError | CoreUserLookupError): AuditLogError | UserLookupError => {
+  if (error._tag === "UserLookupError") {
+    return new UserLookupError({
+      userId: error.userId,
+      cause: error.cause
+    })
+  }
+  return new AuditLogError({
     operation: error.operation,
     cause: error.cause
   })
+}
 
 /**
  * Convert persistence errors to NotFoundError
@@ -227,7 +235,7 @@ const buildJournalEntryResourceContext = (
 const logJournalEntryCreate = (
   organizationId: string,
   entry: JournalEntry
-): Effect.Effect<void, AuditLogError, AuditLogService | CurrentUserId> =>
+): Effect.Effect<void, AuditLogError | UserLookupError, AuditLogService | CurrentUserId> =>
   Effect.gen(function* () {
     const auditService = yield* AuditLogService
     const userId = yield* CurrentUserId
@@ -266,7 +274,7 @@ const logJournalEntryStatusChange = (
   previousStatus: string,
   newStatus: string,
   reason?: string
-): Effect.Effect<void, AuditLogError, AuditLogService | CurrentUserId> =>
+): Effect.Effect<void, AuditLogError | UserLookupError, AuditLogService | CurrentUserId> =>
   Effect.gen(function* () {
     const auditService = yield* AuditLogService
     const userId = yield* CurrentUserId

@@ -12,6 +12,8 @@ import * as Context from "effect/Context"
 import type * as Effect from "effect/Effect"
 import type * as Redacted from "effect/Redacted"
 import * as Schema from "effect/Schema"
+import { AuthUserId } from "@accountability/core/Auth/AuthUserId"
+import { SessionId } from "@accountability/core/Auth/SessionId"
 import { UnauthorizedError } from "./ApiErrors.ts"
 
 // =============================================================================
@@ -23,16 +25,20 @@ import { UnauthorizedError } from "./ApiErrors.ts"
  *
  * Contains minimal user information extracted from the bearer token.
  * For session-based auth, also includes the session ID for logout/refresh.
+ *
+ * Uses proper branded types for userId and sessionId to ensure type safety
+ * throughout the codebase. This eliminates the need for runtime conversions
+ * with .make() or Schema.decodeUnknown() at usage sites.
  */
 export class User extends Schema.Class<User>("User")({
-  userId: Schema.String,
+  userId: AuthUserId,
   role: Schema.Literal("admin", "user", "readonly"),
   /**
    * Session ID for session-based authentication.
    * Used by logout and refresh handlers to invalidate/renew the session.
    * Optional to support both token-based and session-based auth.
    */
-  sessionId: Schema.optional(Schema.String)
+  sessionId: Schema.optional(SessionId)
 }) {}
 
 /**

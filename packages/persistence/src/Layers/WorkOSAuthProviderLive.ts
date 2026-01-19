@@ -198,7 +198,12 @@ const make = Effect.gen(function* () {
         // Check for successful response
         if (response.status !== 200) {
           const errorBody = yield* response.text.pipe(
-            Effect.catchAll(() => Effect.succeed("Unknown error"))
+            Effect.mapError((readError) =>
+              new ProviderAuthFailedError({
+                provider: "workos",
+                reason: `Token exchange failed (${response.status}), error body unreadable: ${String(readError)}`
+              })
+            )
           )
           return yield* Effect.fail(
             new ProviderAuthFailedError({

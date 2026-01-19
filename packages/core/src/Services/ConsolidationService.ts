@@ -162,6 +162,31 @@ export class ConsolidationStepFailedError extends Schema.TaggedError<Consolidati
 export const isConsolidationStepFailedError = Schema.is(ConsolidationStepFailedError)
 
 /**
+ * Error when consolidation data cannot be parsed from storage
+ *
+ * Consolidation data integrity is critical for accurate financial reports.
+ * If we cannot parse stored data (line items, validation results, etc.),
+ * this indicates data corruption that must be surfaced.
+ */
+export class ConsolidationDataCorruptionError extends Schema.TaggedError<ConsolidationDataCorruptionError>()(
+  "ConsolidationDataCorruptionError",
+  {
+    runId: Schema.String,
+    field: Schema.String,
+    cause: Schema.Defect
+  }
+) {
+  get message(): string {
+    return `Consolidation data corruption in run ${this.runId}, field ${this.field}: ${String(this.cause)}`
+  }
+}
+
+/**
+ * Type guard for ConsolidationDataCorruptionError
+ */
+export const isConsolidationDataCorruptionError = Schema.is(ConsolidationDataCorruptionError)
+
+/**
  * Union type for all consolidation service errors
  */
 export type ConsolidationServiceError =
@@ -169,6 +194,7 @@ export type ConsolidationServiceError =
   | FiscalPeriodNotFoundError
   | ConsolidationRunExistsError
   | ConsolidationValidationError
+  | ConsolidationDataCorruptionError
 
 // =============================================================================
 // Step Result Types

@@ -30,6 +30,7 @@ import {
   ConflictError,
   ForbiddenError,
   NotFoundError,
+  UserLookupError,
   ValidationError
 } from "./ApiErrors.ts"
 import { AuthMiddleware } from "./AuthMiddleware.ts"
@@ -205,6 +206,7 @@ const createJournalEntry = HttpApiEndpoint.post("createJournalEntry", "/")
   .addError(BusinessRuleError)
   .addError(ForbiddenError)
   .addError(AuditLogError)
+  .addError(UserLookupError)
   .annotateContext(OpenApi.annotations({
     summary: "Create journal entry",
     description: "Create a new journal entry in draft status. Entries must have at least two lines and debits must equal credits."
@@ -301,6 +303,7 @@ const postJournalEntry = HttpApiEndpoint.post("postJournalEntry", "/:id/post")
   .addError(BusinessRuleError)
   .addError(ForbiddenError)
   .addError(AuditLogError)
+  .addError(UserLookupError)
   .annotateContext(OpenApi.annotations({
     summary: "Post journal entry",
     description: "Post an approved journal entry to the general ledger. This updates account balances and changes the status to posted."
@@ -317,6 +320,7 @@ const reverseJournalEntry = HttpApiEndpoint.post("reverseJournalEntry", "/:id/re
   .addError(BusinessRuleError)
   .addError(ForbiddenError)
   .addError(AuditLogError)
+  .addError(UserLookupError)
   .annotateContext(OpenApi.annotations({
     summary: "Reverse journal entry",
     description: "Reverse a posted journal entry by creating a new entry with opposite debits and credits."

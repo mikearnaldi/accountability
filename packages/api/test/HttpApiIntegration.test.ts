@@ -212,7 +212,7 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
         Effect.gen(function* () {
           const httpClient = yield* HttpClient.HttpClient
           const response = yield* HttpClientRequest.get("/api/v1/organizations").pipe(
-            HttpClientRequest.bearerToken("user_456_admin"),
+            HttpClientRequest.bearerToken("user_22222222-2222-2222-2222-222222222222_admin"),
             httpClient.execute,
             Effect.scoped
           )
@@ -226,7 +226,7 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
         Effect.gen(function* () {
           const httpClient = yield* HttpClient.HttpClient
           const response = yield* HttpClientRequest.get("/api/v1/organizations").pipe(
-            HttpClientRequest.bearerToken("user_789_user"),
+            HttpClientRequest.bearerToken("user_33333333-3333-3333-3333-333333333333_user"),
             httpClient.execute,
             Effect.scoped
           )
@@ -239,7 +239,7 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
         Effect.gen(function* () {
           const httpClient = yield* HttpClient.HttpClient
           const response = yield* HttpClientRequest.get("/api/v1/organizations").pipe(
-            HttpClientRequest.bearerToken("user_101_readonly"),
+            HttpClientRequest.bearerToken("user_44444444-4444-4444-4444-444444444444_readonly"),
             httpClient.execute,
             Effect.scoped
           )
@@ -389,7 +389,7 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
         Effect.gen(function* () {
           const httpClient = yield* HttpClient.HttpClient
           const response = yield* HttpClientRequest.get("/api/v1/organizations").pipe(
-            HttpClientRequest.bearerToken("user_123_admin"),
+            HttpClientRequest.bearerToken("user_11111111-1111-1111-1111-111111111111_admin"),
             httpClient.execute,
             Effect.scoped
           )
@@ -405,7 +405,7 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
         Effect.gen(function* () {
           const httpClient = yield* HttpClient.HttpClient
           const response = yield* HttpClientRequest.get("/api/v1/organizations/550e8400-e29b-41d4-a716-446655440000").pipe(
-            HttpClientRequest.bearerToken("user_123_admin"),
+            HttpClientRequest.bearerToken("user_11111111-1111-1111-1111-111111111111_admin"),
             httpClient.execute,
             Effect.scoped
           )
@@ -547,7 +547,7 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
               organizationId: "550e8400-e29b-41d4-a716-446655440000",
               companyId: "550e8400-e29b-41d4-a716-446655440001"
             }),
-            HttpClientRequest.bearerToken("user_123_admin"),
+            HttpClientRequest.bearerToken("user_11111111-1111-1111-1111-111111111111_admin"),
             httpClient.execute,
             Effect.scoped
           )
@@ -564,7 +564,7 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
           const httpClient = yield* HttpClient.HttpClient
           const response = yield* HttpClientRequest.get("/api/v1/journal-entries/550e8400-e29b-41d4-a716-446655440010").pipe(
             HttpClientRequest.setUrlParams({ organizationId: "550e8400-e29b-41d4-a716-446655440000" }),
-            HttpClientRequest.bearerToken("user_123_admin"),
+            HttpClientRequest.bearerToken("user_11111111-1111-1111-1111-111111111111_admin"),
             httpClient.execute,
             Effect.scoped
           )
@@ -582,7 +582,7 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
           // Send with invalid/empty lines which violates minimum items constraint
           // Note: transactionDate is ISO string format (YYYY-MM-DD) per LocalDateFromString schema
           const response = yield* HttpClientRequest.post("/api/v1/journal-entries").pipe(
-            HttpClientRequest.bearerToken("user_123_admin"),
+            HttpClientRequest.bearerToken("user_11111111-1111-1111-1111-111111111111_admin"),
             HttpClientRequest.bodyUnsafeJson({
               companyId: "550e8400-e29b-41d4-a716-446655440001",
               description: "Test entry",
@@ -609,7 +609,7 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
           const httpClient = yield* HttpClient.HttpClient
           const response = yield* HttpClientRequest.post("/api/v1/journal-entries/550e8400-e29b-41d4-a716-446655440010/submit").pipe(
             HttpClientRequest.setUrlParams({ organizationId: "550e8400-e29b-41d4-a716-446655440000" }),
-            HttpClientRequest.bearerToken("user_123_admin"),
+            HttpClientRequest.bearerToken("user_11111111-1111-1111-1111-111111111111_admin"),
             httpClient.execute,
             Effect.scoped
           )
@@ -624,7 +624,7 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
           const httpClient = yield* HttpClient.HttpClient
           const response = yield* HttpClientRequest.post("/api/v1/journal-entries/550e8400-e29b-41d4-a716-446655440010/approve").pipe(
             HttpClientRequest.setUrlParams({ organizationId: "550e8400-e29b-41d4-a716-446655440000" }),
-            HttpClientRequest.bearerToken("user_123_admin"),
+            HttpClientRequest.bearerToken("user_11111111-1111-1111-1111-111111111111_admin"),
             httpClient.execute,
             Effect.scoped
           )
@@ -639,7 +639,7 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
           const httpClient = yield* HttpClient.HttpClient
           const response = yield* HttpClientRequest.post("/api/v1/journal-entries/550e8400-e29b-41d4-a716-446655440010/reject").pipe(
             HttpClientRequest.setUrlParams({ organizationId: "550e8400-e29b-41d4-a716-446655440000" }),
-            HttpClientRequest.bearerToken("user_123_admin"),
+            HttpClientRequest.bearerToken("user_11111111-1111-1111-1111-111111111111_admin"),
             HttpClientRequest.bodyUnsafeJson({ reason: "Test rejection" }),
             httpClient.execute,
             Effect.scoped
@@ -654,7 +654,7 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
         Effect.gen(function* () {
           const httpClient = yield* HttpClient.HttpClient
           const response = yield* HttpClientRequest.post("/api/v1/journal-entries/550e8400-e29b-41d4-a716-446655440010/post").pipe(
-            HttpClientRequest.bearerToken("user_123_admin"),
+            HttpClientRequest.bearerToken("user_11111111-1111-1111-1111-111111111111_admin"),
             // PostJournalEntryRequest requires organizationId, postedBy (UUID) and optional postingDate
             HttpClientRequest.bodyUnsafeJson({
               organizationId: "550e8400-e29b-41d4-a716-446655440000",
@@ -674,7 +674,7 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
         Effect.gen(function* () {
           const httpClient = yield* HttpClient.HttpClient
           const response = yield* HttpClientRequest.post("/api/v1/journal-entries/550e8400-e29b-41d4-a716-446655440010/reverse").pipe(
-            HttpClientRequest.bearerToken("user_123_admin"),
+            HttpClientRequest.bearerToken("user_11111111-1111-1111-1111-111111111111_admin"),
             // ReverseJournalEntryRequest schema - organizationId, reversedBy is a UUID, reversalDate is ISO string (YYYY-MM-DD)
             HttpClientRequest.bodyUnsafeJson({
               organizationId: "550e8400-e29b-41d4-a716-446655440000",
@@ -708,7 +708,7 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
               companyId: "550e8400-e29b-41d4-a716-446655440001",
               asOfDate: "2024-01-31"
             }),
-            HttpClientRequest.bearerToken("user_123_admin"),
+            HttpClientRequest.bearerToken("user_11111111-1111-1111-1111-111111111111_admin"),
             httpClient.execute,
             Effect.scoped
           )
@@ -729,7 +729,7 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
               companyId: "550e8400-e29b-41d4-a716-446655440001",
               asOfDate: "2024-01-31"
             }),
-            HttpClientRequest.bearerToken("user_123_admin"),
+            HttpClientRequest.bearerToken("user_11111111-1111-1111-1111-111111111111_admin"),
             httpClient.execute,
             Effect.scoped
           )
@@ -751,7 +751,7 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
               periodStartDate: "2024-01-01",
               periodEndDate: "2024-01-31"
             }),
-            HttpClientRequest.bearerToken("user_123_admin"),
+            HttpClientRequest.bearerToken("user_11111111-1111-1111-1111-111111111111_admin"),
             httpClient.execute,
             Effect.scoped
           )
@@ -773,7 +773,7 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
               periodStartDate: "2024-01-01",
               periodEndDate: "2024-01-31"
             }),
-            HttpClientRequest.bearerToken("user_123_admin"),
+            HttpClientRequest.bearerToken("user_11111111-1111-1111-1111-111111111111_admin"),
             httpClient.execute,
             Effect.scoped
           )
@@ -795,7 +795,7 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
               periodStartDate: "2024-01-01",
               periodEndDate: "2024-01-31"
             }),
-            HttpClientRequest.bearerToken("user_123_admin"),
+            HttpClientRequest.bearerToken("user_11111111-1111-1111-1111-111111111111_admin"),
             httpClient.execute,
             Effect.scoped
           )

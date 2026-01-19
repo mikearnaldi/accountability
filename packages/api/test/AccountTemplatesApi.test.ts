@@ -550,7 +550,7 @@ layer(HttpLive, { timeout: "120 seconds" })("AccountTemplatesApi", (it) => {
       Effect.gen(function* () {
         const httpClient = yield* HttpClient.HttpClient
         const response = yield* HttpClientRequest.get("/api/v1/account-templates").pipe(
-          HttpClientRequest.bearerToken("user_456_user"),
+          HttpClientRequest.bearerToken("user_22222222-2222-2222-2222-222222222222_user"),
           httpClient.execute,
           Effect.scoped
         )

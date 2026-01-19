@@ -881,7 +881,7 @@ export const SessionTokenValidatorLive: Layer.Layer<TokenValidator, never, AuthS
           return User.make({
             userId: user.id,
             role: apiRole,
-            sessionId: tokenValue // Include the session ID for logout/refresh
+            sessionId // Include the session ID for logout/refresh
           })
         })
     } satisfies TokenValidatorService
@@ -923,7 +923,7 @@ export const makeSessionTokenValidator = (authService: AuthServiceShape): TokenV
       return User.make({
         userId: user.id,
         role: apiRole,
-        sessionId: tokenValue // Include session ID for logout/refresh
+        sessionId // Include session ID for logout/refresh
       })
     })
 })

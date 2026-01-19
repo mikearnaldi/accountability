@@ -26,6 +26,7 @@ import {
   ConflictError,
   ForbiddenError,
   NotFoundError,
+  UserLookupError,
   ValidationError
 } from "./ApiErrors.ts"
 import { AuthMiddleware } from "./AuthMiddleware.ts"
@@ -244,6 +245,7 @@ const createCompany = HttpApiEndpoint.post("createCompany", "/companies")
   .addError(ForbiddenError)
   .addError(NotFoundError)
   .addError(AuditLogError)
+  .addError(UserLookupError)
   .annotateContext(OpenApi.annotations({
     summary: "Create company",
     description: "Create a new company within an organization. Companies can have parent-child relationships for consolidation purposes."
@@ -262,6 +264,7 @@ const updateCompany = HttpApiEndpoint.put("updateCompany", "/organizations/:orga
   .addError(BusinessRuleError)
   .addError(ForbiddenError)
   .addError(AuditLogError)
+  .addError(UserLookupError)
   .annotateContext(OpenApi.annotations({
     summary: "Update company",
     description: "Update an existing company within an organization. Only provided fields will be updated."
@@ -277,6 +280,7 @@ const deactivateCompany = HttpApiEndpoint.del("deactivateCompany", "/organizatio
   .addError(BusinessRuleError)
   .addError(ForbiddenError)
   .addError(AuditLogError)
+  .addError(UserLookupError)
   .annotateContext(OpenApi.annotations({
     summary: "Deactivate company",
     description: "Deactivate a company within an organization (soft delete). Companies with active subsidiaries or unposted entries cannot be deactivated."

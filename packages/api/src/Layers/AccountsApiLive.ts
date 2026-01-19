@@ -36,24 +36,35 @@ import {
   ValidationError,
   ConflictError,
   BusinessRuleError,
-  AuditLogError
+  AuditLogError,
+  UserLookupError
 } from "../Definitions/ApiErrors.ts"
-import type { AuditLogError as CoreAuditLogError } from "@accountability/core/AuditLog/AuditLogErrors"
+import type {
+  AuditLogError as CoreAuditLogError,
+  UserLookupError as CoreUserLookupError
+} from "@accountability/core/AuditLog/AuditLogErrors"
 import { requireOrganizationContext, requirePermission } from "./OrganizationContextMiddlewareLive.ts"
 import { AuditLogService } from "@accountability/core/AuditLog/AuditLogService"
 import { CurrentUserId } from "@accountability/core/AuditLog/CurrentUserId"
 
 /**
- * Map core AuditLogError to API AuditLogError
+ * Map core audit errors to API errors
  *
- * The core AuditLogError and API AuditLogError have the same shape,
+ * The core AuditLogError/UserLookupError and API equivalents have the same shape,
  * but different types. This maps between them for proper API error handling.
  */
-const mapCoreAuditErrorToApi = (error: CoreAuditLogError): AuditLogError =>
-  new AuditLogError({
+const mapCoreAuditErrorToApi = (error: CoreAuditLogError | CoreUserLookupError): AuditLogError | UserLookupError => {
+  if (error._tag === "UserLookupError") {
+    return new UserLookupError({
+      userId: error.userId,
+      cause: error.cause
+    })
+  }
+  return new AuditLogError({
     operation: error.operation,
     cause: error.cause
   })
+}
 
 /**
  * Convert persistence errors to NotFoundError
@@ -113,7 +124,7 @@ const mapPersistenceToValidation = (
 const logAccountCreate = (
   organizationId: string,
   account: Account
-): Effect.Effect<void, AuditLogError, AuditLogService | CurrentUserId> =>
+): Effect.Effect<void, AuditLogError | UserLookupError, AuditLogService | CurrentUserId> =>
   Effect.gen(function* () {
     const auditService = yield* AuditLogService
     const userId = yield* CurrentUserId
@@ -146,7 +157,7 @@ const logAccountUpdate = (
   organizationId: string,
   before: Account,
   after: Account
-): Effect.Effect<void, AuditLogError, AuditLogService | CurrentUserId> =>
+): Effect.Effect<void, AuditLogError | UserLookupError, AuditLogService | CurrentUserId> =>
   Effect.gen(function* () {
     const auditService = yield* AuditLogService
     const userId = yield* CurrentUserId
@@ -178,7 +189,7 @@ const logAccountDeactivate = (
   organizationId: string,
   accountId: AccountId,
   accountName: string | null
-): Effect.Effect<void, AuditLogError, AuditLogService | CurrentUserId> =>
+): Effect.Effect<void, AuditLogError | UserLookupError, AuditLogService | CurrentUserId> =>
   Effect.gen(function* () {
     const auditService = yield* AuditLogService
     const userId = yield* CurrentUserId

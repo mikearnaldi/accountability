@@ -42,43 +42,57 @@ import {
   NotFoundError,
   ValidationError,
   BusinessRuleError,
-  AuditLogError
+  AuditLogError,
+  UserLookupError
 } from "../Definitions/ApiErrors.ts"
-import type { AuditLogError as CoreAuditLogError } from "@accountability/core/AuditLog/AuditLogErrors"
+import type { AuditLogError as CoreAuditLogError, UserLookupError as CoreUserLookupError } from "@accountability/core/AuditLog/AuditLogErrors"
+import type { ConsolidationDataCorruptionError } from "@accountability/core/Services/ConsolidationService"
 import { requireOrganizationContext, requirePermission } from "./OrganizationContextMiddlewareLive.ts"
 import { AuditLogService } from "@accountability/core/AuditLog/AuditLogService"
 import { CurrentUserId } from "@accountability/core/AuditLog/CurrentUserId"
 
-/**
- * Map core AuditLogError to API AuditLogError
- */
-const mapCoreAuditErrorToApi = (error: CoreAuditLogError): AuditLogError =>
-  new AuditLogError({
+const mapCoreAuditErrorToApi = (error: CoreAuditLogError | CoreUserLookupError): AuditLogError | UserLookupError => {
+  if (error._tag === "UserLookupError") {
+    return new UserLookupError({
+      userId: error.userId,
+      cause: error.cause
+    })
+  }
+  return new AuditLogError({
     operation: error.operation,
     cause: error.cause
   })
+}
 
 /**
- * Convert persistence errors to NotFoundError
+ * Convert persistence errors and data corruption errors to NotFoundError
+ * Note: Data corruption returns NotFoundError since the entity can't be properly loaded
  */
 const mapPersistenceToNotFound = (
   resource: string,
   id: string,
-  _error: EntityNotFoundError | PersistenceError
+  _error: EntityNotFoundError | PersistenceError | ConsolidationDataCorruptionError
 ): NotFoundError => {
   return new NotFoundError({ resource, id })
 }
 
 /**
- * Convert persistence errors to BusinessRuleError
+ * Convert persistence errors and data corruption errors to BusinessRuleError
  */
 const mapPersistenceToBusinessRule = (
-  error: EntityNotFoundError | PersistenceError
+  error: EntityNotFoundError | PersistenceError | ConsolidationDataCorruptionError
 ): BusinessRuleError => {
   if (isEntityNotFoundError(error)) {
     return new BusinessRuleError({
       code: "ENTITY_NOT_FOUND",
       message: error.message,
+      details: Option.none()
+    })
+  }
+  if (error._tag === "ConsolidationDataCorruptionError") {
+    return new BusinessRuleError({
+      code: "DATA_CORRUPTION",
+      message: `Consolidation data corruption in ${error.field}: ${error.message}`,
       details: Option.none()
     })
   }
@@ -90,11 +104,18 @@ const mapPersistenceToBusinessRule = (
 }
 
 /**
- * Convert persistence errors to ValidationError
+ * Convert persistence errors and data corruption errors to ValidationError
  */
 const mapPersistenceToValidation = (
-  error: EntityNotFoundError | PersistenceError
+  error: EntityNotFoundError | PersistenceError | ConsolidationDataCorruptionError
 ): ValidationError => {
+  if (error._tag === "ConsolidationDataCorruptionError") {
+    return new ValidationError({
+      message: `Consolidation data corruption in ${error.field}: ${error.message}`,
+      field: Option.none(),
+      details: Option.none()
+    })
+  }
   return new ValidationError({
     message: error.message,
     field: Option.none(),
@@ -113,7 +134,7 @@ const mapPersistenceToValidation = (
  */
 const logConsolidationGroupCreate = (
   group: ConsolidationGroup
-): Effect.Effect<void, AuditLogError, AuditLogService | CurrentUserId> =>
+): Effect.Effect<void, AuditLogError | UserLookupError, AuditLogService | CurrentUserId> =>
   Effect.gen(function* () {
     const auditService = yield* AuditLogService
     const userId = yield* CurrentUserId
@@ -142,7 +163,7 @@ const logConsolidationGroupUpdate = (
   groupId: ConsolidationGroupId,
   before: ConsolidationGroup,
   after: ConsolidationGroup
-): Effect.Effect<void, AuditLogError, AuditLogService | CurrentUserId> =>
+): Effect.Effect<void, AuditLogError | UserLookupError, AuditLogService | CurrentUserId> =>
   Effect.gen(function* () {
     const auditService = yield* AuditLogService
     const userId = yield* CurrentUserId
@@ -175,7 +196,7 @@ const logConsolidationGroupStatusChange = (
   groupName: string | null,
   previousStatus: string,
   newStatus: string
-): Effect.Effect<void, AuditLogError, AuditLogService | CurrentUserId> =>
+): Effect.Effect<void, AuditLogError | UserLookupError, AuditLogService | CurrentUserId> =>
   Effect.gen(function* () {
     const auditService = yield* AuditLogService
     const userId = yield* CurrentUserId
@@ -204,7 +225,7 @@ const logConsolidationRunCreate = (
   organizationId: string,
   run: ConsolidationRun,
   groupName: string | null
-): Effect.Effect<void, AuditLogError, AuditLogService | CurrentUserId> =>
+): Effect.Effect<void, AuditLogError | UserLookupError, AuditLogService | CurrentUserId> =>
   Effect.gen(function* () {
     const auditService = yield* AuditLogService
     const userId = yield* CurrentUserId
@@ -238,7 +259,7 @@ const logConsolidationRunStatusChange = (
   previousStatus: string,
   newStatus: string,
   reason?: string
-): Effect.Effect<void, AuditLogError, AuditLogService | CurrentUserId> =>
+): Effect.Effect<void, AuditLogError | UserLookupError, AuditLogService | CurrentUserId> =>
   Effect.gen(function* () {
     const auditService = yield* AuditLogService
     const userId = yield* CurrentUserId
@@ -268,7 +289,7 @@ const logConsolidationRunDelete = (
   organizationId: string,
   run: ConsolidationRun,
   groupName: string | null
-): Effect.Effect<void, AuditLogError, AuditLogService | CurrentUserId> =>
+): Effect.Effect<void, AuditLogError | UserLookupError, AuditLogService | CurrentUserId> =>
   Effect.gen(function* () {
     const auditService = yield* AuditLogService
     const userId = yield* CurrentUserId

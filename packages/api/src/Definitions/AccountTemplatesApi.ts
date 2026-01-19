@@ -19,7 +19,7 @@ import {
   type TemplateAccountDefinition
 } from "@accountability/core/Domains/AccountTemplate"
 import { AuthMiddleware } from "./AuthMiddleware.ts"
-import { AuditLogError, BusinessRuleError, ForbiddenError, NotFoundError } from "./ApiErrors.ts"
+import { AuditLogError, BusinessRuleError, ForbiddenError, NotFoundError, UserLookupError } from "./ApiErrors.ts"
 
 // =============================================================================
 // Response Schemas
@@ -161,6 +161,7 @@ const applyTemplate = HttpApiEndpoint.post("applyAccountTemplate", "/:type/apply
   .addError(BusinessRuleError)
   .addError(ForbiddenError)
   .addError(AuditLogError)
+  .addError(UserLookupError)
   .annotateContext(OpenApi.annotations({
     summary: "Apply account template",
     description: "Apply an account template to a company, creating all accounts defined in the template. The company must exist and should not already have accounts from a template. Requires account:create permission."

@@ -25,6 +25,7 @@ import {
   ConflictError,
   ForbiddenError,
   NotFoundError,
+  UserLookupError,
   ValidationError
 } from "./ApiErrors.ts"
 import { AuthMiddleware } from "./AuthMiddleware.ts"
@@ -199,6 +200,7 @@ const createExchangeRate = HttpApiEndpoint.post("createExchangeRate", "/")
   .addError(ForbiddenError)
   .addError(NotFoundError)
   .addError(AuditLogError)
+  .addError(UserLookupError)
   .annotateContext(OpenApi.annotations({
     summary: "Create exchange rate",
     description: "Create a new exchange rate for a currency pair on a specific date."
@@ -214,6 +216,7 @@ const bulkCreateExchangeRates = HttpApiEndpoint.post("bulkCreateExchangeRates", 
   .addError(ForbiddenError)
   .addError(NotFoundError)
   .addError(AuditLogError)
+  .addError(UserLookupError)
   .annotateContext(OpenApi.annotations({
     summary: "Bulk create exchange rates",
     description: "Create multiple exchange rates in a single request. Useful for importing rates from external sources."
@@ -229,6 +232,7 @@ const deleteExchangeRate = HttpApiEndpoint.del("deleteExchangeRate", "/:id")
   .addError(BusinessRuleError)
   .addError(ForbiddenError)
   .addError(AuditLogError)
+  .addError(UserLookupError)
   .annotateContext(OpenApi.annotations({
     summary: "Delete exchange rate",
     description: "Delete an exchange rate. Rates that have been used in transactions may not be deleted."

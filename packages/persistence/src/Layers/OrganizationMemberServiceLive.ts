@@ -45,7 +45,7 @@ import {
   UserAlreadyMemberError
 } from "@accountability/core/Auth/AuthorizationErrors"
 import { AuditLogService } from "@accountability/core/AuditLog/AuditLogService"
-import type { AuditLogError } from "@accountability/core/AuditLog/AuditLogErrors"
+import type { AuditLogError, UserLookupError } from "@accountability/core/AuditLog/AuditLogErrors"
 import { CurrentUserId } from "@accountability/core/AuditLog/CurrentUserId"
 import { OrganizationMemberRepository } from "../Services/OrganizationMemberRepository.ts"
 
@@ -68,7 +68,7 @@ const logMemberCreate = (
   organizationId: string,
   membership: OrganizationMembership,
   memberName: string | null
-): Effect.Effect<void, AuditLogError, AuditLogService | CurrentUserId> =>
+): Effect.Effect<void, AuditLogError | UserLookupError, AuditLogService | CurrentUserId> =>
   Effect.gen(function* () {
     const auditService = yield* AuditLogService
     const userId = yield* CurrentUserId
@@ -98,7 +98,7 @@ const logMemberUpdate = (
   before: OrganizationMembership,
   after: OrganizationMembership,
   memberName: string | null
-): Effect.Effect<void, AuditLogError, AuditLogService | CurrentUserId> =>
+): Effect.Effect<void, AuditLogError | UserLookupError, AuditLogService | CurrentUserId> =>
   Effect.gen(function* () {
     const auditService = yield* AuditLogService
     const userId = yield* CurrentUserId
@@ -139,7 +139,7 @@ const logMemberStatusChange = (
   previousStatus: string,
   newStatus: string,
   reason?: string
-): Effect.Effect<void, AuditLogError, AuditLogService | CurrentUserId> =>
+): Effect.Effect<void, AuditLogError | UserLookupError, AuditLogService | CurrentUserId> =>
   Effect.gen(function* () {
     const auditService = yield* AuditLogService
     const userId = yield* CurrentUserId

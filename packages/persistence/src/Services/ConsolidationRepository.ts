@@ -21,6 +21,7 @@ import type {
 } from "@accountability/core/Domains/ConsolidationRun"
 import type { OrganizationId } from "@accountability/core/Domains/Organization"
 import type { FiscalPeriodRef } from "@accountability/core/Domains/FiscalPeriodRef"
+import type { ConsolidationDataCorruptionError } from "@accountability/core/Services/ConsolidationService"
 import type { EntityNotFoundError, PersistenceError } from "../Errors/RepositoryError.ts"
 
 /**
@@ -127,7 +128,7 @@ export interface ConsolidationRepositoryService {
   readonly findRun: (
     organizationId: OrganizationId,
     id: ConsolidationRunId
-  ) => Effect.Effect<Option.Option<ConsolidationRun>, PersistenceError>
+  ) => Effect.Effect<Option.Option<ConsolidationRun>, PersistenceError | ConsolidationDataCorruptionError>
 
   /**
    * Find a consolidation run by its unique identifier, throwing if not found
@@ -140,7 +141,7 @@ export interface ConsolidationRepositoryService {
   readonly getRun: (
     organizationId: OrganizationId,
     id: ConsolidationRunId
-  ) => Effect.Effect<ConsolidationRun, EntityNotFoundError | PersistenceError>
+  ) => Effect.Effect<ConsolidationRun, EntityNotFoundError | PersistenceError | ConsolidationDataCorruptionError>
 
   /**
    * Create a new consolidation run
@@ -175,7 +176,7 @@ export interface ConsolidationRepositoryService {
   readonly findRunsByGroup: (
     organizationId: OrganizationId,
     groupId: ConsolidationGroupId
-  ) => Effect.Effect<ReadonlyArray<ConsolidationRun>, PersistenceError>
+  ) => Effect.Effect<ReadonlyArray<ConsolidationRun>, PersistenceError | ConsolidationDataCorruptionError>
 
   /**
    * Find consolidation run for a specific group and period within an organization
@@ -189,7 +190,7 @@ export interface ConsolidationRepositoryService {
     organizationId: OrganizationId,
     groupId: ConsolidationGroupId,
     period: FiscalPeriodRef
-  ) => Effect.Effect<Option.Option<ConsolidationRun>, PersistenceError>
+  ) => Effect.Effect<Option.Option<ConsolidationRun>, PersistenceError | ConsolidationDataCorruptionError>
 
   /**
    * Find consolidation runs by status within an organization
@@ -203,7 +204,7 @@ export interface ConsolidationRepositoryService {
     organizationId: OrganizationId,
     groupId: ConsolidationGroupId,
     status: ConsolidationRunStatus
-  ) => Effect.Effect<ReadonlyArray<ConsolidationRun>, PersistenceError>
+  ) => Effect.Effect<ReadonlyArray<ConsolidationRun>, PersistenceError | ConsolidationDataCorruptionError>
 
   /**
    * Find the latest completed consolidation run for a group within an organization
@@ -215,7 +216,7 @@ export interface ConsolidationRepositoryService {
   readonly findLatestCompletedRun: (
     organizationId: OrganizationId,
     groupId: ConsolidationGroupId
-  ) => Effect.Effect<Option.Option<ConsolidationRun>, PersistenceError>
+  ) => Effect.Effect<Option.Option<ConsolidationRun>, PersistenceError | ConsolidationDataCorruptionError>
 
   /**
    * Find all in-progress consolidation runs for a group within an organization
@@ -227,7 +228,7 @@ export interface ConsolidationRepositoryService {
   readonly findInProgressRuns: (
     organizationId: OrganizationId,
     groupId: ConsolidationGroupId
-  ) => Effect.Effect<ReadonlyArray<ConsolidationRun>, PersistenceError>
+  ) => Effect.Effect<ReadonlyArray<ConsolidationRun>, PersistenceError | ConsolidationDataCorruptionError>
 
   /**
    * Find consolidation runs within a period range for a group within an organization
@@ -243,7 +244,7 @@ export interface ConsolidationRepositoryService {
     groupId: ConsolidationGroupId,
     startPeriod: FiscalPeriodRef,
     endPeriod: FiscalPeriodRef
-  ) => Effect.Effect<ReadonlyArray<ConsolidationRun>, PersistenceError>
+  ) => Effect.Effect<ReadonlyArray<ConsolidationRun>, PersistenceError | ConsolidationDataCorruptionError>
 
   /**
    * Check if a consolidation run exists within an organization

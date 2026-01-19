@@ -47,6 +47,7 @@ import { OrganizationId } from "@accountability/core/Domains/Organization"
 import { Timestamp } from "@accountability/core/Domains/Timestamp"
 import { UserId } from "@accountability/core/Domains/JournalEntry"
 import { Percentage } from "@accountability/core/Domains/Percentage"
+import { ConsolidationDataCorruptionError } from "@accountability/core/Services/ConsolidationService"
 import { ConsolidationRepository, type ConsolidationRepositoryService } from "../Services/ConsolidationRepository.ts"
 import { EntityNotFoundError, wrapSqlError } from "../Errors/RepositoryError.ts"
 import type { PersistenceError } from "../Errors/RepositoryError.ts"
@@ -456,16 +457,24 @@ const make = Effect.gen(function* () {
   }
 
   // Helper to load consolidated trial balance for a run
+  // Consolidation data integrity is critical for accurate financial reports.
+  // If we cannot parse stored data, this indicates data corruption that must be surfaced.
   const loadConsolidatedTrialBalance = (
     runId: string
-  ): Effect.Effect<Option.Option<ConsolidatedTrialBalance>, PersistenceError> =>
+  ): Effect.Effect<Option.Option<ConsolidatedTrialBalance>, PersistenceError | ConsolidationDataCorruptionError> =>
     findTrialBalanceByRunId(runId).pipe(
       Effect.flatMap(Option.match({
         onNone: () => Effect.succeed(Option.none<ConsolidatedTrialBalance>()),
         onSome: (row) => Effect.gen(function* () {
-          // Parse line items from JSONB
+          // Parse line items from JSONB - fail if corrupted
           const lineItemsRaw = yield* Schema.decodeUnknown(Schema.Array(LineItemSchema))(row.line_items).pipe(
-            Effect.catchAll(() => Effect.succeed([]))
+            Effect.mapError((cause) =>
+              new ConsolidationDataCorruptionError({
+                runId,
+                field: "line_items",
+                cause
+              })
+            )
           )
 
           const lineItems = Chunk.fromIterable(
@@ -482,11 +491,27 @@ const make = Effect.gen(function* () {
             }))
           )
 
-          // Parse total amounts from JSONB
-          const totalDebits = yield* Schema.decodeUnknown(MonetaryAmount)(row.total_debits)
-          const totalCredits = yield* Schema.decodeUnknown(MonetaryAmount)(row.total_credits)
-          const totalEliminations = yield* Schema.decodeUnknown(MonetaryAmount)(row.total_eliminations)
-          const totalNCI = yield* Schema.decodeUnknown(MonetaryAmount)(row.total_nci)
+          // Parse total amounts from JSONB - fail if corrupted
+          const totalDebits = yield* Schema.decodeUnknown(MonetaryAmount)(row.total_debits).pipe(
+            Effect.mapError((cause) =>
+              new ConsolidationDataCorruptionError({ runId, field: "total_debits", cause })
+            )
+          )
+          const totalCredits = yield* Schema.decodeUnknown(MonetaryAmount)(row.total_credits).pipe(
+            Effect.mapError((cause) =>
+              new ConsolidationDataCorruptionError({ runId, field: "total_credits", cause })
+            )
+          )
+          const totalEliminations = yield* Schema.decodeUnknown(MonetaryAmount)(row.total_eliminations).pipe(
+            Effect.mapError((cause) =>
+              new ConsolidationDataCorruptionError({ runId, field: "total_eliminations", cause })
+            )
+          )
+          const totalNCI = yield* Schema.decodeUnknown(MonetaryAmount)(row.total_nci).pipe(
+            Effect.mapError((cause) =>
+              new ConsolidationDataCorruptionError({ runId, field: "total_nci", cause })
+            )
+          )
 
           return Option.some(ConsolidatedTrialBalance.make({
             consolidationRunId: ConsolidationRunId.make(row.consolidation_run_id),
@@ -501,32 +526,36 @@ const make = Effect.gen(function* () {
             totalNCI,
             generatedAt: Timestamp.make({ epochMillis: row.generated_at.getTime() })
           }))
-        }).pipe(
-          Effect.catchAll(() => Effect.succeed(Option.none<ConsolidatedTrialBalance>()))
-        )
+        })
       })),
       wrapSqlError("loadConsolidatedTrialBalance")
     )
 
   // Helper to convert run row to entity (loads related data)
-  const rowToConsolidationRun = (row: ConsolidationRunRow): Effect.Effect<ConsolidationRun, PersistenceError> =>
+  // Consolidation data integrity is critical for financial reporting. If we cannot parse
+  // stored JSONB fields, this indicates data corruption that must be surfaced.
+  const rowToConsolidationRun = (row: ConsolidationRunRow): Effect.Effect<ConsolidationRun, PersistenceError | ConsolidationDataCorruptionError> =>
     Effect.gen(function* () {
       const steps = yield* loadSteps(row.id)
       const eliminationEntryIds = yield* loadEliminationEntryIds(row.id)
       const consolidatedTrialBalance = yield* loadConsolidatedTrialBalance(row.id)
 
       // Parse validation result from JSONB using Schema.decodeUnknown
+      // Fail with ConsolidationDataCorruptionError if the stored JSON is corrupted
       const validationResult = yield* Option.fromNullable(row.validation_result).pipe(
         Option.match({
           onNone: () => Effect.succeed(Option.none<ValidationResult>()),
           onSome: (json) => Schema.decodeUnknown(ValidationResult)(json).pipe(
             Effect.map(Option.some),
-            Effect.catchAll(() => Effect.succeed(Option.none<ValidationResult>()))
+            Effect.mapError((cause) =>
+              new ConsolidationDataCorruptionError({ runId: row.id, field: "validation_result", cause })
+            )
           )
         })
       )
 
       // Parse options from JSONB using Schema with defaults
+      // Fail with ConsolidationDataCorruptionError if the stored JSON is corrupted
       const optionsSchema = Schema.Struct({
         skipValidation: Schema.optionalWith(Schema.Boolean, { default: () => false }),
         continueOnWarnings: Schema.optionalWith(Schema.Boolean, { default: () => true }),
@@ -534,12 +563,9 @@ const make = Effect.gen(function* () {
         forceRegeneration: Schema.optionalWith(Schema.Boolean, { default: () => false })
       })
       const parsedOptions = yield* Schema.decodeUnknown(optionsSchema)(row.options).pipe(
-        Effect.catchAll(() => Effect.succeed({
-          skipValidation: false,
-          continueOnWarnings: true,
-          includeEquityMethodInvestments: true,
-          forceRegeneration: false
-        }))
+        Effect.mapError((cause) =>
+          new ConsolidationDataCorruptionError({ runId: row.id, field: "options", cause })
+        )
       )
       const options = ConsolidationRunOptions.make(parsedOptions)
 

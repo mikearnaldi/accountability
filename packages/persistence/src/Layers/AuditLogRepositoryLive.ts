@@ -20,6 +20,7 @@ import {
   AuditEntityType,
   AuditChanges
 } from "@accountability/core/Domains/AuditLog"
+import { AuditDataCorruptionError } from "@accountability/core/AuditLog/AuditLogErrors"
 import {
   AuditLogRepository,
   type AuditLogRepositoryService,
@@ -59,14 +60,25 @@ const AuditChangesFromUnknown = Schema.decodeUnknown(AuditChanges)
 
 /**
  * Convert database row to AuditLogEntry domain entity
+ *
+ * Audit data integrity is critical for compliance. If we cannot parse
+ * stored audit changes JSON, this indicates data corruption that must
+ * be surfaced rather than silently ignored.
  */
-const rowToAuditLogEntry = (row: AuditLogRow): Effect.Effect<AuditLogEntry, never, never> =>
+const rowToAuditLogEntry = (row: AuditLogRow): Effect.Effect<AuditLogEntry, AuditDataCorruptionError, never> =>
   Effect.gen(function* () {
     // Parse changes from JSON - decode using schema for type safety
+    // If the JSON is corrupted, fail with AuditDataCorruptionError
     const changesOption: Option.Option<AuditChanges> = row.changes !== null
       ? yield* AuditChangesFromUnknown(row.changes).pipe(
           Effect.map((c): Option.Option<AuditChanges> => Option.some(c)),
-          Effect.catchAll(() => Effect.succeed(Option.none<AuditChanges>()))
+          Effect.mapError((cause) =>
+            new AuditDataCorruptionError({
+              entryId: row.id,
+              field: "changes",
+              cause
+            })
+          )
         )
       : Option.none<AuditChanges>()
 

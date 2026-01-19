@@ -100,7 +100,7 @@ layer(HttpLive, { timeout: "120 seconds" })("AuditLogApi", (it) => {
       Effect.gen(function* () {
         const client = yield* HttpApiClient.makeWith(AppApi, {
           httpClient: (yield* HttpClient.HttpClient).pipe(
-            HttpClient.mapRequest(HttpClientRequest.bearerToken("user_123_admin"))
+            HttpClient.mapRequest(HttpClientRequest.bearerToken("user_11111111-1111-1111-1111-111111111111_admin"))
           )
         })
 
@@ -129,7 +129,7 @@ layer(HttpLive, { timeout: "120 seconds" })("AuditLogApi", (it) => {
 
         const client = yield* HttpApiClient.makeWith(AppApi, {
           httpClient: (yield* HttpClient.HttpClient).pipe(
-            HttpClient.mapRequest(HttpClientRequest.bearerToken("user_123_admin"))
+            HttpClient.mapRequest(HttpClientRequest.bearerToken("user_11111111-1111-1111-1111-111111111111_admin"))
           )
         })
 
@@ -159,7 +159,7 @@ layer(HttpLive, { timeout: "120 seconds" })("AuditLogApi", (it) => {
 
         const client = yield* HttpApiClient.makeWith(AppApi, {
           httpClient: (yield* HttpClient.HttpClient).pipe(
-            HttpClient.mapRequest(HttpClientRequest.bearerToken("user_123_admin"))
+            HttpClient.mapRequest(HttpClientRequest.bearerToken("user_11111111-1111-1111-1111-111111111111_admin"))
           )
         })
 
@@ -186,7 +186,7 @@ layer(HttpLive, { timeout: "120 seconds" })("AuditLogApi", (it) => {
 
         const client = yield* HttpApiClient.makeWith(AppApi, {
           httpClient: (yield* HttpClient.HttpClient).pipe(
-            HttpClient.mapRequest(HttpClientRequest.bearerToken("user_123_admin"))
+            HttpClient.mapRequest(HttpClientRequest.bearerToken("user_11111111-1111-1111-1111-111111111111_admin"))
           )
         })
 
@@ -213,7 +213,7 @@ layer(HttpLive, { timeout: "120 seconds" })("AuditLogApi", (it) => {
 
         const client = yield* HttpApiClient.makeWith(AppApi, {
           httpClient: (yield* HttpClient.HttpClient).pipe(
-            HttpClient.mapRequest(HttpClientRequest.bearerToken("user_123_admin"))
+            HttpClient.mapRequest(HttpClientRequest.bearerToken("user_11111111-1111-1111-1111-111111111111_admin"))
           )
         })
 
@@ -245,7 +245,7 @@ layer(HttpLive, { timeout: "120 seconds" })("AuditLogApi", (it) => {
 
         const client = yield* HttpApiClient.makeWith(AppApi, {
           httpClient: (yield* HttpClient.HttpClient).pipe(
-            HttpClient.mapRequest(HttpClientRequest.bearerToken("user_123_admin"))
+            HttpClient.mapRequest(HttpClientRequest.bearerToken("user_11111111-1111-1111-1111-111111111111_admin"))
           )
         })
 
@@ -301,7 +301,7 @@ layer(HttpLive, { timeout: "120 seconds" })("AuditLogApi", (it) => {
 
         const client = yield* HttpApiClient.makeWith(AppApi, {
           httpClient: (yield* HttpClient.HttpClient).pipe(
-            HttpClient.mapRequest(HttpClientRequest.bearerToken("user_123_admin"))
+            HttpClient.mapRequest(HttpClientRequest.bearerToken("user_11111111-1111-1111-1111-111111111111_admin"))
           )
         })
 
@@ -337,7 +337,7 @@ layer(HttpLive, { timeout: "120 seconds" })("AuditLogApi", (it) => {
 
         const client = yield* HttpApiClient.makeWith(AppApi, {
           httpClient: (yield* HttpClient.HttpClient).pipe(
-            HttpClient.mapRequest(HttpClientRequest.bearerToken("user_123_admin"))
+            HttpClient.mapRequest(HttpClientRequest.bearerToken("user_11111111-1111-1111-1111-111111111111_admin"))
           )
         })
 
@@ -367,7 +367,7 @@ layer(HttpLive, { timeout: "120 seconds" })("AuditLogApi", (it) => {
 
         const client = yield* HttpApiClient.makeWith(AppApi, {
           httpClient: (yield* HttpClient.HttpClient).pipe(
-            HttpClient.mapRequest(HttpClientRequest.bearerToken("user_123_admin"))
+            HttpClient.mapRequest(HttpClientRequest.bearerToken("user_11111111-1111-1111-1111-111111111111_admin"))
           )
         })
 
@@ -420,7 +420,7 @@ layer(HttpLive, { timeout: "120 seconds" })("AuditLogApi", (it) => {
       Effect.gen(function* () {
         const httpClient = yield* HttpClient.HttpClient
         const response = yield* HttpClientRequest.get(`/api/v1/audit-log/${testOrganizationId}`).pipe(
-          HttpClientRequest.bearerToken("user_456_user"),
+          HttpClientRequest.bearerToken("user_22222222-2222-2222-2222-222222222222_user"),
           httpClient.execute,
           Effect.scoped
         )
@@ -444,7 +444,7 @@ layer(HttpLive, { timeout: "120 seconds" })("AuditLogApi", (it) => {
       Effect.gen(function* () {
         const client = yield* HttpApiClient.makeWith(AppApi, {
           httpClient: (yield* HttpClient.HttpClient).pipe(
-            HttpClient.mapRequest(HttpClientRequest.bearerToken("user_123_admin"))
+            HttpClient.mapRequest(HttpClientRequest.bearerToken("user_11111111-1111-1111-1111-111111111111_admin"))
           )
         })
 
@@ -467,7 +467,7 @@ layer(HttpLive, { timeout: "120 seconds" })("AuditLogApi", (it) => {
 
         const client = yield* HttpApiClient.makeWith(AppApi, {
           httpClient: (yield* HttpClient.HttpClient).pipe(
-            HttpClient.mapRequest(HttpClientRequest.bearerToken("user_123_admin"))
+            HttpClient.mapRequest(HttpClientRequest.bearerToken("user_11111111-1111-1111-1111-111111111111_admin"))
           )
         })
 
@@ -491,7 +491,7 @@ layer(HttpLive, { timeout: "120 seconds" })("AuditLogApi", (it) => {
       Effect.gen(function* () {
         const httpClient = yield* HttpClient.HttpClient
         const response = yield* HttpClientRequest.get(`/api/v1/audit-log/${testOrganizationId}`).pipe(
-          HttpClientRequest.bearerToken("user_123_admin"),
+          HttpClientRequest.bearerToken("user_11111111-1111-1111-1111-111111111111_admin"),
           httpClient.execute,
           Effect.scoped
         )

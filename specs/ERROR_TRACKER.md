@@ -35,15 +35,15 @@ Signs of improper typing:
 ## Summary
 
 **Total Issues Found:** 17 instances across 10 files
-**Issues Fixed:** 7 (Issues 1-6, 9)
-**Issues Remaining:** 10
+**Issues Fixed:** 15 (Issues 1-15)
+**Issues Remaining:** 2
 
 | Severity | Count | Fixed | Remaining | Description |
 |----------|-------|-------|-----------|-------------|
 | CRITICAL | 6 | 4 | 2 | Business rules bent, data integrity at risk |
-| MEDIUM | 5 | 3 | 2 | Audit/security gaps, cleanup failures |
-| LOW | 4 | 0 | 4 | Minor data loss, debugging hindered |
-| TYPE | 2 | 0 | 2 | Domain objects using primitive types instead of branded types |
+| MEDIUM | 5 | 5 | 0 | Audit/security gaps, cleanup failures |
+| LOW | 4 | 4 | 0 | Minor data loss, debugging hindered |
+| TYPE | 2 | 2 | 0 | Domain objects using primitive types instead of branded types |
 
 ---
 
@@ -256,11 +256,11 @@ Effect.catchAll(() =>
 **Business Rule Bent:** Audit trail may be incomplete, which could violate compliance requirements.
 
 **Fix:**
-- [ ] User lookup failure should fail audit log creation - incomplete audit data is worse than no audit data
-- [ ] Or: Store userId with explicit "lookup failed" marker in the audit record (not silent None)
-- [ ] Audit integrity is non-negotiable - partial data hides compliance gaps
+- [x] User lookup failure should fail audit log creation - incomplete audit data is worse than no audit data
+- [x] Added UserLookupError that propagates through the type system
+- [x] Audit integrity is non-negotiable - partial data hides compliance gaps
 
-**Status:** ❌ Not Fixed
+**Status:** ✅ Fixed (UserLookupError now propagates through AuditLogService interface)
 
 ---
 
@@ -286,11 +286,11 @@ const changesOption: Option.Option<AuditChanges> = row.changes !== null
 **Business Rule Bent:** Historical audit data may become inaccessible without any indication of data corruption.
 
 **Fix:**
-- [ ] Parse failures should fail the request - don't return audit entries with missing change data
-- [ ] If data is corrupted, surface the corruption to the caller as an error
-- [ ] Data integrity issues must be visible, not hidden behind Option.none()
+- [x] Parse failures should fail the request - don't return audit entries with missing change data
+- [x] If data is corrupted, surface the corruption to the caller as an error
+- [x] Data integrity issues must be visible, not hidden behind Option.none()
 
-**Status:** ❌ Not Fixed
+**Status:** ✅ Fixed (AuditDataCorruptionError now propagates through AuditLogRepository interface)
 
 ---
 
@@ -344,11 +344,13 @@ const lineItemsRaw = yield* Schema.decodeUnknown(Schema.Array(LineItemSchema))(r
 - Consolidation trial balance could lose account details silently
 
 **Fix:**
-- [ ] Parse failures must fail the request - financial data corruption cannot be silent
-- [ ] Empty array fallback hides data integrity issues
-- [ ] Fail fast so the problem is discovered and fixed
+- [x] Parse failures must fail the request - financial data corruption cannot be silent
+- [x] Empty array fallback hides data integrity issues
+- [x] Fail fast so the problem is discovered and fixed
+- [x] Added ConsolidationDataCorruptionError that propagates through the type system
+- [x] Updated loadConsolidatedTrialBalance to use mapError instead of catchAll
 
-**Status:** ❌ Not Fixed
+**Status:** ✅ Fixed (ConsolidationDataCorruptionError now propagates through ConsolidationRepository interface)
 
 ---
 
@@ -366,10 +368,13 @@ Effect.catchAll(() => Effect.succeed(Option.none<ValidationResult>()))
 - Consolidation validation history becomes incomplete
 
 **Fix:**
-- [ ] Parse failures must fail the request
-- [ ] Corrupted validation data indicates a serious problem that needs immediate attention
+- [x] Parse failures must fail the request
+- [x] Corrupted validation data indicates a serious problem that needs immediate attention
+- [x] Updated rowToConsolidationRun to use mapError instead of catchAll for validation_result
+- [x] Updated rowToConsolidationRun to use mapError instead of catchAll for options
+- [x] Both now return ConsolidationDataCorruptionError on parse failures
 
-**Status:** ❌ Not Fixed
+**Status:** ✅ Fixed (ConsolidationDataCorruptionError now propagates through ConsolidationRepository interface)
 
 ---
 
@@ -389,11 +394,12 @@ const errorBody = yield* tokenResponse.text.pipe(
 - OAuth authentication failure debugging is hindered
 
 **Fix:**
-- [ ] If we can't read the error body, include what we know (status code, headers) in the error
-- [ ] Don't fallback to "Unknown error" - propagate a structured error with available context
-- [ ] The auth failure itself should already be failing the request; ensure error details are preserved
+- [x] If we can't read the error body, include what we know (status code, headers) in the error
+- [x] Don't fallback to "Unknown error" - propagate a structured error with available context
+- [x] The auth failure itself should already be failing the request; ensure error details are preserved
+- [x] Changed to mapError that includes status code and body read error details
 
-**Status:** ❌ Not Fixed
+**Status:** ✅ Fixed (both instances now use mapError with detailed error messages)
 
 ---
 
@@ -413,11 +419,12 @@ const errorBody = yield* tokenResponse.text.pipe(
 - WorkOS authentication failure debugging is hindered
 
 **Fix:**
-- [ ] If we can't read the error body, include what we know (status code, headers) in the error
-- [ ] Don't fallback to "Unknown error" - propagate a structured error with available context
-- [ ] The auth failure itself should already be failing the request; ensure error details are preserved
+- [x] If we can't read the error body, include what we know (status code, headers) in the error
+- [x] Don't fallback to "Unknown error" - propagate a structured error with available context
+- [x] The auth failure itself should already be failing the request; ensure error details are preserved
+- [x] Changed to mapError that includes status code and body read error details
 
-**Status:** ❌ Not Fixed
+**Status:** ✅ Fixed (now uses mapError with detailed error messages)
 
 ---
 
@@ -442,12 +449,14 @@ const sessionId = SessionId.make(currentUser.sessionId)
 **Business Rule Bent:** Type safety is circumvented - the compiler can't catch misuse of session IDs because they're stored as plain strings.
 
 **Fix:**
-- [ ] Update `CurrentUser` schema to use `SessionId` type for the `sessionId` field
-- [ ] Update `CurrentUser` schema to use `AuthUserId` type for the `userId` field
-- [ ] Remove all `SomeId.make(currentUser.field)` conversions - they should be unnecessary
-- [ ] Audit all domain objects for similar primitive-instead-of-branded-type issues
+- [x] Update `CurrentUser` schema to use `SessionId` type for the `sessionId` field
+- [x] Update `CurrentUser` schema to use `AuthUserId` type for the `userId` field
+- [x] Remove all `SomeId.make(currentUser.field)` conversions - they should be unnecessary
+- [x] Updated User class in AuthMiddleware.ts to use branded types
+- [x] Updated all token validators to properly validate and decode user IDs
+- [x] Updated all test files to use valid UUID tokens
 
-**Status:** ❌ Not Fixed
+**Status:** ✅ Fixed (User class now uses AuthUserId and SessionId branded types)
 
 ---
 
@@ -470,11 +479,13 @@ const maybeAuthUserId = yield* Schema.decodeUnknown(AuthUserId)(currentUser.user
 **Business Rule Bent:** Internal data requires runtime validation that should be guaranteed by the type system.
 
 **Fix:**
-- [ ] Update `CurrentUser` schema to use `AuthUserId` type for the `userId` field
-- [ ] This decode should become unnecessary once the type is correct
-- [ ] If test tokens need non-UUID IDs, fix the test infrastructure, don't weaken the types
+- [x] Update `CurrentUser` schema to use `AuthUserId` type for the `userId` field
+- [x] This decode should become unnecessary once the type is correct
+- [x] If test tokens need non-UUID IDs, fix the test infrastructure, don't weaken the types
+- [x] Fixed test tokens to use valid UUID format instead of numeric IDs like "123"
+- [x] Added test case for non-UUID user ID rejection
 
-**Status:** ❌ Not Fixed
+**Status:** ✅ Fixed (User.userId is now typed as AuthUserId, test tokens use valid UUIDs)
 
 ---
 
@@ -591,8 +602,8 @@ For each issue to be marked as fixed:
 | 4 | ✅ | - | CurrencyMismatchError now propagates in IntercompanyService |
 | 5 | ✅ | - | SessionCleanupError now propagates in validateSession |
 | 6 | ✅ | - | Refresh endpoint fails if old session cleanup fails |
-| 7 | ❌ | - | - |
-| 8 | ❌ | - | - |
+| 7 | ✅ | - | UserLookupError now propagates through AuditLogService |
+| 8 | ✅ | - | AuditDataCorruptionError now propagates through AuditLogRepository |
 | 9 | ✅ | - | AuthorizationAuditError now propagates in checkPermission |
 | 10 | ❌ | - | - |
 | 11 | ❌ | - | - |

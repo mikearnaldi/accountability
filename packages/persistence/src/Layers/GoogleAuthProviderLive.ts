@@ -205,7 +205,12 @@ const make = Effect.gen(function* () {
         // Check for successful token response
         if (tokenResponse.status !== 200) {
           const errorBody = yield* tokenResponse.text.pipe(
-            Effect.catchAll(() => Effect.succeed("Unknown error"))
+            Effect.mapError((readError) =>
+              new ProviderAuthFailedError({
+                provider: "google",
+                reason: `Token exchange failed (${tokenResponse.status}), error body unreadable: ${String(readError)}`
+              })
+            )
           )
           return yield* Effect.fail(
             new ProviderAuthFailedError({
@@ -252,7 +257,12 @@ const make = Effect.gen(function* () {
         // Check for successful userinfo response
         if (userInfoResponse.status !== 200) {
           const errorBody = yield* userInfoResponse.text.pipe(
-            Effect.catchAll(() => Effect.succeed("Unknown error"))
+            Effect.mapError((readError) =>
+              new ProviderAuthFailedError({
+                provider: "google",
+                reason: `Userinfo request failed (${userInfoResponse.status}), error body unreadable: ${String(readError)}`
+              })
+            )
           )
           return yield* Effect.fail(
             new ProviderAuthFailedError({
