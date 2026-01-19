@@ -14,11 +14,11 @@
 
 import { HttpApiEndpoint, HttpApiGroup, HttpApiSchema, OpenApi } from "@effect/platform"
 import * as Schema from "effect/Schema"
-import { AuthProviderType } from "@accountability/core/Auth/AuthProviderType"
-import { AuthUser } from "@accountability/core/Auth/AuthUser"
-import { Email } from "@accountability/core/Auth/Email"
-import { SessionId } from "@accountability/core/Auth/SessionId"
-import { UserIdentity, UserIdentityId } from "@accountability/core/Auth/UserIdentity"
+import { AuthProviderType } from "@accountability/core/authentication/AuthProviderType"
+import { AuthUser } from "@accountability/core/authentication/AuthUser"
+import { Email } from "@accountability/core/authentication/Email"
+import { SessionId } from "@accountability/core/authentication/SessionId"
+import { UserIdentity, UserIdentityId } from "@accountability/core/authentication/UserIdentity"
 import { AuthMiddleware } from "./AuthMiddleware.ts"
 
 // =============================================================================

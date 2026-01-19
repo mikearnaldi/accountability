@@ -17,11 +17,11 @@ import {
   HttpClientResponse,
   HttpClientError
 } from "@effect/platform"
-import { Email } from "@accountability/core/Auth/Email"
-import { LocalAuthRequest } from "@accountability/core/Auth/AuthRequest"
+import { Email } from "@accountability/core/authentication/Email"
+import { LocalAuthRequest } from "@accountability/core/authentication/AuthRequest"
 import {
   isProviderAuthFailedError
-} from "@accountability/core/Auth/AuthErrors"
+} from "@accountability/core/authentication/AuthErrors"
 import { WorkOSAuthProvider } from "../src/Services/WorkOSAuthProvider.ts"
 import { WorkOSConfig, WorkOSConfigTag } from "../src/Services/WorkOSConfig.ts"
 import { WorkOSAuthProviderLive } from "../src/Layers/WorkOSAuthProviderLive.ts"

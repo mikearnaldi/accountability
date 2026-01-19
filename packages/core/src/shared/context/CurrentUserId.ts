@@ -14,7 +14,7 @@
 
 import * as Context from "effect/Context"
 import * as Effect from "effect/Effect"
-import type { AuthUserId } from "../../Auth/AuthUserId.ts"
+import type { AuthUserId } from "../../authentication/AuthUserId.ts"
 
 // =============================================================================
 // CurrentUserId Context

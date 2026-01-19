@@ -13,8 +13,8 @@ import * as Context from "effect/Context"
 import * as Layer from "effect/Layer"
 import * as Schema from "effect/Schema"
 import type { Chunk } from "effect"
-import type { AuthProvider } from "@accountability/core/Auth/AuthProvider"
-import type { AuthProviderType } from "@accountability/core/Auth/AuthProviderType"
+import type { AuthProvider } from "@accountability/core/authentication/AuthProvider"
+import type { AuthProviderType } from "@accountability/core/authentication/AuthProviderType"
 
 /**
  * Default session durations in milliseconds

@@ -12,18 +12,18 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import * as Redacted from "effect/Redacted"
-import { AuthUserId } from "@accountability/core/Auth/AuthUserId"
-import { Email } from "@accountability/core/Auth/Email"
-import { ProviderId } from "@accountability/core/Auth/ProviderId"
-import { UserIdentityId } from "@accountability/core/Auth/UserIdentity"
-import { LocalAuthRequest } from "@accountability/core/Auth/AuthRequest"
-import { OAuthAuthRequest } from "@accountability/core/Auth/AuthRequest"
+import { AuthUserId } from "@accountability/core/authentication/AuthUserId"
+import { Email } from "@accountability/core/authentication/Email"
+import { ProviderId } from "@accountability/core/authentication/ProviderId"
+import { UserIdentityId } from "@accountability/core/authentication/UserIdentity"
+import { LocalAuthRequest } from "@accountability/core/authentication/AuthRequest"
+import { OAuthAuthRequest } from "@accountability/core/authentication/AuthRequest"
 import {
   PasswordHasher,
   BcryptAdapterTag,
   BcryptPasswordHasherLive,
   PasswordHasherConfigTag
-} from "@accountability/core/Auth/PasswordHasher"
+} from "@accountability/core/authentication/PasswordHasher"
 import { UserRepository, type AuthUserInsert } from "../src/Services/UserRepository.ts"
 import { UserRepositoryLive } from "../src/Layers/UserRepositoryLive.ts"
 import { IdentityRepository, type UserIdentityInsert } from "../src/Services/IdentityRepository.ts"

@@ -379,7 +379,7 @@ export type AuthError =
  * Use this map when configuring HttpApiSchema.annotations in the API package:
  * ```typescript
  * import { HttpApiSchema } from "@effect/platform"
- * import { InvalidCredentialsError, AUTH_ERROR_STATUS_CODES } from "@accountability/core/Auth/AuthErrors"
+ * import { InvalidCredentialsError, AUTH_ERROR_STATUS_CODES } from "@accountability/core/authentication/AuthErrors"
  *
  * // In API definition:
  * .addError(InvalidCredentialsError, HttpApiSchema.annotations({

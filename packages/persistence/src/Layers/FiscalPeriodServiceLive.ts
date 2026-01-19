@@ -36,7 +36,7 @@ import type { FiscalPeriodStatus } from "@accountability/core/fiscal/FiscalPerio
 import { canTransitionTo } from "@accountability/core/fiscal/FiscalPeriodStatus"
 import { LocalDate } from "@accountability/core/shared/values/LocalDate"
 import * as Timestamp from "@accountability/core/shared/values/Timestamp"
-import type { AuthUserId } from "@accountability/core/Auth/AuthUserId"
+import type { AuthUserId } from "@accountability/core/authentication/AuthUserId"
 import { FiscalPeriodRepository } from "../Services/FiscalPeriodRepository.ts"
 
 // =============================================================================

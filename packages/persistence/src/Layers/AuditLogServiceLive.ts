@@ -16,7 +16,7 @@ import {
   type AuditLogServiceShape
 } from "@accountability/core/audit/AuditLogService"
 import { AuditLogError, UserLookupError } from "@accountability/core/audit/AuditLogErrors"
-import type { AuthUserId } from "@accountability/core/Auth/AuthUserId"
+import type { AuthUserId } from "@accountability/core/authentication/AuthUserId"
 import { AuditLogRepository } from "../Services/AuditLogRepository.ts"
 import { UserRepository } from "../Services/UserRepository.ts"
 

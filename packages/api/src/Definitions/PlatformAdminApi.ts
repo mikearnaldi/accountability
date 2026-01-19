@@ -9,8 +9,8 @@
 
 import { HttpApiEndpoint, HttpApiGroup, OpenApi } from "@effect/platform"
 import * as Schema from "effect/Schema"
-import { AuthUserId } from "@accountability/core/Auth/AuthUserId"
-import { Email } from "@accountability/core/Auth/Email"
+import { AuthUserId } from "@accountability/core/authentication/AuthUserId"
+import { Email } from "@accountability/core/authentication/Email"
 import { ForbiddenError } from "./ApiErrors.ts"
 import { AuthMiddleware } from "./AuthMiddleware.ts"
 import { OrganizationNotFoundError } from "@accountability/core/organization/OrganizationErrors"

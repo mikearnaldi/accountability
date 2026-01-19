@@ -10,10 +10,10 @@
 import * as Context from "effect/Context"
 import type * as Effect from "effect/Effect"
 import type * as Option from "effect/Option"
-import type { AuthUser, UserRole } from "@accountability/core/Auth/AuthUser"
-import type { AuthUserId } from "@accountability/core/Auth/AuthUserId"
-import type { AuthProviderType } from "@accountability/core/Auth/AuthProviderType"
-import type { Email } from "@accountability/core/Auth/Email"
+import type { AuthUser, UserRole } from "@accountability/core/authentication/AuthUser"
+import type { AuthUserId } from "@accountability/core/authentication/AuthUserId"
+import type { AuthProviderType } from "@accountability/core/authentication/AuthProviderType"
+import type { Email } from "@accountability/core/authentication/Email"
 import type { EntityNotFoundError, PersistenceError } from "../Errors/RepositoryError.ts"
 
 /**

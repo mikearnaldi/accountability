@@ -12,7 +12,7 @@ import {
   type SubjectContext
 } from "../../../src/authorization/matchers/SubjectMatcher.ts"
 import type { SubjectCondition } from "../../../src/authorization/PolicyConditions.ts"
-import { AuthUserId } from "../../../src/Auth/AuthUserId.ts"
+import { AuthUserId } from "../../../src/authentication/AuthUserId.ts"
 import type { BaseRole } from "../../../src/authorization/BaseRole.ts"
 import type { FunctionalRole } from "../../../src/authorization/FunctionalRole.ts"
 

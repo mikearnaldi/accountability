@@ -15,7 +15,7 @@ import * as Schema from "effect/Schema"
 import { BaseRole } from "./BaseRole.ts"
 import { FunctionalRole } from "./FunctionalRole.ts"
 import { Action } from "./Action.ts"
-import { AuthUserId } from "../Auth/AuthUserId.ts"
+import { AuthUserId } from "../authentication/AuthUserId.ts"
 
 // =============================================================================
 // Subject Conditions

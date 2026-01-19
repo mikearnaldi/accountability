@@ -7,8 +7,8 @@ import {
   SessionTokenGeneratorLive,
   CryptoRandomAdapterTag,
   type CryptoRandomAdapter
-} from "../../src/Auth/SessionTokenGenerator.ts"
-import { isSessionId } from "../../src/Auth/SessionId.ts"
+} from "../../src/authentication/SessionTokenGenerator.ts"
+import { isSessionId } from "../../src/authentication/SessionId.ts"
 
 describe("SessionTokenConfig", () => {
   describe("validation", () => {

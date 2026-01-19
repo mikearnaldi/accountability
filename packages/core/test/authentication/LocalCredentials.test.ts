@@ -6,8 +6,8 @@ import {
   isLocalCredentials,
   Password,
   RedactedPassword
-} from "../../src/Auth/LocalCredentials.ts"
-import { Email } from "../../src/Auth/Email.ts"
+} from "../../src/authentication/LocalCredentials.ts"
+import { Email } from "../../src/authentication/Email.ts"
 
 describe("Password", () => {
   describe("validation", () => {

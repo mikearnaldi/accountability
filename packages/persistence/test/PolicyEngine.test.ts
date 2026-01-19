@@ -21,7 +21,7 @@ import { AuthorizationPolicy } from "@accountability/core/authorization/Authoriz
 import type { SubjectContext } from "@accountability/core/authorization/matchers/SubjectMatcher"
 import type { ResourceContext } from "@accountability/core/authorization/matchers/ResourceMatcher"
 import type { EnvironmentContext } from "@accountability/core/authorization/matchers/EnvironmentMatcher"
-import { AuthUserId } from "@accountability/core/Auth/AuthUserId"
+import { AuthUserId } from "@accountability/core/authentication/AuthUserId"
 import { OrganizationId } from "@accountability/core/organization/Organization"
 import { PolicyId } from "@accountability/core/authorization/PolicyId"
 import * as Timestamp from "@accountability/core/shared/values/Timestamp"

@@ -19,7 +19,7 @@
 import type { SubjectCondition } from "../PolicyConditions.ts"
 import type { BaseRole } from "../BaseRole.ts"
 import type { FunctionalRole } from "../FunctionalRole.ts"
-import type { AuthUserId } from "../../Auth/AuthUserId.ts"
+import type { AuthUserId } from "../../authentication/AuthUserId.ts"
 
 /**
  * Subject context for matching - represents the user making the request

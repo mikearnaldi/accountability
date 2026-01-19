@@ -12,8 +12,8 @@ import * as Context from "effect/Context"
 import type * as Effect from "effect/Effect"
 import type * as Redacted from "effect/Redacted"
 import * as Schema from "effect/Schema"
-import { AuthUserId } from "@accountability/core/Auth/AuthUserId"
-import { SessionId } from "@accountability/core/Auth/SessionId"
+import { AuthUserId } from "@accountability/core/authentication/AuthUserId"
+import { SessionId } from "@accountability/core/authentication/SessionId"
 import { UnauthorizedError } from "./ApiErrors.ts"
 
 // =============================================================================

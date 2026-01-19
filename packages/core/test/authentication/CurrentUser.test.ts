@@ -5,10 +5,10 @@ import {
   CurrentUser,
   getCurrentUser,
   withCurrentUser
-} from "../../src/Auth/CurrentUser.ts"
-import { AuthUser } from "../../src/Auth/AuthUser.ts"
-import { AuthUserId } from "../../src/Auth/AuthUserId.ts"
-import { Email } from "../../src/Auth/Email.ts"
+} from "../../src/authentication/CurrentUser.ts"
+import { AuthUser } from "../../src/authentication/AuthUser.ts"
+import { AuthUserId } from "../../src/authentication/AuthUserId.ts"
+import { Email } from "../../src/authentication/Email.ts"
 import { Timestamp } from "../../src/shared/values/Timestamp.ts"
 
 describe("CurrentUser", () => {

@@ -9,7 +9,7 @@
 
 import { describe, expect, it } from "@effect/vitest"
 import { Chunk, Effect, Layer, Option } from "effect"
-import { AuthUserId } from "@accountability/core/Auth/AuthUserId"
+import { AuthUserId } from "@accountability/core/authentication/AuthUserId"
 import { AuditLogService } from "@accountability/core/audit/AuditLogService"
 import { AuditLogRepositoryLive } from "../src/Layers/AuditLogRepositoryLive.ts"
 import { AuditLogServiceLive } from "../src/Layers/AuditLogServiceLive.ts"

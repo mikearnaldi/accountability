@@ -15,4 +15,4 @@ export {
   type LoginError,
   type RegistrationError,
   type IdentityLinkError
-} from "@accountability/core/Auth/AuthService"
+} from "@accountability/core/authentication/AuthService"

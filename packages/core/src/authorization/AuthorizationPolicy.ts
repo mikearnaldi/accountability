@@ -11,7 +11,7 @@
  */
 
 import * as Schema from "effect/Schema"
-import { AuthUserId } from "../Auth/AuthUserId.ts"
+import { AuthUserId } from "../authentication/AuthUserId.ts"
 import { OrganizationId } from "../organization/Organization.ts"
 import { PolicyId } from "./PolicyId.ts"
 import { PolicyEffect } from "./PolicyEffect.ts"

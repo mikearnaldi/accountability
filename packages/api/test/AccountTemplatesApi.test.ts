@@ -28,8 +28,8 @@ import { SimpleTokenValidatorLive } from "@accountability/api/Layers/AuthMiddlew
 import { RepositoriesWithAuthLive } from "@accountability/persistence/Layers/RepositoriesLive"
 import { MigrationLayer } from "@accountability/persistence/Layers/MigrationsLive"
 import { UserRepository } from "@accountability/persistence/Services/UserRepository"
-import { AuthUserId } from "@accountability/core/Auth/AuthUserId"
-import { Email } from "@accountability/core/Auth/Email"
+import { AuthUserId } from "@accountability/core/authentication/AuthUserId"
+import { Email } from "@accountability/core/authentication/Email"
 import {
   getAllTemplates,
   getTemplateByType

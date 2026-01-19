@@ -17,11 +17,11 @@ import {
   HttpClientResponse,
   HttpClientError
 } from "@effect/platform"
-import { Email } from "@accountability/core/Auth/Email"
-import { LocalAuthRequest } from "@accountability/core/Auth/AuthRequest"
+import { Email } from "@accountability/core/authentication/Email"
+import { LocalAuthRequest } from "@accountability/core/authentication/AuthRequest"
 import {
   isProviderAuthFailedError
-} from "@accountability/core/Auth/AuthErrors"
+} from "@accountability/core/authentication/AuthErrors"
 import { GoogleAuthProvider } from "../src/Services/GoogleAuthProvider.ts"
 import { GoogleConfig, GoogleConfigTag } from "../src/Services/GoogleConfig.ts"
 import { GoogleAuthProviderLive } from "../src/Layers/GoogleAuthProviderLive.ts"

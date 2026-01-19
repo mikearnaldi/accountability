@@ -8,7 +8,7 @@
  */
 
 import * as Context from "effect/Context"
-import type { AuthProvider } from "@accountability/core/Auth/AuthProvider"
+import type { AuthProvider } from "@accountability/core/authentication/AuthProvider"
 
 /**
  * LocalAuthProvider - Context.Tag for dependency injection

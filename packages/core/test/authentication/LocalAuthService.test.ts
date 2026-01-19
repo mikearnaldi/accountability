@@ -2,21 +2,21 @@ import { describe, it, expect } from "@effect/vitest"
 import { Effect, Layer, Option, Redacted, Chunk, Schema } from "effect"
 
 // Import auth domain types
-import { AuthUser } from "../../src/Auth/AuthUser.ts"
-import { AuthUserId } from "../../src/Auth/AuthUserId.ts"
-import { Email } from "../../src/Auth/Email.ts"
-import { Session } from "../../src/Auth/Session.ts"
-import { SessionId } from "../../src/Auth/SessionId.ts"
-import { ProviderId } from "../../src/Auth/ProviderId.ts"
-import { UserIdentity, UserIdentityId } from "../../src/Auth/UserIdentity.ts"
-import { HashedPassword } from "../../src/Auth/HashedPassword.ts"
-import { LocalAuthRequest, isLocalAuthRequest } from "../../src/Auth/AuthRequest.ts"
-import { AuthResult } from "../../src/Auth/AuthResult.ts"
+import { AuthUser } from "../../src/authentication/AuthUser.ts"
+import { AuthUserId } from "../../src/authentication/AuthUserId.ts"
+import { Email } from "../../src/authentication/Email.ts"
+import { Session } from "../../src/authentication/Session.ts"
+import { SessionId } from "../../src/authentication/SessionId.ts"
+import { ProviderId } from "../../src/authentication/ProviderId.ts"
+import { UserIdentity, UserIdentityId } from "../../src/authentication/UserIdentity.ts"
+import { HashedPassword } from "../../src/authentication/HashedPassword.ts"
+import { LocalAuthRequest, isLocalAuthRequest } from "../../src/authentication/AuthRequest.ts"
+import { AuthResult } from "../../src/authentication/AuthResult.ts"
 import { Timestamp, addHours, addDays } from "../../src/shared/values/Timestamp.ts"
-import type { AuthProviderType } from "../../src/Auth/AuthProviderType.ts"
+import type { AuthProviderType } from "../../src/authentication/AuthProviderType.ts"
 
 // Import auth services
-import { AuthService, type AuthServiceShape, type LoginSuccess, type ValidatedSession } from "../../src/Auth/AuthService.ts"
+import { AuthService, type AuthServiceShape, type LoginSuccess, type ValidatedSession } from "../../src/authentication/AuthService.ts"
 
 // Import auth errors
 import {
@@ -36,7 +36,7 @@ import {
   isPasswordTooWeakError,
   isProviderNotEnabledError,
   isIdentityAlreadyLinkedError
-} from "../../src/Auth/AuthErrors.ts"
+} from "../../src/authentication/AuthErrors.ts"
 
 // =============================================================================
 // Test Fixtures

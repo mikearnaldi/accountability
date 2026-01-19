@@ -977,3 +977,8 @@
 **Task**: Removed last re-export file (CurrencyTranslationService) and updated spec to mark core reorganization complete
 **Status**: complete
 ---
+
+## Iteration 1 - 2026-01-19 20:09
+**Task**: Renamed auth/ to authentication/ in core package for clarity (to distinguish from authorization/)
+**Status**: complete
+---

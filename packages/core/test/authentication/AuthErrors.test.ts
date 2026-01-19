@@ -22,11 +22,11 @@ import {
   isPasswordTooWeakError,
   OAuthStateError,
   isOAuthStateError
-} from "../../src/Auth/AuthErrors.ts"
-import { Email } from "../../src/Auth/Email.ts"
-import { SessionId } from "../../src/Auth/SessionId.ts"
-import { AuthUserId } from "../../src/Auth/AuthUserId.ts"
-import { ProviderId } from "../../src/Auth/ProviderId.ts"
+} from "../../src/authentication/AuthErrors.ts"
+import { Email } from "../../src/authentication/Email.ts"
+import { SessionId } from "../../src/authentication/SessionId.ts"
+import { AuthUserId } from "../../src/authentication/AuthUserId.ts"
+import { ProviderId } from "../../src/authentication/ProviderId.ts"
 
 describe("AuthErrors", () => {
   const validEmail = Email.make("test@example.com")

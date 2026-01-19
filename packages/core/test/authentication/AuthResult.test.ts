@@ -6,11 +6,11 @@ import {
   isAuthResult,
   LoginResult,
   isLoginResult
-} from "../../src/Auth/AuthResult.ts"
-import { Email } from "../../src/Auth/Email.ts"
-import { ProviderId } from "../../src/Auth/ProviderId.ts"
-import { AuthUserId } from "../../src/Auth/AuthUserId.ts"
-import { SessionId } from "../../src/Auth/SessionId.ts"
+} from "../../src/authentication/AuthResult.ts"
+import { Email } from "../../src/authentication/Email.ts"
+import { ProviderId } from "../../src/authentication/ProviderId.ts"
+import { AuthUserId } from "../../src/authentication/AuthUserId.ts"
+import { SessionId } from "../../src/authentication/SessionId.ts"
 
 describe("AuthResult", () => {
   const validEmail = Email.make("test@example.com")

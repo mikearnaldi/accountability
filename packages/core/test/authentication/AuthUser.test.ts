@@ -6,9 +6,9 @@ import {
   isAuthUser,
   UserRole,
   isUserRole
-} from "../../src/Auth/AuthUser.ts"
-import { AuthUserId } from "../../src/Auth/AuthUserId.ts"
-import { Email } from "../../src/Auth/Email.ts"
+} from "../../src/authentication/AuthUser.ts"
+import { AuthUserId } from "../../src/authentication/AuthUserId.ts"
+import { Email } from "../../src/authentication/Email.ts"
 import { Timestamp } from "../../src/shared/values/Timestamp.ts"
 
 describe("UserRole", () => {

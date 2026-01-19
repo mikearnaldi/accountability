@@ -11,8 +11,8 @@ import {
   WorkOSAuthRequest,
   isWorkOSAuthRequest,
   AuthRequestSchema
-} from "../../src/Auth/AuthRequest.ts"
-import { Email } from "../../src/Auth/Email.ts"
+} from "../../src/authentication/AuthRequest.ts"
+import { Email } from "../../src/authentication/Email.ts"
 
 describe("AuthRequest", () => {
   const validEmail = Email.make("test@example.com")

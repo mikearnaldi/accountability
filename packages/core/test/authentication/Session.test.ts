@@ -1,9 +1,9 @@
 import { describe, it, expect } from "@effect/vitest"
 import { Effect, Exit, Equal, Option } from "effect"
 import * as Schema from "effect/Schema"
-import { Session, isSession, UserAgent } from "../../src/Auth/Session.ts"
-import { SessionId } from "../../src/Auth/SessionId.ts"
-import { AuthUserId } from "../../src/Auth/AuthUserId.ts"
+import { Session, isSession, UserAgent } from "../../src/authentication/Session.ts"
+import { SessionId } from "../../src/authentication/SessionId.ts"
+import { AuthUserId } from "../../src/authentication/AuthUserId.ts"
 import { Timestamp } from "../../src/shared/values/Timestamp.ts"
 
 describe("UserAgent", () => {

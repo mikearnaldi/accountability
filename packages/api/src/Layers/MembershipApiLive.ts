@@ -17,7 +17,7 @@ import { UserRepository } from "@accountability/persistence/Services/UserReposit
 import { CurrentUserId } from "@accountability/core/shared/context/CurrentUserId"
 import { CurrentUser } from "../Definitions/AuthMiddleware.ts"
 import { OrganizationId } from "@accountability/core/organization/Organization"
-import { AuthUserId } from "@accountability/core/Auth/AuthUserId"
+import { AuthUserId } from "@accountability/core/authentication/AuthUserId"
 import { AppApi } from "../Definitions/AppApi.ts"
 import {
   MemberInfo,

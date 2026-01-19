@@ -13,7 +13,7 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
-import { AuthUserId } from "@accountability/core/Auth/AuthUserId"
+import { AuthUserId } from "@accountability/core/authentication/AuthUserId"
 import { PolicyId } from "@accountability/core/authorization/PolicyId"
 import { OrganizationId } from "@accountability/core/organization/Organization"
 import {

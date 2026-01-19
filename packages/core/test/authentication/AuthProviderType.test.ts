@@ -5,7 +5,7 @@ import {
   AuthProviderType,
   isAuthProviderType,
   AUTH_PROVIDER_TYPES
-} from "../../src/Auth/AuthProviderType.ts"
+} from "../../src/authentication/AuthProviderType.ts"
 
 describe("AuthProviderType", () => {
   describe("validation", () => {

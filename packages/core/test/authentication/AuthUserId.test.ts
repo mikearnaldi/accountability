@@ -1,7 +1,7 @@
 import { describe, it, expect } from "@effect/vitest"
 import { Effect, Exit } from "effect"
 import * as Schema from "effect/Schema"
-import { AuthUserId, isAuthUserId } from "../../src/Auth/AuthUserId.ts"
+import { AuthUserId, isAuthUserId } from "../../src/authentication/AuthUserId.ts"
 
 describe("AuthUserId", () => {
   const validUUID = "550e8400-e29b-41d4-a716-446655440000"

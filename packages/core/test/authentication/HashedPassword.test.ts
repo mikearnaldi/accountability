@@ -1,7 +1,7 @@
 import { describe, it, expect } from "@effect/vitest"
 import { Effect, Exit } from "effect"
 import * as Schema from "effect/Schema"
-import { HashedPassword } from "../../src/Auth/HashedPassword.ts"
+import { HashedPassword } from "../../src/authentication/HashedPassword.ts"
 
 describe("HashedPassword", () => {
   describe("schema validation", () => {

@@ -1,7 +1,7 @@
 import { describe, it, expect } from "@effect/vitest"
 import { Effect, Exit } from "effect"
 import * as Schema from "effect/Schema"
-import { SessionId, isSessionId } from "../../src/Auth/SessionId.ts"
+import { SessionId, isSessionId } from "../../src/authentication/SessionId.ts"
 
 describe("SessionId", () => {
   // 32+ character base64url-encoded token

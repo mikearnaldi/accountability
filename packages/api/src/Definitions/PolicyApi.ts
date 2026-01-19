@@ -24,7 +24,7 @@ import {
   ActionCondition,
   EnvironmentCondition
 } from "@accountability/core/authorization/PolicyConditions"
-import { AuthUserId } from "@accountability/core/Auth/AuthUserId"
+import { AuthUserId } from "@accountability/core/authentication/AuthUserId"
 import { Action } from "@accountability/core/authorization/Action"
 import { Timestamp } from "@accountability/core/shared/values/Timestamp"
 import { ForbiddenError } from "./ApiErrors.ts"

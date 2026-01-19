@@ -7,8 +7,8 @@ import {
   BcryptPasswordHasherLive,
   BcryptAdapterTag,
   type BcryptAdapter
-} from "../../src/Auth/PasswordHasher.ts"
-import { HashedPassword } from "../../src/Auth/HashedPassword.ts"
+} from "../../src/authentication/PasswordHasher.ts"
+import { HashedPassword } from "../../src/authentication/HashedPassword.ts"
 
 describe("PasswordHasherConfig", () => {
   describe("validation", () => {

@@ -13,7 +13,7 @@ import * as Option from "effect/Option"
 import { AuthorizationAuditRepository, type QueryAuditLogOptions } from "@accountability/persistence/Services/AuthorizationAuditRepository"
 import { UserRepository } from "@accountability/persistence/Services/UserRepository"
 import { OrganizationId } from "@accountability/core/organization/Organization"
-import { AuthUserId } from "@accountability/core/Auth/AuthUserId"
+import { AuthUserId } from "@accountability/core/authentication/AuthUserId"
 import * as Timestamp from "@accountability/core/shared/values/Timestamp"
 import { AppApi } from "../Definitions/AppApi.ts"
 import {

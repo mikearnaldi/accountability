@@ -1,17 +1,17 @@
 import { describe, it, expect } from "@effect/vitest"
 import { Effect, Chunk } from "effect"
 import * as Layer from "effect/Layer"
-import type { AuthServiceShape } from "../../src/Auth/AuthService.ts"
-import { AuthService } from "../../src/Auth/AuthService.ts"
-import type { AuthProviderType } from "../../src/Auth/AuthProviderType.ts"
+import type { AuthServiceShape } from "../../src/authentication/AuthService.ts"
+import { AuthService } from "../../src/authentication/AuthService.ts"
+import type { AuthProviderType } from "../../src/authentication/AuthProviderType.ts"
 import {
   ProviderNotEnabledError,
   UserAlreadyExistsError,
   SessionNotFoundError,
   UserNotFoundError
-} from "../../src/Auth/AuthErrors.ts"
-import { Email } from "../../src/Auth/Email.ts"
-import { SessionId } from "../../src/Auth/SessionId.ts"
+} from "../../src/authentication/AuthErrors.ts"
+import { Email } from "../../src/authentication/Email.ts"
+import { SessionId } from "../../src/authentication/SessionId.ts"
 
 describe("AuthService", () => {
   // Test fixtures

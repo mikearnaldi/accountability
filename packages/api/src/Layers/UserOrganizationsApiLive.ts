@@ -10,7 +10,7 @@
 import { HttpApiBuilder } from "@effect/platform"
 import * as Effect from "effect/Effect"
 import * as Option from "effect/Option"
-import { AuthUserId } from "@accountability/core/Auth/AuthUserId"
+import { AuthUserId } from "@accountability/core/authentication/AuthUserId"
 import type { FunctionalRole } from "@accountability/core/authorization/FunctionalRole"
 import {
   computeEffectivePermissions,

@@ -12,7 +12,7 @@
  */
 
 import * as Schema from "effect/Schema"
-import { AuthUserId } from "../Auth/AuthUserId.ts"
+import { AuthUserId } from "../authentication/AuthUserId.ts"
 import { OrganizationId } from "../organization/Organization.ts"
 import { InvitationId } from "./InvitationId.ts"
 import { InvitationStatus } from "./InvitationStatus.ts"

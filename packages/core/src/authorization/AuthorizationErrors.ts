@@ -15,7 +15,7 @@
 
 import { HttpApiSchema } from "@effect/platform"
 import * as Schema from "effect/Schema"
-import { AuthUserId } from "../Auth/AuthUserId.ts"
+import { AuthUserId } from "../authentication/AuthUserId.ts"
 import { OrganizationId } from "../organization/Organization.ts"
 import { Action } from "./Action.ts"
 import { MembershipStatus } from "../membership/MembershipStatus.ts"

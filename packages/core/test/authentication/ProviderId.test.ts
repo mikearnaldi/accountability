@@ -1,7 +1,7 @@
 import { describe, it, expect } from "@effect/vitest"
 import { Effect, Exit } from "effect"
 import * as Schema from "effect/Schema"
-import { ProviderId, isProviderId } from "../../src/Auth/ProviderId.ts"
+import { ProviderId, isProviderId } from "../../src/authentication/ProviderId.ts"
 
 describe("ProviderId", () => {
   describe("validation", () => {

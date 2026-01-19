@@ -12,7 +12,7 @@
 
 import * as Context from "effect/Context"
 import type * as Effect from "effect/Effect"
-import type { AuthUserId } from "../Auth/AuthUserId.ts"
+import type { AuthUserId } from "../authentication/AuthUserId.ts"
 import type { AuditEntityType, AuditChanges } from "./AuditLog.ts"
 import type { AuditLogError, UserLookupError } from "./AuditLogErrors.ts"
 

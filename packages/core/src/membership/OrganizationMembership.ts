@@ -8,7 +8,7 @@
  */
 
 import * as Schema from "effect/Schema"
-import { AuthUserId } from "../Auth/AuthUserId.ts"
+import { AuthUserId } from "../authentication/AuthUserId.ts"
 import { OrganizationId } from "../organization/Organization.ts"
 import { OrganizationMembershipId } from "./OrganizationMembershipId.ts"
 import { BaseRole } from "../authorization/BaseRole.ts"

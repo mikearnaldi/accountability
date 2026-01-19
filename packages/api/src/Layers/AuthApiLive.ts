@@ -52,11 +52,11 @@ import {
   AuthUserNotFoundError
 } from "../Definitions/AuthApi.ts"
 import { UnauthorizedError } from "../Definitions/ApiErrors.ts"
-import { AuthService, type AuthServiceShape } from "@accountability/core/Auth/AuthService"
-import type { AuthUser } from "@accountability/core/Auth/AuthUser"
-import type { AuthProviderType } from "@accountability/core/Auth/AuthProviderType"
-import { LocalAuthRequest } from "@accountability/core/Auth/AuthRequest"
-import { SessionId } from "@accountability/core/Auth/SessionId"
+import { AuthService, type AuthServiceShape } from "@accountability/core/authentication/AuthService"
+import type { AuthUser } from "@accountability/core/authentication/AuthUser"
+import type { AuthProviderType } from "@accountability/core/authentication/AuthProviderType"
+import { LocalAuthRequest } from "@accountability/core/authentication/AuthRequest"
+import { SessionId } from "@accountability/core/authentication/SessionId"
 import {
   isPasswordTooWeakError,
   isUserAlreadyExistsError,
@@ -67,12 +67,12 @@ import {
   isSessionNotFoundError,
   isSessionExpiredError,
   isUserNotFoundError
-} from "@accountability/core/Auth/AuthErrors"
+} from "@accountability/core/authentication/AuthErrors"
 import { IdentityRepository } from "@accountability/persistence/Services/IdentityRepository"
 import { UserRepository } from "@accountability/persistence/Services/UserRepository"
 import { SessionRepository } from "@accountability/persistence/Services/SessionRepository"
-import { PasswordHasher } from "@accountability/core/Auth/PasswordHasher"
-import { ProviderId } from "@accountability/core/Auth/ProviderId"
+import { PasswordHasher } from "@accountability/core/authentication/PasswordHasher"
+import { ProviderId } from "@accountability/core/authentication/ProviderId"
 
 // =============================================================================
 // Constants

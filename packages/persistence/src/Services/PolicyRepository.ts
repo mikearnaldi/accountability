@@ -17,7 +17,7 @@ import type { AuthorizationPolicy } from "@accountability/core/authorization/Aut
 import type { PolicyId } from "@accountability/core/authorization/PolicyId"
 import type { PolicyEffect } from "@accountability/core/authorization/PolicyEffect"
 import type { SubjectCondition, ResourceCondition, ActionCondition, EnvironmentCondition } from "@accountability/core/authorization/PolicyConditions"
-import type { AuthUserId } from "@accountability/core/Auth/AuthUserId"
+import type { AuthUserId } from "@accountability/core/authentication/AuthUserId"
 import type { OrganizationId } from "@accountability/core/organization/Organization"
 import type { EntityNotFoundError, PersistenceError } from "../Errors/RepositoryError.ts"
 

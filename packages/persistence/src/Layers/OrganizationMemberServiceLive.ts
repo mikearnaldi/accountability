@@ -33,7 +33,7 @@ import {
 } from "@accountability/core/membership/OrganizationMemberService"
 import { OrganizationMembership } from "@accountability/core/membership/OrganizationMembership"
 import { OrganizationMembershipId } from "@accountability/core/membership/OrganizationMembershipId"
-import type { AuthUserId } from "@accountability/core/Auth/AuthUserId"
+import type { AuthUserId } from "@accountability/core/authentication/AuthUserId"
 import type { OrganizationId } from "@accountability/core/organization/Organization"
 import * as Timestamp from "@accountability/core/shared/values/Timestamp"
 import {

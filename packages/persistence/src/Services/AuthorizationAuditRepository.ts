@@ -12,7 +12,7 @@
 import * as Context from "effect/Context"
 import * as Schema from "effect/Schema"
 import type * as Effect from "effect/Effect"
-import type { AuthUserId } from "@accountability/core/Auth/AuthUserId"
+import type { AuthUserId } from "@accountability/core/authentication/AuthUserId"
 import type { OrganizationId } from "@accountability/core/organization/Organization"
 import type { Action } from "@accountability/core/authorization/Action"
 import type { PolicyId } from "@accountability/core/authorization/PolicyId"

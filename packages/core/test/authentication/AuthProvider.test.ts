@@ -1,17 +1,17 @@
 import { describe, it, expect } from "@effect/vitest"
 import { Effect, Option, Redacted } from "effect"
-import type { AuthProvider, AuthProviderRegistry } from "../../src/Auth/AuthProvider.ts"
-import type { AuthProviderType } from "../../src/Auth/AuthProviderType.ts"
-import type { AuthRequest } from "../../src/Auth/AuthRequest.ts"
-import { LocalAuthRequest, OAuthAuthRequest } from "../../src/Auth/AuthRequest.ts"
-import { AuthResult } from "../../src/Auth/AuthResult.ts"
-import { Email } from "../../src/Auth/Email.ts"
-import { ProviderId } from "../../src/Auth/ProviderId.ts"
+import type { AuthProvider, AuthProviderRegistry } from "../../src/authentication/AuthProvider.ts"
+import type { AuthProviderType } from "../../src/authentication/AuthProviderType.ts"
+import type { AuthRequest } from "../../src/authentication/AuthRequest.ts"
+import { LocalAuthRequest, OAuthAuthRequest } from "../../src/authentication/AuthRequest.ts"
+import { AuthResult } from "../../src/authentication/AuthResult.ts"
+import { Email } from "../../src/authentication/Email.ts"
+import { ProviderId } from "../../src/authentication/ProviderId.ts"
 import {
   InvalidCredentialsError,
   ProviderAuthFailedError,
   OAuthStateError
-} from "../../src/Auth/AuthErrors.ts"
+} from "../../src/authentication/AuthErrors.ts"
 
 describe("AuthProvider", () => {
   /**

@@ -21,7 +21,7 @@ import {
   getProviderConfig,
   getLocalConfig,
   getGoogleConfig
-} from "../../src/Auth/AuthConfig.ts"
+} from "../../src/authentication/AuthConfig.ts"
 
 describe("AuthConfig", () => {
   describe("LocalAuthConfig", () => {

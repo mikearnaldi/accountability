@@ -14,8 +14,8 @@
 
 import { HttpApiEndpoint, HttpApiGroup, HttpApiSchema, OpenApi } from "@effect/platform"
 import * as Schema from "effect/Schema"
-import { AuthUserId } from "@accountability/core/Auth/AuthUserId"
-import { Email } from "@accountability/core/Auth/Email"
+import { AuthUserId } from "@accountability/core/authentication/AuthUserId"
+import { Email } from "@accountability/core/authentication/Email"
 import { BaseRole } from "@accountability/core/authorization/BaseRole"
 import { FunctionalRoles } from "@accountability/core/authorization/FunctionalRole"
 import { MembershipStatus } from "@accountability/core/membership/MembershipStatus"

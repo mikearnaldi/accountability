@@ -10,15 +10,15 @@
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
-import type { AuthProvider } from "@accountability/core/Auth/AuthProvider"
-import { ProviderId } from "@accountability/core/Auth/ProviderId"
-import { AuthResult } from "@accountability/core/Auth/AuthResult"
+import type { AuthProvider } from "@accountability/core/authentication/AuthProvider"
+import { ProviderId } from "@accountability/core/authentication/ProviderId"
+import { AuthResult } from "@accountability/core/authentication/AuthResult"
 import {
   InvalidCredentialsError,
   ProviderAuthFailedError
-} from "@accountability/core/Auth/AuthErrors"
-import { isLocalAuthRequest } from "@accountability/core/Auth/AuthRequest"
-import { PasswordHasher } from "@accountability/core/Auth/PasswordHasher"
+} from "@accountability/core/authentication/AuthErrors"
+import { isLocalAuthRequest } from "@accountability/core/authentication/AuthRequest"
+import { PasswordHasher } from "@accountability/core/authentication/PasswordHasher"
 import { IdentityRepository } from "../Services/IdentityRepository.ts"
 import { UserRepository } from "../Services/UserRepository.ts"
 import { LocalAuthProvider } from "../Services/LocalAuthProvider.ts"

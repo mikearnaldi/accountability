@@ -194,7 +194,7 @@ packages/core/src/
 │   └── errors/
 │       └── ReportErrors.ts
 │
-├── auth/                            # Authentication domain
+├── authentication/                  # Authentication domain
 │   ├── entities/
 │   │   ├── AuthUser.ts
 │   │   ├── Session.ts
@@ -218,7 +218,7 @@ packages/core/src/
 │   └── errors/
 │       └── AuthErrors.ts
 │
-├── authorization/                   # Authorization domain (separate from auth)
+├── authorization/                   # Authorization domain (separate from authentication)
 │   ├── entities/
 │   │   └── AuthorizationPolicy.ts
 │   ├── values/
@@ -475,7 +475,7 @@ import { roundToCents } from "../../shared/utils/BigDecimalUtils.js"
 3. Run tests after each domain
 
 ### Phase 4: Reorganize Auth (Large)
-1. Split auth into auth/, authorization/, membership/
+1. Split Auth into authentication/, authorization/, membership/
 2. Move files to appropriate subdirectories
 3. Update imports throughout codebase
 
@@ -519,7 +519,7 @@ What domain does this belong to?
 ├── Currency/Exchange Rates → /currency/
 ├── Consolidation/Elimination → /consolidation/
 ├── Financial Reports → /reporting/
-├── User Authentication → /auth/
+├── User Authentication → /authentication/
 ├── Authorization/Policies → /authorization/
 ├── Organization Membership → /membership/
 ├── Audit Logging → /audit/
@@ -583,7 +583,7 @@ Within the domain, what type is this?
 - [x] Reorganize /reporting/ domain - DONE (re-exports created)
 - [x] Reorganize /audit/ domain - DONE (re-exports created)
 - [x] Reorganize /jurisdiction/ domain - DONE (re-exports created)
-- [x] Split and reorganize /auth/ → auth, authorization, membership - DONE (re-exports created)
+- [x] Split and reorganize /Auth/ → authentication, authorization, membership - DONE (re-exports created)
 - [x] Migrate all errors to domain-specific files - DONE (Phase 5)
 - [x] Update all imports in persistence/api packages to use new domain paths - DONE (Phase 6)
 - [x] Update package.json exports to include new domain paths - DONE (Phase 7)
@@ -606,7 +606,7 @@ Within the domain, what type is this?
   - `shared/` with `values/`, `utils/`, `context/` subdirectories
   - `organization/`, `company/`, `accounting/`, `journal/`, `fiscal/`
   - `currency/`, `consolidation/`, `reporting/`, `audit/`, `jurisdiction/`
-  - `auth/`, `authorization/`, `membership/` (split from old Auth)
+  - `authentication/`, `authorization/`, `membership/` (split from old Auth)
 
 **Shared Code Re-exports Created:**
 The following re-export files were created in `shared/` to establish new import paths while maintaining backward compatibility:
@@ -672,8 +672,8 @@ The old Auth/ directory contained files belonging to three separate domains. Re-
 - `OrganizationMemberService.ts`, `InvitationService.ts`
 - `CurrentOrganizationMembership.ts`, `MembershipErrors.ts`
 
-**auth/** (authentication):
-- Remains in the existing Auth/ directory (case-insensitive filesystem treats auth/ and Auth/ as the same)
+**authentication/** (authentication):
+- Authentication files are now in the `authentication/` directory
 - Files include: `AuthUser.ts`, `AuthUserId.ts`, `Session.ts`, `SessionId.ts`, `LocalCredentials.ts`, `AuthService.ts`, `AuthConfig.ts`, `AuthProvider.ts`, `AuthProviderType.ts`, `AuthRequest.ts`, `AuthResult.ts`, `CurrentUser.ts`, `Email.ts`, `PasswordHasher.ts`, `SessionTokenGenerator.ts`, `AuthErrors.ts`, etc.
 
 **CI Status:** Typecheck passes.
@@ -943,9 +943,9 @@ Moving actual source files from old directories to new domain directories, conve
    - FiscalPeriodService.ts, FiscalPeriodErrors.ts migrated to fiscal/
    - Old FiscalPeriod/ files now re-export from fiscal/ for backward compatibility
 
-5. **auth/** - Pending (19 files)
-   - Note: On macOS, Auth/ and auth/ are the same directory (case-insensitive)
-   - Authentication files remain in Auth/ as the canonical location
+5. **authentication/** - ✅ ALL DONE (19 files)
+   - Renamed from `auth/` to `authentication/` for clarity (to distinguish from `authorization/`)
+   - All authentication files are now in `authentication/` as the canonical location
 
 **CI Status:** All typecheck, lint, and 3915 tests pass.
 
@@ -960,7 +960,7 @@ The core package reorganization is **complete**. All source files have been move
 packages/core/src/
 ├── accounting/       # Account, AccountNumber, AccountHierarchy, etc.
 ├── audit/            # AuditLog, AuditLogService, AuditLogErrors
-├── Auth/             # Authentication: AuthUser, Session, PasswordHasher, etc.
+├── authentication/   # Authentication: AuthUser, Session, PasswordHasher, etc.
 ├── authorization/    # AuthorizationPolicy, PolicyEngine, matchers/
 ├── company/          # Company, CompanyType, CompanyErrors
 ├── consolidation/    # ConsolidationGroup, ConsolidationRun, CurrencyTranslationService
@@ -983,9 +983,5 @@ packages/core/src/
 - No re-export files remain - all imports go directly to source files
 - package.json exports updated to use canonical paths
 - External packages (api, persistence, web) use new domain paths
-- All 3915 tests pass, typecheck clean, lint clean
-
-**Note on Auth/ directory:**
-- On macOS, Auth/ and auth/ are the same directory (case-insensitive filesystem)
-- Authentication files remain in Auth/ as the canonical location
-- This is acceptable - Auth/ is a valid directory name for authentication domain
+- All directories now use lowercase naming consistently
+- All tests pass, typecheck clean, lint clean

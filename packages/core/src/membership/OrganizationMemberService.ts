@@ -13,7 +13,7 @@
 import * as Context from "effect/Context"
 import type * as Effect from "effect/Effect"
 import type { OrganizationMembership } from "./OrganizationMembership.ts"
-import type { AuthUserId } from "../Auth/AuthUserId.ts"
+import type { AuthUserId } from "../authentication/AuthUserId.ts"
 import type { OrganizationId } from "../organization/Organization.ts"
 import type { BaseRole } from "../authorization/BaseRole.ts"
 import type { FunctionalRole } from "../authorization/FunctionalRole.ts"

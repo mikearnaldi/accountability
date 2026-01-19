@@ -12,7 +12,7 @@
 
 import { HttpApiEndpoint, HttpApiGroup, HttpApiSchema, OpenApi } from "@effect/platform"
 import * as Schema from "effect/Schema"
-import { Email } from "@accountability/core/Auth/Email"
+import { Email } from "@accountability/core/authentication/Email"
 import { InvitationId } from "@accountability/core/membership/InvitationId"
 import { InvitationStatus } from "@accountability/core/membership/InvitationStatus"
 import { OrganizationId } from "@accountability/core/organization/Organization"

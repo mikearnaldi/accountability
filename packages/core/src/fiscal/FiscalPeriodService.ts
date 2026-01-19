@@ -21,7 +21,7 @@ import type { FiscalPeriod, FiscalPeriodId, PeriodReopenAuditEntry } from "./Fis
 import type { FiscalPeriodStatus } from "./FiscalPeriodStatus.ts"
 import type { CompanyId } from "../company/Company.ts"
 import type { LocalDate } from "../shared/values/LocalDate.ts"
-import type { AuthUserId } from "../Auth/AuthUserId.ts"
+import type { AuthUserId } from "../authentication/AuthUserId.ts"
 import type {
   FiscalYearNotFoundError,
   FiscalPeriodNotFoundError,

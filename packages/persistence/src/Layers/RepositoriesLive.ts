@@ -13,17 +13,17 @@
 import * as Chunk from "effect/Chunk"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
-import type { AuthProvider } from "@accountability/core/Auth/AuthProvider"
+import type { AuthProvider } from "@accountability/core/authentication/AuthProvider"
 import {
   SessionTokenGeneratorLive,
   SessionTokenConfigTag,
   CryptoRandomAdapterTag
-} from "@accountability/core/Auth/SessionTokenGenerator"
+} from "@accountability/core/authentication/SessionTokenGenerator"
 import {
   BcryptPasswordHasherLive,
   PasswordHasherConfigTag,
   BcryptAdapterTag
-} from "@accountability/core/Auth/PasswordHasher"
+} from "@accountability/core/authentication/PasswordHasher"
 import { AccountRepositoryLive } from "./AccountRepositoryLive.ts"
 import { CompanyRepositoryLive } from "./CompanyRepositoryLive.ts"
 import { OrganizationRepositoryLive } from "./OrganizationRepositoryLive.ts"

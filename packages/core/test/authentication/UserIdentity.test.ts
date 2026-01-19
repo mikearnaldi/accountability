@@ -7,9 +7,9 @@ import {
   UserIdentityId,
   isUserIdentityId,
   ProviderData
-} from "../../src/Auth/UserIdentity.ts"
-import { AuthUserId } from "../../src/Auth/AuthUserId.ts"
-import { ProviderId } from "../../src/Auth/ProviderId.ts"
+} from "../../src/authentication/UserIdentity.ts"
+import { AuthUserId } from "../../src/authentication/AuthUserId.ts"
+import { ProviderId } from "../../src/authentication/ProviderId.ts"
 import { Timestamp } from "../../src/shared/values/Timestamp.ts"
 
 describe("UserIdentityId", () => {

@@ -20,25 +20,25 @@ import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import * as Redacted from "effect/Redacted"
 import * as Schema from "effect/Schema"
-import { AuthService } from "@accountability/core/Auth/AuthService"
-import { AuthUserId } from "@accountability/core/Auth/AuthUserId"
-import { Email } from "@accountability/core/Auth/Email"
-import { ProviderId } from "@accountability/core/Auth/ProviderId"
-import { SessionId } from "@accountability/core/Auth/SessionId"
-import { LocalAuthRequest, OAuthAuthRequest } from "@accountability/core/Auth/AuthRequest"
-import { AuthResult } from "@accountability/core/Auth/AuthResult"
-import type { AuthProvider } from "@accountability/core/Auth/AuthProvider"
-import { ProviderAuthFailedError } from "@accountability/core/Auth/AuthErrors"
+import { AuthService } from "@accountability/core/authentication/AuthService"
+import { AuthUserId } from "@accountability/core/authentication/AuthUserId"
+import { Email } from "@accountability/core/authentication/Email"
+import { ProviderId } from "@accountability/core/authentication/ProviderId"
+import { SessionId } from "@accountability/core/authentication/SessionId"
+import { LocalAuthRequest, OAuthAuthRequest } from "@accountability/core/authentication/AuthRequest"
+import { AuthResult } from "@accountability/core/authentication/AuthResult"
+import type { AuthProvider } from "@accountability/core/authentication/AuthProvider"
+import { ProviderAuthFailedError } from "@accountability/core/authentication/AuthErrors"
 import {
   BcryptAdapterTag,
   BcryptPasswordHasherLive,
   PasswordHasherConfigTag
-} from "@accountability/core/Auth/PasswordHasher"
+} from "@accountability/core/authentication/PasswordHasher"
 import {
   CryptoRandomAdapterTag,
   SessionTokenGeneratorLive,
   SessionTokenConfigTag
-} from "@accountability/core/Auth/SessionTokenGenerator"
+} from "@accountability/core/authentication/SessionTokenGenerator"
 import { UserRepositoryLive } from "../src/Layers/UserRepositoryLive.ts"
 import { IdentityRepositoryLive } from "../src/Layers/IdentityRepositoryLive.ts"
 import { SessionRepositoryLive } from "../src/Layers/SessionRepositoryLive.ts"

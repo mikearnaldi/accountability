@@ -307,7 +307,7 @@ export interface AuthConfigData {
  *
  * Usage:
  * ```typescript
- * import { AuthConfig } from "@accountability/core/Auth/AuthConfig"
+ * import { AuthConfig } from "@accountability/core/authentication/AuthConfig"
  *
  * const program = Effect.gen(function* () {
  *   const config = yield* AuthConfig

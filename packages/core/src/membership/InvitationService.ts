@@ -14,7 +14,7 @@ import type * as Effect from "effect/Effect"
 import type { OrganizationInvitation, InvitationRole } from "./OrganizationInvitation.ts"
 import type { InvitationId } from "./InvitationId.ts"
 import type { OrganizationMembership } from "./OrganizationMembership.ts"
-import type { AuthUserId } from "../Auth/AuthUserId.ts"
+import type { AuthUserId } from "../authentication/AuthUserId.ts"
 import type { OrganizationId } from "../organization/Organization.ts"
 import type { FunctionalRole } from "../authorization/FunctionalRole.ts"
 import type {

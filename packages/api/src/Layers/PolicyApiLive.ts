@@ -15,7 +15,7 @@ import { PolicyRepository } from "@accountability/persistence/Services/PolicyRep
 import { OrganizationMemberRepository } from "@accountability/persistence/Services/OrganizationMemberRepository"
 import { PolicyEngine, type PolicyEvaluationContext } from "@accountability/core/authorization/PolicyEngine"
 import { PolicyId } from "@accountability/core/authorization/PolicyId"
-import { AuthUserId } from "@accountability/core/Auth/AuthUserId"
+import { AuthUserId } from "@accountability/core/authentication/AuthUserId"
 import type { AuthorizationPolicy } from "@accountability/core/authorization/AuthorizationPolicy"
 import type { SubjectCondition, ResourceCondition, ActionCondition, EnvironmentCondition } from "@accountability/core/authorization/PolicyConditions"
 import type { ResourceContext, ResourceType } from "@accountability/core/authorization/matchers/ResourceMatcher"
