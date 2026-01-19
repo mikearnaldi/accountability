@@ -982,3 +982,8 @@
 **Task**: Renamed auth/ to authentication/ in core package for clarity (to distinguish from authorization/)
 **Status**: complete
 ---
+
+## Iteration 1 - 2026-01-19 20:17
+**Task**: Reorganized core/test/ directory structure to match src/ domain organization (accounting, audit, authentication, authorization, company, consolidation, currency, fiscal, journal, jurisdiction, membership, organization, reporting, shared)
+**Status**: complete
+---

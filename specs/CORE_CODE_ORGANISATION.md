@@ -985,3 +985,47 @@ packages/core/src/
 - External packages (api, persistence, web) use new domain paths
 - All directories now use lowercase naming consistently
 - All tests pass, typecheck clean, lint clean
+
+---
+
+### ✅ TEST DIRECTORY REORGANIZATION COMPLETE (2026-01-19)
+
+The test directory (`packages/core/test/`) has been reorganized to match the source domain structure.
+
+**Test Directory Structure:**
+```
+packages/core/test/
+├── accounting/       # Account, AccountNumber, AccountHierarchy, AccountTemplate, etc.
+├── audit/            # (empty - no audit tests exist yet)
+├── authentication/   # AuthUser, Session, PasswordHasher, LocalAuthService, etc.
+├── authorization/    # AuthorizationConfig + matchers/
+│   └── matchers/     # ActionMatcher, ResourceMatcher, SubjectMatcher, EnvironmentMatcher
+├── company/          # Company
+├── consolidation/    # ConsolidationGroup, ConsolidationRun, EliminationRule, services
+├── currency/         # Currency, CurrencyCode, ExchangeRate, CurrencyService
+├── fiscal/           # FiscalPeriodRef
+├── journal/          # JournalEntry, JournalEntryLine, EntryStatusWorkflow, services
+├── jurisdiction/     # Jurisdiction, JurisdictionCode
+├── membership/       # (empty - no membership tests exist yet)
+├── organization/     # Organization
+├── reporting/        # BalanceSheetService, IncomeStatementService, etc.
+└── shared/           # LocalDate, Timestamp, MonetaryAmount, Percentage
+```
+
+**Migration Details:**
+- `test/Domains/` → split into `test/accounting/`, `test/company/`, `test/consolidation/`, `test/currency/`, `test/fiscal/`, `test/journal/`, `test/jurisdiction/`, `test/organization/`, `test/shared/`
+- `test/Services/` → split into `test/accounting/`, `test/consolidation/`, `test/currency/`, `test/journal/`, `test/reporting/`
+- `test/authentication/` → kept as-is for authentication tests, authorization-related files moved to `test/authorization/`
+- `test/authentication/matchers/` → moved to `test/authorization/matchers/` (these are ABAC policy matchers)
+- `test/authentication/AuthorizationConfig.test.ts` → moved to `test/authorization/`
+- `test/authentication/EnvironmentMatcher.test.ts` → moved to `test/authorization/matchers/`
+
+**Empty Directories Created (for future tests):**
+- `test/audit/` - no AuditLog tests exist yet
+- `test/membership/` - no membership service tests exist yet
+
+**Import Path Updates:**
+- Files in `test/authorization/matchers/` updated to use `../../../src/` paths (3 levels deep)
+- All other moved files retain `../../src/` paths (2 levels deep)
+
+**CI Status:** All 3915 tests pass, typecheck clean, lint clean
