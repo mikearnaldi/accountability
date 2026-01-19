@@ -880,7 +880,7 @@ Moving actual source files from old directories to new domain directories, conve
 | AuditLogService.ts | AuditLog/ | audit/ | ✅ Done |
 | CurrentUserId.ts | AuditLog/ | shared/context/ | ✅ Done |
 
-**Authorization domain files migrated (Iteration 14):**
+**Authorization domain files migrated (Iteration 14-15):**
 
 | File | Old Location | New Location | Status |
 |------|-------------|--------------|--------|
@@ -890,6 +890,13 @@ Moving actual source files from old directories to new domain directories, conve
 | Action.ts | Auth/ | authorization/ | ✅ Done |
 | BaseRole.ts | Auth/ | authorization/ | ✅ Done |
 | FunctionalRole.ts | Auth/ | authorization/ | ✅ Done |
+| PolicyConditions.ts | Auth/ | authorization/ | ✅ Done |
+| PolicyEngine.ts | Auth/ | authorization/ | ✅ Done |
+| AuthorizationConfig.ts | Auth/ | authorization/ | ✅ Done |
+| AuthorizationService.ts | Auth/ | authorization/ | ✅ Done |
+| PermissionMatrix.ts | Auth/ | authorization/ | ✅ Done |
+| CurrentEnvironmentContext.ts | Auth/ | authorization/ | ✅ Done |
+| AuthorizationErrors.ts | Auth/ | authorization/ | ✅ Done |
 
 **Files still needing migration:**
 
@@ -897,8 +904,9 @@ Moving actual source files from old directories to new domain directories, conve
    - All service files have been migrated to their canonical domain locations
    - Old Services/ files now re-export from the new locations for backward compatibility
 
-2. **authorization/** - IN PROGRESS (6 of 13 files migrated)
-   - Remaining: PolicyConditions, PolicyEngine, AuthorizationConfig, AuthorizationService, PermissionMatrix, CurrentEnvironmentContext, AuthorizationErrors (7 files)
+2. **authorization/** - ✅ ALL DONE (13 files migrated)
+   - All authorization files have been migrated to their canonical locations
+   - Old Auth/ files now re-export from authorization/ for backward compatibility
 
 3. **membership/** - Pending (10 files)
    - OrganizationMembership, OrganizationMembershipId, MembershipStatus
@@ -926,7 +934,7 @@ The core package reorganization is **in progress**. Source files are being moved
 - 56 domain files migrated from Domains/ to canonical locations
 - 13 service files migrated from Services/ to canonical locations
 - 3 audit files migrated from AuditLog/ to canonical locations
-- 6 authorization files migrated from Auth/ to authorization/
+- 13 authorization files migrated from Auth/ to authorization/
 
 **What's being done:**
 - Moving source files from old directories to new domain directories
@@ -934,8 +942,7 @@ The core package reorganization is **in progress**. Source files are being moved
 - Maintaining internal import consistency
 
 **Next steps:**
-1. Complete authorization/ migration (7 remaining files)
-2. Complete membership/ migration (10 files)
-3. Update internal imports within moved files to use domain-relative paths
-4. Evaluate auth/ directory - macOS case-insensitivity makes separate lowercase auth/ impossible
-5. Delete empty old directories (Domains/, Services/, Errors/)
+1. Complete membership/ migration (10 files)
+2. Update internal imports within moved files to use domain-relative paths
+3. Evaluate auth/ directory - macOS case-insensitivity makes separate lowercase auth/ impossible
+4. Delete empty old directories (Domains/, Services/, Errors/)

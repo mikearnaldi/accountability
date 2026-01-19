@@ -953,3 +953,8 @@
 **Task**: Migrated 6 authorization files (AuthorizationPolicy, PolicyId, PolicyEffect, Action, BaseRole, FunctionalRole) from Auth/ to canonical authorization/ locations with backward-compatible re-exports
 **Status**: complete
 ---
+
+## Iteration 15 - 2026-01-19 18:38
+**Task**: Migrated 7 authorization files (PolicyConditions, PolicyEngine, AuthorizationConfig, AuthorizationService, PermissionMatrix, CurrentEnvironmentContext, AuthorizationErrors) from Auth/ to canonical authorization/ locations with backward-compatible re-exports
+**Status**: complete
+---
