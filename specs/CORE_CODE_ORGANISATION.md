@@ -843,11 +843,14 @@ Moving actual source files from old directories to new domain directories, conve
 | AccountBalance.ts | Domains/ | accounting/ | ✅ Done |
 | AccountValidation.ts | Domains/ | accounting/ | ✅ Done |
 | BalanceValidation.ts | Domains/ | accounting/ | ✅ Done |
+| JournalEntry.ts | Domains/ | journal/ | ✅ Done |
+| JournalEntryLine.ts | Domains/ | journal/ | ✅ Done |
+| EntryStatusWorkflow.ts | Domains/ | journal/ | ✅ Done |
+| MultiCurrencyLineHandling.ts | Domains/ | journal/ | ✅ Done |
 
 **Files still needing migration:**
 
-1. **Domains/** (9 remaining files):
-   - JournalEntry.ts, JournalEntryLine.ts, EntryStatusWorkflow.ts, MultiCurrencyLineHandling.ts → journal/
+1. **Domains/** (5 remaining files):
    - ConsolidationGroup.ts, ConsolidationRun.ts, EliminationRule.ts, IntercompanyTransaction.ts, ConsolidationMethodDetermination.ts → consolidation/
    - AuditLog.ts → audit/
 
