@@ -828,14 +828,20 @@ Moving actual source files from old directories to new domain directories, conve
 | JurisdictionCode.ts | Domains/ | jurisdiction/ | ✅ Done |
 | Currency.ts | Domains/ | currency/ | ✅ Done |
 | ExchangeRate.ts | Domains/ | currency/ | ✅ Done |
+| Jurisdiction.ts | Domains/ | jurisdiction/ | ✅ Done |
+| FiscalYear.ts | Domains/ | fiscal/ | ✅ Done |
+| FiscalPeriod.ts | Domains/ | fiscal/ | ✅ Done |
+| FiscalPeriodRef.ts | Domains/ | fiscal/ | ✅ Done |
+| FiscalPeriodStatus.ts | Domains/ | fiscal/ | ✅ Done |
+| FiscalPeriodType.ts | Domains/ | fiscal/ | ✅ Done |
+| FiscalYearStatus.ts | Domains/ | fiscal/ | ✅ Done |
+| ComputedFiscalPeriod.ts | Domains/ | fiscal/ | ✅ Done |
 
 **Files still needing migration:**
 
-1. **Domains/** (24 remaining files):
-   - Jurisdiction.ts → jurisdiction/
+1. **Domains/** (16 remaining files):
    - Account.ts, AccountNumber.ts, AccountHierarchy.ts, AccountTemplate.ts, AccountBalance.ts, AccountValidation.ts, BalanceValidation.ts → accounting/
    - JournalEntry.ts, JournalEntryLine.ts, EntryStatusWorkflow.ts, MultiCurrencyLineHandling.ts → journal/
-   - FiscalYear.ts, FiscalPeriod.ts, FiscalPeriodRef.ts, FiscalPeriodStatus.ts, FiscalPeriodType.ts, FiscalYearStatus.ts, ComputedFiscalPeriod.ts → fiscal/
    - ConsolidationGroup.ts, ConsolidationRun.ts, EliminationRule.ts, IntercompanyTransaction.ts, ConsolidationMethodDetermination.ts → consolidation/
    - AuditLog.ts → audit/
 

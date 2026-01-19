@@ -1,46 +1,11 @@
 /**
- * FiscalYearStatus - Status of a fiscal year
+ * FiscalYearStatus - Re-export from canonical location
  *
- * Defines the possible states for a fiscal year:
- * - 'Open': Fiscal year is active and periods can be managed
- * - 'Closing': Year-end close is in progress
- * - 'Closed': Fiscal year has been closed (no new entries allowed)
+ * This file maintains backward compatibility during the core package reorganization.
+ * Import from "@accountability/core/fiscal/FiscalYearStatus" for new code.
  *
- * @module FiscalYearStatus
+ * @module Domains/FiscalYearStatus
+ * @deprecated Use "@accountability/core/fiscal/FiscalYearStatus" instead
  */
 
-import * as Schema from "effect/Schema"
-
-/**
- * FiscalYearStatus - The status of a fiscal year
- *
- * Workflow: Open -> Closing -> Closed
- */
-export const FiscalYearStatus = Schema.Literal(
-  "Open",
-  "Closing",
-  "Closed"
-).annotations({
-  identifier: "FiscalYearStatus",
-  title: "Fiscal Year Status",
-  description: "The status of a fiscal year"
-})
-
-/**
- * The FiscalYearStatus type
- */
-export type FiscalYearStatus = typeof FiscalYearStatus.Type
-
-/**
- * Type guard for FiscalYearStatus using Schema.is
- */
-export const isFiscalYearStatus = Schema.is(FiscalYearStatus)
-
-/**
- * All valid FiscalYearStatus values
- */
-export const FiscalYearStatusValues: readonly FiscalYearStatus[] = [
-  "Open",
-  "Closing",
-  "Closed"
-] as const
+export * from "../fiscal/FiscalYearStatus.ts"

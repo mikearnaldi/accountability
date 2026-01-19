@@ -919,3 +919,8 @@
 **Task**: Moved Organization, Company, CompanyType, JurisdictionCode, Currency, and ExchangeRate to canonical domain locations
 **Status**: complete
 ---
+
+## Iteration 8 - 2026-01-19 17:22
+**Task**: Migrated Jurisdiction and fiscal domain files (8 files) to canonical locations with backward-compatible re-exports
+**Status**: complete
+---
