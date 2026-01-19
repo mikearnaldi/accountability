@@ -405,7 +405,7 @@ export class MembershipNotFoundError extends Schema.TaggedError<MembershipNotFou
 2. [x] `packages/core/src/Auth/AuthorizationErrors.ts` (13 errors) ✅ Done
 3. [x] `packages/core/src/FiscalPeriod/FiscalPeriodErrors.ts` (11 errors) ✅ Done
 4. [x] `packages/core/src/AuditLog/AuditLogErrors.ts` (3 errors) ✅ Done
-5. [ ] `packages/core/src/Services/JournalEntryService.ts` (11 errors)
+5. [x] `packages/core/src/Services/JournalEntryService.ts` (11 errors) ✅ Done
 6. [ ] `packages/core/src/Services/CurrencyService.ts` (6 errors)
 7. [ ] `packages/core/src/Services/ConsolidationService.ts` (6 errors)
 8. [ ] `packages/core/src/Domains/AccountValidation.ts` (5 errors)

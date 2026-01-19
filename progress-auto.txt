@@ -801,3 +801,8 @@
 **Task**: Added HttpApiSchema.annotations to 3 errors in AuditLogErrors.ts
 **Status**: complete
 ---
+
+## Iteration 5 - 2026-01-19 12:47
+**Task**: Added HttpApiSchema.annotations to 11 errors in JournalEntryService.ts
+**Status**: complete
+---

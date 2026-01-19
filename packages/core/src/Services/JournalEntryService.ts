@@ -12,6 +12,7 @@
  * @module JournalEntryService
  */
 
+import { HttpApiSchema } from "@effect/platform"
 import * as Context from "effect/Context"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
@@ -41,7 +42,8 @@ export class AccountNotFoundError extends Schema.TaggedError<AccountNotFoundErro
   "AccountNotFoundError",
   {
     accountId: Schema.UUID.pipe(Schema.brand("AccountId"))
-  }
+  },
+  HttpApiSchema.annotations({ status: 404 })
 ) {
   get message(): string {
     return `Account not found: ${this.accountId}`
@@ -61,7 +63,8 @@ export class AccountNotPostableError extends Schema.TaggedError<AccountNotPostab
   {
     accountId: Schema.UUID.pipe(Schema.brand("AccountId")),
     accountName: Schema.String
-  }
+  },
+  HttpApiSchema.annotations({ status: 422 })
 ) {
   get message(): string {
     return `Account '${this.accountName}' (${this.accountId}) is not postable`
@@ -81,7 +84,8 @@ export class AccountNotActiveError extends Schema.TaggedError<AccountNotActiveEr
   {
     accountId: Schema.UUID.pipe(Schema.brand("AccountId")),
     accountName: Schema.String
-  }
+  },
+  HttpApiSchema.annotations({ status: 422 })
 ) {
   get message(): string {
     return `Account '${this.accountName}' (${this.accountId}) is not active`
@@ -104,7 +108,8 @@ export class PeriodNotOpenError extends Schema.TaggedError<PeriodNotOpenError>()
       period: Schema.Number
     }),
     status: Schema.String
-  }
+  },
+  HttpApiSchema.annotations({ status: 409 })
 ) {
   get message(): string {
     return `Fiscal period FY${this.fiscalPeriod.year}-P${String(this.fiscalPeriod.period).padStart(2, "0")} is not open (status: ${this.status})`
@@ -127,7 +132,8 @@ export class PeriodNotFoundError extends Schema.TaggedError<PeriodNotFoundError>
       period: Schema.Number
     }),
     companyId: Schema.UUID.pipe(Schema.brand("CompanyId"))
-  }
+  },
+  HttpApiSchema.annotations({ status: 400 })
 ) {
   get message(): string {
     return `Fiscal period FY${this.fiscalPeriod.year}-P${String(this.fiscalPeriod.period).padStart(2, "0")} not found for company ${this.companyId}`
@@ -144,7 +150,8 @@ export const isPeriodNotFoundError = Schema.is(PeriodNotFoundError)
  */
 export class EmptyJournalEntryError extends Schema.TaggedError<EmptyJournalEntryError>()(
   "EmptyJournalEntryError",
-  {}
+  {},
+  HttpApiSchema.annotations({ status: 400 })
 ) {
   get message(): string {
     return "Journal entry must have at least one line"
@@ -163,7 +170,8 @@ export class DuplicateLineNumberError extends Schema.TaggedError<DuplicateLineNu
   "DuplicateLineNumberError",
   {
     lineNumber: Schema.Number
-  }
+  },
+  HttpApiSchema.annotations({ status: 400 })
 ) {
   get message(): string {
     return `Duplicate line number: ${this.lineNumber}`
@@ -183,7 +191,8 @@ export class NotApprovedError extends Schema.TaggedError<NotApprovedError>()(
   {
     journalEntryId: Schema.UUID.pipe(Schema.brand("JournalEntryId")),
     currentStatus: Schema.Literal("Draft", "PendingApproval", "Approved", "Posted", "Reversed")
-  }
+  },
+  HttpApiSchema.annotations({ status: 422 })
 ) {
   get message(): string {
     return `Journal entry ${this.journalEntryId} cannot be posted: current status is '${this.currentStatus}', must be 'Approved'`
@@ -206,7 +215,8 @@ export class PeriodClosedError extends Schema.TaggedError<PeriodClosedError>()(
       period: Schema.Number
     }),
     status: Schema.String
-  }
+  },
+  HttpApiSchema.annotations({ status: 409 })
 ) {
   get message(): string {
     return `Cannot post to fiscal period FY${this.fiscalPeriod.year}-P${String(this.fiscalPeriod.period).padStart(2, "0")}: period is ${this.status}`
@@ -226,7 +236,8 @@ export class EntryNotPostedError extends Schema.TaggedError<EntryNotPostedError>
   {
     journalEntryId: Schema.UUID.pipe(Schema.brand("JournalEntryId")),
     currentStatus: Schema.Literal("Draft", "PendingApproval", "Approved", "Posted", "Reversed")
-  }
+  },
+  HttpApiSchema.annotations({ status: 422 })
 ) {
   get message(): string {
     return `Journal entry ${this.journalEntryId} cannot be reversed: current status is '${this.currentStatus}', must be 'Posted'`
@@ -246,7 +257,8 @@ export class EntryAlreadyReversedError extends Schema.TaggedError<EntryAlreadyRe
   {
     journalEntryId: Schema.UUID.pipe(Schema.brand("JournalEntryId")),
     reversingEntryId: Schema.UUID.pipe(Schema.brand("JournalEntryId"))
-  }
+  },
+  HttpApiSchema.annotations({ status: 409 })
 ) {
   get message(): string {
     return `Journal entry ${this.journalEntryId} has already been reversed by entry ${this.reversingEntryId}`
