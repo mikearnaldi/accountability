@@ -1,460 +1,116 @@
-# Error Design Architecture
+# Error Design
 
-This document describes the error handling strategy for the Accountability codebase, explaining the three-layer error architecture and how errors flow between layers.
+This document describes the error handling strategy for the Accountability codebase.
 
 ## Overview
 
-The codebase uses a **three-layer error architecture**:
+**One layer of errors:** Domain errors with HTTP annotations. Used everywhere - services, repositories, API handlers. Errors flow through without transformation.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                     API ERRORS (packages/api)               │
-│  HTTP-aware, generic errors with status code annotations    │
-│  NotFoundError, ValidationError, ForbiddenError, etc.       │
-└─────────────────────────────────────────────────────────────┘
-                              ▲
-                              │ mapError (explicit mapping)
-                              │
-┌─────────────────────────────────────────────────────────────┐
-│                   DOMAIN ERRORS (packages/core)             │
-│  Business-level, semantically rich errors                   │
-│  InvalidCredentialsError, MembershipNotFoundError, etc.     │
-└─────────────────────────────────────────────────────────────┘
-                              ▲
-                              │ mapError (wrap or propagate)
-                              │
-┌─────────────────────────────────────────────────────────────┐
-│               PERSISTENCE ERRORS (packages/persistence)     │
-│  Database operation errors, low-level                       │
-│  EntityNotFoundError, PersistenceError, etc.                │
+│                      DOMAIN ERRORS                          │
+│  Schema.TaggedError + HttpApiSchema.annotations             │
+│  Used in repositories, services, and API handlers           │
+│  Flow directly to HTTP responses                            │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+## Key Principles
+
+1. **One error layer** - domain errors with HTTP annotations, used everywhere
+2. **Errors flow through** - no mapping unless business logic requires it
+3. **No manual logging** - telemetry will handle error logging automatically
+4. **Never swallow errors** - propagate or fail, never silently catch
 
 ---
 
-## Layer 1: Persistence Errors
-
-**Location:** `packages/persistence/src/Errors/RepositoryError.ts`
-
-**Purpose:** Represent low-level database operation failures. These errors are generic and do not leak business domain details.
-
-### Error Catalog
-
-| Error | Fields | Description | When to Use |
-|-------|--------|-------------|-------------|
-| `EntityNotFoundError` | `entityType: String`, `entityId: String` | Entity lookup returned no results | `findById`, `findByCode` when entity doesn't exist |
-| `DuplicateEntityError` | `entityType: String`, `entityId: String`, `conflictField: Option<String>` | Unique constraint violation | Insert/update with duplicate key |
-| `PersistenceError` | `operation: String`, `cause: Defect` | Generic database error wrapper | Wrap SQL errors with operation context |
-| `ValidationError` | `entityType: String`, `field: String`, `message: String` | Entity validation failed | Schema validation at persistence boundary |
-| `ConcurrencyError` | `entityType: String`, `entityId: String` | Optimistic locking failure | Concurrent modification detected |
-
-### Union Type
-
-```typescript
-export type RepositoryError =
-  | EntityNotFoundError
-  | DuplicateEntityError
-  | PersistenceError
-  | ValidationError
-  | ConcurrencyError
-```
-
-### Type Guards
-
-All persistence errors export type guards:
-- `isEntityNotFoundError(e)` → `e is EntityNotFoundError`
-- `isDuplicateEntityError(e)` → `e is DuplicateEntityError`
-- `isPersistenceError(e)` → `e is PersistenceError`
-- `isValidationError(e)` → `e is ValidationError`
-- `isConcurrencyError(e)` → `e is ConcurrencyError`
-
-### Utility Functions
-
-```typescript
-// Wrap SQL errors with operation context
-export const wrapSqlError = (operation: string) =>
-  Effect.mapError((cause) => new PersistenceError({ operation, cause }))
-```
-
-### Example Usage
-
-```typescript
-// In a repository
-export const findById = (id: AccountId) =>
-  sql`SELECT * FROM accounts WHERE id = ${id}`.pipe(
-    wrapSqlError("findById"),
-    Effect.flatMap((rows) =>
-      rows.length === 0
-        ? Effect.fail(new EntityNotFoundError({ entityType: "Account", entityId: id }))
-        : Effect.succeed(rows[0])
-    )
-  )
-```
-
----
-
-## Layer 2: Domain Errors
+## Domain Errors
 
 **Location:** `packages/core/src/*/` (organized by domain module)
 
-**Purpose:** Represent business-level failures with rich semantic meaning. These errors:
-- Express domain concepts (e.g., "invitation expired", "owner cannot be removed")
-- Include domain-specific context (e.g., `email`, `organizationId`)
-- Document HTTP status codes as metadata for API layer reference
-- Do NOT include `HttpApiSchema` annotations (no HTTP awareness)
+Every error MUST:
+
+1. **Extend `Schema.TaggedError`** - provides `_tag` discriminator
+2. **Include HTTP annotation** - `HttpApiSchema.annotations({ status: ### })`
+3. **Include a `message` getter** - human-readable description
+4. **Export a type guard** - `export const isMyError = Schema.is(MyError)`
+
+```typescript
+import { HttpApiSchema } from "@effect/platform"
+import * as Schema from "effect/Schema"
+
+export class MembershipNotFoundError extends Schema.TaggedError<MembershipNotFoundError>()(
+  "MembershipNotFoundError",
+  {
+    userId: AuthUserId,
+    organizationId: OrganizationId
+  },
+  HttpApiSchema.annotations({ status: 404 })
+) {
+  get message(): string {
+    return `Membership not found for user ${this.userId} in org ${this.organizationId}`
+  }
+}
+
+export const isMembershipNotFoundError = Schema.is(MembershipNotFoundError)
+```
 
 ### Naming Convention
 
 **Pattern:** `{Domain}{Failure}Error`
 
-Examples:
-- `InvalidCredentialsError` (Auth domain, credentials failure)
-- `MembershipNotFoundError` (Membership domain, not found)
-- `InvitationExpiredError` (Invitation domain, expiry failure)
-- `FiscalYearNotFoundError` (FiscalPeriod domain, not found)
-
-### Required Structure
-
-Every domain error MUST:
-
-1. **Extend `Schema.TaggedError`** - provides `_tag` discriminator
-2. **Use domain-specific types** - prefer `Email`, `OrganizationId` over `Schema.String`
-3. **Include a `message` getter** - human-readable description
-4. **Document HTTP status in JSDoc comment** - helps API layer implementers
-5. **Export a type guard** - `export const isMyError = Schema.is(MyError)`
-
-```typescript
-/**
- * HTTP Status: 401 Unauthorized
- *
- * The user provided invalid credentials during authentication.
- */
-export class InvalidCredentialsError extends Schema.TaggedError<InvalidCredentialsError>()(
-  "InvalidCredentialsError",
-  {
-    email: Email.annotations({
-      description: "The email address that was used for authentication"
-    })
-  }
-) {
-  get message(): string {
-    return "Invalid email or password"
-  }
-}
-
-export const isInvalidCredentialsError = Schema.is(InvalidCredentialsError)
-```
-
-### Domain Error Catalog
-
-#### Auth Module (`packages/core/src/Auth/AuthErrors.ts`)
-
-| Error | Fields | HTTP | Purpose |
-|-------|--------|------|---------|
-| `InvalidCredentialsError` | `email: Email` | 401 | Wrong username/password |
-| `SessionExpiredError` | `sessionId: SessionId` | 401 | Session exceeded lifetime |
-| `SessionNotFoundError` | `sessionId: SessionId` | 401 | Invalid session token |
-| `ProviderAuthFailedError` | `provider: AuthProviderType`, `reason: String` | 401 | External provider auth failed |
-| `UserNotFoundError` | `email: Email` | 404 | User doesn't exist |
-| `ProviderNotEnabledError` | `provider: AuthProviderType` | 404 | Provider not configured |
-| `UserAlreadyExistsError` | `email: Email` | 409 | Duplicate email registration |
-| `IdentityAlreadyLinkedError` | `provider: AuthProviderType`, `providerId: ProviderId`, `existingUserId: AuthUserId` | 409 | Identity linked to different user |
-| `PasswordTooWeakError` | `requirements: Chunk<String>` | 400 | Password validation failed |
-| `OAuthStateError` | `provider: AuthProviderType` | 400 | OAuth state mismatch (CSRF) |
-| `SessionCleanupError` | `sessionId: SessionId`, `operation: String`, `cause: Unknown` | 500 | Failed to delete expired session |
-
-**Status Code Map:** `AUTH_ERROR_STATUS_CODES`
-
-#### Authorization Module (`packages/core/src/Auth/AuthorizationErrors.ts`)
-
-| Error | Fields | HTTP | Purpose |
-|-------|--------|------|---------|
-| `PermissionDeniedError` | `action: Action`, `resourceType: String`, `resourceId?: UUID`, `reason: String` | 403 | User lacks required permission |
-| `MembershipNotActiveError` | `userId: AuthUserId`, `organizationId: OrganizationId`, `status: MembershipStatus` | 403 | Membership is suspended/removed |
-| `MembershipNotFoundError` | `userId: AuthUserId`, `organizationId: OrganizationId` | 404 | User not member of org |
-| `InvalidInvitationError` | `reason: String` | 400 | Invitation is invalid/not found |
-| `InvitationExpiredError` | (no fields) | 400 | Invitation revoked |
-| `OwnerCannotBeRemovedError` | `organizationId: OrganizationId` | 409 | Cannot remove org owner |
-| `OwnerCannotBeSuspendedError` | `organizationId: OrganizationId` | 409 | Cannot suspend org owner |
-| `MemberNotSuspendedError` | `userId: AuthUserId`, `organizationId: OrganizationId`, `currentStatus: MembershipStatus` | 409 | Cannot unsuspend non-suspended member |
-| `CannotTransferToNonAdminError` | `userId: AuthUserId` | 409 | Cannot transfer to non-admin |
-| `InvitationAlreadyExistsError` | `email: String`, `organizationId: OrganizationId` | 409 | Pending invitation already exists |
-| `UserAlreadyMemberError` | `userId: AuthUserId`, `organizationId: OrganizationId` | 409 | User already member |
-| `PolicyLoadError` | `organizationId: OrganizationId`, `cause: Unknown` | 500 | Failed to load policies |
-| `AuthorizationAuditError` | `operation: String`, `cause: Unknown` | 500 | Failed to log audit |
-
-**Status Code Map:** `AUTHORIZATION_ERROR_STATUS_CODES`
-
-#### AuditLog Module (`packages/core/src/AuditLog/AuditLogErrors.ts`)
-
-| Error | Fields | HTTP | Purpose |
-|-------|--------|------|---------|
-| `AuditLogError` | `operation: String`, `cause: Defect` | 500 | Audit log operation failed |
-| `UserLookupError` | `userId: String`, `cause: Defect` | 500 | User lookup failed during audit |
-| `AuditDataCorruptionError` | `entryId: String`, `field: String`, `cause: Defect` | 500 | Audit data parse failed |
-
-#### FiscalPeriod Module (`packages/core/src/FiscalPeriod/FiscalPeriodErrors.ts`)
-
-| Error | Fields | HTTP | Purpose |
-|-------|--------|------|---------|
-| `FiscalYearNotFoundError` | `fiscalYearId: FiscalYearId` | 404 | Fiscal year doesn't exist |
-| `FiscalPeriodNotFoundError` | `fiscalPeriodId: FiscalPeriodId` | 404 | Fiscal period doesn't exist |
-| `FiscalPeriodNotFoundForDateError` | `companyId: CompanyId`, `date: String` | 400 | No fiscal period for date |
-| `InvalidStatusTransitionError` | `currentStatus: FiscalPeriodStatus`, `targetStatus: FiscalPeriodStatus`, `periodId: FiscalPeriodId` | 400 | Invalid period status transition |
-| `InvalidYearStatusTransitionError` | `currentStatus: FiscalYearStatus`, `targetStatus: FiscalYearStatus`, `fiscalYearId: FiscalYearId` | 400 | Invalid year status transition |
-| `FiscalYearOverlapError` | `companyId: CompanyId`, `year: Number`, `existingYearId: FiscalYearId` | 400 | Fiscal year dates overlap |
-| `FiscalYearAlreadyExistsError` | `companyId: CompanyId`, `year: Number` | 409 | Fiscal year already exists |
-| `PeriodNotOpenError` | `periodId: FiscalPeriodId`, `currentStatus: FiscalPeriodStatus` | 409 | Period not in Open status |
-| `PeriodProtectedError` | `periodId: FiscalPeriodId`, `currentStatus: FiscalPeriodStatus`, `action: String` | 409 | Period is closed/locked |
-| `YearNotClosedError` | `fiscalYearId: FiscalYearId`, `currentStatus: FiscalYearStatus` | 409 | Year not fully closed |
-| `PeriodsNotClosedError` | `fiscalYearId: FiscalYearId`, `openPeriodCount: Number` | 409 | Not all periods closed |
-
-**Status Code Map:** `FISCAL_PERIOD_ERROR_STATUS_CODES`
-
-### Status Code Maps
-
-Each domain module SHOULD export a status code map for API layer reference:
-
-```typescript
-export const AUTH_ERROR_STATUS_CODES = {
-  InvalidCredentialsError: 401,
-  SessionExpiredError: 401,
-  SessionNotFoundError: 401,
-  ProviderAuthFailedError: 401,
-  UserNotFoundError: 404,
-  ProviderNotEnabledError: 404,
-  UserAlreadyExistsError: 409,
-  IdentityAlreadyLinkedError: 409,
-  PasswordTooWeakError: 400,
-  OAuthStateError: 400,
-  SessionCleanupError: 500
-} as const
-```
+- `MembershipNotFoundError`
+- `InvalidCredentialsError`
+- `FiscalYearAlreadyExistsError`
 
 ---
 
-## Layer 3: API Errors
+## Usage
 
-**Location:** `packages/api/src/Definitions/ApiErrors.ts`
-
-**Purpose:** HTTP-aware errors that get serialized to API responses. These errors:
-- Include `HttpApiSchema.annotations({ status: ### })` for HTTP status mapping
-- Are generic and reusable across all endpoints
-- Map multiple domain errors to a single HTTP error type
-- Include field descriptions for OpenAPI documentation
-
-### API Error Catalog
-
-| Error | Status | Fields | Purpose |
-|-------|--------|--------|---------|
-| `NotFoundError` | 404 | `resource: String`, `id: String` | Resource not found |
-| `ValidationError` | 400 | `message: String`, `field?: String`, `details?: Array<{field, message}>` | Request validation failed |
-| `UnauthorizedError` | 401 | `message: String` (default: "Authentication required") | Authentication required |
-| `ForbiddenError` | 403 | `message: String`, `resource?: String`, `action?: String` | Access denied |
-| `ConflictError` | 409 | `message: String`, `resource?: String`, `conflictingField?: String` | Resource conflict |
-| `BusinessRuleError` | 422 | `code: String`, `message: String`, `details?: Unknown` | Business rule violation |
-| `InternalServerError` | 500 | `message: String`, `requestId?: String` | Unexpected server error |
-
-### When to Use Each API Error
-
-| Scenario | API Error | Example |
-|----------|-----------|---------|
-| Entity doesn't exist | `NotFoundError` | Account, Company, JournalEntry not found |
-| Input validation failed | `ValidationError` | Invalid date format, missing required field |
-| User not authenticated | `UnauthorizedError` | No session, expired session, invalid credentials |
-| User lacks permission | `ForbiddenError` | Cannot edit, cannot delete, cannot approve |
-| Duplicate/conflict | `ConflictError` | Email already exists, duplicate entry |
-| Business rule violated | `BusinessRuleError` | Owner cannot be removed, period is locked |
-| Unexpected failure | `InternalServerError` | Database down, external service failed |
-
-### Example API Error
+### Repositories Return Domain Errors Directly
 
 ```typescript
-export class NotFoundError extends Schema.TaggedError<NotFoundError>()(
-  "NotFoundError",
-  {
-    resource: Schema.String.annotations({
-      description: "The type of resource that was not found"
-    }),
-    id: Schema.String.annotations({
-      description: "The identifier of the resource"
-    })
-  },
-  HttpApiSchema.annotations({ status: 404 })
-) {
-  get message(): string {
-    return `${this.resource} not found: ${this.id}`
-  }
-}
-
-export const isNotFoundError = Schema.is(NotFoundError)
-```
-
----
-
-## Error Mapping Strategy
-
-### Domain → API Mapping Table
-
-This is the **authoritative** mapping table. API handlers MUST follow this mapping:
-
-#### Authentication Errors (401)
-
-| Domain Error | API Error | Code | Example Message |
-|--------------|-----------|------|-----------------|
-| `InvalidCredentialsError` | `UnauthorizedError` | - | "Invalid email or password" |
-| `SessionExpiredError` | `UnauthorizedError` | - | "Session expired" |
-| `SessionNotFoundError` | `UnauthorizedError` | - | "Authentication required" |
-| `ProviderAuthFailedError` | `UnauthorizedError` | - | "Authentication with {provider} failed" |
-
-#### Authorization Errors (403)
-
-| Domain Error | API Error | Code | Example Message |
-|--------------|-----------|------|-----------------|
-| `PermissionDeniedError` | `ForbiddenError` | - | "You don't have permission to {action}" |
-| `MembershipNotActiveError` | `ForbiddenError` | - | "Your membership is suspended" |
-
-#### Not Found Errors (404)
-
-| Domain Error | API Error | Resource | ID Format |
-|--------------|-----------|----------|-----------|
-| `EntityNotFoundError` | `NotFoundError` | `{entityType}` | `{entityId}` |
-| `MembershipNotFoundError` | `NotFoundError` | "Membership" | "user {userId} in org {orgId}" |
-| `UserNotFoundError` | `NotFoundError` | "User" | `{email}` |
-| `ProviderNotEnabledError` | `NotFoundError` | "AuthProvider" | `{provider}` |
-| `FiscalYearNotFoundError` | `NotFoundError` | "FiscalYear" | `{fiscalYearId}` |
-| `FiscalPeriodNotFoundError` | `NotFoundError` | "FiscalPeriod" | `{fiscalPeriodId}` |
-
-#### Validation Errors (400)
-
-| Domain Error | API Error | Message Pattern |
-|--------------|-----------|-----------------|
-| `PasswordTooWeakError` | `ValidationError` | "Password does not meet requirements" |
-| `OAuthStateError` | `ValidationError` | "OAuth state mismatch" |
-| `FiscalPeriodNotFoundForDateError` | `ValidationError` | "No fiscal period found for date {date}" |
-| `InvalidStatusTransitionError` | `ValidationError` | "Cannot transition from {current} to {target}" |
-| `InvalidYearStatusTransitionError` | `ValidationError` | "Cannot transition year from {current} to {target}" |
-| `FiscalYearOverlapError` | `ValidationError` | "Fiscal year {year} overlaps with existing year" |
-| `InvalidInvitationError` | `ValidationError` | "{reason}" |
-| `InvitationExpiredError` | `ValidationError` | "Invitation has expired" |
-
-#### Conflict Errors (409)
-
-| Domain Error | API Error | Resource | ConflictingField |
-|--------------|-----------|----------|------------------|
-| `UserAlreadyExistsError` | `ConflictError` | "User" | "email" |
-| `IdentityAlreadyLinkedError` | `ConflictError` | "Identity" | "providerId" |
-| `FiscalYearAlreadyExistsError` | `ConflictError` | "FiscalYear" | "year" |
-| `DuplicateEntityError` | `ConflictError` | `{entityType}` | `{conflictField}` |
-
-#### Business Rule Errors (422)
-
-| Domain Error | API Error Code | Example Message |
-|--------------|---------------|-----------------|
-| `OwnerCannotBeRemovedError` | `OWNER_CANNOT_BE_REMOVED` | "The organization owner cannot be removed" |
-| `OwnerCannotBeSuspendedError` | `OWNER_CANNOT_BE_SUSPENDED` | "The organization owner cannot be suspended" |
-| `MemberNotSuspendedError` | `MEMBER_NOT_SUSPENDED` | "Member is not suspended" |
-| `CannotTransferToNonAdminError` | `CANNOT_TRANSFER_TO_NON_ADMIN` | "Ownership can only be transferred to an admin" |
-| `InvitationAlreadyExistsError` | `INVITATION_ALREADY_EXISTS` | "A pending invitation already exists for this email" |
-| `UserAlreadyMemberError` | `USER_ALREADY_MEMBER` | "User is already a member of this organization" |
-| `PeriodNotOpenError` | `PERIOD_NOT_OPEN` | "Fiscal period is not open" |
-| `PeriodProtectedError` | `PERIOD_PROTECTED` | "Fiscal period is closed/locked" |
-| `YearNotClosedError` | `YEAR_NOT_CLOSED` | "Fiscal year is not fully closed" |
-| `PeriodsNotClosedError` | `PERIODS_NOT_CLOSED` | "Not all periods are closed" |
-
-#### Internal Errors (500)
-
-| Domain Error | API Error | Message Pattern |
-|--------------|-----------|-----------------|
-| `PersistenceError` | `InternalServerError` | "Database operation failed" |
-| `PolicyLoadError` | `InternalServerError` | "Failed to load policies" |
-| `AuthorizationAuditError` | `InternalServerError` | "Failed to log audit" |
-| `SessionCleanupError` | `InternalServerError` | "Session cleanup failed" |
-| `AuditLogError` | `InternalServerError` | "Audit log operation failed: {operation}" |
-| `UserLookupError` | `InternalServerError` | "User lookup failed" |
-| `AuditDataCorruptionError` | `InternalServerError` | "Audit data corrupted" |
-
-### Mapping Implementation Pattern
-
-**ALWAYS use type guards** (preferred) or `_tag` checks for mapping:
-
-#### Pattern 1: Using Type Guards (Recommended)
-
-```typescript
-import { isInvalidCredentialsError, isSessionExpiredError } from "@accountability/core/Auth"
-
-yield* authService.login(provider, authRequest).pipe(
-  Effect.mapError((error) => {
-    if (isInvalidCredentialsError(error)) {
-      return new UnauthorizedError({ message: "Invalid email or password" })
-    }
-    if (isSessionExpiredError(error)) {
-      return new UnauthorizedError({ message: "Session expired" })
-    }
-    // Fallback - log and return generic error
-    return new InternalServerError({
-      message: "Authentication failed",
-      requestId: Option.none()
-    })
-  })
-)
-```
-
-#### Pattern 2: Using `_tag` Checks (Alternative)
-
-```typescript
-yield* memberService.updateRole(orgId, userId, updateInput).pipe(
-  Effect.mapError((error) => {
-    switch (error._tag) {
-      case "MembershipNotFoundError":
-        return new NotFoundError({
-          resource: "Membership",
-          id: `user ${userId} in org ${orgId}`
-        })
-      case "OwnerCannotBeRemovedError":
-        return new BusinessRuleError({
-          code: "OWNER_CANNOT_BE_REMOVED",
-          message: "The organization owner cannot be removed",
-          details: Option.none()
-        })
-      default:
-        return new BusinessRuleError({
-          code: "UPDATE_FAILED",
-          message: "message" in error ? String(error.message) : "Failed to update member",
-          details: Option.none()
-        })
-    }
-  })
-)
-```
-
-### Persistence → Domain Mapping
-
-Services wrap persistence errors into domain errors:
-
-```typescript
-// Option 1: Wrap into domain error (preferred for expected failures)
-const getMembership = (orgId: OrganizationId, userId: AuthUserId) =>
-  membershipRepository.findByOrgAndUser(orgId, userId).pipe(
-    Effect.flatMap((opt) =>
-      Option.match(opt, {
-        onNone: () => Effect.fail(new MembershipNotFoundError({ organizationId: orgId, userId })),
-        onSome: Effect.succeed
-      })
+// In repository
+const findByUserAndOrg = (userId: AuthUserId, orgId: OrganizationId) =>
+  sql`SELECT * FROM memberships WHERE user_id = ${userId} AND org_id = ${orgId}`.pipe(
+    Effect.flatMap((rows) =>
+      rows.length === 0
+        ? Effect.fail(new MembershipNotFoundError({ userId, organizationId: orgId }))
+        : Effect.succeed(rows[0])
     )
   )
-
-// Option 2: Let persistence errors propagate (for truly unexpected failures)
-const listAllMembers = (orgId: OrganizationId) =>
-  membershipRepository.findByOrganization(orgId)  // PersistenceError propagates
 ```
 
-### When to Use `Effect.orDie`
-
-Use `Effect.orDie` ONLY when a failure indicates a bug or data corruption:
+### Errors Flow Through
 
 ```typescript
-// User lookup during list - if the user doesn't exist, that's data corruption
+// In API handler - errors flow through automatically
+.handle("getMember", ({ path }) =>
+  memberService.getMembership(path.orgId, path.userId)
+  // MembershipNotFoundError (404) flows directly to HTTP response
+)
+```
+
+### Map Only When Business Logic Requires
+
+```typescript
+// Login - security requires hiding whether user exists
+.handle("login", ({ payload }) =>
+  authService.login(payload).pipe(
+    Effect.mapError((error) => {
+      if (isUserNotFoundError(error)) {
+        return new InvalidCredentialsError({ email: payload.email })
+      }
+      return error
+    })
+  )
+)
+```
+
+### Use `orDie` for Impossible States
+
+```typescript
+// User must exist if we have a membership pointing to them
 const user = yield* userRepository.findById(membership.userId).pipe(
   Effect.flatMap(Option.match({
     onNone: () => Effect.die(new Error(`Data corruption: user ${membership.userId} not found`)),
@@ -463,298 +119,321 @@ const user = yield* userRepository.findById(membership.userId).pipe(
 )
 ```
 
-**WARNING:** Overusing `orDie` hides real errors. Only use for truly impossible states.
+---
+
+## HTTP Status Code Guidelines
+
+| Status | When to Use |
+|--------|-------------|
+| 400 | Invalid input, validation failures |
+| 401 | Authentication required or failed |
+| 403 | Authenticated but lacks permission |
+| 404 | Resource not found |
+| 409 | Conflict with existing state (duplicates) |
+| 422 | Business rule violation |
+| 500 | Unexpected errors |
 
 ---
 
-## Anti-Patterns to Avoid
+## Anti-Patterns
 
-### 1. Duplicating Domain Errors in API Layer
-
-**Wrong:**
-```typescript
-// In ApiErrors.ts - DON'T duplicate domain errors
-export class AuditLogError extends Schema.TaggedError<AuditLogError>()(
-  "AuditLogError",
-  { operation: Schema.String, cause: Schema.Defect },
-  HttpApiSchema.annotations({ status: 500 })
-) {}
-```
-
-**Right:** Map domain errors to generic API errors:
-```typescript
-// In handler
-Effect.mapError((error) => {
-  if (error._tag === "AuditLogError") {
-    return new InternalServerError({
-      message: `Audit log failed: ${error.operation}`,
-      requestId: Option.none()
-    })
-  }
-})
-```
-
-### 2. Using Global `Error` Class
+### Excessive Mapping
 
 **Wrong:**
 ```typescript
-throw new Error("Something went wrong")
+yield* memberService.getMembership(orgId, userId).pipe(
+  Effect.mapError((error) => {
+    if (error._tag === "MembershipNotFoundError") {
+      return new NotFoundError({ resource: "Membership", id: userId })
+    }
+    // ...more cases
+  })
+)
 ```
 
 **Right:**
 ```typescript
-Effect.fail(new BusinessRuleError({
-  code: "SOMETHING_WRONG",
-  message: "Something went wrong",
-  details: Option.none()
-}))
+yield* memberService.getMembership(orgId, userId)
+// Error flows through directly
 ```
 
-### 3. Catching Defects
+### Manual Logging
 
 **Wrong:**
 ```typescript
-Effect.catchAllCause((cause) => ...)  // Catches bugs too!
+Effect.tapError((error) => Effect.logError("Something failed", error))
+```
+
+**Right:**
+```typescript
+// Don't log - telemetry handles this
+```
+
+### Swallowing Errors
+
+**Wrong:**
+```typescript
+Effect.catchAll(() => Effect.succeed(undefined))
+```
+
+**Right:**
+```typescript
+// Let errors propagate
+```
+
+### Catching Defects
+
+**Wrong:**
+```typescript
+Effect.catchAllCause((cause) => ...)
 ```
 
 **Right:**
 ```typescript
 Effect.catchAll((error) => ...)  // Only catches expected errors
-Effect.mapError((error) => ...)  // Transform without catching defects
-```
-
-### 4. HTTP Annotations in Domain Errors
-
-**Wrong:**
-```typescript
-// In packages/core - DON'T add HTTP annotations
-export class InvalidCredentialsError extends Schema.TaggedError<InvalidCredentialsError>()(
-  "InvalidCredentialsError",
-  { email: Email },
-  HttpApiSchema.annotations({ status: 401 })  // NO! Core shouldn't know about HTTP
-) {}
-```
-
-**Right:**
-```typescript
-// In packages/core - document status in comments only
-/**
- * HTTP Status: 401 Unauthorized
- */
-export class InvalidCredentialsError extends Schema.TaggedError<InvalidCredentialsError>()(
-  "InvalidCredentialsError",
-  { email: Email }
-) {}
-```
-
-### 5. Silently Swallowing Errors
-
-**Wrong:**
-```typescript
-yield* someOperation().pipe(
-  Effect.catchAll(() => Effect.succeed(undefined))  // Silently swallows!
-)
-```
-
-**Right:**
-```typescript
-yield* someOperation().pipe(
-  Effect.catchAll((error) => {
-    // Log the error
-    yield* Effect.logError("Operation failed", error)
-    // Fail with domain error
-    return Effect.fail(new SomeOperationError({ cause: error }))
-  })
-)
-```
-
-### 6. Generic Fallback Without Logging
-
-**Wrong:**
-```typescript
-Effect.mapError(() => new InternalServerError({ message: "Something went wrong" }))
-```
-
-**Right:**
-```typescript
-Effect.tapError((error) => Effect.logError("Unexpected error in handler", error)).pipe(
-  Effect.mapError((error) => new InternalServerError({
-    message: `Unexpected error: ${error._tag}`,
-    requestId: Option.none()
-  }))
-)
 ```
 
 ---
 
-## Creating New Errors
+## Adding New Errors
 
-### Adding a Domain Error
+1. Create in `packages/core/src/{Domain}/{Domain}Errors.ts`
+2. Include `HttpApiSchema.annotations({ status: ### })`
+3. Export type guard
+4. Use directly in repositories/services
 
-1. **Create in appropriate module** under `packages/core/src/{Domain}/`:
+---
 
+## Complete Error Catalog
+
+This section catalogs all error definitions and their required HTTP status codes.
+
+### Auth Errors (`packages/core/src/Auth/AuthErrors.ts`)
+
+| Error Class | HTTP Status | Description |
+|-------------|-------------|-------------|
+| `InvalidCredentialsError` | 401 | Wrong username/password |
+| `SessionExpiredError` | 401 | Session has expired |
+| `SessionNotFoundError` | 401 | Invalid session token |
+| `ProviderAuthFailedError` | 401 | External provider auth failed |
+| `UserNotFoundError` | 404 | User does not exist |
+| `ProviderNotEnabledError` | 404 | Auth provider not configured |
+| `UserAlreadyExistsError` | 409 | Duplicate registration |
+| `IdentityAlreadyLinkedError` | 409 | Provider identity already linked |
+| `PasswordTooWeakError` | 400 | Password validation failed |
+| `OAuthStateError` | 400 | OAuth state mismatch |
+| `SessionCleanupError` | 500 | Failed to delete session |
+
+**Status:** ✅ Has `AUTH_ERROR_STATUS_CODES` mapping object, but errors lack `HttpApiSchema.annotations`
+
+### Authorization Errors (`packages/core/src/Auth/AuthorizationErrors.ts`)
+
+| Error Class | HTTP Status | Description |
+|-------------|-------------|-------------|
+| `PermissionDeniedError` | 403 | User lacks required permission |
+| `MembershipNotActiveError` | 403 | Membership is suspended/removed |
+| `MembershipNotFoundError` | 404 | User is not a member |
+| `InvalidInvitationError` | 400 | Invitation is invalid |
+| `InvitationExpiredError` | 400 | Invitation has been revoked |
+| `OwnerCannotBeRemovedError` | 409 | Cannot remove organization owner |
+| `OwnerCannotBeSuspendedError` | 409 | Cannot suspend organization owner |
+| `MemberNotSuspendedError` | 409 | Cannot unsuspend non-suspended member |
+| `CannotTransferToNonAdminError` | 409 | Cannot transfer ownership to non-admin |
+| `InvitationAlreadyExistsError` | 409 | Pending invitation exists |
+| `UserAlreadyMemberError` | 409 | User is already a member |
+| `PolicyLoadError` | 500 | Failed to load policies |
+| `AuthorizationAuditError` | 500 | Failed to log audit entry |
+
+**Status:** ✅ Has `AUTHORIZATION_ERROR_STATUS_CODES` mapping object, but errors lack `HttpApiSchema.annotations`
+
+### Fiscal Period Errors (`packages/core/src/FiscalPeriod/FiscalPeriodErrors.ts`)
+
+| Error Class | HTTP Status | Description |
+|-------------|-------------|-------------|
+| `FiscalYearNotFoundError` | 404 | Fiscal year does not exist |
+| `FiscalPeriodNotFoundError` | 404 | Fiscal period does not exist |
+| `FiscalPeriodNotFoundForDateError` | 400 | No period for given date |
+| `InvalidStatusTransitionError` | 400 | Invalid period status transition |
+| `InvalidYearStatusTransitionError` | 400 | Invalid year status transition |
+| `FiscalYearOverlapError` | 400 | Year dates overlap |
+| `FiscalYearAlreadyExistsError` | 409 | Fiscal year already exists |
+| `PeriodNotOpenError` | 409 | Period is not open |
+| `PeriodProtectedError` | 409 | Period is closed/locked |
+| `YearNotClosedError` | 409 | Year is not closed |
+| `PeriodsNotClosedError` | 409 | Periods not all closed |
+
+**Status:** ✅ Has `FISCAL_PERIOD_ERROR_STATUS_CODES` mapping object, but errors lack `HttpApiSchema.annotations`
+
+### Audit Log Errors (`packages/core/src/AuditLog/AuditLogErrors.ts`)
+
+| Error Class | HTTP Status | Description |
+|-------------|-------------|-------------|
+| `AuditLogError` | 500 | Audit logging failed |
+| `UserLookupError` | 500 | User lookup failed |
+| `AuditDataCorruptionError` | 500 | Audit data corrupted |
+
+**Status:** ⚠️ Needs status code mapping object and `HttpApiSchema.annotations`
+
+### Journal Entry Errors (`packages/core/src/Services/JournalEntryService.ts`)
+
+| Error Class | HTTP Status | Description |
+|-------------|-------------|-------------|
+| `AccountNotFoundError` | 404 | Account not found |
+| `AccountNotPostableError` | 422 | Account is not postable |
+| `AccountNotActiveError` | 422 | Account is not active |
+| `PeriodNotOpenError` | 409 | Fiscal period is not open |
+| `PeriodNotFoundError` | 400 | Fiscal period not found |
+| `EmptyJournalEntryError` | 400 | Entry has no lines |
+| `DuplicateLineNumberError` | 400 | Duplicate line number |
+| `NotApprovedError` | 422 | Entry not approved for posting |
+| `PeriodClosedError` | 409 | Cannot post to closed period |
+| `EntryNotPostedError` | 422 | Entry must be posted to reverse |
+| `EntryAlreadyReversedError` | 409 | Entry already reversed |
+
+**Status:** ⚠️ Needs status code mapping object and `HttpApiSchema.annotations`
+
+### Currency Errors (`packages/core/src/Services/CurrencyService.ts`)
+
+| Error Class | HTTP Status | Description |
+|-------------|-------------|-------------|
+| `RateNotFoundError` | 404 | Exchange rate not found |
+| `RateAlreadyExistsError` | 409 | Exchange rate already exists |
+| `ExchangeRateIdNotFoundError` | 404 | Exchange rate ID not found |
+| `InverseRateCalculationError` | 500 | Inverse rate calculation failed |
+| `NoForeignCurrencyBalancesError` | 422 | No foreign currency balances |
+| `UnrealizedGainLossAccountNotFoundError` | 422 | Missing GL account for revaluation |
+
+**Status:** ⚠️ Needs status code mapping object and `HttpApiSchema.annotations`
+
+### Consolidation Errors (`packages/core/src/Services/ConsolidationService.ts`)
+
+| Error Class | HTTP Status | Description |
+|-------------|-------------|-------------|
+| `ConsolidationGroupNotFoundError` | 404 | Group not found |
+| `FiscalPeriodNotFoundError` | 400 | Period not found for consolidation |
+| `ConsolidationRunExistsError` | 409 | Run already exists |
+| `ConsolidationValidationError` | 422 | Validation failed |
+| `ConsolidationStepFailedError` | 500 | Step execution failed |
+| `ConsolidationDataCorruptionError` | 500 | Data corruption detected |
+
+**Status:** ⚠️ Needs status code mapping object and `HttpApiSchema.annotations`
+
+### Domain Validation Errors (various files in `packages/core/src/Domains/`)
+
+| Error Class | File | HTTP Status | Description |
+|-------------|------|-------------|-------------|
+| `AccountNumberRangeError` | AccountValidation.ts | 400 | Account number out of range |
+| `NormalBalanceError` | AccountValidation.ts | 400 | Invalid normal balance |
+| `IntercompanyPartnerMissingError` | AccountValidation.ts | 400 | IC account missing partner |
+| `UnexpectedIntercompanyPartnerError` | AccountValidation.ts | 400 | Non-IC account has partner |
+| `CashFlowCategoryOnIncomeStatementError` | AccountValidation.ts | 400 | Invalid cash flow category |
+| `UnbalancedEntryError` | BalanceValidation.ts | 422 | Debits ≠ credits |
+| `InvalidStatusTransitionError` | EntryStatusWorkflow.ts | 400 | Invalid status transition |
+| `AccountTypeMismatchError` | AccountHierarchy.ts | 400 | Parent/child type mismatch |
+| `ParentAccountNotFoundError` | AccountHierarchy.ts | 404 | Parent account not found |
+| `CircularReferenceError` | AccountHierarchy.ts | 400 | Circular parent reference |
+| `CurrencyMismatchError` | MonetaryAmount.ts | 400 | Currency mismatch in operation |
+| `DivisionByZeroError` | MonetaryAmount.ts | 400 | Division by zero |
+| `MissingExchangeRateError` | MultiCurrencyLineHandling.ts | 422 | Required exchange rate missing |
+
+**Status:** ⚠️ Needs status code mapping object and `HttpApiSchema.annotations`
+
+### Repository Errors (`packages/core/src/Errors/RepositoryError.ts` and `packages/persistence/src/Errors/RepositoryError.ts`)
+
+| Error Class | HTTP Status | Description |
+|-------------|-------------|-------------|
+| `EntityNotFoundError` | 404 | Entity not found in database |
+| `DuplicateEntityError` | 409 | Entity violates unique constraint |
+| `PersistenceError` | 500 | Database operation failed |
+| `ValidationError` | 400 | Schema validation failed |
+| `ConcurrencyError` | 409 | Optimistic locking conflict |
+
+**Status:** ⚠️ Needs status code mapping object and `HttpApiSchema.annotations`
+
+---
+
+## API Layer Errors (To Be Removed/Consolidated)
+
+The following errors in `packages/api/src/Definitions/ApiErrors.ts` should be **removed** as they duplicate domain errors:
+
+| API Error | Replace With | Reason |
+|-----------|--------------|--------|
+| `NotFoundError` | Specific domain `*NotFoundError` | Generic; loses context |
+| `ValidationError` | Specific domain validation errors | Generic; loses context |
+| `ConflictError` | Specific domain `*AlreadyExistsError` | Generic; loses context |
+| `BusinessRuleError` | Specific domain errors | Generic catch-all |
+
+**Keep these API errors** (they serve distinct purposes):
+- `UnauthorizedError` (401) - Authentication layer concern
+- `ForbiddenError` (403) - Authorization layer concern
+- `InternalServerError` (500) - Catch-all for unexpected errors
+- `AuditLogError` (500) - Already mirrors domain error
+- `UserLookupError` (500) - Already mirrors domain error
+
+---
+
+## Implementation Plan
+
+### Phase 1: Add HttpApiSchema Annotations to Domain Errors
+
+Each domain error file needs to import `HttpApiSchema` and add the annotation to each error class.
+
+**Example transformation:**
 ```typescript
-/**
- * HTTP Status: 400 Bad Request
- *
- * The provided value is invalid for the given context.
- */
-export class InvalidValueError extends Schema.TaggedError<InvalidValueError>()(
-  "InvalidValueError",
-  {
-    field: Schema.String.annotations({
-      description: "The field that contains the invalid value"
-    }),
-    value: Schema.Unknown.annotations({
-      description: "The invalid value that was provided"
-    }),
-    reason: Schema.String.annotations({
-      description: "Why the value is invalid"
-    })
-  }
+// BEFORE
+export class MembershipNotFoundError extends Schema.TaggedError<MembershipNotFoundError>()(
+  "MembershipNotFoundError",
+  { userId: AuthUserId, organizationId: OrganizationId }
 ) {
-  get message(): string {
-    return `Invalid value for ${this.field}: ${this.reason}`
-  }
+  get message(): string { return `Membership not found` }
 }
 
-export const isInvalidValueError = Schema.is(InvalidValueError)
-```
+// AFTER
+import { HttpApiSchema } from "@effect/platform"
 
-2. **Add to status code map** (if module has one):
-
-```typescript
-export const MY_DOMAIN_ERROR_STATUS_CODES = {
-  // ...existing errors
-  InvalidValueError: 400
-} as const
-```
-
-3. **Add to mapping table** in this spec document
-
-4. **Update API handler** to map the new error
-
-### Adding an API Error
-
-**Only add new API errors if the existing generic errors don't fit.** Most cases should use:
-
-- `NotFoundError` - any "not found" scenario
-- `ValidationError` - any input validation failure
-- `BusinessRuleError` - any business rule violation
-- `ForbiddenError` - any permission denial
-- `ConflictError` - any duplicate/conflict scenario
-- `InternalServerError` - any unexpected failure
-
-If you truly need a new API error:
-
-1. **Add to** `packages/api/src/Definitions/ApiErrors.ts`:
-
-```typescript
-export class RateLimitedError extends Schema.TaggedError<RateLimitedError>()(
-  "RateLimitedError",
-  {
-    retryAfter: Schema.Number.annotations({
-      description: "Seconds to wait before retrying"
-    }),
-    limit: Schema.Number.annotations({
-      description: "The rate limit that was exceeded"
-    })
-  },
-  HttpApiSchema.annotations({ status: 429 })
+export class MembershipNotFoundError extends Schema.TaggedError<MembershipNotFoundError>()(
+  "MembershipNotFoundError",
+  { userId: AuthUserId, organizationId: OrganizationId },
+  HttpApiSchema.annotations({ status: 404 })
 ) {
-  get message(): string {
-    return `Rate limit exceeded. Retry after ${this.retryAfter} seconds.`
-  }
+  get message(): string { return `Membership not found` }
 }
-
-export const isRateLimitedError = Schema.is(RateLimitedError)
 ```
 
-2. **Update this spec** with the new error in the API Error Catalog
+**Files to update:**
+1. [ ] `packages/core/src/Auth/AuthErrors.ts` (11 errors)
+2. [ ] `packages/core/src/Auth/AuthorizationErrors.ts` (13 errors)
+3. [ ] `packages/core/src/FiscalPeriod/FiscalPeriodErrors.ts` (11 errors)
+4. [ ] `packages/core/src/AuditLog/AuditLogErrors.ts` (3 errors)
+5. [ ] `packages/core/src/Services/JournalEntryService.ts` (11 errors)
+6. [ ] `packages/core/src/Services/CurrencyService.ts` (6 errors)
+7. [ ] `packages/core/src/Services/ConsolidationService.ts` (6 errors)
+8. [ ] `packages/core/src/Domains/AccountValidation.ts` (5 errors)
+9. [ ] `packages/core/src/Domains/BalanceValidation.ts` (1 error)
+10. [ ] `packages/core/src/Domains/EntryStatusWorkflow.ts` (1 error)
+11. [ ] `packages/core/src/Domains/AccountHierarchy.ts` (3 errors)
+12. [ ] `packages/core/src/Domains/MonetaryAmount.ts` (2 errors)
+13. [ ] `packages/core/src/Domains/MultiCurrencyLineHandling.ts` (1 error)
+14. [ ] `packages/core/src/Errors/RepositoryError.ts` (2 errors)
+15. [ ] `packages/persistence/src/Errors/RepositoryError.ts` (5 errors)
 
----
+**Total: 81 errors to annotate**
 
-## Known Issues and Cleanup Tasks
+### Phase 2: Remove Generic API Layer Errors
 
-### Issue 1: Duplicate AuditLogError in API Layer
+Once domain errors have HTTP annotations, remove these from API handlers:
+1. [ ] Remove error mapping that converts domain errors to generic API errors
+2. [ ] Remove unused generic errors from `ApiErrors.ts`
+3. [ ] Update API endpoint definitions to use domain errors directly
 
-**Status:** Needs cleanup
+### Phase 3: Verify Error Flow-Through
 
-**Location:** `packages/api/src/Definitions/ApiErrors.ts`
+1. [ ] Write tests verifying domain errors flow directly to HTTP responses
+2. [ ] Verify error `_tag` and HTTP status codes match in responses
+3. [ ] Ensure no error transformations occur except where business logic requires
 
-**Problem:** `AuditLogError` and `UserLookupError` are defined in both domain layer and API layer.
+### Phase 4: Documentation Cleanup
 
-**Fix:** Remove from API layer. Map domain errors to `InternalServerError` instead.
-
-```typescript
-// In handler, map domain AuditLogError to InternalServerError
-Effect.mapError((error) => {
-  if (error._tag === "AuditLogError") {
-    return new InternalServerError({
-      message: `Audit operation failed: ${error.operation}`,
-      requestId: Option.none()
-    })
-  }
-})
-```
-
-### Issue 2: Duplicate RepositoryError in Core Package
-
-**Status:** By design (acceptable)
-
-**Location:** `packages/core/src/Errors/RepositoryError.ts`
-
-**Reason:** Avoids circular dependency between `core` and `persistence` packages. The core package needs to reference persistence error types in service interfaces without importing from persistence.
-
-**Decision:** Keep both, but ensure they are structurally identical.
-
-### Issue 3: Inconsistent Type Guard Usage
-
-**Status:** Low priority cleanup
-
-**Problem:** Some handlers use `error._tag === "ErrorName"` instead of type guards.
-
-**Fix:** Gradually migrate to type guard usage for better type safety:
-
-```typescript
-// Migrate from:
-if (error._tag === "InvalidCredentialsError") { ... }
-
-// To:
-if (isInvalidCredentialsError(error)) { ... }
-```
-
----
-
-## Quick Reference
-
-### Error Layer Summary
-
-| Layer | Package | HTTP-Aware | Purpose |
-|-------|---------|------------|---------|
-| Persistence | `persistence` | No | Database operation errors |
-| Domain | `core` | No (docs only) | Business logic errors |
-| API | `api` | Yes | HTTP response errors |
-
-### Key Principles
-
-1. **Separation of concerns** - each layer has its own error vocabulary
-2. **Explicit mapping** - use `mapError` to transform errors between layers
-3. **No duplication** - don't recreate domain errors in API layer
-4. **Rich semantics in domain** - domain errors carry business meaning
-5. **Generic API errors** - API errors are reusable across endpoints
-6. **Type guards for safety** - use `isErrorName()` for type-safe error handling
-7. **Document HTTP status** - domain errors document status in JSDoc, not annotations
-8. **Never swallow errors** - always log or propagate, never silently catch
-
-### Adding a New Feature Checklist
-
-When adding a feature that can fail:
-
-- [ ] Define domain error(s) in `packages/core/src/{Domain}/{Domain}Errors.ts`
-- [ ] Add JSDoc with HTTP status code
-- [ ] Export type guard (`isMyError`)
-- [ ] Add to status code map (if module has one)
-- [ ] Update API handler with `mapError` to convert to API error
-- [ ] Update this spec with new error mappings
-- [ ] Add tests for error paths
+1. [ ] Remove `*_ERROR_STATUS_CODES` mapping objects (no longer needed)
+2. [ ] Update API documentation to reference domain errors
+3. [ ] Remove "HTTP Status" comments from domain errors (now self-documenting)
