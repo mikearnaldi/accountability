@@ -816,3 +816,8 @@
 **Task**: Added HttpApiSchema.annotations to 6 errors in ConsolidationService.ts
 **Status**: complete
 ---
+
+## Iteration 8 - 2026-01-19 12:55
+**Task**: Added HttpApiSchema.annotations to 5 errors in AccountValidation.ts
+**Status**: complete
+---

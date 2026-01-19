@@ -12,6 +12,7 @@
  * @module AccountValidation
  */
 
+import { HttpApiSchema } from "@effect/platform"
 import * as Schema from "effect/Schema"
 import * as Either from "effect/Either"
 import * as Option from "effect/Option"
@@ -46,7 +47,8 @@ export class AccountNumberRangeError extends Schema.TaggedError<AccountNumberRan
     accountNumber: AccountNumber,
     declaredType: AccountType,
     expectedType: Schema.Option(AccountType)
-  }
+  },
+  HttpApiSchema.annotations({ status: 400 })
 ) {
   get message(): string {
     return Option.match(this.expectedType, {
@@ -80,7 +82,8 @@ export class NormalBalanceError extends Schema.TaggedError<NormalBalanceError>()
     accountType: AccountType,
     declaredBalance: NormalBalance,
     expectedBalance: NormalBalance
-  }
+  },
+  HttpApiSchema.annotations({ status: 400 })
 ) {
   get message(): string {
     return `Account ${this.accountId} of type ${this.accountType} should have normal balance ${this.expectedBalance} but has ${this.declaredBalance}`
@@ -102,7 +105,8 @@ export class IntercompanyPartnerMissingError extends Schema.TaggedError<Intercom
   "IntercompanyPartnerMissingError",
   {
     accountId: AccountId
-  }
+  },
+  HttpApiSchema.annotations({ status: 400 })
 ) {
   get message(): string {
     return `Intercompany account ${this.accountId} does not have a partner company set`
@@ -125,7 +129,8 @@ export class UnexpectedIntercompanyPartnerError extends Schema.TaggedError<Unexp
   {
     accountId: AccountId,
     partnerId: CompanyId
-  }
+  },
+  HttpApiSchema.annotations({ status: 400 })
 ) {
   get message(): string {
     return `Account ${this.accountId} is not an intercompany account but has partner company ${this.partnerId}`
@@ -150,7 +155,8 @@ export class CashFlowCategoryOnIncomeStatementError extends Schema.TaggedError<C
     accountId: AccountId,
     accountType: AccountType,
     cashFlowCategory: CashFlowCategory
-  }
+  },
+  HttpApiSchema.annotations({ status: 400 })
 ) {
   get message(): string {
     return `Account ${this.accountId} of type ${this.accountType} is an income statement account and should not have cash flow category ${this.cashFlowCategory}`
