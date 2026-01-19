@@ -836,11 +836,17 @@ Moving actual source files from old directories to new domain directories, conve
 | FiscalPeriodType.ts | Domains/ | fiscal/ | ✅ Done |
 | FiscalYearStatus.ts | Domains/ | fiscal/ | ✅ Done |
 | ComputedFiscalPeriod.ts | Domains/ | fiscal/ | ✅ Done |
+| Account.ts | Domains/ | accounting/ | ✅ Done |
+| AccountNumber.ts | Domains/ | accounting/ | ✅ Done |
+| AccountHierarchy.ts | Domains/ | accounting/ | ✅ Done |
+| AccountTemplate.ts | Domains/ | accounting/ | ✅ Done |
+| AccountBalance.ts | Domains/ | accounting/ | ✅ Done |
+| AccountValidation.ts | Domains/ | accounting/ | ✅ Done |
+| BalanceValidation.ts | Domains/ | accounting/ | ✅ Done |
 
 **Files still needing migration:**
 
-1. **Domains/** (16 remaining files):
-   - Account.ts, AccountNumber.ts, AccountHierarchy.ts, AccountTemplate.ts, AccountBalance.ts, AccountValidation.ts, BalanceValidation.ts → accounting/
+1. **Domains/** (9 remaining files):
    - JournalEntry.ts, JournalEntryLine.ts, EntryStatusWorkflow.ts, MultiCurrencyLineHandling.ts → journal/
    - ConsolidationGroup.ts, ConsolidationRun.ts, EliminationRule.ts, IntercompanyTransaction.ts, ConsolidationMethodDetermination.ts → consolidation/
    - AuditLog.ts → audit/

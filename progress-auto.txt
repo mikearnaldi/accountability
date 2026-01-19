@@ -924,3 +924,8 @@
 **Task**: Migrated Jurisdiction and fiscal domain files (8 files) to canonical locations with backward-compatible re-exports
 **Status**: complete
 ---
+
+## Iteration 9 - 2026-01-19 17:32
+**Task**: Migrated 7 accounting domain files to canonical locations with backward-compatible re-exports
+**Status**: complete
+---
