@@ -859,6 +859,18 @@ Moving actual source files from old directories to new domain directories, conve
 | File | Old Location | New Location | Status |
 |------|-------------|--------------|--------|
 | TrialBalanceService.ts | Services/ | accounting/ | ✅ Done |
+| BalanceSheetService.ts | Services/ | reporting/ | ✅ Done |
+| IncomeStatementService.ts | Services/ | reporting/ | ✅ Done |
+| CashFlowStatementService.ts | Services/ | reporting/ | ✅ Done |
+| EquityStatementService.ts | Services/ | reporting/ | ✅ Done |
+| ConsolidatedReportService.ts | Services/ | reporting/ | ✅ Done |
+| ConsolidationService.ts | Services/ | consolidation/ | ✅ Done |
+| EliminationService.ts | Services/ | consolidation/ | ✅ Done |
+| IntercompanyService.ts | Services/ | consolidation/ | ✅ Done |
+| NCIService.ts | Services/ | consolidation/ | ✅ Done |
+| CurrencyTranslationService.ts | Services/ | consolidation/ | ✅ Done |
+| CurrencyService.ts | Services/ | currency/ | ✅ Done |
+| JournalEntryService.ts | Services/ | journal/ | ✅ Done |
 
 **AuditLog files migrated:**
 
@@ -870,13 +882,11 @@ Moving actual source files from old directories to new domain directories, conve
 
 **Files still needing migration:**
 
-1. **Services/** (12 remaining files):
-   - JournalEntryService.ts → journal/
-   - ConsolidationService.ts, EliminationService.ts, IntercompanyService.ts, NCIService.ts, CurrencyTranslationService.ts → consolidation/
-   - CurrencyService.ts → currency/
-   - BalanceSheetService.ts, IncomeStatementService.ts, CashFlowStatementService.ts, EquityStatementService.ts, ConsolidatedReportService.ts → reporting/
+1. **Services/** - ✅ ALL DONE (13 files migrated)
+   - All service files have been migrated to their canonical domain locations
+   - Old Services/ files now re-export from the new locations for backward compatibility
 
-2. **Auth/** (19 authentication files → new auth/ directory)
+2. **Auth/** (19 authentication files → new auth/ directory) - Pending
 
 **CI Status:** All typecheck passes.
 

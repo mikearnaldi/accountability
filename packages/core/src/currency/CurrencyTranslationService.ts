@@ -1,12 +1,12 @@
 /**
  * CurrencyTranslationService - Re-export from canonical location
  *
- * This file provides the new import path for CurrencyTranslationService
- * while maintaining backward compatibility during the core package reorganization.
+ * This file provides backward compatibility for imports from the currency/ location.
+ * The canonical source is at consolidation/CurrencyTranslationService.ts since it's
+ * specifically for consolidation per ASC 830.
  *
  * @module currency/CurrencyTranslationService
+ * @deprecated Import from @accountability/core/consolidation/CurrencyTranslationService instead
  */
 
-export {
-  CurrencyTranslationService
-} from "../Services/CurrencyTranslationService.ts"
+export * from "../consolidation/CurrencyTranslationService.ts"
