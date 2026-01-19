@@ -1,1234 +1,228 @@
 /**
- * DomainErrors - Shared domain error types
+ * DomainErrors - Barrel file re-exporting all domain errors
  *
- * These errors are used across the entire codebase and include
- * HttpApiSchema annotations for automatic HTTP status code mapping.
+ * This file provides backward compatibility for imports from the centralized
+ * Errors directory. All errors are now defined in their respective domain
+ * directories and re-exported here.
  *
- * Following the one-layer error architecture from ERROR_DESIGN.md:
- * - Errors are defined once in the domain layer
- * - Errors flow through without transformation
- * - HTTP annotations ensure correct status codes
+ * DEPRECATED: Import errors from their domain-specific files instead:
+ * - organization/OrganizationErrors.ts
+ * - company/CompanyErrors.ts
+ * - accounting/AccountErrors.ts
+ * - journal/JournalErrors.ts
+ * - currency/CurrencyErrors.ts
+ * - consolidation/ConsolidationErrors.ts
+ * - reporting/ReportErrors.ts
+ * - membership/MembershipErrors.ts
+ * - authorization/AuthorizationErrors.ts
+ * - shared/errors/SharedErrors.ts
+ * - shared/errors/RepositoryError.ts
  *
- * @module DomainErrors
+ * @module Errors/DomainErrors
  */
-
-import { HttpApiSchema } from "@effect/platform"
-import * as Schema from "effect/Schema"
 
 // =============================================================================
-// Not Found Errors (404)
+// Organization Domain Errors
 // =============================================================================
 
-/**
- * OrganizationNotFoundError - Organization does not exist
- */
-export class OrganizationNotFoundError extends Schema.TaggedError<OrganizationNotFoundError>()(
-  "OrganizationNotFoundError",
-  {
-    organizationId: Schema.String
-  },
-  HttpApiSchema.annotations({ status: 404 })
-) {
-  get message(): string {
-    return `Organization not found: ${this.organizationId}`
-  }
-}
-
-export const isOrganizationNotFoundError = Schema.is(OrganizationNotFoundError)
-
-/**
- * CompanyNotFoundError - Company does not exist
- */
-export class CompanyNotFoundError extends Schema.TaggedError<CompanyNotFoundError>()(
-  "CompanyNotFoundError",
-  {
-    companyId: Schema.String
-  },
-  HttpApiSchema.annotations({ status: 404 })
-) {
-  get message(): string {
-    return `Company not found: ${this.companyId}`
-  }
-}
-
-export const isCompanyNotFoundError = Schema.is(CompanyNotFoundError)
-
-/**
- * AccountNotFoundError - Account does not exist
- *
- * Note: Also defined in JournalEntryService for backwards compatibility.
- * Prefer importing from this module for new code.
- */
-export class AccountNotFoundError extends Schema.TaggedError<AccountNotFoundError>()(
-  "AccountNotFoundError",
-  {
-    accountId: Schema.String
-  },
-  HttpApiSchema.annotations({ status: 404 })
-) {
-  get message(): string {
-    return `Account not found: ${this.accountId}`
-  }
-}
-
-export const isAccountNotFoundError = Schema.is(AccountNotFoundError)
-
-/**
- * ParentAccountNotFoundError - Parent account reference does not exist
- */
-export class ParentAccountNotFoundError extends Schema.TaggedError<ParentAccountNotFoundError>()(
-  "ParentAccountNotFoundError",
-  {
-    parentAccountId: Schema.String
-  },
-  HttpApiSchema.annotations({ status: 404 })
-) {
-  get message(): string {
-    return `Parent account not found: ${this.parentAccountId}`
-  }
-}
-
-export const isParentAccountNotFoundError = Schema.is(ParentAccountNotFoundError)
-
-/**
- * JournalEntryNotFoundError - Journal entry does not exist
- */
-export class JournalEntryNotFoundError extends Schema.TaggedError<JournalEntryNotFoundError>()(
-  "JournalEntryNotFoundError",
-  {
-    entryId: Schema.String
-  },
-  HttpApiSchema.annotations({ status: 404 })
-) {
-  get message(): string {
-    return `Journal entry not found: ${this.entryId}`
-  }
-}
-
-export const isJournalEntryNotFoundError = Schema.is(JournalEntryNotFoundError)
-
-/**
- * UnbalancedJournalEntryError - Journal entry debits and credits do not balance
- */
-export class UnbalancedJournalEntryError extends Schema.TaggedError<UnbalancedJournalEntryError>()(
-  "UnbalancedJournalEntryError",
-  {
-    totalDebits: Schema.String,
-    totalCredits: Schema.String
-  },
-  HttpApiSchema.annotations({ status: 400 })
-) {
-  get message(): string {
-    return `Journal entry is unbalanced: debits (${this.totalDebits}) != credits (${this.totalCredits})`
-  }
-}
-
-export const isUnbalancedJournalEntryError = Schema.is(UnbalancedJournalEntryError)
-
-/**
- * JournalEntryStatusError - Invalid journal entry status for operation
- */
-export class JournalEntryStatusError extends Schema.TaggedError<JournalEntryStatusError>()(
-  "JournalEntryStatusError",
-  {
-    entryId: Schema.String,
-    currentStatus: Schema.String,
-    requiredStatus: Schema.String,
-    operation: Schema.String
-  },
-  HttpApiSchema.annotations({ status: 409 })
-) {
-  get message(): string {
-    return `Cannot ${this.operation}: status is '${this.currentStatus}', must be '${this.requiredStatus}'`
-  }
-}
-
-export const isJournalEntryStatusError = Schema.is(JournalEntryStatusError)
-
-/**
- * JournalEntryAlreadyReversedError - Journal entry has already been reversed
- */
-export class JournalEntryAlreadyReversedError extends Schema.TaggedError<JournalEntryAlreadyReversedError>()(
-  "JournalEntryAlreadyReversedError",
-  {
-    entryId: Schema.String,
-    reversingEntryId: Schema.String
-  },
-  HttpApiSchema.annotations({ status: 409 })
-) {
-  get message(): string {
-    return `Journal entry ${this.entryId} has already been reversed by entry ${this.reversingEntryId}`
-  }
-}
-
-export const isJournalEntryAlreadyReversedError = Schema.is(JournalEntryAlreadyReversedError)
-
-/**
- * ExchangeRateNotFoundError - Exchange rate does not exist
- */
-export class ExchangeRateNotFoundError extends Schema.TaggedError<ExchangeRateNotFoundError>()(
-  "ExchangeRateNotFoundError",
-  {
-    rateId: Schema.String
-  },
-  HttpApiSchema.annotations({ status: 404 })
-) {
-  get message(): string {
-    return `Exchange rate not found: ${this.rateId}`
-  }
-}
-
-export const isExchangeRateNotFoundError = Schema.is(ExchangeRateNotFoundError)
-
-/**
- * PolicyNotFoundError - Policy does not exist
- */
-export class PolicyNotFoundError extends Schema.TaggedError<PolicyNotFoundError>()(
-  "PolicyNotFoundError",
-  {
-    policyId: Schema.String
-  },
-  HttpApiSchema.annotations({ status: 404 })
-) {
-  get message(): string {
-    return `Policy not found: ${this.policyId}`
-  }
-}
-
-export const isPolicyNotFoundError = Schema.is(PolicyNotFoundError)
-
-/**
- * InvitationNotFoundError - Invitation does not exist
- */
-export class InvitationNotFoundError extends Schema.TaggedError<InvitationNotFoundError>()(
-  "InvitationNotFoundError",
-  {
-    invitationId: Schema.String
-  },
-  HttpApiSchema.annotations({ status: 404 })
-) {
-  get message(): string {
-    return `Invitation not found: ${this.invitationId}`
-  }
-}
-
-export const isInvitationNotFoundError = Schema.is(InvitationNotFoundError)
-
-/**
- * IntercompanyTransactionNotFoundError - Intercompany transaction does not exist
- */
-export class IntercompanyTransactionNotFoundError extends Schema.TaggedError<IntercompanyTransactionNotFoundError>()(
-  "IntercompanyTransactionNotFoundError",
-  {
-    transactionId: Schema.String
-  },
-  HttpApiSchema.annotations({ status: 404 })
-) {
-  get message(): string {
-    return `Intercompany transaction not found: ${this.transactionId}`
-  }
-}
-
-export const isIntercompanyTransactionNotFoundError = Schema.is(IntercompanyTransactionNotFoundError)
-
-/**
- * ConsolidationGroupNotFoundError - Consolidation group does not exist
- */
-export class ConsolidationGroupNotFoundError extends Schema.TaggedError<ConsolidationGroupNotFoundError>()(
-  "ConsolidationGroupNotFoundError",
-  {
-    groupId: Schema.String
-  },
-  HttpApiSchema.annotations({ status: 404 })
-) {
-  get message(): string {
-    return `Consolidation group not found: ${this.groupId}`
-  }
-}
-
-export const isConsolidationGroupNotFoundError = Schema.is(ConsolidationGroupNotFoundError)
-
-/**
- * ConsolidationRunNotFoundError - Consolidation run does not exist
- */
-export class ConsolidationRunNotFoundError extends Schema.TaggedError<ConsolidationRunNotFoundError>()(
-  "ConsolidationRunNotFoundError",
-  {
-    runId: Schema.String
-  },
-  HttpApiSchema.annotations({ status: 404 })
-) {
-  get message(): string {
-    return `Consolidation run not found: ${this.runId}`
-  }
-}
-
-export const isConsolidationRunNotFoundError = Schema.is(ConsolidationRunNotFoundError)
-
-/**
- * ConsolidationMemberNotFoundError - Member not found in consolidation group
- */
-export class ConsolidationMemberNotFoundError extends Schema.TaggedError<ConsolidationMemberNotFoundError>()(
-  "ConsolidationMemberNotFoundError",
-  {
-    groupId: Schema.String,
-    companyId: Schema.String
-  },
-  HttpApiSchema.annotations({ status: 404 })
-) {
-  get message(): string {
-    return `Member ${this.companyId} not found in consolidation group ${this.groupId}`
-  }
-}
-
-export const isConsolidationMemberNotFoundError = Schema.is(ConsolidationMemberNotFoundError)
-
-/**
- * AccountTemplateNotFoundError - Account template does not exist
- */
-export class AccountTemplateNotFoundError extends Schema.TaggedError<AccountTemplateNotFoundError>()(
-  "AccountTemplateNotFoundError",
-  {
-    templateType: Schema.String
-  },
-  HttpApiSchema.annotations({ status: 404 })
-) {
-  get message(): string {
-    return `Account template not found: ${this.templateType}`
-  }
-}
-
-export const isAccountTemplateNotFoundError = Schema.is(AccountTemplateNotFoundError)
-
-/**
- * EliminationRuleNotFoundError - Elimination rule does not exist
- */
-export class EliminationRuleNotFoundError extends Schema.TaggedError<EliminationRuleNotFoundError>()(
-  "EliminationRuleNotFoundError",
-  {
-    ruleId: Schema.String
-  },
-  HttpApiSchema.annotations({ status: 404 })
-) {
-  get message(): string {
-    return `Elimination rule not found: ${this.ruleId}`
-  }
-}
-
-export const isEliminationRuleNotFoundError = Schema.is(EliminationRuleNotFoundError)
-
-/**
- * EliminationRuleOperationFailedError - Elimination rule operation failed
- */
-export class EliminationRuleOperationFailedError extends Schema.TaggedError<EliminationRuleOperationFailedError>()(
-  "EliminationRuleOperationFailedError",
-  {
-    operation: Schema.String,
-    reason: Schema.String
-  },
-  HttpApiSchema.annotations({ status: 422 })
-) {
-  get message(): string {
-    return `Elimination rule ${this.operation} failed: ${this.reason}`
-  }
-}
-
-export const isEliminationRuleOperationFailedError = Schema.is(EliminationRuleOperationFailedError)
-
-/**
- * MemberNotFoundError - Organization member does not exist
- */
-export class MemberNotFoundError extends Schema.TaggedError<MemberNotFoundError>()(
-  "MemberNotFoundError",
-  {
-    memberId: Schema.String
-  },
-  HttpApiSchema.annotations({ status: 404 })
-) {
-  get message(): string {
-    return `Member not found: ${this.memberId}`
-  }
-}
-
-export const isMemberNotFoundError = Schema.is(MemberNotFoundError)
-
-/**
- * UserNotFoundByEmailError - User with email does not exist
- */
-export class UserNotFoundByEmailError extends Schema.TaggedError<UserNotFoundByEmailError>()(
-  "UserNotFoundByEmailError",
-  {
-    email: Schema.String
-  },
-  HttpApiSchema.annotations({ status: 404 })
-) {
-  get message(): string {
-    return `User not found with email: ${this.email}`
-  }
-}
-
-export const isUserNotFoundByEmailError = Schema.is(UserNotFoundByEmailError)
+export {
+  OrganizationNotFoundError,
+  isOrganizationNotFoundError,
+  InvalidOrganizationIdError,
+  isInvalidOrganizationIdError,
+  UserNotMemberOfOrganizationError,
+  isUserNotMemberOfOrganizationError,
+  OrganizationHasCompaniesError,
+  isOrganizationHasCompaniesError,
+  OrganizationNameAlreadyExistsError,
+  isOrganizationNameAlreadyExistsError,
+  OrganizationUpdateFailedError,
+  isOrganizationUpdateFailedError,
+  MembershipCreationFailedError,
+  isMembershipCreationFailedError,
+  SystemPolicySeedingFailedError,
+  isSystemPolicySeedingFailedError
+} from "../organization/OrganizationErrors.ts"
 
 // =============================================================================
-// Validation Errors (400)
+// Company Domain Errors
 // =============================================================================
 
-/**
- * OwnershipPercentageRequiredError - Ownership percentage required for subsidiaries
- */
-export class OwnershipPercentageRequiredError extends Schema.TaggedError<OwnershipPercentageRequiredError>()(
-  "OwnershipPercentageRequiredError",
-  {},
-  HttpApiSchema.annotations({ status: 400 })
-) {
-  get message(): string {
-    return "Ownership percentage is required for subsidiaries"
-  }
-}
-
-export const isOwnershipPercentageRequiredError = Schema.is(OwnershipPercentageRequiredError)
-
-/**
- * InvalidOrganizationIdError - Invalid organization ID format
- */
-export class InvalidOrganizationIdError extends Schema.TaggedError<InvalidOrganizationIdError>()(
-  "InvalidOrganizationIdError",
-  {
-    value: Schema.String
-  },
-  HttpApiSchema.annotations({ status: 400 })
-) {
-  get message(): string {
-    return `Invalid organization ID format: ${this.value}`
-  }
-}
-
-export const isInvalidOrganizationIdError = Schema.is(InvalidOrganizationIdError)
-
-/**
- * InvalidCompanyIdError - Invalid company ID format
- */
-export class InvalidCompanyIdError extends Schema.TaggedError<InvalidCompanyIdError>()(
-  "InvalidCompanyIdError",
-  {
-    value: Schema.String
-  },
-  HttpApiSchema.annotations({ status: 400 })
-) {
-  get message(): string {
-    return `Invalid company ID format: ${this.value}`
-  }
-}
-
-export const isInvalidCompanyIdError = Schema.is(InvalidCompanyIdError)
-
-/**
- * InvalidInvitationIdError - Invalid invitation ID format
- */
-export class InvalidInvitationIdError extends Schema.TaggedError<InvalidInvitationIdError>()(
-  "InvalidInvitationIdError",
-  {
-    value: Schema.String
-  },
-  HttpApiSchema.annotations({ status: 400 })
-) {
-  get message(): string {
-    return `Invalid invitation ID format: ${this.value}`
-  }
-}
-
-export const isInvalidInvitationIdError = Schema.is(InvalidInvitationIdError)
-
-/**
- * InvalidPolicyConditionError - Invalid policy condition
- */
-export class InvalidPolicyConditionError extends Schema.TaggedError<InvalidPolicyConditionError>()(
-  "InvalidPolicyConditionError",
-  {
-    condition: Schema.String,
-    reason: Schema.String
-  },
-  HttpApiSchema.annotations({ status: 400 })
-) {
-  get message(): string {
-    return `Invalid policy condition '${this.condition}': ${this.reason}`
-  }
-}
-
-export const isInvalidPolicyConditionError = Schema.is(InvalidPolicyConditionError)
-
-/**
- * InvalidPolicyIdError - Invalid policy ID format
- */
-export class InvalidPolicyIdError extends Schema.TaggedError<InvalidPolicyIdError>()(
-  "InvalidPolicyIdError",
-  {
-    value: Schema.String
-  },
-  HttpApiSchema.annotations({ status: 400 })
-) {
-  get message(): string {
-    return `Invalid policy ID format: ${this.value}`
-  }
-}
-
-export const isInvalidPolicyIdError = Schema.is(InvalidPolicyIdError)
-
-/**
- * PolicyPriorityValidationError - Policy priority is out of valid range
- */
-export class PolicyPriorityValidationError extends Schema.TaggedError<PolicyPriorityValidationError>()(
-  "PolicyPriorityValidationError",
-  {
-    priority: Schema.Number,
-    maxAllowed: Schema.Number
-  },
-  HttpApiSchema.annotations({ status: 400 })
-) {
-  get message(): string {
-    return `Custom policy priority must be between 0 and ${this.maxAllowed}, got ${this.priority}`
-  }
-}
-
-export const isPolicyPriorityValidationError = Schema.is(PolicyPriorityValidationError)
-
-/**
- * InvalidResourceTypeError - Invalid resource type for policy testing
- */
-export class InvalidResourceTypeError extends Schema.TaggedError<InvalidResourceTypeError>()(
-  "InvalidResourceTypeError",
-  {
-    resourceType: Schema.String,
-    validTypes: Schema.Array(Schema.String)
-  },
-  HttpApiSchema.annotations({ status: 400 })
-) {
-  get message(): string {
-    return `Invalid resource type: ${this.resourceType}. Valid types: ${this.validTypes.join(", ")}`
-  }
-}
-
-export const isInvalidResourceTypeError = Schema.is(InvalidResourceTypeError)
-
-/**
- * UserNotMemberOfOrganizationError - User is not a member of the organization
- */
-export class UserNotMemberOfOrganizationError extends Schema.TaggedError<UserNotMemberOfOrganizationError>()(
-  "UserNotMemberOfOrganizationError",
-  {
-    userId: Schema.String,
-    organizationId: Schema.String
-  },
-  HttpApiSchema.annotations({ status: 400 })
-) {
-  get message(): string {
-    return `User ${this.userId} is not a member of organization ${this.organizationId}`
-  }
-}
-
-export const isUserNotMemberOfOrganizationError = Schema.is(UserNotMemberOfOrganizationError)
-
-/**
- * SameCurrencyExchangeRateError - Cannot create exchange rate between same currencies
- */
-export class SameCurrencyExchangeRateError extends Schema.TaggedError<SameCurrencyExchangeRateError>()(
-  "SameCurrencyExchangeRateError",
-  {
-    currency: Schema.String
-  },
-  HttpApiSchema.annotations({ status: 400 })
-) {
-  get message(): string {
-    return `Cannot create exchange rate between same currency: ${this.currency}`
-  }
-}
-
-export const isSameCurrencyExchangeRateError = Schema.is(SameCurrencyExchangeRateError)
-
-/**
- * InvalidExchangeRateError - Invalid exchange rate value
- */
-export class InvalidExchangeRateError extends Schema.TaggedError<InvalidExchangeRateError>()(
-  "InvalidExchangeRateError",
-  {
-    reason: Schema.String
-  },
-  HttpApiSchema.annotations({ status: 400 })
-) {
-  get message(): string {
-    return `Invalid exchange rate: ${this.reason}`
-  }
-}
-
-export const isInvalidExchangeRateError = Schema.is(InvalidExchangeRateError)
-
-/**
- * SameCompanyIntercompanyError - Cannot create intercompany transaction between same company
- */
-export class SameCompanyIntercompanyError extends Schema.TaggedError<SameCompanyIntercompanyError>()(
-  "SameCompanyIntercompanyError",
-  {
-    companyId: Schema.String
-  },
-  HttpApiSchema.annotations({ status: 400 })
-) {
-  get message(): string {
-    return `Cannot create intercompany transaction between same company: ${this.companyId}`
-  }
-}
-
-export const isSameCompanyIntercompanyError = Schema.is(SameCompanyIntercompanyError)
-
-/**
- * IntercompanyTransactionCannotBeDeletedError - Cannot delete a matched intercompany transaction
- */
-export class IntercompanyTransactionCannotBeDeletedError extends Schema.TaggedError<IntercompanyTransactionCannotBeDeletedError>()(
-  "IntercompanyTransactionCannotBeDeletedError",
-  {
-    transactionId: Schema.String,
-    matchingStatus: Schema.String
-  },
-  HttpApiSchema.annotations({ status: 422 })
-) {
-  get message(): string {
-    return `Cannot delete intercompany transaction with matching status: ${this.matchingStatus}`
-  }
-}
-
-export const isIntercompanyTransactionCannotBeDeletedError = Schema.is(IntercompanyTransactionCannotBeDeletedError)
-
-/**
- * ParentAccountDifferentCompanyError - Parent account must be in the same company
- */
-export class ParentAccountDifferentCompanyError extends Schema.TaggedError<ParentAccountDifferentCompanyError>()(
-  "ParentAccountDifferentCompanyError",
-  {
-    accountCompanyId: Schema.String,
-    parentAccountCompanyId: Schema.String
-  },
-  HttpApiSchema.annotations({ status: 400 })
-) {
-  get message(): string {
-    return "Parent account must be in the same company"
-  }
-}
-
-export const isParentAccountDifferentCompanyError = Schema.is(ParentAccountDifferentCompanyError)
+export {
+  CompanyNotFoundError,
+  isCompanyNotFoundError,
+  InvalidCompanyIdError,
+  isInvalidCompanyIdError,
+  OwnershipPercentageRequiredError,
+  isOwnershipPercentageRequiredError,
+  ParentCompanyNotFoundError,
+  isParentCompanyNotFoundError,
+  CircularCompanyReferenceError,
+  isCircularCompanyReferenceError,
+  CompanyNameAlreadyExistsError,
+  isCompanyNameAlreadyExistsError,
+  HasActiveSubsidiariesError,
+  isHasActiveSubsidiariesError
+} from "../company/CompanyErrors.ts"
 
 // =============================================================================
-// Conflict Errors (409)
+// Accounting Domain Errors
 // =============================================================================
 
-/**
- * OrganizationHasCompaniesError - Cannot delete organization with companies
- */
-export class OrganizationHasCompaniesError extends Schema.TaggedError<OrganizationHasCompaniesError>()(
-  "OrganizationHasCompaniesError",
-  {
-    organizationId: Schema.String,
-    companyCount: Schema.Number
-  },
-  HttpApiSchema.annotations({ status: 409 })
-) {
-  get message(): string {
-    return `Cannot delete organization with ${this.companyCount} companies. Delete or move companies first.`
-  }
-}
-
-export const isOrganizationHasCompaniesError = Schema.is(OrganizationHasCompaniesError)
-
-/**
- * ParentCompanyNotFoundError - Parent company reference not found
- */
-export class ParentCompanyNotFoundError extends Schema.TaggedError<ParentCompanyNotFoundError>()(
-  "ParentCompanyNotFoundError",
-  {
-    parentCompanyId: Schema.String
-  },
-  HttpApiSchema.annotations({ status: 404 })
-) {
-  get message(): string {
-    return `Parent company not found: ${this.parentCompanyId}`
-  }
-}
-
-export const isParentCompanyNotFoundError = Schema.is(ParentCompanyNotFoundError)
-
-/**
- * CircularCompanyReferenceError - Circular reference in company hierarchy
- */
-export class CircularCompanyReferenceError extends Schema.TaggedError<CircularCompanyReferenceError>()(
-  "CircularCompanyReferenceError",
-  {
-    companyId: Schema.String,
-    parentCompanyId: Schema.String
-  },
-  HttpApiSchema.annotations({ status: 409 })
-) {
-  get message(): string {
-    return `Circular reference: setting ${this.parentCompanyId} as parent of ${this.companyId} would create a cycle`
-  }
-}
-
-export const isCircularCompanyReferenceError = Schema.is(CircularCompanyReferenceError)
-
-/**
- * OrganizationNameAlreadyExistsError - Organization name already exists
- */
-export class OrganizationNameAlreadyExistsError extends Schema.TaggedError<OrganizationNameAlreadyExistsError>()(
-  "OrganizationNameAlreadyExistsError",
-  {
-    name: Schema.String
-  },
-  HttpApiSchema.annotations({ status: 409 })
-) {
-  get message(): string {
-    return `Organization with name '${this.name}' already exists`
-  }
-}
-
-export const isOrganizationNameAlreadyExistsError = Schema.is(OrganizationNameAlreadyExistsError)
-
-/**
- * CompanyNameAlreadyExistsError - Company name already exists in this organization
- */
-export class CompanyNameAlreadyExistsError extends Schema.TaggedError<CompanyNameAlreadyExistsError>()(
-  "CompanyNameAlreadyExistsError",
-  {
-    companyName: Schema.String,
-    organizationId: Schema.String
-  },
-  HttpApiSchema.annotations({ status: 409 })
-) {
-  get message(): string {
-    return `Company with name '${this.companyName}' already exists in this organization`
-  }
-}
-
-export const isCompanyNameAlreadyExistsError = Schema.is(CompanyNameAlreadyExistsError)
-
-/**
- * OrganizationUpdateFailedError - Failed to update organization
- */
-export class OrganizationUpdateFailedError extends Schema.TaggedError<OrganizationUpdateFailedError>()(
-  "OrganizationUpdateFailedError",
-  {
-    organizationId: Schema.String,
-    reason: Schema.String
-  },
-  HttpApiSchema.annotations({ status: 400 })
-) {
-  get message(): string {
-    return `Failed to update organization ${this.organizationId}: ${this.reason}`
-  }
-}
-
-export const isOrganizationUpdateFailedError = Schema.is(OrganizationUpdateFailedError)
-
-/**
- * HasActiveSubsidiariesError - Cannot deactivate company with active subsidiaries
- */
-export class HasActiveSubsidiariesError extends Schema.TaggedError<HasActiveSubsidiariesError>()(
-  "HasActiveSubsidiariesError",
-  {
-    companyId: Schema.String,
-    subsidiaryCount: Schema.Number
-  },
-  HttpApiSchema.annotations({ status: 409 })
-) {
-  get message(): string {
-    return `Cannot deactivate company with ${this.subsidiaryCount} active subsidiaries`
-  }
-}
-
-export const isHasActiveSubsidiariesError = Schema.is(HasActiveSubsidiariesError)
-
-/**
- * HasActiveChildAccountsError - Cannot deactivate account with active child accounts
- */
-export class HasActiveChildAccountsError extends Schema.TaggedError<HasActiveChildAccountsError>()(
-  "HasActiveChildAccountsError",
-  {
-    accountId: Schema.String,
-    childCount: Schema.Number
-  },
-  HttpApiSchema.annotations({ status: 409 })
-) {
-  get message(): string {
-    return `Cannot deactivate account with ${this.childCount} active child accounts`
-  }
-}
-
-export const isHasActiveChildAccountsError = Schema.is(HasActiveChildAccountsError)
-
-/**
- * AccountNumberAlreadyExistsError - Account number already exists in this company
- */
-export class AccountNumberAlreadyExistsError extends Schema.TaggedError<AccountNumberAlreadyExistsError>()(
-  "AccountNumberAlreadyExistsError",
-  {
-    accountNumber: Schema.String,
-    companyId: Schema.String
-  },
-  HttpApiSchema.annotations({ status: 409 })
-) {
-  get message(): string {
-    return `Account number ${this.accountNumber} already exists in this company`
-  }
-}
-
-export const isAccountNumberAlreadyExistsError = Schema.is(AccountNumberAlreadyExistsError)
-
-/**
- * CircularAccountReferenceError - Circular reference in account hierarchy
- */
-export class CircularAccountReferenceError extends Schema.TaggedError<CircularAccountReferenceError>()(
-  "CircularAccountReferenceError",
-  {
-    accountId: Schema.String,
-    parentAccountId: Schema.String
-  },
-  HttpApiSchema.annotations({ status: 409 })
-) {
-  get message(): string {
-    return `Circular reference: setting ${this.parentAccountId} as parent of ${this.accountId} would create a cycle`
-  }
-}
-
-export const isCircularAccountReferenceError = Schema.is(CircularAccountReferenceError)
-
-/**
- * AccountsAlreadyExistError - Company already has accounts (cannot apply template)
- */
-export class AccountsAlreadyExistError extends Schema.TaggedError<AccountsAlreadyExistError>()(
-  "AccountsAlreadyExistError",
-  {
-    companyId: Schema.String,
-    accountCount: Schema.Number
-  },
-  HttpApiSchema.annotations({ status: 409 })
-) {
-  get message(): string {
-    return `Company already has ${this.accountCount} accounts. Cannot apply template to a company with existing accounts.`
-  }
-}
-
-export const isAccountsAlreadyExistError = Schema.is(AccountsAlreadyExistError)
-
-/**
- * PolicyAlreadyExistsError - Policy with same name already exists
- */
-export class PolicyAlreadyExistsError extends Schema.TaggedError<PolicyAlreadyExistsError>()(
-  "PolicyAlreadyExistsError",
-  {
-    name: Schema.String
-  },
-  HttpApiSchema.annotations({ status: 409 })
-) {
-  get message(): string {
-    return `Policy with name '${this.name}' already exists`
-  }
-}
-
-export const isPolicyAlreadyExistsError = Schema.is(PolicyAlreadyExistsError)
-
-/**
- * SystemPolicyCannotBeModifiedError - System policies cannot be modified or deleted
- */
-export class SystemPolicyCannotBeModifiedError extends Schema.TaggedError<SystemPolicyCannotBeModifiedError>()(
-  "SystemPolicyCannotBeModifiedError",
-  {
-    policyId: Schema.String,
-    operation: Schema.String
-  },
-  HttpApiSchema.annotations({ status: 409 })
-) {
-  get message(): string {
-    return `System policy ${this.policyId} cannot be ${this.operation}`
-  }
-}
-
-export const isSystemPolicyCannotBeModifiedError = Schema.is(SystemPolicyCannotBeModifiedError)
-
-/**
- * ExchangeRateAlreadyExistsError - Exchange rate for this currency pair already exists
- */
-export class ExchangeRateAlreadyExistsError extends Schema.TaggedError<ExchangeRateAlreadyExistsError>()(
-  "ExchangeRateAlreadyExistsError",
-  {
-    fromCurrency: Schema.String,
-    toCurrency: Schema.String,
-    effectiveDate: Schema.String
-  },
-  HttpApiSchema.annotations({ status: 409 })
-) {
-  get message(): string {
-    return `Exchange rate from ${this.fromCurrency} to ${this.toCurrency} already exists for ${this.effectiveDate}`
-  }
-}
-
-export const isExchangeRateAlreadyExistsError = Schema.is(ExchangeRateAlreadyExistsError)
+export {
+  AccountNotFoundError,
+  isAccountNotFoundError,
+  ParentAccountNotFoundError,
+  isParentAccountNotFoundError,
+  AccountTemplateNotFoundError,
+  isAccountTemplateNotFoundError,
+  ParentAccountDifferentCompanyError,
+  isParentAccountDifferentCompanyError,
+  HasActiveChildAccountsError,
+  isHasActiveChildAccountsError,
+  AccountNumberAlreadyExistsError,
+  isAccountNumberAlreadyExistsError,
+  CircularAccountReferenceError,
+  isCircularAccountReferenceError,
+  AccountsAlreadyExistError,
+  isAccountsAlreadyExistError
+} from "../accounting/AccountErrors.ts"
 
 // =============================================================================
-// Business Rule Errors (422)
+// Journal Domain Errors
 // =============================================================================
 
-/**
- * MembershipCreationFailedError - Failed to create membership for organization creator
- */
-export class MembershipCreationFailedError extends Schema.TaggedError<MembershipCreationFailedError>()(
-  "MembershipCreationFailedError",
-  {
-    reason: Schema.String
-  },
-  HttpApiSchema.annotations({ status: 422 })
-) {
-  get message(): string {
-    return `Failed to create owner membership: ${this.reason}`
-  }
-}
-
-export const isMembershipCreationFailedError = Schema.is(MembershipCreationFailedError)
-
-/**
- * SystemPolicySeedingFailedError - Failed to seed system policies for organization
- */
-export class SystemPolicySeedingFailedError extends Schema.TaggedError<SystemPolicySeedingFailedError>()(
-  "SystemPolicySeedingFailedError",
-  {},
-  HttpApiSchema.annotations({ status: 422 })
-) {
-  get message(): string {
-    return "Failed to seed system policies for organization"
-  }
-}
-
-export const isSystemPolicySeedingFailedError = Schema.is(SystemPolicySeedingFailedError)
-
-/**
- * InvitationNotPendingError - Invitation is not in pending state
- */
-export class InvitationNotPendingError extends Schema.TaggedError<InvitationNotPendingError>()(
-  "InvitationNotPendingError",
-  {
-    invitationId: Schema.String,
-    currentStatus: Schema.String
-  },
-  HttpApiSchema.annotations({ status: 422 })
-) {
-  get message(): string {
-    return `Invitation ${this.invitationId} is not pending (current status: ${this.currentStatus})`
-  }
-}
-
-export const isInvitationNotPendingError = Schema.is(InvitationNotPendingError)
-
-/**
- * ConsolidationGroupInactiveError - Consolidation group is not active
- */
-export class ConsolidationGroupInactiveError extends Schema.TaggedError<ConsolidationGroupInactiveError>()(
-  "ConsolidationGroupInactiveError",
-  {
-    groupId: Schema.String
-  },
-  HttpApiSchema.annotations({ status: 422 })
-) {
-  get message(): string {
-    return `Consolidation group ${this.groupId} is not active`
-  }
-}
-
-export const isConsolidationGroupInactiveError = Schema.is(ConsolidationGroupInactiveError)
-
-/**
- * ConsolidationRunInProgressError - Consolidation run already in progress
- */
-export class ConsolidationRunInProgressError extends Schema.TaggedError<ConsolidationRunInProgressError>()(
-  "ConsolidationRunInProgressError",
-  {
-    groupId: Schema.String,
-    existingRunId: Schema.String
-  },
-  HttpApiSchema.annotations({ status: 422 })
-) {
-  get message(): string {
-    return `Consolidation run already in progress for group ${this.groupId}: ${this.existingRunId}`
-  }
-}
-
-export const isConsolidationRunInProgressError = Schema.is(ConsolidationRunInProgressError)
-
-/**
- * ConsolidationGroupHasCompletedRunsError - Cannot delete group with completed runs
- */
-export class ConsolidationGroupHasCompletedRunsError extends Schema.TaggedError<ConsolidationGroupHasCompletedRunsError>()(
-  "ConsolidationGroupHasCompletedRunsError",
-  {
-    groupId: Schema.String,
-    completedRunCount: Schema.Number
-  },
-  HttpApiSchema.annotations({ status: 409 })
-) {
-  get message(): string {
-    return `Cannot delete consolidation group with ${this.completedRunCount} completed runs`
-  }
-}
-
-export const isConsolidationGroupHasCompletedRunsError = Schema.is(ConsolidationGroupHasCompletedRunsError)
-
-/**
- * ConsolidationGroupDeleteNotSupportedError - Group deletion is not implemented
- */
-export class ConsolidationGroupDeleteNotSupportedError extends Schema.TaggedError<ConsolidationGroupDeleteNotSupportedError>()(
-  "ConsolidationGroupDeleteNotSupportedError",
-  {
-    message: Schema.optionalWith(Schema.String, {
-      default: () => "Group deletion is not yet implemented. Use deactivation instead."
-    })
-  },
-  HttpApiSchema.annotations({ status: 422 })
-) {}
-
-export const isConsolidationGroupDeleteNotSupportedError = Schema.is(ConsolidationGroupDeleteNotSupportedError)
-
-/**
- * ConsolidationMemberAlreadyExistsError - Company is already a member of the group
- */
-export class ConsolidationMemberAlreadyExistsError extends Schema.TaggedError<ConsolidationMemberAlreadyExistsError>()(
-  "ConsolidationMemberAlreadyExistsError",
-  {
-    groupId: Schema.String,
-    companyId: Schema.String
-  },
-  HttpApiSchema.annotations({ status: 409 })
-) {
-  get message(): string {
-    return `Company ${this.companyId} is already a member of consolidation group ${this.groupId}`
-  }
-}
-
-export const isConsolidationMemberAlreadyExistsError = Schema.is(ConsolidationMemberAlreadyExistsError)
-
-/**
- * ConsolidationRunExistsForPeriodError - A consolidation run already exists for this period
- */
-export class ConsolidationRunExistsForPeriodError extends Schema.TaggedError<ConsolidationRunExistsForPeriodError>()(
-  "ConsolidationRunExistsForPeriodError",
-  {
-    groupId: Schema.String,
-    year: Schema.Number,
-    period: Schema.Number
-  },
-  HttpApiSchema.annotations({ status: 409 })
-) {
-  get message(): string {
-    return `A consolidation run already exists for period ${this.year}-${this.period}`
-  }
-}
-
-export const isConsolidationRunExistsForPeriodError = Schema.is(ConsolidationRunExistsForPeriodError)
-
-/**
- * ConsolidationRunCannotBeCancelledError - Run cannot be cancelled in current status
- */
-export class ConsolidationRunCannotBeCancelledError extends Schema.TaggedError<ConsolidationRunCannotBeCancelledError>()(
-  "ConsolidationRunCannotBeCancelledError",
-  {
-    runId: Schema.String,
-    currentStatus: Schema.String
-  },
-  HttpApiSchema.annotations({ status: 422 })
-) {
-  get message(): string {
-    return `Cannot cancel consolidation run with status: ${this.currentStatus}`
-  }
-}
-
-export const isConsolidationRunCannotBeCancelledError = Schema.is(ConsolidationRunCannotBeCancelledError)
-
-/**
- * ConsolidationRunCannotBeDeletedError - Run cannot be deleted in current status
- */
-export class ConsolidationRunCannotBeDeletedError extends Schema.TaggedError<ConsolidationRunCannotBeDeletedError>()(
-  "ConsolidationRunCannotBeDeletedError",
-  {
-    runId: Schema.String,
-    currentStatus: Schema.String
-  },
-  HttpApiSchema.annotations({ status: 422 })
-) {
-  get message(): string {
-    return `Cannot delete consolidation run with status: ${this.currentStatus}`
-  }
-}
-
-export const isConsolidationRunCannotBeDeletedError = Schema.is(ConsolidationRunCannotBeDeletedError)
-
-/**
- * ConsolidationRunNotCompletedError - Run has not completed successfully
- */
-export class ConsolidationRunNotCompletedError extends Schema.TaggedError<ConsolidationRunNotCompletedError>()(
-  "ConsolidationRunNotCompletedError",
-  {
-    runId: Schema.String,
-    currentStatus: Schema.String
-  },
-  HttpApiSchema.annotations({ status: 422 })
-) {
-  get message(): string {
-    return `Consolidation run status is ${this.currentStatus}, not Completed`
-  }
-}
-
-export const isConsolidationRunNotCompletedError = Schema.is(ConsolidationRunNotCompletedError)
-
-/**
- * ConsolidatedTrialBalanceNotAvailableError - Trial balance is not available for this run
- */
-export class ConsolidatedTrialBalanceNotAvailableError extends Schema.TaggedError<ConsolidatedTrialBalanceNotAvailableError>()(
-  "ConsolidatedTrialBalanceNotAvailableError",
-  {
-    runId: Schema.String
-  },
-  HttpApiSchema.annotations({ status: 422 })
-) {
-  get message(): string {
-    return `Consolidated trial balance not available for run ${this.runId}`
-  }
-}
-
-export const isConsolidatedTrialBalanceNotAvailableError = Schema.is(ConsolidatedTrialBalanceNotAvailableError)
-
-/**
- * ConsolidatedBalanceSheetNotBalancedError - Balance sheet does not balance
- */
-export class ConsolidatedBalanceSheetNotBalancedError extends Schema.TaggedError<ConsolidatedBalanceSheetNotBalancedError>()(
-  "ConsolidatedBalanceSheetNotBalancedError",
-  {
-    difference: Schema.Number
-  },
-  HttpApiSchema.annotations({ status: 422 })
-) {
-  get message(): string {
-    return `Balance sheet does not balance: difference of ${this.difference}`
-  }
-}
-
-export const isConsolidatedBalanceSheetNotBalancedError = Schema.is(ConsolidatedBalanceSheetNotBalancedError)
-
-/**
- * ConsolidationReportGenerationError - Failed to generate report
- */
-export class ConsolidationReportGenerationError extends Schema.TaggedError<ConsolidationReportGenerationError>()(
-  "ConsolidationReportGenerationError",
-  {
-    reportType: Schema.String,
-    reason: Schema.String
-  },
-  HttpApiSchema.annotations({ status: 500 })
-) {
-  get message(): string {
-    return `Failed to generate ${this.reportType} report: ${this.reason}`
-  }
-}
-
-export const isConsolidationReportGenerationError = Schema.is(ConsolidationReportGenerationError)
+export {
+  JournalEntryNotFoundError,
+  isJournalEntryNotFoundError,
+  UnbalancedJournalEntryError,
+  isUnbalancedJournalEntryError,
+  JournalEntryStatusError,
+  isJournalEntryStatusError,
+  JournalEntryAlreadyReversedError,
+  isJournalEntryAlreadyReversedError
+} from "../journal/JournalErrors.ts"
 
 // =============================================================================
-// Reports Errors
+// Currency Domain Errors
 // =============================================================================
 
-/**
- * InvalidReportPeriodError - Report period is invalid (end before start)
- */
-export class InvalidReportPeriodError extends Schema.TaggedError<InvalidReportPeriodError>()(
-  "InvalidReportPeriodError",
-  {
-    periodStart: Schema.String,
-    periodEnd: Schema.String
-  },
-  HttpApiSchema.annotations({ status: 400 })
-) {
-  get message(): string {
-    return `Invalid report period: ${this.periodStart} to ${this.periodEnd}`
-  }
-}
-
-export const isInvalidReportPeriodError = Schema.is(InvalidReportPeriodError)
-
-/**
- * TrialBalanceNotBalancedError - Trial balance debits don't equal credits
- */
-export class TrialBalanceNotBalancedError extends Schema.TaggedError<TrialBalanceNotBalancedError>()(
-  "TrialBalanceNotBalancedError",
-  {
-    totalDebits: Schema.Number,
-    totalCredits: Schema.Number
-  },
-  HttpApiSchema.annotations({ status: 422 })
-) {
-  get message(): string {
-    return `Trial balance is not balanced: debits ${this.totalDebits}, credits ${this.totalCredits}`
-  }
-}
-
-export const isTrialBalanceNotBalancedError = Schema.is(TrialBalanceNotBalancedError)
-
-/**
- * BalanceSheetNotBalancedError - Balance sheet assets don't equal liabilities + equity
- */
-export class BalanceSheetNotBalancedError extends Schema.TaggedError<BalanceSheetNotBalancedError>()(
-  "BalanceSheetNotBalancedError",
-  {
-    totalAssets: Schema.Number,
-    totalLiabilitiesAndEquity: Schema.Number
-  },
-  HttpApiSchema.annotations({ status: 422 })
-) {
-  get message(): string {
-    return `Balance sheet is not balanced: assets ${this.totalAssets}, liabilities + equity ${this.totalLiabilitiesAndEquity}`
-  }
-}
-
-export const isBalanceSheetNotBalancedError = Schema.is(BalanceSheetNotBalancedError)
+export {
+  ExchangeRateNotFoundError,
+  isExchangeRateNotFoundError,
+  SameCurrencyExchangeRateError,
+  isSameCurrencyExchangeRateError,
+  InvalidExchangeRateError,
+  isInvalidExchangeRateError,
+  ExchangeRateAlreadyExistsError,
+  isExchangeRateAlreadyExistsError
+} from "../currency/CurrencyErrors.ts"
 
 // =============================================================================
-// Internal Errors (500)
+// Consolidation Domain Errors
 // =============================================================================
 
-/**
- * DataCorruptionError - Data integrity violation detected
- */
-export class DataCorruptionError extends Schema.TaggedError<DataCorruptionError>()(
-  "DataCorruptionError",
-  {
-    entityType: Schema.String,
-    entityId: Schema.String,
-    reason: Schema.String
-  },
-  HttpApiSchema.annotations({ status: 500 })
-) {
-  get message(): string {
-    return `Data corruption detected for ${this.entityType} ${this.entityId}: ${this.reason}`
-  }
-}
+export {
+  IntercompanyTransactionNotFoundError,
+  isIntercompanyTransactionNotFoundError,
+  ConsolidationGroupNotFoundError,
+  isConsolidationGroupNotFoundError,
+  ConsolidationRunNotFoundError,
+  isConsolidationRunNotFoundError,
+  ConsolidationMemberNotFoundError,
+  isConsolidationMemberNotFoundError,
+  EliminationRuleNotFoundError,
+  isEliminationRuleNotFoundError,
+  SameCompanyIntercompanyError,
+  isSameCompanyIntercompanyError,
+  ConsolidationMemberAlreadyExistsError,
+  isConsolidationMemberAlreadyExistsError,
+  ConsolidationRunExistsForPeriodError,
+  isConsolidationRunExistsForPeriodError,
+  ConsolidationGroupHasCompletedRunsError,
+  isConsolidationGroupHasCompletedRunsError,
+  ConsolidationGroupInactiveError,
+  isConsolidationGroupInactiveError,
+  ConsolidationRunInProgressError,
+  isConsolidationRunInProgressError,
+  ConsolidationGroupDeleteNotSupportedError,
+  isConsolidationGroupDeleteNotSupportedError,
+  ConsolidationRunCannotBeCancelledError,
+  isConsolidationRunCannotBeCancelledError,
+  ConsolidationRunCannotBeDeletedError,
+  isConsolidationRunCannotBeDeletedError,
+  ConsolidationRunNotCompletedError,
+  isConsolidationRunNotCompletedError,
+  ConsolidatedTrialBalanceNotAvailableError,
+  isConsolidatedTrialBalanceNotAvailableError,
+  ConsolidatedBalanceSheetNotBalancedError,
+  isConsolidatedBalanceSheetNotBalancedError,
+  IntercompanyTransactionCannotBeDeletedError,
+  isIntercompanyTransactionCannotBeDeletedError,
+  EliminationRuleOperationFailedError,
+  isEliminationRuleOperationFailedError,
+  ConsolidationReportGenerationError,
+  isConsolidationReportGenerationError
+} from "../consolidation/ConsolidationErrors.ts"
 
-export const isDataCorruptionError = Schema.is(DataCorruptionError)
+// =============================================================================
+// Reporting Domain Errors
+// =============================================================================
 
-/**
- * OperationFailedError - Generic operation failure (when specific error doesn't exist)
- */
-export class OperationFailedError extends Schema.TaggedError<OperationFailedError>()(
-  "OperationFailedError",
-  {
-    operation: Schema.String,
-    reason: Schema.String
-  },
-  HttpApiSchema.annotations({ status: 500 })
-) {
-  get message(): string {
-    return `Operation '${this.operation}' failed: ${this.reason}`
-  }
-}
+export {
+  InvalidReportPeriodError,
+  isInvalidReportPeriodError,
+  TrialBalanceNotBalancedError,
+  isTrialBalanceNotBalancedError,
+  BalanceSheetNotBalancedError,
+  isBalanceSheetNotBalancedError
+} from "../reporting/ReportErrors.ts"
 
-export const isOperationFailedError = Schema.is(OperationFailedError)
+// =============================================================================
+// Membership Domain Errors
+// =============================================================================
+
+export {
+  MemberNotFoundError,
+  isMemberNotFoundError,
+  InvitationNotFoundError,
+  isInvitationNotFoundError,
+  UserNotFoundByEmailError,
+  isUserNotFoundByEmailError,
+  InvalidInvitationIdError,
+  isInvalidInvitationIdError,
+  InvitationNotPendingError,
+  isInvitationNotPendingError
+} from "../membership/MembershipErrors.ts"
+
+// =============================================================================
+// Authorization Domain Errors
+// =============================================================================
+
+export {
+  PolicyNotFoundError,
+  isPolicyNotFoundError,
+  InvalidPolicyIdError,
+  isInvalidPolicyIdError,
+  InvalidPolicyConditionError,
+  isInvalidPolicyConditionError,
+  PolicyPriorityValidationError,
+  isPolicyPriorityValidationError,
+  InvalidResourceTypeError,
+  isInvalidResourceTypeError,
+  PolicyAlreadyExistsError,
+  isPolicyAlreadyExistsError,
+  SystemPolicyCannotBeModifiedError,
+  isSystemPolicyCannotBeModifiedError
+} from "../authorization/AuthorizationErrors.ts"
+
+// =============================================================================
+// Shared Errors
+// =============================================================================
+
+export {
+  DataCorruptionError,
+  isDataCorruptionError,
+  OperationFailedError,
+  isOperationFailedError
+} from "../shared/errors/SharedErrors.ts"

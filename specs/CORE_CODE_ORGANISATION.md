@@ -584,12 +584,12 @@ Within the domain, what type is this?
 - [x] Reorganize /audit/ domain - DONE (re-exports created)
 - [x] Reorganize /jurisdiction/ domain - DONE (re-exports created)
 - [x] Split and reorganize /auth/ → auth, authorization, membership - DONE (re-exports created)
-- [ ] Migrate all errors to domain-specific files
-- [ ] Delete old /Errors/ directory
+- [x] Migrate all errors to domain-specific files - DONE (Phase 5)
+- [ ] Delete old /Errors/ directory (keep for backward compatibility)
 - [ ] Delete old /Domains/ directory
 - [ ] Delete old /Services/ directory
 - [ ] Update all imports
-- [ ] Run full test suite
+- [x] Run full test suite - DONE (3915 tests pass)
 - [ ] Update this spec to mark complete
 
 ---
@@ -674,3 +674,41 @@ The old Auth/ directory contained files belonging to three separate domains. Re-
 - Files include: `AuthUser.ts`, `AuthUserId.ts`, `Session.ts`, `SessionId.ts`, `LocalCredentials.ts`, `AuthService.ts`, `AuthConfig.ts`, `AuthProvider.ts`, `AuthProviderType.ts`, `AuthRequest.ts`, `AuthResult.ts`, `CurrentUser.ts`, `Email.ts`, `PasswordHasher.ts`, `SessionTokenGenerator.ts`, `AuthErrors.ts`, etc.
 
 **CI Status:** Typecheck passes.
+
+### Phase 5 Completed (2026-01-19) - Error Migration to Domain Files
+
+**Errors Migrated to Domain-Specific Files:**
+
+All errors previously defined in `Errors/DomainErrors.ts` have been moved to their respective domain error files. The `DomainErrors.ts` file now re-exports from domain files for backward compatibility.
+
+**Domain Error Files Updated:**
+
+- **organization/OrganizationErrors.ts**: `OrganizationNotFoundError`, `InvalidOrganizationIdError`, `UserNotMemberOfOrganizationError`, `OrganizationHasCompaniesError`, `OrganizationNameAlreadyExistsError`, `OrganizationUpdateFailedError`, `MembershipCreationFailedError`, `SystemPolicySeedingFailedError`
+
+- **company/CompanyErrors.ts**: `CompanyNotFoundError`, `InvalidCompanyIdError`, `OwnershipPercentageRequiredError`, `ParentCompanyNotFoundError`, `CircularCompanyReferenceError`, `CompanyNameAlreadyExistsError`, `HasActiveSubsidiariesError`
+
+- **accounting/AccountErrors.ts**: `AccountNotFoundError`, `ParentAccountNotFoundError`, `AccountTemplateNotFoundError`, `ParentAccountDifferentCompanyError`, `HasActiveChildAccountsError`, `AccountNumberAlreadyExistsError`, `CircularAccountReferenceError`, `AccountsAlreadyExistError`
+
+- **journal/JournalErrors.ts**: `JournalEntryNotFoundError`, `UnbalancedJournalEntryError`, `JournalEntryStatusError`, `JournalEntryAlreadyReversedError`
+
+- **currency/CurrencyErrors.ts**: `ExchangeRateNotFoundError`, `SameCurrencyExchangeRateError`, `InvalidExchangeRateError`, `ExchangeRateAlreadyExistsError`
+
+- **consolidation/ConsolidationErrors.ts**: All 19 consolidation-related errors including `ConsolidationGroupNotFoundError`, `ConsolidationRunNotFoundError`, `IntercompanyTransactionNotFoundError`, etc.
+
+- **reporting/ReportErrors.ts**: `InvalidReportPeriodError`, `TrialBalanceNotBalancedError`, `BalanceSheetNotBalancedError`
+
+- **membership/MembershipErrors.ts**: `MemberNotFoundError`, `InvitationNotFoundError`, `UserNotFoundByEmailError`, `InvalidInvitationIdError`, `InvitationNotPendingError` (plus re-exports from Auth/AuthorizationErrors.ts)
+
+- **authorization/AuthorizationErrors.ts**: `PolicyNotFoundError`, `InvalidPolicyIdError`, `InvalidPolicyConditionError`, `PolicyPriorityValidationError`, `InvalidResourceTypeError`, `PolicyAlreadyExistsError`, `SystemPolicyCannotBeModifiedError` (plus re-exports from Auth/AuthorizationErrors.ts)
+
+- **shared/errors/SharedErrors.ts**: `DataCorruptionError`, `OperationFailedError`
+
+- **shared/errors/RepositoryError.ts**: `EntityNotFoundError`, `PersistenceError`
+
+**Backward Compatibility:**
+
+- `Errors/DomainErrors.ts` now re-exports all errors from domain files
+- `Errors/RepositoryError.ts` now re-exports from `shared/errors/RepositoryError.ts`
+- All existing imports continue to work unchanged
+
+**CI Status:** All typecheck, lint, and 3915 tests pass.
