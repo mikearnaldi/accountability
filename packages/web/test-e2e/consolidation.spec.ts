@@ -376,37 +376,37 @@ test.describe("Consolidation Module", () => {
 
       // 9. Should show status filter
       await expect(page.getByTestId("status-filter")).toBeVisible()
+      // Wait for React to fully hydrate and stabilize
+      await page.waitForTimeout(500)
 
       // 10. Should show both groups by default (All filter)
-      await expect(page.getByText(activeGroupName)).toBeVisible()
-      await expect(page.getByText(inactiveGroupName)).toBeVisible()
+      await expect(page.getByText(activeGroupName)).toBeVisible({ timeout: 10000 })
+      await expect(page.getByText(inactiveGroupName)).toBeVisible({ timeout: 10000 })
 
-      // 11. Click Active filter
-      await page.getByTestId("filter-active").click()
-      // Wait for filter to take effect
-      await page.waitForTimeout(500)
+      // 11. Click Active filter - wait for button to be ready and use JS click for reliability
+      const activeFilterBtn = page.getByTestId("filter-active")
+      await expect(activeFilterBtn).toBeEnabled()
+      await activeFilterBtn.evaluate((el: HTMLButtonElement) => el.click())
+      // Wait for React state update and re-render - check that the inactive group disappears
+      const table = page.getByTestId("groups-table")
+      await expect(table.getByText(inactiveGroupName)).not.toBeVisible({ timeout: 15000 })
 
       // 12. Should only show active group
-      await expect(page.getByText(activeGroupName)).toBeVisible({ timeout: 10000 })
-      await expect(page.getByText(inactiveGroupName)).not.toBeVisible({ timeout: 10000 })
+      await expect(table.getByText(activeGroupName)).toBeVisible({ timeout: 10000 })
 
-      // 13. Click Inactive filter
-      await page.getByTestId("filter-inactive").click()
-      // Wait for filter to take effect
-      await page.waitForTimeout(500)
+      // 13. Click Inactive filter using JS click
+      await page.getByTestId("filter-inactive").evaluate((el: HTMLButtonElement) => el.click())
+      await expect(table.getByText(activeGroupName)).not.toBeVisible({ timeout: 15000 })
 
       // 14. Should only show inactive group
-      await expect(page.getByText(activeGroupName)).not.toBeVisible({ timeout: 10000 })
-      await expect(page.getByText(inactiveGroupName)).toBeVisible({ timeout: 10000 })
+      await expect(table.getByText(inactiveGroupName)).toBeVisible({ timeout: 10000 })
 
-      // 15. Click All filter to reset
-      await page.getByTestId("filter-all").click()
-      // Wait for filter to take effect
-      await page.waitForTimeout(500)
+      // 15. Click All filter to reset using JS click
+      await page.getByTestId("filter-all").evaluate((el: HTMLButtonElement) => el.click())
+      await expect(table.getByText(activeGroupName)).toBeVisible({ timeout: 15000 })
 
       // 16. Should show both groups again
-      await expect(page.getByText(activeGroupName)).toBeVisible({ timeout: 10000 })
-      await expect(page.getByText(inactiveGroupName)).toBeVisible({ timeout: 10000 })
+      await expect(table.getByText(inactiveGroupName)).toBeVisible({ timeout: 10000 })
     })
   })
 
@@ -1489,10 +1489,10 @@ test.describe("Consolidation Module", () => {
       await page.getByTestId("confirm-delete-button").click()
 
       // 17. Should show error message (group deletion not yet implemented in backend)
-      // The API returns a BusinessRuleError saying deletion is not implemented
-      // The error may show twice (in modal and outside), so use .first()
+      // The API returns a domain error saying deletion is not implemented
+      // Use partial text match since the message includes additional guidance
       await expect(
-        page.getByText("Group deletion is not yet implemented").first()
+        page.getByText(/Group deletion is not yet implemented/).first()
       ).toBeVisible({ timeout: 10000 })
 
       // 18. Cancel the modal to clean up

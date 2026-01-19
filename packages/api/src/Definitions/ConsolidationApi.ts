@@ -28,15 +28,28 @@ import { LocalDateFromString } from "@accountability/core/Domains/LocalDate"
 import { Percentage } from "@accountability/core/Domains/Percentage"
 import {
   AuditLogError,
-  BusinessRuleError,
-  ConflictError,
   ForbiddenError,
-  NotFoundError,
-  UserLookupError,
-  ValidationError
+  UserLookupError
 } from "./ApiErrors.ts"
 import { AuthMiddleware } from "./AuthMiddleware.ts"
-import { OrganizationNotFoundError } from "@accountability/core/Errors/DomainErrors"
+import {
+  OrganizationNotFoundError,
+  CompanyNotFoundError,
+  ConsolidationGroupNotFoundError,
+  ConsolidationRunNotFoundError,
+  ConsolidationMemberNotFoundError,
+  ConsolidationGroupInactiveError,
+  ConsolidationGroupHasCompletedRunsError,
+  ConsolidationGroupDeleteNotSupportedError,
+  ConsolidationMemberAlreadyExistsError,
+  ConsolidationRunExistsForPeriodError,
+  ConsolidationRunCannotBeCancelledError,
+  ConsolidationRunCannotBeDeletedError,
+  ConsolidationRunNotCompletedError,
+  ConsolidatedTrialBalanceNotAvailableError,
+  ConsolidatedBalanceSheetNotBalancedError,
+  ConsolidationReportGenerationError
+} from "@accountability/core/Errors/DomainErrors"
 
 // =============================================================================
 // Request/Response Schemas
@@ -179,10 +192,8 @@ export type ConsolidationRunListParams = typeof ConsolidationRunListParams.Type
 const listConsolidationGroups = HttpApiEndpoint.get("listConsolidationGroups", "/groups")
   .setUrlParams(ConsolidationGroupListParams)
   .addSuccess(ConsolidationGroupListResponse)
-  .addError(ValidationError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
-  .addError(NotFoundError)
   .annotateContext(OpenApi.annotations({
     summary: "List consolidation groups",
     description: "Retrieve a paginated list of consolidation groups. Supports filtering by organization and status."
@@ -195,7 +206,7 @@ const getConsolidationGroup = HttpApiEndpoint.get("getConsolidationGroup", "/gro
   .setPath(Schema.Struct({ id: ConsolidationGroupId }))
   .setUrlParams(OrganizationIdUrlParam)
   .addSuccess(ConsolidationGroupWithMembersResponse)
-  .addError(NotFoundError)
+  .addError(ConsolidationGroupNotFoundError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
@@ -209,12 +220,9 @@ const getConsolidationGroup = HttpApiEndpoint.get("getConsolidationGroup", "/gro
 const createConsolidationGroup = HttpApiEndpoint.post("createConsolidationGroup", "/groups")
   .setPayload(CreateConsolidationGroupRequest)
   .addSuccess(ConsolidationGroupWithMembersResponse, { status: 201 })
-  .addError(ValidationError)
-  .addError(ConflictError)
-  .addError(BusinessRuleError)
+  .addError(CompanyNotFoundError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
-  .addError(NotFoundError)
   .addError(AuditLogError)
   .addError(UserLookupError)
   .annotateContext(OpenApi.annotations({
@@ -230,9 +238,7 @@ const updateConsolidationGroup = HttpApiEndpoint.put("updateConsolidationGroup",
   .setUrlParams(OrganizationIdUrlParam)
   .setPayload(UpdateConsolidationGroupRequest)
   .addSuccess(ConsolidationGroup)
-  .addError(NotFoundError)
-  .addError(ValidationError)
-  .addError(BusinessRuleError)
+  .addError(ConsolidationGroupNotFoundError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .addError(AuditLogError)
@@ -249,8 +255,9 @@ const deleteConsolidationGroup = HttpApiEndpoint.del("deleteConsolidationGroup",
   .setPath(Schema.Struct({ id: ConsolidationGroupId }))
   .setUrlParams(OrganizationIdUrlParam)
   .addSuccess(HttpApiSchema.NoContent)
-  .addError(NotFoundError)
-  .addError(BusinessRuleError)
+  .addError(ConsolidationGroupNotFoundError)
+  .addError(ConsolidationGroupHasCompletedRunsError)
+  .addError(ConsolidationGroupDeleteNotSupportedError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .addError(AuditLogError)
@@ -267,8 +274,7 @@ const activateConsolidationGroup = HttpApiEndpoint.post("activateConsolidationGr
   .setPath(Schema.Struct({ id: ConsolidationGroupId }))
   .setUrlParams(OrganizationIdUrlParam)
   .addSuccess(ConsolidationGroup)
-  .addError(NotFoundError)
-  .addError(BusinessRuleError)
+  .addError(ConsolidationGroupNotFoundError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .addError(AuditLogError)
@@ -285,8 +291,7 @@ const deactivateConsolidationGroup = HttpApiEndpoint.post("deactivateConsolidati
   .setPath(Schema.Struct({ id: ConsolidationGroupId }))
   .setUrlParams(OrganizationIdUrlParam)
   .addSuccess(ConsolidationGroup)
-  .addError(NotFoundError)
-  .addError(BusinessRuleError)
+  .addError(ConsolidationGroupNotFoundError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .addError(AuditLogError)
@@ -308,10 +313,8 @@ const addGroupMember = HttpApiEndpoint.post("addGroupMember", "/groups/:id/membe
   .setUrlParams(OrganizationIdUrlParam)
   .setPayload(AddMemberRequest)
   .addSuccess(ConsolidationGroupWithMembersResponse)
-  .addError(NotFoundError)
-  .addError(ValidationError)
-  .addError(ConflictError)
-  .addError(BusinessRuleError)
+  .addError(ConsolidationGroupNotFoundError)
+  .addError(ConsolidationMemberAlreadyExistsError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .addError(AuditLogError)
@@ -329,9 +332,8 @@ const updateGroupMember = HttpApiEndpoint.put("updateGroupMember", "/groups/:id/
   .setUrlParams(OrganizationIdUrlParam)
   .setPayload(UpdateMemberRequest)
   .addSuccess(ConsolidationGroupWithMembersResponse)
-  .addError(NotFoundError)
-  .addError(ValidationError)
-  .addError(BusinessRuleError)
+  .addError(ConsolidationGroupNotFoundError)
+  .addError(ConsolidationMemberNotFoundError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .addError(AuditLogError)
@@ -348,8 +350,8 @@ const removeGroupMember = HttpApiEndpoint.del("removeGroupMember", "/groups/:id/
   .setPath(Schema.Struct({ id: ConsolidationGroupId, companyId: CompanyId }))
   .setUrlParams(OrganizationIdUrlParam)
   .addSuccess(ConsolidationGroupWithMembersResponse)
-  .addError(NotFoundError)
-  .addError(BusinessRuleError)
+  .addError(ConsolidationGroupNotFoundError)
+  .addError(ConsolidationMemberNotFoundError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .addError(AuditLogError)
@@ -369,10 +371,8 @@ const removeGroupMember = HttpApiEndpoint.del("removeGroupMember", "/groups/:id/
 const listConsolidationRuns = HttpApiEndpoint.get("listConsolidationRuns", "/runs")
   .setUrlParams(ConsolidationRunListParams)
   .addSuccess(ConsolidationRunListResponse)
-  .addError(ValidationError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
-  .addError(NotFoundError)
   .annotateContext(OpenApi.annotations({
     summary: "List consolidation runs",
     description: "Retrieve a paginated list of consolidation runs. Supports filtering by group, status, and period."
@@ -385,7 +385,7 @@ const getConsolidationRun = HttpApiEndpoint.get("getConsolidationRun", "/runs/:i
   .setPath(Schema.Struct({ id: ConsolidationRunId }))
   .setUrlParams(OrganizationIdUrlParam)
   .addSuccess(ConsolidationRun)
-  .addError(NotFoundError)
+  .addError(ConsolidationRunNotFoundError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
@@ -401,10 +401,9 @@ const initiateConsolidationRun = HttpApiEndpoint.post("initiateConsolidationRun"
   .setUrlParams(OrganizationIdUrlParam)
   .setPayload(InitiateConsolidationRunRequest)
   .addSuccess(ConsolidationRun, { status: 201 })
-  .addError(NotFoundError)
-  .addError(ValidationError)
-  .addError(ConflictError)
-  .addError(BusinessRuleError)
+  .addError(ConsolidationGroupNotFoundError)
+  .addError(ConsolidationGroupInactiveError)
+  .addError(ConsolidationRunExistsForPeriodError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .addError(AuditLogError)
@@ -421,8 +420,8 @@ const cancelConsolidationRun = HttpApiEndpoint.post("cancelConsolidationRun", "/
   .setPath(Schema.Struct({ id: ConsolidationRunId }))
   .setUrlParams(OrganizationIdUrlParam)
   .addSuccess(ConsolidationRun)
-  .addError(NotFoundError)
-  .addError(BusinessRuleError)
+  .addError(ConsolidationRunNotFoundError)
+  .addError(ConsolidationRunCannotBeCancelledError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .addError(AuditLogError)
@@ -439,8 +438,8 @@ const deleteConsolidationRun = HttpApiEndpoint.del("deleteConsolidationRun", "/r
   .setPath(Schema.Struct({ id: ConsolidationRunId }))
   .setUrlParams(OrganizationIdUrlParam)
   .addSuccess(HttpApiSchema.NoContent)
-  .addError(NotFoundError)
-  .addError(BusinessRuleError)
+  .addError(ConsolidationRunNotFoundError)
+  .addError(ConsolidationRunCannotBeDeletedError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .addError(AuditLogError)
@@ -457,8 +456,9 @@ const getConsolidatedTrialBalance = HttpApiEndpoint.get("getConsolidatedTrialBal
   .setPath(Schema.Struct({ id: ConsolidationRunId }))
   .setUrlParams(OrganizationIdUrlParam)
   .addSuccess(ConsolidatedTrialBalance)
-  .addError(NotFoundError)
-  .addError(BusinessRuleError)
+  .addError(ConsolidationRunNotFoundError)
+  .addError(ConsolidationRunNotCompletedError)
+  .addError(ConsolidatedTrialBalanceNotAvailableError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
@@ -473,7 +473,7 @@ const getLatestCompletedRun = HttpApiEndpoint.get("getLatestCompletedRun", "/gro
   .setPath(Schema.Struct({ groupId: ConsolidationGroupId }))
   .setUrlParams(OrganizationIdUrlParam)
   .addSuccess(Schema.OptionFromNullOr(ConsolidationRun))
-  .addError(NotFoundError)
+  .addError(ConsolidationGroupNotFoundError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
@@ -601,8 +601,11 @@ const getConsolidatedBalanceSheet = HttpApiEndpoint.get("getConsolidatedBalanceS
   .setPath(Schema.Struct({ id: ConsolidationRunId }))
   .setUrlParams(OrganizationIdUrlParam)
   .addSuccess(ConsolidatedBalanceSheetReport)
-  .addError(NotFoundError)
-  .addError(BusinessRuleError)
+  .addError(ConsolidationRunNotFoundError)
+  .addError(ConsolidationRunNotCompletedError)
+  .addError(ConsolidatedTrialBalanceNotAvailableError)
+  .addError(ConsolidatedBalanceSheetNotBalancedError)
+  .addError(ConsolidationReportGenerationError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
@@ -617,8 +620,10 @@ const getConsolidatedIncomeStatement = HttpApiEndpoint.get("getConsolidatedIncom
   .setPath(Schema.Struct({ id: ConsolidationRunId }))
   .setUrlParams(OrganizationIdUrlParam)
   .addSuccess(ConsolidatedIncomeStatementReport)
-  .addError(NotFoundError)
-  .addError(BusinessRuleError)
+  .addError(ConsolidationRunNotFoundError)
+  .addError(ConsolidationRunNotCompletedError)
+  .addError(ConsolidatedTrialBalanceNotAvailableError)
+  .addError(ConsolidationReportGenerationError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
@@ -633,8 +638,10 @@ const getConsolidatedCashFlowStatement = HttpApiEndpoint.get("getConsolidatedCas
   .setPath(Schema.Struct({ id: ConsolidationRunId }))
   .setUrlParams(OrganizationIdUrlParam)
   .addSuccess(ConsolidatedCashFlowReport)
-  .addError(NotFoundError)
-  .addError(BusinessRuleError)
+  .addError(ConsolidationRunNotFoundError)
+  .addError(ConsolidationRunNotCompletedError)
+  .addError(ConsolidatedTrialBalanceNotAvailableError)
+  .addError(ConsolidationReportGenerationError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
@@ -649,8 +656,10 @@ const getConsolidatedEquityStatement = HttpApiEndpoint.get("getConsolidatedEquit
   .setPath(Schema.Struct({ id: ConsolidationRunId }))
   .setUrlParams(OrganizationIdUrlParam)
   .addSuccess(ConsolidatedEquityStatementReport)
-  .addError(NotFoundError)
-  .addError(BusinessRuleError)
+  .addError(ConsolidationRunNotFoundError)
+  .addError(ConsolidationRunNotCompletedError)
+  .addError(ConsolidatedTrialBalanceNotAvailableError)
+  .addError(ConsolidationReportGenerationError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({

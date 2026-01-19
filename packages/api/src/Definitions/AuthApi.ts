@@ -471,6 +471,7 @@ const logout = HttpApiEndpoint.post("logout", "/logout")
  */
 const me = HttpApiEndpoint.get("me", "/me")
   .addSuccess(AuthUserResponse)
+  .addError(AuthUserNotFoundError)
   .annotateContext(OpenApi.annotations({
     summary: "Get current user",
     description: "Get the authenticated user's details including all linked provider identities"
@@ -483,6 +484,7 @@ const updateMe = HttpApiEndpoint.put("updateMe", "/me")
   .setPayload(UpdateProfileRequest)
   .addSuccess(AuthUserResponse)
   .addError(AuthValidationError)
+  .addError(AuthUserNotFoundError)
   .annotateContext(OpenApi.annotations({
     summary: "Update current user profile",
     description: "Update the authenticated user's profile information (display name)"

@@ -27,14 +27,17 @@ import {
 import { AuthUserId } from "@accountability/core/Auth/AuthUserId"
 import { Action } from "@accountability/core/Auth/Action"
 import { Timestamp } from "@accountability/core/Domains/Timestamp"
-import {
-  BusinessRuleError,
-  ForbiddenError,
-  NotFoundError,
-  ValidationError
-} from "./ApiErrors.ts"
+import { ForbiddenError } from "./ApiErrors.ts"
 import { AuthMiddleware } from "./AuthMiddleware.ts"
-import { OrganizationNotFoundError } from "@accountability/core/Errors/DomainErrors"
+import {
+  OrganizationNotFoundError,
+  PolicyNotFoundError,
+  InvalidPolicyIdError,
+  PolicyPriorityValidationError,
+  InvalidResourceTypeError,
+  UserNotMemberOfOrganizationError,
+  SystemPolicyCannotBeModifiedError
+} from "@accountability/core/Errors/DomainErrors"
 
 // =============================================================================
 // Policy Request/Response Schemas
@@ -167,7 +170,6 @@ export class TestPolicyResponse extends Schema.Class<TestPolicyResponse>("TestPo
 const listPolicies = HttpApiEndpoint.get("listPolicies", "/organizations/:orgId/policies")
   .setPath(Schema.Struct({ orgId: Schema.String }))
   .addSuccess(PolicyListResponse)
-  .addError(NotFoundError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
@@ -181,7 +183,8 @@ const listPolicies = HttpApiEndpoint.get("listPolicies", "/organizations/:orgId/
 const getPolicy = HttpApiEndpoint.get("getPolicy", "/organizations/:orgId/policies/:policyId")
   .setPath(Schema.Struct({ orgId: Schema.String, policyId: Schema.String }))
   .addSuccess(PolicyInfo)
-  .addError(NotFoundError)
+  .addError(InvalidPolicyIdError)
+  .addError(PolicyNotFoundError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
@@ -196,11 +199,9 @@ const createPolicy = HttpApiEndpoint.post("createPolicy", "/organizations/:orgId
   .setPath(Schema.Struct({ orgId: Schema.String }))
   .setPayload(CreatePolicyRequest)
   .addSuccess(PolicyInfo, { status: 201 })
-  .addError(NotFoundError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
-  .addError(ValidationError)
-  .addError(BusinessRuleError)
+  .addError(PolicyPriorityValidationError)
   .annotateContext(OpenApi.annotations({
     summary: "Create custom policy",
     description: "Create a new custom authorization policy for the organization."
@@ -213,11 +214,12 @@ const updatePolicy = HttpApiEndpoint.patch("updatePolicy", "/organizations/:orgI
   .setPath(Schema.Struct({ orgId: Schema.String, policyId: Schema.String }))
   .setPayload(UpdatePolicyRequest)
   .addSuccess(PolicyInfo)
-  .addError(NotFoundError)
+  .addError(InvalidPolicyIdError)
+  .addError(PolicyNotFoundError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
-  .addError(ValidationError)
-  .addError(BusinessRuleError)
+  .addError(PolicyPriorityValidationError)
+  .addError(SystemPolicyCannotBeModifiedError)
   .annotateContext(OpenApi.annotations({
     summary: "Update policy",
     description: "Update an existing custom policy. System policies cannot be modified."
@@ -229,10 +231,11 @@ const updatePolicy = HttpApiEndpoint.patch("updatePolicy", "/organizations/:orgI
 const deletePolicy = HttpApiEndpoint.del("deletePolicy", "/organizations/:orgId/policies/:policyId")
   .setPath(Schema.Struct({ orgId: Schema.String, policyId: Schema.String }))
   .addSuccess(HttpApiSchema.NoContent)
-  .addError(NotFoundError)
+  .addError(InvalidPolicyIdError)
+  .addError(PolicyNotFoundError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
-  .addError(BusinessRuleError)
+  .addError(SystemPolicyCannotBeModifiedError)
   .annotateContext(OpenApi.annotations({
     summary: "Delete policy",
     description: "Delete a custom policy. System policies cannot be deleted."
@@ -245,10 +248,10 @@ const testPolicy = HttpApiEndpoint.post("testPolicy", "/organizations/:orgId/pol
   .setPath(Schema.Struct({ orgId: Schema.String }))
   .setPayload(TestPolicyRequest)
   .addSuccess(TestPolicyResponse)
-  .addError(NotFoundError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
-  .addError(ValidationError)
+  .addError(InvalidResourceTypeError)
+  .addError(UserNotMemberOfOrganizationError)
   .annotateContext(OpenApi.annotations({
     summary: "Test policy evaluation",
     description: "Simulate an authorization request to see which policies would match and what decision would be made."

@@ -20,13 +20,13 @@ import { OrganizationId } from "@accountability/core/Domains/Organization"
 import { JournalEntryId } from "@accountability/core/Domains/JournalEntry"
 import { LocalDateFromString } from "@accountability/core/Domains/LocalDate"
 import { MonetaryAmount } from "@accountability/core/Domains/MonetaryAmount"
-import {
-  BusinessRuleError,
-  ConflictError,
-  NotFoundError,
-  ValidationError
-} from "./ApiErrors.ts"
 import { AuthMiddleware } from "./AuthMiddleware.ts"
+import {
+  CompanyNotFoundError,
+  IntercompanyTransactionNotFoundError,
+  IntercompanyTransactionCannotBeDeletedError,
+  SameCompanyIntercompanyError
+} from "@accountability/core/Errors/DomainErrors"
 
 // =============================================================================
 // Request/Response Schemas
@@ -117,7 +117,6 @@ export type IntercompanyTransactionListParams = typeof IntercompanyTransactionLi
 const listIntercompanyTransactions = HttpApiEndpoint.get("listIntercompanyTransactions", "/")
   .setUrlParams(IntercompanyTransactionListParams)
   .addSuccess(IntercompanyTransactionListResponse)
-  .addError(ValidationError)
   .annotateContext(OpenApi.annotations({
     summary: "List intercompany transactions",
     description: "Retrieve a paginated list of intercompany transactions. Supports filtering by company, transaction type, matching status, date range, and other criteria."
@@ -129,7 +128,7 @@ const listIntercompanyTransactions = HttpApiEndpoint.get("listIntercompanyTransa
 const getIntercompanyTransaction = HttpApiEndpoint.get("getIntercompanyTransaction", "/:id")
   .setPath(Schema.Struct({ id: IntercompanyTransactionId }))
   .addSuccess(IntercompanyTransaction)
-  .addError(NotFoundError)
+  .addError(IntercompanyTransactionNotFoundError)
   .annotateContext(OpenApi.annotations({
     summary: "Get intercompany transaction",
     description: "Retrieve a single intercompany transaction by its unique identifier."
@@ -141,9 +140,8 @@ const getIntercompanyTransaction = HttpApiEndpoint.get("getIntercompanyTransacti
 const createIntercompanyTransaction = HttpApiEndpoint.post("createIntercompanyTransaction", "/")
   .setPayload(CreateIntercompanyTransactionRequest)
   .addSuccess(IntercompanyTransaction, { status: 201 })
-  .addError(ValidationError)
-  .addError(ConflictError)
-  .addError(BusinessRuleError)
+  .addError(CompanyNotFoundError)
+  .addError(SameCompanyIntercompanyError)
   .annotateContext(OpenApi.annotations({
     summary: "Create intercompany transaction",
     description: "Create a new intercompany transaction between two related companies."
@@ -156,9 +154,7 @@ const updateIntercompanyTransaction = HttpApiEndpoint.put("updateIntercompanyTra
   .setPath(Schema.Struct({ id: IntercompanyTransactionId }))
   .setPayload(UpdateIntercompanyTransactionRequest)
   .addSuccess(IntercompanyTransaction)
-  .addError(NotFoundError)
-  .addError(ValidationError)
-  .addError(BusinessRuleError)
+  .addError(IntercompanyTransactionNotFoundError)
   .annotateContext(OpenApi.annotations({
     summary: "Update intercompany transaction",
     description: "Update an existing intercompany transaction. Only certain fields can be updated depending on the transaction status."
@@ -170,8 +166,8 @@ const updateIntercompanyTransaction = HttpApiEndpoint.put("updateIntercompanyTra
 const deleteIntercompanyTransaction = HttpApiEndpoint.del("deleteIntercompanyTransaction", "/:id")
   .setPath(Schema.Struct({ id: IntercompanyTransactionId }))
   .addSuccess(HttpApiSchema.NoContent)
-  .addError(NotFoundError)
-  .addError(BusinessRuleError)
+  .addError(IntercompanyTransactionNotFoundError)
+  .addError(IntercompanyTransactionCannotBeDeletedError)
   .annotateContext(OpenApi.annotations({
     summary: "Delete intercompany transaction",
     description: "Delete an intercompany transaction. Transactions that have been matched or eliminated may not be deleted."
@@ -184,9 +180,7 @@ const updateMatchingStatus = HttpApiEndpoint.post("updateMatchingStatus", "/:id/
   .setPath(Schema.Struct({ id: IntercompanyTransactionId }))
   .setPayload(UpdateMatchingStatusRequest)
   .addSuccess(IntercompanyTransaction)
-  .addError(NotFoundError)
-  .addError(ValidationError)
-  .addError(BusinessRuleError)
+  .addError(IntercompanyTransactionNotFoundError)
   .annotateContext(OpenApi.annotations({
     summary: "Update matching status",
     description: "Update the matching status of an intercompany transaction. Use this during reconciliation to mark transactions as matched, partially matched, or to approve variances."
@@ -199,9 +193,7 @@ const linkFromJournalEntry = HttpApiEndpoint.post("linkFromJournalEntry", "/:id/
   .setPath(Schema.Struct({ id: IntercompanyTransactionId }))
   .setPayload(LinkJournalEntryRequest)
   .addSuccess(IntercompanyTransaction)
-  .addError(NotFoundError)
-  .addError(ValidationError)
-  .addError(BusinessRuleError)
+  .addError(IntercompanyTransactionNotFoundError)
   .annotateContext(OpenApi.annotations({
     summary: "Link from journal entry",
     description: "Link a journal entry to the 'from' (seller/lender) side of the intercompany transaction."
@@ -214,9 +206,7 @@ const linkToJournalEntry = HttpApiEndpoint.post("linkToJournalEntry", "/:id/link
   .setPath(Schema.Struct({ id: IntercompanyTransactionId }))
   .setPayload(LinkJournalEntryRequest)
   .addSuccess(IntercompanyTransaction)
-  .addError(NotFoundError)
-  .addError(ValidationError)
-  .addError(BusinessRuleError)
+  .addError(IntercompanyTransactionNotFoundError)
   .annotateContext(OpenApi.annotations({
     summary: "Link to journal entry",
     description: "Link a journal entry to the 'to' (buyer/borrower) side of the intercompany transaction."

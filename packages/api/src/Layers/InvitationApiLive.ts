@@ -28,10 +28,10 @@ import {
   AcceptInvitationResponse
 } from "../Definitions/InvitationApi.ts"
 import {
-  BusinessRuleError,
-  NotFoundError,
-  ValidationError
-} from "../Definitions/ApiErrors.ts"
+  InvitationNotFoundError,
+  InvalidOrganizationIdError,
+  InvalidInvitationIdError
+} from "@accountability/core/Errors/DomainErrors"
 
 // =============================================================================
 // Handler Implementation
@@ -129,35 +129,14 @@ export const InvitationApiLive = HttpApiBuilder.group(AppApi, "invitation", (han
           const currentUserInfo = yield* CurrentUser
           const userId = AuthUserId.make(currentUserInfo.userId)
 
-          // Accept the invitation
+          // Accept the invitation - domain errors flow through directly
           const result = yield* invitationService.acceptInvitation(path.token, userId).pipe(
-            Effect.mapError((error) => {
-              if ("_tag" in error && error._tag === "InvalidInvitationError") {
-                return new NotFoundError({
-                  resource: "Invitation",
-                  id: "token"
-                })
-              }
-              if ("_tag" in error && error._tag === "InvitationExpiredError") {
-                return new BusinessRuleError({
-                  code: "INVITATION_REVOKED",
-                  message: "This invitation has been revoked",
-                  details: Option.none()
-                })
-              }
-              if ("_tag" in error && error._tag === "UserAlreadyMemberError") {
-                return new BusinessRuleError({
-                  code: "ALREADY_MEMBER",
-                  message: "You are already a member of this organization",
-                  details: Option.none()
-                })
-              }
-              // PersistenceError or EntityNotFoundError - map to BusinessRuleError
-              return new BusinessRuleError({
-                code: "ACCEPT_FAILED",
-                message: "message" in error ? String(error.message) : "Failed to accept invitation",
-                details: Option.none()
-              })
+            Effect.catchTags({
+              InvalidInvitationError: (e) => Effect.fail(e),
+              InvitationExpiredError: (e) => Effect.fail(e),
+              UserAlreadyMemberError: (e) => Effect.fail(e),
+              PersistenceError: Effect.die,
+              EntityNotFoundError: Effect.die
             })
           )
 
@@ -181,28 +160,13 @@ export const InvitationApiLive = HttpApiBuilder.group(AppApi, "invitation", (han
       // =======================================================================
       .handle("declineInvitation", ({ path }) =>
         Effect.gen(function* () {
-          // Decline the invitation
+          // Decline the invitation - domain errors flow through directly
           yield* invitationService.declineInvitation(path.token).pipe(
-            Effect.mapError((error) => {
-              if ("_tag" in error && error._tag === "InvalidInvitationError") {
-                return new NotFoundError({
-                  resource: "Invitation",
-                  id: "token"
-                })
-              }
-              if ("_tag" in error && error._tag === "InvitationExpiredError") {
-                return new BusinessRuleError({
-                  code: "INVITATION_REVOKED",
-                  message: "This invitation has already been revoked",
-                  details: Option.none()
-                })
-              }
-              // PersistenceError or EntityNotFoundError - map to ValidationError
-              return new ValidationError({
-                message: "message" in error ? String(error.message) : "Failed to decline invitation",
-                field: Option.none(),
-                details: Option.none()
-              })
+            Effect.catchTags({
+              InvalidInvitationError: (e) => Effect.fail(e),
+              InvitationExpiredError: (e) => Effect.fail(e),
+              PersistenceError: Effect.die,
+              EntityNotFoundError: Effect.die
             })
           )
         })
@@ -218,38 +182,23 @@ export const InvitationApiLive = HttpApiBuilder.group(AppApi, "invitation", (han
 
           // Validate organization ID
           yield* Schema.decodeUnknown(OrganizationId)(path.orgId).pipe(
-            Effect.mapError(() => new NotFoundError({
-              resource: "Organization",
-              id: path.orgId
-            }))
+            Effect.mapError(() => new InvalidOrganizationIdError({ value: path.orgId }))
           )
 
           // Validate invitation ID
           const invitationId = yield* Schema.decodeUnknown(InvitationId)(path.invitationId).pipe(
-            Effect.mapError(() => new NotFoundError({
-              resource: "Invitation",
-              id: path.invitationId
-            }))
+            Effect.mapError(() => new InvalidInvitationIdError({ value: path.invitationId }))
           )
 
           // TODO: Check that current user has permission to revoke invitations for this org
           // For now, we just allow any authenticated user (will be enforced by authorization layer later)
 
-          // Revoke the invitation
+          // Revoke the invitation - domain errors flow through directly
           yield* invitationService.revokeInvitation(invitationId, currentUserId).pipe(
-            Effect.mapError((error) => {
-              if ("_tag" in error && error._tag === "InvalidInvitationError") {
-                return new NotFoundError({
-                  resource: "Invitation",
-                  id: path.invitationId
-                })
-              }
-              // PersistenceError or EntityNotFoundError - map to BusinessRuleError
-              return new BusinessRuleError({
-                code: "REVOKE_FAILED",
-                message: "message" in error ? String(error.message) : "Failed to revoke invitation",
-                details: Option.none()
-              })
+            Effect.catchTags({
+              InvalidInvitationError: () => Effect.fail(new InvitationNotFoundError({ invitationId: path.invitationId })),
+              PersistenceError: Effect.die,
+              EntityNotFoundError: Effect.die
             })
           )
         })
@@ -262,10 +211,7 @@ export const InvitationApiLive = HttpApiBuilder.group(AppApi, "invitation", (han
         Effect.gen(function* () {
           // Validate organization ID
           const orgId = yield* Schema.decodeUnknown(OrganizationId)(path.orgId).pipe(
-            Effect.mapError(() => new NotFoundError({
-              resource: "Organization",
-              id: path.orgId
-            }))
+            Effect.mapError(() => new InvalidOrganizationIdError({ value: path.orgId }))
           )
 
           // TODO: Check that current user has permission to view invitations for this org

@@ -632,16 +632,18 @@ Created `packages/core/src/Errors/DomainErrors.ts` with ~35 shared domain error 
 | `AccountTemplatesApiLive.ts` | ✅ COMPLETE | Replaced all generic errors |
 | `CompaniesApiLive.ts` | ✅ COMPLETE | Replaced all generic errors |
 | `AccountsApiLive.ts` | ✅ COMPLETE | Replaced all generic errors |
-| `JournalEntriesApiLive.ts` | ✅ COMPLETE | All NotFoundError replaced with domain-specific errors |
+| `JournalEntriesApiLive.ts` | ✅ COMPLETE | All generic errors replaced |
+| `IntercompanyTransactionsApiLive.ts` | ✅ COMPLETE | All generic errors replaced (NotFoundError→IntercompanyTransactionNotFoundError, BusinessRuleError→CompanyNotFoundError/SameCompanyIntercompanyError/IntercompanyTransactionCannotBeDeletedError, removed mapping functions, use Effect.orDie for persistence) |
 | `FiscalPeriodApiLive.ts` | ✅ COMPLETE | All generic errors replaced with domain-specific errors |
 | `MembershipApiLive.ts` | ✅ COMPLETE | All generic errors replaced with domain-specific errors (InvalidOrganizationIdError, MemberNotFoundError, etc.) |
 | `CurrencyApiLive.ts` | ✅ COMPLETE | All generic errors replaced with domain-specific errors (ExchangeRateNotFoundError, SameCurrencyExchangeRateError) |
-| `ConsolidationApiLive.ts` | ⏳ PENDING | |
-| `ReportsApiLive.ts` | ⏳ PENDING | |
-| `InvitationApiLive.ts` | ⏳ PENDING | |
-| `AuthApiLive.ts` | ⏳ PENDING | |
-| `PolicyApiLive.ts` | ⏳ PENDING | |
-| `+ 8 more files` | ⏳ PENDING | |
+| `ConsolidationApiLive.ts` | ✅ COMPLETE | All generic errors replaced with domain-specific errors (ConsolidationGroupNotFoundError, ConsolidationRunNotFoundError, etc.), removed old mapping functions |
+| `ReportsApiLive.ts` | ✅ COMPLETE | All generic errors replaced with domain-specific errors (CompanyNotFoundError, InvalidReportPeriodError, TrialBalanceNotBalancedError, BalanceSheetNotBalancedError), removed old mapping functions |
+| `InvitationApiLive.ts` | ✅ COMPLETE | All generic errors replaced with domain-specific errors (InvalidInvitationError, InvitationExpiredError, UserAlreadyMemberError, InvitationNotFoundError, InvalidOrganizationIdError, InvalidInvitationIdError) |
+| `AuthApiLive.ts` | ✅ COMPLETE | Uses domain-specific errors defined in AuthApi.ts (AuthValidationError, PasswordWeakError, etc.), replaced UnauthorizedError with AuthUserNotFoundError in handlers |
+| `PolicyApiLive.ts` | ✅ COMPLETE | All generic errors replaced with domain-specific errors (PolicyNotFoundError, InvalidPolicyIdError, PolicyPriorityValidationError, InvalidResourceTypeError, UserNotMemberOfOrganizationError, SystemPolicyCannotBeModifiedError) |
+| `EliminationRulesApiLive.ts` | ⏳ PENDING | 12 usages |
+| `+ remaining files` | ⏳ PENDING | |
 
 **Conversion pattern established:**
 
@@ -679,7 +681,7 @@ No additional tests needed - this is framework behavior, already tested by Effec
 | Phase | Status | Notes |
 |-------|--------|-------|
 | Phase 1: Add HttpApiSchema annotations | ✅ COMPLETE | 81 errors across 15 files |
-| Phase 2: Remove generic API errors | 🔄 IN PROGRESS | ~35 domain errors created, 7 API files converted |
+| Phase 2: Remove generic API errors | 🔄 IN PROGRESS | ~65 domain errors created, 15 API files converted |
 | Phase 3: Verify error flow-through | ✅ COMPLETE | Framework behavior, works automatically |
 | Phase 4: Documentation cleanup | ✅ COMPLETE | Spec updated with accurate current/target state |
 
@@ -688,11 +690,11 @@ No additional tests needed - this is framework behavior, already tested by Effec
 | Aspect | Current | Target |
 |--------|---------|--------|
 | Error layers | Two (domain + generic API) | One (domain only) |
-| Domain errors created | ~116 (81 + 35 new) | ~116 |
+| Domain errors created | ~131 (81 + 50 new) | ~131 |
 | Shared domain errors file | ✅ `packages/core/src/Errors/DomainErrors.ts` | ✅ Created |
-| API files converted | 7 of ~20 | All (~20) |
-| Error mapping in handlers | Reduced (~7 files done) | None (errors flow through) |
-| Error context preserved | Improved (7 core files) | Full (domain-specific) |
+| API files converted | 15 of ~20 | All (~20) |
+| Error mapping in handlers | Reduced (~15 files done) | None (errors flow through) |
+| Error context preserved | Improved (15 core files) | Full (domain-specific) |
 
 **Progress made:**
 - ✅ Created `packages/core/src/Errors/DomainErrors.ts` with ~35 shared domain errors
@@ -707,9 +709,17 @@ No additional tests needed - this is framework behavior, already tested by Effec
 - ✅ Converted `FiscalPeriodApiLive.ts` - all handlers now use domain-specific errors (FiscalYearNotFoundError, FiscalPeriodNotFoundError, InvalidStatusTransitionError, etc.)
 - ✅ Converted `MembershipApiLive.ts` - all handlers now use domain-specific errors (InvalidOrganizationIdError, MemberNotFoundError, etc.), domain errors flow through directly
 - ✅ Converted `CurrencyApiLive.ts` - all handlers now use domain-specific errors (ExchangeRateNotFoundError, SameCurrencyExchangeRateError), removed old mapping functions
+- ✅ Converted `ConsolidationApiLive.ts` - all handlers now use domain-specific errors (ConsolidationGroupNotFoundError, ConsolidationRunNotFoundError, ConsolidationMemberNotFoundError, ConsolidationGroupInactiveError, ConsolidationRunExistsForPeriodError, ConsolidationRunCannotBeCancelledError, ConsolidationRunCannotBeDeletedError, ConsolidationRunNotCompletedError, ConsolidatedTrialBalanceNotAvailableError, ConsolidatedBalanceSheetNotBalancedError, ConsolidationReportGenerationError), removed old mapping functions
+- ✅ Converted `ReportsApiLive.ts` - all handlers now use domain-specific errors (CompanyNotFoundError, InvalidReportPeriodError, TrialBalanceNotBalancedError, BalanceSheetNotBalancedError), removed old mapping functions
+- ✅ Converted `InvitationApiLive.ts` - all handlers now use domain-specific errors (InvalidInvitationError, InvitationExpiredError, UserAlreadyMemberError, InvitationNotFoundError, InvalidOrganizationIdError, InvalidInvitationIdError)
+- ✅ Converted `AuthApiLive.ts` - uses domain-specific errors defined in AuthApi.ts (AuthValidationError, PasswordWeakError, etc.), replaced UnauthorizedError with AuthUserNotFoundError in handlers
+- ✅ Converted `PolicyApiLive.ts` - all handlers now use domain-specific errors (PolicyNotFoundError, InvalidPolicyIdError, PolicyPriorityValidationError, InvalidResourceTypeError, UserNotMemberOfOrganizationError, SystemPolicyCannotBeModifiedError)
+- ✅ Converted `AccountsApiLive.ts` - replaced ConflictError with AccountNumberAlreadyExistsError
+- ✅ Converted `CompaniesApiLive.ts` - replaced ConflictError/ValidationError with OrganizationNameAlreadyExistsError, CompanyNameAlreadyExistsError, OrganizationUpdateFailedError
+- ✅ Converted `IntercompanyTransactionsApiLive.ts` - all handlers now use domain-specific errors (IntercompanyTransactionNotFoundError, CompanyNotFoundError, SameCompanyIntercompanyError, IntercompanyTransactionCannotBeDeletedError), removed mapping functions, use Effect.orDie for persistence errors
 
 **Remaining work:**
-- ⏳ Convert remaining ~13 API Live files to use domain errors
+- ⏳ Convert EliminationRulesApiLive.ts (12 usages)
 - ⏳ Remove unused generic errors from `ApiErrors.ts`
 - ⏳ Final cleanup pass
 

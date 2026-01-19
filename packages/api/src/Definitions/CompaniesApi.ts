@@ -22,10 +22,8 @@ import { JurisdictionCode } from "@accountability/core/Domains/JurisdictionCode"
 import { Percentage } from "@accountability/core/Domains/Percentage"
 import {
   AuditLogError,
-  ConflictError,
   ForbiddenError,
-  UserLookupError,
-  ValidationError
+  UserLookupError
 } from "./ApiErrors.ts"
 import { AuthMiddleware } from "./AuthMiddleware.ts"
 import {
@@ -37,7 +35,10 @@ import {
   CircularCompanyReferenceError,
   HasActiveSubsidiariesError,
   MembershipCreationFailedError,
-  SystemPolicySeedingFailedError
+  SystemPolicySeedingFailedError,
+  OrganizationNameAlreadyExistsError,
+  CompanyNameAlreadyExistsError,
+  OrganizationUpdateFailedError
 } from "@accountability/core/Errors/DomainErrors"
 
 // =============================================================================
@@ -176,7 +177,7 @@ const getOrganization = HttpApiEndpoint.get("getOrganization", "/organizations/:
 const createOrganization = HttpApiEndpoint.post("createOrganization", "/organizations")
   .setPayload(CreateOrganizationRequest)
   .addSuccess(Organization, { status: 201 })
-  .addError(ConflictError)
+  .addError(OrganizationNameAlreadyExistsError)
   .addError(MembershipCreationFailedError)
   .addError(SystemPolicySeedingFailedError)
   .annotateContext(OpenApi.annotations({
@@ -192,7 +193,7 @@ const updateOrganization = HttpApiEndpoint.put("updateOrganization", "/organizat
   .setPayload(UpdateOrganizationRequest)
   .addSuccess(Organization)
   .addError(OrganizationNotFoundError)
-  .addError(ValidationError)
+  .addError(OrganizationUpdateFailedError)
   .annotateContext(OpenApi.annotations({
     summary: "Update organization",
     description: "Update an existing organization. Only provided fields will be updated."
@@ -251,7 +252,7 @@ const createCompany = HttpApiEndpoint.post("createCompany", "/companies")
   .addError(OrganizationNotFoundError)
   .addError(ParentCompanyNotFoundError)
   .addError(OwnershipPercentageRequiredError)
-  .addError(ConflictError)
+  .addError(CompanyNameAlreadyExistsError)
   .addError(ForbiddenError)
   .addError(AuditLogError)
   .addError(UserLookupError)
@@ -270,7 +271,7 @@ const updateCompany = HttpApiEndpoint.put("updateCompany", "/organizations/:orga
   .addError(CompanyNotFoundError)
   .addError(ParentCompanyNotFoundError)
   .addError(CircularCompanyReferenceError)
-  .addError(ConflictError)
+  .addError(CompanyNameAlreadyExistsError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .addError(AuditLogError)

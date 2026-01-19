@@ -19,14 +19,19 @@ import { OrganizationId } from "@accountability/core/Domains/Organization"
 import { Timestamp } from "@accountability/core/Domains/Timestamp"
 import { BaseRole } from "@accountability/core/Auth/BaseRole"
 import { FunctionalRoles } from "@accountability/core/Auth/FunctionalRole"
-import {
-  BusinessRuleError,
-  ForbiddenError,
-  NotFoundError,
-  ValidationError
-} from "./ApiErrors.ts"
+import { ForbiddenError } from "./ApiErrors.ts"
 import { AuthMiddleware } from "./AuthMiddleware.ts"
-import { OrganizationNotFoundError } from "@accountability/core/Errors/DomainErrors"
+import {
+  OrganizationNotFoundError,
+  InvitationNotFoundError,
+  InvalidOrganizationIdError,
+  InvalidInvitationIdError
+} from "@accountability/core/Errors/DomainErrors"
+import {
+  InvalidInvitationError,
+  InvitationExpiredError,
+  UserAlreadyMemberError
+} from "@accountability/core/Auth/AuthorizationErrors"
 
 // =============================================================================
 // Invitation Request/Response Schemas
@@ -111,9 +116,9 @@ const listUserInvitations = HttpApiEndpoint.get("listUserInvitations", "/users/m
 const acceptInvitation = HttpApiEndpoint.post("acceptInvitation", "/invitations/:token/accept")
   .setPath(Schema.Struct({ token: Schema.String }))
   .addSuccess(AcceptInvitationResponse)
-  .addError(NotFoundError)
-  .addError(ValidationError)
-  .addError(BusinessRuleError)
+  .addError(InvalidInvitationError)
+  .addError(InvitationExpiredError)
+  .addError(UserAlreadyMemberError)
   .annotateContext(OpenApi.annotations({
     summary: "Accept invitation",
     description: "Accept an invitation to join an organization. The user will become a member with the role specified in the invitation."
@@ -125,9 +130,8 @@ const acceptInvitation = HttpApiEndpoint.post("acceptInvitation", "/invitations/
 const declineInvitation = HttpApiEndpoint.post("declineInvitation", "/invitations/:token/decline")
   .setPath(Schema.Struct({ token: Schema.String }))
   .addSuccess(HttpApiSchema.NoContent)
-  .addError(NotFoundError)
-  .addError(ValidationError)
-  .addError(BusinessRuleError)
+  .addError(InvalidInvitationError)
+  .addError(InvitationExpiredError)
   .annotateContext(OpenApi.annotations({
     summary: "Decline invitation",
     description: "Decline an invitation to join an organization."
@@ -139,10 +143,11 @@ const declineInvitation = HttpApiEndpoint.post("declineInvitation", "/invitation
 const revokeInvitation = HttpApiEndpoint.del("revokeInvitation", "/organizations/:orgId/invitations/:invitationId")
   .setPath(Schema.Struct({ orgId: Schema.String, invitationId: Schema.String }))
   .addSuccess(HttpApiSchema.NoContent)
-  .addError(NotFoundError)
+  .addError(InvalidOrganizationIdError)
+  .addError(InvalidInvitationIdError)
+  .addError(InvitationNotFoundError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
-  .addError(BusinessRuleError)
   .annotateContext(OpenApi.annotations({
     summary: "Revoke invitation",
     description: "Revoke a pending invitation. Only organization admins can perform this action."
@@ -154,7 +159,7 @@ const revokeInvitation = HttpApiEndpoint.del("revokeInvitation", "/organizations
 const listOrgInvitations = HttpApiEndpoint.get("listOrgInvitations", "/organizations/:orgId/invitations")
   .setPath(Schema.Struct({ orgId: Schema.String }))
   .addSuccess(OrgInvitationsResponse)
-  .addError(NotFoundError)
+  .addError(InvalidOrganizationIdError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({

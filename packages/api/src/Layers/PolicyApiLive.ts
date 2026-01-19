@@ -11,7 +11,7 @@ import { HttpApiBuilder } from "@effect/platform"
 import * as Effect from "effect/Effect"
 import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
-import { PolicyRepository, SystemPolicyProtectionError } from "@accountability/persistence/Services/PolicyRepository"
+import { PolicyRepository } from "@accountability/persistence/Services/PolicyRepository"
 import { OrganizationMemberRepository } from "@accountability/persistence/Services/OrganizationMemberRepository"
 import { PolicyEngine, type PolicyEvaluationContext } from "@accountability/core/Auth/PolicyEngine"
 import { PolicyId } from "@accountability/core/Auth/PolicyId"
@@ -27,10 +27,13 @@ import {
   TestPolicyResponse
 } from "../Definitions/PolicyApi.ts"
 import {
-  BusinessRuleError,
-  NotFoundError,
-  ValidationError
-} from "../Definitions/ApiErrors.ts"
+  PolicyNotFoundError,
+  InvalidPolicyIdError,
+  PolicyPriorityValidationError,
+  InvalidResourceTypeError,
+  UserNotMemberOfOrganizationError,
+  SystemPolicyCannotBeModifiedError
+} from "@accountability/core/Errors/DomainErrors"
 import {
   requireOrganizationContext,
   requireAdminOrOwner
@@ -68,12 +71,7 @@ const policyToInfo = (policy: AuthorizationPolicy): PolicyInfo =>
  */
 const validatePolicyId = (policyIdString: string) =>
   Schema.decodeUnknown(PolicyId)(policyIdString).pipe(
-    Effect.mapError(() =>
-      new NotFoundError({
-        resource: "Policy",
-        id: policyIdString
-      })
-    )
+    Effect.mapError(() => new InvalidPolicyIdError({ value: policyIdString }))
   )
 
 /**
@@ -178,24 +176,14 @@ export const PolicyApiLive = HttpApiBuilder.group(AppApi, "policy", (handlers) =
             )
 
             if (Option.isNone(maybePolicy)) {
-              return yield* Effect.fail(
-                new NotFoundError({
-                  resource: "Policy",
-                  id: path.policyId
-                })
-              )
+              return yield* Effect.fail(new PolicyNotFoundError({ policyId: path.policyId }))
             }
 
             const policy = maybePolicy.value
 
             // Verify the policy belongs to this organization
             if (policy.organizationId !== membership.organizationId) {
-              return yield* Effect.fail(
-                new NotFoundError({
-                  resource: "Policy",
-                  id: path.policyId
-                })
-              )
+              return yield* Effect.fail(new PolicyNotFoundError({ policyId: path.policyId }))
             }
 
             return policyToInfo(policy)
@@ -220,11 +208,7 @@ export const PolicyApiLive = HttpApiBuilder.group(AppApi, "policy", (handlers) =
             // Validate priority is not in system policy range (900-1000)
             if (payload.priority > 899) {
               return yield* Effect.fail(
-                new ValidationError({
-                  message: "Custom policy priority must be between 0 and 899",
-                  field: Option.some("priority"),
-                  details: Option.none()
-                })
+                new PolicyPriorityValidationError({ priority: payload.priority, maxAllowed: 899 })
               )
             }
 
@@ -248,16 +232,8 @@ export const PolicyApiLive = HttpApiBuilder.group(AppApi, "policy", (handlers) =
               ...(Option.isSome(payload.environment) ? { environment: payload.environment.value } : {})
             }
 
-            // Create the policy
-            const policy = yield* policyRepo.create(createInput).pipe(
-              Effect.mapError((error) =>
-                new BusinessRuleError({
-                  code: "POLICY_CREATE_FAILED",
-                  message: "message" in error ? String(error.message) : "Failed to create policy",
-                  details: Option.none()
-                })
-              )
-            )
+            // Create the policy - persistence errors are infrastructure failures
+            const policy = yield* policyRepo.create(createInput).pipe(Effect.orDie)
 
             return policyToInfo(policy)
           })
@@ -283,34 +259,20 @@ export const PolicyApiLive = HttpApiBuilder.group(AppApi, "policy", (handlers) =
             )
 
             if (Option.isNone(maybePolicy)) {
-              return yield* Effect.fail(
-                new NotFoundError({
-                  resource: "Policy",
-                  id: path.policyId
-                })
-              )
+              return yield* Effect.fail(new PolicyNotFoundError({ policyId: path.policyId }))
             }
 
             const existingPolicy = maybePolicy.value
 
             // Verify the policy belongs to this organization
             if (existingPolicy.organizationId !== membership.organizationId) {
-              return yield* Effect.fail(
-                new NotFoundError({
-                  resource: "Policy",
-                  id: path.policyId
-                })
-              )
+              return yield* Effect.fail(new PolicyNotFoundError({ policyId: path.policyId }))
             }
 
             // Validate priority if provided
             if (Option.isSome(payload.priority) && payload.priority.value > 899) {
               return yield* Effect.fail(
-                new ValidationError({
-                  message: "Custom policy priority must be between 0 and 899",
-                  field: Option.some("priority"),
-                  details: Option.none()
-                })
+                new PolicyPriorityValidationError({ priority: payload.priority.value, maxAllowed: 899 })
               )
             }
 
@@ -338,25 +300,10 @@ export const PolicyApiLive = HttpApiBuilder.group(AppApi, "policy", (handlers) =
 
             // Update the policy
             const policy = yield* policyRepo.update(policyId, updateInput).pipe(
-              Effect.mapError((error) => {
-                if (error instanceof SystemPolicyProtectionError) {
-                  return new BusinessRuleError({
-                    code: "SYSTEM_POLICY_PROTECTED",
-                    message: "System policies cannot be modified",
-                    details: Option.none()
-                  })
-                }
-                if ("_tag" in error && error._tag === "EntityNotFoundError") {
-                  return new NotFoundError({
-                    resource: "Policy",
-                    id: path.policyId
-                  })
-                }
-                return new BusinessRuleError({
-                  code: "POLICY_UPDATE_FAILED",
-                  message: "message" in error ? String(error.message) : "Failed to update policy",
-                  details: Option.none()
-                })
+              Effect.catchTags({
+                SystemPolicyProtectionError: () => Effect.fail(new SystemPolicyCannotBeModifiedError({ policyId: path.policyId, operation: "modified" })),
+                EntityNotFoundError: () => Effect.fail(new PolicyNotFoundError({ policyId: path.policyId })),
+                PersistenceError: Effect.die
               })
             )
 
@@ -384,47 +331,22 @@ export const PolicyApiLive = HttpApiBuilder.group(AppApi, "policy", (handlers) =
             )
 
             if (Option.isNone(maybePolicy)) {
-              return yield* Effect.fail(
-                new NotFoundError({
-                  resource: "Policy",
-                  id: path.policyId
-                })
-              )
+              return yield* Effect.fail(new PolicyNotFoundError({ policyId: path.policyId }))
             }
 
             const existingPolicy = maybePolicy.value
 
             // Verify the policy belongs to this organization
             if (existingPolicy.organizationId !== membership.organizationId) {
-              return yield* Effect.fail(
-                new NotFoundError({
-                  resource: "Policy",
-                  id: path.policyId
-                })
-              )
+              return yield* Effect.fail(new PolicyNotFoundError({ policyId: path.policyId }))
             }
 
             // Delete the policy
             yield* policyRepo.delete(policyId).pipe(
-              Effect.mapError((error) => {
-                if (error instanceof SystemPolicyProtectionError) {
-                  return new BusinessRuleError({
-                    code: "SYSTEM_POLICY_PROTECTED",
-                    message: "System policies cannot be deleted",
-                    details: Option.none()
-                  })
-                }
-                if ("_tag" in error && error._tag === "EntityNotFoundError") {
-                  return new NotFoundError({
-                    resource: "Policy",
-                    id: path.policyId
-                  })
-                }
-                return new BusinessRuleError({
-                  code: "POLICY_DELETE_FAILED",
-                  message: "message" in error ? String(error.message) : "Failed to delete policy",
-                  details: Option.none()
-                })
+              Effect.catchTags({
+                SystemPolicyProtectionError: () => Effect.fail(new SystemPolicyCannotBeModifiedError({ policyId: path.policyId, operation: "deleted" })),
+                EntityNotFoundError: () => Effect.fail(new PolicyNotFoundError({ policyId: path.policyId })),
+                PersistenceError: Effect.die
               })
             )
           })
@@ -448,10 +370,9 @@ export const PolicyApiLive = HttpApiBuilder.group(AppApi, "policy", (handlers) =
             const resourceType = RESOURCE_TYPE_MAP[payload.resourceType]
             if (!resourceType) {
               return yield* Effect.fail(
-                new ValidationError({
-                  message: `Invalid resource type: ${payload.resourceType}. Valid types: organization, company, account, journal_entry, fiscal_period, consolidation_group, report`,
-                  field: Option.some("resourceType"),
-                  details: Option.none()
+                new InvalidResourceTypeError({
+                  resourceType: payload.resourceType,
+                  validTypes: ["organization", "company", "account", "journal_entry", "fiscal_period", "consolidation_group", "report"]
                 })
               )
             }
@@ -464,10 +385,9 @@ export const PolicyApiLive = HttpApiBuilder.group(AppApi, "policy", (handlers) =
 
             if (Option.isNone(targetUserMembership)) {
               return yield* Effect.fail(
-                new ValidationError({
-                  message: `User ${payload.userId} is not a member of this organization`,
-                  field: Option.some("userId"),
-                  details: Option.none()
+                new UserNotMemberOfOrganizationError({
+                  userId: payload.userId,
+                  organizationId: orgId
                 })
               )
             }

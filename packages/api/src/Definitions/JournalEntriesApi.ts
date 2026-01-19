@@ -26,14 +26,19 @@ import { LocalDateFromString } from "@accountability/core/Domains/LocalDate"
 import { MonetaryAmount } from "@accountability/core/Domains/MonetaryAmount"
 import {
   AuditLogError,
-  BusinessRuleError,
-  ConflictError,
   ForbiddenError,
-  UserLookupError,
-  ValidationError
+  UserLookupError
 } from "./ApiErrors.ts"
 import { AuthMiddleware } from "./AuthMiddleware.ts"
-import { CompanyNotFoundError, JournalEntryNotFoundError, OrganizationNotFoundError } from "@accountability/core/Errors/DomainErrors"
+import {
+  CompanyNotFoundError,
+  JournalEntryNotFoundError,
+  JournalEntryStatusError,
+  JournalEntryAlreadyReversedError,
+  OrganizationNotFoundError,
+  UnbalancedJournalEntryError
+} from "@accountability/core/Errors/DomainErrors"
+import { FiscalPeriodNotFoundForDateError } from "@accountability/core/FiscalPeriod/FiscalPeriodErrors"
 
 // =============================================================================
 // Request/Response Schemas
@@ -174,7 +179,6 @@ const listJournalEntries = HttpApiEndpoint.get("listJournalEntries", "/")
   .setUrlParams(JournalEntryListParams)
   .addSuccess(JournalEntryListResponse)
   .addError(CompanyNotFoundError)
-  .addError(ValidationError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
@@ -204,8 +208,8 @@ const createJournalEntry = HttpApiEndpoint.post("createJournalEntry", "/")
   .setPayload(CreateJournalEntryRequest)
   .addSuccess(JournalEntryWithLinesResponse, { status: 201 })
   .addError(CompanyNotFoundError)
-  .addError(ValidationError)
-  .addError(BusinessRuleError)
+  .addError(UnbalancedJournalEntryError)
+  .addError(FiscalPeriodNotFoundForDateError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .addError(AuditLogError)
@@ -223,9 +227,9 @@ const updateJournalEntry = HttpApiEndpoint.put("updateJournalEntry", "/:id")
   .setPayload(UpdateJournalEntryRequest)
   .addSuccess(JournalEntryWithLinesResponse)
   .addError(JournalEntryNotFoundError)
-  .addError(ValidationError)
-  .addError(BusinessRuleError)
-  .addError(ConflictError)
+  .addError(JournalEntryStatusError)
+  .addError(UnbalancedJournalEntryError)
+  .addError(FiscalPeriodNotFoundForDateError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
@@ -241,7 +245,7 @@ const deleteJournalEntry = HttpApiEndpoint.del("deleteJournalEntry", "/:id")
   .setUrlParams(OrganizationIdUrlParams)
   .addSuccess(HttpApiSchema.NoContent)
   .addError(JournalEntryNotFoundError)
-  .addError(BusinessRuleError)
+  .addError(JournalEntryStatusError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
@@ -257,7 +261,7 @@ const submitForApproval = HttpApiEndpoint.post("submitForApproval", "/:id/submit
   .setUrlParams(OrganizationIdUrlParams)
   .addSuccess(JournalEntry)
   .addError(JournalEntryNotFoundError)
-  .addError(BusinessRuleError)
+  .addError(JournalEntryStatusError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
@@ -273,7 +277,7 @@ const approveJournalEntry = HttpApiEndpoint.post("approveJournalEntry", "/:id/ap
   .setUrlParams(OrganizationIdUrlParams)
   .addSuccess(JournalEntry)
   .addError(JournalEntryNotFoundError)
-  .addError(BusinessRuleError)
+  .addError(JournalEntryStatusError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
@@ -292,7 +296,7 @@ const rejectJournalEntry = HttpApiEndpoint.post("rejectJournalEntry", "/:id/reje
   }))
   .addSuccess(JournalEntry)
   .addError(JournalEntryNotFoundError)
-  .addError(BusinessRuleError)
+  .addError(JournalEntryStatusError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
@@ -308,7 +312,8 @@ const postJournalEntry = HttpApiEndpoint.post("postJournalEntry", "/:id/post")
   .setPayload(PostJournalEntryRequest)
   .addSuccess(JournalEntry)
   .addError(JournalEntryNotFoundError)
-  .addError(BusinessRuleError)
+  .addError(JournalEntryStatusError)
+  .addError(FiscalPeriodNotFoundForDateError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .addError(AuditLogError)
@@ -326,7 +331,9 @@ const reverseJournalEntry = HttpApiEndpoint.post("reverseJournalEntry", "/:id/re
   .setPayload(ReverseJournalEntryRequest)
   .addSuccess(JournalEntryWithLinesResponse)
   .addError(JournalEntryNotFoundError)
-  .addError(BusinessRuleError)
+  .addError(JournalEntryStatusError)
+  .addError(JournalEntryAlreadyReversedError)
+  .addError(FiscalPeriodNotFoundForDateError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .addError(AuditLogError)

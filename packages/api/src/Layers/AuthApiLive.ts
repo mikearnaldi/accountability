@@ -48,7 +48,8 @@ import {
   CannotUnlinkLastIdentityError,
   IdentityNotFoundError,
   ChangePasswordError,
-  NoLocalIdentityError
+  NoLocalIdentityError,
+  AuthUserNotFoundError
 } from "../Definitions/AuthApi.ts"
 import { UnauthorizedError } from "../Definitions/ApiErrors.ts"
 import { AuthService, type AuthServiceShape } from "@accountability/core/Auth/AuthService"
@@ -495,7 +496,7 @@ export const AuthSessionApiLive = HttpApiBuilder.group(AppApi, "authSession", (h
           )
 
           if (Option.isNone(maybeUser)) {
-            return yield* Effect.fail(new UnauthorizedError({ message: "User not found" }))
+            return yield* Effect.fail(new AuthUserNotFoundError({}))
           }
 
           const user = maybeUser.value
@@ -523,7 +524,7 @@ export const AuthSessionApiLive = HttpApiBuilder.group(AppApi, "authSession", (h
           )
 
           if (Option.isNone(maybeUser)) {
-            return yield* Effect.fail(new UnauthorizedError({ message: "User not found" }))
+            return yield* Effect.fail(new AuthUserNotFoundError({}))
           }
 
           // Build update data - only update fields that were provided

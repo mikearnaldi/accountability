@@ -31,17 +31,9 @@ import { computeFiscalPeriod } from "@accountability/core/Domains/ComputedFiscal
 import { JournalEntryRepository } from "@accountability/persistence/Services/JournalEntryRepository"
 import { JournalEntryLineRepository } from "@accountability/persistence/Services/JournalEntryLineRepository"
 import { CompanyRepository } from "@accountability/persistence/Services/CompanyRepository"
-import {
-  isEntityNotFoundError,
-  type EntityNotFoundError,
-  type PersistenceError
-} from "@accountability/persistence/Errors/RepositoryError"
 import { AppApi } from "../Definitions/AppApi.ts"
 import type { CreateJournalEntryLineRequest } from "../Definitions/JournalEntriesApi.ts"
 import {
-  ValidationError,
-  BusinessRuleError,
-  ConflictError,
   AuditLogError,
   UserLookupError
 } from "../Definitions/ApiErrors.ts"
@@ -49,7 +41,13 @@ import type { AuditLogError as CoreAuditLogError, UserLookupError as CoreUserLoo
 import { requireOrganizationContext, requirePermission, requirePermissionWithResource } from "./OrganizationContextMiddlewareLive.ts"
 import { FiscalPeriodService } from "@accountability/core/FiscalPeriod/FiscalPeriodService"
 import { FiscalPeriodNotFoundForDateError } from "@accountability/core/FiscalPeriod/FiscalPeriodErrors"
-import { CompanyNotFoundError, JournalEntryNotFoundError } from "@accountability/core/Errors/DomainErrors"
+import {
+  CompanyNotFoundError,
+  JournalEntryNotFoundError,
+  JournalEntryStatusError,
+  JournalEntryAlreadyReversedError,
+  UnbalancedJournalEntryError
+} from "@accountability/core/Errors/DomainErrors"
 import type { ResourceContext } from "@accountability/core/Auth/matchers/ResourceMatcher"
 import type { LocalDate } from "@accountability/core/Domains/LocalDate"
 import type { CompanyId } from "@accountability/core/Domains/Company"
@@ -69,39 +67,6 @@ const mapCoreAuditErrorToApi = (error: CoreAuditLogError | CoreUserLookupError):
   return new AuditLogError({
     operation: error.operation,
     cause: error.cause
-  })
-}
-
-/**
- * Convert persistence errors to BusinessRuleError
- */
-const mapPersistenceToBusinessRule = (
-  error: EntityNotFoundError | PersistenceError
-): BusinessRuleError => {
-  if (isEntityNotFoundError(error)) {
-    return new BusinessRuleError({
-      code: "ENTITY_NOT_FOUND",
-      message: error.message,
-      details: Option.none()
-    })
-  }
-  return new BusinessRuleError({
-    code: "PERSISTENCE_ERROR",
-    message: error.message,
-    details: Option.none()
-  })
-}
-
-/**
- * Convert persistence errors to ValidationError
- */
-const mapPersistenceToValidation = (
-  error: EntityNotFoundError | PersistenceError
-): ValidationError => {
-  return new ValidationError({
-    message: error.message,
-    field: Option.none(),
-    details: Option.none()
   })
 }
 
@@ -175,7 +140,7 @@ const buildJournalEntryResourceContext = (
   requirePeriod: boolean = true
 ): Effect.Effect<
   ResourceContext,
-  BusinessRuleError,
+  FiscalPeriodNotFoundForDateError,
   FiscalPeriodService
 > =>
   Effect.gen(function* () {
@@ -190,15 +155,11 @@ const buildJournalEntryResourceContext = (
       Effect.catchAll(() => Effect.succeed(Option.none()))
     )
 
-    // If period is required but not found, fail with appropriate error
+    // If period is required but not found, fail with domain-specific error
     if (requirePeriod && Option.isNone(periodStatusOption)) {
-      return yield* Effect.fail(new BusinessRuleError({
-        code: "FISCAL_PERIOD_NOT_FOUND_FOR_DATE",
-        message: new FiscalPeriodNotFoundForDateError({
-          companyId,
-          date: transactionDate.toString()
-        }).message,
-        details: Option.none()
+      return yield* Effect.fail(new FiscalPeriodNotFoundForDateError({
+        companyId,
+        date: transactionDate.toString()
       }))
     }
 
@@ -329,20 +290,20 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
 
             if (status !== undefined) {
               entries = yield* entryRepo.findByStatus(organizationId, companyId, status).pipe(
-                Effect.mapError((e) => mapPersistenceToValidation(e))
+                Effect.orDie
               )
             } else if (entryType !== undefined) {
               entries = yield* entryRepo.findByType(organizationId, companyId, entryType).pipe(
-                Effect.mapError((e) => mapPersistenceToValidation(e))
+                Effect.orDie
               )
             } else if (fiscalYear !== undefined && fiscalPeriod !== undefined) {
               const period = FiscalPeriodRef.make({ year: fiscalYear, period: fiscalPeriod })
               entries = yield* entryRepo.findByPeriod(organizationId, companyId, period).pipe(
-                Effect.mapError((e) => mapPersistenceToValidation(e))
+                Effect.orDie
               )
             } else {
               entries = yield* entryRepo.findByCompany(organizationId, companyId).pipe(
-                Effect.mapError((e) => mapPersistenceToValidation(e))
+                Effect.orDie
               )
             }
 
@@ -388,15 +349,9 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
             const req = _.payload
 
             // Validate company exists within organization and get functional currency
-            const maybeCompany = yield* companyRepo.findById(req.organizationId, req.companyId).pipe(
-              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
-            )
+            const maybeCompany = yield* companyRepo.findById(req.organizationId, req.companyId).pipe(Effect.orDie)
             if (Option.isNone(maybeCompany)) {
-              return yield* Effect.fail(new BusinessRuleError({
-                code: "COMPANY_NOT_FOUND",
-                message: `Company not found: ${req.companyId}`,
-                details: Option.none()
-              }))
+              return yield* Effect.fail(new CompanyNotFoundError({ companyId: req.companyId }))
             }
             const company = maybeCompany.value
             const functionalCurrency = company.functionalCurrency
@@ -422,9 +377,7 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
 
             // Generate entry ID and entry number
             const entryId = JournalEntryId.make(crypto.randomUUID())
-            const entryNumber = yield* entryRepo.getNextEntryNumber(req.organizationId, req.companyId).pipe(
-              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
-            )
+            const entryNumber = yield* entryRepo.getNextEntryNumber(req.organizationId, req.companyId).pipe(Effect.orDie)
 
             // Determine if multi-currency
             const currencies = new Set<string>()
@@ -489,19 +442,18 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
             }
 
             if (!BigDecimal.equals(totalDebits, totalCredits)) {
-              return yield* Effect.fail(new BusinessRuleError({
-                code: "UNBALANCED_ENTRY",
-                message: `Journal entry is unbalanced: debits (${BigDecimal.format(totalDebits)}) != credits (${BigDecimal.format(totalCredits)})`,
-                details: Option.none()
+              return yield* Effect.fail(new UnbalancedJournalEntryError({
+                totalDebits: BigDecimal.format(totalDebits),
+                totalCredits: BigDecimal.format(totalCredits)
               }))
             }
 
             // Save entry and lines
             yield* entryRepo.create(entry).pipe(
-              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+              Effect.orDie
             )
             yield* lineRepo.createMany(lines).pipe(
-              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+              Effect.orDie
             )
 
             // Log audit entry for journal entry creation
@@ -527,10 +479,11 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
 
             // Check entry is editable (Draft status only)
             if (existing.status !== "Draft") {
-              return yield* Effect.fail(new ConflictError({
-                message: `Cannot update journal entry: status is '${existing.status}', must be 'Draft'`,
-                resource: Option.some("JournalEntry"),
-                conflictingField: Option.some("status")
+              return yield* Effect.fail(new JournalEntryStatusError({
+                entryId,
+                currentStatus: existing.status,
+                requiredStatus: "Draft",
+                operation: "update"
               }))
             }
 
@@ -547,7 +500,7 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
 
             // Get company for functional currency (using org ID from request for authorization)
             const maybeCompany = yield* companyRepo.findById(organizationId, existing.companyId).pipe(
-              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+              Effect.orDie
             )
             const functionalCurrency = Option.isSome(maybeCompany)
               ? maybeCompany.value.functionalCurrency
@@ -577,7 +530,7 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
             if (Option.isSome(req.lines)) {
               // Delete existing lines and create new ones
               yield* lineRepo.deleteByJournalEntry(entryId).pipe(
-                Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+                Effect.orDie
               )
 
               const newLines = req.lines.value.map((lineReq, index) =>
@@ -604,26 +557,25 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
               }
 
               if (!BigDecimal.equals(totalDebits, totalCredits)) {
-                return yield* Effect.fail(new BusinessRuleError({
-                  code: "UNBALANCED_ENTRY",
-                  message: `Journal entry is unbalanced: debits (${BigDecimal.format(totalDebits)}) != credits (${BigDecimal.format(totalCredits)})`,
-                  details: Option.none()
+                return yield* Effect.fail(new UnbalancedJournalEntryError({
+                  totalDebits: BigDecimal.format(totalDebits),
+                  totalCredits: BigDecimal.format(totalCredits)
                 }))
               }
 
               yield* lineRepo.createMany(newLines).pipe(
-                Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+                Effect.orDie
               )
               lines = newLines
             } else {
               lines = yield* lineRepo.findByJournalEntry(entryId).pipe(
-                Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+                Effect.orDie
               )
             }
 
             // Update entry
             yield* entryRepo.update(organizationId, updatedEntry).pipe(
-              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+              Effect.orDie
             )
 
             return { entry: updatedEntry, lines }
@@ -647,16 +599,17 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
 
             // Check entry is deletable (Draft status only)
             if (existing.status !== "Draft") {
-              return yield* Effect.fail(new BusinessRuleError({
-                code: "CANNOT_DELETE_NON_DRAFT",
-                message: `Cannot delete journal entry: status is '${existing.status}', must be 'Draft'`,
-                details: Option.none()
+              return yield* Effect.fail(new JournalEntryStatusError({
+                entryId,
+                currentStatus: existing.status,
+                requiredStatus: "Draft",
+                operation: "delete"
               }))
             }
 
             // Delete lines first (cascade should handle this, but be explicit)
             yield* lineRepo.deleteByJournalEntry(entryId).pipe(
-              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+              Effect.orDie
             )
 
             // Delete entry - note: we need to add delete to repository
@@ -680,10 +633,11 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
             const existing = maybeExisting.value
 
             if (existing.status !== "Draft") {
-              return yield* Effect.fail(new BusinessRuleError({
-                code: "INVALID_STATUS_TRANSITION",
-                message: `Cannot submit for approval: status is '${existing.status}', must be 'Draft'`,
-                details: Option.none()
+              return yield* Effect.fail(new JournalEntryStatusError({
+                entryId,
+                currentStatus: existing.status,
+                requiredStatus: "Draft",
+                operation: "submit for approval"
               }))
             }
 
@@ -693,7 +647,7 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
             })
 
             yield* entryRepo.update(organizationId, updated).pipe(
-              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+              Effect.orDie
             )
 
             return updated
@@ -715,10 +669,11 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
             const existing = maybeExisting.value
 
             if (existing.status !== "PendingApproval") {
-              return yield* Effect.fail(new BusinessRuleError({
-                code: "INVALID_STATUS_TRANSITION",
-                message: `Cannot approve: status is '${existing.status}', must be 'PendingApproval'`,
-                details: Option.none()
+              return yield* Effect.fail(new JournalEntryStatusError({
+                entryId,
+                currentStatus: existing.status,
+                requiredStatus: "PendingApproval",
+                operation: "approve"
               }))
             }
 
@@ -728,7 +683,7 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
             })
 
             yield* entryRepo.update(organizationId, updated).pipe(
-              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+              Effect.orDie
             )
 
             return updated
@@ -750,10 +705,11 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
             const existing = maybeExisting.value
 
             if (existing.status !== "PendingApproval") {
-              return yield* Effect.fail(new BusinessRuleError({
-                code: "INVALID_STATUS_TRANSITION",
-                message: `Cannot reject: status is '${existing.status}', must be 'PendingApproval'`,
-                details: Option.none()
+              return yield* Effect.fail(new JournalEntryStatusError({
+                entryId,
+                currentStatus: existing.status,
+                requiredStatus: "PendingApproval",
+                operation: "reject"
               }))
             }
 
@@ -763,7 +719,7 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
             })
 
             yield* entryRepo.update(organizationId, updated).pipe(
-              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+              Effect.orDie
             )
 
             return updated
@@ -784,10 +740,11 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
             const existing = maybeExisting.value
 
             if (existing.status !== "Approved") {
-              return yield* Effect.fail(new BusinessRuleError({
-                code: "NOT_APPROVED",
-                message: `Cannot post: status is '${existing.status}', must be 'Approved'`,
-                details: Option.none()
+              return yield* Effect.fail(new JournalEntryStatusError({
+                entryId,
+                currentStatus: existing.status,
+                requiredStatus: "Approved",
+                operation: "post"
               }))
             }
 
@@ -814,7 +771,7 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
             })
 
             yield* entryRepo.update(organizationId, updated).pipe(
-              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+              Effect.orDie
             )
 
             // Log audit entry for journal entry posting
@@ -845,10 +802,11 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
             const existing = maybeExisting.value
 
             if (existing.status !== "Posted") {
-              return yield* Effect.fail(new BusinessRuleError({
-                code: "NOT_POSTED",
-                message: `Cannot reverse: status is '${existing.status}', must be 'Posted'`,
-                details: Option.none()
+              return yield* Effect.fail(new JournalEntryStatusError({
+                entryId,
+                currentStatus: existing.status,
+                requiredStatus: "Posted",
+                operation: "reverse"
               }))
             }
 
@@ -861,22 +819,21 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
             yield* requirePermissionWithResource("journal_entry:reverse", resourceContext)
 
             if (Option.isSome(existing.reversingEntryId)) {
-              return yield* Effect.fail(new BusinessRuleError({
-                code: "ALREADY_REVERSED",
-                message: `Journal entry has already been reversed by entry ${existing.reversingEntryId.value}`,
-                details: Option.none()
+              return yield* Effect.fail(new JournalEntryAlreadyReversedError({
+                entryId,
+                reversingEntryId: existing.reversingEntryId.value
               }))
             }
 
             // Get original lines
             const originalLines = yield* lineRepo.findByJournalEntry(entryId).pipe(
-              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+              Effect.orDie
             )
 
             // Generate reversal entry
             const reversalId = JournalEntryId.make(crypto.randomUUID())
             const reversalNumber = yield* entryRepo.getNextEntryNumber(organizationId, existing.companyId).pipe(
-              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+              Effect.orDie
             )
 
             const now = timestampNow()
@@ -936,14 +893,14 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
 
             // Save everything - create reversal first (due to foreign key constraint on reversing_entry_id)
             yield* entryRepo.create(reversalEntry).pipe(
-              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+              Effect.orDie
             )
             yield* lineRepo.createMany(reversalLines).pipe(
-              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+              Effect.orDie
             )
             // Update original entry to mark as reversed (now the reversalEntry exists for FK reference)
             yield* entryRepo.update(organizationId, updatedOriginal).pipe(
-              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+              Effect.orDie
             )
 
             // Log audit entries for journal entry reversal

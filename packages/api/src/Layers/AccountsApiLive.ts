@@ -28,8 +28,7 @@ import { CompanyRepository } from "@accountability/persistence/Services/CompanyR
 import { AppApi } from "../Definitions/AppApi.ts"
 import {
   AuditLogError,
-  UserLookupError,
-  ConflictError
+  UserLookupError
 } from "../Definitions/ApiErrors.ts"
 import {
   CompanyNotFoundError,
@@ -325,10 +324,9 @@ export const AccountsApiLive = HttpApiBuilder.group(AppApi, "accounts", (handler
             })
 
             const createdAccount = yield* accountRepo.create(newAccount).pipe(
-              Effect.mapError((e) => new ConflictError({
-                message: e.message,
-                resource: Option.some("Account"),
-                conflictingField: Option.none()
+              Effect.mapError(() => new AccountNumberAlreadyExistsError({
+                accountNumber: req.accountNumber,
+                companyId: req.companyId
               }))
             )
 
@@ -424,10 +422,9 @@ export const AccountsApiLive = HttpApiBuilder.group(AppApi, "accounts", (handler
             })
 
             const savedAccount = yield* accountRepo.update(organizationId, updatedAccount).pipe(
-              Effect.mapError((e) => new ConflictError({
-                message: e.message,
-                resource: Option.some("Account"),
-                conflictingField: Option.none()
+              Effect.mapError(() => new AccountNumberAlreadyExistsError({
+                accountNumber: updatedAccount.accountNumber,
+                companyId: updatedAccount.companyId
               }))
             )
 

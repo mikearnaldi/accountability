@@ -33,35 +33,29 @@ import {
   generateIncomeStatementFromData,
   type IncomeStatementReport as CoreIncomeStatementReport,
   type IncomeStatementSection as CoreIncomeStatementSection,
-  type IncomeStatementLineItem as CoreIncomeStatementLineItem,
-  type InvalidPeriodError as IncomeStatementInvalidPeriodError
+  type IncomeStatementLineItem as CoreIncomeStatementLineItem
 } from "@accountability/core/Services/IncomeStatementService"
 import {
   generateCashFlowStatementFromData,
-  type CashFlowStatementReport as CoreCashFlowStatementReport,
-  type InvalidPeriodError as CashFlowInvalidPeriodError
+  type CashFlowStatementReport as CoreCashFlowStatementReport
 } from "@accountability/core/Services/CashFlowStatementService"
 import {
   generateEquityStatementFromData,
   type EquityStatementReport as CoreEquityStatementReport,
-  type EquityMovementRow as CoreEquityMovementRow,
-  type InvalidPeriodError as EquityInvalidPeriodError
+  type EquityMovementRow as CoreEquityMovementRow
 } from "@accountability/core/Services/EquityStatementService"
 import { AccountRepository } from "@accountability/persistence/Services/AccountRepository"
 import { CompanyRepository } from "@accountability/persistence/Services/CompanyRepository"
 import { JournalEntryRepository } from "@accountability/persistence/Services/JournalEntryRepository"
 import { JournalEntryLineRepository } from "@accountability/persistence/Services/JournalEntryLineRepository"
-import {
-  isEntityNotFoundError,
-  type EntityNotFoundError,
-  type PersistenceError
-} from "@accountability/persistence/Errors/RepositoryError"
 import { AppApi } from "../Definitions/AppApi.ts"
-import {
-  NotFoundError,
-  BusinessRuleError
-} from "../Definitions/ApiErrors.ts"
 import { requireOrganizationContext, requirePermission } from "./OrganizationContextMiddlewareLive.ts"
+import {
+  CompanyNotFoundError,
+  InvalidReportPeriodError,
+  TrialBalanceNotBalancedError,
+  BalanceSheetNotBalancedError
+} from "@accountability/core/Errors/DomainErrors"
 import {
   TrialBalanceReport,
   TrialBalanceLineItem,
@@ -80,54 +74,6 @@ import {
 } from "../Definitions/ReportsApi.ts"
 
 // =============================================================================
-// Error Mapping Helpers
-// =============================================================================
-
-/**
- * Convert persistence errors to NotFoundError
- */
-const mapPersistenceToNotFound = (
-  resource: string,
-  id: string,
-  _error: EntityNotFoundError | PersistenceError
-): NotFoundError => {
-  return new NotFoundError({ resource, id })
-}
-
-/**
- * Convert persistence errors to BusinessRuleError
- */
-const mapPersistenceToBusinessRule = (
-  error: EntityNotFoundError | PersistenceError
-): BusinessRuleError => {
-  if (isEntityNotFoundError(error)) {
-    return new BusinessRuleError({
-      code: "ENTITY_NOT_FOUND",
-      message: error.message,
-      details: Option.none()
-    })
-  }
-  return new BusinessRuleError({
-    code: "PERSISTENCE_ERROR",
-    message: error.message,
-    details: Option.none()
-  })
-}
-
-/**
- * Map InvalidPeriodError to BusinessRuleError
- */
-const mapInvalidPeriodToBusinessRule = (
-  error: IncomeStatementInvalidPeriodError | CashFlowInvalidPeriodError | EquityInvalidPeriodError
-): BusinessRuleError => {
-  return new BusinessRuleError({
-    code: "INVALID_PERIOD",
-    message: error.message,
-    details: Option.none()
-  })
-}
-
-// =============================================================================
 // Data Fetching Helpers
 // =============================================================================
 
@@ -142,32 +88,24 @@ const fetchReportData = (organizationId: OrganizationId, companyId: CompanyId) =
     const journalEntryLineRepo = yield* JournalEntryLineRepository
 
     // Get company to validate existence within organization and get functional currency
-    const maybeCompany = yield* companyRepo.findById(organizationId, companyId).pipe(
-      Effect.mapError((e) => mapPersistenceToNotFound("Company", companyId, e))
-    )
+    const maybeCompany = yield* companyRepo.findById(organizationId, companyId).pipe(Effect.orDie)
     if (Option.isNone(maybeCompany)) {
-      return yield* Effect.fail(new NotFoundError({ resource: "Company", id: companyId }))
+      return yield* Effect.fail(new CompanyNotFoundError({ companyId }))
     }
     const company = maybeCompany.value
     const functionalCurrency = company.functionalCurrency
 
     // Get all accounts for the company
-    const accounts = yield* accountRepo.findByCompany(organizationId, companyId).pipe(
-      Effect.mapError((e) => mapPersistenceToBusinessRule(e))
-    )
+    const accounts = yield* accountRepo.findByCompany(organizationId, companyId).pipe(Effect.orDie)
 
     // Get all journal entries (we'll filter for posted status in the service)
-    const journalEntries = yield* journalEntryRepo.findByCompany(organizationId, companyId).pipe(
-      Effect.mapError((e) => mapPersistenceToBusinessRule(e))
-    )
+    const journalEntries = yield* journalEntryRepo.findByCompany(organizationId, companyId).pipe(Effect.orDie)
 
     // Get journal entry IDs
     const entryIds = journalEntries.map((e) => e.id)
 
     // Get all lines for these entries
-    const linesMap = yield* journalEntryLineRepo.findByJournalEntries(entryIds).pipe(
-      Effect.mapError((e) => mapPersistenceToBusinessRule(e))
-    )
+    const linesMap = yield* journalEntryLineRepo.findByJournalEntries(entryIds).pipe(Effect.orDie)
 
     // Build JournalEntryWithLines array
     const entriesWithLines: JournalEntryWithLines[] = journalEntries.map((entry) => ({
@@ -549,12 +487,8 @@ export const ReportsApiLive = HttpApiBuilder.group(AppApi, "reports", (handlers)
               functionalCurrency,
               options
             ).pipe(
-              Effect.mapError((error) =>
-                new BusinessRuleError({
-                  code: "TRIAL_BALANCE_NOT_BALANCED",
-                  message: error.message,
-                  details: Option.none()
-                })
+              Effect.mapError(() =>
+                new TrialBalanceNotBalancedError({ totalDebits: 0, totalCredits: 0 })
               )
             )
 
@@ -589,12 +523,8 @@ export const ReportsApiLive = HttpApiBuilder.group(AppApi, "reports", (handlers)
               functionalCurrency,
               balanceSheetOptions
             ).pipe(
-              Effect.mapError((error) =>
-                new BusinessRuleError({
-                  code: "BALANCE_SHEET_NOT_BALANCED",
-                  message: error.message,
-                  details: Option.none()
-                })
+              Effect.mapError(() =>
+                new BalanceSheetNotBalancedError({ totalAssets: 0, totalLiabilitiesAndEquity: 0 })
               )
             )
 
@@ -646,7 +576,12 @@ export const ReportsApiLive = HttpApiBuilder.group(AppApi, "reports", (handlers)
               functionalCurrency,
               incomeStatementOptions
             ).pipe(
-              Effect.mapError((error) => mapInvalidPeriodToBusinessRule(error))
+              Effect.mapError(() =>
+                new InvalidReportPeriodError({
+                  periodStart: `${periodStartDate.year}-${periodStartDate.month}-${periodStartDate.day}`,
+                  periodEnd: `${periodEndDate.year}-${periodEndDate.month}-${periodEndDate.day}`
+                })
+              )
             )
 
             return transformIncomeStatementReport(coreReport, companyId)
@@ -682,7 +617,12 @@ export const ReportsApiLive = HttpApiBuilder.group(AppApi, "reports", (handlers)
               periodEndDate,
               functionalCurrency
             ).pipe(
-              Effect.mapError((error) => mapInvalidPeriodToBusinessRule(error))
+              Effect.mapError(() =>
+                new InvalidReportPeriodError({
+                  periodStart: `${periodStartDate.year}-${periodStartDate.month}-${periodStartDate.day}`,
+                  periodEnd: `${periodEndDate.year}-${periodEndDate.month}-${periodEndDate.day}`
+                })
+              )
             )
 
             return transformCashFlowStatementReport(coreReport, companyId)
@@ -718,7 +658,12 @@ export const ReportsApiLive = HttpApiBuilder.group(AppApi, "reports", (handlers)
               periodEndDate,
               functionalCurrency
             ).pipe(
-              Effect.mapError((error) => mapInvalidPeriodToBusinessRule(error))
+              Effect.mapError(() =>
+                new InvalidReportPeriodError({
+                  periodStart: `${periodStartDate.year}-${periodStartDate.month}-${periodStartDate.day}`,
+                  periodEnd: `${periodEndDate.year}-${periodEndDate.month}-${periodEndDate.day}`
+                })
+              )
             )
 
             return transformEquityStatementReport(coreReport, companyId)

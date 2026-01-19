@@ -20,13 +20,16 @@ import { MonetaryAmount } from "@accountability/core/Domains/MonetaryAmount"
 import { Timestamp } from "@accountability/core/Domains/Timestamp"
 import { AccountId } from "@accountability/core/Domains/Account"
 import {
-  BusinessRuleError,
-  ForbiddenError,
-  NotFoundError,
-  ValidationError
+  ForbiddenError
 } from "./ApiErrors.ts"
 import { AuthMiddleware } from "./AuthMiddleware.ts"
-import { OrganizationNotFoundError } from "@accountability/core/Errors/DomainErrors"
+import {
+  OrganizationNotFoundError,
+  CompanyNotFoundError,
+  InvalidReportPeriodError,
+  TrialBalanceNotBalancedError,
+  BalanceSheetNotBalancedError
+} from "@accountability/core/Errors/DomainErrors"
 
 // Note: URL params use LocalDateFromString schema to automatically parse
 // ISO date strings (YYYY-MM-DD) to LocalDate instances with validation.
@@ -395,9 +398,8 @@ export type EquityStatementParams = typeof EquityStatementParams.Type
 const generateTrialBalance = HttpApiEndpoint.get("generateTrialBalance", "/trial-balance")
   .setUrlParams(TrialBalanceParams)
   .addSuccess(TrialBalanceReport)
-  .addError(NotFoundError)
-  .addError(ValidationError)
-  .addError(BusinessRuleError)
+  .addError(CompanyNotFoundError)
+  .addError(TrialBalanceNotBalancedError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
@@ -411,9 +413,8 @@ const generateTrialBalance = HttpApiEndpoint.get("generateTrialBalance", "/trial
 const generateBalanceSheet = HttpApiEndpoint.get("generateBalanceSheet", "/balance-sheet")
   .setUrlParams(BalanceSheetParams)
   .addSuccess(BalanceSheetReport)
-  .addError(NotFoundError)
-  .addError(ValidationError)
-  .addError(BusinessRuleError)
+  .addError(CompanyNotFoundError)
+  .addError(BalanceSheetNotBalancedError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
@@ -427,9 +428,8 @@ const generateBalanceSheet = HttpApiEndpoint.get("generateBalanceSheet", "/balan
 const generateIncomeStatement = HttpApiEndpoint.get("generateIncomeStatement", "/income-statement")
   .setUrlParams(IncomeStatementParams)
   .addSuccess(IncomeStatementReport)
-  .addError(NotFoundError)
-  .addError(ValidationError)
-  .addError(BusinessRuleError)
+  .addError(CompanyNotFoundError)
+  .addError(InvalidReportPeriodError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
@@ -443,9 +443,8 @@ const generateIncomeStatement = HttpApiEndpoint.get("generateIncomeStatement", "
 const generateCashFlowStatement = HttpApiEndpoint.get("generateCashFlowStatement", "/cash-flow")
   .setUrlParams(CashFlowStatementParams)
   .addSuccess(CashFlowStatementReport)
-  .addError(NotFoundError)
-  .addError(ValidationError)
-  .addError(BusinessRuleError)
+  .addError(CompanyNotFoundError)
+  .addError(InvalidReportPeriodError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
@@ -459,9 +458,8 @@ const generateCashFlowStatement = HttpApiEndpoint.get("generateCashFlowStatement
 const generateEquityStatement = HttpApiEndpoint.get("generateEquityStatement", "/equity-statement")
   .setUrlParams(EquityStatementParams)
   .addSuccess(EquityStatementReport)
-  .addError(NotFoundError)
-  .addError(ValidationError)
-  .addError(BusinessRuleError)
+  .addError(CompanyNotFoundError)
+  .addError(InvalidReportPeriodError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({

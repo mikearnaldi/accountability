@@ -35,9 +35,7 @@ import { seedSystemPolicies } from "@accountability/persistence/Seeds/SystemPoli
 import { AppApi } from "../Definitions/AppApi.ts"
 import {
   AuditLogError,
-  UserLookupError,
-  ConflictError,
-  ValidationError
+  UserLookupError
 } from "../Definitions/ApiErrors.ts"
 import {
   OrganizationNotFoundError,
@@ -48,7 +46,10 @@ import {
   CircularCompanyReferenceError,
   HasActiveSubsidiariesError,
   MembershipCreationFailedError,
-  SystemPolicySeedingFailedError
+  SystemPolicySeedingFailedError,
+  OrganizationNameAlreadyExistsError,
+  CompanyNameAlreadyExistsError,
+  OrganizationUpdateFailedError
 } from "@accountability/core/Errors/DomainErrors"
 import type { AuditLogError as CoreAuditLogError, UserLookupError as CoreUserLookupError } from "@accountability/core/AuditLog/AuditLogErrors"
 import { CurrentUser } from "../Definitions/AuthMiddleware.ts"
@@ -73,20 +74,6 @@ const mapCoreAuditErrorToApi = (error: CoreAuditLogError | CoreUserLookupError):
   })
 }
 
-/**
- * Convert persistence errors to ConflictError
- * Keep this for actual conflict cases (unique constraint violations)
- */
-const mapPersistenceToConflict = (
-  error: unknown
-): ConflictError => {
-  const message = error instanceof Error ? error.message : String(error)
-  return new ConflictError({
-    message,
-    resource: Option.none(),
-    conflictingField: Option.none()
-  })
-}
 
 // =============================================================================
 // Audit Log Helpers
@@ -248,9 +235,9 @@ export const CompaniesApiLive = HttpApiBuilder.group(AppApi, "companies", (handl
             settings
           })
 
-          // createOrganization declares ValidationError and ConflictError
+          // createOrganization - name uniqueness enforced by database
           const createdOrg = yield* orgRepo.create(newOrg).pipe(
-            Effect.mapError((e) => mapPersistenceToConflict(e))
+            Effect.mapError(() => new OrganizationNameAlreadyExistsError({ name: req.name }))
           )
 
           // Add the creating user as owner with all functional roles
@@ -321,10 +308,9 @@ export const CompaniesApiLive = HttpApiBuilder.group(AppApi, "companies", (handl
           })
 
           return yield* orgRepo.update(updatedOrg).pipe(
-            Effect.mapError((e) => new ValidationError({
-              message: e.message,
-              field: Option.none(),
-              details: Option.none()
+            Effect.mapError((e) => new OrganizationUpdateFailedError({
+              organizationId: _.path.id,
+              reason: e.message
             }))
           )
         })
@@ -489,7 +475,10 @@ export const CompaniesApiLive = HttpApiBuilder.group(AppApi, "companies", (handl
             })
 
             const createdCompany = yield* companyRepo.create(newCompany).pipe(
-              Effect.mapError((e) => mapPersistenceToConflict(e))
+              Effect.mapError(() => new CompanyNameAlreadyExistsError({
+                companyName: req.name,
+                organizationId: req.organizationId
+              }))
             )
 
             // Log company creation to audit log
@@ -599,7 +588,10 @@ export const CompaniesApiLive = HttpApiBuilder.group(AppApi, "companies", (handl
             })
 
             const result = yield* companyRepo.update(organizationId, updatedCompany).pipe(
-              Effect.mapError((e) => mapPersistenceToConflict(e))
+              Effect.mapError(() => new CompanyNameAlreadyExistsError({
+                companyName: updatedCompany.name,
+                organizationId: _.path.organizationId
+              }))
             )
 
             // Log company update to audit log

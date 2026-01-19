@@ -22,7 +22,6 @@ import { OrganizationId } from "@accountability/core/Domains/Organization"
 import { CurrencyCode } from "@accountability/core/Domains/CurrencyCode"
 import {
   AuditLogError,
-  ConflictError,
   ForbiddenError,
   UserLookupError
 } from "./ApiErrors.ts"
@@ -164,7 +163,7 @@ const createAccount = HttpApiEndpoint.post("createAccount", "/")
   .addError(AccountNumberAlreadyExistsError)
   .addError(ParentAccountNotFoundError)
   .addError(ParentAccountDifferentCompanyError)
-  .addError(ConflictError)
+  .addError(AccountNumberAlreadyExistsError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .addError(AuditLogError)
@@ -185,7 +184,7 @@ const updateAccount = HttpApiEndpoint.put("updateAccount", "/organizations/:orga
   .addError(ParentAccountNotFoundError)
   .addError(ParentAccountDifferentCompanyError)
   .addError(CircularAccountReferenceError)
-  .addError(ConflictError)
+  .addError(AccountNumberAlreadyExistsError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .addError(AuditLogError)
