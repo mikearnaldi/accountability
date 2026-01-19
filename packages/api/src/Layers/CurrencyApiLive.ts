@@ -17,19 +17,15 @@ import {
 } from "@accountability/core/Domains/ExchangeRate"
 import { now as timestampNow } from "@accountability/core/Domains/Timestamp"
 import { ExchangeRateRepository } from "@accountability/persistence/Services/ExchangeRateRepository"
-import {
-  isEntityNotFoundError,
-  type EntityNotFoundError,
-  type PersistenceError
-} from "@accountability/persistence/Errors/RepositoryError"
 import { AppApi } from "../Definitions/AppApi.ts"
 import {
-  NotFoundError,
-  ValidationError,
-  BusinessRuleError,
   AuditLogError,
   UserLookupError
 } from "../Definitions/ApiErrors.ts"
+import {
+  ExchangeRateNotFoundError,
+  SameCurrencyExchangeRateError
+} from "@accountability/core/Errors/DomainErrors"
 import type { AuditLogError as CoreAuditLogError, UserLookupError as CoreUserLookupError } from "@accountability/core/AuditLog/AuditLogErrors"
 import { requireOrganizationContext, requirePermission } from "./OrganizationContextMiddlewareLive.ts"
 import { AuditLogService } from "@accountability/core/AuditLog/AuditLogService"
@@ -51,49 +47,6 @@ const mapCoreAuditErrorToApi = (error: CoreAuditLogError | CoreUserLookupError):
   })
 }
 
-/**
- * Convert persistence errors to NotFoundError
- */
-const mapPersistenceToNotFound = (
-  resource: string,
-  id: string,
-  _error: EntityNotFoundError | PersistenceError
-): NotFoundError => {
-  return new NotFoundError({ resource, id })
-}
-
-/**
- * Convert persistence errors to BusinessRuleError
- */
-const mapPersistenceToBusinessRule = (
-  error: EntityNotFoundError | PersistenceError
-): BusinessRuleError => {
-  if (isEntityNotFoundError(error)) {
-    return new BusinessRuleError({
-      code: "ENTITY_NOT_FOUND",
-      message: error.message,
-      details: Option.none()
-    })
-  }
-  return new BusinessRuleError({
-    code: "PERSISTENCE_ERROR",
-    message: error.message,
-    details: Option.none()
-  })
-}
-
-/**
- * Convert persistence errors to ValidationError
- */
-const mapPersistenceToValidation = (
-  error: EntityNotFoundError | PersistenceError
-): ValidationError => {
-  return new ValidationError({
-    message: error.message,
-    field: Option.none(),
-    details: Option.none()
-  })
-}
 
 /**
  * Helper to log exchange rate creation to audit log
@@ -214,12 +167,10 @@ export const CurrencyApiLive = HttpApiBuilder.group(AppApi, "currency", (handler
                   toCurrency,
                   startDate,
                   endDate
-                ).pipe(
-                  Effect.mapError((e) => mapPersistenceToValidation(e))
-                )
+                ).pipe(Effect.orDie) // PersistenceError becomes a defect
               } else {
                 rates = yield* exchangeRateRepo.findByCurrencyPair(fromCurrency, toCurrency).pipe(
-                  Effect.mapError((e) => mapPersistenceToValidation(e))
+                  Effect.orDie // PersistenceError becomes a defect
                 )
               }
             } else {
@@ -254,11 +205,11 @@ export const CurrencyApiLive = HttpApiBuilder.group(AppApi, "currency", (handler
 
           // First fetch the rate to get its organizationId
           const maybeRate = yield* exchangeRateRepo.findById(rateId).pipe(
-            Effect.mapError((e) => mapPersistenceToNotFound("ExchangeRate", rateId, e))
+            Effect.orDie // PersistenceError becomes a defect
           )
 
           const rate = yield* Option.match(maybeRate, {
-            onNone: () => Effect.fail(new NotFoundError({ resource: "ExchangeRate", id: rateId })),
+            onNone: () => Effect.fail(new ExchangeRateNotFoundError({ rateId })),
             onSome: Effect.succeed
           })
 
@@ -280,10 +231,8 @@ export const CurrencyApiLive = HttpApiBuilder.group(AppApi, "currency", (handler
 
             // Validate currencies are different
             if (req.fromCurrency === req.toCurrency) {
-              return yield* Effect.fail(new ValidationError({
-                message: "From and To currencies must be different",
-                field: Option.some("toCurrency"),
-                details: Option.none()
+              return yield* Effect.fail(new SameCurrencyExchangeRateError({
+                currency: req.fromCurrency
               }))
             }
 
@@ -301,7 +250,7 @@ export const CurrencyApiLive = HttpApiBuilder.group(AppApi, "currency", (handler
             })
 
             const createdRate = yield* exchangeRateRepo.create(newRate).pipe(
-              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+              Effect.orDie // PersistenceError becomes a defect
             )
 
             // Log exchange rate creation to audit log
@@ -315,23 +264,17 @@ export const CurrencyApiLive = HttpApiBuilder.group(AppApi, "currency", (handler
         Effect.gen(function* () {
           const req = _.payload
 
-          // Validate there is at least one rate and all are for the same organization
+          // Validate there is at least one rate
           if (req.rates.length === 0) {
-            return yield* Effect.fail(new ValidationError({
-              message: "At least one rate is required",
-              field: Option.some("rates"),
-              details: Option.none()
-            }))
+            // Empty rates array is a programming error, not a user input error
+            return yield* Effect.die(new Error("At least one rate is required"))
           }
 
           const firstOrgId = req.rates[0].organizationId
           for (const rateReq of req.rates) {
             if (rateReq.organizationId !== firstOrgId) {
-              return yield* Effect.fail(new ValidationError({
-                message: "All rates in bulk create must be for the same organization",
-                field: Option.some("rates"),
-                details: Option.none()
-              }))
+              // Mixed organization IDs in bulk create is a programming error
+              return yield* Effect.die(new Error("All rates in bulk create must be for the same organization"))
             }
           }
 
@@ -343,10 +286,8 @@ export const CurrencyApiLive = HttpApiBuilder.group(AppApi, "currency", (handler
               // Validate each rate
               for (const rateReq of req.rates) {
                 if (rateReq.fromCurrency === rateReq.toCurrency) {
-                  return yield* Effect.fail(new ValidationError({
-                    message: `From and To currencies must be different: ${rateReq.fromCurrency}`,
-                    field: Option.some("rates"),
-                    details: Option.none()
+                  return yield* Effect.fail(new SameCurrencyExchangeRateError({
+                    currency: rateReq.fromCurrency
                   }))
                 }
               }
@@ -367,7 +308,7 @@ export const CurrencyApiLive = HttpApiBuilder.group(AppApi, "currency", (handler
               )
 
               const created = yield* exchangeRateRepo.createMany(newRates).pipe(
-                Effect.mapError((e) => mapPersistenceToValidation(e))
+                Effect.orDie // PersistenceError becomes a defect
               )
 
               // Log all exchange rate creations to audit log
@@ -387,11 +328,11 @@ export const CurrencyApiLive = HttpApiBuilder.group(AppApi, "currency", (handler
 
           // First fetch the rate to get its organizationId
           const maybeRate = yield* exchangeRateRepo.findById(rateId).pipe(
-            Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+            Effect.orDie // PersistenceError becomes a defect
           )
 
           const rate = yield* Option.match(maybeRate, {
-            onNone: () => Effect.fail(new NotFoundError({ resource: "ExchangeRate", id: rateId })),
+            onNone: () => Effect.fail(new ExchangeRateNotFoundError({ rateId })),
             onSome: Effect.succeed
           })
 
@@ -401,7 +342,7 @@ export const CurrencyApiLive = HttpApiBuilder.group(AppApi, "currency", (handler
               yield* requirePermission("exchange_rate:manage")
 
               yield* exchangeRateRepo.delete(rateId).pipe(
-                Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+                Effect.orDie // PersistenceError becomes a defect
               )
 
               // Log exchange rate deletion to audit log

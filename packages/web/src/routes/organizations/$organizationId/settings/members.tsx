@@ -994,9 +994,9 @@ function InviteMemberModal({ organizationId, onClose, onSuccess }: InviteMemberM
       })
 
       if (apiError) {
-        // Check for duplicate invitation error
-        const isDuplicate = typeof apiError === "object" && "code" in apiError &&
-          apiError.code === "INVITATION_ALREADY_EXISTS"
+        // Check for duplicate invitation error by _tag (Effect HttpApi uses _tag as discriminator)
+        const isDuplicate = typeof apiError === "object" && "_tag" in apiError &&
+          apiError._tag === "InvitationAlreadyExistsError"
         setIsDuplicateError(isDuplicate)
 
         const errorMessage = typeof apiError === "object" && "message" in apiError

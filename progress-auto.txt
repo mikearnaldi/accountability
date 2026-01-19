@@ -871,3 +871,8 @@
 **Task**: Converted FiscalPeriodApi to domain-specific errors, removing generic NotFoundError/ValidationError/BusinessRuleError mappings
 **Status**: complete
 ---
+
+## Iteration 5 - 2026-01-19 14:41
+**Task**: Fixed duplicate invitation error detection - changed frontend to check _tag === "InvitationAlreadyExistsError" instead of code === "INVITATION_ALREADY_EXISTS"
+**Status**: complete
+---

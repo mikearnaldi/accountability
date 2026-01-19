@@ -21,15 +21,15 @@ import { LocalDateFromString } from "@accountability/core/Domains/LocalDate"
 import { OrganizationId } from "@accountability/core/Domains/Organization"
 import {
   AuditLogError,
-  BusinessRuleError,
-  ConflictError,
   ForbiddenError,
-  NotFoundError,
-  UserLookupError,
-  ValidationError
+  UserLookupError
 } from "./ApiErrors.ts"
 import { AuthMiddleware } from "./AuthMiddleware.ts"
-import { OrganizationNotFoundError } from "@accountability/core/Errors/DomainErrors"
+import {
+  ExchangeRateNotFoundError,
+  OrganizationNotFoundError,
+  SameCurrencyExchangeRateError
+} from "@accountability/core/Errors/DomainErrors"
 
 // =============================================================================
 // Request/Response Schemas
@@ -168,10 +168,8 @@ export type GetPeriodClosingRateParams = typeof GetPeriodClosingRateParams.Type
 const listExchangeRates = HttpApiEndpoint.get("listExchangeRates", "/")
   .setUrlParams(ExchangeRateListParams)
   .addSuccess(ExchangeRateListResponse)
-  .addError(ValidationError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
-  .addError(NotFoundError)
   .annotateContext(OpenApi.annotations({
     summary: "List exchange rates",
     description: "Retrieve a paginated list of exchange rates. Supports filtering by currency pair, rate type, and date range."
@@ -183,7 +181,7 @@ const listExchangeRates = HttpApiEndpoint.get("listExchangeRates", "/")
 const getExchangeRate = HttpApiEndpoint.get("getExchangeRate", "/:id")
   .setPath(Schema.Struct({ id: ExchangeRateId }))
   .addSuccess(ExchangeRate)
-  .addError(NotFoundError)
+  .addError(ExchangeRateNotFoundError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
@@ -197,12 +195,9 @@ const getExchangeRate = HttpApiEndpoint.get("getExchangeRate", "/:id")
 const createExchangeRate = HttpApiEndpoint.post("createExchangeRate", "/")
   .setPayload(CreateExchangeRateRequest)
   .addSuccess(ExchangeRate, { status: 201 })
-  .addError(ValidationError)
-  .addError(ConflictError)
-  .addError(BusinessRuleError)
+  .addError(SameCurrencyExchangeRateError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
-  .addError(NotFoundError)
   .addError(AuditLogError)
   .addError(UserLookupError)
   .annotateContext(OpenApi.annotations({
@@ -216,10 +211,9 @@ const createExchangeRate = HttpApiEndpoint.post("createExchangeRate", "/")
 const bulkCreateExchangeRates = HttpApiEndpoint.post("bulkCreateExchangeRates", "/bulk")
   .setPayload(BulkCreateExchangeRatesRequest)
   .addSuccess(BulkCreateExchangeRatesResponse, { status: 201 })
-  .addError(ValidationError)
+  .addError(SameCurrencyExchangeRateError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
-  .addError(NotFoundError)
   .addError(AuditLogError)
   .addError(UserLookupError)
   .annotateContext(OpenApi.annotations({
@@ -233,8 +227,7 @@ const bulkCreateExchangeRates = HttpApiEndpoint.post("bulkCreateExchangeRates", 
 const deleteExchangeRate = HttpApiEndpoint.del("deleteExchangeRate", "/:id")
   .setPath(Schema.Struct({ id: ExchangeRateId }))
   .addSuccess(HttpApiSchema.NoContent)
-  .addError(NotFoundError)
-  .addError(BusinessRuleError)
+  .addError(ExchangeRateNotFoundError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .addError(AuditLogError)

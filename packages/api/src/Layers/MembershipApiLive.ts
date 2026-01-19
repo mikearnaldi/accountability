@@ -25,10 +25,9 @@ import {
   InviteMemberResponse
 } from "../Definitions/MembershipApi.ts"
 import {
-  BusinessRuleError,
-  NotFoundError,
-  ValidationError
-} from "../Definitions/ApiErrors.ts"
+  InvalidOrganizationIdError,
+  MemberNotFoundError
+} from "@accountability/core/Errors/DomainErrors"
 import { requireOrganizationContext } from "./OrganizationContextMiddlewareLive.ts"
 
 // =============================================================================
@@ -56,9 +55,8 @@ export const MembershipApiLive = HttpApiBuilder.group(AppApi, "membership", (han
       .handle("listMembers", ({ path }) =>
         Effect.gen(function* () {
           const orgId = yield* Schema.decodeUnknown(OrganizationId)(path.orgId).pipe(
-            Effect.mapError(() => new NotFoundError({
-              resource: "Organization",
-              id: path.orgId
+            Effect.mapError(() => new InvalidOrganizationIdError({
+              value: path.orgId
             }))
           )
 
@@ -100,10 +98,8 @@ export const MembershipApiLive = HttpApiBuilder.group(AppApi, "membership", (han
       .handle("inviteMember", ({ path, payload }) =>
         Effect.gen(function* () {
           const orgId = yield* Schema.decodeUnknown(OrganizationId)(path.orgId).pipe(
-            Effect.mapError(() => new ValidationError({
-              message: "Invalid organization ID format",
-              field: Option.some("orgId"),
-              details: Option.none()
+            Effect.mapError(() => new InvalidOrganizationIdError({
+              value: path.orgId
             }))
           )
 
@@ -111,6 +107,7 @@ export const MembershipApiLive = HttpApiBuilder.group(AppApi, "membership", (han
           const currentUserId = AuthUserId.make(currentUserInfo.userId)
 
           // Create invitation using InvitationService
+          // InvitationAlreadyExistsError flows through directly
           const result = yield* invitationService.createInvitation({
             organizationId: orgId,
             email: payload.email,
@@ -118,21 +115,7 @@ export const MembershipApiLive = HttpApiBuilder.group(AppApi, "membership", (han
             functionalRoles: payload.functionalRoles,
             invitedBy: currentUserId
           }).pipe(
-            Effect.mapError((error) => {
-              if ("_tag" in error && error._tag === "InvitationAlreadyExistsError") {
-                return new BusinessRuleError({
-                  code: "INVITATION_ALREADY_EXISTS",
-                  message: "A pending invitation already exists for this email",
-                  details: Option.none()
-                })
-              }
-              // Map PersistenceError to BusinessRuleError
-              return new BusinessRuleError({
-                code: "INVITATION_FAILED",
-                message: "message" in error ? String(error.message) : "Failed to create invitation",
-                details: Option.none()
-              })
-            })
+            Effect.orDie // PersistenceError becomes a defect
           )
 
           // Return the invitation ID and raw token so it can be displayed to the admin
@@ -156,18 +139,14 @@ export const MembershipApiLive = HttpApiBuilder.group(AppApi, "membership", (han
         requireOrganizationContext(path.orgId,
           Effect.gen(function* () {
             const orgId = yield* Schema.decodeUnknown(OrganizationId)(path.orgId).pipe(
-              Effect.mapError(() => new ValidationError({
-                message: "Invalid organization ID format",
-                field: Option.some("orgId"),
-                details: Option.none()
+              Effect.mapError(() => new InvalidOrganizationIdError({
+                value: path.orgId
               }))
             )
 
             const userId = yield* Schema.decodeUnknown(AuthUserId)(path.userId).pipe(
-              Effect.mapError(() => new ValidationError({
-                message: "Invalid user ID format",
-                field: Option.some("userId"),
-                details: Option.none()
+              Effect.mapError(() => new MemberNotFoundError({
+                memberId: path.userId
               }))
             )
 
@@ -181,27 +160,9 @@ export const MembershipApiLive = HttpApiBuilder.group(AppApi, "membership", (han
             }
 
             // Update the member's role
+            // MembershipNotFoundError flows through directly
             const membership = yield* memberService.updateRole(orgId, userId, updateInput).pipe(
-              Effect.mapError((error) => {
-                if ("_tag" in error && error._tag === "MembershipNotFoundError") {
-                  return new NotFoundError({
-                    resource: "Membership",
-                    id: `user ${path.userId} in org ${path.orgId}`
-                  })
-                }
-                if ("_tag" in error && error._tag === "EntityNotFoundError") {
-                  return new NotFoundError({
-                    resource: "Membership",
-                    id: `user ${path.userId}`
-                  })
-                }
-                // Map PersistenceError to BusinessRuleError
-                return new BusinessRuleError({
-                  code: "UPDATE_FAILED",
-                  message: "message" in error ? String(error.message) : "Failed to update member",
-                  details: Option.none()
-                })
-              })
+              Effect.orDie // PersistenceError/EntityNotFoundError becomes a defect
             )
 
             // Look up user details
@@ -210,9 +171,8 @@ export const MembershipApiLive = HttpApiBuilder.group(AppApi, "membership", (han
             )
 
             if (Option.isNone(userOption)) {
-              return yield* Effect.fail(new NotFoundError({
-                resource: "User",
-                id: membership.userId
+              return yield* Effect.fail(new MemberNotFoundError({
+                memberId: membership.userId
               }))
             }
 
@@ -237,16 +197,14 @@ export const MembershipApiLive = HttpApiBuilder.group(AppApi, "membership", (han
         requireOrganizationContext(path.orgId,
           Effect.gen(function* () {
             const orgId = yield* Schema.decodeUnknown(OrganizationId)(path.orgId).pipe(
-              Effect.mapError(() => new NotFoundError({
-                resource: "Organization",
-                id: path.orgId
+              Effect.mapError(() => new InvalidOrganizationIdError({
+                value: path.orgId
               }))
             )
 
             const userId = yield* Schema.decodeUnknown(AuthUserId)(path.userId).pipe(
-              Effect.mapError(() => new NotFoundError({
-                resource: "User",
-                id: path.userId
+              Effect.mapError(() => new MemberNotFoundError({
+                memberId: path.userId
               }))
             )
 
@@ -254,39 +212,14 @@ export const MembershipApiLive = HttpApiBuilder.group(AppApi, "membership", (han
             const currentUserId = yield* CurrentUserId
 
             // Remove the member
+            // MembershipNotFoundError, OwnerCannotBeRemovedError flow through directly
             yield* memberService.removeMember(
               orgId,
               userId,
               currentUserId,
               Option.getOrUndefined(payload.reason)
             ).pipe(
-              Effect.mapError((error) => {
-                if ("_tag" in error && error._tag === "MembershipNotFoundError") {
-                  return new NotFoundError({
-                    resource: "Membership",
-                    id: `user ${path.userId} in org ${path.orgId}`
-                  })
-                }
-                if ("_tag" in error && error._tag === "OwnerCannotBeRemovedError") {
-                  return new BusinessRuleError({
-                    code: "OWNER_CANNOT_BE_REMOVED",
-                    message: "The organization owner cannot be removed. Transfer ownership first.",
-                    details: Option.none()
-                  })
-                }
-                if ("_tag" in error && error._tag === "EntityNotFoundError") {
-                  return new NotFoundError({
-                    resource: "Membership",
-                    id: `user ${path.userId}`
-                  })
-                }
-                // Map PersistenceError to BusinessRuleError
-                return new BusinessRuleError({
-                  code: "REMOVE_FAILED",
-                  message: "message" in error ? String(error.message) : "Failed to remove member",
-                  details: Option.none()
-                })
-              })
+              Effect.orDie // PersistenceError/EntityNotFoundError becomes a defect
             )
           })
         )
@@ -299,16 +232,14 @@ export const MembershipApiLive = HttpApiBuilder.group(AppApi, "membership", (han
         requireOrganizationContext(path.orgId,
           Effect.gen(function* () {
             const orgId = yield* Schema.decodeUnknown(OrganizationId)(path.orgId).pipe(
-              Effect.mapError(() => new NotFoundError({
-                resource: "Organization",
-                id: path.orgId
+              Effect.mapError(() => new InvalidOrganizationIdError({
+                value: path.orgId
               }))
             )
 
             const userId = yield* Schema.decodeUnknown(AuthUserId)(path.userId).pipe(
-              Effect.mapError(() => new NotFoundError({
-                resource: "User",
-                id: path.userId
+              Effect.mapError(() => new MemberNotFoundError({
+                memberId: path.userId
               }))
             )
 
@@ -316,31 +247,13 @@ export const MembershipApiLive = HttpApiBuilder.group(AppApi, "membership", (han
             const currentUserId = yield* CurrentUserId
 
             // Reinstate the member
+            // MembershipNotFoundError flows through directly
             const membership = yield* memberService.reinstateMember(
               orgId,
               userId,
               currentUserId
             ).pipe(
-              Effect.mapError((error) => {
-                if ("_tag" in error && error._tag === "MembershipNotFoundError") {
-                  return new NotFoundError({
-                    resource: "Membership",
-                    id: `user ${path.userId} in org ${path.orgId}`
-                  })
-                }
-                if ("_tag" in error && error._tag === "EntityNotFoundError") {
-                  return new NotFoundError({
-                    resource: "Membership",
-                    id: `user ${path.userId}`
-                  })
-                }
-                // PersistenceError - map to BusinessRuleError for reinstate endpoint
-                return new BusinessRuleError({
-                  code: "REINSTATE_FAILED",
-                  message: "Failed to reinstate member",
-                  details: Option.none()
-                })
-              })
+              Effect.orDie // PersistenceError/EntityNotFoundError becomes a defect
             )
 
             // Look up user details
@@ -349,9 +262,8 @@ export const MembershipApiLive = HttpApiBuilder.group(AppApi, "membership", (han
             )
 
             if (Option.isNone(userOption)) {
-              return yield* Effect.fail(new NotFoundError({
-                resource: "User",
-                id: membership.userId
+              return yield* Effect.fail(new MemberNotFoundError({
+                memberId: membership.userId
               }))
             }
 
@@ -376,16 +288,14 @@ export const MembershipApiLive = HttpApiBuilder.group(AppApi, "membership", (han
         requireOrganizationContext(path.orgId,
           Effect.gen(function* () {
             const orgId = yield* Schema.decodeUnknown(OrganizationId)(path.orgId).pipe(
-              Effect.mapError(() => new NotFoundError({
-                resource: "Organization",
-                id: path.orgId
+              Effect.mapError(() => new InvalidOrganizationIdError({
+                value: path.orgId
               }))
             )
 
             const userId = yield* Schema.decodeUnknown(AuthUserId)(path.userId).pipe(
-              Effect.mapError(() => new NotFoundError({
-                resource: "User",
-                id: path.userId
+              Effect.mapError(() => new MemberNotFoundError({
+                memberId: path.userId
               }))
             )
 
@@ -393,39 +303,14 @@ export const MembershipApiLive = HttpApiBuilder.group(AppApi, "membership", (han
             const currentUserId = yield* CurrentUserId
 
             // Suspend the member
+            // MembershipNotFoundError, OwnerCannotBeSuspendedError flow through directly
             const membership = yield* memberService.suspendMember(
               orgId,
               userId,
               currentUserId,
               Option.getOrUndefined(payload.reason)
             ).pipe(
-              Effect.mapError((error) => {
-                if ("_tag" in error && error._tag === "MembershipNotFoundError") {
-                  return new NotFoundError({
-                    resource: "Membership",
-                    id: `user ${path.userId} in org ${path.orgId}`
-                  })
-                }
-                if ("_tag" in error && error._tag === "OwnerCannotBeSuspendedError") {
-                  return new BusinessRuleError({
-                    code: "OWNER_CANNOT_BE_SUSPENDED",
-                    message: "The organization owner cannot be suspended. Transfer ownership first.",
-                    details: Option.none()
-                  })
-                }
-                if ("_tag" in error && error._tag === "EntityNotFoundError") {
-                  return new NotFoundError({
-                    resource: "Membership",
-                    id: `user ${path.userId}`
-                  })
-                }
-                // Map PersistenceError to BusinessRuleError
-                return new BusinessRuleError({
-                  code: "SUSPEND_FAILED",
-                  message: "message" in error ? String(error.message) : "Failed to suspend member",
-                  details: Option.none()
-                })
-              })
+              Effect.orDie // PersistenceError/EntityNotFoundError becomes a defect
             )
 
             // Look up user details
@@ -434,9 +319,8 @@ export const MembershipApiLive = HttpApiBuilder.group(AppApi, "membership", (han
             )
 
             if (Option.isNone(userOption)) {
-              return yield* Effect.fail(new NotFoundError({
-                resource: "User",
-                id: membership.userId
+              return yield* Effect.fail(new MemberNotFoundError({
+                memberId: membership.userId
               }))
             }
 
@@ -461,16 +345,14 @@ export const MembershipApiLive = HttpApiBuilder.group(AppApi, "membership", (han
         requireOrganizationContext(path.orgId,
           Effect.gen(function* () {
             const orgId = yield* Schema.decodeUnknown(OrganizationId)(path.orgId).pipe(
-              Effect.mapError(() => new NotFoundError({
-                resource: "Organization",
-                id: path.orgId
+              Effect.mapError(() => new InvalidOrganizationIdError({
+                value: path.orgId
               }))
             )
 
             const userId = yield* Schema.decodeUnknown(AuthUserId)(path.userId).pipe(
-              Effect.mapError(() => new NotFoundError({
-                resource: "User",
-                id: path.userId
+              Effect.mapError(() => new MemberNotFoundError({
+                memberId: path.userId
               }))
             )
 
@@ -478,38 +360,13 @@ export const MembershipApiLive = HttpApiBuilder.group(AppApi, "membership", (han
             const currentUserId = yield* CurrentUserId
 
             // Unsuspend the member
+            // MembershipNotFoundError, MemberNotSuspendedError flow through directly
             const membership = yield* memberService.unsuspendMember(
               orgId,
               userId,
               currentUserId
             ).pipe(
-              Effect.mapError((error) => {
-                if ("_tag" in error && error._tag === "MembershipNotFoundError") {
-                  return new NotFoundError({
-                    resource: "Membership",
-                    id: `user ${path.userId} in org ${path.orgId}`
-                  })
-                }
-                if ("_tag" in error && error._tag === "MemberNotSuspendedError") {
-                  return new BusinessRuleError({
-                    code: "MEMBER_NOT_SUSPENDED",
-                    message: "Cannot unsuspend: member is not currently suspended.",
-                    details: Option.none()
-                  })
-                }
-                if ("_tag" in error && error._tag === "EntityNotFoundError") {
-                  return new NotFoundError({
-                    resource: "Membership",
-                    id: `user ${path.userId}`
-                  })
-                }
-                // Map PersistenceError to BusinessRuleError
-                return new BusinessRuleError({
-                  code: "UNSUSPEND_FAILED",
-                  message: "message" in error ? String(error.message) : "Failed to unsuspend member",
-                  details: Option.none()
-                })
-              })
+              Effect.orDie // PersistenceError/EntityNotFoundError becomes a defect
             )
 
             // Look up user details
@@ -518,9 +375,8 @@ export const MembershipApiLive = HttpApiBuilder.group(AppApi, "membership", (han
             )
 
             if (Option.isNone(userOption)) {
-              return yield* Effect.fail(new NotFoundError({
-                resource: "User",
-                id: membership.userId
+              return yield* Effect.fail(new MemberNotFoundError({
+                memberId: membership.userId
               }))
             }
 
@@ -545,10 +401,8 @@ export const MembershipApiLive = HttpApiBuilder.group(AppApi, "membership", (han
         requireOrganizationContext(path.orgId,
           Effect.gen(function* () {
             const orgId = yield* Schema.decodeUnknown(OrganizationId)(path.orgId).pipe(
-              Effect.mapError(() => new ValidationError({
-                message: "Invalid organization ID format",
-                field: Option.some("orgId"),
-                details: Option.none()
+              Effect.mapError(() => new InvalidOrganizationIdError({
+                value: path.orgId
               }))
             )
 
@@ -556,39 +410,14 @@ export const MembershipApiLive = HttpApiBuilder.group(AppApi, "membership", (han
             const currentUserId = yield* CurrentUserId
 
             // Transfer ownership
+            // MembershipNotFoundError, CannotTransferToNonAdminError flow through directly
             yield* memberService.transferOwnership({
               organizationId: orgId,
               fromUserId: currentUserId,
               toUserId: payload.toUserId,
               newRoleForPreviousOwner: payload.myNewRole
             }).pipe(
-              Effect.mapError((error) => {
-                if ("_tag" in error && error._tag === "MembershipNotFoundError") {
-                  return new NotFoundError({
-                    resource: "Membership",
-                    id: `user in org ${path.orgId}`
-                  })
-                }
-                if ("_tag" in error && error._tag === "CannotTransferToNonAdminError") {
-                  return new ValidationError({
-                    message: "Ownership can only be transferred to an existing admin member",
-                    field: Option.some("toUserId"),
-                    details: Option.none()
-                  })
-                }
-                if ("_tag" in error && error._tag === "EntityNotFoundError") {
-                  return new NotFoundError({
-                    resource: "User",
-                    id: payload.toUserId
-                  })
-                }
-                // PersistenceError - map to BusinessRuleError
-                return new BusinessRuleError({
-                  code: "TRANSFER_FAILED",
-                  message: "Failed to transfer ownership",
-                  details: Option.none()
-                })
-              })
+              Effect.orDie // PersistenceError/EntityNotFoundError becomes a defect
             )
           })
         )

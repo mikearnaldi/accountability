@@ -21,14 +21,21 @@ import { FunctionalRoles } from "@accountability/core/Auth/FunctionalRole"
 import { MembershipStatus } from "@accountability/core/Auth/MembershipStatus"
 import { InvitationId } from "@accountability/core/Auth/InvitationId"
 import { Timestamp } from "@accountability/core/Domains/Timestamp"
-import {
-  BusinessRuleError,
-  ForbiddenError,
-  NotFoundError,
-  ValidationError
-} from "./ApiErrors.ts"
+import { ForbiddenError } from "./ApiErrors.ts"
 import { AuthMiddleware } from "./AuthMiddleware.ts"
-import { OrganizationNotFoundError } from "@accountability/core/Errors/DomainErrors"
+import {
+  InvalidOrganizationIdError,
+  MemberNotFoundError,
+  OrganizationNotFoundError
+} from "@accountability/core/Errors/DomainErrors"
+import {
+  MembershipNotFoundError,
+  OwnerCannotBeRemovedError,
+  OwnerCannotBeSuspendedError,
+  MemberNotSuspendedError,
+  CannotTransferToNonAdminError,
+  InvitationAlreadyExistsError
+} from "@accountability/core/Auth/AuthorizationErrors"
 
 // =============================================================================
 // Member Request/Response Schemas
@@ -119,7 +126,7 @@ export class TransferOwnershipRequest extends Schema.Class<TransferOwnershipRequ
 const listMembers = HttpApiEndpoint.get("listMembers", "/organizations/:orgId/members")
   .setPath(Schema.Struct({ orgId: Schema.String }))
   .addSuccess(MemberListResponse)
-  .addError(NotFoundError)
+  .addError(InvalidOrganizationIdError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
@@ -134,11 +141,10 @@ const inviteMember = HttpApiEndpoint.post("inviteMember", "/organizations/:orgId
   .setPath(Schema.Struct({ orgId: Schema.String }))
   .setPayload(InviteMemberRequest)
   .addSuccess(InviteMemberResponse, { status: 201 })
-  .addError(NotFoundError)
+  .addError(InvalidOrganizationIdError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
-  .addError(ValidationError)
-  .addError(BusinessRuleError)
+  .addError(InvitationAlreadyExistsError)
   .annotateContext(OpenApi.annotations({
     summary: "Invite new member",
     description: "Send an invitation to join the organization. An email will be sent with an invitation link."
@@ -151,11 +157,11 @@ const updateMember = HttpApiEndpoint.patch("updateMember", "/organizations/:orgI
   .setPath(Schema.Struct({ orgId: Schema.String, userId: Schema.String }))
   .setPayload(UpdateMemberRequest)
   .addSuccess(MemberInfo)
-  .addError(NotFoundError)
+  .addError(InvalidOrganizationIdError)
+  .addError(MemberNotFoundError)
+  .addError(MembershipNotFoundError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
-  .addError(ValidationError)
-  .addError(BusinessRuleError)
   .annotateContext(OpenApi.annotations({
     summary: "Update member role",
     description: "Update a member's base role and/or functional roles."
@@ -168,10 +174,12 @@ const removeMember = HttpApiEndpoint.del("removeMember", "/organizations/:orgId/
   .setPath(Schema.Struct({ orgId: Schema.String, userId: Schema.String }))
   .setPayload(RemoveMemberRequest)
   .addSuccess(HttpApiSchema.NoContent)
-  .addError(NotFoundError)
+  .addError(InvalidOrganizationIdError)
+  .addError(MemberNotFoundError)
+  .addError(MembershipNotFoundError)
+  .addError(OwnerCannotBeRemovedError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
-  .addError(BusinessRuleError)
   .annotateContext(OpenApi.annotations({
     summary: "Remove member",
     description: "Remove a member from the organization (soft delete). The owner cannot be removed."
@@ -183,10 +191,11 @@ const removeMember = HttpApiEndpoint.del("removeMember", "/organizations/:orgId/
 const reinstateMember = HttpApiEndpoint.post("reinstateMember", "/organizations/:orgId/members/:userId/reinstate")
   .setPath(Schema.Struct({ orgId: Schema.String, userId: Schema.String }))
   .addSuccess(MemberInfo)
-  .addError(NotFoundError)
+  .addError(InvalidOrganizationIdError)
+  .addError(MemberNotFoundError)
+  .addError(MembershipNotFoundError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
-  .addError(BusinessRuleError)
   .annotateContext(OpenApi.annotations({
     summary: "Reinstate member",
     description: "Reinstate a previously removed member, restoring their previous role and access."
@@ -199,10 +208,12 @@ const suspendMember = HttpApiEndpoint.post("suspendMember", "/organizations/:org
   .setPath(Schema.Struct({ orgId: Schema.String, userId: Schema.String }))
   .setPayload(SuspendMemberRequest)
   .addSuccess(MemberInfo)
-  .addError(NotFoundError)
+  .addError(InvalidOrganizationIdError)
+  .addError(MemberNotFoundError)
+  .addError(MembershipNotFoundError)
+  .addError(OwnerCannotBeSuspendedError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
-  .addError(BusinessRuleError)
   .annotateContext(OpenApi.annotations({
     summary: "Suspend member",
     description: "Temporarily suspend a member's access to the organization. The owner cannot be suspended."
@@ -214,10 +225,12 @@ const suspendMember = HttpApiEndpoint.post("suspendMember", "/organizations/:org
 const unsuspendMember = HttpApiEndpoint.post("unsuspendMember", "/organizations/:orgId/members/:userId/unsuspend")
   .setPath(Schema.Struct({ orgId: Schema.String, userId: Schema.String }))
   .addSuccess(MemberInfo)
-  .addError(NotFoundError)
+  .addError(InvalidOrganizationIdError)
+  .addError(MemberNotFoundError)
+  .addError(MembershipNotFoundError)
+  .addError(MemberNotSuspendedError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
-  .addError(BusinessRuleError)
   .annotateContext(OpenApi.annotations({
     summary: "Unsuspend member",
     description: "Restore access for a previously suspended member."
@@ -230,11 +243,11 @@ const transferOwnership = HttpApiEndpoint.post("transferOwnership", "/organizati
   .setPath(Schema.Struct({ orgId: Schema.String }))
   .setPayload(TransferOwnershipRequest)
   .addSuccess(HttpApiSchema.NoContent)
-  .addError(NotFoundError)
+  .addError(InvalidOrganizationIdError)
+  .addError(MembershipNotFoundError)
+  .addError(CannotTransferToNonAdminError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
-  .addError(ValidationError)
-  .addError(BusinessRuleError)
   .annotateContext(OpenApi.annotations({
     summary: "Transfer ownership",
     description: "Transfer organization ownership to another admin member. Only the current owner can perform this action."
