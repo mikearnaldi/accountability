@@ -822,17 +822,20 @@ Moving actual source files from old directories to new domain directories, conve
 | Percentage.ts | Domains/ | shared/values/ | ✅ Done |
 | Address.ts | Domains/ | shared/values/ | ✅ Done |
 | CurrencyCode.ts | Domains/ | currency/ | ✅ Done |
+| Organization.ts | Domains/ | organization/ | ✅ Done |
+| Company.ts | Domains/ | company/ | ✅ Done |
+| CompanyType.ts | Domains/ | company/ | ✅ Done |
+| JurisdictionCode.ts | Domains/ | jurisdiction/ | ✅ Done |
+| Currency.ts | Domains/ | currency/ | ✅ Done |
+| ExchangeRate.ts | Domains/ | currency/ | ✅ Done |
 
 **Files still needing migration:**
 
-1. **Domains/** (31 remaining files):
-   - Organization.ts → organization/
-   - Company.ts, CompanyType.ts → company/
-   - Jurisdiction.ts, JurisdictionCode.ts → jurisdiction/
+1. **Domains/** (24 remaining files):
+   - Jurisdiction.ts → jurisdiction/
    - Account.ts, AccountNumber.ts, AccountHierarchy.ts, AccountTemplate.ts, AccountBalance.ts, AccountValidation.ts, BalanceValidation.ts → accounting/
    - JournalEntry.ts, JournalEntryLine.ts, EntryStatusWorkflow.ts, MultiCurrencyLineHandling.ts → journal/
    - FiscalYear.ts, FiscalPeriod.ts, FiscalPeriodRef.ts, FiscalPeriodStatus.ts, FiscalPeriodType.ts, FiscalYearStatus.ts, ComputedFiscalPeriod.ts → fiscal/
-   - Currency.ts, ExchangeRate.ts → currency/
    - ConsolidationGroup.ts, ConsolidationRun.ts, EliminationRule.ts, IntercompanyTransaction.ts, ConsolidationMethodDetermination.ts → consolidation/
    - AuditLog.ts → audit/
 
@@ -849,7 +852,7 @@ Moving actual source files from old directories to new domain directories, conve
 
 4. **Auth/** (19 authentication files → new auth/ directory)
 
-**CI Status:** All typecheck and 3254 tests pass.
+**CI Status:** All typecheck and 3915 tests pass.
 
 ---
 

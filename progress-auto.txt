@@ -914,3 +914,8 @@
 **Task**: Moved shared values and CurrencyCode to canonical locations in core package reorganization
 **Status**: complete
 ---
+
+## Iteration 7 - 2026-01-19 17:13
+**Task**: Moved Organization, Company, CompanyType, JurisdictionCode, Currency, and ExchangeRate to canonical domain locations
+**Status**: complete
+---
