@@ -13,6 +13,7 @@
  * @module CurrencyService
  */
 
+import { HttpApiSchema } from "@effect/platform"
 import * as BigDecimal from "effect/BigDecimal"
 import * as Context from "effect/Context"
 import * as Effect from "effect/Effect"
@@ -52,7 +53,8 @@ export class RateNotFoundError extends Schema.TaggedError<RateNotFoundError>()(
       day: Schema.Number
     })),
     rateType: Schema.optional(Schema.Literal("Spot", "Average", "Historical", "Closing"))
-  }
+  },
+  HttpApiSchema.annotations({ status: 404 })
 ) {
   get message(): string {
     const datePart = this.effectiveDate
@@ -82,7 +84,8 @@ export class RateAlreadyExistsError extends Schema.TaggedError<RateAlreadyExists
       day: Schema.Number
     }),
     rateType: Schema.Literal("Spot", "Average", "Historical", "Closing")
-  }
+  },
+  HttpApiSchema.annotations({ status: 409 })
 ) {
   get message(): string {
     const dateStr = `${this.effectiveDate.year}-${String(this.effectiveDate.month).padStart(2, "0")}-${String(this.effectiveDate.day).padStart(2, "0")}`
@@ -102,7 +105,8 @@ export class ExchangeRateIdNotFoundError extends Schema.TaggedError<ExchangeRate
   "ExchangeRateIdNotFoundError",
   {
     exchangeRateId: Schema.UUID.pipe(Schema.brand("ExchangeRateId"))
-  }
+  },
+  HttpApiSchema.annotations({ status: 404 })
 ) {
   get message(): string {
     return `Exchange rate not found: ${this.exchangeRateId}`
@@ -128,7 +132,8 @@ export class InverseRateCalculationError extends Schema.TaggedError<InverseRateC
       day: Schema.Number
     }),
     rateType: Schema.Literal("Spot", "Average", "Historical", "Closing")
-  }
+  },
+  HttpApiSchema.annotations({ status: 500 })
 ) {
   get message(): string {
     const dateStr = `${this.effectiveDate.year}-${String(this.effectiveDate.month).padStart(2, "0")}-${String(this.effectiveDate.day).padStart(2, "0")}`
@@ -153,7 +158,8 @@ export class NoForeignCurrencyBalancesError extends Schema.TaggedError<NoForeign
       month: Schema.Number,
       day: Schema.Number
     })
-  }
+  },
+  HttpApiSchema.annotations({ status: 422 })
 ) {
   get message(): string {
     const dateStr = `${this.closingDate.year}-${String(this.closingDate.month).padStart(2, "0")}-${String(this.closingDate.day).padStart(2, "0")}`
@@ -174,7 +180,8 @@ export class UnrealizedGainLossAccountNotFoundError extends Schema.TaggedError<U
   {
     companyId: Schema.UUID.pipe(Schema.brand("CompanyId")),
     accountType: Schema.Literal("UnrealizedGain", "UnrealizedLoss")
-  }
+  },
+  HttpApiSchema.annotations({ status: 422 })
 ) {
   get message(): string {
     return `Unrealized ${this.accountType === "UnrealizedGain" ? "gain" : "loss"} account not configured for company ${this.companyId}`

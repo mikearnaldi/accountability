@@ -806,3 +806,8 @@
 **Task**: Added HttpApiSchema.annotations to 11 errors in JournalEntryService.ts
 **Status**: complete
 ---
+
+## Iteration 6 - 2026-01-19 12:50
+**Task**: Added HttpApiSchema.annotations to 6 errors in CurrencyService.ts
+**Status**: complete
+---
