@@ -28,9 +28,8 @@ import type { AuthUserId } from "../Auth/AuthUserId.ts"
  *
  * Usage:
  * ```typescript
- * // In API handlers, after authentication:
- * const userId = yield* Schema.decodeUnknown(AuthUserId)(currentUser.userId)
- * yield* Effect.provideService(effect, CurrentUserId, userId)
+ * // In API handlers, currentUser.userId is already typed as AuthUserId:
+ * yield* Effect.provideService(effect, CurrentUserId, currentUser.userId)
  *
  * // In services:
  * const userId = yield* CurrentUserId

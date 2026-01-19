@@ -13,7 +13,6 @@
 import { HttpApiBuilder } from "@effect/platform"
 import * as Effect from "effect/Effect"
 import * as Option from "effect/Option"
-import * as Schema from "effect/Schema"
 import {
   Company,
   CompanyId
@@ -26,7 +25,6 @@ import {
 import { now as timestampNow } from "@accountability/core/Domains/Timestamp"
 import { OrganizationMembership } from "@accountability/core/Auth/OrganizationMembership"
 import { OrganizationMembershipId } from "@accountability/core/Auth/OrganizationMembershipId"
-import { AuthUserId } from "@accountability/core/Auth/AuthUserId"
 import { AuditLogService } from "@accountability/core/AuditLog/AuditLogService"
 import { CurrentUserId } from "@accountability/core/AuditLog/CurrentUserId"
 import { CompanyRepository } from "@accountability/persistence/Services/CompanyRepository"
@@ -283,21 +281,11 @@ export const CompaniesApiLive = HttpApiBuilder.group(AppApi, "companies", (handl
           )
 
           // Add the creating user as owner with all functional roles
-          // Parse the user ID as AuthUserId (validates UUID format)
-          // If user ID is not a valid UUID, organization creation fails - test infrastructure
-          // must use valid UUIDs for proper authorization to work
-          const authUserId = yield* Schema.decodeUnknown(AuthUserId)(currentUser.userId).pipe(
-            Effect.mapError(() => new ValidationError({
-              message: `Invalid user ID format: user ID must be a valid UUID`,
-              field: Option.some("userId"),
-              details: Option.none()
-            }))
-          )
-
+          // currentUser.userId is already typed as AuthUserId (validated at auth middleware)
           const now = timestampNow()
           const membership = OrganizationMembership.make({
             id: OrganizationMembershipId.make(crypto.randomUUID()),
-            userId: authUserId,
+            userId: currentUser.userId,
             organizationId: createdOrg.id,
             role: "owner",
             isController: true,

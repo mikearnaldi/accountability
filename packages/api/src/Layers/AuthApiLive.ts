@@ -53,7 +53,6 @@ import {
 import { UnauthorizedError } from "../Definitions/ApiErrors.ts"
 import { AuthService, type AuthServiceShape } from "@accountability/core/Auth/AuthService"
 import type { AuthUser } from "@accountability/core/Auth/AuthUser"
-import { AuthUserId } from "@accountability/core/Auth/AuthUserId"
 import type { AuthProviderType } from "@accountability/core/Auth/AuthProviderType"
 import { LocalAuthRequest } from "@accountability/core/Auth/AuthRequest"
 import { SessionId } from "@accountability/core/Auth/SessionId"
@@ -470,9 +469,8 @@ export const AuthSessionApiLive = HttpApiBuilder.group(AppApi, "authSession", (h
             )
           }
 
-          // Logout using the session ID from CurrentUser
-          const sessionId = SessionId.make(currentUser.sessionId)
-          yield* authService.logout(sessionId).pipe(
+          // Logout using the session ID from CurrentUser (already typed as SessionId)
+          yield* authService.logout(currentUser.sessionId).pipe(
             Effect.mapError(() =>
               new SessionInvalidError({
                 message: "Session is invalid or already logged out"
@@ -491,9 +489,8 @@ export const AuthSessionApiLive = HttpApiBuilder.group(AppApi, "authSession", (h
         Effect.gen(function* () {
           const currentUser = yield* CurrentUser
 
-          // Get the full user from repository
-          const userId = AuthUserId.make(currentUser.userId)
-          const maybeUser = yield* userRepo.findById(userId).pipe(
+          // Get the full user from repository (userId is already typed as AuthUserId)
+          const maybeUser = yield* userRepo.findById(currentUser.userId).pipe(
             Effect.catchAll(() => Effect.succeed(Option.none<AuthUser>()))
           )
 
@@ -504,7 +501,7 @@ export const AuthSessionApiLive = HttpApiBuilder.group(AppApi, "authSession", (h
           const user = maybeUser.value
 
           // Get all linked identities
-          const identitiesChunk = yield* identityRepo.findByUserId(userId).pipe(
+          const identitiesChunk = yield* identityRepo.findByUserId(currentUser.userId).pipe(
             Effect.catchAll(() => Effect.succeed(Chunk.empty()))
           )
           const identities = Chunk.toReadonlyArray(identitiesChunk)
@@ -520,9 +517,8 @@ export const AuthSessionApiLive = HttpApiBuilder.group(AppApi, "authSession", (h
           const currentUser = yield* CurrentUser
           const { displayName } = _.payload
 
-          // Get the current user from repository
-          const userId = AuthUserId.make(currentUser.userId)
-          const maybeUser = yield* userRepo.findById(userId).pipe(
+          // Get the current user from repository (userId is already typed as AuthUserId)
+          const maybeUser = yield* userRepo.findById(currentUser.userId).pipe(
             Effect.catchAll(() => Effect.succeed(Option.none<AuthUser>()))
           )
 
@@ -539,7 +535,7 @@ export const AuthSessionApiLive = HttpApiBuilder.group(AppApi, "authSession", (h
           // Update user if there are changes
           let updatedUser: AuthUser
           if (Object.keys(updateData).length > 0) {
-            updatedUser = yield* userRepo.update(userId, updateData).pipe(
+            updatedUser = yield* userRepo.update(currentUser.userId, updateData).pipe(
               Effect.mapError(() =>
                 new AuthValidationError({
                   message: "Failed to update profile",
@@ -553,7 +549,7 @@ export const AuthSessionApiLive = HttpApiBuilder.group(AppApi, "authSession", (h
           }
 
           // Get all linked identities
-          const identitiesChunk = yield* identityRepo.findByUserId(userId).pipe(
+          const identitiesChunk = yield* identityRepo.findByUserId(currentUser.userId).pipe(
             Effect.catchAll(() => Effect.succeed(Chunk.empty()))
           )
           const identities = Chunk.toReadonlyArray(identitiesChunk)
@@ -577,10 +573,8 @@ export const AuthSessionApiLive = HttpApiBuilder.group(AppApi, "authSession", (h
             )
           }
 
-          const sessionId = SessionId.make(currentUser.sessionId)
-
-          // Validate current session
-          yield* authService.validateSession(sessionId).pipe(
+          // Validate current session (sessionId is already typed as SessionId)
+          yield* authService.validateSession(currentUser.sessionId).pipe(
             Effect.mapError((error) => {
               if (isSessionNotFoundError(error) || isSessionExpiredError(error)) {
                 return new SessionInvalidError({
@@ -595,7 +589,7 @@ export const AuthSessionApiLive = HttpApiBuilder.group(AppApi, "authSession", (h
           // If logout fails, multiple active sessions could exist for the same user,
           // creating a session hijacking risk. Refresh should fail if we can't
           // clean up the old session.
-          yield* authService.logout(sessionId).pipe(
+          yield* authService.logout(currentUser.sessionId).pipe(
             Effect.mapError(() => new SessionInvalidError({
               message: "Failed to clean up old session during refresh"
             }))
@@ -694,9 +688,8 @@ export const AuthSessionApiLive = HttpApiBuilder.group(AppApi, "authSession", (h
               })
             )
 
-          // Return the current user with their identities
-          const userId = AuthUserId.make(currentUser.userId)
-          const maybeUser = yield* userRepo.findById(userId).pipe(
+          // Return the current user with their identities (userId is already typed as AuthUserId)
+          const maybeUser = yield* userRepo.findById(currentUser.userId).pipe(
             Effect.mapError(() => new IdentityLinkedError({ provider }))
           )
 
@@ -705,7 +698,7 @@ export const AuthSessionApiLive = HttpApiBuilder.group(AppApi, "authSession", (h
           }
 
           const user = maybeUser.value
-          const identitiesChunk = yield* identityRepo.findByUserId(userId).pipe(
+          const identitiesChunk = yield* identityRepo.findByUserId(currentUser.userId).pipe(
             Effect.mapError(() => new IdentityLinkedError({ provider }))
           )
           const identities = Chunk.toReadonlyArray(identitiesChunk)
@@ -720,7 +713,6 @@ export const AuthSessionApiLive = HttpApiBuilder.group(AppApi, "authSession", (h
         Effect.gen(function* () {
           const { identityId } = _.path
           const currentUser = yield* CurrentUser
-          const userId = AuthUserId.make(currentUser.userId)
 
           // Get the identity to verify ownership
           const maybeIdentity = yield* identityRepo.findById(identityId).pipe(
@@ -735,13 +727,13 @@ export const AuthSessionApiLive = HttpApiBuilder.group(AppApi, "authSession", (h
 
           const identity = maybeIdentity.value
 
-          // Verify the identity belongs to the current user
-          if (identity.userId !== userId) {
+          // Verify the identity belongs to the current user (userId is already typed as AuthUserId)
+          if (identity.userId !== currentUser.userId) {
             return yield* Effect.fail(new IdentityNotFoundError({ identityId }))
           }
 
           // Check if this is the last identity - prevent unlinking
-          const allIdentities = yield* identityRepo.findByUserId(userId).pipe(
+          const allIdentities = yield* identityRepo.findByUserId(currentUser.userId).pipe(
             Effect.mapError(() => new CannotUnlinkLastIdentityError({}))
           )
 
@@ -759,11 +751,10 @@ export const AuthSessionApiLive = HttpApiBuilder.group(AppApi, "authSession", (h
         Effect.gen(function* () {
           const { currentPassword, newPassword } = _.payload
           const currentUser = yield* CurrentUser
-          const userId = AuthUserId.make(currentUser.userId)
           const passwordHasher = yield* PasswordHasher
 
-          // Get the user to find their email
-          const maybeUser = yield* userRepo.findById(userId).pipe(
+          // Get the user to find their email (userId is already typed as AuthUserId)
+          const maybeUser = yield* userRepo.findById(currentUser.userId).pipe(
             Effect.mapError(() => new NoLocalIdentityError({}))
           )
 
@@ -775,7 +766,7 @@ export const AuthSessionApiLive = HttpApiBuilder.group(AppApi, "authSession", (h
 
           // Check if user has a local identity
           const providerId = ProviderId.make(user.email)
-          const maybeLocalIdentity = yield* identityRepo.findByUserAndProvider(userId, "local").pipe(
+          const maybeLocalIdentity = yield* identityRepo.findByUserAndProvider(currentUser.userId, "local").pipe(
             Effect.mapError(() => new NoLocalIdentityError({}))
           )
 
@@ -821,7 +812,7 @@ export const AuthSessionApiLive = HttpApiBuilder.group(AppApi, "authSession", (h
 
           // SECURITY: Invalidate all sessions after password change
           // This ensures the user must re-login with the new password
-          yield* sessionRepo.deleteByUserId(userId).pipe(
+          yield* sessionRepo.deleteByUserId(currentUser.userId).pipe(
             Effect.catchAll(() => Effect.succeed(0)) // Don't fail if session cleanup fails
           )
         })

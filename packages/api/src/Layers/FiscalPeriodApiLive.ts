@@ -27,7 +27,6 @@ import type { FiscalPeriodStatus } from "@accountability/core/Domains/FiscalPeri
 import { LocalDate } from "@accountability/core/Domains/LocalDate"
 import { CompanyId } from "@accountability/core/Domains/Company"
 import { OrganizationId } from "@accountability/core/Domains/Organization"
-import { AuthUserId } from "@accountability/core/Auth/AuthUserId"
 import { CompanyRepository } from "@accountability/persistence/Services/CompanyRepository"
 import { AppApi } from "../Definitions/AppApi.ts"
 import {
@@ -327,15 +326,8 @@ export const FiscalPeriodApiLive = HttpApiBuilder.group(AppApi, "fiscal-periods"
               return yield* Effect.fail(new NotFoundError({ resource: "Company", id: _.path.companyId }))
             }
 
-            const userId = yield* Schema.decodeUnknown(AuthUserId)(currentUser.userId).pipe(
-              Effect.mapError(() => new BusinessRuleError({
-                code: "INVALID_USER_ID",
-                message: "Invalid user ID format",
-                details: Option.none()
-              }))
-            )
-
-            return yield* periodService.openPeriod(fiscalYearId, periodId, userId).pipe(
+            // currentUser.userId is already typed as AuthUserId (validated at auth middleware)
+            return yield* periodService.openPeriod(fiscalYearId, periodId, currentUser.userId).pipe(
               Effect.mapError((e) => {
                 if (isFiscalPeriodNotFoundError(e)) {
                   return new NotFoundError({ resource: "FiscalPeriod", id: _.path.periodId })
@@ -370,15 +362,8 @@ export const FiscalPeriodApiLive = HttpApiBuilder.group(AppApi, "fiscal-periods"
               return yield* Effect.fail(new NotFoundError({ resource: "Company", id: _.path.companyId }))
             }
 
-            const userId = yield* Schema.decodeUnknown(AuthUserId)(currentUser.userId).pipe(
-              Effect.mapError(() => new BusinessRuleError({
-                code: "INVALID_USER_ID",
-                message: "Invalid user ID format",
-                details: Option.none()
-              }))
-            )
-
-            return yield* periodService.softClosePeriod(fiscalYearId, periodId, userId).pipe(
+            // currentUser.userId is already typed as AuthUserId (validated at auth middleware)
+            return yield* periodService.softClosePeriod(fiscalYearId, periodId, currentUser.userId).pipe(
               Effect.mapError((e) => {
                 if (isFiscalPeriodNotFoundError(e)) {
                   return new NotFoundError({ resource: "FiscalPeriod", id: _.path.periodId })
@@ -413,15 +398,8 @@ export const FiscalPeriodApiLive = HttpApiBuilder.group(AppApi, "fiscal-periods"
               return yield* Effect.fail(new NotFoundError({ resource: "Company", id: _.path.companyId }))
             }
 
-            const userId = yield* Schema.decodeUnknown(AuthUserId)(currentUser.userId).pipe(
-              Effect.mapError(() => new BusinessRuleError({
-                code: "INVALID_USER_ID",
-                message: "Invalid user ID format",
-                details: Option.none()
-              }))
-            )
-
-            return yield* periodService.closePeriod(fiscalYearId, periodId, userId).pipe(
+            // currentUser.userId is already typed as AuthUserId (validated at auth middleware)
+            return yield* periodService.closePeriod(fiscalYearId, periodId, currentUser.userId).pipe(
               Effect.mapError((e) => {
                 if (isFiscalPeriodNotFoundError(e)) {
                   return new NotFoundError({ resource: "FiscalPeriod", id: _.path.periodId })
@@ -456,15 +434,8 @@ export const FiscalPeriodApiLive = HttpApiBuilder.group(AppApi, "fiscal-periods"
               return yield* Effect.fail(new NotFoundError({ resource: "Company", id: _.path.companyId }))
             }
 
-            const userId = yield* Schema.decodeUnknown(AuthUserId)(currentUser.userId).pipe(
-              Effect.mapError(() => new BusinessRuleError({
-                code: "INVALID_USER_ID",
-                message: "Invalid user ID format",
-                details: Option.none()
-              }))
-            )
-
-            return yield* periodService.lockPeriod(fiscalYearId, periodId, userId).pipe(
+            // currentUser.userId is already typed as AuthUserId (validated at auth middleware)
+            return yield* periodService.lockPeriod(fiscalYearId, periodId, currentUser.userId).pipe(
               Effect.mapError((e) => {
                 if (isFiscalPeriodNotFoundError(e)) {
                   return new NotFoundError({ resource: "FiscalPeriod", id: _.path.periodId })
@@ -500,18 +471,11 @@ export const FiscalPeriodApiLive = HttpApiBuilder.group(AppApi, "fiscal-periods"
               return yield* Effect.fail(new NotFoundError({ resource: "Company", id: _.path.companyId }))
             }
 
-            const userId = yield* Schema.decodeUnknown(AuthUserId)(currentUser.userId).pipe(
-              Effect.mapError(() => new BusinessRuleError({
-                code: "INVALID_USER_ID",
-                message: "Invalid user ID format",
-                details: Option.none()
-              }))
-            )
-
+            // currentUser.userId is already typed as AuthUserId (validated at auth middleware)
             return yield* periodService.reopenPeriod(fiscalYearId, {
               periodId,
               reason: req.reason,
-              userId
+              userId: currentUser.userId
             }).pipe(
               Effect.mapError((e) => {
                 if (isFiscalPeriodNotFoundError(e)) {

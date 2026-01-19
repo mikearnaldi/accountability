@@ -26,7 +26,7 @@ import * as Effect from "effect/Effect"
 import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
 import { OrganizationId } from "@accountability/core/Domains/Organization"
-import { AuthUserId } from "@accountability/core/Auth/AuthUserId"
+import type { AuthUserId } from "@accountability/core/Auth/AuthUserId"
 import type { CurrentUserId } from "@accountability/core/AuditLog/CurrentUserId"
 import { withCurrentUserId } from "@accountability/core/AuditLog/CurrentUserId"
 import { OrganizationMemberRepository } from "@accountability/persistence/Services/OrganizationMemberRepository"
@@ -155,17 +155,7 @@ export const loadOrganizationMembership = (organizationId: OrganizationId) =>
   Effect.gen(function* () {
     // Get current authenticated user
     const currentUser = yield* CurrentUser
-
-    // Parse user ID as AuthUserId (validates UUID format)
-    const userId = yield* Schema.decodeUnknown(AuthUserId)(currentUser.userId).pipe(
-      Effect.mapError(() =>
-        new ForbiddenError({
-          message: "Invalid user ID format",
-          resource: Option.some("User"),
-          action: Option.none()
-        })
-      )
-    )
+    // currentUser.userId is already typed as AuthUserId (validated at auth middleware)
 
     // Check authorization config for enforcement mode
     // AuthorizationConfig is a required dependency that must be provided via layer composition
@@ -175,7 +165,7 @@ export const loadOrganizationMembership = (organizationId: OrganizationId) =>
     // Load membership from repository
     const memberRepo = yield* OrganizationMemberRepository
     const membershipOption = yield* memberRepo.findByUserAndOrganization(
-      userId,
+      currentUser.userId,
       organizationId
     ).pipe(
       Effect.mapError(() =>
@@ -208,7 +198,7 @@ export const loadOrganizationMembership = (organizationId: OrganizationId) =>
     // Membership not found - check enforcement mode
     if (!enforcementEnabled) {
       // Grace period: create synthetic membership with admin access
-      return createGracePeriodMembership(userId, organizationId)
+      return createGracePeriodMembership(currentUser.userId, organizationId)
     }
 
     // Strict enforcement: deny access
