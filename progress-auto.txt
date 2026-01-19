@@ -851,3 +851,8 @@
 **Task**: Added HttpApiSchema.annotations to 7 errors in RepositoryError.ts files (core + persistence), completing Phase 1 of ERROR_DESIGN.md
 **Status**: complete
 ---
+
+## Iteration 15 - 2026-01-19 13:13
+**Task**: Updated ERROR_DESIGN.md with Phase 2-4 analysis - documented scope of generic API error removal (~200+ usages), marked Phase 2 as DEFERRED with detailed sub-phases, Phase 3 as COMPLETE (framework behavior), and updated all error catalog Status lines to reflect Phase 1 completion
+**Status**: complete
+---
