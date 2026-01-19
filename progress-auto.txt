@@ -841,3 +841,8 @@
 **Task**: Added HttpApiSchema.annotations to 2 errors in MonetaryAmount.ts
 **Status**: complete
 ---
+
+## Iteration 13 - 2026-01-19 13:06
+**Task**: Added HttpApiSchema.annotations to 1 error in MultiCurrencyLineHandling.ts
+**Status**: complete
+---

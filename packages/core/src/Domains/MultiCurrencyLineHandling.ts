@@ -12,6 +12,7 @@
  * @module MultiCurrencyLineHandling
  */
 
+import { HttpApiSchema } from "@effect/platform"
 import * as BigDecimal from "effect/BigDecimal"
 import * as Effect from "effect/Effect"
 import * as Schema from "effect/Schema"
@@ -29,7 +30,8 @@ export class MissingExchangeRateError extends Schema.TaggedError<MissingExchange
   {
     transactionCurrency: CurrencyCode,
     functionalCurrency: CurrencyCode
-  }
+  },
+  HttpApiSchema.annotations({ status: 422 })
 ) {
   get message(): string {
     return `Missing exchange rate for conversion from ${this.transactionCurrency} to ${this.functionalCurrency}`
