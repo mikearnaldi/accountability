@@ -414,10 +414,12 @@ export class MembershipNotFoundError extends Schema.TaggedError<MembershipNotFou
 11. [x] `packages/core/src/Domains/AccountHierarchy.ts` (3 errors) ✅ Done
 12. [x] `packages/core/src/Domains/MonetaryAmount.ts` (2 errors) ✅ Done
 13. [x] `packages/core/src/Domains/MultiCurrencyLineHandling.ts` (1 error) ✅ Done
-14. [ ] `packages/core/src/Errors/RepositoryError.ts` (2 errors)
-15. [ ] `packages/persistence/src/Errors/RepositoryError.ts` (5 errors)
+14. [x] `packages/core/src/Errors/RepositoryError.ts` (2 errors) ✅ Done
+15. [x] `packages/persistence/src/Errors/RepositoryError.ts` (5 errors) ✅ Done
 
 **Total: 81 errors to annotate**
+
+**Phase 1 Status: ✅ COMPLETE** - All 81 errors across 15 files now have HttpApiSchema.annotations.
 
 ### Phase 2: Remove Generic API Layer Errors
 

@@ -7,6 +7,7 @@
  * @module RepositoryError
  */
 
+import { HttpApiSchema } from "@effect/platform"
 import * as Effect from "effect/Effect"
 import * as Schema from "effect/Schema"
 
@@ -20,7 +21,8 @@ export class EntityNotFoundError extends Schema.TaggedError<EntityNotFoundError>
   {
     entityType: Schema.String,
     entityId: Schema.String
-  }
+  },
+  HttpApiSchema.annotations({ status: 404 })
 ) {
   get message(): string {
     return `${this.entityType} not found: ${this.entityId}`
@@ -41,7 +43,8 @@ export class DuplicateEntityError extends Schema.TaggedError<DuplicateEntityErro
     entityType: Schema.String,
     entityId: Schema.String,
     conflictField: Schema.OptionFromNullOr(Schema.String)
-  }
+  },
+  HttpApiSchema.annotations({ status: 409 })
 ) {
   get message(): string {
     const conflict = this.conflictField._tag === "Some"
@@ -66,7 +69,8 @@ export class PersistenceError extends Schema.TaggedError<PersistenceError>()(
   {
     operation: Schema.String,
     cause: Schema.Defect
-  }
+  },
+  HttpApiSchema.annotations({ status: 500 })
 ) {
   get message(): string {
     return `Persistence error during ${this.operation}: ${String(this.cause)}`
@@ -87,7 +91,8 @@ export class ValidationError extends Schema.TaggedError<ValidationError>()(
     entityType: Schema.String,
     field: Schema.String,
     message: Schema.String
-  }
+  },
+  HttpApiSchema.annotations({ status: 400 })
 ) {
   get formattedMessage(): string {
     return `Validation failed for ${this.entityType}.${this.field}: ${this.message}`
@@ -107,7 +112,8 @@ export class ConcurrencyError extends Schema.TaggedError<ConcurrencyError>()(
   {
     entityType: Schema.String,
     entityId: Schema.String
-  }
+  },
+  HttpApiSchema.annotations({ status: 409 })
 ) {
   get message(): string {
     return `Concurrency conflict on ${this.entityType}: ${this.entityId} was modified by another process`

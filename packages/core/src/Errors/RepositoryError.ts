@@ -10,6 +10,7 @@
  * @module RepositoryError
  */
 
+import { HttpApiSchema } from "@effect/platform"
 import * as Schema from "effect/Schema"
 
 /**
@@ -22,7 +23,8 @@ export class EntityNotFoundError extends Schema.TaggedError<EntityNotFoundError>
   {
     entityType: Schema.String,
     entityId: Schema.String
-  }
+  },
+  HttpApiSchema.annotations({ status: 404 })
 ) {
   get message(): string {
     return `${this.entityType} not found: ${this.entityId}`
@@ -44,7 +46,8 @@ export class PersistenceError extends Schema.TaggedError<PersistenceError>()(
   {
     operation: Schema.String,
     cause: Schema.Defect
-  }
+  },
+  HttpApiSchema.annotations({ status: 500 })
 ) {
   get message(): string {
     return `Persistence error during ${this.operation}: ${String(this.cause)}`

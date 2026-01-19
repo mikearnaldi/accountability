@@ -846,3 +846,8 @@
 **Task**: Added HttpApiSchema.annotations to 1 error in MultiCurrencyLineHandling.ts
 **Status**: complete
 ---
+
+## Iteration 14 - 2026-01-19 13:09
+**Task**: Added HttpApiSchema.annotations to 7 errors in RepositoryError.ts files (core + persistence), completing Phase 1 of ERROR_DESIGN.md
+**Status**: complete
+---
