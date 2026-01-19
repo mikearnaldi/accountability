@@ -796,3 +796,8 @@
 **Task**: Added HttpApiSchema.annotations to 11 errors in FiscalPeriodErrors.ts
 **Status**: complete
 ---
+
+## Iteration 4 - 2026-01-19 12:45
+**Task**: Added HttpApiSchema.annotations to 3 errors in AuditLogErrors.ts
+**Status**: complete
+---

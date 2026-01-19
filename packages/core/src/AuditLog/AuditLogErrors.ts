@@ -7,6 +7,7 @@
  * @module AuditLogErrors
  */
 
+import { HttpApiSchema } from "@effect/platform"
 import * as Schema from "effect/Schema"
 
 /**
@@ -19,7 +20,8 @@ export class AuditLogError extends Schema.TaggedError<AuditLogError>()(
   {
     operation: Schema.String,
     cause: Schema.Defect
-  }
+  },
+  HttpApiSchema.annotations({ status: 500 })
 ) {
   get message(): string {
     return `Audit log error during ${this.operation}: ${String(this.cause)}`
@@ -43,7 +45,8 @@ export class UserLookupError extends Schema.TaggedError<UserLookupError>()(
   {
     userId: Schema.String,
     cause: Schema.Defect
-  }
+  },
+  HttpApiSchema.annotations({ status: 500 })
 ) {
   get message(): string {
     return `Failed to look up user ${this.userId} for audit log: ${String(this.cause)}`
@@ -68,7 +71,8 @@ export class AuditDataCorruptionError extends Schema.TaggedError<AuditDataCorrup
     entryId: Schema.String,
     field: Schema.String,
     cause: Schema.Defect
-  }
+  },
+  HttpApiSchema.annotations({ status: 500 })
 ) {
   get message(): string {
     return `Audit log data corruption in entry ${this.entryId}, field ${this.field}: ${String(this.cause)}`
