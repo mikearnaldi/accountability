@@ -1029,3 +1029,35 @@ packages/core/test/
 - All other moved files retain `../../src/` paths (2 levels deep)
 
 **CI Status:** All 3915 tests pass, typecheck clean, lint clean
+
+---
+
+### ✅ TEST QUALITY REVIEW COMPLETE (2026-01-19)
+
+All 66 test files in `packages/core/test/` were reviewed to verify they test useful behavior.
+
+**Review Summary:**
+- **Total test files:** 66 across 14 domain directories
+- **Tests removed:** 0 - all tests provide value
+
+**Key Findings:**
+- All validation tests verify schema constraints and rejection of invalid input
+- Type guard tests document expected behavior for `is*` functions
+- Entity tests verify computed properties and domain logic (e.g., `Company.isSubsidiary`)
+- Service tests verify business logic, error handling, and integration patterns
+- Some tests for simple branded types (like `AuthUserId`) primarily test Effect's built-in UUID validation, but these serve as documentation and regression tests for the expected behavior
+
+**Test Categories That Add Value:**
+1. **Schema validation tests** - Verify accepts/rejects expected inputs
+2. **Type guard tests** - Document `is*` function behavior for type narrowing
+3. **Encoding/decoding tests** - Verify JSON round-tripping works correctly
+4. **Computed property tests** - Verify domain logic on entities
+5. **Service behavior tests** - Verify business rules and error handling
+6. **Equality tests** - Verify structural equality via Effect's `Equal.equals`
+
+**Coverage Gaps Identified (not blocking):**
+- `audit/` - No tests yet for AuditLogService
+- `membership/` - No tests yet for membership services
+- `fiscal/` - Only FiscalPeriodRef tested; no FiscalPeriodService tests
+
+**CI Status:** All 3915 tests pass, typecheck clean, lint clean
