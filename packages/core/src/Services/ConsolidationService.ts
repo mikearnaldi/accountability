@@ -16,6 +16,7 @@
  * @module ConsolidationService
  */
 
+import { HttpApiSchema } from "@effect/platform"
 import * as BigDecimal from "effect/BigDecimal"
 import * as Chunk from "effect/Chunk"
 import * as Context from "effect/Context"
@@ -66,7 +67,8 @@ export class ConsolidationGroupNotFoundError extends Schema.TaggedError<Consolid
   "ConsolidationGroupNotFoundError",
   {
     groupId: ConsolidationGroupId
-  }
+  },
+  HttpApiSchema.annotations({ status: 404 })
 ) {
   get message(): string {
     return `Consolidation group not found: ${this.groupId}`
@@ -85,7 +87,8 @@ export class FiscalPeriodNotFoundError extends Schema.TaggedError<FiscalPeriodNo
   "FiscalPeriodNotFoundError",
   {
     periodRef: FiscalPeriodRef
-  }
+  },
+  HttpApiSchema.annotations({ status: 400 })
 ) {
   get message(): string {
     return `Fiscal period not found: FY${this.periodRef.year}-P${String(this.periodRef.period).padStart(2, "0")}`
@@ -106,7 +109,8 @@ export class ConsolidationRunExistsError extends Schema.TaggedError<Consolidatio
     groupId: ConsolidationGroupId,
     periodRef: FiscalPeriodRef,
     existingRunId: ConsolidationRunId
-  }
+  },
+  HttpApiSchema.annotations({ status: 409 })
 ) {
   get message(): string {
     return `Consolidation run already exists for group ${this.groupId} period FY${this.periodRef.year}-P${String(this.periodRef.period).padStart(2, "0")}: ${this.existingRunId}`
@@ -127,7 +131,8 @@ export class ConsolidationValidationError extends Schema.TaggedError<Consolidati
     groupId: ConsolidationGroupId,
     periodRef: FiscalPeriodRef,
     validationResult: ValidationResult
-  }
+  },
+  HttpApiSchema.annotations({ status: 422 })
 ) {
   get message(): string {
     const errorCount = this.validationResult.errorCount
@@ -149,7 +154,8 @@ export class ConsolidationStepFailedError extends Schema.TaggedError<Consolidati
     runId: ConsolidationRunId,
     stepType: Schema.Literal("Validate", "Translate", "Aggregate", "MatchIC", "Eliminate", "NCI", "GenerateTB"),
     errorMessage: Schema.NonEmptyTrimmedString
-  }
+  },
+  HttpApiSchema.annotations({ status: 500 })
 ) {
   get message(): string {
     return `Consolidation step ${this.stepType} failed: ${this.errorMessage}`
@@ -174,7 +180,8 @@ export class ConsolidationDataCorruptionError extends Schema.TaggedError<Consoli
     runId: Schema.String,
     field: Schema.String,
     cause: Schema.Defect
-  }
+  },
+  HttpApiSchema.annotations({ status: 500 })
 ) {
   get message(): string {
     return `Consolidation data corruption in run ${this.runId}, field ${this.field}: ${String(this.cause)}`
