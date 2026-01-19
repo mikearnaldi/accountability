@@ -19,61 +19,13 @@ import {
 import { EliminationRuleId } from "@accountability/core/Domains/ConsolidationGroup"
 import { EliminationRuleRepository } from "@accountability/persistence/Services/EliminationRuleRepository"
 import { ConsolidationRepository } from "@accountability/persistence/Services/ConsolidationRepository"
+import { isEntityNotFoundError } from "@accountability/persistence/Errors/RepositoryError"
 import {
-  isEntityNotFoundError,
-  type EntityNotFoundError,
-  type PersistenceError
-} from "@accountability/persistence/Errors/RepositoryError"
+  EliminationRuleNotFoundError,
+  EliminationRuleOperationFailedError,
+  ConsolidationGroupNotFoundError
+} from "@accountability/core/Errors/DomainErrors"
 import { AppApi } from "../Definitions/AppApi.ts"
-import {
-  NotFoundError,
-  ValidationError,
-  BusinessRuleError
-} from "../Definitions/ApiErrors.ts"
-
-/**
- * Convert persistence errors to NotFoundError
- */
-const mapPersistenceToNotFound = (
-  resource: string,
-  id: string,
-  _error: EntityNotFoundError | PersistenceError
-): NotFoundError => {
-  return new NotFoundError({ resource, id })
-}
-
-/**
- * Convert persistence errors to BusinessRuleError
- */
-const mapPersistenceToBusinessRule = (
-  error: EntityNotFoundError | PersistenceError
-): BusinessRuleError => {
-  if (isEntityNotFoundError(error)) {
-    return new BusinessRuleError({
-      code: "ENTITY_NOT_FOUND",
-      message: error.message,
-      details: Option.none()
-    })
-  }
-  return new BusinessRuleError({
-    code: "PERSISTENCE_ERROR",
-    message: error.message,
-    details: Option.none()
-  })
-}
-
-/**
- * Convert persistence errors to ValidationError
- */
-const mapPersistenceToValidation = (
-  error: EntityNotFoundError | PersistenceError
-): ValidationError => {
-  return new ValidationError({
-    message: error.message,
-    field: Option.none(),
-    details: Option.none()
-  })
-}
 
 /**
  * EliminationRulesApiLive - Layer providing EliminationRulesApi handlers
@@ -97,23 +49,23 @@ export const EliminationRulesApiLive = HttpApiBuilder.group(AppApi, "elimination
           if (consolidationGroupId !== undefined) {
             if (isActive === true) {
               rules = yield* eliminationRuleRepo.findActiveByConsolidationGroup(consolidationGroupId).pipe(
-                Effect.mapError((e) => mapPersistenceToValidation(e))
+                Effect.orDie
               )
             } else if (isAutomatic === true) {
               rules = yield* eliminationRuleRepo.findAutomaticByConsolidationGroup(consolidationGroupId).pipe(
-                Effect.mapError((e) => mapPersistenceToValidation(e))
+                Effect.orDie
               )
             } else if (highPriorityOnly === true) {
               rules = yield* eliminationRuleRepo.findHighPriority(consolidationGroupId).pipe(
-                Effect.mapError((e) => mapPersistenceToValidation(e))
+                Effect.orDie
               )
             } else if (eliminationType !== undefined) {
               rules = yield* eliminationRuleRepo.findByType(consolidationGroupId, eliminationType).pipe(
-                Effect.mapError((e) => mapPersistenceToValidation(e))
+                Effect.orDie
               )
             } else {
               rules = yield* eliminationRuleRepo.findByConsolidationGroup(consolidationGroupId).pipe(
-                Effect.mapError((e) => mapPersistenceToValidation(e))
+                Effect.orDie
               )
             }
           } else {
@@ -148,11 +100,11 @@ export const EliminationRulesApiLive = HttpApiBuilder.group(AppApi, "elimination
           const ruleId = _.path.id
 
           const maybeRule = yield* eliminationRuleRepo.findById(ruleId).pipe(
-            Effect.mapError((e) => mapPersistenceToNotFound("EliminationRule", ruleId, e))
+            Effect.orDie
           )
 
           return yield* Option.match(maybeRule, {
-            onNone: () => Effect.fail(new NotFoundError({ resource: "EliminationRule", id: ruleId })),
+            onNone: () => Effect.fail(new EliminationRuleNotFoundError({ ruleId })),
             onSome: Effect.succeed
           })
         })
@@ -163,13 +115,11 @@ export const EliminationRulesApiLive = HttpApiBuilder.group(AppApi, "elimination
 
           // Validate consolidation group exists
           const groupExists = yield* consolidationRepo.groupExists(req.organizationId, req.consolidationGroupId).pipe(
-            Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+            Effect.orDie
           )
           if (!groupExists) {
-            return yield* Effect.fail(new BusinessRuleError({
-              code: "GROUP_NOT_FOUND",
-              message: `Consolidation group not found: ${req.consolidationGroupId}`,
-              details: Option.none()
+            return yield* Effect.fail(new ConsolidationGroupNotFoundError({
+              groupId: req.consolidationGroupId
             }))
           }
 
@@ -202,7 +152,7 @@ export const EliminationRulesApiLive = HttpApiBuilder.group(AppApi, "elimination
           })
 
           return yield* eliminationRuleRepo.create(newRule).pipe(
-            Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+            Effect.orDie
           )
         })
       )
@@ -221,13 +171,11 @@ export const EliminationRulesApiLive = HttpApiBuilder.group(AppApi, "elimination
           }
           for (const { organizationId, groupId } of uniquePairs.values()) {
             const groupExists = yield* consolidationRepo.groupExists(organizationId, groupId).pipe(
-              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+              Effect.orDie
             )
             if (!groupExists) {
-              return yield* Effect.fail(new ValidationError({
-                message: `Consolidation group not found: ${groupId}`,
-                field: Option.some("consolidationGroupId"),
-                details: Option.none()
+              return yield* Effect.fail(new ConsolidationGroupNotFoundError({
+                groupId
               }))
             }
           }
@@ -262,7 +210,7 @@ export const EliminationRulesApiLive = HttpApiBuilder.group(AppApi, "elimination
           })
 
           const created = yield* eliminationRuleRepo.createMany(newRules).pipe(
-            Effect.mapError((e) => mapPersistenceToValidation(e))
+            Effect.orDie
           )
 
           return {
@@ -278,10 +226,10 @@ export const EliminationRulesApiLive = HttpApiBuilder.group(AppApi, "elimination
 
           // Get existing rule
           const maybeExisting = yield* eliminationRuleRepo.findById(ruleId).pipe(
-            Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+            Effect.orDie
           )
           if (Option.isNone(maybeExisting)) {
-            return yield* Effect.fail(new NotFoundError({ resource: "EliminationRule", id: ruleId }))
+            return yield* Effect.fail(new EliminationRuleNotFoundError({ ruleId }))
           }
           const existing = maybeExisting.value
 
@@ -323,7 +271,7 @@ export const EliminationRulesApiLive = HttpApiBuilder.group(AppApi, "elimination
           })
 
           return yield* eliminationRuleRepo.update(updatedRule).pipe(
-            Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+            Effect.orDie
           )
         })
       )
@@ -333,14 +281,14 @@ export const EliminationRulesApiLive = HttpApiBuilder.group(AppApi, "elimination
 
           // Check if exists
           const exists = yield* eliminationRuleRepo.exists(ruleId).pipe(
-            Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+            Effect.orDie
           )
           if (!exists) {
-            return yield* Effect.fail(new NotFoundError({ resource: "EliminationRule", id: ruleId }))
+            return yield* Effect.fail(new EliminationRuleNotFoundError({ ruleId }))
           }
 
           yield* eliminationRuleRepo.delete(ruleId).pipe(
-            Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+            Effect.orDie
           )
         })
       )
@@ -351,9 +299,9 @@ export const EliminationRulesApiLive = HttpApiBuilder.group(AppApi, "elimination
           return yield* eliminationRuleRepo.activate(ruleId).pipe(
             Effect.mapError((e) => {
               if (isEntityNotFoundError(e)) {
-                return new NotFoundError({ resource: "EliminationRule", id: ruleId })
+                return new EliminationRuleNotFoundError({ ruleId })
               }
-              return mapPersistenceToBusinessRule(e)
+              return new EliminationRuleOperationFailedError({ operation: "activate", reason: e.message })
             })
           )
         })
@@ -365,9 +313,9 @@ export const EliminationRulesApiLive = HttpApiBuilder.group(AppApi, "elimination
           return yield* eliminationRuleRepo.deactivate(ruleId).pipe(
             Effect.mapError((e) => {
               if (isEntityNotFoundError(e)) {
-                return new NotFoundError({ resource: "EliminationRule", id: ruleId })
+                return new EliminationRuleNotFoundError({ ruleId })
               }
-              return mapPersistenceToBusinessRule(e)
+              return new EliminationRuleOperationFailedError({ operation: "deactivate", reason: e.message })
             })
           )
         })
@@ -380,9 +328,9 @@ export const EliminationRulesApiLive = HttpApiBuilder.group(AppApi, "elimination
           return yield* eliminationRuleRepo.updatePriority(ruleId, priority).pipe(
             Effect.mapError((e) => {
               if (isEntityNotFoundError(e)) {
-                return new NotFoundError({ resource: "EliminationRule", id: ruleId })
+                return new EliminationRuleNotFoundError({ ruleId })
               }
-              return mapPersistenceToBusinessRule(e)
+              return new EliminationRuleOperationFailedError({ operation: "updatePriority", reason: e.message })
             })
           )
         })
@@ -392,7 +340,7 @@ export const EliminationRulesApiLive = HttpApiBuilder.group(AppApi, "elimination
           const { consolidationGroupId, eliminationType } = _.urlParams
 
           const rules = yield* eliminationRuleRepo.findByType(consolidationGroupId, eliminationType).pipe(
-            Effect.mapError((e) => mapPersistenceToValidation(e))
+            Effect.orDie
           )
 
           return {

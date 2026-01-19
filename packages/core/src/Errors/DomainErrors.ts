@@ -301,6 +301,41 @@ export class AccountTemplateNotFoundError extends Schema.TaggedError<AccountTemp
 export const isAccountTemplateNotFoundError = Schema.is(AccountTemplateNotFoundError)
 
 /**
+ * EliminationRuleNotFoundError - Elimination rule does not exist
+ */
+export class EliminationRuleNotFoundError extends Schema.TaggedError<EliminationRuleNotFoundError>()(
+  "EliminationRuleNotFoundError",
+  {
+    ruleId: Schema.String
+  },
+  HttpApiSchema.annotations({ status: 404 })
+) {
+  get message(): string {
+    return `Elimination rule not found: ${this.ruleId}`
+  }
+}
+
+export const isEliminationRuleNotFoundError = Schema.is(EliminationRuleNotFoundError)
+
+/**
+ * EliminationRuleOperationFailedError - Elimination rule operation failed
+ */
+export class EliminationRuleOperationFailedError extends Schema.TaggedError<EliminationRuleOperationFailedError>()(
+  "EliminationRuleOperationFailedError",
+  {
+    operation: Schema.String,
+    reason: Schema.String
+  },
+  HttpApiSchema.annotations({ status: 422 })
+) {
+  get message(): string {
+    return `Elimination rule ${this.operation} failed: ${this.reason}`
+  }
+}
+
+export const isEliminationRuleOperationFailedError = Schema.is(EliminationRuleOperationFailedError)
+
+/**
  * MemberNotFoundError - Organization member does not exist
  */
 export class MemberNotFoundError extends Schema.TaggedError<MemberNotFoundError>()(

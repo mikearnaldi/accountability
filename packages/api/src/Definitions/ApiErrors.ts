@@ -4,71 +4,20 @@
  * These error types are used across all API endpoints and include
  * HttpApiSchema annotations for proper HTTP status code mapping.
  *
+ * Following the one-layer error architecture from ERROR_DESIGN.md:
+ * - Most domain-specific errors are defined in packages/core/src/Errors/DomainErrors.ts
+ * - This file contains only API-layer errors that serve distinct purposes:
+ *   - UnauthorizedError (401) - Authentication layer concern
+ *   - ForbiddenError (403) - Authorization layer concern
+ *   - InternalServerError (500) - Catch-all for unexpected errors
+ *   - AuditLogError (500) - Audit logging failures
+ *   - UserLookupError (500) - User lookup failures during audit
+ *
  * @module ApiErrors
  */
 
 import { HttpApiSchema } from "@effect/platform"
 import * as Schema from "effect/Schema"
-
-/**
- * NotFoundError - Resource not found (404)
- *
- * Generic not found error for any resource type.
- */
-export class NotFoundError extends Schema.TaggedError<NotFoundError>()(
-  "NotFoundError",
-  {
-    resource: Schema.String.annotations({
-      description: "The type of resource that was not found (e.g., 'Account', 'Company')"
-    }),
-    id: Schema.String.annotations({
-      description: "The identifier of the resource that was not found"
-    })
-  },
-  HttpApiSchema.annotations({ status: 404 })
-) {
-  get message(): string {
-    return `${this.resource} not found: ${this.id}`
-  }
-}
-
-/**
- * Type guard for NotFoundError
- */
-export const isNotFoundError = Schema.is(NotFoundError)
-
-/**
- * ValidationError - Request validation failed (400)
- *
- * Used when request data fails validation rules.
- */
-export class ValidationError extends Schema.TaggedError<ValidationError>()(
-  "ValidationError",
-  {
-    message: Schema.String.annotations({
-      description: "A human-readable description of the validation error"
-    }),
-    field: Schema.OptionFromNullOr(Schema.String).annotations({
-      description: "The field that failed validation, if applicable"
-    }),
-    details: Schema.OptionFromNullOr(
-      Schema.Array(
-        Schema.Struct({
-          field: Schema.String,
-          message: Schema.String
-        })
-      )
-    ).annotations({
-      description: "Detailed validation errors for multiple fields"
-    })
-  },
-  HttpApiSchema.annotations({ status: 400 })
-) {}
-
-/**
- * Type guard for ValidationError
- */
-export const isValidationError = Schema.is(ValidationError)
 
 /**
  * UnauthorizedError - Authentication required (401)
@@ -117,32 +66,6 @@ export class ForbiddenError extends Schema.TaggedError<ForbiddenError>()(
 export const isForbiddenError = Schema.is(ForbiddenError)
 
 /**
- * ConflictError - Resource conflict (409)
- *
- * Used when the request conflicts with the current state of the resource.
- */
-export class ConflictError extends Schema.TaggedError<ConflictError>()(
-  "ConflictError",
-  {
-    message: Schema.String.annotations({
-      description: "A human-readable description of the conflict"
-    }),
-    resource: Schema.OptionFromNullOr(Schema.String).annotations({
-      description: "The type of resource that has a conflict"
-    }),
-    conflictingField: Schema.OptionFromNullOr(Schema.String).annotations({
-      description: "The field that caused the conflict"
-    })
-  },
-  HttpApiSchema.annotations({ status: 409 })
-) {}
-
-/**
- * Type guard for ConflictError
- */
-export const isConflictError = Schema.is(ConflictError)
-
-/**
  * InternalServerError - Server error (500)
  *
  * Used for unexpected server-side errors.
@@ -164,32 +87,6 @@ export class InternalServerError extends Schema.TaggedError<InternalServerError>
  * Type guard for InternalServerError
  */
 export const isInternalServerError = Schema.is(InternalServerError)
-
-/**
- * BusinessRuleError - Business rule violation (422)
- *
- * Used when the request violates business rules (e.g., journal entry doesn't balance).
- */
-export class BusinessRuleError extends Schema.TaggedError<BusinessRuleError>()(
-  "BusinessRuleError",
-  {
-    code: Schema.String.annotations({
-      description: "A machine-readable error code"
-    }),
-    message: Schema.String.annotations({
-      description: "A human-readable description of the business rule violation"
-    }),
-    details: Schema.OptionFromNullOr(Schema.Unknown).annotations({
-      description: "Additional details about the violation"
-    })
-  },
-  HttpApiSchema.annotations({ status: 422 })
-) {}
-
-/**
- * Type guard for BusinessRuleError
- */
-export const isBusinessRuleError = Schema.is(BusinessRuleError)
 
 /**
  * AuditLogError - Audit logging failed (500)
@@ -250,15 +147,13 @@ export class UserLookupError extends Schema.TaggedError<UserLookupError>()(
 export const isUserLookupError = Schema.is(UserLookupError)
 
 /**
- * Union of all API error types
+ * Union of all API-layer error types
+ *
+ * Note: Domain-specific errors are defined in packages/core/src/Errors/DomainErrors.ts
  */
 export type ApiError =
-  | NotFoundError
-  | ValidationError
   | UnauthorizedError
   | ForbiddenError
-  | ConflictError
   | InternalServerError
-  | BusinessRuleError
   | AuditLogError
   | UserLookupError

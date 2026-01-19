@@ -12,14 +12,16 @@ import { describe, expect, it } from "@effect/vitest"
 import * as Option from "effect/Option"
 import { AppApi, HealthCheckResponse } from "@accountability/api/Definitions/AppApi"
 import {
-  NotFoundError,
-  ValidationError,
   UnauthorizedError,
   ForbiddenError,
-  ConflictError,
-  InternalServerError,
-  BusinessRuleError
+  InternalServerError
 } from "@accountability/api/Definitions/ApiErrors"
+import {
+  AccountNotFoundError,
+  CompanyNotFoundError,
+  OrganizationNotFoundError,
+  AccountNumberAlreadyExistsError
+} from "@accountability/core/Errors/DomainErrors"
 
 describe("AppApi", () => {
   describe("API structure", () => {
@@ -60,55 +62,49 @@ describe("AppApi", () => {
 })
 
 describe("ApiErrors", () => {
-  describe("NotFoundError", () => {
-    it("should create with resource and id", () => {
-      const error = new NotFoundError({
-        resource: "Account",
-        id: "acc-123"
+  describe("Domain NotFound Errors", () => {
+    it("AccountNotFoundError should create with accountId", () => {
+      const error = new AccountNotFoundError({
+        accountId: "acc-123"
       })
 
-      expect(error.resource).toBe("Account")
-      expect(error.id).toBe("acc-123")
+      expect(error.accountId).toBe("acc-123")
       expect(error.message).toBe("Account not found: acc-123")
-      expect(error._tag).toBe("NotFoundError")
+      expect(error._tag).toBe("AccountNotFoundError")
     })
 
-    it("should have 404 status annotation", () => {
-      // The Schema.TaggedError with HttpApiSchema.annotations({ status: 404 })
-      // should encode the status code properly
-      const error = new NotFoundError({
-        resource: "Company",
-        id: "comp-456"
+    it("CompanyNotFoundError should create with companyId", () => {
+      const error = new CompanyNotFoundError({
+        companyId: "comp-456"
       })
-      expect(error._tag).toBe("NotFoundError")
+
+      expect(error.companyId).toBe("comp-456")
+      expect(error.message).toBe("Company not found: comp-456")
+      expect(error._tag).toBe("CompanyNotFoundError")
+    })
+
+    it("OrganizationNotFoundError should create with organizationId", () => {
+      const error = new OrganizationNotFoundError({
+        organizationId: "org-789"
+      })
+
+      expect(error.organizationId).toBe("org-789")
+      expect(error.message).toBe("Organization not found: org-789")
+      expect(error._tag).toBe("OrganizationNotFoundError")
     })
   })
 
-  describe("ValidationError", () => {
-    it("should create with message only", () => {
-      const error = new ValidationError({
-        message: "Invalid input",
-        field: Option.none(),
-        details: Option.none()
+  describe("Domain Conflict Errors", () => {
+    it("AccountNumberAlreadyExistsError should create with account and company", () => {
+      const error = new AccountNumberAlreadyExistsError({
+        accountNumber: "1000",
+        companyId: "comp-123"
       })
 
-      expect(error.message).toBe("Invalid input")
-      expect(Option.isNone(error.field)).toBe(true)
-      expect(Option.isNone(error.details)).toBe(true)
-    })
-
-    it("should create with field and details", () => {
-      const error = new ValidationError({
-        message: "Validation failed",
-        field: Option.some("accountNumber"),
-        details: Option.some([
-          { field: "accountNumber", message: "Must be 4 digits" },
-          { field: "name", message: "Required" }
-        ])
-      })
-
-      expect(Option.getOrNull(error.field)).toBe("accountNumber")
-      expect(Option.isSome(error.details)).toBe(true)
+      expect(error.accountNumber).toBe("1000")
+      expect(error.companyId).toBe("comp-123")
+      expect(error.message).toBe("Account number 1000 already exists in this company")
+      expect(error._tag).toBe("AccountNumberAlreadyExistsError")
     })
   })
 
@@ -152,20 +148,6 @@ describe("ApiErrors", () => {
     })
   })
 
-  describe("ConflictError", () => {
-    it("should create with message", () => {
-      const error = new ConflictError({
-        message: "Account number already exists",
-        resource: Option.some("Account"),
-        conflictingField: Option.some("accountNumber")
-      })
-
-      expect(error.message).toBe("Account number already exists")
-      expect(Option.getOrNull(error.resource)).toBe("Account")
-      expect(Option.getOrNull(error.conflictingField)).toBe("accountNumber")
-    })
-  })
-
   describe("InternalServerError", () => {
     it("should create with default message", () => {
       const error = new InternalServerError({
@@ -183,30 +165,6 @@ describe("ApiErrors", () => {
 
       expect(error.message).toBe("Database connection failed")
       expect(Option.getOrNull(error.requestId)).toBe("req-123")
-    })
-  })
-
-  describe("BusinessRuleError", () => {
-    it("should create with code and message", () => {
-      const error = new BusinessRuleError({
-        code: "ENTRY_NOT_BALANCED",
-        message: "Journal entry debits do not equal credits",
-        details: Option.none()
-      })
-
-      expect(error.code).toBe("ENTRY_NOT_BALANCED")
-      expect(error.message).toBe("Journal entry debits do not equal credits")
-    })
-
-    it("should create with details", () => {
-      const error = new BusinessRuleError({
-        code: "PERIOD_CLOSED",
-        message: "Cannot post to closed period",
-        details: Option.some({ periodId: "2024-01", closedAt: "2024-02-01" })
-      })
-
-      expect(error.code).toBe("PERIOD_CLOSED")
-      expect(Option.isSome(error.details)).toBe(true)
     })
   })
 })

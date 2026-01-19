@@ -17,37 +17,37 @@ This document describes the error handling strategy for the Accountability codeb
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### Current Architecture (Hybrid - Two Layers)
+### Current Architecture (One Layer) ✅ COMPLETE
 
-**Reality:** The codebase currently has TWO active error layers:
+**The codebase now has ONE error layer matching the target architecture:**
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│               API HANDLERS (packages/api)                   │
-│  Create generic API errors (~260 usages)                    │
-│  Map domain errors to generic API errors                    │
+│                      DOMAIN ERRORS                          │
+│  Schema.TaggedError + HttpApiSchema.annotations             │
+│  Used in repositories, services, and API handlers           │
+│  Flow directly to HTTP responses                            │
+│                                                             │
+│  ~133 domain errors in packages/core/src/Errors/            │
+│  Auth, FiscalPeriod, JournalEntry, Currency, etc.           │
 └─────────────────────────────────────────────────────────────┘
                          │
                          ▼
 ┌─────────────────────────────────────────────────────────────┐
-│        GENERIC API ERRORS (ApiErrors.ts)                    │
-│  NotFoundError, ValidationError, BusinessRuleError,         │
-│  ConflictError, UnauthorizedError, ForbiddenError           │
-└─────────────────────────────────────────────────────────────┘
-                         │
-                         ▼ (some domain errors flow through)
-┌─────────────────────────────────────────────────────────────┐
-│  DOMAIN ERRORS (packages/core)                              │
-│  81 errors with HttpApiSchema.annotations ✅                │
-│  Auth, FiscalPeriod, JournalEntry, Currency, etc.           │
+│  API-LAYER ERRORS (kept for distinct purposes)              │
+│  UnauthorizedError (401) - Authentication                   │
+│  ForbiddenError (403) - Authorization                       │
+│  InternalServerError (500) - Catch-all                      │
+│  AuditLogError (500) - Audit logging failures               │
+│  UserLookupError (500) - User lookup failures               │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 **Current state:**
-- ✅ All 81 domain errors have `HttpApiSchema.annotations` (Phase 1 complete)
-- ⚠️ Generic API errors still used extensively (~260 instantiations across 18 files)
-- ⚠️ Many handlers explicitly map domain errors to generic errors (anti-pattern)
-- ⚠️ Some errors exist in both layers (duplication)
+- ✅ All 133+ domain errors have `HttpApiSchema.annotations`
+- ✅ Generic API errors (NotFoundError, ValidationError, etc.) removed
+- ✅ All API handlers use domain-specific errors directly
+- ✅ No error mapping in handlers - errors flow through
 
 ## Key Principles
 
@@ -625,7 +625,7 @@ Created `packages/core/src/Errors/DomainErrors.ts` with ~35 shared domain error 
 - `DataCorruptionError`
 - `OperationFailedError`
 
-**Phase 2b-2d: Replace generic errors in API handlers** 🔄 IN PROGRESS
+**Phase 2b-2d: Replace generic errors in API handlers** ✅ COMPLETE
 
 | File | Status | Notes |
 |------|--------|-------|
@@ -642,8 +642,7 @@ Created `packages/core/src/Errors/DomainErrors.ts` with ~35 shared domain error 
 | `InvitationApiLive.ts` | ✅ COMPLETE | All generic errors replaced with domain-specific errors (InvalidInvitationError, InvitationExpiredError, UserAlreadyMemberError, InvitationNotFoundError, InvalidOrganizationIdError, InvalidInvitationIdError) |
 | `AuthApiLive.ts` | ✅ COMPLETE | Uses domain-specific errors defined in AuthApi.ts (AuthValidationError, PasswordWeakError, etc.), replaced UnauthorizedError with AuthUserNotFoundError in handlers |
 | `PolicyApiLive.ts` | ✅ COMPLETE | All generic errors replaced with domain-specific errors (PolicyNotFoundError, InvalidPolicyIdError, PolicyPriorityValidationError, InvalidResourceTypeError, UserNotMemberOfOrganizationError, SystemPolicyCannotBeModifiedError) |
-| `EliminationRulesApiLive.ts` | ⏳ PENDING | 12 usages |
-| `+ remaining files` | ⏳ PENDING | |
+| `EliminationRulesApiLive.ts` | ✅ COMPLETE | All generic errors replaced with domain-specific errors (EliminationRuleNotFoundError, EliminationRuleOperationFailedError, ConsolidationGroupNotFoundError), removed mapping functions, use Effect.orDie for persistence errors |
 
 **Conversion pattern established:**
 
@@ -681,7 +680,7 @@ No additional tests needed - this is framework behavior, already tested by Effec
 | Phase | Status | Notes |
 |-------|--------|-------|
 | Phase 1: Add HttpApiSchema annotations | ✅ COMPLETE | 81 errors across 15 files |
-| Phase 2: Remove generic API errors | 🔄 IN PROGRESS | ~65 domain errors created, 15 API files converted |
+| Phase 2: Remove generic API errors | ✅ COMPLETE | All 16 API files converted, generic errors removed from ApiErrors.ts |
 | Phase 3: Verify error flow-through | ✅ COMPLETE | Framework behavior, works automatically |
 | Phase 4: Documentation cleanup | ✅ COMPLETE | Spec updated with accurate current/target state |
 
@@ -689,12 +688,12 @@ No additional tests needed - this is framework behavior, already tested by Effec
 
 | Aspect | Current | Target |
 |--------|---------|--------|
-| Error layers | Two (domain + generic API) | One (domain only) |
-| Domain errors created | ~131 (81 + 50 new) | ~131 |
+| Error layers | **ONE (domain only)** | One (domain only) ✅ |
+| Domain errors created | ~133 (81 + 52 new) | ~133 ✅ |
 | Shared domain errors file | ✅ `packages/core/src/Errors/DomainErrors.ts` | ✅ Created |
-| API files converted | 15 of ~20 | All (~20) |
-| Error mapping in handlers | Reduced (~15 files done) | None (errors flow through) |
-| Error context preserved | Improved (15 core files) | Full (domain-specific) |
+| API files converted | **All 16** | All ✅ |
+| Error mapping in handlers | **None** | None ✅ |
+| Error context preserved | **Full** | Full (domain-specific) ✅ |
 
 **Progress made:**
 - ✅ Created `packages/core/src/Errors/DomainErrors.ts` with ~35 shared domain errors
@@ -717,17 +716,21 @@ No additional tests needed - this is framework behavior, already tested by Effec
 - ✅ Converted `AccountsApiLive.ts` - replaced ConflictError with AccountNumberAlreadyExistsError
 - ✅ Converted `CompaniesApiLive.ts` - replaced ConflictError/ValidationError with OrganizationNameAlreadyExistsError, CompanyNameAlreadyExistsError, OrganizationUpdateFailedError
 - ✅ Converted `IntercompanyTransactionsApiLive.ts` - all handlers now use domain-specific errors (IntercompanyTransactionNotFoundError, CompanyNotFoundError, SameCompanyIntercompanyError, IntercompanyTransactionCannotBeDeletedError), removed mapping functions, use Effect.orDie for persistence errors
+- ✅ Converted `EliminationRulesApiLive.ts` - all handlers now use domain-specific errors (EliminationRuleNotFoundError, EliminationRuleOperationFailedError, ConsolidationGroupNotFoundError), removed mapping functions, use Effect.orDie for persistence errors
+- ✅ Removed unused generic errors (NotFoundError, ValidationError, BusinessRuleError, ConflictError) from `ApiErrors.ts`
+- ✅ Updated test assertions for AppApi.test.ts to use domain errors
 
-**Remaining work:**
-- ⏳ Convert EliminationRulesApiLive.ts (12 usages)
-- ⏳ Remove unused generic errors from `ApiErrors.ts`
-- ⏳ Final cleanup pass
+**All work complete!**
 
-**Conversion pattern established:**
+The codebase now follows the one-layer error architecture:
+- Domain errors are defined in `packages/core/src/Errors/DomainErrors.ts` with `HttpApiSchema.annotations`
+- Domain errors flow through directly to HTTP responses
+- No error mapping in API handlers
+- API layer only contains: `UnauthorizedError` (401), `ForbiddenError` (403), `InternalServerError` (500), `AuditLogError` (500), `UserLookupError` (500)
+
+**Conversion pattern that was applied:**
 1. Create domain-specific errors in `packages/core/src/Errors/DomainErrors.ts`
 2. Add domain errors to API definition error unions
 3. Replace generic errors in handler implementations
 4. Use `Effect.orDie` for persistence errors
 5. Update tests to expect new error `_tag` values
-
-The pattern is well-established and can be applied incrementally to remaining files.

@@ -18,11 +18,10 @@ import { ConsolidationGroupId, EliminationRuleId } from "@accountability/core/Do
 import { OrganizationId } from "@accountability/core/Domains/Organization"
 import { AccountId } from "@accountability/core/Domains/Account"
 import {
-  BusinessRuleError,
-  ConflictError,
-  NotFoundError,
-  ValidationError
-} from "./ApiErrors.ts"
+  EliminationRuleNotFoundError,
+  EliminationRuleOperationFailedError,
+  ConsolidationGroupNotFoundError
+} from "@accountability/core/Errors/DomainErrors"
 import { AuthMiddleware } from "./AuthMiddleware.ts"
 
 // =============================================================================
@@ -128,7 +127,7 @@ export type EliminationRuleListParams = typeof EliminationRuleListParams.Type
 const listEliminationRules = HttpApiEndpoint.get("listEliminationRules", "/")
   .setUrlParams(EliminationRuleListParams)
   .addSuccess(EliminationRuleListResponse)
-  .addError(ValidationError)
+  .addError(EliminationRuleOperationFailedError)
   .annotateContext(OpenApi.annotations({
     summary: "List elimination rules",
     description: "Retrieve a paginated list of elimination rules. Supports filtering by consolidation group, type, and status."
@@ -140,7 +139,7 @@ const listEliminationRules = HttpApiEndpoint.get("listEliminationRules", "/")
 const getEliminationRule = HttpApiEndpoint.get("getEliminationRule", "/:id")
   .setPath(Schema.Struct({ id: EliminationRuleId }))
   .addSuccess(EliminationRule)
-  .addError(NotFoundError)
+  .addError(EliminationRuleNotFoundError)
   .annotateContext(OpenApi.annotations({
     summary: "Get elimination rule",
     description: "Retrieve a single elimination rule by its unique identifier."
@@ -152,9 +151,8 @@ const getEliminationRule = HttpApiEndpoint.get("getEliminationRule", "/:id")
 const createEliminationRule = HttpApiEndpoint.post("createEliminationRule", "/")
   .setPayload(CreateEliminationRuleRequest)
   .addSuccess(EliminationRule, { status: 201 })
-  .addError(ValidationError)
-  .addError(ConflictError)
-  .addError(BusinessRuleError)
+  .addError(ConsolidationGroupNotFoundError)
+  .addError(EliminationRuleOperationFailedError)
   .annotateContext(OpenApi.annotations({
     summary: "Create elimination rule",
     description: "Create a new elimination rule for a consolidation group."
@@ -166,8 +164,8 @@ const createEliminationRule = HttpApiEndpoint.post("createEliminationRule", "/")
 const bulkCreateEliminationRules = HttpApiEndpoint.post("bulkCreateEliminationRules", "/bulk")
   .setPayload(BulkCreateEliminationRulesRequest)
   .addSuccess(BulkCreateEliminationRulesResponse, { status: 201 })
-  .addError(ValidationError)
-  .addError(BusinessRuleError)
+  .addError(ConsolidationGroupNotFoundError)
+  .addError(EliminationRuleOperationFailedError)
   .annotateContext(OpenApi.annotations({
     summary: "Bulk create elimination rules",
     description: "Create multiple elimination rules in a single request. Useful for setting up standard elimination rule sets."
@@ -180,9 +178,8 @@ const updateEliminationRule = HttpApiEndpoint.put("updateEliminationRule", "/:id
   .setPath(Schema.Struct({ id: EliminationRuleId }))
   .setPayload(UpdateEliminationRuleRequest)
   .addSuccess(EliminationRule)
-  .addError(NotFoundError)
-  .addError(ValidationError)
-  .addError(BusinessRuleError)
+  .addError(EliminationRuleNotFoundError)
+  .addError(EliminationRuleOperationFailedError)
   .annotateContext(OpenApi.annotations({
     summary: "Update elimination rule",
     description: "Update an existing elimination rule's details."
@@ -194,8 +191,8 @@ const updateEliminationRule = HttpApiEndpoint.put("updateEliminationRule", "/:id
 const deleteEliminationRule = HttpApiEndpoint.del("deleteEliminationRule", "/:id")
   .setPath(Schema.Struct({ id: EliminationRuleId }))
   .addSuccess(HttpApiSchema.NoContent)
-  .addError(NotFoundError)
-  .addError(BusinessRuleError)
+  .addError(EliminationRuleNotFoundError)
+  .addError(EliminationRuleOperationFailedError)
   .annotateContext(OpenApi.annotations({
     summary: "Delete elimination rule",
     description: "Delete an elimination rule. Rules that have been used in completed consolidation runs may not be deleted."
@@ -207,8 +204,8 @@ const deleteEliminationRule = HttpApiEndpoint.del("deleteEliminationRule", "/:id
 const activateEliminationRule = HttpApiEndpoint.post("activateEliminationRule", "/:id/activate")
   .setPath(Schema.Struct({ id: EliminationRuleId }))
   .addSuccess(EliminationRule)
-  .addError(NotFoundError)
-  .addError(BusinessRuleError)
+  .addError(EliminationRuleNotFoundError)
+  .addError(EliminationRuleOperationFailedError)
   .annotateContext(OpenApi.annotations({
     summary: "Activate elimination rule",
     description: "Activate an elimination rule for use in consolidation runs."
@@ -220,8 +217,8 @@ const activateEliminationRule = HttpApiEndpoint.post("activateEliminationRule", 
 const deactivateEliminationRule = HttpApiEndpoint.post("deactivateEliminationRule", "/:id/deactivate")
   .setPath(Schema.Struct({ id: EliminationRuleId }))
   .addSuccess(EliminationRule)
-  .addError(NotFoundError)
-  .addError(BusinessRuleError)
+  .addError(EliminationRuleNotFoundError)
+  .addError(EliminationRuleOperationFailedError)
   .annotateContext(OpenApi.annotations({
     summary: "Deactivate elimination rule",
     description: "Deactivate an elimination rule. Deactivated rules are skipped during consolidation."
@@ -234,9 +231,8 @@ const updateEliminationRulePriority = HttpApiEndpoint.post("updateEliminationRul
   .setPath(Schema.Struct({ id: EliminationRuleId }))
   .setPayload(UpdatePriorityRequest)
   .addSuccess(EliminationRule)
-  .addError(NotFoundError)
-  .addError(ValidationError)
-  .addError(BusinessRuleError)
+  .addError(EliminationRuleNotFoundError)
+  .addError(EliminationRuleOperationFailedError)
   .annotateContext(OpenApi.annotations({
     summary: "Update rule priority",
     description: "Update the execution priority of an elimination rule. Lower numbers execute first."
@@ -251,7 +247,7 @@ const getEliminationRulesByType = HttpApiEndpoint.get("getEliminationRulesByType
     eliminationType: EliminationType
   }))
   .addSuccess(EliminationRuleListResponse)
-  .addError(ValidationError)
+  .addError(EliminationRuleOperationFailedError)
   .annotateContext(OpenApi.annotations({
     summary: "Get rules by type",
     description: "Get all elimination rules of a specific type for a consolidation group."

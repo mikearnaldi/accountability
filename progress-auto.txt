@@ -880,3 +880,8 @@
 ## Iteration 7 - 2026-01-19 15:43
 **Task**: Partial work (no explicit completion signal)
 ---
+
+## Iteration 8 - 2026-01-19 15:53
+**Task**: Completed single-layer error architecture - converted EliminationRulesApi to domain errors and removed unused generic errors from ApiErrors.ts
+**Status**: complete
+---
