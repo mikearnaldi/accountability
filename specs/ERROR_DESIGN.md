@@ -412,7 +412,7 @@ export class MembershipNotFoundError extends Schema.TaggedError<MembershipNotFou
 9. [x] `packages/core/src/Domains/BalanceValidation.ts` (1 error) ✅ Done
 10. [x] `packages/core/src/Domains/EntryStatusWorkflow.ts` (1 error) ✅ Done
 11. [x] `packages/core/src/Domains/AccountHierarchy.ts` (3 errors) ✅ Done
-12. [ ] `packages/core/src/Domains/MonetaryAmount.ts` (2 errors)
+12. [x] `packages/core/src/Domains/MonetaryAmount.ts` (2 errors) ✅ Done
 13. [ ] `packages/core/src/Domains/MultiCurrencyLineHandling.ts` (1 error)
 14. [ ] `packages/core/src/Errors/RepositoryError.ts` (2 errors)
 15. [ ] `packages/persistence/src/Errors/RepositoryError.ts` (5 errors)

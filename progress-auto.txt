@@ -836,3 +836,8 @@
 **Task**: Added HttpApiSchema.annotations to 3 errors in AccountHierarchy.ts
 **Status**: complete
 ---
+
+## Iteration 12 - 2026-01-19 13:04
+**Task**: Added HttpApiSchema.annotations to 2 errors in MonetaryAmount.ts
+**Status**: complete
+---

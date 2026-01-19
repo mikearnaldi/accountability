@@ -8,6 +8,7 @@
  * @module MonetaryAmount
  */
 
+import { HttpApiSchema } from "@effect/platform"
 import * as BigDecimal from "effect/BigDecimal"
 import * as Effect from "effect/Effect"
 import * as Option from "effect/Option"
@@ -28,7 +29,8 @@ export class CurrencyMismatchError extends Schema.TaggedError<CurrencyMismatchEr
   {
     expected: CurrencyCode,
     actual: CurrencyCode
-  }
+  },
+  HttpApiSchema.annotations({ status: 400 })
 ) {
   get message(): string {
     return `Currency mismatch: expected ${this.expected}, got ${this.actual}`
@@ -40,7 +42,8 @@ export class CurrencyMismatchError extends Schema.TaggedError<CurrencyMismatchEr
  */
 export class DivisionByZeroError extends Schema.TaggedError<DivisionByZeroError>()(
   "DivisionByZeroError",
-  {}
+  {},
+  HttpApiSchema.annotations({ status: 400 })
 ) {
   get message(): string {
     return "Division by zero"
