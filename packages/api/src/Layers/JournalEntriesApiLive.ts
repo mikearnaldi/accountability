@@ -39,7 +39,6 @@ import {
 import { AppApi } from "../Definitions/AppApi.ts"
 import type { CreateJournalEntryLineRequest } from "../Definitions/JournalEntriesApi.ts"
 import {
-  NotFoundError,
   ValidationError,
   BusinessRuleError,
   ConflictError,
@@ -50,6 +49,7 @@ import type { AuditLogError as CoreAuditLogError, UserLookupError as CoreUserLoo
 import { requireOrganizationContext, requirePermission, requirePermissionWithResource } from "./OrganizationContextMiddlewareLive.ts"
 import { FiscalPeriodService } from "@accountability/core/FiscalPeriod/FiscalPeriodService"
 import { FiscalPeriodNotFoundForDateError } from "@accountability/core/FiscalPeriod/FiscalPeriodErrors"
+import { CompanyNotFoundError, JournalEntryNotFoundError } from "@accountability/core/Errors/DomainErrors"
 import type { ResourceContext } from "@accountability/core/Auth/matchers/ResourceMatcher"
 import type { LocalDate } from "@accountability/core/Domains/LocalDate"
 import type { CompanyId } from "@accountability/core/Domains/Company"
@@ -70,17 +70,6 @@ const mapCoreAuditErrorToApi = (error: CoreAuditLogError | CoreUserLookupError):
     operation: error.operation,
     cause: error.cause
   })
-}
-
-/**
- * Convert persistence errors to NotFoundError
- */
-const mapPersistenceToNotFound = (
-  resource: string,
-  id: string,
-  _error: EntityNotFoundError | PersistenceError
-): NotFoundError => {
-  return new NotFoundError({ resource, id })
 }
 
 /**
@@ -330,11 +319,9 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
             const organizationId = OrganizationId.make(_.urlParams.organizationId)
 
             // Check company exists within organization
-            const companyExists = yield* companyRepo.exists(organizationId, companyId).pipe(
-              Effect.mapError((e) => mapPersistenceToValidation(e))
-            )
+            const companyExists = yield* companyRepo.exists(organizationId, companyId).pipe(Effect.orDie)
             if (!companyExists) {
-              return yield* Effect.fail(new NotFoundError({ resource: "Company", id: companyId }))
+              return yield* Effect.fail(new CompanyNotFoundError({ companyId }))
             }
 
             // Get entries based on filters
@@ -382,18 +369,14 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
             const entryId = _.path.id
             const organizationId = OrganizationId.make(_.urlParams.organizationId)
 
-            const maybeEntry = yield* entryRepo.findById(organizationId, entryId).pipe(
-              Effect.mapError((e) => mapPersistenceToNotFound("JournalEntry", entryId, e))
-            )
+            const maybeEntry = yield* entryRepo.findById(organizationId, entryId).pipe(Effect.orDie)
 
             if (Option.isNone(maybeEntry)) {
-              return yield* Effect.fail(new NotFoundError({ resource: "JournalEntry", id: entryId }))
+              return yield* Effect.fail(new JournalEntryNotFoundError({ entryId }))
             }
 
             const entry = maybeEntry.value
-            const lines = yield* lineRepo.findByJournalEntry(entryId).pipe(
-              Effect.mapError((e) => mapPersistenceToNotFound("JournalEntry", entryId, e))
-            )
+            const lines = yield* lineRepo.findByJournalEntry(entryId).pipe(Effect.orDie)
 
             return { entry, lines }
           })
@@ -536,11 +519,9 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
             const organizationId = req.organizationId
 
             // Get existing entry
-            const maybeExisting = yield* entryRepo.findById(organizationId, entryId).pipe(
-              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
-            )
+            const maybeExisting = yield* entryRepo.findById(organizationId, entryId).pipe(Effect.orDie)
             if (Option.isNone(maybeExisting)) {
-              return yield* Effect.fail(new NotFoundError({ resource: "JournalEntry", id: entryId }))
+              return yield* Effect.fail(new JournalEntryNotFoundError({ entryId }))
             }
             const existing = maybeExisting.value
 
@@ -658,11 +639,9 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
             const organizationId = OrganizationId.make(_.urlParams.organizationId)
 
             // Get existing entry
-            const maybeExisting = yield* entryRepo.findById(organizationId, entryId).pipe(
-              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
-            )
+            const maybeExisting = yield* entryRepo.findById(organizationId, entryId).pipe(Effect.orDie)
             if (Option.isNone(maybeExisting)) {
-              return yield* Effect.fail(new NotFoundError({ resource: "JournalEntry", id: entryId }))
+              return yield* Effect.fail(new JournalEntryNotFoundError({ entryId }))
             }
             const existing = maybeExisting.value
 
@@ -694,11 +673,9 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
             const entryId = _.path.id
             const organizationId = OrganizationId.make(_.urlParams.organizationId)
 
-            const maybeExisting = yield* entryRepo.findById(organizationId, entryId).pipe(
-              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
-            )
+            const maybeExisting = yield* entryRepo.findById(organizationId, entryId).pipe(Effect.orDie)
             if (Option.isNone(maybeExisting)) {
-              return yield* Effect.fail(new NotFoundError({ resource: "JournalEntry", id: entryId }))
+              return yield* Effect.fail(new JournalEntryNotFoundError({ entryId }))
             }
             const existing = maybeExisting.value
 
@@ -731,11 +708,9 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
             const entryId = _.path.id
             const organizationId = OrganizationId.make(_.urlParams.organizationId)
 
-            const maybeExisting = yield* entryRepo.findById(organizationId, entryId).pipe(
-              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
-            )
+            const maybeExisting = yield* entryRepo.findById(organizationId, entryId).pipe(Effect.orDie)
             if (Option.isNone(maybeExisting)) {
-              return yield* Effect.fail(new NotFoundError({ resource: "JournalEntry", id: entryId }))
+              return yield* Effect.fail(new JournalEntryNotFoundError({ entryId }))
             }
             const existing = maybeExisting.value
 
@@ -768,11 +743,9 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
             const entryId = _.path.id
             const organizationId = OrganizationId.make(_.urlParams.organizationId)
 
-            const maybeExisting = yield* entryRepo.findById(organizationId, entryId).pipe(
-              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
-            )
+            const maybeExisting = yield* entryRepo.findById(organizationId, entryId).pipe(Effect.orDie)
             if (Option.isNone(maybeExisting)) {
-              return yield* Effect.fail(new NotFoundError({ resource: "JournalEntry", id: entryId }))
+              return yield* Effect.fail(new JournalEntryNotFoundError({ entryId }))
             }
             const existing = maybeExisting.value
 
@@ -804,11 +777,9 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
             const req = _.payload
             const organizationId = req.organizationId
 
-            const maybeExisting = yield* entryRepo.findById(organizationId, entryId).pipe(
-              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
-            )
+            const maybeExisting = yield* entryRepo.findById(organizationId, entryId).pipe(Effect.orDie)
             if (Option.isNone(maybeExisting)) {
-              return yield* Effect.fail(new NotFoundError({ resource: "JournalEntry", id: entryId }))
+              return yield* Effect.fail(new JournalEntryNotFoundError({ entryId }))
             }
             const existing = maybeExisting.value
 
@@ -867,11 +838,9 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
             const req = _.payload
             const organizationId = req.organizationId
 
-            const maybeExisting = yield* entryRepo.findById(organizationId, entryId).pipe(
-              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
-            )
+            const maybeExisting = yield* entryRepo.findById(organizationId, entryId).pipe(Effect.orDie)
             if (Option.isNone(maybeExisting)) {
-              return yield* Effect.fail(new NotFoundError({ resource: "JournalEntry", id: entryId }))
+              return yield* Effect.fail(new JournalEntryNotFoundError({ entryId }))
             }
             const existing = maybeExisting.value
 

@@ -104,7 +104,9 @@
     "./FiscalPeriod/FiscalPeriodService": "./src/FiscalPeriod/FiscalPeriodService.ts",
     "./AuditLog/AuditLogErrors": "./src/AuditLog/AuditLogErrors.ts",
     "./AuditLog/AuditLogService": "./src/AuditLog/AuditLogService.ts",
-    "./AuditLog/CurrentUserId": "./src/AuditLog/CurrentUserId.ts"
+    "./AuditLog/CurrentUserId": "./src/AuditLog/CurrentUserId.ts",
+    "./Errors/DomainErrors": "./src/Errors/DomainErrors.ts",
+    "./Errors/RepositoryError": "./src/Errors/RepositoryError.ts"
   },
   "scripts": {
     "clean": "rm -rf dist",

@@ -861,3 +861,8 @@
 **Task**: Updated ERROR_DESIGN.md to document current hybrid two-layer architecture vs target one-layer design
 **Status**: complete
 ---
+
+## Iteration 2 - 2026-01-19 14:09
+**Task**: Converted JournalEntriesApi to domain-specific errors and fixed frontend 404 handling
+**Status**: complete
+---

@@ -412,8 +412,8 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
 
           expect(response.status).toBe(404)
           const body = yield* response.json
-          expect(body).toHaveProperty("_tag", "NotFoundError")
-          expect(body).toHaveProperty("resource", "Organization")
+          expect(body).toHaveProperty("_tag", "OrganizationNotFoundError")
+          expect(body).toHaveProperty("organizationId", "550e8400-e29b-41d4-a716-446655440000")
         })
       )
 
@@ -863,9 +863,8 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
 
           expect(response.status).toBe(404)
           const body = yield* response.json
-          expect(body).toHaveProperty("_tag", "NotFoundError")
-          expect(body).toHaveProperty("resource", "Organization")
-          expect(body).toHaveProperty("id")
+          expect(body).toHaveProperty("_tag", "OrganizationNotFoundError")
+          expect(body).toHaveProperty("organizationId", "550e8400-e29b-41d4-a716-446655440000")
         })
       )
     })

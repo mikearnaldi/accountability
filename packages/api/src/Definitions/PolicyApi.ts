@@ -34,6 +34,7 @@ import {
   ValidationError
 } from "./ApiErrors.ts"
 import { AuthMiddleware } from "./AuthMiddleware.ts"
+import { OrganizationNotFoundError } from "@accountability/core/Errors/DomainErrors"
 
 // =============================================================================
 // Policy Request/Response Schemas
@@ -167,6 +168,7 @@ const listPolicies = HttpApiEndpoint.get("listPolicies", "/organizations/:orgId/
   .setPath(Schema.Struct({ orgId: Schema.String }))
   .addSuccess(PolicyListResponse)
   .addError(NotFoundError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "List organization policies",
@@ -180,6 +182,7 @@ const getPolicy = HttpApiEndpoint.get("getPolicy", "/organizations/:orgId/polici
   .setPath(Schema.Struct({ orgId: Schema.String, policyId: Schema.String }))
   .addSuccess(PolicyInfo)
   .addError(NotFoundError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "Get policy details",
@@ -194,6 +197,7 @@ const createPolicy = HttpApiEndpoint.post("createPolicy", "/organizations/:orgId
   .setPayload(CreatePolicyRequest)
   .addSuccess(PolicyInfo, { status: 201 })
   .addError(NotFoundError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .addError(ValidationError)
   .addError(BusinessRuleError)
@@ -210,6 +214,7 @@ const updatePolicy = HttpApiEndpoint.patch("updatePolicy", "/organizations/:orgI
   .setPayload(UpdatePolicyRequest)
   .addSuccess(PolicyInfo)
   .addError(NotFoundError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .addError(ValidationError)
   .addError(BusinessRuleError)
@@ -225,6 +230,7 @@ const deletePolicy = HttpApiEndpoint.del("deletePolicy", "/organizations/:orgId/
   .setPath(Schema.Struct({ orgId: Schema.String, policyId: Schema.String }))
   .addSuccess(HttpApiSchema.NoContent)
   .addError(NotFoundError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .addError(BusinessRuleError)
   .annotateContext(OpenApi.annotations({
@@ -240,6 +246,7 @@ const testPolicy = HttpApiEndpoint.post("testPolicy", "/organizations/:orgId/pol
   .setPayload(TestPolicyRequest)
   .addSuccess(TestPolicyResponse)
   .addError(NotFoundError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .addError(ValidationError)
   .annotateContext(OpenApi.annotations({

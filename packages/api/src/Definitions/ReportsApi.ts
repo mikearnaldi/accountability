@@ -26,6 +26,7 @@ import {
   ValidationError
 } from "./ApiErrors.ts"
 import { AuthMiddleware } from "./AuthMiddleware.ts"
+import { OrganizationNotFoundError } from "@accountability/core/Errors/DomainErrors"
 
 // Note: URL params use LocalDateFromString schema to automatically parse
 // ISO date strings (YYYY-MM-DD) to LocalDate instances with validation.
@@ -397,6 +398,7 @@ const generateTrialBalance = HttpApiEndpoint.get("generateTrialBalance", "/trial
   .addError(NotFoundError)
   .addError(ValidationError)
   .addError(BusinessRuleError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "Generate trial balance",
@@ -412,6 +414,7 @@ const generateBalanceSheet = HttpApiEndpoint.get("generateBalanceSheet", "/balan
   .addError(NotFoundError)
   .addError(ValidationError)
   .addError(BusinessRuleError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "Generate balance sheet",
@@ -427,6 +430,7 @@ const generateIncomeStatement = HttpApiEndpoint.get("generateIncomeStatement", "
   .addError(NotFoundError)
   .addError(ValidationError)
   .addError(BusinessRuleError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "Generate income statement",
@@ -442,6 +446,7 @@ const generateCashFlowStatement = HttpApiEndpoint.get("generateCashFlowStatement
   .addError(NotFoundError)
   .addError(ValidationError)
   .addError(BusinessRuleError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "Generate cash flow statement",
@@ -457,6 +462,7 @@ const generateEquityStatement = HttpApiEndpoint.get("generateEquityStatement", "
   .addError(NotFoundError)
   .addError(ValidationError)
   .addError(BusinessRuleError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "Generate equity statement",

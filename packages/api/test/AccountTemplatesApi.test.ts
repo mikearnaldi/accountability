@@ -383,7 +383,7 @@ layer(HttpLive, { timeout: "120 seconds" })("AccountTemplatesApi", (it) => {
 
         expect(response.status).toBe(404)
         const body = yield* response.json
-        expect(body).toHaveProperty("_tag", "NotFoundError")
+        expect(body).toHaveProperty("_tag", "CompanyNotFoundError")
       })
     )
 
@@ -415,10 +415,10 @@ layer(HttpLive, { timeout: "120 seconds" })("AccountTemplatesApi", (it) => {
           Effect.scoped
         )
 
-        expect(response.status).toBe(422) // BusinessRuleError
+        expect(response.status).toBe(409) // AccountsAlreadyExistError is a conflict (409)
         const body = yield* response.json
-        expect(body).toHaveProperty("_tag", "BusinessRuleError")
-        expect(body).toHaveProperty("code", "ACCOUNTS_ALREADY_EXIST")
+        expect(body).toHaveProperty("_tag", "AccountsAlreadyExistError")
+        expect(body).toHaveProperty("accountCount")
       })
     )
 

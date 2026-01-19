@@ -29,6 +29,7 @@ import {
   ValidationError
 } from "./ApiErrors.ts"
 import { AuthMiddleware } from "./AuthMiddleware.ts"
+import { OrganizationNotFoundError } from "@accountability/core/Errors/DomainErrors"
 
 // =============================================================================
 // Request/Response Schemas
@@ -168,6 +169,7 @@ const listExchangeRates = HttpApiEndpoint.get("listExchangeRates", "/")
   .setUrlParams(ExchangeRateListParams)
   .addSuccess(ExchangeRateListResponse)
   .addError(ValidationError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .addError(NotFoundError)
   .annotateContext(OpenApi.annotations({
@@ -182,6 +184,7 @@ const getExchangeRate = HttpApiEndpoint.get("getExchangeRate", "/:id")
   .setPath(Schema.Struct({ id: ExchangeRateId }))
   .addSuccess(ExchangeRate)
   .addError(NotFoundError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "Get exchange rate",
@@ -197,6 +200,7 @@ const createExchangeRate = HttpApiEndpoint.post("createExchangeRate", "/")
   .addError(ValidationError)
   .addError(ConflictError)
   .addError(BusinessRuleError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .addError(NotFoundError)
   .addError(AuditLogError)
@@ -213,6 +217,7 @@ const bulkCreateExchangeRates = HttpApiEndpoint.post("bulkCreateExchangeRates", 
   .setPayload(BulkCreateExchangeRatesRequest)
   .addSuccess(BulkCreateExchangeRatesResponse, { status: 201 })
   .addError(ValidationError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .addError(NotFoundError)
   .addError(AuditLogError)
@@ -230,6 +235,7 @@ const deleteExchangeRate = HttpApiEndpoint.del("deleteExchangeRate", "/:id")
   .addSuccess(HttpApiSchema.NoContent)
   .addError(NotFoundError)
   .addError(BusinessRuleError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .addError(AuditLogError)
   .addError(UserLookupError)
@@ -244,6 +250,7 @@ const deleteExchangeRate = HttpApiEndpoint.del("deleteExchangeRate", "/:id")
 const getRateForDate = HttpApiEndpoint.get("getRateForDate", "/rate")
   .setUrlParams(GetRateParams)
   .addSuccess(GetRateResponse)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "Get rate for date",
@@ -256,6 +263,7 @@ const getRateForDate = HttpApiEndpoint.get("getRateForDate", "/rate")
 const getLatestRate = HttpApiEndpoint.get("getLatestRate", "/latest")
   .setUrlParams(GetLatestRateParams)
   .addSuccess(GetRateResponse)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "Get latest rate",
@@ -268,6 +276,7 @@ const getLatestRate = HttpApiEndpoint.get("getLatestRate", "/latest")
 const getClosestRate = HttpApiEndpoint.get("getClosestRate", "/closest")
   .setUrlParams(GetClosestRateParams)
   .addSuccess(GetRateResponse)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "Get closest rate",
@@ -280,6 +289,7 @@ const getClosestRate = HttpApiEndpoint.get("getClosestRate", "/closest")
 const getPeriodAverageRate = HttpApiEndpoint.get("getPeriodAverageRate", "/period-average")
   .setUrlParams(GetPeriodAverageRateParams)
   .addSuccess(GetRateResponse)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "Get period average rate",
@@ -292,6 +302,7 @@ const getPeriodAverageRate = HttpApiEndpoint.get("getPeriodAverageRate", "/perio
 const getPeriodClosingRate = HttpApiEndpoint.get("getPeriodClosingRate", "/period-closing")
   .setUrlParams(GetPeriodClosingRateParams)
   .addSuccess(GetRateResponse)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "Get period closing rate",

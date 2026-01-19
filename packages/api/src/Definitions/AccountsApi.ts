@@ -22,14 +22,21 @@ import { OrganizationId } from "@accountability/core/Domains/Organization"
 import { CurrencyCode } from "@accountability/core/Domains/CurrencyCode"
 import {
   AuditLogError,
-  BusinessRuleError,
   ConflictError,
   ForbiddenError,
-  NotFoundError,
-  UserLookupError,
-  ValidationError
+  UserLookupError
 } from "./ApiErrors.ts"
 import { AuthMiddleware } from "./AuthMiddleware.ts"
+import {
+  OrganizationNotFoundError,
+  CompanyNotFoundError,
+  AccountNotFoundError,
+  ParentAccountNotFoundError,
+  ParentAccountDifferentCompanyError,
+  AccountNumberAlreadyExistsError,
+  CircularAccountReferenceError,
+  HasActiveChildAccountsError
+} from "@accountability/core/Errors/DomainErrors"
 
 // =============================================================================
 // Request/Response Schemas
@@ -115,8 +122,8 @@ export type AccountListParams = typeof AccountListParams.Type
 const listAccounts = HttpApiEndpoint.get("listAccounts", "/")
   .setUrlParams(AccountListParams)
   .addSuccess(AccountListResponse)
-  .addError(NotFoundError)
-  .addError(ValidationError)
+  .addError(CompanyNotFoundError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "List accounts",
@@ -139,7 +146,8 @@ export type AccountPathParams = typeof AccountPathParams.Type
 const getAccount = HttpApiEndpoint.get("getAccount", "/organizations/:organizationId/accounts/:id")
   .setPath(AccountPathParams)
   .addSuccess(Account)
-  .addError(NotFoundError)
+  .addError(AccountNotFoundError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "Get account",
@@ -152,11 +160,13 @@ const getAccount = HttpApiEndpoint.get("getAccount", "/organizations/:organizati
 const createAccount = HttpApiEndpoint.post("createAccount", "/")
   .setPayload(CreateAccountRequest)
   .addSuccess(Account, { status: 201 })
-  .addError(ValidationError)
+  .addError(CompanyNotFoundError)
+  .addError(AccountNumberAlreadyExistsError)
+  .addError(ParentAccountNotFoundError)
+  .addError(ParentAccountDifferentCompanyError)
   .addError(ConflictError)
-  .addError(BusinessRuleError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
-  .addError(NotFoundError)
   .addError(AuditLogError)
   .addError(UserLookupError)
   .annotateContext(OpenApi.annotations({
@@ -171,10 +181,12 @@ const updateAccount = HttpApiEndpoint.put("updateAccount", "/organizations/:orga
   .setPath(AccountPathParams)
   .setPayload(UpdateAccountRequest)
   .addSuccess(Account)
-  .addError(NotFoundError)
-  .addError(ValidationError)
+  .addError(AccountNotFoundError)
+  .addError(ParentAccountNotFoundError)
+  .addError(ParentAccountDifferentCompanyError)
+  .addError(CircularAccountReferenceError)
   .addError(ConflictError)
-  .addError(BusinessRuleError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .addError(AuditLogError)
   .addError(UserLookupError)
@@ -189,8 +201,9 @@ const updateAccount = HttpApiEndpoint.put("updateAccount", "/organizations/:orga
 const deactivateAccount = HttpApiEndpoint.del("deactivateAccount", "/organizations/:organizationId/accounts/:id")
   .setPath(AccountPathParams)
   .addSuccess(HttpApiSchema.NoContent)
-  .addError(NotFoundError)
-  .addError(BusinessRuleError)
+  .addError(AccountNotFoundError)
+  .addError(HasActiveChildAccountsError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .addError(AuditLogError)
   .addError(UserLookupError)

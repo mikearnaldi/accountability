@@ -13,6 +13,7 @@ import { HttpApiEndpoint, HttpApiGroup, OpenApi } from "@effect/platform"
 import * as Schema from "effect/Schema"
 import { AuthMiddleware } from "./AuthMiddleware.ts"
 import { ForbiddenError, NotFoundError } from "./ApiErrors.ts"
+import { OrganizationNotFoundError } from "@accountability/core/Errors/DomainErrors"
 
 // =============================================================================
 // Response Schemas
@@ -93,6 +94,7 @@ const listDenials = HttpApiEndpoint.get("listAuthorizationDenials", "/organizati
   .setUrlParams(AuthorizationDenialListParams)
   .addSuccess(AuthorizationDenialListResponse)
   .addError(NotFoundError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "List authorization denial audit entries",

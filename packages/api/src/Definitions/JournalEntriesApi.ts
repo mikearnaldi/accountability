@@ -29,11 +29,11 @@ import {
   BusinessRuleError,
   ConflictError,
   ForbiddenError,
-  NotFoundError,
   UserLookupError,
   ValidationError
 } from "./ApiErrors.ts"
 import { AuthMiddleware } from "./AuthMiddleware.ts"
+import { CompanyNotFoundError, JournalEntryNotFoundError, OrganizationNotFoundError } from "@accountability/core/Errors/DomainErrors"
 
 // =============================================================================
 // Request/Response Schemas
@@ -173,8 +173,9 @@ export type JournalEntryListParams = typeof JournalEntryListParams.Type
 const listJournalEntries = HttpApiEndpoint.get("listJournalEntries", "/")
   .setUrlParams(JournalEntryListParams)
   .addSuccess(JournalEntryListResponse)
-  .addError(NotFoundError)
+  .addError(CompanyNotFoundError)
   .addError(ValidationError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "List journal entries",
@@ -188,7 +189,8 @@ const getJournalEntry = HttpApiEndpoint.get("getJournalEntry", "/:id")
   .setPath(Schema.Struct({ id: JournalEntryId }))
   .setUrlParams(OrganizationIdUrlParams)
   .addSuccess(JournalEntryWithLinesResponse)
-  .addError(NotFoundError)
+  .addError(JournalEntryNotFoundError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "Get journal entry",
@@ -201,9 +203,10 @@ const getJournalEntry = HttpApiEndpoint.get("getJournalEntry", "/:id")
 const createJournalEntry = HttpApiEndpoint.post("createJournalEntry", "/")
   .setPayload(CreateJournalEntryRequest)
   .addSuccess(JournalEntryWithLinesResponse, { status: 201 })
-  .addError(NotFoundError)
+  .addError(CompanyNotFoundError)
   .addError(ValidationError)
   .addError(BusinessRuleError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .addError(AuditLogError)
   .addError(UserLookupError)
@@ -219,10 +222,11 @@ const updateJournalEntry = HttpApiEndpoint.put("updateJournalEntry", "/:id")
   .setPath(Schema.Struct({ id: JournalEntryId }))
   .setPayload(UpdateJournalEntryRequest)
   .addSuccess(JournalEntryWithLinesResponse)
-  .addError(NotFoundError)
+  .addError(JournalEntryNotFoundError)
   .addError(ValidationError)
   .addError(BusinessRuleError)
   .addError(ConflictError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "Update journal entry",
@@ -236,8 +240,9 @@ const deleteJournalEntry = HttpApiEndpoint.del("deleteJournalEntry", "/:id")
   .setPath(Schema.Struct({ id: JournalEntryId }))
   .setUrlParams(OrganizationIdUrlParams)
   .addSuccess(HttpApiSchema.NoContent)
-  .addError(NotFoundError)
+  .addError(JournalEntryNotFoundError)
   .addError(BusinessRuleError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "Delete journal entry",
@@ -251,8 +256,9 @@ const submitForApproval = HttpApiEndpoint.post("submitForApproval", "/:id/submit
   .setPath(Schema.Struct({ id: JournalEntryId }))
   .setUrlParams(OrganizationIdUrlParams)
   .addSuccess(JournalEntry)
-  .addError(NotFoundError)
+  .addError(JournalEntryNotFoundError)
   .addError(BusinessRuleError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "Submit for approval",
@@ -266,8 +272,9 @@ const approveJournalEntry = HttpApiEndpoint.post("approveJournalEntry", "/:id/ap
   .setPath(Schema.Struct({ id: JournalEntryId }))
   .setUrlParams(OrganizationIdUrlParams)
   .addSuccess(JournalEntry)
-  .addError(NotFoundError)
+  .addError(JournalEntryNotFoundError)
   .addError(BusinessRuleError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "Approve journal entry",
@@ -284,8 +291,9 @@ const rejectJournalEntry = HttpApiEndpoint.post("rejectJournalEntry", "/:id/reje
     reason: Schema.OptionFromNullOr(Schema.String)
   }))
   .addSuccess(JournalEntry)
-  .addError(NotFoundError)
+  .addError(JournalEntryNotFoundError)
   .addError(BusinessRuleError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "Reject journal entry",
@@ -299,8 +307,9 @@ const postJournalEntry = HttpApiEndpoint.post("postJournalEntry", "/:id/post")
   .setPath(Schema.Struct({ id: JournalEntryId }))
   .setPayload(PostJournalEntryRequest)
   .addSuccess(JournalEntry)
-  .addError(NotFoundError)
+  .addError(JournalEntryNotFoundError)
   .addError(BusinessRuleError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .addError(AuditLogError)
   .addError(UserLookupError)
@@ -316,8 +325,9 @@ const reverseJournalEntry = HttpApiEndpoint.post("reverseJournalEntry", "/:id/re
   .setPath(Schema.Struct({ id: JournalEntryId }))
   .setPayload(ReverseJournalEntryRequest)
   .addSuccess(JournalEntryWithLinesResponse)
-  .addError(NotFoundError)
+  .addError(JournalEntryNotFoundError)
   .addError(BusinessRuleError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .addError(AuditLogError)
   .addError(UserLookupError)

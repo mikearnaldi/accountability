@@ -15,6 +15,7 @@ import { FunctionalRoles } from "@accountability/core/Auth/FunctionalRole"
 import { Action } from "@accountability/core/Auth/Action"
 import { ForbiddenError } from "./ApiErrors.ts"
 import { AuthMiddleware } from "./AuthMiddleware.ts"
+import { OrganizationNotFoundError } from "@accountability/core/Errors/DomainErrors"
 
 // =============================================================================
 // Response Schemas
@@ -56,6 +57,7 @@ export class UserOrganizationsResponse extends Schema.Class<UserOrganizationsRes
  */
 const listUserOrganizations = HttpApiEndpoint.get("listUserOrganizations", "/users/me/organizations")
   .addSuccess(UserOrganizationsResponse)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "List user's organizations",

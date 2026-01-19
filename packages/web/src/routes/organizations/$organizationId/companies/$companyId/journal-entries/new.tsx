@@ -103,7 +103,9 @@ const fetchNewJournalEntryData = createServerFn({ method: "GET" })
       ])
 
       if (companyResult.error) {
-        if (typeof companyResult.error === "object" && "_tag" in companyResult.error && companyResult.error._tag === "NotFoundError") {
+        // Check for domain-specific NotFoundError using _tag (from Effect Schema TaggedError)
+        if (typeof companyResult.error === "object" && "_tag" in companyResult.error &&
+            companyResult.error._tag === "CompanyNotFoundError") {
           return {
             company: null,
             organization: null,

@@ -25,20 +25,21 @@ import { OrganizationId } from "@accountability/core/Domains/Organization"
 import { now as timestampNow } from "@accountability/core/Domains/Timestamp"
 import { AccountRepository } from "@accountability/persistence/Services/AccountRepository"
 import { CompanyRepository } from "@accountability/persistence/Services/CompanyRepository"
-import {
-  isEntityNotFoundError,
-  type EntityNotFoundError,
-  type PersistenceError
-} from "@accountability/persistence/Errors/RepositoryError"
 import { AppApi } from "../Definitions/AppApi.ts"
 import {
-  NotFoundError,
-  ValidationError,
-  ConflictError,
-  BusinessRuleError,
   AuditLogError,
-  UserLookupError
+  UserLookupError,
+  ConflictError
 } from "../Definitions/ApiErrors.ts"
+import {
+  CompanyNotFoundError,
+  AccountNotFoundError,
+  ParentAccountNotFoundError,
+  ParentAccountDifferentCompanyError,
+  AccountNumberAlreadyExistsError,
+  CircularAccountReferenceError,
+  HasActiveChildAccountsError
+} from "@accountability/core/Errors/DomainErrors"
 import type {
   AuditLogError as CoreAuditLogError,
   UserLookupError as CoreUserLookupError
@@ -63,50 +64,6 @@ const mapCoreAuditErrorToApi = (error: CoreAuditLogError | CoreUserLookupError):
   return new AuditLogError({
     operation: error.operation,
     cause: error.cause
-  })
-}
-
-/**
- * Convert persistence errors to NotFoundError
- */
-const mapPersistenceToNotFound = (
-  resource: string,
-  id: string,
-  _error: EntityNotFoundError | PersistenceError
-): NotFoundError => {
-  return new NotFoundError({ resource, id })
-}
-
-/**
- * Convert persistence errors to BusinessRuleError
- */
-const mapPersistenceToBusinessRule = (
-  error: EntityNotFoundError | PersistenceError
-): BusinessRuleError => {
-  if (isEntityNotFoundError(error)) {
-    return new BusinessRuleError({
-      code: "ENTITY_NOT_FOUND",
-      message: error.message,
-      details: Option.none()
-    })
-  }
-  return new BusinessRuleError({
-    code: "PERSISTENCE_ERROR",
-    message: error.message,
-    details: Option.none()
-  })
-}
-
-/**
- * Convert persistence errors to ValidationError
- */
-const mapPersistenceToValidation = (
-  error: EntityNotFoundError | PersistenceError
-): ValidationError => {
-  return new ValidationError({
-    message: error.message,
-    field: Option.none(),
-    details: Option.none()
   })
 }
 
@@ -226,46 +183,34 @@ export const AccountsApiLive = HttpApiBuilder.group(AppApi, "accounts", (handler
           Effect.gen(function* () {
             yield* requirePermission("account:read")
 
-            // URL params are strings - convert to branded types
+            // listAccounts declares CompanyNotFoundError, OrganizationNotFoundError, ForbiddenError
             const { accountType, accountCategory, isActive, isPostable, parentAccountId } = _.urlParams
             const organizationId = OrganizationId.make(_.urlParams.organizationId)
             const companyId = CompanyId.make(_.urlParams.companyId)
             const parentAcctId = parentAccountId !== undefined ? AccountId.make(parentAccountId) : undefined
 
             // Check company exists within organization
-            const companyExists = yield* companyRepo.exists(organizationId, companyId).pipe(
-              Effect.mapError((e) => mapPersistenceToValidation(e))
-            )
+            const companyExists = yield* companyRepo.exists(organizationId, companyId).pipe(Effect.orDie)
             if (!companyExists) {
-              return yield* Effect.fail(new NotFoundError({ resource: "Company", id: _.urlParams.companyId }))
+              return yield* Effect.fail(new CompanyNotFoundError({ companyId: _.urlParams.companyId }))
             }
 
             // Get accounts based on filters
             let accounts: ReadonlyArray<Account>
 
             if (accountType !== undefined) {
-              accounts = yield* accountRepo.findByType(organizationId, companyId, accountType).pipe(
-                Effect.mapError((e) => mapPersistenceToValidation(e))
-              )
+              accounts = yield* accountRepo.findByType(organizationId, companyId, accountType).pipe(Effect.orDie)
             } else if (isActive !== undefined) {
               if (isActive) {
-                accounts = yield* accountRepo.findActiveByCompany(organizationId, companyId).pipe(
-                  Effect.mapError((e) => mapPersistenceToValidation(e))
-                )
+                accounts = yield* accountRepo.findActiveByCompany(organizationId, companyId).pipe(Effect.orDie)
               } else {
-                const all = yield* accountRepo.findByCompany(organizationId, companyId).pipe(
-                  Effect.mapError((e) => mapPersistenceToValidation(e))
-                )
+                const all = yield* accountRepo.findByCompany(organizationId, companyId).pipe(Effect.orDie)
                 accounts = all.filter((a) => !a.isActive)
               }
             } else if (parentAcctId !== undefined) {
-              accounts = yield* accountRepo.findChildren(organizationId, parentAcctId).pipe(
-                Effect.mapError((e) => mapPersistenceToValidation(e))
-              )
+              accounts = yield* accountRepo.findChildren(organizationId, parentAcctId).pipe(Effect.orDie)
             } else {
-              accounts = yield* accountRepo.findByCompany(organizationId, companyId).pipe(
-                Effect.mapError((e) => mapPersistenceToValidation(e))
-              )
+              accounts = yield* accountRepo.findByCompany(organizationId, companyId).pipe(Effect.orDie)
             }
 
             // Apply category filter if provided
@@ -299,16 +244,14 @@ export const AccountsApiLive = HttpApiBuilder.group(AppApi, "accounts", (handler
           Effect.gen(function* () {
             yield* requirePermission("account:read")
 
-            // Convert path params to branded types
+            // getAccount declares AccountNotFoundError, OrganizationNotFoundError, ForbiddenError
             const organizationId = OrganizationId.make(_.path.organizationId)
             const accountId = AccountId.make(_.path.id)
 
-            const maybeAccount = yield* accountRepo.findById(organizationId, accountId).pipe(
-              Effect.mapError((e) => mapPersistenceToNotFound("Account", _.path.id, e))
-            )
+            const maybeAccount = yield* accountRepo.findById(organizationId, accountId).pipe(Effect.orDie)
 
             return yield* Option.match(maybeAccount, {
-              onNone: () => Effect.fail(new NotFoundError({ resource: "Account", id: _.path.id })),
+              onNone: () => Effect.fail(new AccountNotFoundError({ accountId: _.path.id })),
               onSome: Effect.succeed
             })
           })
@@ -319,51 +262,40 @@ export const AccountsApiLive = HttpApiBuilder.group(AppApi, "accounts", (handler
           Effect.gen(function* () {
             yield* requirePermission("account:create")
 
+            // createAccount declares CompanyNotFoundError, AccountNumberAlreadyExistsError,
+            // ParentAccountNotFoundError, ParentAccountDifferentCompanyError, ConflictError,
+            // OrganizationNotFoundError, ForbiddenError, AuditLogError, UserLookupError
             const req = _.payload
             const organizationId = OrganizationId.make(req.organizationId)
 
             // Validate company exists within organization
-            const companyExists = yield* companyRepo.exists(organizationId, req.companyId).pipe(
-              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
-            )
+            const companyExists = yield* companyRepo.exists(organizationId, req.companyId).pipe(Effect.orDie)
             if (!companyExists) {
-              return yield* Effect.fail(new BusinessRuleError({
-                code: "COMPANY_NOT_FOUND",
-                message: `Company not found: ${req.companyId}`,
-                details: Option.none()
-              }))
+              return yield* Effect.fail(new CompanyNotFoundError({ companyId: req.companyId }))
             }
 
             // Check for duplicate account number
-            const existingAccount = yield* accountRepo.findByNumber(organizationId, req.companyId, req.accountNumber).pipe(
-              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
-            )
+            const existingAccount = yield* accountRepo.findByNumber(organizationId, req.companyId, req.accountNumber).pipe(Effect.orDie)
             if (Option.isSome(existingAccount)) {
-              return yield* Effect.fail(new ConflictError({
-                message: `Account number ${req.accountNumber} already exists in this company`,
-                resource: Option.some("Account"),
-                conflictingField: Option.some("accountNumber")
+              return yield* Effect.fail(new AccountNumberAlreadyExistsError({
+                accountNumber: req.accountNumber,
+                companyId: req.companyId
               }))
             }
 
             // Validate parent account if specified
             let hierarchyLevel = 1
             if (Option.isSome(req.parentAccountId)) {
-              const parentAccount = yield* accountRepo.findById(organizationId, req.parentAccountId.value).pipe(
-                Effect.mapError((e) => mapPersistenceToBusinessRule(e))
-              )
+              const parentAccount = yield* accountRepo.findById(organizationId, req.parentAccountId.value).pipe(Effect.orDie)
               if (Option.isNone(parentAccount)) {
-                return yield* Effect.fail(new BusinessRuleError({
-                  code: "PARENT_ACCOUNT_NOT_FOUND",
-                  message: `Parent account not found: ${req.parentAccountId.value}`,
-                  details: Option.none()
+                return yield* Effect.fail(new ParentAccountNotFoundError({
+                  parentAccountId: req.parentAccountId.value
                 }))
               }
               if (!Equal.equals(parentAccount.value.companyId, req.companyId)) {
-                return yield* Effect.fail(new BusinessRuleError({
-                  code: "PARENT_DIFFERENT_COMPANY",
-                  message: "Parent account must be in the same company",
-                  details: Option.none()
+                return yield* Effect.fail(new ParentAccountDifferentCompanyError({
+                  accountCompanyId: req.companyId,
+                  parentAccountCompanyId: parentAccount.value.companyId
                 }))
               }
               hierarchyLevel = parentAccount.value.hierarchyLevel + 1
@@ -393,7 +325,11 @@ export const AccountsApiLive = HttpApiBuilder.group(AppApi, "accounts", (handler
             })
 
             const createdAccount = yield* accountRepo.create(newAccount).pipe(
-              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+              Effect.mapError((e) => new ConflictError({
+                message: e.message,
+                resource: Option.some("Account"),
+                conflictingField: Option.none()
+              }))
             )
 
             // Log account creation to audit log
@@ -408,6 +344,9 @@ export const AccountsApiLive = HttpApiBuilder.group(AppApi, "accounts", (handler
           Effect.gen(function* () {
             yield* requirePermission("account:update")
 
+            // updateAccount declares AccountNotFoundError, ParentAccountNotFoundError,
+            // ParentAccountDifferentCompanyError, CircularAccountReferenceError, ConflictError,
+            // OrganizationNotFoundError, ForbiddenError, AuditLogError, UserLookupError
             const req = _.payload
 
             // Convert path params to branded types
@@ -415,11 +354,9 @@ export const AccountsApiLive = HttpApiBuilder.group(AppApi, "accounts", (handler
             const accountId = AccountId.make(_.path.id)
 
             // Get existing account
-            const maybeExisting = yield* accountRepo.findById(organizationId, accountId).pipe(
-              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
-            )
+            const maybeExisting = yield* accountRepo.findById(organizationId, accountId).pipe(Effect.orDie)
             if (Option.isNone(maybeExisting)) {
-              return yield* Effect.fail(new NotFoundError({ resource: "Account", id: _.path.id }))
+              return yield* Effect.fail(new AccountNotFoundError({ accountId: _.path.id }))
             }
             const existing = maybeExisting.value
 
@@ -433,28 +370,22 @@ export const AccountsApiLive = HttpApiBuilder.group(AppApi, "accounts", (handler
                 !Equal.equals(req.parentAccountId, existing.parentAccountId)) {
               if (Option.isSome(req.parentAccountId)) {
                 if (req.parentAccountId.value === accountId) {
-                  return yield* Effect.fail(new BusinessRuleError({
-                    code: "CIRCULAR_REFERENCE",
-                    message: "Account cannot be its own parent",
-                    details: Option.none()
+                  return yield* Effect.fail(new CircularAccountReferenceError({
+                    accountId: _.path.id,
+                    parentAccountId: _.path.id
                   }))
                 }
 
-                const parentAccount = yield* accountRepo.findById(organizationId, req.parentAccountId.value).pipe(
-                  Effect.mapError((e) => mapPersistenceToBusinessRule(e))
-                )
+                const parentAccount = yield* accountRepo.findById(organizationId, req.parentAccountId.value).pipe(Effect.orDie)
                 if (Option.isNone(parentAccount)) {
-                  return yield* Effect.fail(new BusinessRuleError({
-                    code: "PARENT_ACCOUNT_NOT_FOUND",
-                    message: `Parent account not found: ${req.parentAccountId.value}`,
-                    details: Option.none()
+                  return yield* Effect.fail(new ParentAccountNotFoundError({
+                    parentAccountId: req.parentAccountId.value
                   }))
                 }
                 if (!Equal.equals(parentAccount.value.companyId, existing.companyId)) {
-                  return yield* Effect.fail(new BusinessRuleError({
-                    code: "PARENT_DIFFERENT_COMPANY",
-                    message: "Parent account must be in the same company",
-                    details: Option.none()
+                  return yield* Effect.fail(new ParentAccountDifferentCompanyError({
+                    accountCompanyId: existing.companyId,
+                    parentAccountCompanyId: parentAccount.value.companyId
                   }))
                 }
                 hierarchyLevel = parentAccount.value.hierarchyLevel + 1
@@ -493,7 +424,11 @@ export const AccountsApiLive = HttpApiBuilder.group(AppApi, "accounts", (handler
             })
 
             const savedAccount = yield* accountRepo.update(organizationId, updatedAccount).pipe(
-              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
+              Effect.mapError((e) => new ConflictError({
+                message: e.message,
+                resource: Option.some("Account"),
+                conflictingField: Option.none()
+              }))
             )
 
             // Log account update to audit log with before/after state
@@ -508,29 +443,25 @@ export const AccountsApiLive = HttpApiBuilder.group(AppApi, "accounts", (handler
           Effect.gen(function* () {
             yield* requirePermission("account:deactivate")
 
-            // Convert path params to branded types
+            // deactivateAccount declares AccountNotFoundError, HasActiveChildAccountsError,
+            // OrganizationNotFoundError, ForbiddenError, AuditLogError, UserLookupError
             const organizationId = OrganizationId.make(_.path.organizationId)
             const accountId = AccountId.make(_.path.id)
 
             // Get existing account
-            const maybeExisting = yield* accountRepo.findById(organizationId, accountId).pipe(
-              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
-            )
+            const maybeExisting = yield* accountRepo.findById(organizationId, accountId).pipe(Effect.orDie)
             if (Option.isNone(maybeExisting)) {
-              return yield* Effect.fail(new NotFoundError({ resource: "Account", id: _.path.id }))
+              return yield* Effect.fail(new AccountNotFoundError({ accountId: _.path.id }))
             }
             const existing = maybeExisting.value
 
             // Check for child accounts
-            const children = yield* accountRepo.findChildren(organizationId, accountId).pipe(
-              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
-            )
+            const children = yield* accountRepo.findChildren(organizationId, accountId).pipe(Effect.orDie)
             const activeChildren = children.filter((c) => c.isActive)
             if (activeChildren.length > 0) {
-              return yield* Effect.fail(new BusinessRuleError({
-                code: "HAS_ACTIVE_CHILDREN",
-                message: `Cannot deactivate account with ${activeChildren.length} active child accounts`,
-                details: Option.none()
+              return yield* Effect.fail(new HasActiveChildAccountsError({
+                accountId: _.path.id,
+                childCount: activeChildren.length
               }))
             }
 
@@ -541,9 +472,7 @@ export const AccountsApiLive = HttpApiBuilder.group(AppApi, "accounts", (handler
               deactivatedAt: Option.some(timestampNow())
             })
 
-            yield* accountRepo.update(organizationId, deactivatedAccount).pipe(
-              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
-            )
+            yield* accountRepo.update(organizationId, deactivatedAccount).pipe(Effect.orDie)
 
             // Log account deactivation to audit log
             yield* logAccountDeactivate(_.path.organizationId, accountId, existing.name)

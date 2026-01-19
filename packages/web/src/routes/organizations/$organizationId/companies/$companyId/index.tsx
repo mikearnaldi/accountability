@@ -62,8 +62,9 @@ const fetchCompanyData = createServerFn({ method: "GET" })
       ])
 
       if (companyResult.error) {
-        // Check for NotFoundError using _tag (from Effect Schema TaggedError)
-        if (typeof companyResult.error === "object" && "_tag" in companyResult.error && companyResult.error._tag === "NotFoundError") {
+        // Check for domain-specific NotFoundError using _tag (from Effect Schema TaggedError)
+        if (typeof companyResult.error === "object" && "_tag" in companyResult.error &&
+            companyResult.error._tag === "CompanyNotFoundError") {
           return { company: null, organization: null, subsidiaries: [], parentCompany: null, allCompanies: [], error: "not_found" as const }
         }
         return { company: null, organization: null, subsidiaries: [], parentCompany: null, allCompanies: [], error: "failed" as const }

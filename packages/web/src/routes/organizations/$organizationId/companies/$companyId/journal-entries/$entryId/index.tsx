@@ -166,7 +166,9 @@ const fetchJournalEntryData = createServerFn({ method: "GET" })
       ])
 
       if (entryResult.error) {
-        if (typeof entryResult.error === "object" && "_tag" in entryResult.error && entryResult.error._tag === "NotFoundError") {
+        // Check for domain-specific JournalEntryNotFoundError using _tag (from Effect Schema TaggedError)
+        if (typeof entryResult.error === "object" && "_tag" in entryResult.error &&
+            entryResult.error._tag === "JournalEntryNotFoundError") {
           return {
             entry: null,
             lines: [],

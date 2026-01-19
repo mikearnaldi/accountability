@@ -22,6 +22,7 @@ import {
   ValidationError
 } from "./ApiErrors.ts"
 import { AuthMiddleware } from "./AuthMiddleware.ts"
+import { OrganizationNotFoundError } from "@accountability/core/Errors/DomainErrors"
 
 // =============================================================================
 // Fiscal Year Request/Response Schemas
@@ -113,6 +114,7 @@ const listFiscalYears = HttpApiEndpoint.get("listFiscalYears", "/organizations/:
   .setPath(Schema.Struct({ organizationId: Schema.String, companyId: Schema.String }))
   .addSuccess(FiscalYearListResponse)
   .addError(NotFoundError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "List fiscal years",
@@ -130,6 +132,7 @@ const getFiscalYear = HttpApiEndpoint.get("getFiscalYear", "/organizations/:orga
   }))
   .addSuccess(FiscalYear)
   .addError(NotFoundError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "Get fiscal year",
@@ -146,6 +149,7 @@ const createFiscalYear = HttpApiEndpoint.post("createFiscalYear", "/organization
   .addError(NotFoundError)
   .addError(ValidationError)
   .addError(BusinessRuleError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "Create fiscal year",
@@ -164,6 +168,7 @@ const beginYearClose = HttpApiEndpoint.post("beginYearClose", "/organizations/:o
   .addSuccess(FiscalYear)
   .addError(NotFoundError)
   .addError(BusinessRuleError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "Begin year-end close",
@@ -182,6 +187,7 @@ const completeYearClose = HttpApiEndpoint.post("completeYearClose", "/organizati
   .addSuccess(FiscalYear)
   .addError(NotFoundError)
   .addError(BusinessRuleError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "Complete year-end close",
@@ -204,6 +210,7 @@ const listPeriods = HttpApiEndpoint.get("listFiscalPeriods", "/organizations/:or
   .setUrlParams(FiscalPeriodListParams)
   .addSuccess(FiscalPeriodListResponse)
   .addError(NotFoundError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "List fiscal periods",
@@ -222,6 +229,7 @@ const getPeriod = HttpApiEndpoint.get("getFiscalPeriod", "/organizations/:organi
   }))
   .addSuccess(FiscalPeriod)
   .addError(NotFoundError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "Get fiscal period",
@@ -241,6 +249,7 @@ const openPeriod = HttpApiEndpoint.post("openFiscalPeriod", "/organizations/:org
   .addSuccess(FiscalPeriod)
   .addError(NotFoundError)
   .addError(BusinessRuleError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "Open fiscal period",
@@ -260,6 +269,7 @@ const softClosePeriod = HttpApiEndpoint.post("softCloseFiscalPeriod", "/organiza
   .addSuccess(FiscalPeriod)
   .addError(NotFoundError)
   .addError(BusinessRuleError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "Soft-close fiscal period",
@@ -279,6 +289,7 @@ const closePeriod = HttpApiEndpoint.post("closeFiscalPeriod", "/organizations/:o
   .addSuccess(FiscalPeriod)
   .addError(NotFoundError)
   .addError(BusinessRuleError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "Close fiscal period",
@@ -298,6 +309,7 @@ const lockPeriod = HttpApiEndpoint.post("lockFiscalPeriod", "/organizations/:org
   .addSuccess(FiscalPeriod)
   .addError(NotFoundError)
   .addError(BusinessRuleError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "Lock fiscal period",
@@ -318,6 +330,7 @@ const reopenPeriod = HttpApiEndpoint.post("reopenFiscalPeriod", "/organizations/
   .addSuccess(FiscalPeriod)
   .addError(NotFoundError)
   .addError(BusinessRuleError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "Reopen fiscal period",
@@ -336,6 +349,7 @@ const getPeriodReopenHistory = HttpApiEndpoint.get("getPeriodReopenHistory", "/o
   }))
   .addSuccess(PeriodReopenHistoryResponse)
   .addError(NotFoundError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "Get period reopen history",
@@ -350,6 +364,7 @@ const getPeriodStatusForDate = HttpApiEndpoint.get("getPeriodStatusForDate", "/o
   .setUrlParams(Schema.Struct({ date: Schema.String }))
   .addSuccess(PeriodStatusResponse)
   .addError(NotFoundError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "Get period status for date",

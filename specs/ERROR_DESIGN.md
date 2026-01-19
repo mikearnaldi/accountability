@@ -568,58 +568,88 @@ export class MembershipNotFoundError extends Schema.TaggedError<MembershipNotFou
 
 ### Phase 2: Remove Generic API Layer Errors
 
-**Status:** ⚠️ DEFERRED - Requires significant refactoring
+**Status:** 🔄 IN PROGRESS
 
-**Analysis:** The generic API errors (`NotFoundError`, `ValidationError`, `ConflictError`, `BusinessRuleError`) are used extensively across API handlers (~200+ usages). These are NOT used to map FROM domain errors - they're used directly in the API layer for:
+**Analysis:** The generic API errors (`NotFoundError`, `ValidationError`, `ConflictError`, `BusinessRuleError`) were used extensively across API handlers (~200+ usages). We are progressively replacing them with domain-specific errors.
 
-1. **Resource lookups** - Handlers check if entities exist before domain logic runs
-2. **Input validation** - Validating request parameters before passing to services
-3. **Conflict detection** - Checking for duplicates at API boundary
-4. **Business rule violations** - Catching domain errors that lack specific types
+**Phase 2a: Create shared domain errors** ✅ COMPLETE
 
-**Current generic error usage (approximate counts):**
-- `NotFoundError`: ~90 usages across 15 files
-- `ValidationError`: ~25 usages across 12 files
-- `ConflictError`: ~4 usages across 3 files
-- `BusinessRuleError`: ~95 usages across 18 files
+Created `packages/core/src/Errors/DomainErrors.ts` with ~35 shared domain error classes:
 
-**To fully implement Phase 2, we would need to:**
+**Not Found Errors (404):**
+- `OrganizationNotFoundError`
+- `CompanyNotFoundError`
+- `AccountNotFoundError`
+- `ParentAccountNotFoundError`
+- `JournalEntryNotFoundError`
+- `ExchangeRateNotFoundError`
+- `PolicyNotFoundError`
+- `InvitationNotFoundError`
+- `IntercompanyTransactionNotFoundError`
+- `ConsolidationRunNotFoundError`
+- `AccountTemplateNotFoundError`
+- `MemberNotFoundError`
+- `UserNotFoundByEmailError`
 
-1. **Create missing domain errors** - Add ~30+ new error types:
-   - `CompanyNotFoundError` (in core, not just services)
-   - `OrganizationNotFoundError`
-   - `AccountNotFoundError` (move from JournalEntryService to shared)
-   - `JournalEntryNotFoundError`
-   - `ExchangeRateNotFoundError`
-   - `ConsolidationGroupNotFoundError` (move to shared)
-   - `ConsolidationRunNotFoundError`
-   - `EliminationRuleNotFoundError` (move to shared)
-   - `IntercompanyTransactionNotFoundError`
-   - `FiscalYearNotFoundError` (already exists)
-   - `FiscalPeriodNotFoundError` (already exists)
-   - `PolicyNotFoundError`
-   - `InvitationNotFoundError`
-   - `AccountTemplateNotFoundError`
-   - Plus validation errors, conflict errors for each entity...
+**Validation Errors (400):**
+- `OwnershipPercentageRequiredError`
+- `InvalidOrganizationIdError`
+- `InvalidCompanyIdError`
+- `InvalidPolicyConditionError`
+- `SameCurrencyExchangeRateError`
+- `InvalidExchangeRateError`
+- `SameCompanyIntercompanyError`
+- `ParentAccountDifferentCompanyError`
 
-2. **Update all API handlers** - Replace generic errors with domain-specific errors
-3. **Update API endpoint definitions** - Add domain errors to error unions
-4. **Update tests** - Change assertions to expect domain-specific errors
+**Conflict Errors (409):**
+- `OrganizationHasCompaniesError`
+- `ParentCompanyNotFoundError`
+- `CircularCompanyReferenceError`
+- `HasActiveSubsidiariesError`
+- `HasActiveChildAccountsError`
+- `AccountNumberAlreadyExistsError`
+- `CircularAccountReferenceError`
+- `AccountsAlreadyExistError`
+- `PolicyAlreadyExistsError`
+- `SystemPolicyCannotBeModifiedError`
+- `ExchangeRateAlreadyExistsError`
 
-**Recommendation:** Keep generic API errors for now. The current approach is pragmatic:
-- Generic errors provide consistent API responses
-- Domain errors flow through when they exist
-- HTTP status codes are correct via annotations
+**Business Rule Errors (422):**
+- `MembershipCreationFailedError`
+- `SystemPolicySeedingFailedError`
+- `InvitationNotPendingError`
+- `ConsolidationGroupInactiveError`
+- `ConsolidationRunInProgressError`
 
-**If pursuing later, break into sub-phases:**
-- Phase 2a: Create shared entity `*NotFoundError` classes in `packages/core/src/Errors/`
-- Phase 2b: Replace `NotFoundError` usages in API handlers
-- Phase 2c: Create shared `*ValidationError` classes
-- Phase 2d: Replace `ValidationError` usages in API handlers
-- Phase 2e: Create shared `*ConflictError` classes
-- Phase 2f: Replace `ConflictError` usages in API handlers
-- Phase 2g: Audit and replace `BusinessRuleError` with specific domain errors
-- Phase 2h: Remove unused generic errors from `ApiErrors.ts`
+**Internal Errors (500):**
+- `DataCorruptionError`
+- `OperationFailedError`
+
+**Phase 2b-2d: Replace generic errors in API handlers** 🔄 IN PROGRESS
+
+| File | Status | Notes |
+|------|--------|-------|
+| `AccountTemplatesApiLive.ts` | ✅ COMPLETE | Replaced all generic errors |
+| `CompaniesApiLive.ts` | ✅ COMPLETE | Replaced all generic errors |
+| `AccountsApiLive.ts` | ✅ COMPLETE | Replaced all generic errors |
+| `JournalEntriesApiLive.ts` | ✅ COMPLETE | All NotFoundError replaced with domain-specific errors |
+| `FiscalPeriodApiLive.ts` | ⏳ PENDING | |
+| `MembershipApiLive.ts` | ⏳ PENDING | |
+| `ConsolidationApiLive.ts` | ⏳ PENDING | |
+| `CurrencyApiLive.ts` | ⏳ PENDING | |
+| `ReportsApiLive.ts` | ⏳ PENDING | |
+| `InvitationApiLive.ts` | ⏳ PENDING | |
+| `AuthApiLive.ts` | ⏳ PENDING | |
+| `PolicyApiLive.ts` | ⏳ PENDING | |
+| `+ 10 more files` | ⏳ PENDING | |
+
+**Conversion pattern established:**
+
+1. **Remove old mapping functions** (`mapPersistenceToNotFound`, `mapPersistenceToBusinessRule`, etc.)
+2. **Use `Effect.orDie` for persistence errors** (unexpected infrastructure failures)
+3. **Use domain-specific errors for expected failures** (not found, validation, conflicts)
+4. **Update API definitions** to include new domain errors in error unions
+5. **Update tests** to expect domain error `_tag` values
 
 ### Phase 3: Verify Error Flow-Through
 
@@ -649,7 +679,7 @@ No additional tests needed - this is framework behavior, already tested by Effec
 | Phase | Status | Notes |
 |-------|--------|-------|
 | Phase 1: Add HttpApiSchema annotations | ✅ COMPLETE | 81 errors across 15 files |
-| Phase 2: Remove generic API errors | ⚠️ DEFERRED | Large refactoring, ~260 usages across 18 files |
+| Phase 2: Remove generic API errors | 🔄 IN PROGRESS | ~35 domain errors created, 4 API files converted |
 | Phase 3: Verify error flow-through | ✅ COMPLETE | Framework behavior, works automatically |
 | Phase 4: Documentation cleanup | ✅ COMPLETE | Spec updated with accurate current/target state |
 
@@ -658,23 +688,33 @@ No additional tests needed - this is framework behavior, already tested by Effec
 | Aspect | Current | Target |
 |--------|---------|--------|
 | Error layers | Two (domain + generic API) | One (domain only) |
-| Domain errors annotated | ✅ All 81 | ✅ All 81 |
-| Generic API errors | ~260 usages in 18 files | Removed (except auth) |
-| Error mapping in handlers | ~260 `mapError` calls | None (errors flow through) |
-| Error context preserved | Partial (lost in generic) | Full (domain-specific) |
+| Domain errors created | ~116 (81 + 35 new) | ~116 |
+| Shared domain errors file | ✅ `packages/core/src/Errors/DomainErrors.ts` | ✅ Created |
+| API files converted | 4 of ~20 | All (~20) |
+| Error mapping in handlers | Reduced (~3 files done) | None (errors flow through) |
+| Error context preserved | Improved (3 core files) | Full (domain-specific) |
 
-**Current architecture is functional but hybrid:**
-- Domain errors have HTTP annotations and CAN flow through
-- Generic API errors are STILL being used extensively for:
-  - Resource lookups (checking if entity exists)
-  - Input validation (before calling services)
-  - Conflict detection (duplicates at API boundary)
-  - Catch-all for domain errors without specific types
+**Progress made:**
+- ✅ Created `packages/core/src/Errors/DomainErrors.ts` with ~35 shared domain errors
+- ✅ Converted `AccountTemplatesApiLive.ts` - all generic errors replaced
+- ✅ Converted `CompaniesApiLive.ts` - all generic errors replaced
+- ✅ Converted `AccountsApiLive.ts` - all generic errors replaced
+- ✅ Added `OrganizationNotFoundError` to all 15 API definition files
+- ✅ Updated test assertions for converted files
+- ✅ Converted `JournalEntriesApi.ts` - replaced all `NotFoundError` with `JournalEntryNotFoundError` and `CompanyNotFoundError`
+- ✅ Converted `JournalEntriesApiLive.ts` - all handlers now use domain-specific errors, removed unused `NotFoundError` import
+- ✅ Updated frontend routes to handle domain-specific errors (`CompanyNotFoundError`, `JournalEntryNotFoundError`)
 
-**To achieve one-layer architecture (Phase 2):**
-- Create ~30 missing entity-specific domain errors
-- Replace ~260 generic error instantiations with domain errors
-- Remove error mapping logic from handlers
-- Update API endpoint error type definitions
+**Remaining work:**
+- ⏳ Convert remaining ~16 API Live files to use domain errors
+- ⏳ Remove unused generic errors from `ApiErrors.ts`
+- ⏳ Final cleanup pass
 
-This is a large refactoring effort that has been DEFERRED as the current hybrid approach is pragmatic and functional.
+**Conversion pattern established:**
+1. Create domain-specific errors in `packages/core/src/Errors/DomainErrors.ts`
+2. Add domain errors to API definition error unions
+3. Replace generic errors in handler implementations
+4. Use `Effect.orDie` for persistence errors
+5. Update tests to expect new error `_tag` values
+
+The pattern is well-established and can be applied incrementally to remaining files.

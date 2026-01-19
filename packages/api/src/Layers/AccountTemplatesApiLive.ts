@@ -21,38 +21,23 @@ import { CompanyId } from "@accountability/core/Domains/Company"
 import { OrganizationId } from "@accountability/core/Domains/Organization"
 import { AccountRepository } from "@accountability/persistence/Services/AccountRepository"
 import { CompanyRepository } from "@accountability/persistence/Services/CompanyRepository"
-import {
-  type EntityNotFoundError,
-  type PersistenceError
-} from "@accountability/persistence/Errors/RepositoryError"
 import { AppApi } from "../Definitions/AppApi.ts"
 import {
   AccountTemplateItem,
   TemplateAccountItem
 } from "../Definitions/AccountTemplatesApi.ts"
 import {
-  NotFoundError,
-  BusinessRuleError,
   AuditLogError,
   UserLookupError
 } from "../Definitions/ApiErrors.ts"
+import {
+  CompanyNotFoundError,
+  AccountsAlreadyExistError
+} from "@accountability/core/Errors/DomainErrors"
 import type { AuditLogError as CoreAuditLogError, UserLookupError as CoreUserLookupError } from "@accountability/core/AuditLog/AuditLogErrors"
 import { requireOrganizationContext, requirePermission } from "./OrganizationContextMiddlewareLive.ts"
 import { AuditLogService } from "@accountability/core/AuditLog/AuditLogService"
 import { CurrentUserId } from "@accountability/core/AuditLog/CurrentUserId"
-
-/**
- * Convert persistence errors to BusinessRuleError
- */
-const mapPersistenceToBusinessRule = (
-  error: EntityNotFoundError | PersistenceError
-): BusinessRuleError => {
-  return new BusinessRuleError({
-    code: "PERSISTENCE_ERROR",
-    message: error.message,
-    details: Option.none()
-  })
-}
 
 const mapCoreAuditErrorToApi = (error: CoreAuditLogError | CoreUserLookupError): AuditLogError | UserLookupError => {
   if (error._tag === "UserLookupError") {
@@ -153,25 +138,24 @@ export const AccountTemplatesApiLive = HttpApiBuilder.group(AppApi, "accountTemp
             const companyId = CompanyId.make(companyIdString)
 
             // Validate company exists within organization
+            // Persistence errors are unexpected (defects), so use orDie
             const maybeCompany = yield* companyRepo.findById(organizationId, companyId).pipe(
-              Effect.mapError(mapPersistenceToBusinessRule)
+              Effect.orDie
             )
             if (Option.isNone(maybeCompany)) {
-              return yield* Effect.fail(new NotFoundError({
-                resource: "Company",
-                id: companyIdString
+              return yield* Effect.fail(new CompanyNotFoundError({
+                companyId: companyIdString
               }))
             }
 
             // Check if company already has accounts
             const existingAccounts = yield* accountRepo.findByCompany(organizationId, companyId).pipe(
-              Effect.mapError(mapPersistenceToBusinessRule)
+              Effect.orDie
             )
             if (existingAccounts.length > 0) {
-              return yield* Effect.fail(new BusinessRuleError({
-                code: "ACCOUNTS_ALREADY_EXIST",
-                message: `Company already has ${existingAccounts.length} accounts. Cannot apply template to a company with existing accounts.`,
-                details: Option.none()
+              return yield* Effect.fail(new AccountsAlreadyExistError({
+                companyId: companyIdString,
+                accountCount: existingAccounts.length
               }))
             }
 
@@ -189,7 +173,7 @@ export const AccountTemplatesApiLive = HttpApiBuilder.group(AppApi, "accountTemp
             let createdCount = 0
             for (const account of accounts) {
               const createdAccount = yield* accountRepo.create(account).pipe(
-                Effect.mapError(mapPersistenceToBusinessRule)
+                Effect.orDie
               )
               // Log each account creation to audit trail
               yield* logAccountCreate(orgIdString, createdAccount)

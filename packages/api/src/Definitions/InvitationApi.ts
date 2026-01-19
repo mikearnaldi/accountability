@@ -26,6 +26,7 @@ import {
   ValidationError
 } from "./ApiErrors.ts"
 import { AuthMiddleware } from "./AuthMiddleware.ts"
+import { OrganizationNotFoundError } from "@accountability/core/Errors/DomainErrors"
 
 // =============================================================================
 // Invitation Request/Response Schemas
@@ -97,6 +98,7 @@ export class AcceptInvitationResponse extends Schema.Class<AcceptInvitationRespo
  */
 const listUserInvitations = HttpApiEndpoint.get("listUserInvitations", "/users/me/invitations")
   .addSuccess(UserInvitationsResponse)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "List user's pending invitations",
@@ -138,6 +140,7 @@ const revokeInvitation = HttpApiEndpoint.del("revokeInvitation", "/organizations
   .setPath(Schema.Struct({ orgId: Schema.String, invitationId: Schema.String }))
   .addSuccess(HttpApiSchema.NoContent)
   .addError(NotFoundError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .addError(BusinessRuleError)
   .annotateContext(OpenApi.annotations({
@@ -152,6 +155,7 @@ const listOrgInvitations = HttpApiEndpoint.get("listOrgInvitations", "/organizat
   .setPath(Schema.Struct({ orgId: Schema.String }))
   .addSuccess(OrgInvitationsResponse)
   .addError(NotFoundError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "List organization invitations",

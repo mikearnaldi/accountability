@@ -28,6 +28,7 @@ import {
   ValidationError
 } from "./ApiErrors.ts"
 import { AuthMiddleware } from "./AuthMiddleware.ts"
+import { OrganizationNotFoundError } from "@accountability/core/Errors/DomainErrors"
 
 // =============================================================================
 // Member Request/Response Schemas
@@ -119,6 +120,7 @@ const listMembers = HttpApiEndpoint.get("listMembers", "/organizations/:orgId/me
   .setPath(Schema.Struct({ orgId: Schema.String }))
   .addSuccess(MemberListResponse)
   .addError(NotFoundError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "List organization members",
@@ -133,6 +135,7 @@ const inviteMember = HttpApiEndpoint.post("inviteMember", "/organizations/:orgId
   .setPayload(InviteMemberRequest)
   .addSuccess(InviteMemberResponse, { status: 201 })
   .addError(NotFoundError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .addError(ValidationError)
   .addError(BusinessRuleError)
@@ -149,6 +152,7 @@ const updateMember = HttpApiEndpoint.patch("updateMember", "/organizations/:orgI
   .setPayload(UpdateMemberRequest)
   .addSuccess(MemberInfo)
   .addError(NotFoundError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .addError(ValidationError)
   .addError(BusinessRuleError)
@@ -165,6 +169,7 @@ const removeMember = HttpApiEndpoint.del("removeMember", "/organizations/:orgId/
   .setPayload(RemoveMemberRequest)
   .addSuccess(HttpApiSchema.NoContent)
   .addError(NotFoundError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .addError(BusinessRuleError)
   .annotateContext(OpenApi.annotations({
@@ -179,6 +184,7 @@ const reinstateMember = HttpApiEndpoint.post("reinstateMember", "/organizations/
   .setPath(Schema.Struct({ orgId: Schema.String, userId: Schema.String }))
   .addSuccess(MemberInfo)
   .addError(NotFoundError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .addError(BusinessRuleError)
   .annotateContext(OpenApi.annotations({
@@ -194,6 +200,7 @@ const suspendMember = HttpApiEndpoint.post("suspendMember", "/organizations/:org
   .setPayload(SuspendMemberRequest)
   .addSuccess(MemberInfo)
   .addError(NotFoundError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .addError(BusinessRuleError)
   .annotateContext(OpenApi.annotations({
@@ -208,6 +215,7 @@ const unsuspendMember = HttpApiEndpoint.post("unsuspendMember", "/organizations/
   .setPath(Schema.Struct({ orgId: Schema.String, userId: Schema.String }))
   .addSuccess(MemberInfo)
   .addError(NotFoundError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .addError(BusinessRuleError)
   .annotateContext(OpenApi.annotations({
@@ -223,6 +231,7 @@ const transferOwnership = HttpApiEndpoint.post("transferOwnership", "/organizati
   .setPayload(TransferOwnershipRequest)
   .addSuccess(HttpApiSchema.NoContent)
   .addError(NotFoundError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .addError(ValidationError)
   .addError(BusinessRuleError)

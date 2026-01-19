@@ -32,20 +32,24 @@ import { OrganizationRepository } from "@accountability/persistence/Services/Org
 import { OrganizationMemberRepository } from "@accountability/persistence/Services/OrganizationMemberRepository"
 import { PolicyRepository } from "@accountability/persistence/Services/PolicyRepository"
 import { seedSystemPolicies } from "@accountability/persistence/Seeds/SystemPolicies"
-import {
-  isEntityNotFoundError,
-  type EntityNotFoundError,
-  type PersistenceError
-} from "@accountability/persistence/Errors/RepositoryError"
 import { AppApi } from "../Definitions/AppApi.ts"
 import {
-  NotFoundError,
-  ValidationError,
-  ConflictError,
-  BusinessRuleError,
   AuditLogError,
-  UserLookupError
+  UserLookupError,
+  ConflictError,
+  ValidationError
 } from "../Definitions/ApiErrors.ts"
+import {
+  OrganizationNotFoundError,
+  OrganizationHasCompaniesError,
+  CompanyNotFoundError,
+  ParentCompanyNotFoundError,
+  OwnershipPercentageRequiredError,
+  CircularCompanyReferenceError,
+  HasActiveSubsidiariesError,
+  MembershipCreationFailedError,
+  SystemPolicySeedingFailedError
+} from "@accountability/core/Errors/DomainErrors"
 import type { AuditLogError as CoreAuditLogError, UserLookupError as CoreUserLookupError } from "@accountability/core/AuditLog/AuditLogErrors"
 import { CurrentUser } from "../Definitions/AuthMiddleware.ts"
 import { requireOrganizationContext, requirePermission } from "./OrganizationContextMiddlewareLive.ts"
@@ -70,46 +74,15 @@ const mapCoreAuditErrorToApi = (error: CoreAuditLogError | CoreUserLookupError):
 }
 
 /**
- * Convert persistence errors to BusinessRuleError
- */
-const mapPersistenceToBusinessRule = (
-  error: EntityNotFoundError | PersistenceError
-): BusinessRuleError => {
-  if (isEntityNotFoundError(error)) {
-    return new BusinessRuleError({
-      code: "ENTITY_NOT_FOUND",
-      message: error.message,
-      details: Option.none()
-    })
-  }
-  return new BusinessRuleError({
-    code: "PERSISTENCE_ERROR",
-    message: error.message,
-    details: Option.none()
-  })
-}
-
-/**
- * Convert persistence errors to ValidationError
- */
-const mapPersistenceToValidation = (
-  error: EntityNotFoundError | PersistenceError
-): ValidationError => {
-  return new ValidationError({
-    message: error.message,
-    field: Option.none(),
-    details: Option.none()
-  })
-}
-
-/**
  * Convert persistence errors to ConflictError
+ * Keep this for actual conflict cases (unique constraint violations)
  */
 const mapPersistenceToConflict = (
-  error: EntityNotFoundError | PersistenceError
+  error: unknown
 ): ConflictError => {
+  const message = error instanceof Error ? error.message : String(error)
   return new ConflictError({
-    message: error.message,
+    message,
     resource: Option.none(),
     conflictingField: Option.none()
   })
@@ -248,11 +221,11 @@ export const CompaniesApiLive = HttpApiBuilder.group(AppApi, "companies", (handl
         Effect.gen(function* () {
           const orgId = OrganizationId.make(_.path.id)
 
-          // getOrganization only declares NotFoundError, use orDie for persistence errors
+          // getOrganization declares OrganizationNotFoundError, use orDie for persistence errors
           const maybeOrg = yield* orgRepo.findById(orgId).pipe(Effect.orDie)
 
           return yield* Option.match(maybeOrg, {
-            onNone: () => Effect.fail(new NotFoundError({ resource: "Organization", id: _.path.id })),
+            onNone: () => Effect.fail(new OrganizationNotFoundError({ organizationId: _.path.id })),
             onSome: Effect.succeed
           })
         })
@@ -308,10 +281,8 @@ export const CompaniesApiLive = HttpApiBuilder.group(AppApi, "companies", (handl
           // If membership creation fails, organization creation must fail to maintain
           // data integrity (organization creator must be auto-added as owner)
           yield* memberRepo.create(membership).pipe(
-            Effect.mapError((e) => new BusinessRuleError({
-              code: "MEMBERSHIP_CREATION_FAILED",
-              message: `Failed to create owner membership: ${e.message}`,
-              details: Option.none()
+            Effect.mapError((e) => new MembershipCreationFailedError({
+              reason: e.message
             }))
           )
 
@@ -320,11 +291,7 @@ export const CompaniesApiLive = HttpApiBuilder.group(AppApi, "companies", (handl
           // If policy seeding fails, organization creation fails - system policies
           // are essential baseline access controls that must always exist
           yield* seedSystemPolicies(createdOrg.id, policyRepo).pipe(
-            Effect.mapError(() => new BusinessRuleError({
-              code: "SYSTEM_POLICY_SEEDING_FAILED",
-              message: "Failed to seed system policies for organization",
-              details: Option.none()
-            }))
+            Effect.mapError(() => new SystemPolicySeedingFailedError({}))
           )
 
           return createdOrg
@@ -335,11 +302,11 @@ export const CompaniesApiLive = HttpApiBuilder.group(AppApi, "companies", (handl
           const req = _.payload
           const orgId = OrganizationId.make(_.path.id)
 
-          // updateOrganization declares NotFoundError and ValidationError
+          // updateOrganization declares OrganizationNotFoundError and ValidationError
           // Get existing organization
           const maybeExisting = yield* orgRepo.findById(orgId).pipe(Effect.orDie)
           if (Option.isNone(maybeExisting)) {
-            return yield* Effect.fail(new NotFoundError({ resource: "Organization", id: _.path.id }))
+            return yield* Effect.fail(new OrganizationNotFoundError({ organizationId: _.path.id }))
           }
           const existing = maybeExisting.value
 
@@ -354,7 +321,11 @@ export const CompaniesApiLive = HttpApiBuilder.group(AppApi, "companies", (handl
           })
 
           return yield* orgRepo.update(updatedOrg).pipe(
-            Effect.mapError((e) => mapPersistenceToValidation(e))
+            Effect.mapError((e) => new ValidationError({
+              message: e.message,
+              field: Option.none(),
+              details: Option.none()
+            }))
           )
         })
       )
@@ -362,26 +333,23 @@ export const CompaniesApiLive = HttpApiBuilder.group(AppApi, "companies", (handl
         Effect.gen(function* () {
           const orgId = OrganizationId.make(_.path.id)
 
-          // deleteOrganization declares NotFoundError and BusinessRuleError
+          // deleteOrganization declares OrganizationNotFoundError and OrganizationHasCompaniesError
           // Check if organization exists
           const maybeExisting = yield* orgRepo.findById(orgId).pipe(Effect.orDie)
           if (Option.isNone(maybeExisting)) {
-            return yield* Effect.fail(new NotFoundError({ resource: "Organization", id: _.path.id }))
+            return yield* Effect.fail(new OrganizationNotFoundError({ organizationId: _.path.id }))
           }
 
           // Check if organization has companies
           const companies = yield* companyRepo.findByOrganization(orgId).pipe(Effect.orDie)
           if (companies.length > 0) {
-            return yield* Effect.fail(new BusinessRuleError({
-              code: "HAS_COMPANIES",
-              message: `Cannot delete organization with ${companies.length} companies. Delete or move companies first.`,
-              details: Option.none()
+            return yield* Effect.fail(new OrganizationHasCompaniesError({
+              organizationId: _.path.id,
+              companyCount: companies.length
             }))
           }
 
-          yield* orgRepo.delete(orgId).pipe(
-            Effect.mapError((e) => mapPersistenceToBusinessRule(e))
-          )
+          yield* orgRepo.delete(orgId).pipe(Effect.orDie)
         })
       )
 
@@ -393,15 +361,10 @@ export const CompaniesApiLive = HttpApiBuilder.group(AppApi, "companies", (handl
           Effect.gen(function* () {
             yield* requirePermission("company:read")
 
-            // listCompanies declares NotFoundError, ValidationError, ForbiddenError
+            // listCompanies declares OrganizationNotFoundError, ForbiddenError
+            // Organization context is already validated by requireOrganizationContext
             const { organizationId, isActive, parentCompanyId, jurisdiction } = _.urlParams
             const orgId = OrganizationId.make(organizationId)
-
-            // Check organization exists
-            const orgExists = yield* orgRepo.exists(orgId).pipe(Effect.orDie)
-            if (!orgExists) {
-              return yield* Effect.fail(new NotFoundError({ resource: "Organization", id: organizationId }))
-            }
 
             // Get companies based on filters
             let companies: ReadonlyArray<Company>
@@ -450,14 +413,14 @@ export const CompaniesApiLive = HttpApiBuilder.group(AppApi, "companies", (handl
           Effect.gen(function* () {
             yield* requirePermission("company:read")
 
-            // getCompany declares NotFoundError, ForbiddenError
+            // getCompany declares CompanyNotFoundError, OrganizationNotFoundError, ForbiddenError
             const companyId = CompanyId.make(_.path.id)
             const organizationId = OrganizationId.make(_.path.organizationId)
 
             const maybeCompany = yield* companyRepo.findById(organizationId, companyId).pipe(Effect.orDie)
 
             return yield* Option.match(maybeCompany, {
-              onNone: () => Effect.fail(new NotFoundError({ resource: "Company", id: _.path.id })),
+              onNone: () => Effect.fail(new CompanyNotFoundError({ companyId: _.path.id })),
               onSome: Effect.succeed
             })
           })
@@ -468,16 +431,16 @@ export const CompaniesApiLive = HttpApiBuilder.group(AppApi, "companies", (handl
           Effect.gen(function* () {
             yield* requirePermission("company:create")
 
-            // createCompany declares ValidationError, ConflictError, BusinessRuleError, ForbiddenError
+            // createCompany declares OrganizationNotFoundError, ParentCompanyNotFoundError,
+            // OwnershipPercentageRequiredError, ConflictError, ForbiddenError, AuditLogError, UserLookupError
             const req = _.payload
 
-            // Validate organization exists
+            // Validate organization exists (requireOrganizationContext validates access,
+            // this confirms the org exists in the database)
             const orgExists = yield* orgRepo.exists(req.organizationId).pipe(Effect.orDie)
             if (!orgExists) {
-              return yield* Effect.fail(new BusinessRuleError({
-                code: "ORGANIZATION_NOT_FOUND",
-                message: `Organization not found: ${req.organizationId}`,
-                details: Option.none()
+              return yield* Effect.fail(new OrganizationNotFoundError({
+                organizationId: req.organizationId
               }))
             }
 
@@ -486,10 +449,8 @@ export const CompaniesApiLive = HttpApiBuilder.group(AppApi, "companies", (handl
               // Parent company lookup uses same org ID (already validated org exists above)
               const parentCompany = yield* companyRepo.findById(req.organizationId, req.parentCompanyId.value).pipe(Effect.orDie)
               if (Option.isNone(parentCompany)) {
-                return yield* Effect.fail(new BusinessRuleError({
-                  code: "PARENT_COMPANY_NOT_FOUND",
-                  message: `Parent company not found: ${req.parentCompanyId.value}`,
-                  details: Option.none()
+                return yield* Effect.fail(new ParentCompanyNotFoundError({
+                  parentCompanyId: req.parentCompanyId.value
                 }))
               }
               // No need to check parentCompany.value.organizationId !== req.organizationId anymore
@@ -500,11 +461,7 @@ export const CompaniesApiLive = HttpApiBuilder.group(AppApi, "companies", (handl
             if (Option.isSome(req.parentCompanyId)) {
               // Subsidiaries must have ownership percentage
               if (Option.isNone(req.ownershipPercentage)) {
-                return yield* Effect.fail(new ValidationError({
-                  message: "Ownership percentage is required for subsidiaries",
-                  field: Option.some("ownershipPercentage"),
-                  details: Option.none()
-                }))
+                return yield* Effect.fail(new OwnershipPercentageRequiredError({}))
               }
             }
 
@@ -547,7 +504,9 @@ export const CompaniesApiLive = HttpApiBuilder.group(AppApi, "companies", (handl
           Effect.gen(function* () {
             yield* requirePermission("company:update")
 
-            // updateCompany declares NotFoundError, ValidationError, ConflictError, BusinessRuleError, ForbiddenError
+            // updateCompany declares CompanyNotFoundError, ParentCompanyNotFoundError,
+            // CircularCompanyReferenceError, ConflictError, OrganizationNotFoundError, ForbiddenError,
+            // AuditLogError, UserLookupError
             const req = _.payload
             const companyId = CompanyId.make(_.path.id)
             const organizationId = OrganizationId.make(_.path.organizationId)
@@ -555,7 +514,7 @@ export const CompaniesApiLive = HttpApiBuilder.group(AppApi, "companies", (handl
             // Get existing company (filtered by org)
             const maybeExisting = yield* companyRepo.findById(organizationId, companyId).pipe(Effect.orDie)
             if (Option.isNone(maybeExisting)) {
-              return yield* Effect.fail(new NotFoundError({ resource: "Company", id: _.path.id }))
+              return yield* Effect.fail(new CompanyNotFoundError({ companyId: _.path.id }))
             }
             const existing = maybeExisting.value
 
@@ -566,20 +525,17 @@ export const CompaniesApiLive = HttpApiBuilder.group(AppApi, "companies", (handl
 
             if (Option.isSome(req.parentCompanyId)) {
               if (req.parentCompanyId.value === companyId) {
-                return yield* Effect.fail(new BusinessRuleError({
-                  code: "CIRCULAR_REFERENCE",
-                  message: "Company cannot be its own parent",
-                  details: Option.none()
+                return yield* Effect.fail(new CircularCompanyReferenceError({
+                  companyId: _.path.id,
+                  parentCompanyId: _.path.id
                 }))
               }
 
               // Parent company lookup uses same org for security
               const parentCompany = yield* companyRepo.findById(organizationId, req.parentCompanyId.value).pipe(Effect.orDie)
               if (Option.isNone(parentCompany)) {
-                return yield* Effect.fail(new BusinessRuleError({
-                  code: "PARENT_COMPANY_NOT_FOUND",
-                  message: `Parent company not found: ${req.parentCompanyId.value}`,
-                  details: Option.none()
+                return yield* Effect.fail(new ParentCompanyNotFoundError({
+                  parentCompanyId: req.parentCompanyId.value
                 }))
               }
               // No need to check parentCompany.value.organizationId !== existing.organizationId
@@ -589,10 +545,9 @@ export const CompaniesApiLive = HttpApiBuilder.group(AppApi, "companies", (handl
               let currentParent = parentCompany.value
               while (Option.isSome(currentParent.parentCompanyId)) {
                 if (currentParent.parentCompanyId.value === companyId) {
-                  return yield* Effect.fail(new BusinessRuleError({
-                    code: "CIRCULAR_REFERENCE",
-                    message: "Updating parent would create circular reference in company hierarchy",
-                    details: Option.none()
+                  return yield* Effect.fail(new CircularCompanyReferenceError({
+                    companyId: _.path.id,
+                    parentCompanyId: req.parentCompanyId.value
                   }))
                 }
                 const nextParent = yield* companyRepo.findById(organizationId, currentParent.parentCompanyId.value).pipe(Effect.orDie)
@@ -659,14 +614,15 @@ export const CompaniesApiLive = HttpApiBuilder.group(AppApi, "companies", (handl
           Effect.gen(function* () {
             yield* requirePermission("company:delete")
 
-            // deactivateCompany declares NotFoundError, BusinessRuleError, ForbiddenError
+            // deactivateCompany declares CompanyNotFoundError, HasActiveSubsidiariesError,
+            // OrganizationNotFoundError, ForbiddenError, AuditLogError, UserLookupError
             const companyId = CompanyId.make(_.path.id)
             const organizationId = OrganizationId.make(_.path.organizationId)
 
             // Get existing company (filtered by org)
             const maybeExisting = yield* companyRepo.findById(organizationId, companyId).pipe(Effect.orDie)
             if (Option.isNone(maybeExisting)) {
-              return yield* Effect.fail(new NotFoundError({ resource: "Company", id: _.path.id }))
+              return yield* Effect.fail(new CompanyNotFoundError({ companyId: _.path.id }))
             }
             const existing = maybeExisting.value
 
@@ -674,10 +630,9 @@ export const CompaniesApiLive = HttpApiBuilder.group(AppApi, "companies", (handl
             const subsidiaries = yield* companyRepo.findSubsidiaries(organizationId, companyId).pipe(Effect.orDie)
             const activeSubsidiaries = subsidiaries.filter((c) => c.isActive)
             if (activeSubsidiaries.length > 0) {
-              return yield* Effect.fail(new BusinessRuleError({
-                code: "HAS_ACTIVE_SUBSIDIARIES",
-                message: `Cannot deactivate company with ${activeSubsidiaries.length} active subsidiaries`,
-                details: Option.none()
+              return yield* Effect.fail(new HasActiveSubsidiariesError({
+                companyId: _.path.id,
+                subsidiaryCount: activeSubsidiaries.length
               }))
             }
 
@@ -687,9 +642,7 @@ export const CompaniesApiLive = HttpApiBuilder.group(AppApi, "companies", (handl
               isActive: false
             })
 
-            yield* companyRepo.update(organizationId, deactivatedCompany).pipe(
-              Effect.mapError((e) => mapPersistenceToBusinessRule(e))
-            )
+            yield* companyRepo.update(organizationId, deactivatedCompany).pipe(Effect.orDie)
 
             // Log company deactivation to audit log
             yield* logCompanyDeactivate(existing)

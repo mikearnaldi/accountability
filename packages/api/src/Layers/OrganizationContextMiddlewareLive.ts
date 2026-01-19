@@ -46,7 +46,8 @@ import { AuthorizationConfig } from "@accountability/core/Auth/AuthorizationConf
 import * as Timestamp from "@accountability/core/Domains/Timestamp"
 import type { Action } from "@accountability/core/Auth/Action"
 import { CurrentUser } from "../Definitions/AuthMiddleware.ts"
-import { ForbiddenError, NotFoundError } from "../Definitions/ApiErrors.ts"
+import { ForbiddenError } from "../Definitions/ApiErrors.ts"
+import { OrganizationNotFoundError } from "@accountability/core/Errors/DomainErrors"
 import type { ResourceContext } from "@accountability/core/Auth/matchers/ResourceMatcher"
 import { isPermissionDeniedError } from "@accountability/core/Auth/AuthorizationErrors"
 
@@ -60,7 +61,7 @@ export { CurrentUserId } from "@accountability/core/AuditLog/CurrentUserId"
 /**
  * OrganizationContextError - Errors that can occur during organization context loading
  */
-export type OrganizationContextError = ForbiddenError | NotFoundError
+export type OrganizationContextError = ForbiddenError | OrganizationNotFoundError
 
 // =============================================================================
 // Helper Functions
@@ -70,14 +71,13 @@ export type OrganizationContextError = ForbiddenError | NotFoundError
  * validateOrganizationId - Decode and validate organization ID from string
  *
  * @param orgIdString - The raw organization ID string from path parameter
- * @returns Effect that decodes to OrganizationId or fails with NotFoundError
+ * @returns Effect that decodes to OrganizationId or fails with OrganizationNotFoundError
  */
 export const validateOrganizationId = (orgIdString: string) =>
   Schema.decodeUnknown(OrganizationId)(orgIdString).pipe(
     Effect.mapError(() =>
-      new NotFoundError({
-        resource: "Organization",
-        id: orgIdString
+      new OrganizationNotFoundError({
+        organizationId: orgIdString
       })
     )
   )

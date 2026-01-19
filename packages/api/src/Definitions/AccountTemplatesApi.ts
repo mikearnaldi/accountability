@@ -18,8 +18,13 @@ import {
   type AccountTemplate,
   type TemplateAccountDefinition
 } from "@accountability/core/Domains/AccountTemplate"
+import {
+  CompanyNotFoundError,
+  AccountsAlreadyExistError,
+  OrganizationNotFoundError
+} from "@accountability/core/Errors/DomainErrors"
 import { AuthMiddleware } from "./AuthMiddleware.ts"
-import { AuditLogError, BusinessRuleError, ForbiddenError, NotFoundError, UserLookupError } from "./ApiErrors.ts"
+import { AuditLogError, ForbiddenError, UserLookupError } from "./ApiErrors.ts"
 
 // =============================================================================
 // Response Schemas
@@ -157,8 +162,9 @@ const applyTemplate = HttpApiEndpoint.post("applyAccountTemplate", "/:type/apply
   .setPath(Schema.Struct({ type: TemplateType }))
   .setPayload(ApplyTemplateRequest)
   .addSuccess(ApplyTemplateResponse)
-  .addError(NotFoundError)
-  .addError(BusinessRuleError)
+  .addError(OrganizationNotFoundError)
+  .addError(CompanyNotFoundError)
+  .addError(AccountsAlreadyExistError)
   .addError(ForbiddenError)
   .addError(AuditLogError)
   .addError(UserLookupError)

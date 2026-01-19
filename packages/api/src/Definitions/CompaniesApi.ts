@@ -22,14 +22,23 @@ import { JurisdictionCode } from "@accountability/core/Domains/JurisdictionCode"
 import { Percentage } from "@accountability/core/Domains/Percentage"
 import {
   AuditLogError,
-  BusinessRuleError,
   ConflictError,
   ForbiddenError,
-  NotFoundError,
   UserLookupError,
   ValidationError
 } from "./ApiErrors.ts"
 import { AuthMiddleware } from "./AuthMiddleware.ts"
+import {
+  OrganizationNotFoundError,
+  OrganizationHasCompaniesError,
+  CompanyNotFoundError,
+  ParentCompanyNotFoundError,
+  OwnershipPercentageRequiredError,
+  CircularCompanyReferenceError,
+  HasActiveSubsidiariesError,
+  MembershipCreationFailedError,
+  SystemPolicySeedingFailedError
+} from "@accountability/core/Errors/DomainErrors"
 
 // =============================================================================
 // Organization Request/Response Schemas
@@ -155,7 +164,7 @@ const listOrganizations = HttpApiEndpoint.get("listOrganizations", "/organizatio
 const getOrganization = HttpApiEndpoint.get("getOrganization", "/organizations/:id")
   .setPath(Schema.Struct({ id: Schema.String }))
   .addSuccess(Organization)
-  .addError(NotFoundError)
+  .addError(OrganizationNotFoundError)
   .annotateContext(OpenApi.annotations({
     summary: "Get organization",
     description: "Retrieve a single organization by its unique identifier."
@@ -167,9 +176,9 @@ const getOrganization = HttpApiEndpoint.get("getOrganization", "/organizations/:
 const createOrganization = HttpApiEndpoint.post("createOrganization", "/organizations")
   .setPayload(CreateOrganizationRequest)
   .addSuccess(Organization, { status: 201 })
-  .addError(ValidationError)
   .addError(ConflictError)
-  .addError(BusinessRuleError)
+  .addError(MembershipCreationFailedError)
+  .addError(SystemPolicySeedingFailedError)
   .annotateContext(OpenApi.annotations({
     summary: "Create organization",
     description: "Create a new organization. Organizations are the top-level container for companies and shared settings."
@@ -182,7 +191,7 @@ const updateOrganization = HttpApiEndpoint.put("updateOrganization", "/organizat
   .setPath(Schema.Struct({ id: Schema.String }))
   .setPayload(UpdateOrganizationRequest)
   .addSuccess(Organization)
-  .addError(NotFoundError)
+  .addError(OrganizationNotFoundError)
   .addError(ValidationError)
   .annotateContext(OpenApi.annotations({
     summary: "Update organization",
@@ -195,8 +204,8 @@ const updateOrganization = HttpApiEndpoint.put("updateOrganization", "/organizat
 const deleteOrganization = HttpApiEndpoint.del("deleteOrganization", "/organizations/:id")
   .setPath(Schema.Struct({ id: Schema.String }))
   .addSuccess(HttpApiSchema.NoContent)
-  .addError(NotFoundError)
-  .addError(BusinessRuleError)
+  .addError(OrganizationNotFoundError)
+  .addError(OrganizationHasCompaniesError)
   .annotateContext(OpenApi.annotations({
     summary: "Delete organization",
     description: "Delete an organization. Organizations can only be deleted if they contain no companies."
@@ -212,8 +221,7 @@ const deleteOrganization = HttpApiEndpoint.del("deleteOrganization", "/organizat
 const listCompanies = HttpApiEndpoint.get("listCompanies", "/companies")
   .setUrlParams(CompanyListParams)
   .addSuccess(CompanyListResponse)
-  .addError(NotFoundError)
-  .addError(ValidationError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "List companies",
@@ -226,7 +234,8 @@ const listCompanies = HttpApiEndpoint.get("listCompanies", "/companies")
 const getCompany = HttpApiEndpoint.get("getCompany", "/organizations/:organizationId/companies/:id")
   .setPath(Schema.Struct({ organizationId: Schema.String, id: Schema.String }))
   .addSuccess(Company)
-  .addError(NotFoundError)
+  .addError(CompanyNotFoundError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "Get company",
@@ -239,11 +248,11 @@ const getCompany = HttpApiEndpoint.get("getCompany", "/organizations/:organizati
 const createCompany = HttpApiEndpoint.post("createCompany", "/companies")
   .setPayload(CreateCompanyRequest)
   .addSuccess(Company, { status: 201 })
-  .addError(ValidationError)
+  .addError(OrganizationNotFoundError)
+  .addError(ParentCompanyNotFoundError)
+  .addError(OwnershipPercentageRequiredError)
   .addError(ConflictError)
-  .addError(BusinessRuleError)
   .addError(ForbiddenError)
-  .addError(NotFoundError)
   .addError(AuditLogError)
   .addError(UserLookupError)
   .annotateContext(OpenApi.annotations({
@@ -258,10 +267,11 @@ const updateCompany = HttpApiEndpoint.put("updateCompany", "/organizations/:orga
   .setPath(Schema.Struct({ organizationId: Schema.String, id: Schema.String }))
   .setPayload(UpdateCompanyRequest)
   .addSuccess(Company)
-  .addError(NotFoundError)
-  .addError(ValidationError)
+  .addError(CompanyNotFoundError)
+  .addError(ParentCompanyNotFoundError)
+  .addError(CircularCompanyReferenceError)
   .addError(ConflictError)
-  .addError(BusinessRuleError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .addError(AuditLogError)
   .addError(UserLookupError)
@@ -276,8 +286,9 @@ const updateCompany = HttpApiEndpoint.put("updateCompany", "/organizations/:orga
 const deactivateCompany = HttpApiEndpoint.del("deactivateCompany", "/organizations/:organizationId/companies/:id")
   .setPath(Schema.Struct({ organizationId: Schema.String, id: Schema.String }))
   .addSuccess(HttpApiSchema.NoContent)
-  .addError(NotFoundError)
-  .addError(BusinessRuleError)
+  .addError(CompanyNotFoundError)
+  .addError(HasActiveSubsidiariesError)
+  .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .addError(AuditLogError)
   .addError(UserLookupError)

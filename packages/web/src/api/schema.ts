@@ -366,7 +366,7 @@ export interface paths {
         put?: never;
         /**
          * Apply account template
-         * @description Apply an account template to a company, creating all accounts defined in the template. The company must exist and should not already have accounts from a template.
+         * @description Apply an account template to a company, creating all accounts defined in the template. The company must exist and should not already have accounts from a template. Requires account:create permission.
          */
         post: operations["accountTemplates.applyAccountTemplate"];
         delete?: never;
@@ -2649,26 +2649,15 @@ export interface components {
          * @description An ISO 4217 currency code (3 uppercase letters)
          */
         CurrencyCode: string;
-        ValidationError: {
-            /** @description A human-readable description of the validation error */
-            message: string;
-            /** @description The field that failed validation, if applicable */
-            field: string | null;
-            /** @description Detailed validation errors for multiple fields */
-            details: {
-                field: string;
-                message: string;
-            }[] | null;
+        CompanyNotFoundError: {
+            companyId: string;
             /** @enum {string} */
-            _tag: "ValidationError";
+            _tag: "CompanyNotFoundError";
         };
-        NotFoundError: {
-            /** @description The type of resource that was not found (e.g., 'Account', 'Company') */
-            resource: string;
-            /** @description The identifier of the resource that was not found */
-            id: string;
+        OrganizationNotFoundError: {
+            organizationId: string;
             /** @enum {string} */
-            _tag: "NotFoundError";
+            _tag: "OrganizationNotFoundError";
         };
         ForbiddenError: {
             message: string;
@@ -2678,6 +2667,11 @@ export interface components {
             action: string | null;
             /** @enum {string} */
             _tag: "ForbiddenError";
+        };
+        AccountNotFoundError: {
+            accountId: string;
+            /** @enum {string} */
+            _tag: "AccountNotFoundError";
         };
         CreateAccountRequest: {
             organizationId: components["schemas"]["OrganizationId"];
@@ -2702,6 +2696,23 @@ export interface components {
          * @description A unique identifier for an organization (UUID format)
          */
         OrganizationId: string;
+        ParentAccountDifferentCompanyError: {
+            accountCompanyId: string;
+            parentAccountCompanyId: string;
+            /** @enum {string} */
+            _tag: "ParentAccountDifferentCompanyError";
+        };
+        ParentAccountNotFoundError: {
+            parentAccountId: string;
+            /** @enum {string} */
+            _tag: "ParentAccountNotFoundError";
+        };
+        AccountNumberAlreadyExistsError: {
+            accountNumber: string;
+            companyId: string;
+            /** @enum {string} */
+            _tag: "AccountNumberAlreadyExistsError";
+        };
         ConflictError: {
             /** @description A human-readable description of the conflict */
             message: string;
@@ -2712,18 +2723,27 @@ export interface components {
             /** @enum {string} */
             _tag: "ConflictError";
         };
-        BusinessRuleError: {
-            /** @description A machine-readable error code */
-            code: string;
-            /** @description A human-readable description of the business rule violation */
-            message: string;
+        AuditLogError: {
+            /** @description The audit operation that failed (e.g., 'logCreate', 'logUpdate') */
+            operation: string;
             /**
              * unknown
-             * @description Additional details about the violation
+             * @description The underlying cause of the failure
              */
-            details: unknown;
+            cause: unknown;
             /** @enum {string} */
-            _tag: "BusinessRuleError";
+            _tag: "AuditLogError";
+        };
+        UserLookupError: {
+            /** @description The user ID that could not be looked up */
+            userId: string;
+            /**
+             * unknown
+             * @description The underlying cause of the lookup failure
+             */
+            cause: unknown;
+            /** @enum {string} */
+            _tag: "UserLookupError";
         };
         UpdateAccountRequest: {
             name: components["schemas"]["NonEmptyTrimmedString"] | null;
@@ -2736,6 +2756,18 @@ export interface components {
             intercompanyPartnerId: components["schemas"]["CompanyId"] | null;
             currencyRestriction: components["schemas"]["CurrencyCode"] | null;
             isActive: boolean | null;
+        };
+        CircularAccountReferenceError: {
+            accountId: string;
+            parentAccountId: string;
+            /** @enum {string} */
+            _tag: "CircularAccountReferenceError";
+        };
+        HasActiveChildAccountsError: {
+            accountId: string;
+            childCount: number;
+            /** @enum {string} */
+            _tag: "HasActiveChildAccountsError";
         };
         AccountTemplateListResponse: {
             templates: components["schemas"]["AccountTemplateItem"][];
@@ -2786,6 +2818,12 @@ export interface components {
             createdCount: number;
             companyId: components["schemas"]["UUID"];
             templateType: components["schemas"]["TemplateType"];
+        };
+        AccountsAlreadyExistError: {
+            companyId: string;
+            accountCount: number;
+            /** @enum {string} */
+            _tag: "AccountsAlreadyExistError";
         };
         /**
          * Audit Entity Type
@@ -2863,6 +2901,14 @@ export interface components {
             userAgent: string | null;
             createdAt: components["schemas"]["DateTimeUtc"];
         };
+        NotFoundError: {
+            /** @description The type of resource that was not found (e.g., 'Account', 'Company') */
+            resource: string;
+            /** @description The identifier of the resource that was not found */
+            id: string;
+            /** @enum {string} */
+            _tag: "NotFoundError";
+        };
         OrganizationListResponse: {
             organizations: components["schemas"]["Organization"][];
             /**
@@ -2896,10 +2942,38 @@ export interface components {
             reportingCurrency: components["schemas"]["CurrencyCode"];
             settings: components["schemas"]["OrganizationSettings"] | null;
         };
+        MembershipCreationFailedError: {
+            reason: string;
+            /** @enum {string} */
+            _tag: "MembershipCreationFailedError";
+        };
+        SystemPolicySeedingFailedError: {
+            /** @enum {string} */
+            _tag: "SystemPolicySeedingFailedError";
+        };
         UpdateOrganizationRequest: {
             name: components["schemas"]["NonEmptyTrimmedString"] | null;
             reportingCurrency: components["schemas"]["CurrencyCode"] | null;
             settings: components["schemas"]["OrganizationSettings"] | null;
+        };
+        ValidationError: {
+            /** @description A human-readable description of the validation error */
+            message: string;
+            /** @description The field that failed validation, if applicable */
+            field: string | null;
+            /** @description Detailed validation errors for multiple fields */
+            details: {
+                field: string;
+                message: string;
+            }[] | null;
+            /** @enum {string} */
+            _tag: "ValidationError";
+        };
+        OrganizationHasCompaniesError: {
+            organizationId: string;
+            companyCount: number;
+            /** @enum {string} */
+            _tag: "OrganizationHasCompaniesError";
         };
         CompanyListResponse: {
             companies: components["schemas"]["Company"][];
@@ -3083,6 +3157,15 @@ export interface components {
             parentCompanyId: components["schemas"]["CompanyId"] | null;
             ownershipPercentage: components["schemas"]["Percentage"] | null;
         };
+        OwnershipPercentageRequiredError: {
+            /** @enum {string} */
+            _tag: "OwnershipPercentageRequiredError";
+        };
+        ParentCompanyNotFoundError: {
+            parentCompanyId: string;
+            /** @enum {string} */
+            _tag: "ParentCompanyNotFoundError";
+        };
         UpdateCompanyRequest: {
             name: components["schemas"]["NonEmptyTrimmedString"] | null;
             legalName: components["schemas"]["NonEmptyTrimmedString"] | null;
@@ -3098,6 +3181,18 @@ export interface components {
             parentCompanyId: components["schemas"]["CompanyId"] | null;
             ownershipPercentage: components["schemas"]["Percentage"] | null;
             isActive: boolean | null;
+        };
+        CircularCompanyReferenceError: {
+            companyId: string;
+            parentCompanyId: string;
+            /** @enum {string} */
+            _tag: "CircularCompanyReferenceError";
+        };
+        HasActiveSubsidiariesError: {
+            companyId: string;
+            subsidiaryCount: number;
+            /** @enum {string} */
+            _tag: "HasActiveSubsidiariesError";
         };
         UserInvitationsResponse: {
             invitations: components["schemas"]["PendingInvitationInfo"][];
@@ -3144,6 +3239,19 @@ export interface components {
          * @enum {string}
          */
         BaseRole: "owner" | "admin" | "member" | "viewer";
+        BusinessRuleError: {
+            /** @description A machine-readable error code */
+            code: string;
+            /** @description A human-readable description of the business rule violation */
+            message: string;
+            /**
+             * unknown
+             * @description Additional details about the violation
+             */
+            details: unknown;
+            /** @enum {string} */
+            _tag: "BusinessRuleError";
+        };
         OrgInvitationsResponse: {
             invitations: components["schemas"]["OrgInvitationInfo"][];
         };
@@ -3384,6 +3492,11 @@ export interface components {
          */
         Dimensions: {
             [key: string]: string;
+        };
+        JournalEntryNotFoundError: {
+            entryId: string;
+            /** @enum {string} */
+            _tag: "JournalEntryNotFoundError";
         };
         CreateJournalEntryRequest: {
             organizationId: components["schemas"]["OrganizationId"];
@@ -5396,7 +5509,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HttpApiDecodeError"] | components["schemas"]["ValidationError"];
+                    "application/json": components["schemas"]["HttpApiDecodeError"];
                 };
             };
             /** @description UnauthorizedError */
@@ -5417,13 +5530,13 @@ export interface operations {
                     "application/json": components["schemas"]["ForbiddenError"];
                 };
             };
-            /** @description NotFoundError */
+            /** @description CompanyNotFoundError */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["CompanyNotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
         };
@@ -5456,7 +5569,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HttpApiDecodeError"] | components["schemas"]["ValidationError"];
+                    "application/json": components["schemas"]["HttpApiDecodeError"] | components["schemas"]["ParentAccountDifferentCompanyError"];
                 };
             };
             /** @description UnauthorizedError */
@@ -5477,31 +5590,31 @@ export interface operations {
                     "application/json": components["schemas"]["ForbiddenError"];
                 };
             };
-            /** @description NotFoundError */
+            /** @description CompanyNotFoundError */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["CompanyNotFoundError"] | components["schemas"]["ParentAccountNotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
-            /** @description ConflictError */
+            /** @description AccountNumberAlreadyExistsError */
             409: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ConflictError"];
+                    "application/json": components["schemas"]["AccountNumberAlreadyExistsError"] | components["schemas"]["ConflictError"];
                 };
             };
-            /** @description BusinessRuleError */
-            422: {
+            /** @description AuditLogError */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["BusinessRuleError"];
+                    "application/json": components["schemas"]["AuditLogError"] | components["schemas"]["UserLookupError"];
                 };
             };
         };
@@ -5554,13 +5667,13 @@ export interface operations {
                     "application/json": components["schemas"]["ForbiddenError"];
                 };
             };
-            /** @description NotFoundError */
+            /** @description AccountNotFoundError */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["AccountNotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
         };
@@ -5596,7 +5709,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HttpApiDecodeError"] | components["schemas"]["ValidationError"];
+                    "application/json": components["schemas"]["HttpApiDecodeError"] | components["schemas"]["ParentAccountDifferentCompanyError"];
                 };
             };
             /** @description UnauthorizedError */
@@ -5617,31 +5730,31 @@ export interface operations {
                     "application/json": components["schemas"]["ForbiddenError"];
                 };
             };
-            /** @description NotFoundError */
+            /** @description AccountNotFoundError */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["AccountNotFoundError"] | components["schemas"]["ParentAccountNotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
-            /** @description ConflictError */
+            /** @description CircularAccountReferenceError */
             409: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ConflictError"];
+                    "application/json": components["schemas"]["CircularAccountReferenceError"] | components["schemas"]["ConflictError"];
                 };
             };
-            /** @description BusinessRuleError */
-            422: {
+            /** @description AuditLogError */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["BusinessRuleError"];
+                    "application/json": components["schemas"]["AuditLogError"] | components["schemas"]["UserLookupError"];
                 };
             };
         };
@@ -5692,22 +5805,31 @@ export interface operations {
                     "application/json": components["schemas"]["ForbiddenError"];
                 };
             };
-            /** @description NotFoundError */
+            /** @description AccountNotFoundError */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["AccountNotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
-            /** @description BusinessRuleError */
-            422: {
+            /** @description HasActiveChildAccountsError */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["BusinessRuleError"];
+                    "application/json": components["schemas"]["HasActiveChildAccountsError"];
+                };
+            };
+            /** @description AuditLogError */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditLogError"] | components["schemas"]["UserLookupError"];
                 };
             };
         };
@@ -5832,22 +5954,40 @@ export interface operations {
                     "application/json": components["schemas"]["UnauthorizedError"];
                 };
             };
-            /** @description NotFoundError */
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
+            /** @description OrganizationNotFoundError */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["OrganizationNotFoundError"] | components["schemas"]["CompanyNotFoundError"];
                 };
             };
-            /** @description BusinessRuleError */
-            422: {
+            /** @description AccountsAlreadyExistError */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["BusinessRuleError"];
+                    "application/json": components["schemas"]["AccountsAlreadyExistError"];
+                };
+            };
+            /** @description AuditLogError */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditLogError"] | components["schemas"]["UserLookupError"];
                 };
             };
         };
@@ -5978,7 +6118,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
         };
@@ -6049,7 +6189,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HttpApiDecodeError"] | components["schemas"]["ValidationError"];
+                    "application/json": components["schemas"]["HttpApiDecodeError"];
                 };
             };
             /** @description UnauthorizedError */
@@ -6068,6 +6208,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ConflictError"];
+                };
+            };
+            /** @description MembershipCreationFailedError */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MembershipCreationFailedError"] | components["schemas"]["SystemPolicySeedingFailedError"];
                 };
             };
         };
@@ -6110,13 +6259,13 @@ export interface operations {
                     "application/json": components["schemas"]["UnauthorizedError"];
                 };
             };
-            /** @description NotFoundError */
+            /** @description OrganizationNotFoundError */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["OrganizationNotFoundError"];
                 };
             };
         };
@@ -6163,13 +6312,13 @@ export interface operations {
                     "application/json": components["schemas"]["UnauthorizedError"];
                 };
             };
-            /** @description NotFoundError */
+            /** @description OrganizationNotFoundError */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["OrganizationNotFoundError"];
                 };
             };
         };
@@ -6210,22 +6359,22 @@ export interface operations {
                     "application/json": components["schemas"]["UnauthorizedError"];
                 };
             };
-            /** @description NotFoundError */
+            /** @description OrganizationNotFoundError */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["OrganizationNotFoundError"];
                 };
             };
-            /** @description BusinessRuleError */
-            422: {
+            /** @description OrganizationHasCompaniesError */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["BusinessRuleError"];
+                    "application/json": components["schemas"]["OrganizationHasCompaniesError"];
                 };
             };
         };
@@ -6263,7 +6412,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HttpApiDecodeError"] | components["schemas"]["ValidationError"];
+                    "application/json": components["schemas"]["HttpApiDecodeError"];
                 };
             };
             /** @description UnauthorizedError */
@@ -6284,13 +6433,13 @@ export interface operations {
                     "application/json": components["schemas"]["ForbiddenError"];
                 };
             };
-            /** @description NotFoundError */
+            /** @description OrganizationNotFoundError */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["OrganizationNotFoundError"];
                 };
             };
         };
@@ -6323,7 +6472,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HttpApiDecodeError"] | components["schemas"]["ValidationError"];
+                    "application/json": components["schemas"]["HttpApiDecodeError"] | components["schemas"]["OwnershipPercentageRequiredError"];
                 };
             };
             /** @description UnauthorizedError */
@@ -6344,13 +6493,13 @@ export interface operations {
                     "application/json": components["schemas"]["ForbiddenError"];
                 };
             };
-            /** @description NotFoundError */
+            /** @description OrganizationNotFoundError */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["OrganizationNotFoundError"] | components["schemas"]["ParentCompanyNotFoundError"];
                 };
             };
             /** @description ConflictError */
@@ -6362,13 +6511,13 @@ export interface operations {
                     "application/json": components["schemas"]["ConflictError"];
                 };
             };
-            /** @description BusinessRuleError */
-            422: {
+            /** @description AuditLogError */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["BusinessRuleError"];
+                    "application/json": components["schemas"]["AuditLogError"] | components["schemas"]["UserLookupError"];
                 };
             };
         };
@@ -6421,13 +6570,13 @@ export interface operations {
                     "application/json": components["schemas"]["ForbiddenError"];
                 };
             };
-            /** @description NotFoundError */
+            /** @description CompanyNotFoundError */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["CompanyNotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
         };
@@ -6463,7 +6612,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HttpApiDecodeError"] | components["schemas"]["ValidationError"];
+                    "application/json": components["schemas"]["HttpApiDecodeError"];
                 };
             };
             /** @description UnauthorizedError */
@@ -6484,31 +6633,31 @@ export interface operations {
                     "application/json": components["schemas"]["ForbiddenError"];
                 };
             };
-            /** @description NotFoundError */
+            /** @description CompanyNotFoundError */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["CompanyNotFoundError"] | components["schemas"]["ParentCompanyNotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
-            /** @description ConflictError */
+            /** @description CircularCompanyReferenceError */
             409: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ConflictError"];
+                    "application/json": components["schemas"]["CircularCompanyReferenceError"] | components["schemas"]["ConflictError"];
                 };
             };
-            /** @description BusinessRuleError */
-            422: {
+            /** @description AuditLogError */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["BusinessRuleError"];
+                    "application/json": components["schemas"]["AuditLogError"] | components["schemas"]["UserLookupError"];
                 };
             };
         };
@@ -6559,22 +6708,31 @@ export interface operations {
                     "application/json": components["schemas"]["ForbiddenError"];
                 };
             };
-            /** @description NotFoundError */
+            /** @description CompanyNotFoundError */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["CompanyNotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
-            /** @description BusinessRuleError */
-            422: {
+            /** @description HasActiveSubsidiariesError */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["BusinessRuleError"];
+                    "application/json": components["schemas"]["HasActiveSubsidiariesError"];
+                };
+            };
+            /** @description AuditLogError */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditLogError"] | components["schemas"]["UserLookupError"];
                 };
             };
         };
@@ -6622,6 +6780,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
+            /** @description OrganizationNotFoundError */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationNotFoundError"];
                 };
             };
         };
@@ -6792,7 +6959,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
             /** @description BusinessRuleError */
@@ -6859,7 +7026,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
         };
@@ -6925,13 +7092,13 @@ export interface operations {
                     "application/json": components["schemas"]["ForbiddenError"];
                 };
             };
-            /** @description NotFoundError */
+            /** @description CompanyNotFoundError */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["CompanyNotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
         };
@@ -6985,13 +7152,13 @@ export interface operations {
                     "application/json": components["schemas"]["ForbiddenError"];
                 };
             };
-            /** @description NotFoundError */
+            /** @description CompanyNotFoundError */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["CompanyNotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
             /** @description BusinessRuleError */
@@ -7001,6 +7168,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BusinessRuleError"];
+                };
+            };
+            /** @description AuditLogError */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditLogError"] | components["schemas"]["UserLookupError"];
                 };
             };
         };
@@ -7054,13 +7230,13 @@ export interface operations {
                     "application/json": components["schemas"]["ForbiddenError"];
                 };
             };
-            /** @description NotFoundError */
+            /** @description JournalEntryNotFoundError */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["JournalEntryNotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
         };
@@ -7116,13 +7292,13 @@ export interface operations {
                     "application/json": components["schemas"]["ForbiddenError"];
                 };
             };
-            /** @description NotFoundError */
+            /** @description JournalEntryNotFoundError */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["JournalEntryNotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
             /** @description ConflictError */
@@ -7192,13 +7368,13 @@ export interface operations {
                     "application/json": components["schemas"]["ForbiddenError"];
                 };
             };
-            /** @description NotFoundError */
+            /** @description JournalEntryNotFoundError */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["JournalEntryNotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
             /** @description BusinessRuleError */
@@ -7261,13 +7437,13 @@ export interface operations {
                     "application/json": components["schemas"]["ForbiddenError"];
                 };
             };
-            /** @description NotFoundError */
+            /** @description JournalEntryNotFoundError */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["JournalEntryNotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
             /** @description BusinessRuleError */
@@ -7330,13 +7506,13 @@ export interface operations {
                     "application/json": components["schemas"]["ForbiddenError"];
                 };
             };
-            /** @description NotFoundError */
+            /** @description JournalEntryNotFoundError */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["JournalEntryNotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
             /** @description BusinessRuleError */
@@ -7405,13 +7581,13 @@ export interface operations {
                     "application/json": components["schemas"]["ForbiddenError"];
                 };
             };
-            /** @description NotFoundError */
+            /** @description JournalEntryNotFoundError */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["JournalEntryNotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
             /** @description BusinessRuleError */
@@ -7476,13 +7652,13 @@ export interface operations {
                     "application/json": components["schemas"]["ForbiddenError"];
                 };
             };
-            /** @description NotFoundError */
+            /** @description JournalEntryNotFoundError */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["JournalEntryNotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
             /** @description BusinessRuleError */
@@ -7492,6 +7668,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BusinessRuleError"];
+                };
+            };
+            /** @description AuditLogError */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditLogError"] | components["schemas"]["UserLookupError"];
                 };
             };
         };
@@ -7547,13 +7732,13 @@ export interface operations {
                     "application/json": components["schemas"]["ForbiddenError"];
                 };
             };
-            /** @description NotFoundError */
+            /** @description JournalEntryNotFoundError */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["JournalEntryNotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
             /** @description BusinessRuleError */
@@ -7563,6 +7748,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BusinessRuleError"];
+                };
+            };
+            /** @description AuditLogError */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditLogError"] | components["schemas"]["UserLookupError"];
                 };
             };
         };
@@ -7620,7 +7814,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
         };
@@ -7690,7 +7884,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
             /** @description BusinessRuleError */
@@ -7760,7 +7954,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
             /** @description BusinessRuleError */
@@ -7832,7 +8026,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
             /** @description BusinessRuleError */
@@ -7900,7 +8094,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
             /** @description BusinessRuleError */
@@ -7972,7 +8166,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
             /** @description BusinessRuleError */
@@ -8040,7 +8234,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
             /** @description BusinessRuleError */
@@ -8109,7 +8303,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
             /** @description BusinessRuleError */
@@ -8168,6 +8362,15 @@ export interface operations {
                     "application/json": components["schemas"]["ForbiddenError"];
                 };
             };
+            /** @description OrganizationNotFoundError */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationNotFoundError"];
+                };
+            };
         };
     };
     "policy.listPolicies": {
@@ -8223,7 +8426,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
         };
@@ -8362,7 +8565,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
             /** @description BusinessRuleError */
@@ -8430,7 +8633,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
         };
@@ -8487,7 +8690,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
             /** @description BusinessRuleError */
@@ -8559,7 +8762,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
             /** @description BusinessRuleError */
@@ -8630,7 +8833,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
         };
@@ -8693,7 +8896,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
             /** @description BusinessRuleError */
@@ -8765,7 +8968,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
             /** @description BusinessRuleError */
@@ -8838,7 +9041,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
             /** @description BusinessRuleError */
@@ -8910,7 +9113,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
             /** @description BusinessRuleError */
@@ -8981,7 +9184,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
             /** @description BusinessRuleError */
@@ -9129,13 +9332,13 @@ export interface operations {
                     "application/json": components["schemas"]["ForbiddenError"];
                 };
             };
-            /** @description NotFoundError */
+            /** @description OrganizationNotFoundError */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["OrganizationNotFoundError"] | components["schemas"]["NotFoundError"];
                 };
             };
         };
@@ -9197,13 +9400,13 @@ export interface operations {
                     "application/json": components["schemas"]["ForbiddenError"];
                 };
             };
-            /** @description NotFoundError */
+            /** @description OrganizationNotFoundError */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["OrganizationNotFoundError"] | components["schemas"]["NotFoundError"];
                 };
             };
             /** @description ConflictError */
@@ -9222,6 +9425,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BusinessRuleError"];
+                };
+            };
+            /** @description AuditLogError */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditLogError"] | components["schemas"]["UserLookupError"];
                 };
             };
         };
@@ -9279,7 +9491,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
         };
@@ -9335,7 +9547,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
             /** @description BusinessRuleError */
@@ -9345,6 +9557,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BusinessRuleError"];
+                };
+            };
+            /** @description AuditLogError */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditLogError"] | components["schemas"]["UserLookupError"];
                 };
             };
         };
@@ -9398,13 +9619,22 @@ export interface operations {
                     "application/json": components["schemas"]["ForbiddenError"];
                 };
             };
-            /** @description NotFoundError */
+            /** @description OrganizationNotFoundError */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["OrganizationNotFoundError"] | components["schemas"]["NotFoundError"];
+                };
+            };
+            /** @description AuditLogError */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditLogError"] | components["schemas"]["UserLookupError"];
                 };
             };
         };
@@ -9459,6 +9689,15 @@ export interface operations {
                     "application/json": components["schemas"]["ForbiddenError"];
                 };
             };
+            /** @description OrganizationNotFoundError */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationNotFoundError"];
+                };
+            };
         };
     };
     "currency.getLatestRate": {
@@ -9508,6 +9747,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
+            /** @description OrganizationNotFoundError */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationNotFoundError"];
                 };
             };
         };
@@ -9560,6 +9808,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
+            /** @description OrganizationNotFoundError */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationNotFoundError"];
                 };
             };
         };
@@ -9616,6 +9873,15 @@ export interface operations {
                     "application/json": components["schemas"]["ForbiddenError"];
                 };
             };
+            /** @description OrganizationNotFoundError */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationNotFoundError"];
+                };
+            };
         };
     };
     "currency.getPeriodClosingRate": {
@@ -9668,6 +9934,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
+            /** @description OrganizationNotFoundError */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationNotFoundError"];
                 };
             };
         };
@@ -10189,13 +10464,13 @@ export interface operations {
                     "application/json": components["schemas"]["ForbiddenError"];
                 };
             };
-            /** @description NotFoundError */
+            /** @description OrganizationNotFoundError */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["OrganizationNotFoundError"] | components["schemas"]["NotFoundError"];
                 };
             };
         };
@@ -10249,13 +10524,13 @@ export interface operations {
                     "application/json": components["schemas"]["ForbiddenError"];
                 };
             };
-            /** @description NotFoundError */
+            /** @description OrganizationNotFoundError */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["OrganizationNotFoundError"] | components["schemas"]["NotFoundError"];
                 };
             };
             /** @description ConflictError */
@@ -10274,6 +10549,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BusinessRuleError"];
+                };
+            };
+            /** @description AuditLogError */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditLogError"] | components["schemas"]["UserLookupError"];
                 };
             };
         };
@@ -10333,7 +10617,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
         };
@@ -10397,7 +10681,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
             /** @description BusinessRuleError */
@@ -10407,6 +10691,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BusinessRuleError"];
+                };
+            };
+            /** @description AuditLogError */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditLogError"] | components["schemas"]["UserLookupError"];
                 };
             };
         };
@@ -10464,7 +10757,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
             /** @description BusinessRuleError */
@@ -10474,6 +10767,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BusinessRuleError"];
+                };
+            };
+            /** @description AuditLogError */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditLogError"] | components["schemas"]["UserLookupError"];
                 };
             };
         };
@@ -10533,7 +10835,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
             /** @description BusinessRuleError */
@@ -10543,6 +10845,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BusinessRuleError"];
+                };
+            };
+            /** @description AuditLogError */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditLogError"] | components["schemas"]["UserLookupError"];
                 };
             };
         };
@@ -10602,7 +10913,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
             /** @description BusinessRuleError */
@@ -10612,6 +10923,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BusinessRuleError"];
+                };
+            };
+            /** @description AuditLogError */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditLogError"] | components["schemas"]["UserLookupError"];
                 };
             };
         };
@@ -10680,7 +11000,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
             /** @description ConflictError */
@@ -10699,6 +11019,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BusinessRuleError"];
+                };
+            };
+            /** @description AuditLogError */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditLogError"] | components["schemas"]["UserLookupError"];
                 };
             };
         };
@@ -10763,7 +11092,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
             /** @description BusinessRuleError */
@@ -10773,6 +11102,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BusinessRuleError"];
+                };
+            };
+            /** @description AuditLogError */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditLogError"] | components["schemas"]["UserLookupError"];
                 };
             };
         };
@@ -10833,7 +11171,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
             /** @description BusinessRuleError */
@@ -10843,6 +11181,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BusinessRuleError"];
+                };
+            };
+            /** @description AuditLogError */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditLogError"] | components["schemas"]["UserLookupError"];
                 };
             };
         };
@@ -10904,13 +11251,13 @@ export interface operations {
                     "application/json": components["schemas"]["ForbiddenError"];
                 };
             };
-            /** @description NotFoundError */
+            /** @description OrganizationNotFoundError */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["OrganizationNotFoundError"] | components["schemas"]["NotFoundError"];
                 };
             };
         };
@@ -10970,7 +11317,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
         };
@@ -11028,7 +11375,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
             /** @description BusinessRuleError */
@@ -11038,6 +11385,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BusinessRuleError"];
+                };
+            };
+            /** @description AuditLogError */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditLogError"] | components["schemas"]["UserLookupError"];
                 };
             };
         };
@@ -11113,7 +11469,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
             /** @description ConflictError */
@@ -11132,6 +11488,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BusinessRuleError"];
+                };
+            };
+            /** @description AuditLogError */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditLogError"] | components["schemas"]["UserLookupError"];
                 };
             };
         };
@@ -11191,7 +11556,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
             /** @description BusinessRuleError */
@@ -11201,6 +11566,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BusinessRuleError"];
+                };
+            };
+            /** @description AuditLogError */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditLogError"] | components["schemas"]["UserLookupError"];
                 };
             };
         };
@@ -11260,7 +11634,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
             /** @description BusinessRuleError */
@@ -11329,7 +11703,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
             /** @description BusinessRuleError */
@@ -11398,7 +11772,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
             /** @description BusinessRuleError */
@@ -11467,7 +11841,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
             /** @description BusinessRuleError */
@@ -11536,7 +11910,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
             /** @description BusinessRuleError */
@@ -11605,7 +11979,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
         };
@@ -12227,7 +12601,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
         };
@@ -12290,7 +12664,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
             /** @description BusinessRuleError */
@@ -12359,7 +12733,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
         };
@@ -12419,7 +12793,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
             /** @description BusinessRuleError */
@@ -12488,7 +12862,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
             /** @description BusinessRuleError */
@@ -12560,7 +12934,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
         };
@@ -12621,7 +12995,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
         };
@@ -12682,7 +13056,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
             /** @description BusinessRuleError */
@@ -12752,7 +13126,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
             /** @description BusinessRuleError */
@@ -12822,7 +13196,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
             /** @description BusinessRuleError */
@@ -12892,7 +13266,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
             /** @description BusinessRuleError */
@@ -12966,7 +13340,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
             /** @description BusinessRuleError */
@@ -13036,7 +13410,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
         };
@@ -13097,7 +13471,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
         };
@@ -13145,6 +13519,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
+            /** @description OrganizationNotFoundError */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationNotFoundError"];
                 };
             };
         };
