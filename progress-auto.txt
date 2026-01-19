@@ -934,3 +934,8 @@
 **Task**: Migrated 4 journal domain files (JournalEntry, JournalEntryLine, EntryStatusWorkflow, MultiCurrencyLineHandling) to canonical locations with backward-compatible re-exports
 **Status**: complete
 ---
+
+## Iteration 11 - 2026-01-19 17:47
+**Task**: Migrated 6 Domains files (ConsolidationGroup, ConsolidationRun, EliminationRule, IntercompanyTransaction, ConsolidationMethodDetermination, AuditLog) to canonical domain locations with backward-compatible re-exports
+**Status**: complete
+---

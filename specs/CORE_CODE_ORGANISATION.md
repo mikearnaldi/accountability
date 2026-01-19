@@ -847,14 +847,16 @@ Moving actual source files from old directories to new domain directories, conve
 | JournalEntryLine.ts | Domains/ | journal/ | ✅ Done |
 | EntryStatusWorkflow.ts | Domains/ | journal/ | ✅ Done |
 | MultiCurrencyLineHandling.ts | Domains/ | journal/ | ✅ Done |
+| ConsolidationGroup.ts | Domains/ | consolidation/ | ✅ Done |
+| ConsolidationRun.ts | Domains/ | consolidation/ | ✅ Done |
+| EliminationRule.ts | Domains/ | consolidation/ | ✅ Done |
+| IntercompanyTransaction.ts | Domains/ | consolidation/ | ✅ Done |
+| ConsolidationMethodDetermination.ts | Domains/ | consolidation/ | ✅ Done |
+| AuditLog.ts | Domains/ | audit/ | ✅ Done |
 
 **Files still needing migration:**
 
-1. **Domains/** (5 remaining files):
-   - ConsolidationGroup.ts, ConsolidationRun.ts, EliminationRule.ts, IntercompanyTransaction.ts, ConsolidationMethodDetermination.ts → consolidation/
-   - AuditLog.ts → audit/
-
-2. **Services/** (13 files):
+1. **Services/** (13 files):
    - TrialBalanceService.ts → accounting/
    - JournalEntryService.ts → journal/
    - ConsolidationService.ts, EliminationService.ts, IntercompanyService.ts, NCIService.ts, CurrencyTranslationService.ts → consolidation/
