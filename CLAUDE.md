@@ -85,6 +85,7 @@ All specifications and context documentation live in `specs/`. Use focus mode to
 | [specs/E2E_TEST_COVERAGE.md](specs/E2E_TEST_COVERAGE.md) | E2E test coverage status and implementation notes |
 | [specs/E2E_TESTING.md](specs/E2E_TESTING.md) | Playwright E2E testing patterns |
 | [specs/EFFECT_BEST_PRACTICES.md](specs/EFFECT_BEST_PRACTICES.md) | **Critical rules** for backend Effect code |
+| [specs/ERROR_DESIGN.md](specs/ERROR_DESIGN.md) | Three-layer error architecture (Persistence → Domain → API) |
 | [specs/EFFECT_LAYERS.md](specs/EFFECT_LAYERS.md) | Layer composition, memoization, service patterns |
 | [specs/EFFECT_SQL.md](specs/EFFECT_SQL.md) | SqlSchema, Model.Class, repository patterns |
 | [specs/EFFECT_TESTING.md](specs/EFFECT_TESTING.md) | @effect/vitest, testcontainers, property testing |
