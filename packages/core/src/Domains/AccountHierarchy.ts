@@ -7,6 +7,7 @@
  * @module AccountHierarchy
  */
 
+import { HttpApiSchema } from "@effect/platform"
 import * as Schema from "effect/Schema"
 import * as Option from "effect/Option"
 import * as Array from "effect/Array"
@@ -80,7 +81,8 @@ export class AccountTypeMismatchError extends Schema.TaggedError<AccountTypeMism
     childAccountType: AccountType,
     parentAccountId: AccountId,
     parentAccountType: AccountType
-  }
+  },
+  HttpApiSchema.annotations({ status: 400 })
 ) {
   get message(): string {
     return `Account type mismatch: child account ${this.childAccountId} has type ${this.childAccountType} but parent account ${this.parentAccountId} has type ${this.parentAccountType}`
@@ -100,7 +102,8 @@ export class ParentAccountNotFoundError extends Schema.TaggedError<ParentAccount
   {
     childAccountId: AccountId,
     parentAccountId: AccountId
-  }
+  },
+  HttpApiSchema.annotations({ status: 404 })
 ) {
   get message(): string {
     return `Parent account ${this.parentAccountId} not found for child account ${this.childAccountId}`
@@ -120,7 +123,8 @@ export class CircularReferenceError extends Schema.TaggedError<CircularReference
   {
     accountId: AccountId,
     ancestorChain: Schema.Chunk(AccountId)
-  }
+  },
+  HttpApiSchema.annotations({ status: 400 })
 ) {
   get message(): string {
     return `Circular reference detected for account ${this.accountId}. Ancestor chain: ${Chunk.join(this.ancestorChain, " -> ")}`

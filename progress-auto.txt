@@ -831,3 +831,8 @@
 **Task**: Added HttpApiSchema.annotations to 1 error in EntryStatusWorkflow.ts
 **Status**: complete
 ---
+
+## Iteration 11 - 2026-01-19 13:02
+**Task**: Added HttpApiSchema.annotations to 3 errors in AccountHierarchy.ts
+**Status**: complete
+---
