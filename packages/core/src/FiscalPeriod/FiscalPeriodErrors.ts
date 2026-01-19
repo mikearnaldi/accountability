@@ -12,6 +12,7 @@
  * @module FiscalPeriodErrors
  */
 
+import { HttpApiSchema } from "@effect/platform"
 import * as Schema from "effect/Schema"
 import { CompanyId } from "../Domains/Company.ts"
 import { FiscalYearId } from "../Domains/FiscalYear.ts"
@@ -36,7 +37,8 @@ export class FiscalYearNotFoundError extends Schema.TaggedError<FiscalYearNotFou
     fiscalYearId: FiscalYearId.annotations({
       description: "The fiscal year ID that was not found"
     })
-  }
+  },
+  HttpApiSchema.annotations({ status: 404 })
 ) {
   get message(): string {
     return `Fiscal year not found: ${this.fiscalYearId}`
@@ -61,7 +63,8 @@ export class FiscalPeriodNotFoundError extends Schema.TaggedError<FiscalPeriodNo
     fiscalPeriodId: FiscalPeriodId.annotations({
       description: "The fiscal period ID that was not found"
     })
-  }
+  },
+  HttpApiSchema.annotations({ status: 404 })
 ) {
   get message(): string {
     return `Fiscal period not found: ${this.fiscalPeriodId}`
@@ -90,7 +93,8 @@ export class FiscalPeriodNotFoundForDateError extends Schema.TaggedError<FiscalP
     date: Schema.String.annotations({
       description: "The date for which no fiscal period exists (ISO format)"
     })
-  }
+  },
+  HttpApiSchema.annotations({ status: 400 })
 ) {
   get message(): string {
     return `No fiscal period exists for date ${this.date}. Please create a fiscal year covering this date.`
@@ -126,7 +130,8 @@ export class InvalidStatusTransitionError extends Schema.TaggedError<InvalidStat
     periodId: FiscalPeriodId.annotations({
       description: "The fiscal period ID"
     })
-  }
+  },
+  HttpApiSchema.annotations({ status: 400 })
 ) {
   get message(): string {
     return `Cannot transition period from '${this.currentStatus}' to '${this.targetStatus}'`
@@ -157,7 +162,8 @@ export class InvalidYearStatusTransitionError extends Schema.TaggedError<Invalid
     fiscalYearId: FiscalYearId.annotations({
       description: "The fiscal year ID"
     })
-  }
+  },
+  HttpApiSchema.annotations({ status: 400 })
 ) {
   get message(): string {
     return `Cannot transition fiscal year from '${this.currentStatus}' to '${this.targetStatus}'`
@@ -188,7 +194,8 @@ export class FiscalYearOverlapError extends Schema.TaggedError<FiscalYearOverlap
     existingYearId: FiscalYearId.annotations({
       description: "The existing fiscal year that overlaps"
     })
-  }
+  },
+  HttpApiSchema.annotations({ status: 400 })
 ) {
   get message(): string {
     return `Fiscal year ${this.year} overlaps with an existing fiscal year`
@@ -220,7 +227,8 @@ export class FiscalYearAlreadyExistsError extends Schema.TaggedError<FiscalYearA
     year: Schema.Number.annotations({
       description: "The fiscal year number that already exists"
     })
-  }
+  },
+  HttpApiSchema.annotations({ status: 409 })
 ) {
   get message(): string {
     return `Fiscal year ${this.year} already exists for this company`
@@ -248,7 +256,8 @@ export class PeriodNotOpenError extends Schema.TaggedError<PeriodNotOpenError>()
     currentStatus: FiscalPeriodStatus.annotations({
       description: "The current status of the period"
     })
-  }
+  },
+  HttpApiSchema.annotations({ status: 409 })
 ) {
   get message(): string {
     return `Period is ${this.currentStatus}, not Open. Cannot perform this operation.`
@@ -279,7 +288,8 @@ export class PeriodProtectedError extends Schema.TaggedError<PeriodProtectedErro
     action: Schema.String.annotations({
       description: "The action that was attempted"
     })
-  }
+  },
+  HttpApiSchema.annotations({ status: 409 })
 ) {
   get message(): string {
     return `Period is ${this.currentStatus} and protected. Cannot ${this.action}.`
@@ -307,7 +317,8 @@ export class YearNotClosedError extends Schema.TaggedError<YearNotClosedError>()
     currentStatus: FiscalYearStatus.annotations({
       description: "The current status of the fiscal year"
     })
-  }
+  },
+  HttpApiSchema.annotations({ status: 409 })
 ) {
   get message(): string {
     return `Fiscal year must be Closed to perform this operation. Current status: ${this.currentStatus}`
@@ -335,7 +346,8 @@ export class PeriodsNotClosedError extends Schema.TaggedError<PeriodsNotClosedEr
     openPeriodCount: Schema.Number.annotations({
       description: "The number of periods that are not closed"
     })
-  }
+  },
+  HttpApiSchema.annotations({ status: 409 })
 ) {
   get message(): string {
     return `Cannot close fiscal year: ${this.openPeriodCount} period(s) are not yet closed`

@@ -403,7 +403,7 @@ export class MembershipNotFoundError extends Schema.TaggedError<MembershipNotFou
 **Files to update:**
 1. [x] `packages/core/src/Auth/AuthErrors.ts` (11 errors) ✅ Done
 2. [x] `packages/core/src/Auth/AuthorizationErrors.ts` (13 errors) ✅ Done
-3. [ ] `packages/core/src/FiscalPeriod/FiscalPeriodErrors.ts` (11 errors)
+3. [x] `packages/core/src/FiscalPeriod/FiscalPeriodErrors.ts` (11 errors) ✅ Done
 4. [ ] `packages/core/src/AuditLog/AuditLogErrors.ts` (3 errors)
 5. [ ] `packages/core/src/Services/JournalEntryService.ts` (11 errors)
 6. [ ] `packages/core/src/Services/CurrencyService.ts` (6 errors)
