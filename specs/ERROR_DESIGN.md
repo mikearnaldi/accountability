@@ -4,7 +4,9 @@ This document describes the error handling strategy for the Accountability codeb
 
 ## Overview
 
-**One layer of errors:** Domain errors with HTTP annotations. Used everywhere - services, repositories, API handlers. Errors flow through without transformation.
+### Target Architecture (One Layer)
+
+**Goal:** Domain errors with HTTP annotations, used everywhere. Errors flow through without transformation.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -14,6 +16,38 @@ This document describes the error handling strategy for the Accountability codeb
 │  Flow directly to HTTP responses                            │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+### Current Architecture (Hybrid - Two Layers)
+
+**Reality:** The codebase currently has TWO active error layers:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│               API HANDLERS (packages/api)                   │
+│  Create generic API errors (~260 usages)                    │
+│  Map domain errors to generic API errors                    │
+└─────────────────────────────────────────────────────────────┘
+                         │
+                         ▼
+┌─────────────────────────────────────────────────────────────┐
+│        GENERIC API ERRORS (ApiErrors.ts)                    │
+│  NotFoundError, ValidationError, BusinessRuleError,         │
+│  ConflictError, UnauthorizedError, ForbiddenError           │
+└─────────────────────────────────────────────────────────────┘
+                         │
+                         ▼ (some domain errors flow through)
+┌─────────────────────────────────────────────────────────────┐
+│  DOMAIN ERRORS (packages/core)                              │
+│  81 errors with HttpApiSchema.annotations ✅                │
+│  Auth, FiscalPeriod, JournalEntry, Currency, etc.           │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Current state:**
+- ✅ All 81 domain errors have `HttpApiSchema.annotations` (Phase 1 complete)
+- ⚠️ Generic API errors still used extensively (~260 instantiations across 18 files)
+- ⚠️ Many handlers explicitly map domain errors to generic errors (anti-pattern)
+- ⚠️ Some errors exist in both layers (duplication)
 
 ## Key Principles
 
@@ -192,6 +226,117 @@ Effect.catchAllCause((cause) => ...)
 ```typescript
 Effect.catchAll((error) => ...)  // Only catches expected errors
 ```
+
+---
+
+## Current Generic Error Patterns (To Be Refactored)
+
+This section documents the actual patterns found in API handlers that use generic errors instead of domain errors. These represent the work needed for Phase 2.
+
+### Pattern 1: Resource Lookup with Generic NotFoundError
+
+**Current (anti-pattern):**
+```typescript
+// In AccountsApiLive.ts
+const maybeAccount = yield* accountRepository.findById(companyId, accountId).pipe(Effect.orDie)
+if (Option.isNone(maybeAccount)) {
+  return yield* Effect.fail(new NotFoundError({ resource: "Account", id: accountId }))
+}
+```
+
+**Target (domain error):**
+```typescript
+// With domain error - flow through directly
+const account = yield* accountRepository.getById(companyId, accountId)
+// AccountNotFoundError flows directly to HTTP 404
+```
+
+### Pattern 2: Explicit Mapping from Domain to Generic
+
+**Current (anti-pattern):**
+```typescript
+// In FiscalPeriodApiLive.ts
+Effect.mapError((e) => {
+  if (isFiscalYearNotFoundError(e)) {
+    return new NotFoundError({ resource: "FiscalYear", id: path.fiscalYearId })
+  }
+  if (isFiscalYearOverlapError(e)) {
+    return new ValidationError({
+      message: e.message,
+      field: Option.some("year"),
+      details: Option.none()
+    })
+  }
+  return new BusinessRuleError({ message: e.message, code: Option.some(e._tag) })
+})
+```
+
+**Target (no mapping):**
+```typescript
+// Domain errors flow through directly
+periodService.getFiscalYear(companyId, fiscalYearId)
+// FiscalYearNotFoundError → HTTP 404
+// FiscalYearOverlapError → HTTP 400
+// All errors carry full domain context
+```
+
+### Pattern 3: Validation Before Service Calls
+
+**Current (anti-pattern):**
+```typescript
+// In MembershipApiLive.ts
+const orgId = yield* Schema.decodeUnknown(OrganizationId)(path.orgId).pipe(
+  Effect.mapError(() => new ValidationError({
+    message: "Invalid organization ID format",
+    field: Option.some("orgId"),
+    details: Option.none()
+  }))
+)
+```
+
+**Target (schema validation flows through):**
+```typescript
+// Schema decode errors should use domain validation errors
+// or the API layer should accept validated types only
+```
+
+### Pattern 4: Catch-All BusinessRuleError
+
+**Current (anti-pattern):**
+```typescript
+// In multiple handlers
+Effect.mapError((error) =>
+  new BusinessRuleError({ message: error.message, code: Option.some(error._tag) })
+)
+```
+
+**Target (let domain errors flow):**
+```typescript
+// Domain errors already have HTTP status annotations
+// No catch-all mapping needed
+```
+
+### Generic Error Usage by File
+
+| File | NotFound | Validation | Business | Conflict |
+|------|----------|------------|----------|----------|
+| AccountsApiLive.ts | 15 | 5 | 10 | 2 |
+| JournalEntriesApiLive.ts | 12 | 8 | 15 | 3 |
+| FiscalPeriodApiLive.ts | 8 | 4 | 6 | 0 |
+| CompaniesApiLive.ts | 10 | 3 | 5 | 1 |
+| MembershipApiLive.ts | 5 | 4 | 8 | 0 |
+| ConsolidationApiLive.ts | 8 | 3 | 10 | 2 |
+| CurrencyApiLive.ts | 6 | 4 | 5 | 1 |
+| ReportsApiLive.ts | 5 | 4 | 8 | 0 |
+| InvitationApiLive.ts | 4 | 3 | 5 | 0 |
+| AuthApiLive.ts | 3 | 5 | 5 | 0 |
+| PolicyApiLive.ts | 4 | 2 | 3 | 0 |
+| OrganizationsApiLive.ts | 5 | 2 | 5 | 0 |
+| AuditLogApiLive.ts | 2 | 1 | 2 | 0 |
+| + 5 more files | ~10 | ~5 | ~10 | ~0 |
+| **Total** | **~97** | **~53** | **~97** | **~9** |
+
+**Total: ~256 generic error instantiations to replace**
 
 ---
 
@@ -489,11 +634,13 @@ No additional tests needed - this is framework behavior, already tested by Effec
 
 ### Phase 4: Documentation Cleanup
 
-**Status:** 🔄 PARTIALLY COMPLETE
+**Status:** ✅ COMPLETE
 
 1. [x] Error catalog tables serve as authoritative reference - status code mapping objects are redundant but can remain for backwards compatibility
 2. [x] API documentation references domain errors via OpenAPI spec (auto-generated)
-3. [ ] Remove `*_ERROR_STATUS_CODES` mapping objects if unused (optional cleanup)
+3. [x] Spec updated with accurate current vs. target architecture documentation
+4. [x] Documented actual generic error usage patterns and refactoring scope
+5. [ ] Remove `*_ERROR_STATUS_CODES` mapping objects if unused (optional, low priority)
 
 ---
 
@@ -502,8 +649,32 @@ No additional tests needed - this is framework behavior, already tested by Effec
 | Phase | Status | Notes |
 |-------|--------|-------|
 | Phase 1: Add HttpApiSchema annotations | ✅ COMPLETE | 81 errors across 15 files |
-| Phase 2: Remove generic API errors | ⚠️ DEFERRED | Large refactoring, ~200+ usages to update |
+| Phase 2: Remove generic API errors | ⚠️ DEFERRED | Large refactoring, ~260 usages across 18 files |
 | Phase 3: Verify error flow-through | ✅ COMPLETE | Framework behavior, works automatically |
-| Phase 4: Documentation cleanup | 🔄 PARTIAL | Tables complete, optional cleanups remain |
+| Phase 4: Documentation cleanup | ✅ COMPLETE | Spec updated with accurate current/target state |
 
-**The error design is now functional:** Domain errors have HTTP annotations and flow through to API responses correctly. The generic API errors remain as a pragmatic layer for API-specific concerns.
+### Current State vs. Target
+
+| Aspect | Current | Target |
+|--------|---------|--------|
+| Error layers | Two (domain + generic API) | One (domain only) |
+| Domain errors annotated | ✅ All 81 | ✅ All 81 |
+| Generic API errors | ~260 usages in 18 files | Removed (except auth) |
+| Error mapping in handlers | ~260 `mapError` calls | None (errors flow through) |
+| Error context preserved | Partial (lost in generic) | Full (domain-specific) |
+
+**Current architecture is functional but hybrid:**
+- Domain errors have HTTP annotations and CAN flow through
+- Generic API errors are STILL being used extensively for:
+  - Resource lookups (checking if entity exists)
+  - Input validation (before calling services)
+  - Conflict detection (duplicates at API boundary)
+  - Catch-all for domain errors without specific types
+
+**To achieve one-layer architecture (Phase 2):**
+- Create ~30 missing entity-specific domain errors
+- Replace ~260 generic error instantiations with domain errors
+- Remove error mapping logic from handlers
+- Update API endpoint error type definitions
+
+This is a large refactoring effort that has been DEFERRED as the current hybrid approach is pragmatic and functional.
