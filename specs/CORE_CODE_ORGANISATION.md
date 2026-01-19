@@ -854,22 +854,31 @@ Moving actual source files from old directories to new domain directories, conve
 | ConsolidationMethodDetermination.ts | Domains/ | consolidation/ | ✅ Done |
 | AuditLog.ts | Domains/ | audit/ | ✅ Done |
 
+**Services files migrated:**
+
+| File | Old Location | New Location | Status |
+|------|-------------|--------------|--------|
+| TrialBalanceService.ts | Services/ | accounting/ | ✅ Done |
+
+**AuditLog files migrated:**
+
+| File | Old Location | New Location | Status |
+|------|-------------|--------------|--------|
+| AuditLogErrors.ts | AuditLog/ | audit/ | ✅ Done |
+| AuditLogService.ts | AuditLog/ | audit/ | ✅ Done |
+| CurrentUserId.ts | AuditLog/ | shared/context/ | ✅ Done |
+
 **Files still needing migration:**
 
-1. **Services/** (13 files):
-   - TrialBalanceService.ts → accounting/
+1. **Services/** (12 remaining files):
    - JournalEntryService.ts → journal/
    - ConsolidationService.ts, EliminationService.ts, IntercompanyService.ts, NCIService.ts, CurrencyTranslationService.ts → consolidation/
    - CurrencyService.ts → currency/
    - BalanceSheetService.ts, IncomeStatementService.ts, CashFlowStatementService.ts, EquityStatementService.ts, ConsolidatedReportService.ts → reporting/
 
-3. **AuditLog/** (3 files):
-   - AuditLogService.ts, AuditLogErrors.ts → audit/
-   - CurrentUserId.ts → shared/context/
+2. **Auth/** (19 authentication files → new auth/ directory)
 
-4. **Auth/** (19 authentication files → new auth/ directory)
-
-**CI Status:** All typecheck and 3915 tests pass.
+**CI Status:** All typecheck passes.
 
 ---
 

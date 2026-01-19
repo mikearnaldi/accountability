@@ -939,3 +939,8 @@
 **Task**: Migrated 6 Domains files (ConsolidationGroup, ConsolidationRun, EliminationRule, IntercompanyTransaction, ConsolidationMethodDetermination, AuditLog) to canonical domain locations with backward-compatible re-exports
 **Status**: complete
 ---
+
+## Iteration 12 - 2026-01-19 17:54
+**Task**: Migrated TrialBalanceService and AuditLog files (4 files) to canonical domain locations with backward-compatible re-exports
+**Status**: complete
+---
