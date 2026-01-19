@@ -573,17 +573,17 @@ Within the domain, what type is this?
 
 - [x] Create directory structure (Phase 1 - Non-Breaking) - DONE
 - [x] Move /shared/ code (values, utils, context) - DONE (re-exports created)
-- [ ] Reorganize /organization/ domain
-- [ ] Reorganize /company/ domain
-- [ ] Reorganize /accounting/ domain
-- [ ] Reorganize /journal/ domain
-- [ ] Reorganize /fiscal/ domain
-- [ ] Reorganize /currency/ domain
-- [ ] Reorganize /consolidation/ domain
-- [ ] Reorganize /reporting/ domain
-- [ ] Split and reorganize /auth/ → auth, authorization, membership
-- [ ] Reorganize /audit/ domain
-- [ ] Reorganize /jurisdiction/ domain
+- [x] Reorganize /organization/ domain - DONE (re-exports created)
+- [x] Reorganize /company/ domain - DONE (re-exports created)
+- [x] Reorganize /accounting/ domain - DONE (re-exports created)
+- [x] Reorganize /journal/ domain - DONE (re-exports created)
+- [x] Reorganize /fiscal/ domain - DONE (re-exports created)
+- [x] Reorganize /currency/ domain - DONE (re-exports created)
+- [x] Reorganize /consolidation/ domain - DONE (re-exports created)
+- [x] Reorganize /reporting/ domain - DONE (re-exports created)
+- [x] Reorganize /audit/ domain - DONE (re-exports created)
+- [x] Reorganize /jurisdiction/ domain - DONE (re-exports created)
+- [x] Split and reorganize /auth/ → auth, authorization, membership - DONE (re-exports created)
 - [ ] Migrate all errors to domain-specific files
 - [ ] Delete old /Errors/ directory
 - [ ] Delete old /Domains/ directory
@@ -623,3 +623,54 @@ The reorganization uses a non-breaking approach:
 4. Final phase will move actual files and update remaining imports
 
 **CI Status:** All typecheck, lint, and 3915 tests pass.
+
+### Phase 3 Completed (2026-01-19) - Domain Re-exports
+
+**All Domain Re-exports Created:**
+Created re-export files in each new domain directory pointing to the old locations:
+
+- **organization/**: `Organization.ts`, `OrganizationErrors.ts`
+- **company/**: `Company.ts`, `CompanyType.ts`, `CompanyErrors.ts`
+- **jurisdiction/**: `Jurisdiction.ts`, `JurisdictionCode.ts`
+- **fiscal/**: `FiscalYear.ts`, `FiscalPeriod.ts`, `FiscalPeriodStatus.ts`, `FiscalPeriodType.ts`, `FiscalYearStatus.ts`, `FiscalPeriodRef.ts`, `ComputedFiscalPeriod.ts`, `FiscalPeriodService.ts`, `FiscalPeriodErrors.ts`
+- **currency/**: `CurrencyCode.ts`, `Currency.ts`, `ExchangeRate.ts`, `CurrencyService.ts`, `CurrencyTranslationService.ts`, `CurrencyErrors.ts`
+- **accounting/**: `Account.ts`, `AccountNumber.ts`, `AccountHierarchy.ts`, `AccountTemplate.ts`, `AccountBalance.ts`, `AccountValidation.ts`, `BalanceValidation.ts`, `TrialBalanceService.ts`, `AccountErrors.ts`
+- **journal/**: `JournalEntry.ts`, `JournalEntryLine.ts`, `EntryStatusWorkflow.ts`, `MultiCurrencyLineHandling.ts`, `JournalErrors.ts`
+- **consolidation/**: `ConsolidationGroup.ts`, `ConsolidationRun.ts`, `EliminationRule.ts`, `IntercompanyTransaction.ts`, `ConsolidationMethodDetermination.ts`, `ConsolidationService.ts`, `EliminationService.ts`, `IntercompanyService.ts`, `NCIService.ts`, `ConsolidationErrors.ts`
+- **reporting/**: `BalanceSheetService.ts`, `IncomeStatementService.ts`, `CashFlowStatementService.ts`, `EquityStatementService.ts`, `ConsolidatedReportService.ts`, `ReportErrors.ts`
+- **audit/**: `AuditLog.ts`, `AuditLogService.ts`, `AuditLogErrors.ts`
+
+**Next Steps (Phase 4):**
+1. Split and reorganize Auth → auth, authorization, membership (separate domains per spec)
+2. Migrate remaining errors to domain-specific files
+3. Update imports across the codebase to use new paths
+4. Delete old /Domains/, /Services/, /Errors/ directories
+5. Run full test suite
+
+**CI Status:** Typecheck passes.
+
+### Phase 4 Completed (2026-01-19) - Auth Split into Three Domains
+
+**Split Auth/ into authorization/ and membership/ domains:**
+
+The old Auth/ directory contained files belonging to three separate domains. Re-export files were created for the two new domains:
+
+**authorization/** (policy-based access control):
+- `AuthorizationPolicy.ts`, `PolicyId.ts`, `PolicyEffect.ts`
+- `Action.ts`, `BaseRole.ts`, `FunctionalRole.ts`
+- `AuthorizationService.ts`, `PolicyEngine.ts`, `AuthorizationConfig.ts`
+- `PermissionMatrix.ts`, `PolicyConditions.ts`
+- `CurrentEnvironmentContext.ts`, `AuthorizationErrors.ts`
+- `matchers/` subdirectory with `ActionMatcher.ts`, `EnvironmentMatcher.ts`, `ResourceMatcher.ts`, `SubjectMatcher.ts`
+
+**membership/** (organization membership and invitations):
+- `OrganizationMembership.ts`, `OrganizationMembershipId.ts`, `MembershipStatus.ts`
+- `OrganizationInvitation.ts`, `InvitationId.ts`, `InvitationStatus.ts`
+- `OrganizationMemberService.ts`, `InvitationService.ts`
+- `CurrentOrganizationMembership.ts`, `MembershipErrors.ts`
+
+**auth/** (authentication):
+- Remains in the existing Auth/ directory (case-insensitive filesystem treats auth/ and Auth/ as the same)
+- Files include: `AuthUser.ts`, `AuthUserId.ts`, `Session.ts`, `SessionId.ts`, `LocalCredentials.ts`, `AuthService.ts`, `AuthConfig.ts`, `AuthProvider.ts`, `AuthProviderType.ts`, `AuthRequest.ts`, `AuthResult.ts`, `CurrentUser.ts`, `Email.ts`, `PasswordHasher.ts`, `SessionTokenGenerator.ts`, `AuthErrors.ts`, etc.
+
+**CI Status:** Typecheck passes.
