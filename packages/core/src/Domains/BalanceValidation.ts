@@ -12,6 +12,7 @@
  * @module BalanceValidation
  */
 
+import { HttpApiSchema } from "@effect/platform"
 import * as BigDecimal from "effect/BigDecimal"
 import * as Effect from "effect/Effect"
 import * as Option from "effect/Option"
@@ -32,7 +33,8 @@ export class UnbalancedEntryError extends Schema.TaggedError<UnbalancedEntryErro
     totalDebits: MonetaryAmount,
     totalCredits: MonetaryAmount,
     difference: MonetaryAmount
-  }
+  },
+  HttpApiSchema.annotations({ status: 422 })
 ) {
   get message(): string {
     return `Journal entry is unbalanced: debits ${this.totalDebits.toString()} != credits ${this.totalCredits.toString()} (difference: ${this.difference.toString()})`
