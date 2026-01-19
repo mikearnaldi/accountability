@@ -786,3 +786,8 @@
 **Task**: Created comprehensive error implementation plan in ERROR_DESIGN.md with complete error catalog (81 errors across 15 files), HTTP status mappings, authoritative tables, and 4-phase implementation plan
 **Status**: complete
 ---
+
+## Iteration 2 - 2026-01-19 12:39
+**Task**: Added HttpApiSchema.annotations to 13 errors in AuthorizationErrors.ts
+**Status**: complete
+---

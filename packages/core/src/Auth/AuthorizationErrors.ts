@@ -13,6 +13,7 @@
  * @module AuthorizationErrors
  */
 
+import { HttpApiSchema } from "@effect/platform"
 import * as Schema from "effect/Schema"
 import { AuthUserId } from "./AuthUserId.ts"
 import { OrganizationId } from "../Domains/Organization.ts"
@@ -45,7 +46,8 @@ export class PermissionDeniedError extends Schema.TaggedError<PermissionDeniedEr
     reason: Schema.String.annotations({
       description: "A description of why the permission was denied"
     })
-  }
+  },
+  HttpApiSchema.annotations({ status: 403 })
 ) {
   get message(): string {
     const resource = this.resourceId
@@ -80,7 +82,8 @@ export class MembershipNotActiveError extends Schema.TaggedError<MembershipNotAc
     status: MembershipStatus.annotations({
       description: "The current status of the membership"
     })
-  }
+  },
+  HttpApiSchema.annotations({ status: 403 })
 ) {
   get message(): string {
     return `Membership is ${this.status}. Access to this organization is denied.`
@@ -112,7 +115,8 @@ export class MembershipNotFoundError extends Schema.TaggedError<MembershipNotFou
     organizationId: OrganizationId.annotations({
       description: "The organization the user is not a member of"
     })
-  }
+  },
+  HttpApiSchema.annotations({ status: 404 })
 ) {
   get message(): string {
     return `User is not a member of this organization`
@@ -141,7 +145,8 @@ export class InvalidInvitationError extends Schema.TaggedError<InvalidInvitation
     reason: Schema.String.annotations({
       description: "A description of why the invitation is invalid"
     })
-  }
+  },
+  HttpApiSchema.annotations({ status: 400 })
 ) {
   get message(): string {
     return `Invalid invitation: ${this.reason}`
@@ -163,7 +168,8 @@ export const isInvalidInvitationError = Schema.is(InvalidInvitationError)
  */
 export class InvitationExpiredError extends Schema.TaggedError<InvitationExpiredError>()(
   "InvitationExpiredError",
-  {}
+  {},
+  HttpApiSchema.annotations({ status: 400 })
 ) {
   get message(): string {
     return `This invitation has been revoked and can no longer be used`
@@ -193,7 +199,8 @@ export class OwnerCannotBeRemovedError extends Schema.TaggedError<OwnerCannotBeR
     organizationId: OrganizationId.annotations({
       description: "The organization where the owner cannot be removed"
     })
-  }
+  },
+  HttpApiSchema.annotations({ status: 409 })
 ) {
   get message(): string {
     return `The organization owner cannot be removed. Transfer ownership first.`
@@ -219,7 +226,8 @@ export class OwnerCannotBeSuspendedError extends Schema.TaggedError<OwnerCannotB
     organizationId: OrganizationId.annotations({
       description: "The organization where the owner cannot be suspended"
     })
-  }
+  },
+  HttpApiSchema.annotations({ status: 409 })
 ) {
   get message(): string {
     return `The organization owner cannot be suspended. Transfer ownership first.`
@@ -250,7 +258,8 @@ export class MemberNotSuspendedError extends Schema.TaggedError<MemberNotSuspend
     currentStatus: MembershipStatus.annotations({
       description: "The current status of the membership"
     })
-  }
+  },
+  HttpApiSchema.annotations({ status: 409 })
 ) {
   get message(): string {
     return `Cannot unsuspend member: current status is '${this.currentStatus}', not 'suspended'`
@@ -276,7 +285,8 @@ export class CannotTransferToNonAdminError extends Schema.TaggedError<CannotTran
     userId: AuthUserId.annotations({
       description: "The user who is not an admin"
     })
-  }
+  },
+  HttpApiSchema.annotations({ status: 409 })
 ) {
   get message(): string {
     return `Cannot transfer ownership to a non-admin user. The target must be an admin.`
@@ -305,7 +315,8 @@ export class InvitationAlreadyExistsError extends Schema.TaggedError<InvitationA
     organizationId: OrganizationId.annotations({
       description: "The organization with the existing invitation"
     })
-  }
+  },
+  HttpApiSchema.annotations({ status: 409 })
 ) {
   get message(): string {
     return `A pending invitation for ${this.email} already exists for this organization`
@@ -333,7 +344,8 @@ export class UserAlreadyMemberError extends Schema.TaggedError<UserAlreadyMember
     organizationId: OrganizationId.annotations({
       description: "The organization the user is already a member of"
     })
-  }
+  },
+  HttpApiSchema.annotations({ status: 409 })
 ) {
   get message(): string {
     return `User is already a member of this organization`
@@ -367,7 +379,8 @@ export class PolicyLoadError extends Schema.TaggedError<PolicyLoadError>()(
     cause: Schema.Unknown.annotations({
       description: "The underlying error that caused the policy load to fail"
     })
-  }
+  },
+  HttpApiSchema.annotations({ status: 500 })
 ) {
   get message(): string {
     return `Failed to load authorization policies for organization: ${String(this.cause)}`
@@ -397,7 +410,8 @@ export class AuthorizationAuditError extends Schema.TaggedError<AuthorizationAud
     cause: Schema.Unknown.annotations({
       description: "The underlying error that caused the audit to fail"
     })
-  }
+  },
+  HttpApiSchema.annotations({ status: 500 })
 ) {
   get message(): string {
     return `Failed to log authorization audit: ${this.operation} - ${String(this.cause)}`

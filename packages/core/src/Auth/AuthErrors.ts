@@ -13,6 +13,7 @@
  * @module AuthErrors
  */
 
+import { HttpApiSchema } from "@effect/platform"
 import { Chunk } from "effect"
 import * as Schema from "effect/Schema"
 import { AuthProviderType } from "./AuthProviderType.ts"
@@ -40,7 +41,8 @@ export class InvalidCredentialsError extends Schema.TaggedError<InvalidCredentia
     email: Email.annotations({
       description: "The email address that was used for authentication"
     })
-  }
+  },
+  HttpApiSchema.annotations({ status: 401 })
 ) {
   get message(): string {
     return "Invalid email or password"
@@ -65,7 +67,8 @@ export class SessionExpiredError extends Schema.TaggedError<SessionExpiredError>
     sessionId: SessionId.annotations({
       description: "The expired session token"
     })
-  }
+  },
+  HttpApiSchema.annotations({ status: 401 })
 ) {
   get message(): string {
     return "Session has expired"
@@ -90,7 +93,8 @@ export class SessionNotFoundError extends Schema.TaggedError<SessionNotFoundErro
     sessionId: SessionId.annotations({
       description: "The invalid session token"
     })
-  }
+  },
+  HttpApiSchema.annotations({ status: 401 })
 ) {
   get message(): string {
     return "Session not found"
@@ -119,7 +123,8 @@ export class ProviderAuthFailedError extends Schema.TaggedError<ProviderAuthFail
     reason: Schema.String.annotations({
       description: "A description of why the authentication failed"
     })
-  }
+  },
+  HttpApiSchema.annotations({ status: 401 })
 ) {
   get message(): string {
     return `Authentication with ${this.provider} failed: ${this.reason}`
@@ -148,7 +153,8 @@ export class UserNotFoundError extends Schema.TaggedError<UserNotFoundError>()(
     email: Email.annotations({
       description: "The email address that was not found"
     })
-  }
+  },
+  HttpApiSchema.annotations({ status: 404 })
 ) {
   get message(): string {
     return `User not found: ${this.email}`
@@ -174,7 +180,8 @@ export class ProviderNotEnabledError extends Schema.TaggedError<ProviderNotEnabl
     provider: AuthProviderType.annotations({
       description: "The authentication provider that is not enabled"
     })
-  }
+  },
+  HttpApiSchema.annotations({ status: 404 })
 ) {
   get message(): string {
     return `Authentication provider '${this.provider}' is not enabled`
@@ -204,7 +211,8 @@ export class UserAlreadyExistsError extends Schema.TaggedError<UserAlreadyExists
     email: Email.annotations({
       description: "The email address that is already registered"
     })
-  }
+  },
+  HttpApiSchema.annotations({ status: 409 })
 ) {
   get message(): string {
     return `User with email '${this.email}' already exists`
@@ -236,7 +244,8 @@ export class IdentityAlreadyLinkedError extends Schema.TaggedError<IdentityAlrea
     existingUserId: AuthUserId.annotations({
       description: "The user ID that the identity is already linked to"
     })
-  }
+  },
+  HttpApiSchema.annotations({ status: 409 })
 ) {
   get message(): string {
     return `Identity from '${this.provider}' is already linked to another user`
@@ -266,7 +275,8 @@ export class PasswordTooWeakError extends Schema.TaggedError<PasswordTooWeakErro
     requirements: Schema.Chunk(Schema.String).annotations({
       description: "List of password requirements that were not met"
     })
-  }
+  },
+  HttpApiSchema.annotations({ status: 400 })
 ) {
   get message(): string {
     return `Password does not meet requirements: ${Chunk.toReadonlyArray(this.requirements).join(", ")}`
@@ -292,7 +302,8 @@ export class OAuthStateError extends Schema.TaggedError<OAuthStateError>()(
     provider: AuthProviderType.annotations({
       description: "The OAuth provider where the state mismatch occurred"
     })
-  }
+  },
+  HttpApiSchema.annotations({ status: 400 })
 ) {
   get message(): string {
     return `OAuth state mismatch for ${this.provider}. Please restart the authentication flow.`
@@ -329,7 +340,8 @@ export class SessionCleanupError extends Schema.TaggedError<SessionCleanupError>
     cause: Schema.Unknown.annotations({
       description: "The underlying error that caused the cleanup to fail"
     })
-  }
+  },
+  HttpApiSchema.annotations({ status: 500 })
 ) {
   get message(): string {
     return `Failed to clean up session during ${this.operation}: ${String(this.cause)}`

@@ -75,6 +75,9 @@ importers:
 
   packages/core:
     dependencies:
+      '@effect/platform':
+        specifier: ^0.94.0
+        version: 0.94.1(effect@3.19.14)
       effect:
         specifier: ^3.19.14
         version: 3.19.14

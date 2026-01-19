@@ -111,6 +111,7 @@
     "test": "cd ../.. && vitest run packages/core/test"
   },
   "dependencies": {
+    "@effect/platform": "^0.94.0",
     "effect": "^3.19.14"
   }
 }
