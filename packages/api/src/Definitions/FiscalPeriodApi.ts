@@ -36,6 +36,9 @@ import {
 
 /**
  * CreateFiscalYearRequest - Request body for creating a new fiscal year
+ *
+ * Note: Period 13 (adjustment period) is ALWAYS created automatically.
+ * This is mandatory for consolidation compatibility and audit compliance.
  */
 export class CreateFiscalYearRequest extends Schema.Class<CreateFiscalYearRequest>("CreateFiscalYearRequest")({
   /** The fiscal year number (e.g., 2025) */
@@ -49,9 +52,8 @@ export class CreateFiscalYearRequest extends Schema.Class<CreateFiscalYearReques
   /** Start date of the fiscal year */
   startDate: LocalDate,
   /** End date of the fiscal year */
-  endDate: LocalDate,
-  /** Whether to include a 13th adjustment period (default: false) */
-  includeAdjustmentPeriod: Schema.OptionFromNullOr(Schema.Boolean)
+  endDate: LocalDate
+  // Note: includeAdjustmentPeriod has been removed - Period 13 is always created
 }) {}
 
 /**

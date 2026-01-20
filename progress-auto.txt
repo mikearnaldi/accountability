@@ -1016,3 +1016,8 @@
 **Task**: Fixed E2E tests by using data-testid for account numbers and adding hydration waits for modal clicks
 **Status**: complete
 ---
+
+## Iteration 2 - 2026-01-20 16:39
+**Task**: Fixed fiscal period date lookup to prioritize regular periods over adjustment periods for Dec 31 boundary dates
+**Status**: complete
+---

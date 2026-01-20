@@ -201,7 +201,8 @@ const make = Effect.gen(function* () {
           startDate: input.startDate,
           endDate: input.endDate,
           status: "Open",
-          includesAdjustmentPeriod: input.includeAdjustmentPeriod ?? false,
+          // Period 13 is mandatory for consolidation compatibility
+          includesAdjustmentPeriod: true,
           createdAt: now,
           updatedAt: now
         })
@@ -302,7 +303,6 @@ const make = Effect.gen(function* () {
         // who already has the fiscal year data from createFiscalYear
         const startDate = input.startDate
         const endDate = input.endDate
-        const includesAdjustmentPeriod = input.includeAdjustmentPeriod ?? false
 
         // Generate monthly periods that are sequential with no gaps
         // Each period starts where the previous one ended + 1 day
@@ -356,25 +356,27 @@ const make = Effect.gen(function* () {
           }
         }
 
-        // Add adjustment period (Period 13) if requested
-        if (includesAdjustmentPeriod) {
-          const adjustmentPeriod = FiscalPeriod.make({
-            id: FiscalPeriodId.make(crypto.randomUUID()),
-            fiscalYearId: input.fiscalYearId,
-            periodNumber: 13,
-            name: `Period 13 (Adjustment)`,
-            periodType: "Adjustment",
-            // Adjustment period covers the same dates as the last regular period
-            startDate: endDate,
-            endDate,
-            status: "Closed",
-            closedBy: Option.none(),
-            closedAt: Option.none(),
-            createdAt: now,
-            updatedAt: now
-          })
-          periods.push(adjustmentPeriod)
-        }
+        // Period 13 (Adjustment) is ALWAYS created
+        // This is mandatory for:
+        // 1. Consolidation compatibility - consolidation runs support periods 1-13
+        // 2. Audit compliance - year-end adjustments must be segregated
+        // 3. Standard accounting practice - period 13 is an industry standard
+        const adjustmentPeriod = FiscalPeriod.make({
+          id: FiscalPeriodId.make(crypto.randomUUID()),
+          fiscalYearId: input.fiscalYearId,
+          periodNumber: 13,
+          name: `Period 13 (Adjustment)`,
+          periodType: "Adjustment",
+          // Adjustment period covers the same dates as the last regular period
+          startDate: endDate,
+          endDate,
+          status: "Closed",
+          closedBy: Option.none(),
+          closedAt: Option.none(),
+          createdAt: now,
+          updatedAt: now
+        })
+        periods.push(adjustmentPeriod)
 
         return yield* periodRepo.createPeriods(periods)
       }),

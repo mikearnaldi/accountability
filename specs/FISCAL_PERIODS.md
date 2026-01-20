@@ -155,6 +155,7 @@ Audit trail for period reopens (required for SOX compliance).
    - Consolidation adjustments
 4. **Status independent** - Can be opened even if periods 1-12 are closed
 5. **Consolidation requirement** - Consolidation runs can target period 13
+6. **Period lookup prioritization** - When a date falls within both Period 12 and Period 13 (e.g., Dec 31), the regular period (12) is used for journal entries. The adjustment period (13) must be explicitly selected.
 
 ### Consolidation Compatibility
 
@@ -328,26 +329,27 @@ interface ReopenPeriodRequest {
 
 ## Implementation Tasks
 
-### Phase 1: Make Period 13 Mandatory
+### Phase 1: Make Period 13 Mandatory ✅ COMPLETE
 
-1. [ ] **Backend: Update FiscalYearServiceLive**
-   - Remove `includeAdjustmentPeriod` parameter handling
-   - Always generate 13 periods when creating a fiscal year
-   - Period 13 should have `periodType: "Adjustment"`
+1. [x] **Backend: Update FiscalPeriodServiceLive**
+   - Removed `includeAdjustmentPeriod` parameter from `CreateFiscalYearInput` and `GeneratePeriodsInput`
+   - `generatePeriods` now always generates 13 periods (12 regular + 1 adjustment)
+   - Period 13 has `periodType: "Adjustment"`
+   - `createFiscalYear` always sets `includesAdjustmentPeriod: true`
 
-2. [ ] **Backend: Update API schema**
-   - Remove `includeAdjustmentPeriod` from `CreateFiscalYearRequest`
-   - Update OpenAPI spec
+2. [x] **Backend: Update API schema**
+   - Removed `includeAdjustmentPeriod` from `CreateFiscalYearRequest` in `FiscalPeriodApi.ts`
+   - Regenerated OpenAPI spec and API client types
 
-3. [ ] **Frontend: Update CreateFiscalYearModal**
-   - Remove the "Include adjustment period" checkbox
-   - Add info box explaining 13 periods will be created
-   - Regenerate API client types
+3. [x] **Frontend: Update CreateFiscalYearModal**
+   - Removed the "Include adjustment period" checkbox
+   - Added info box explaining 13 periods will be created
+   - Regenerated API client types
 
-4. [ ] **Migration: Backfill existing fiscal years**
-   - Find fiscal years without period 13
-   - Create period 13 for each (status: Future)
-   - Log migration in audit trail
+4. [x] **Migration: Backfill existing fiscal years**
+   - Created `Migration0023_BackfillPeriod13.ts`
+   - Inserts Period 13 for all fiscal years that don't have one
+   - Updates all fiscal years to set `includes_adjustment_period = true`
 
 ### Phase 2: Enhanced Period Management (Future)
 

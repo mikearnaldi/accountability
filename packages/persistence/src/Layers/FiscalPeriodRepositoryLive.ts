@@ -267,6 +267,8 @@ const make = Effect.gen(function* () {
       WHERE fy.company_id = ${companyId}
         AND ${date}::date >= fp.start_date
         AND ${date}::date <= fp.end_date
+      ORDER BY fp.period_number ASC
+      LIMIT 1
     `
   })
 

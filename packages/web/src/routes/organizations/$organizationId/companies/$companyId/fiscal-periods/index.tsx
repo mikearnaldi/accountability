@@ -244,7 +244,6 @@ function CreateFiscalYearModal({
   const currentYear = new Date().getFullYear()
   const [year, setYear] = useState(currentYear.toString())
   const [name, setName] = useState("")
-  const [includeAdjustment, setIncludeAdjustment] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -311,8 +310,7 @@ function CreateFiscalYearModal({
             year: yearNum,
             name: name.trim() || null,
             startDate: parsedStart,
-            endDate: parsedEnd,
-            includeAdjustmentPeriod: includeAdjustment || null
+            endDate: parsedEnd
           }
         }
       )
@@ -395,18 +393,18 @@ function CreateFiscalYearModal({
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="includeAdjustment"
-              checked={includeAdjustment}
-              onChange={(e) => setIncludeAdjustment(e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              data-testid="include-adjustment-checkbox"
-            />
-            <label htmlFor="includeAdjustment" className="text-sm text-gray-700">
-              Include adjustment period (Period 13)
-            </label>
+          {/* Info box explaining 13 periods will be created */}
+          <div className="rounded-md bg-blue-50 p-3" data-testid="period-13-info">
+            <div className="flex items-start gap-2">
+              <Calendar className="mt-0.5 h-4 w-4 flex-shrink-0 text-blue-600" />
+              <div className="text-sm text-blue-700">
+                <p className="font-medium">This will create 13 periods:</p>
+                <ul className="mt-1 list-inside list-disc space-y-0.5">
+                  <li>Periods 1-12: Regular monthly periods</li>
+                  <li>Period 13: Adjustment period for year-end entries</li>
+                </ul>
+              </div>
+            </div>
           </div>
 
           {error && (

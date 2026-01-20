@@ -4985,7 +4985,6 @@ export interface components {
             name: components["schemas"]["NonEmptyTrimmedString"] | null;
             startDate: components["schemas"]["LocalDate"];
             endDate: components["schemas"]["LocalDate"];
-            includeAdjustmentPeriod: boolean | null;
         };
         FiscalYearOverlapError: {
             /**

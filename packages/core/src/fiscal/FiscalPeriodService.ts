@@ -39,6 +39,9 @@ import type { PersistenceError, EntityNotFoundError } from "../shared/errors/Rep
 
 /**
  * Input for creating a new fiscal year
+ *
+ * Note: Period 13 (adjustment period) is ALWAYS created automatically.
+ * This is mandatory for consolidation compatibility and audit compliance.
  */
 export interface CreateFiscalYearInput {
   readonly companyId: CompanyId
@@ -50,13 +53,13 @@ export interface CreateFiscalYearInput {
   readonly startDate: LocalDate
   /** End date of the fiscal year */
   readonly endDate: LocalDate
-  /** Whether to include a 13th adjustment period (default: false) */
-  readonly includeAdjustmentPeriod?: boolean
 }
 
 /**
  * Input for creating fiscal periods for a fiscal year
- * Periods are usually auto-generated based on the fiscal year dates
+ *
+ * Periods are auto-generated based on the fiscal year dates.
+ * Always generates 13 periods: 12 regular monthly periods + 1 adjustment period.
  */
 export interface GeneratePeriodsInput {
   readonly fiscalYearId: FiscalYearId
@@ -66,8 +69,6 @@ export interface GeneratePeriodsInput {
   readonly startDate: LocalDate
   /** End date of the fiscal year (for calculating period dates) */
   readonly endDate: LocalDate
-  /** Whether to include Period 13 adjustment period */
-  readonly includeAdjustmentPeriod?: boolean
 }
 
 /**

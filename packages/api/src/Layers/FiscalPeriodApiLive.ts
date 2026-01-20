@@ -111,23 +111,22 @@ export const FiscalPeriodApiLive = HttpApiBuilder.group(AppApi, "fiscal-periods"
             }
 
             // Create fiscal year - domain errors flow through; infrastructure errors die
+            // Note: Period 13 (adjustment period) is always created - it's mandatory
             const fiscalYear = yield* periodService.createFiscalYear({
               companyId,
               year: req.year,
               startDate: req.startDate,
               endDate: req.endDate,
-              ...(Option.isSome(req.name) ? { name: req.name.value } : {}),
-              ...(Option.isSome(req.includeAdjustmentPeriod) ? { includeAdjustmentPeriod: req.includeAdjustmentPeriod.value } : {})
+              ...(Option.isSome(req.name) ? { name: req.name.value } : {})
             }).pipe(
               Effect.catchTag("PersistenceError", (e) => Effect.die(e))
             )
 
-            // Generate periods for the fiscal year
+            // Generate periods for the fiscal year (always includes period 13)
             yield* periodService.generatePeriods({
               fiscalYearId: fiscalYear.id,
               startDate: fiscalYear.startDate,
-              endDate: fiscalYear.endDate,
-              includeAdjustmentPeriod: fiscalYear.includesAdjustmentPeriod
+              endDate: fiscalYear.endDate
             }).pipe(Effect.orDie)
 
             return fiscalYear
