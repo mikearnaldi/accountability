@@ -6,12 +6,13 @@ This spec documents the UX issues on the fiscal periods page and the required fi
 
 ## Issues Summary
 
-| Issue | Severity | Description |
-|-------|----------|-------------|
-| Create fiscal year doesn't update list | High | User must refresh page to see newly created fiscal year |
-| Period "Open" action doesn't update list | High | User must refresh page to see status change |
-| Action button icons misaligned | Medium | Icons not vertically centered with button text |
-| Silent error handling | Low | Errors are swallowed without user feedback |
+| Issue | Severity | Description | Status |
+|-------|----------|-------------|--------|
+| Create fiscal year doesn't update list | High | User must refresh page to see newly created fiscal year | ✅ Fixed |
+| Period "Open" action doesn't update list | High | User must refresh page to see status change | ✅ Fixed |
+| Action button icons misaligned | Medium | Icons not vertically centered with button text | ✅ Fixed |
+| Silent error handling | Low | Errors are swallowed without user feedback | ✅ Fixed |
+| Periods not loading when card starts expanded | High | New fiscal year shows "No periods" until dropdown closed/reopened | ✅ Fixed |
 
 ---
 
@@ -213,10 +214,47 @@ setActionError(`Failed to ${action} period. Please try again.`)
 - [x] **Issue 3**: Change action buttons to use `icon` prop instead of inline icon
 - [x] **Issue 3**: Remove `mr-1` class from action icons
 - [x] **Issue 4**: Add user-facing error feedback for failed actions
+- [x] **Issue 5**: Add useEffect to auto-load periods when card starts expanded
 - [x] Run `pnpm test && pnpm typecheck` to verify no regressions
-- [ ] Manually test: create fiscal year → verify list updates immediately
+- [ ] Manually test: create fiscal year → verify list updates immediately with periods
 - [ ] Manually test: click "Open" on period → verify status updates immediately
 - [ ] Visually verify icon alignment in action buttons
+
+---
+
+## Issue 5: Periods Not Loading When Card Starts Expanded
+
+### Current Behavior
+After creating a fiscal year, the new fiscal year appears in the list with its card expanded (because "Open" status starts expanded), but the periods section shows "No periods found for this fiscal year." User must close and reopen the dropdown to see the periods.
+
+### Root Cause
+In `FiscalYearCard` component:
+1. `isExpanded` is initialized based on fiscal year status: `useState(fiscalYear.status === "Open")`
+2. For newly created fiscal years with "Open" status, `isExpanded` starts as `true`
+3. But `periodsLoaded` is `false` and no automatic fetch is triggered
+4. The `loadPeriods()` function is only called in `handleToggle()` when clicking to expand:
+```typescript
+const handleToggle = () => {
+  if (!isExpanded) {
+    loadPeriods()  // Only loads when expanding, not when already expanded
+  }
+  setIsExpanded(!isExpanded)
+}
+```
+5. Since the card already starts expanded, `handleToggle()` is never called to trigger the load
+
+### Fix
+Add a useEffect to trigger period fetch on mount when the card starts in expanded state:
+```typescript
+// Auto-load periods when card starts expanded (e.g., for Open fiscal years)
+useEffect(() => {
+  if (isExpanded && !periodsLoaded && !isLoadingPeriods) {
+    fetchPeriods()
+  }
+}, []) // Only on mount
+```
+
+This ensures that when a new fiscal year is created and the page refreshes, the FiscalYearCard will automatically load periods if it starts in the expanded state.
 
 ---
 

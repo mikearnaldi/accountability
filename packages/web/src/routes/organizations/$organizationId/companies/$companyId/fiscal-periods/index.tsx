@@ -13,7 +13,7 @@
 import { createFileRoute, redirect, useRouter } from "@tanstack/react-router"
 import { createServerFn } from "@tanstack/react-start"
 import { getCookie } from "@tanstack/react-start/server"
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import {
   Calendar,
   Plus,
@@ -590,6 +590,13 @@ function FiscalYearCard({ fiscalYear, organizationId, companyId, onRefresh, canM
   const [actionError, setActionError] = useState<string | null>(null)
 
   const StatusIcon = YEAR_STATUS_STYLES[fiscalYear.status].icon
+
+  // Auto-load periods when card starts expanded (e.g., for Open fiscal years)
+  useEffect(() => {
+    if (isExpanded && !periodsLoaded && !isLoadingPeriods) {
+      fetchPeriods()
+    }
+  }, []) // Only on mount - intentionally empty deps to avoid re-triggering
 
   // Fetch periods from API (always fetches fresh data)
   const fetchPeriods = async () => {
