@@ -88,20 +88,20 @@ export function JournalEntryLineEditor({
       className="grid grid-cols-12 items-start gap-2 border-b border-gray-100 px-2 py-2 hover:bg-gray-50"
       data-testid={`journal-entry-line-${lineIndex}`}
     >
-      {/* Line Number */}
-      <div className="col-span-1 self-center text-center text-sm font-medium text-gray-500">
+      {/* Line Number - pt-2 aligns with input text baseline */}
+      <div className="col-span-1 pt-2 text-center text-sm font-medium text-gray-500">
         {lineIndex + 1}
       </div>
 
-      {/* Account Selector - min-height reserves space for account type description */}
-      <div className="col-span-4 min-h-[52px]">
+      {/* Account Selector - fixed width to prevent layout shift */}
+      <div className="col-span-4">
         <Select
           value={line.accountId}
           onChange={(e) => onUpdate(line.id, "accountId", e.target.value)}
           disabled={disabled}
           data-testid={`journal-entry-line-account-${lineIndex}`}
           placeholder="Select account..."
-          className="py-1.5 text-sm"
+          className="w-full py-1.5 text-sm"
         >
           <option value="">Select account...</option>
           {postableAccounts
@@ -112,14 +112,16 @@ export function JournalEntryLineEditor({
               </option>
             ))}
         </Select>
-        {/* Account type shown below select - space reserved by min-height on parent */}
-        <span className="mt-0.5 block h-4 text-xs text-gray-500">
-          {selectedAccount ? selectedAccount.accountType : "\u00A0"}
-        </span>
+        {/* Account type shown below select */}
+        {selectedAccount && (
+          <span className="mt-0.5 block text-xs text-gray-500">
+            {selectedAccount.accountType}
+          </span>
+        )}
       </div>
 
       {/* Memo */}
-      <div className="col-span-2 self-center">
+      <div className="col-span-2">
         <Input
           type="text"
           value={line.memo}
@@ -132,7 +134,7 @@ export function JournalEntryLineEditor({
       </div>
 
       {/* Debit Amount */}
-      <div className="col-span-2 self-center">
+      <div className="col-span-2">
         <Input
           type="text"
           inputMode="decimal"
@@ -147,7 +149,7 @@ export function JournalEntryLineEditor({
       </div>
 
       {/* Credit Amount */}
-      <div className="col-span-2 self-center">
+      <div className="col-span-2">
         <Input
           type="text"
           inputMode="decimal"
@@ -161,8 +163,8 @@ export function JournalEntryLineEditor({
         />
       </div>
 
-      {/* Delete Button */}
-      <div className="col-span-1 self-center text-center">
+      {/* Delete Button - pt-1.5 aligns with input row */}
+      <div className="col-span-1 pt-1.5 text-center">
         <button
           type="button"
           onClick={() => onDelete(line.id)}

@@ -321,14 +321,14 @@ Response example:
 
 ### Phase 3: Frontend - Date Picker Constraints [COMPLETED]
 
-> **Status:** Completed. All UI issues have been fixed.
+> **Status:** Complete.
 >
 > **Implemented:**
 > - `PeriodDatePicker` component with single inline period status display
 > - Updated `JournalEntryForm` to accept `periodsSummary` and show P13 checkbox
 > - Updated `new.tsx` to fetch periods summary and handle edge cases
 > - Removed redundant P13 info box - checkbox label with description is sufficient
-> - Fixed account selection layout shift by reserving space for account type description with `min-height` and using `self-center` for other columns
+> - Fixed account selection layout shift in `JournalEntryLineEditor.tsx` using `items-start` grid alignment with top padding on line number and delete button to align them with input baselines. Account type description now appears below the select without affecting other column alignment.
 > - Fixed fiscal period tooltip cut-off by using Tooltip component with @floating-ui/react collision detection
 
 #### 3.1 Fetch Periods Summary in Loader
