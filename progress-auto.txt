@@ -1002,3 +1002,8 @@
 **Task**: Fixed periods not loading when fiscal year card starts expanded by adding useEffect to auto-fetch on mount
 **Status**: complete
 ---
+
+## Iteration 1 - 2026-01-20 15:12
+**Task**: Fixed reopening locked fiscal period by allowing Locked -> Open transition in canTransitionTo
+**Status**: complete
+---

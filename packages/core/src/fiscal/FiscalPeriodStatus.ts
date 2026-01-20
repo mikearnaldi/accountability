@@ -74,9 +74,9 @@ export function statusAllowsModifications(status: FiscalPeriodStatus): boolean {
  * - Open -> SoftClose
  * - SoftClose -> Closed
  * - Closed -> Locked
- * - Locked -> Closed (reopen - requires special authorization)
- * - Closed -> Open (reopen - requires special authorization)
  * - SoftClose -> Open (reopen)
+ * - Closed -> Open (reopen - requires special authorization)
+ * - Locked -> Open (reopen - requires special authorization: fiscal_period:reopen)
  */
 export function canTransitionTo(
   currentStatus: FiscalPeriodStatus,
@@ -89,7 +89,7 @@ export function canTransitionTo(
     Open: ["SoftClose"],
     SoftClose: ["Closed", "Open"],
     Closed: ["Locked", "Open"],
-    Locked: ["Closed"]
+    Locked: ["Open"] // reopen - requires special authorization (fiscal_period:reopen)
   }
 
   return validTransitions[currentStatus].includes(newStatus)

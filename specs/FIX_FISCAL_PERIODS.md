@@ -13,6 +13,7 @@ This spec documents the UX issues on the fiscal periods page and the required fi
 | Action button icons misaligned | Medium | Icons not vertically centered with button text | ✅ Fixed |
 | Silent error handling | Low | Errors are swallowed without user feedback | ✅ Fixed |
 | Periods not loading when card starts expanded | High | New fiscal year shows "No periods" until dropdown closed/reopened | ✅ Fixed |
+| Reopening locked period fails | High | Locked -> Open transition not allowed in canTransitionTo | ✅ Fixed |
 
 ---
 
@@ -255,6 +256,29 @@ useEffect(() => {
 ```
 
 This ensures that when a new fiscal year is created and the page refreshes, the FiscalYearCard will automatically load periods if it starts in the expanded state.
+
+---
+
+## Issue 6: Reopening Locked Period Fails
+
+### Current Behavior
+When clicking "Reopen" on a locked period and providing a reason, the UI shows "Failed to reopen period" error message.
+
+### Root Cause
+In `packages/core/src/fiscal/FiscalPeriodStatus.ts`, the `canTransitionTo` function defined valid transitions as:
+```typescript
+Locked: ["Closed"]
+```
+
+This only allowed transitioning from Locked to Closed, not to Open. However, the `reopenPeriod` function in `FiscalPeriodServiceLive.ts` always tries to transition to Open status.
+
+### Fix
+Updated the `canTransitionTo` function to allow Locked -> Open transition:
+```typescript
+Locked: ["Open"] // reopen - requires special authorization (fiscal_period:reopen)
+```
+
+The transition is still protected by the `fiscal_period:reopen` permission check at the API layer.
 
 ---
 
