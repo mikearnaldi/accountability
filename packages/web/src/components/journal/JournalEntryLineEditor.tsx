@@ -85,16 +85,16 @@ export function JournalEntryLineEditor({
 
   return (
     <div
-      className="grid grid-cols-12 items-center gap-2 border-b border-gray-100 px-2 py-2 hover:bg-gray-50"
+      className="grid grid-cols-12 items-start gap-2 border-b border-gray-100 px-2 py-2 hover:bg-gray-50"
       data-testid={`journal-entry-line-${lineIndex}`}
     >
       {/* Line Number */}
-      <div className="col-span-1 text-center text-sm font-medium text-gray-500">
+      <div className="col-span-1 self-center text-center text-sm font-medium text-gray-500">
         {lineIndex + 1}
       </div>
 
-      {/* Account Selector */}
-      <div className="col-span-4">
+      {/* Account Selector - min-height reserves space for account type description */}
+      <div className="col-span-4 min-h-[52px]">
         <Select
           value={line.accountId}
           onChange={(e) => onUpdate(line.id, "accountId", e.target.value)}
@@ -112,15 +112,14 @@ export function JournalEntryLineEditor({
               </option>
             ))}
         </Select>
-        {selectedAccount && (
-          <span className="mt-0.5 block text-xs text-gray-500">
-            {selectedAccount.accountType}
-          </span>
-        )}
+        {/* Account type shown below select - space reserved by min-height on parent */}
+        <span className="mt-0.5 block h-4 text-xs text-gray-500">
+          {selectedAccount ? selectedAccount.accountType : "\u00A0"}
+        </span>
       </div>
 
       {/* Memo */}
-      <div className="col-span-2">
+      <div className="col-span-2 self-center">
         <Input
           type="text"
           value={line.memo}
@@ -133,7 +132,7 @@ export function JournalEntryLineEditor({
       </div>
 
       {/* Debit Amount */}
-      <div className="col-span-2">
+      <div className="col-span-2 self-center">
         <Input
           type="text"
           inputMode="decimal"
@@ -148,7 +147,7 @@ export function JournalEntryLineEditor({
       </div>
 
       {/* Credit Amount */}
-      <div className="col-span-2">
+      <div className="col-span-2 self-center">
         <Input
           type="text"
           inputMode="decimal"
@@ -163,7 +162,7 @@ export function JournalEntryLineEditor({
       </div>
 
       {/* Delete Button */}
-      <div className="col-span-1 text-center">
+      <div className="col-span-1 self-center text-center">
         <button
           type="button"
           onClick={() => onDelete(line.id)}

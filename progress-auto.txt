@@ -1072,3 +1072,8 @@
 **Task**: Fixed E2E tests for fiscal periods page - header create button now always visible
 **Status**: complete
 ---
+
+## Iteration 1 - 2026-01-20 23:29
+**Task**: Fixed journal entry UI issues - removed P13 info box, fixed line item layout shift, fixed tooltip cutoff
+**Status**: complete
+---

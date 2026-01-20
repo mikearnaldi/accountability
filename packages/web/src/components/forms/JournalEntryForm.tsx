@@ -22,6 +22,7 @@ import {
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
 import { Select } from "@/components/ui/Select"
+import { Tooltip } from "@/components/ui/Tooltip"
 import {
   PeriodDatePicker,
   type PeriodsSummary,
@@ -342,15 +343,13 @@ function ComputedPeriodDisplay({
           ({period.periodDisplayName})
         </span>
       </div>
-      <div className="group relative">
+      <Tooltip
+        content={`Fiscal period is automatically determined from the transaction date. Company fiscal year ends ${fyEndDisplay}.`}
+        position="top"
+        maxWidth="240px"
+      >
         <Info className="h-4 w-4 cursor-help text-gray-400" />
-        <div className="pointer-events-none absolute left-0 top-full z-10 mt-1 w-64 rounded-lg border border-gray-200 bg-white p-3 opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
-          <p className="text-xs text-gray-600">
-            Fiscal period is automatically determined from the transaction date.
-            Company fiscal year ends {fyEndDisplay}.
-          </p>
-        </div>
-      </div>
+      </Tooltip>
     </div>
   )
 }
@@ -748,26 +747,6 @@ export function JournalEntryForm({
                 <p className="ml-6 text-xs text-gray-500">
                   Use for year-end adjustments and audit entries
                 </p>
-              </div>
-            )}
-
-            {/* P13 info when selected */}
-            {useAdjustmentPeriod && (
-              <div
-                className="mt-2 rounded-lg border border-blue-200 bg-blue-50 p-2"
-                data-testid="adjustment-period-info"
-              >
-                <div className="flex items-start gap-2">
-                  <Info className="mt-0.5 h-4 w-4 flex-shrink-0 text-blue-600" />
-                  <div className="text-xs text-blue-700">
-                    <p className="font-medium">Posting to Adjustment Period</p>
-                    <ul className="mt-1 list-disc list-inside">
-                      <li>Year-end audit adjustments</li>
-                      <li>Accrual corrections</li>
-                      <li>Closing entries</li>
-                    </ul>
-                  </div>
-                </div>
               </div>
             )}
           </div>

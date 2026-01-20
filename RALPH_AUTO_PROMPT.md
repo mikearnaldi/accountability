@@ -32,6 +32,7 @@ Use these files as reference when implementing tasks. Read relevant specs before
 4. **ONE TASK PER ITERATION**: Complete one task, signal completion, then STOP.
 5. **UPDATE SPECS**: Update spec files to mark tasks complete, add new tasks, or track progress.
 6. **FULL STACK**: Implement across all necessary layers - don't do frontend-only or backend-only when both need changes.
+7. **NEVER MOVE SPECS OUT OF PENDING**: Do not move spec files from `specs/pending/` to `specs/completed/` or any other location. Only the user will decide when a spec is complete and move it manually.
 
 ## Signals
 

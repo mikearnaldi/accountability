@@ -321,16 +321,15 @@ Response example:
 
 ### Phase 3: Frontend - Date Picker Constraints [COMPLETED]
 
-> **Status:** Complete. All UI issues have been fixed.
->
-> **Resolved Issues:**
-> 1. ~~**Redundant error messages:**~~ **FIXED** - Now shows a SINGLE inline message only per spec section 3.4.
-> 2. ~~**Tooltip cut off:**~~ **N/A** - Implementation uses native browser date picker, not a custom calendar with per-date tooltips. Inline status messages show period state after date selection.
+> **Status:** Completed. All UI issues have been fixed.
 >
 > **Implemented:**
 > - `PeriodDatePicker` component with single inline period status display
 > - Updated `JournalEntryForm` to accept `periodsSummary` and show P13 checkbox
 > - Updated `new.tsx` to fetch periods summary and handle edge cases
+> - Removed redundant P13 info box - checkbox label with description is sufficient
+> - Fixed account selection layout shift by reserving space for account type description with `min-height` and using `self-center` for other columns
+> - Fixed fiscal period tooltip cut-off by using Tooltip component with @floating-ui/react collision detection
 
 #### 3.1 Fetch Periods Summary in Loader
 

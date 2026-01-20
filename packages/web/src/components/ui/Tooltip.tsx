@@ -28,14 +28,16 @@ import { clsx } from "clsx"
 import { useState, type ReactNode } from "react"
 
 interface TooltipProps {
-  /** Content to show in tooltip */
-  readonly content: string
+  /** Content to show in tooltip (string for simple text, ReactNode for complex content) */
+  readonly content: ReactNode
   /** Element that triggers the tooltip */
   readonly children: ReactNode
   /** Preferred position of tooltip relative to trigger (may change if collision detected) */
   readonly position?: "top" | "bottom" | "left" | "right"
   /** Additional class names for the wrapper */
   readonly className?: string
+  /** Maximum width for the tooltip content (useful for long text) */
+  readonly maxWidth?: string
   /** Test ID for E2E testing */
   readonly "data-testid"?: string
 }
@@ -45,6 +47,7 @@ export function Tooltip({
   children,
   position = "top",
   className,
+  maxWidth,
   "data-testid": testId
 }: TooltipProps) {
   const [isOpen, setIsOpen] = useState(false)
@@ -103,12 +106,13 @@ export function Tooltip({
         <FloatingPortal>
           <div
             ref={refs.setFloating}
-            style={floatingStyles}
+            style={{ ...floatingStyles, ...(maxWidth ? { maxWidth } : {}) }}
             {...getFloatingProps()}
             className={clsx(
               "z-[9999] px-2 py-1 text-xs font-normal normal-case tracking-normal",
               "text-white bg-gray-900 rounded shadow-lg",
-              "whitespace-nowrap pointer-events-none"
+              "pointer-events-none",
+              maxWidth ? "whitespace-normal" : "whitespace-nowrap"
             )}
           >
             {content}
