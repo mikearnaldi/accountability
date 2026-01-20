@@ -1049,3 +1049,8 @@
 **Task**: Resolved specs-new/ duplication - merged fix-fiscal-periods.md into architecture/fiscal-periods.md and updated domain-model.md to reflect simplified 2-status model
 **Status**: complete
 ---
+
+## Iteration 1 - 2026-01-20 18:28
+**Task**: Removed domain-model.md duplicate and updated CLAUDE.md with new specs paths
+**Status**: complete
+---

@@ -35,15 +35,12 @@ These guides consolidate related best practices into comprehensive documents:
 | Document | Description |
 |----------|-------------|
 | [accounting-research.md](architecture/accounting-research.md) | Comprehensive domain spec - US GAAP, regulatory framework, entities, services, reports, consolidation engine |
-| [domain-model.md](architecture/domain-model.md) | Quick reference for domain entities and relationships (subset of accounting-research) |
 | [authentication.md](architecture/authentication.md) | Multi-provider auth system |
 | [authorization.md](architecture/authorization.md) | RBAC/ABAC policies and permissions |
 | [error-design.md](architecture/error-design.md) | One-layer error architecture |
 | [fiscal-periods.md](architecture/fiscal-periods.md) | Fiscal year/period management |
 
-**Note on Domain Documentation:**
-- `accounting-research.md` is the comprehensive research document - read this for full context
-- `domain-model.md` is an extracted quick reference for day-to-day lookup of entity fields and relationships
+**Note:** `accounting-research.md` is the comprehensive domain reference document covering all entities, relationships, and business rules.
 
 ### Pending Implementation
 
