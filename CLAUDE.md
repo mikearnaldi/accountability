@@ -73,33 +73,54 @@ accountability/
 
 All specifications and context documentation live in `specs/`. Use focus mode to select relevant files for your task.
 
+### Consolidated Guides (Start Here)
+
 | File | Description |
 |------|-------------|
-| [specs/ACCOUNTING_RESEARCH.md](specs/ACCOUNTING_RESEARCH.md) | Domain specifications (entities, services, reports) |
-| [specs/API_BEST_PRACTICES.md](specs/API_BEST_PRACTICES.md) | API layer conventions |
-| [specs/AUTHENTICATION.md](specs/AUTHENTICATION.md) | Multi-provider auth system, session management |
-| [specs/AUTHORIZATION.md](specs/AUTHORIZATION.md) | Role-based access control and permissions |
-| [specs/CONSOLIDATION_METHOD_CLEANUP.md](specs/CONSOLIDATION_METHOD_CLEANUP.md) | Consolidation method field cleanup notes |
-| [specs/CONSOLIDATED_REPORTS.md](specs/CONSOLIDATED_REPORTS.md) | Consolidated financial reports (Balance Sheet, Income Statement, Cash Flow, Equity) |
-| [specs/DOMAIN_MODEL.md](specs/DOMAIN_MODEL.md) | Complete domain model documentation |
-| [specs/E2E_TEST_COVERAGE.md](specs/E2E_TEST_COVERAGE.md) | E2E test coverage status and implementation notes |
-| [specs/E2E_TESTING.md](specs/E2E_TESTING.md) | Playwright E2E testing patterns |
-| [specs/EFFECT_BEST_PRACTICES.md](specs/EFFECT_BEST_PRACTICES.md) | **Critical rules** for backend Effect code |
-| [specs/ERROR_DESIGN.md](specs/ERROR_DESIGN.md) | Three-layer error architecture (Persistence → Domain → API) |
-| [specs/EFFECT_LAYERS.md](specs/EFFECT_LAYERS.md) | Layer composition, memoization, service patterns |
-| [specs/EFFECT_SQL.md](specs/EFFECT_SQL.md) | SqlSchema, Model.Class, repository patterns |
-| [specs/EFFECT_TESTING.md](specs/EFFECT_TESTING.md) | @effect/vitest, testcontainers, property testing |
-| [specs/EXCHANGE_RATE_SYNC.md](specs/EXCHANGE_RATE_SYNC.md) | ECB exchange rate sync and cross-rate triangulation |
-| [specs/FISCAL_PERIODS.md](specs/FISCAL_PERIODS.md) | Fiscal year/period management, mandatory period 13 |
-| [specs/HTTP_API_TANSTACK.md](specs/HTTP_API_TANSTACK.md) | Effect HttpApi + TanStack Start SSR + openapi-fetch |
-| [specs/PAST_DATE_JOURNAL_ENTRIES.md](specs/PAST_DATE_JOURNAL_ENTRIES.md) | Fix for creating journal entries with past dates |
-| [specs/POLICY_UX_IMPROVEMENTS.md](specs/POLICY_UX_IMPROVEMENTS.md) | Policy creation UX redesign - multi-resource, user picker |
-| [specs/REACT_BEST_PRACTICES.md](specs/REACT_BEST_PRACTICES.md) | React patterns, loaders, mutations, Tailwind |
-| [specs/REFERENCE_REPOS.md](specs/REFERENCE_REPOS.md) | Reference repository documentation |
-| [specs/SYNTHETIC_DATA_GENERATOR.md](specs/SYNTHETIC_DATA_GENERATOR.md) | Playwright script to generate synthetic demo data |
-| [specs/TYPESCRIPT_CONVENTIONS.md](specs/TYPESCRIPT_CONVENTIONS.md) | Project refs, imports, module structure |
-| [specs/UI_ARCHITECTURE.md](specs/UI_ARCHITECTURE.md) | Layout, navigation, page templates, component patterns |
-| [specs/USABILITY_BEST_PRACTICES.md](specs/USABILITY_BEST_PRACTICES.md) | UX patterns, navigation, forms, states |
+| [specs/guides/effect-guide.md](specs/guides/effect-guide.md) | Effect patterns, layers, errors, SQL, testing |
+| [specs/guides/testing-guide.md](specs/guides/testing-guide.md) | Unit, integration, E2E testing |
+| [specs/guides/frontend-guide.md](specs/guides/frontend-guide.md) | React, UI, components, styling, design system |
+| [specs/guides/api-guide.md](specs/guides/api-guide.md) | HttpApi, endpoints, schemas, SSR |
+
+### Architecture
+
+| File | Description |
+|------|-------------|
+| [specs/architecture/accounting-research.md](specs/architecture/accounting-research.md) | Comprehensive domain spec - US GAAP, entities, services, reports |
+| [specs/architecture/authentication.md](specs/architecture/authentication.md) | Multi-provider auth system, session management |
+| [specs/architecture/authorization.md](specs/architecture/authorization.md) | RBAC/ABAC policies and permissions |
+| [specs/architecture/error-design.md](specs/architecture/error-design.md) | One-layer error architecture |
+| [specs/architecture/fiscal-periods.md](specs/architecture/fiscal-periods.md) | Fiscal year/period management, mandatory period 13 |
+
+### Pending Implementation
+
+| File | Description |
+|------|-------------|
+| [specs/pending/exchange-rate-sync.md](specs/pending/exchange-rate-sync.md) | ECB exchange rate sync and cross-rate triangulation |
+| [specs/pending/policy-ux-improvements.md](specs/pending/policy-ux-improvements.md) | Policy creation UX redesign |
+| [specs/pending/duplicated-company-creation-page.md](specs/pending/duplicated-company-creation-page.md) | Remove duplicate company creation UI |
+
+### Completed (Historical Reference)
+
+| File | Description |
+|------|-------------|
+| [specs/completed/consolidated-reports.md](specs/completed/consolidated-reports.md) | Consolidated financial reports |
+| [specs/completed/consolidation-method-cleanup.md](specs/completed/consolidation-method-cleanup.md) | Consolidation method field cleanup |
+| [specs/completed/e2e-test-coverage.md](specs/completed/e2e-test-coverage.md) | E2E test coverage status |
+| [specs/completed/synthetic-data-generator.md](specs/completed/synthetic-data-generator.md) | Playwright script for demo data |
+| [specs/completed/past-date-journal-entries.md](specs/completed/past-date-journal-entries.md) | Journal entries with past dates |
+| [specs/completed/form-components-standardization.md](specs/completed/form-components-standardization.md) | Form component patterns |
+| [specs/completed/company-details.md](specs/completed/company-details.md) | Company details implementation |
+| [specs/completed/core-code-organisation.md](specs/completed/core-code-organisation.md) | Core package organization |
+| [specs/completed/error-tracker.md](specs/completed/error-tracker.md) | Error tracking issues |
+| [specs/completed/audit-page.md](specs/completed/audit-page.md) | Audit log page implementation |
+| [specs/completed/authorization-missing.md](specs/completed/authorization-missing.md) | Missing authorization features |
+
+### Reference
+
+| File | Description |
+|------|-------------|
+| [specs/reference/reference-repos.md](specs/reference/reference-repos.md) | Reference repository documentation |
 
 ## Key Files
 
@@ -115,7 +136,7 @@ All specifications and context documentation live in `specs/`. Use focus mode to
 
 ### Backend (Effect code in core, persistence, api)
 
-**Read [specs/EFFECT_BEST_PRACTICES.md](specs/EFFECT_BEST_PRACTICES.md) first.** Key rules:
+**Read [specs/guides/effect-guide.md](specs/guides/effect-guide.md) first.** Key rules:
 
 1. **NEVER use `any` or type casts** - use Schema.make(), decodeUnknown, identity
 2. **NEVER use global `Error`** - use Schema.TaggedError for all domain errors
@@ -137,7 +158,7 @@ All specifications and context documentation live in `specs/`. Use focus mode to
 
 ### UI Architecture (CRITICAL)
 
-**Read [specs/UI_ARCHITECTURE.md](specs/UI_ARCHITECTURE.md) for all UI work.** Key rules:
+**Read [specs/guides/frontend-guide.md](specs/guides/frontend-guide.md) for all UI work.** Key rules:
 
 1. **ALL pages use AppLayout** - sidebar + header on EVERY authenticated page
 2. **NO manual breadcrumb HTML** - use the Breadcrumbs component
@@ -194,9 +215,8 @@ pnpm clean              # Clean build outputs
 **Effect-based** - functional, type-safe, composable. Services in `core/`, repositories in `persistence/`, endpoints in `api/`.
 
 **Read these specs:**
-- [specs/EFFECT_BEST_PRACTICES.md](specs/EFFECT_BEST_PRACTICES.md) - critical rules for Effect code
-- [specs/EFFECT_SQL.md](specs/EFFECT_SQL.md) - repository patterns, SqlSchema
-- [specs/API_BEST_PRACTICES.md](specs/API_BEST_PRACTICES.md) - API layer conventions
+- [specs/guides/effect-guide.md](specs/guides/effect-guide.md) - critical rules for Effect code, layers, SQL, testing
+- [specs/guides/api-guide.md](specs/guides/api-guide.md) - API layer conventions
 
 **Guidelines:**
 1. **Flat modules, no barrel files** - `CurrencyCode.ts` not `domain/currency/index.ts`
@@ -214,8 +234,7 @@ pnpm clean              # Clean build outputs
 **NO Effect code** - use openapi-fetch client for API calls. Use loaders for SSR data fetching, useState for UI state.
 
 **Read these specs:**
-- [specs/REACT_BEST_PRACTICES.md](specs/REACT_BEST_PRACTICES.md) - React patterns
-- [specs/UI_ARCHITECTURE.md](specs/UI_ARCHITECTURE.md) - layout, navigation, components
+- [specs/guides/frontend-guide.md](specs/guides/frontend-guide.md) - React patterns, UI components, Tailwind, layout, navigation
 
 **Guidelines:**
 1. **Use openapi-fetch client** - `api.GET()`, `api.POST()` for type-safe calls

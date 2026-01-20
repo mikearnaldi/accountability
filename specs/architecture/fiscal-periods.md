@@ -19,11 +19,13 @@ This is required for:
 
 ---
 
-## Current Issues
+## Status: IMPLEMENTED
 
-1. **Period 13 is optional** - The "Include adjustment period" checkbox makes period 13 optional, but it should be mandatory for consolidation compatibility
-2. ~~Fiscal periods need status workflow~~ ✅ Implemented (Future → Open → SoftClose → Closed → Locked)
-3. ~~Period reopen requires audit trail~~ ✅ Implemented (reason required, logged)
+All fiscal period features have been implemented:
+- ✅ Period 13 is mandatory (always created with every fiscal year)
+- ✅ Simplified 2-status model (Open/Closed) for better UX
+- ✅ Status transitions work correctly
+- ✅ Journal entry posting respects period status
 
 ---
 
@@ -80,34 +82,18 @@ A period within a fiscal year.
 | Adjustment | Year-end adjustment period (period 13) |
 | Closing | Year-end closing period (optional, for closing entries) |
 
-**FiscalPeriodStatus:**
-| Status | Description | Posting Allowed | Who Can Post |
-|--------|-------------|-----------------|--------------|
-| Future | Period not yet started | No | Nobody |
-| Open | Active period | Yes | All authorized users |
-| SoftClose | Soft closed for review | Limited | Controllers only |
-| Closed | Period closed | No | Nobody (requires reopen) |
-| Locked | Permanently locked | No | Nobody (requires reopen with elevated privileges) |
+**FiscalPeriodStatus (Simplified 2-Status Model):**
+| Status | Description | Posting Allowed |
+|--------|-------------|-----------------|
+| Open | Active period, accepts journal entries | Yes |
+| Closed | Period closed, no entries allowed | No |
 
 **Status Workflow:**
 ```
-Future → Open → SoftClose → Closed → Locked
-                    ↑           │
-                    └───────────┘ (reopen with reason)
+Open ←→ Closed
 ```
 
-### PeriodReopenAuditEntry
-
-Audit trail for period reopens (required for SOX compliance).
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| id | UUID | Yes | Primary key |
-| periodId | UUID | Yes | FK to FiscalPeriod |
-| reason | string | Yes | Justification for reopen |
-| reopenedBy | UUID | Yes | User who reopened |
-| reopenedAt | Timestamp | Yes | When reopened |
-| previousStatus | FiscalPeriodStatus | Yes | Status before reopen |
+A period is either open for entries or it's not. This simplified model replaced the original 5-status model (Future/Open/SoftClose/Closed/Locked) for better UX. The transition requires `fiscal_period:manage` permission.
 
 ---
 
@@ -127,22 +113,15 @@ Audit trail for period reopens (required for SOX compliance).
 
 | From Status | To Status | Action | Requirements |
 |-------------|-----------|--------|--------------|
-| Future | Open | Open Period | Previous period must be Open or later |
-| Open | SoftClose | Soft Close | All journal entries must be posted |
-| SoftClose | Closed | Close Period | Controller approval |
-| Closed | Locked | Lock Period | Admin approval |
-| Closed | Open | Reopen | Reason required, audit logged |
-| Locked | Open | Reopen | Elevated privileges, reason required, audit logged |
+| Closed | Open | Open Period | `fiscal_period:manage` permission |
+| Open | Closed | Close Period | `fiscal_period:manage` permission |
 
 ### Posting Rules by Period Status
 
-| Period Status | Standard Users | Controllers | Admins |
-|---------------|----------------|-------------|--------|
-| Future | Cannot post | Cannot post | Cannot post |
-| Open | Can post | Can post | Can post |
-| SoftClose | Cannot post | Can post adjustments | Can post adjustments |
-| Closed | Cannot post | Cannot post | Cannot post |
-| Locked | Cannot post | Cannot post | Cannot post |
+| Period Status | Users with `journal_entry:create` |
+|---------------|-----------------------------------|
+| Open | Can post |
+| Closed | Cannot post |
 
 ### Period 13 (Adjustment Period) Rules
 
@@ -319,44 +298,31 @@ interface ReopenPeriodRequest {
 
 | Status | Color | Icon |
 |--------|-------|------|
-| Future | Blue (`bg-blue-100 text-blue-700`) | Clock |
-| Open | Green (`bg-green-100 text-green-700`) | Play |
-| SoftClose | Yellow (`bg-yellow-100 text-yellow-700`) | Pause |
-| Closed | Orange (`bg-orange-100 text-orange-700`) | CheckCircle |
-| Locked | Red (`bg-red-100 text-red-700`) | Lock |
+| Open | Green (`bg-green-100 text-green-800`) | CheckCircle |
+| Closed | Gray (`bg-gray-100 text-gray-800`) | Lock |
 
 ---
 
-## Implementation Tasks
+## Implementation Status
 
 ### Phase 1: Make Period 13 Mandatory ✅ COMPLETE
 
-1. [x] **Backend: Update FiscalPeriodServiceLive**
-   - Removed `includeAdjustmentPeriod` parameter from `CreateFiscalYearInput` and `GeneratePeriodsInput`
-   - `generatePeriods` now always generates 13 periods (12 regular + 1 adjustment)
-   - Period 13 has `periodType: "Adjustment"`
-   - `createFiscalYear` always sets `includesAdjustmentPeriod: true`
+1. ✅ **Backend: Update FiscalYearServiceLive** - Always generates 13 periods
+2. ✅ **Backend: Update API schema** - `includeAdjustmentPeriod` removed
+3. ✅ **Frontend: Update CreateFiscalYearModal** - Shows 13-period info message
+4. ✅ **Migration** - Existing data handled via application logic
 
-2. [x] **Backend: Update API schema**
-   - Removed `includeAdjustmentPeriod` from `CreateFiscalYearRequest` in `FiscalPeriodApi.ts`
-   - Regenerated OpenAPI spec and API client types
+### Phase 2: Simplified Status Model ✅ COMPLETE
 
-3. [x] **Frontend: Update CreateFiscalYearModal**
-   - Removed the "Include adjustment period" checkbox
-   - Added info box explaining 13 periods will be created
-   - Regenerated API client types
+The original 5-status model was simplified to 2 statuses (Open/Closed) for better UX.
+See `completed/fix-fiscal-periods.md` for historical context on this change.
 
-4. [x] **Migration: Backfill existing fiscal years**
-   - Created `Migration0023_BackfillPeriod13.ts`
-   - Inserts Period 13 for all fiscal years that don't have one
-   - Updates all fiscal years to set `includes_adjustment_period = true`
+### Future Enhancements (Not Implemented)
 
-### Phase 2: Enhanced Period Management (Future)
-
-5. [ ] **Bulk period operations** - Open/close multiple periods at once
-6. [ ] **Period templates** - Pre-defined period structures (monthly, quarterly, 4-4-5)
-7. [ ] **Automatic period opening** - Open next period when current closes
-8. [ ] **Period calendar view** - Visual timeline of period statuses
+- Bulk period operations (open/close multiple periods at once)
+- Period templates (monthly, quarterly, 4-4-5)
+- Automatic period opening when current closes
+- Period calendar view
 
 ---
 
@@ -393,7 +359,7 @@ CREATE TABLE fiscal_periods (
   period_type VARCHAR(20) NOT NULL,
   start_date DATE NOT NULL,
   end_date DATE NOT NULL,
-  status VARCHAR(20) NOT NULL DEFAULT 'Future',
+  status VARCHAR(20) NOT NULL DEFAULT 'Closed',
   closed_by UUID REFERENCES users(id),
   closed_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -402,7 +368,7 @@ CREATE TABLE fiscal_periods (
   UNIQUE (fiscal_year_id, period_number),
   CHECK (start_date <= end_date),
   CHECK (period_type IN ('Regular', 'Adjustment', 'Closing')),
-  CHECK (status IN ('Future', 'Open', 'SoftClose', 'Closed', 'Locked'))
+  CHECK (status IN ('Open', 'Closed'))
 );
 
 -- Index for finding periods by year
@@ -412,47 +378,26 @@ CREATE INDEX idx_fiscal_periods_year ON fiscal_periods(fiscal_year_id);
 CREATE INDEX idx_fiscal_periods_status ON fiscal_periods(status) WHERE status = 'Open';
 ```
 
-### period_reopen_audit table
-
-```sql
-CREATE TABLE period_reopen_audit (
-  id UUID PRIMARY KEY,
-  period_id UUID NOT NULL REFERENCES fiscal_periods(id),
-  reason TEXT NOT NULL CHECK (length(reason) >= 10),
-  reopened_by UUID NOT NULL REFERENCES users(id),
-  reopened_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  previous_status VARCHAR(20) NOT NULL,
-
-  CHECK (previous_status IN ('Closed', 'Locked'))
-);
-
-CREATE INDEX idx_period_reopen_audit_period ON period_reopen_audit(period_id);
-```
-
 ---
 
 ## Testing Requirements
 
-### Unit Tests
-- [ ] Fiscal year creation always generates 13 periods
-- [ ] Period 13 has type "Adjustment"
-- [ ] Period status transitions follow workflow rules
-- [ ] Reopen requires reason (min 10 chars)
-- [ ] Cannot create duplicate fiscal year for same company/year
+### Unit Tests ✅
+- ✅ Fiscal year creation always generates 13 periods
+- ✅ Period 13 has type "Adjustment"
+- ✅ Period status transitions (Open ↔ Closed)
+- ✅ Cannot create duplicate fiscal year for same company/year
 
-### Integration Tests
-- [ ] Create fiscal year API creates 13 periods
-- [ ] Period status transition APIs work correctly
-- [ ] Reopen creates audit entry
-- [ ] Journal entry posting respects period status
-- [ ] Consolidation run can target period 13
+### Integration Tests ✅
+- ✅ Create fiscal year API creates 13 periods
+- ✅ Period status transition APIs work correctly
+- ✅ Journal entry posting respects period status
+- ✅ Consolidation run can target period 13
 
-### E2E Tests
-- [ ] Create fiscal year shows all 13 periods
-- [ ] Period status transitions from UI
-- [ ] Reopen modal requires reason
-- [ ] Period status badges display correctly
-- [ ] Fiscal year close workflow
+### E2E Tests ✅
+- ✅ Create fiscal year shows all 13 periods
+- ✅ Period status transitions from UI (Open/Close buttons)
+- ✅ Period status badges display correctly
 
 ---
 
@@ -482,13 +427,5 @@ CREATE INDEX idx_period_reopen_audit_period ON period_reopen_audit(period_id);
 | **Fiscal Year** | A 12-month accounting period used for financial reporting |
 | **Fiscal Period** | A subdivision of a fiscal year (typically monthly) |
 | **Adjustment Period** | Period 13, used for year-end adjustments and audit entries |
-| **Soft Close** | Preliminary close that restricts posting to controllers only |
-| **Hard Close** | Final close that prevents all posting |
-| **Lock** | Permanent close requiring elevated privileges to reopen |
-| **Reopen** | Reversing a close to allow additional posting (requires justification) |
-
----
-
-## Priority
-
-**HIGH** - Fiscal period management is foundational to the accounting system. The period 13 mandatory change is critical for consolidation compatibility.
+| **Open** | Period status that allows journal entry posting |
+| **Closed** | Period status that prevents journal entry posting |

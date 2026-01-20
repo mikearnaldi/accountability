@@ -1026,3 +1026,34 @@
 **Task**: Added audit logging for all fiscal period operations including create, year-end close, and period open/close
 **Status**: complete
 ---
+
+## Iteration 1 - 2026-01-20 16:59
+**Task**: Reorganized specs/ into specs-new/ with 4 consolidated guides and proper categorization
+**Status**: complete
+---
+
+## Iteration 1 - 2026-01-20 17:03
+**Task**: Cleaned up specs-new/ by removing redundant best-practices/ directory and updating documentation
+**Status**: complete
+---
+
+## Iteration 1 - 2026-01-20 17:07
+**Task**: Cleaned up specs-new/ by removing 3 duplicate files and standardizing naming to lowercase-with-hyphens
+**Status**: complete
+---
+
+## Iteration 1 - 2026-01-20 17:17
+**Task**: Cleaned up specs-new/ - moved authorization-missing.md to completed and clarified README documentation
+**Status**: complete
+---
+
+## Iteration 1 - 2026-01-20 17:40
+**Task**: Resolved specs-new/ duplication - merged fix-fiscal-periods.md into architecture/fiscal-periods.md and updated domain-model.md to reflect simplified 2-status model
+**Status**: complete
+---
+
+## Iteration 1 - 2026-01-20 18:28
+**Task**: Removed domain-model.md duplicate and updated CLAUDE.md with new specs paths
+**Status**: complete
+**Status**: complete
+---
