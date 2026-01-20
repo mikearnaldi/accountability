@@ -7,11 +7,11 @@
  * - Warn about dates in closed periods (shows warning)
  * - Warn about dates with no fiscal period defined
  *
- * The component validates dates on blur and shows appropriate messages.
+ * Shows a SINGLE inline status message - not multiple redundant messages.
  */
 
-import { useState, useMemo, useCallback } from "react"
-import { AlertTriangle, Calendar, Info } from "lucide-react"
+import { useMemo, useCallback } from "react"
+import { AlertTriangle, CheckCircle, Info } from "lucide-react"
 import { Input } from "@/components/ui/Input"
 
 // =============================================================================
@@ -144,8 +144,6 @@ export function PeriodDatePicker({
   error,
   "data-testid": testId = "period-date-picker"
 }: PeriodDatePickerProps) {
-  const [showWarning, setShowWarning] = useState(false)
-
   // Calculate date status
   const dateStatus = useMemo(
     () => getDateStatus(value, periodsSummary),
@@ -158,31 +156,13 @@ export function PeriodDatePicker({
     [value, periodsSummary.periods]
   )
 
-  // Get warning message based on status
-  const warningMessage = useMemo(() => {
-    switch (dateStatus) {
-      case "closed":
-        return `This date falls in a closed period${
-          period ? ` (${period.periodName} FY${period.fiscalYear})` : ""
-        }. The journal entry will be rejected by the backend.`
-      case "no-period":
-        return "This date has no fiscal period defined. Create a fiscal year first."
-      default:
-        return undefined
-    }
-  }, [dateStatus, period])
-
   // Handle date change
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const newDate = e.target.value
       onChange(newDate)
-
-      // Check status and show warning if needed
-      const status = getDateStatus(newDate, periodsSummary)
-      setShowWarning(status !== "open")
     },
-    [onChange, periodsSummary]
+    [onChange]
   )
 
   // Calculate available period range info for helper text
@@ -215,17 +195,17 @@ export function PeriodDatePicker({
         className="text-sm"
       />
 
-      {/* Period info and status indicator */}
+      {/* Single inline period status message - per spec section 3.4 */}
       {value && (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           {dateStatus === "open" && period && (
             <div
               className="flex items-center gap-1.5 text-xs text-green-600"
               data-testid={`${testId}-status-open`}
             >
-              <Calendar className="h-3.5 w-3.5" />
+              <CheckCircle className="h-3.5 w-3.5" />
               <span>
-                {period.periodName} FY{period.fiscalYear} (Open)
+                P{period.periodNumber} FY{period.fiscalYear} ({period.periodName})
               </span>
             </div>
           )}
@@ -249,19 +229,6 @@ export function PeriodDatePicker({
               <span>No fiscal period defined</span>
             </div>
           )}
-        </div>
-      )}
-
-      {/* Warning message */}
-      {showWarning && warningMessage && (
-        <div
-          className="rounded-lg border border-amber-200 bg-amber-50 p-2"
-          data-testid={`${testId}-warning`}
-        >
-          <div className="flex items-start gap-2">
-            <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600" />
-            <p className="text-xs text-amber-700">{warningMessage}</p>
-          </div>
         </div>
       )}
 

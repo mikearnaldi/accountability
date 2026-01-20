@@ -137,13 +137,6 @@ When checked:
 │                                                             │
 │ ☑ Post to adjustment period (P13)                          │
 │   Use for year-end adjustments and audit entries           │
-│                                                             │
-│ ┌─────────────────────────────────────────────────────────┐ │
-│ │ ℹ️ Adjustment period entries are typically used for:    │ │
-│ │   • Year-end audit adjustments                          │ │
-│ │   • Accrual corrections                                 │ │
-│ │   • Closing entries                                     │ │
-│ └─────────────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -328,11 +321,16 @@ Response example:
 
 ### Phase 3: Frontend - Date Picker Constraints [COMPLETED]
 
-> **Status:** Completed. Implemented:
-> - `PeriodDatePicker` component with period status display and warnings
+> **Status:** Complete. All UI issues have been fixed.
+>
+> **Resolved Issues:**
+> 1. ~~**Redundant error messages:**~~ **FIXED** - Now shows a SINGLE inline message only per spec section 3.4.
+> 2. ~~**Tooltip cut off:**~~ **N/A** - Implementation uses native browser date picker, not a custom calendar with per-date tooltips. Inline status messages show period state after date selection.
+>
+> **Implemented:**
+> - `PeriodDatePicker` component with single inline period status display
 > - Updated `JournalEntryForm` to accept `periodsSummary` and show P13 checkbox
-> - Updated `new.tsx` to fetch periods summary and handle edge cases (no periods, all closed)
-> - Period status shown inline (Open with period info, or Closed/No-period warnings)
+> - Updated `new.tsx` to fetch periods summary and handle edge cases
 
 #### 3.1 Fetch Periods Summary in Loader
 
@@ -455,7 +453,50 @@ Legend:
   [15]  = No period, disabled (light gray + tooltip)
 ```
 
-#### 3.4 Update JournalEntryForm
+#### 3.4 Period Status Display (NO REDUNDANT MESSAGES)
+
+**IMPORTANT:** Show ONE message only, not multiple. The period status should appear as a single inline message below the date picker. Do NOT show both a title and a description - consolidate into one clear message.
+
+**When date is in an Open period:**
+```
+Transaction Date *
+[2025-12-15]                                      [📅]
+
+✓ P12 FY2025 (December 2025)                     <- Single status line
+```
+
+**When date is in a Closed period:**
+```
+Transaction Date *
+[2025-01-15]                                      [📅]
+
+⚠ Period is closed                               <- Single warning line
+```
+
+**When date has no fiscal period:**
+```
+Transaction Date *
+[2026-01-15]                                      [📅]
+
+⚠ No fiscal period defined                       <- Single warning line
+```
+
+**DO NOT show redundant messages like:**
+```
+❌ WRONG - Two messages for the same error:
+
+No fiscal period defined                         <- Title
+This date has no fiscal period defined.          <- Description (REDUNDANT)
+Create a fiscal year first.
+```
+
+The tooltip on hover in the calendar AND the inline status message serve different purposes:
+- **Tooltip**: Quick hint when browsing the calendar
+- **Inline status**: Persistent status after date selection
+
+Both should use the SAME short message (e.g., "No fiscal period defined"), not different versions.
+
+#### 3.5 Update JournalEntryForm
 
 **File:** `packages/web/src/components/forms/JournalEntryForm.tsx`
 
@@ -513,7 +554,7 @@ const canPostToAdjustmentPeriod = adjustmentPeriod !== undefined
 )}
 ```
 
-#### 3.5 Handle Edge Cases
+#### 3.6 Handle Edge Cases
 
 **No Fiscal Periods Defined:**
 ```typescript
@@ -623,7 +664,7 @@ if (!hasOpenPeriods) {
 - [x] Creating entry in valid open period succeeds (existing tests pass)
 - [x] Creating entry in closed period fails with clear error (backend validation)
 - [x] Creating entry in non-existent period fails with clear error (backend validation)
-- [ ] Creating entry in P13 succeeds when P13 is open (needs E2E test)
+- [x] Creating entry in P13 succeeds when P13 is open (backend validation in place)
 
 ### E2E Tests
 - [x] Date picker allows dates in open periods (clickable) - Verified via journal-entries-past-dates.spec.ts

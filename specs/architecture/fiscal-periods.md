@@ -240,6 +240,33 @@ interface ReopenPeriodRequest {
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
+**Empty State (when no fiscal years exist):**
+
+When there are no fiscal years, show an empty state with a single CTA. **Do NOT show the header button** - this prevents redundant CTAs.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Fiscal Periods                                                              │
+│ Manage fiscal years and periods for {Company Name}                          │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│                          📅 No Fiscal Years                                 │
+│                                                                             │
+│            Create your first fiscal year to start managing                  │
+│                        accounting periods.                                  │
+│                                                                             │
+│                       [Create Fiscal Year]                                  │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Implementation note:** The header "Create Fiscal Year" button should only render when `fiscalYears.length > 0`:
+```tsx
+{fiscalYears.length > 0 && canManagePeriods && (
+  <Button onClick={() => setShowCreateModal(true)}>Create Fiscal Year</Button>
+)}
+```
+
 ### Create Fiscal Year Modal
 
 **IMPORTANT:** Remove the "Include adjustment period" checkbox - period 13 is always created.
