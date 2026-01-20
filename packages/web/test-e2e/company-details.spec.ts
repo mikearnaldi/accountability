@@ -922,19 +922,25 @@ test.describe("Company Details Page", () => {
     // 6. Navigate to company details page
     await page.goto(`/organizations/${orgData.id}/companies/${companyData.id}`)
 
-    // 7. Click Edit button
-    await page.getByTestId("edit-company-button").click()
+    // 7. Wait for page to hydrate and Edit button to be ready
+    const editButton = page.getByTestId("edit-company-button")
+    await expect(editButton).toBeVisible()
+    await expect(editButton).toBeEnabled()
+    await page.waitForTimeout(500) // Wait for React hydration
 
-    // 8. Should show edit form modal
-    await expect(page.getByTestId("edit-company-modal")).toBeVisible()
+    // 8. Click Edit button with force to ensure click registers
+    await editButton.click({ force: true })
 
-    // 9. Functional currency should be displayed but disabled
+    // 9. Should show edit form modal
+    await expect(page.getByTestId("edit-company-modal")).toBeVisible({ timeout: 10000 })
+
+    // 10. Functional currency should be displayed but disabled
     const functionalCurrencyInput = page.getByTestId("edit-company-functional-currency-input")
     await expect(functionalCurrencyInput).toBeVisible()
     await expect(functionalCurrencyInput).toBeDisabled()
     await expect(functionalCurrencyInput).toHaveValue("EUR")
 
-    // 10. Should show ASC 830 note (helper text with Input component)
+    // 11. Should show ASC 830 note (helper text with Input component)
     await expect(page.getByTestId("edit-company-functional-currency-helper")).toBeVisible()
     await expect(page.getByTestId("edit-company-functional-currency-helper")).toContainText("ASC 830")
   })

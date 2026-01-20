@@ -171,12 +171,12 @@ test.describe("Chart of Accounts Page", () => {
     // 10. Should show account count
     await expect(page.getByText(/2 of 2 accounts/i)).toBeVisible()
 
-    // 11. Should show first account
-    await expect(page.getByText("1000")).toBeVisible()
+    // 11. Should show first account (use data-testid to avoid matching timestamps)
+    await expect(page.getByTestId("account-number-1000")).toBeVisible()
     await expect(page.getByText("Cash")).toBeVisible()
 
-    // 12. Should show second account
-    await expect(page.getByText("2000")).toBeVisible()
+    // 12. Should show second account (use data-testid to avoid matching org timestamps containing "2000")
+    await expect(page.getByTestId("account-number-2000")).toBeVisible()
     await expect(page.getByText("Accounts Payable")).toBeVisible()
   })
 
