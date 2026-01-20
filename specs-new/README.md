@@ -8,7 +8,6 @@ This directory contains all project specifications, organized by category.
 specs-new/
 ├── guides/             # Consolidated how-to guides (START HERE)
 ├── architecture/       # System architecture documentation
-├── best-practices/     # Individual coding guideline files
 ├── pending/            # Features not yet implemented
 ├── completed/          # Historical reference (all work done)
 └── reference/          # External references
@@ -22,38 +21,24 @@ These guides consolidate related best practices into comprehensive documents:
 
 | Guide | Description | Merged From |
 |-------|-------------|-------------|
-| [effect-guide.md](guides/effect-guide.md) | Effect patterns, layers, errors, SQL, testing | EFFECT_*.md files |
-| [testing-guide.md](guides/testing-guide.md) | Unit, integration, E2E testing | EFFECT_TESTING, E2E_*.md |
-| [frontend-guide.md](guides/frontend-guide.md) | React, UI, components, styling | REACT_*, UI_*, USABILITY_*.md |
-| [api-guide.md](guides/api-guide.md) | HttpApi, endpoints, schemas | API_*, HTTP_API_*.md |
+| [effect-guide.md](guides/effect-guide.md) | Effect patterns, layers, errors, SQL, testing | EFFECT_BEST_PRACTICES, EFFECT_LAYERS, EFFECT_SQL, EFFECT_TESTING |
+| [testing-guide.md](guides/testing-guide.md) | Unit, integration, E2E testing | EFFECT_TESTING, E2E_TESTING, E2E_TEST_COVERAGE |
+| [frontend-guide.md](guides/frontend-guide.md) | React, UI, components, styling | REACT_BEST_PRACTICES, UI_ARCHITECTURE, USABILITY_BEST_PRACTICES, DESIGN_SYSTEM |
+| [api-guide.md](guides/api-guide.md) | HttpApi, endpoints, schemas | API_BEST_PRACTICES, HTTP_API_TANSTACK |
 
-### Architecture (Start Here for Understanding the System)
+### Architecture (Reference Documentation)
 
 | Document | Description |
 |----------|-------------|
 | [ACCOUNTING_RESEARCH.md](architecture/ACCOUNTING_RESEARCH.md) | Comprehensive domain spec - US GAAP, entities, services, reports |
 | [DOMAIN_MODEL.md](architecture/DOMAIN_MODEL.md) | Domain model quick reference |
-| [UI_ARCHITECTURE.md](architecture/UI_ARCHITECTURE.md) | UI patterns, layouts, page templates |
+| [UI_ARCHITECTURE.md](architecture/UI_ARCHITECTURE.md) | UI patterns, layouts, page templates, issue tracking |
 | [DESIGN_SYSTEM.md](architecture/DESIGN_SYSTEM.md) | Colors, typography, spacing, components |
 | [HTTP_API_TANSTACK.md](architecture/HTTP_API_TANSTACK.md) | Effect HttpApi + TanStack Start SSR |
 | [AUTHENTICATION.md](architecture/AUTHENTICATION.md) | Multi-provider auth system |
 | [AUTHORIZATION.md](architecture/AUTHORIZATION.md) | RBAC/ABAC policies and permissions |
 | [ERROR_DESIGN.md](architecture/ERROR_DESIGN.md) | One-layer error architecture |
 | [FISCAL_PERIODS.md](architecture/FISCAL_PERIODS.md) | Fiscal year/period management |
-
-### Best Practices (Required Reading for Contributors)
-
-| Document | Description |
-|----------|-------------|
-| [EFFECT_BEST_PRACTICES.md](best-practices/EFFECT_BEST_PRACTICES.md) | **Critical** - Effect-TS patterns and rules |
-| [EFFECT_LAYERS.md](best-practices/EFFECT_LAYERS.md) | Layer composition, memoization, services |
-| [EFFECT_SQL.md](best-practices/EFFECT_SQL.md) | SqlSchema, Model.Class, repositories |
-| [EFFECT_TESTING.md](best-practices/EFFECT_TESTING.md) | @effect/vitest, testcontainers, property testing |
-| [TYPESCRIPT_CONVENTIONS.md](best-practices/TYPESCRIPT_CONVENTIONS.md) | TypeScript project refs, imports, modules |
-| [REACT_BEST_PRACTICES.md](best-practices/REACT_BEST_PRACTICES.md) | React patterns, loaders, mutations |
-| [API_BEST_PRACTICES.md](best-practices/API_BEST_PRACTICES.md) | Effect HttpApi design patterns |
-| [E2E_TESTING.md](best-practices/E2E_TESTING.md) | Playwright E2E testing patterns |
-| [USABILITY_BEST_PRACTICES.md](best-practices/USABILITY_BEST_PRACTICES.md) | UX patterns, navigation, forms, states |
 
 ### Pending Implementation
 
@@ -98,6 +83,6 @@ These specs document completed work. Kept for historical context and reference.
 
 ## Maintenance
 
-- **Best Practices** specs are living documents - update them as patterns evolve
+- **Guides** are living documents - update them as patterns evolve
 - **Pending** specs should be moved to **Completed** when finished
 - **Architecture** specs should be updated when the architecture changes

@@ -1029,3 +1029,8 @@
 **Task**: Reorganized specs/ into specs-new/ with 4 consolidated guides and proper categorization
 **Status**: complete
 ---
+
+## Iteration 1 - 2026-01-20 17:03
+**Task**: Cleaned up specs-new/ by removing redundant best-practices/ directory and updating documentation
+**Status**: complete
+---

@@ -289,13 +289,13 @@ The user requested that specs not simply be moved but actively **rewritten, merg
 - SSR patterns with TanStack Start
 - Anti-patterns to avoid
 
-## Updated Directory Structure
+## Final Directory Structure
 
 ```
 specs-new/
 ├── README.md
 │
-├── guides/                              # NEW: Consolidated how-to guides
+├── guides/                              # Consolidated how-to guides (PRIMARY REFERENCE)
 │   ├── effect-guide.md                  # Effect patterns, layers, errors, SQL, testing
 │   ├── testing-guide.md                 # Unit, integration, E2E testing
 │   ├── frontend-guide.md                # React, UI, components, styling
@@ -304,7 +304,7 @@ specs-new/
 ├── architecture/                        # System architecture documentation
 │   ├── ACCOUNTING_RESEARCH.md
 │   ├── DOMAIN_MODEL.md
-│   ├── UI_ARCHITECTURE.md               # Issue tracking, page templates
+│   ├── UI_ARCHITECTURE.md
 │   ├── HTTP_API_TANSTACK.md
 │   ├── AUTHENTICATION.md
 │   ├── AUTHORIZATION.md
@@ -312,25 +312,24 @@ specs-new/
 │   ├── FISCAL_PERIODS.md
 │   └── DESIGN_SYSTEM.md
 │
-├── best-practices/                      # Original individual files (can be removed if guides adopted)
-│   ├── EFFECT_BEST_PRACTICES.md
-│   ├── EFFECT_LAYERS.md
-│   ├── EFFECT_SQL.md
-│   ├── EFFECT_TESTING.md
-│   ├── TYPESCRIPT_CONVENTIONS.md
-│   ├── REACT_BEST_PRACTICES.md
-│   ├── API_BEST_PRACTICES.md
-│   ├── E2E_TESTING.md
-│   └── USABILITY_BEST_PRACTICES.md
-│
 ├── pending/                             # Features not yet implemented
 │   ├── EXCHANGE_RATE_SYNC.md
 │   ├── POLICY_UX_IMPROVEMENTS.md
 │   ├── AUTHORIZATION_MISSING.md
 │   └── DUPLICATED_COMPANY_CREATION_PAGE.md
 │
-├── completed/                           # Historical reference
-│   └── [11 completed specs]
+├── completed/                           # Historical reference (all work done)
+│   ├── AUDIT_PAGE.md
+│   ├── COMPANY_DETAILS.md
+│   ├── CONSOLIDATED_REPORTS.md
+│   ├── CONSOLIDATION_METHOD_CLEANUP.md
+│   ├── CORE_CODE_ORGANISATION.md
+│   ├── E2E_TEST_COVERAGE.md
+│   ├── ERROR_TRACKER.md
+│   ├── FIX_FISCAL_PERIODS.md
+│   ├── FORM_COMPONENTS_STANDARDIZATION.md
+│   ├── PAST_DATE_JOURNAL_ENTRIES.md
+│   └── SYNTHETIC_DATA_GENERATOR.md
 │
 └── reference/
     └── REFERENCE_REPOS.md
@@ -340,28 +339,43 @@ specs-new/
 
 | Directory | Files |
 |-----------|-------|
-| guides/ | 4 (NEW consolidated guides) |
+| guides/ | 4 (consolidated how-to guides) |
 | architecture/ | 9 |
-| best-practices/ | 9 (can be removed if guides adopted) |
 | pending/ | 4 |
 | completed/ | 11 |
 | reference/ | 1 |
 | README.md | 1 |
-| **Total** | **39** (35 original specs + 4 consolidated guides)
+| **Total** | **30** |
 
 ## Migration Status: ✅ COMPLETE
 
 The specs-new/ directory is now fully organized with:
-1. **Original files** organized into logical directories
-2. **New consolidated guides** that merge related content
+1. **Consolidated guides** that merge related best practices content (no redundant copies)
+2. **Architecture documentation** for system design reference
+3. **Pending specs** for work that still needs to be done
+4. **Completed specs** for historical reference
+
+### What Was Consolidated
+
+The following original spec files were **merged into the 4 consolidated guides** and are no longer needed as separate files:
+
+| Consolidated Guide | Original Files Merged |
+|-------------------|----------------------|
+| `guides/effect-guide.md` | EFFECT_BEST_PRACTICES.md, EFFECT_LAYERS.md, EFFECT_SQL.md, EFFECT_TESTING.md |
+| `guides/testing-guide.md` | EFFECT_TESTING.md, E2E_TESTING.md, E2E_TEST_COVERAGE.md |
+| `guides/frontend-guide.md` | REACT_BEST_PRACTICES.md, UI_ARCHITECTURE.md, USABILITY_BEST_PRACTICES.md, DESIGN_SYSTEM.md, FORM_COMPONENTS_STANDARDIZATION.md |
+| `guides/api-guide.md` | API_BEST_PRACTICES.md, HTTP_API_TANSTACK.md |
+
+### What Was Removed
+
+- `best-practices/` directory - redundant copies of files already merged into guides
+- `RESEARCH_ERRORS.md` - was just a pointer to ERROR_TRACKER.md (redundant)
 
 ### Recommended Next Steps
 
-1. **Adopt consolidated guides** - The guides/ directory contains the most useful merged content
-2. **Remove redundant best-practices/ files** - Once guides are adopted, individual files can be removed
-3. **Update CLAUDE.md** - Reference the new guides/ directory instead of individual specs
-4. **Keep architecture/** - These remain valuable as detailed reference documentation
-5. **Keep pending/** - These track work that still needs to be done
+1. **Delete original specs/** directory - content has been reorganized into specs-new/
+2. **Rename specs-new/ to specs/** - make the new structure the primary location
+3. **Update CLAUDE.md** - reference the consolidated guides instead of individual specs
 
 ---
 
@@ -381,5 +395,8 @@ The architecture specs are the most important long-term references. These docume
 - Security model (AUTHENTICATION.md, AUTHORIZATION.md)
 - UI patterns (UI_ARCHITECTURE.md, DESIGN_SYSTEM.md)
 
-### On Best Practices
-Best practices specs are evergreen guides that should be updated as patterns evolve. They don't become "complete" - they're living documents.
+### On Guides vs Best Practices
+The original `best-practices/` directory contained 9 separate files covering Effect, React, API, testing, etc. These have been **consolidated into 4 comprehensive guides** that are:
+- Easier to navigate (one guide per topic area)
+- More cohesive (related content is together)
+- More maintainable (fewer files to keep in sync)
