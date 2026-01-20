@@ -1034,3 +1034,8 @@
 **Task**: Cleaned up specs-new/ by removing redundant best-practices/ directory and updating documentation
 **Status**: complete
 ---
+
+## Iteration 1 - 2026-01-20 17:07
+**Task**: Cleaned up specs-new/ by removing 3 duplicate files and standardizing naming to lowercase-with-hyphens
+**Status**: complete
+---

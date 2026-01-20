@@ -13,41 +13,42 @@ specs-new/
 └── reference/          # External references
 ```
 
+## Naming Convention
+
+All files use lowercase with hyphens (e.g., `effect-guide.md`, `accounting-research.md`).
+
 ## Quick Links
 
 ### Consolidated Guides (Recommended Starting Point)
 
 These guides consolidate related best practices into comprehensive documents:
 
-| Guide | Description | Merged From |
-|-------|-------------|-------------|
-| [effect-guide.md](guides/effect-guide.md) | Effect patterns, layers, errors, SQL, testing | EFFECT_BEST_PRACTICES, EFFECT_LAYERS, EFFECT_SQL, EFFECT_TESTING |
-| [testing-guide.md](guides/testing-guide.md) | Unit, integration, E2E testing | EFFECT_TESTING, E2E_TESTING, E2E_TEST_COVERAGE |
-| [frontend-guide.md](guides/frontend-guide.md) | React, UI, components, styling | REACT_BEST_PRACTICES, UI_ARCHITECTURE, USABILITY_BEST_PRACTICES, DESIGN_SYSTEM |
-| [api-guide.md](guides/api-guide.md) | HttpApi, endpoints, schemas | API_BEST_PRACTICES, HTTP_API_TANSTACK |
+| Guide | Description |
+|-------|-------------|
+| [effect-guide.md](guides/effect-guide.md) | Effect patterns, layers, errors, SQL, testing |
+| [testing-guide.md](guides/testing-guide.md) | Unit, integration, E2E testing |
+| [frontend-guide.md](guides/frontend-guide.md) | React, UI, components, styling, design system |
+| [api-guide.md](guides/api-guide.md) | HttpApi, endpoints, schemas, SSR |
 
 ### Architecture (Reference Documentation)
 
 | Document | Description |
 |----------|-------------|
-| [ACCOUNTING_RESEARCH.md](architecture/ACCOUNTING_RESEARCH.md) | Comprehensive domain spec - US GAAP, entities, services, reports |
-| [DOMAIN_MODEL.md](architecture/DOMAIN_MODEL.md) | Domain model quick reference |
-| [UI_ARCHITECTURE.md](architecture/UI_ARCHITECTURE.md) | UI patterns, layouts, page templates, issue tracking |
-| [DESIGN_SYSTEM.md](architecture/DESIGN_SYSTEM.md) | Colors, typography, spacing, components |
-| [HTTP_API_TANSTACK.md](architecture/HTTP_API_TANSTACK.md) | Effect HttpApi + TanStack Start SSR |
-| [AUTHENTICATION.md](architecture/AUTHENTICATION.md) | Multi-provider auth system |
-| [AUTHORIZATION.md](architecture/AUTHORIZATION.md) | RBAC/ABAC policies and permissions |
-| [ERROR_DESIGN.md](architecture/ERROR_DESIGN.md) | One-layer error architecture |
-| [FISCAL_PERIODS.md](architecture/FISCAL_PERIODS.md) | Fiscal year/period management |
+| [accounting-research.md](architecture/accounting-research.md) | Comprehensive domain spec - US GAAP, entities, services, reports |
+| [domain-model.md](architecture/domain-model.md) | Domain model quick reference |
+| [authentication.md](architecture/authentication.md) | Multi-provider auth system |
+| [authorization.md](architecture/authorization.md) | RBAC/ABAC policies and permissions |
+| [error-design.md](architecture/error-design.md) | One-layer error architecture |
+| [fiscal-periods.md](architecture/fiscal-periods.md) | Fiscal year/period management |
 
 ### Pending Implementation
 
 | Document | Description | Complexity |
 |----------|-------------|------------|
-| [EXCHANGE_RATE_SYNC.md](pending/EXCHANGE_RATE_SYNC.md) | ECB exchange rate sync via Frankfurter API | 15 phases |
-| [POLICY_UX_IMPROVEMENTS.md](pending/POLICY_UX_IMPROVEMENTS.md) | Multi-resource policy UI improvements | 5 phases |
-| [AUTHORIZATION_MISSING.md](pending/AUTHORIZATION_MISSING.md) | Remaining authorization features | Partial |
-| [DUPLICATED_COMPANY_CREATION_PAGE.md](pending/DUPLICATED_COMPANY_CREATION_PAGE.md) | Remove duplicate company creation UI | Small |
+| [exchange-rate-sync.md](pending/exchange-rate-sync.md) | ECB exchange rate sync via Frankfurter API | 15 phases |
+| [policy-ux-improvements.md](pending/policy-ux-improvements.md) | Multi-resource policy UI improvements | 5 phases |
+| [authorization-missing.md](pending/authorization-missing.md) | Remaining authorization features | Partial |
+| [duplicated-company-creation-page.md](pending/duplicated-company-creation-page.md) | Remove duplicate company creation UI | Small |
 
 ### Completed (Historical Reference)
 
@@ -55,31 +56,48 @@ These specs document completed work. Kept for historical context and reference.
 
 | Document | Completed |
 |----------|-----------|
-| [AUDIT_PAGE.md](completed/AUDIT_PAGE.md) | All 3 phases |
-| [COMPANY_DETAILS.md](completed/COMPANY_DETAILS.md) | All 6 phases |
-| [CONSOLIDATED_REPORTS.md](completed/CONSOLIDATED_REPORTS.md) | 2026-01-16 |
-| [CONSOLIDATION_METHOD_CLEANUP.md](completed/CONSOLIDATION_METHOD_CLEANUP.md) | 2026-01-15 |
-| [CORE_CODE_ORGANISATION.md](completed/CORE_CODE_ORGANISATION.md) | 2026-01-19 |
-| [E2E_TEST_COVERAGE.md](completed/E2E_TEST_COVERAGE.md) | 261 tests |
-| [ERROR_TRACKER.md](completed/ERROR_TRACKER.md) | 17/17 issues |
-| [FIX_FISCAL_PERIODS.md](completed/FIX_FISCAL_PERIODS.md) | All fixed |
-| [FORM_COMPONENTS_STANDARDIZATION.md](completed/FORM_COMPONENTS_STANDARDIZATION.md) | All done |
-| [PAST_DATE_JOURNAL_ENTRIES.md](completed/PAST_DATE_JOURNAL_ENTRIES.md) | Verified |
-| [SYNTHETIC_DATA_GENERATOR.md](completed/SYNTHETIC_DATA_GENERATOR.md) | All 9 phases |
+| [audit-page.md](completed/audit-page.md) | All 3 phases |
+| [company-details.md](completed/company-details.md) | All 6 phases |
+| [consolidated-reports.md](completed/consolidated-reports.md) | 2026-01-16 |
+| [consolidation-method-cleanup.md](completed/consolidation-method-cleanup.md) | 2026-01-15 |
+| [core-code-organisation.md](completed/core-code-organisation.md) | 2026-01-19 |
+| [e2e-test-coverage.md](completed/e2e-test-coverage.md) | 261 tests |
+| [error-tracker.md](completed/error-tracker.md) | 17/17 issues |
+| [fix-fiscal-periods.md](completed/fix-fiscal-periods.md) | All fixed |
+| [form-components-standardization.md](completed/form-components-standardization.md) | All done |
+| [past-date-journal-entries.md](completed/past-date-journal-entries.md) | Verified |
+| [synthetic-data-generator.md](completed/synthetic-data-generator.md) | All 9 phases |
 
 ### Reference
 
 | Document | Description |
 |----------|-------------|
-| [REFERENCE_REPOS.md](reference/REFERENCE_REPOS.md) | Reference repositories in repos/ directory |
+| [reference-repos.md](reference/reference-repos.md) | Reference repositories in repos/ directory |
 
 ## For New Contributors
 
-1. Start with [ACCOUNTING_RESEARCH.md](architecture/ACCOUNTING_RESEARCH.md) for domain understanding
+1. Start with [accounting-research.md](architecture/accounting-research.md) for domain understanding
 2. Read [effect-guide.md](guides/effect-guide.md) before writing backend code
 3. Read [frontend-guide.md](guides/frontend-guide.md) before writing frontend code
 4. Read [api-guide.md](guides/api-guide.md) for API development
 5. Read [testing-guide.md](guides/testing-guide.md) before writing tests
+
+## What's In Each Section
+
+### guides/
+**Consolidated how-to documentation.** These are your primary reference when working on the codebase. They combine content from multiple original spec files into cohesive, topical guides.
+
+### architecture/
+**System design documentation.** Reference these to understand the domain model, authentication/authorization model, and error handling patterns.
+
+### pending/
+**Features not yet implemented.** Each file describes work that needs to be done with implementation phases.
+
+### completed/
+**Historical reference.** Completed implementation specs kept for context about how features were built.
+
+### reference/
+**External references.** Documentation about reference repositories used in the project.
 
 ## Maintenance
 
