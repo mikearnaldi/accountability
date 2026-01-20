@@ -35,6 +35,7 @@ import Migration0018 from "../Migrations/Migration0018_SeedOwners.ts"
 import Migration0019 from "../Migrations/Migration0019_AddAuditLogOrganizationId.ts"
 import Migration0020 from "../Migrations/Migration0020_AddAuditLogEntityName.ts"
 import Migration0021 from "../Migrations/Migration0021_AddAuditLogUserInfo.ts"
+import Migration0022 from "../Migrations/Migration0022_SimplifyFiscalPeriodStatus.ts"
 
 /**
  * Migration loader with all migrations defined inline.
@@ -67,7 +68,8 @@ const loader = Migrator.fromRecord({
   "18_SeedOwners": Migration0018,
   "19_AddAuditLogOrganizationId": Migration0019,
   "20_AddAuditLogEntityName": Migration0020,
-  "21_AddAuditLogUserInfo": Migration0021
+  "21_AddAuditLogUserInfo": Migration0021,
+  "22_SimplifyFiscalPeriodStatus": Migration0022
 })
 
 /**

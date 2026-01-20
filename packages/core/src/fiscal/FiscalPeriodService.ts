@@ -80,15 +80,6 @@ export interface ChangePeriodStatusInput {
 }
 
 /**
- * Input for reopening a closed/locked period
- */
-export interface ReopenPeriodInput {
-  readonly periodId: FiscalPeriodId
-  readonly reason: string
-  readonly userId: AuthUserId
-}
-
-/**
  * Filter options for listing fiscal periods
  */
 export interface ListPeriodsFilter {
@@ -218,7 +209,7 @@ export interface FiscalPeriodServiceShape {
    * Generate fiscal periods for a fiscal year
    *
    * Creates monthly periods based on the fiscal year start/end dates.
-   * Periods are created in "Future" status by default.
+   * Periods are created in "Closed" status by default.
    *
    * @param input - The period generation configuration
    * @returns Effect containing the created periods
@@ -284,14 +275,14 @@ export interface FiscalPeriodServiceShape {
   /**
    * Open a fiscal period
    *
-   * Transitions a period from "Future" to "Open" status.
+   * Transitions a period from "Closed" to "Open" status.
    *
    * @param fiscalYearId - The fiscal year ID for authorization
    * @param periodId - The period to open
    * @param userId - The user performing the action
    * @returns Effect containing the updated period
    * @errors FiscalPeriodNotFoundError - Period doesn't exist
-   * @errors InvalidStatusTransitionError - Period is not in Future status
+   * @errors InvalidStatusTransitionError - Period is already open
    * @errors PersistenceError - Database operation failed
    */
   readonly openPeriod: (
@@ -304,89 +295,23 @@ export interface FiscalPeriodServiceShape {
   >
 
   /**
-   * Soft-close a fiscal period
-   *
-   * Transitions a period from "Open" to "SoftClose" status.
-   * Limited operations are still allowed with approval.
-   *
-   * @param fiscalYearId - The fiscal year ID for authorization
-   * @param periodId - The period to soft-close
-   * @param userId - The user performing the action
-   * @returns Effect containing the updated period
-   * @errors FiscalPeriodNotFoundError - Period doesn't exist
-   * @errors InvalidStatusTransitionError - Period is not in Open status
-   * @errors PersistenceError - Database operation failed
-   */
-  readonly softClosePeriod: (
-    fiscalYearId: FiscalYearId,
-    periodId: FiscalPeriodId,
-    userId: AuthUserId
-  ) => Effect.Effect<
-    FiscalPeriod,
-    FiscalPeriodNotFoundError | InvalidStatusTransitionError | PersistenceError | EntityNotFoundError
-  >
-
-  /**
    * Close a fiscal period
    *
-   * Transitions a period from "SoftClose" to "Closed" status.
-   * No modifications allowed.
+   * Transitions a period from "Open" to "Closed" status.
+   * No modifications allowed after close.
    *
    * @param fiscalYearId - The fiscal year ID for authorization
    * @param periodId - The period to close
    * @param userId - The user performing the action
    * @returns Effect containing the updated period
    * @errors FiscalPeriodNotFoundError - Period doesn't exist
-   * @errors InvalidStatusTransitionError - Period is not in SoftClose status
+   * @errors InvalidStatusTransitionError - Period is already closed
    * @errors PersistenceError - Database operation failed
    */
   readonly closePeriod: (
     fiscalYearId: FiscalYearId,
     periodId: FiscalPeriodId,
     userId: AuthUserId
-  ) => Effect.Effect<
-    FiscalPeriod,
-    FiscalPeriodNotFoundError | InvalidStatusTransitionError | PersistenceError | EntityNotFoundError
-  >
-
-  /**
-   * Lock a fiscal period
-   *
-   * Transitions a period from "Closed" to "Locked" status.
-   * Permanently locked - requires special unlock.
-   *
-   * @param fiscalYearId - The fiscal year ID for authorization
-   * @param periodId - The period to lock
-   * @param userId - The user performing the action
-   * @returns Effect containing the updated period
-   * @errors FiscalPeriodNotFoundError - Period doesn't exist
-   * @errors InvalidStatusTransitionError - Period is not in Closed status
-   * @errors PersistenceError - Database operation failed
-   */
-  readonly lockPeriod: (
-    fiscalYearId: FiscalYearId,
-    periodId: FiscalPeriodId,
-    userId: AuthUserId
-  ) => Effect.Effect<
-    FiscalPeriod,
-    FiscalPeriodNotFoundError | InvalidStatusTransitionError | PersistenceError | EntityNotFoundError
-  >
-
-  /**
-   * Reopen a closed or locked period
-   *
-   * Returns a period to "Open" status with an audit trail.
-   * Requires special authorization (fiscal_period:reopen).
-   *
-   * @param input - The reopen request with reason
-   * @returns Effect containing the updated period
-   * @errors FiscalPeriodNotFoundError - Period doesn't exist
-   * @errors PeriodProtectedError - Period cannot be reopened
-   * @errors PersistenceError - Database operation failed
-   */
-  readonly reopenPeriod: (
-    fiscalYearId: FiscalYearId,
-    input: ReopenPeriodInput
   ) => Effect.Effect<
     FiscalPeriod,
     FiscalPeriodNotFoundError | InvalidStatusTransitionError | PersistenceError | EntityNotFoundError
@@ -497,6 +422,5 @@ export type PeriodStatusTransitionError =
 export type YearStatusTransitionError =
   | FiscalYearNotFoundError
   | InvalidYearStatusTransitionError
-  | PeriodsNotClosedError
   | PersistenceError
   | EntityNotFoundError

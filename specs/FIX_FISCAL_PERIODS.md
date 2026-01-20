@@ -14,6 +14,202 @@ This spec documents the UX issues on the fiscal periods page and the required fi
 | Silent error handling | Low | Errors are swallowed without user feedback | ✅ Fixed |
 | Periods not loading when card starts expanded | High | New fiscal year shows "No periods" until dropdown closed/reopened | ✅ Fixed |
 | Reopening locked period fails | High | Locked -> Open transition not allowed in canTransitionTo | ✅ Fixed |
+| Too many period statuses | High | 5 statuses is confusing - simplify to Open/Closed | ✅ Fixed |
+
+---
+
+## Issue 7: Simplify Fiscal Period Status (MAJOR) - ✅ COMPLETED
+
+### Problem
+
+The current fiscal period status model has **5 states** which is unnecessarily complex and confusing for users:
+
+| Current Status | Description | User Confusion |
+|----------------|-------------|----------------|
+| Future | Period hasn't started yet | Unnecessary - just show as Closed |
+| Open | Accepts journal entries | ✅ Keep |
+| SoftClose | Limited entry with approval | Confusing - what's the difference from Closed? |
+| Closed | No entries allowed | ✅ Keep |
+| Locked | Permanently locked | Confusing - what's the difference from Closed? |
+
+**User experience issues:**
+1. Users don't understand the difference between SoftClose, Closed, and Locked
+2. The workflow Future → Open → SoftClose → Closed → Locked has too many steps
+3. Different permissions for each transition adds complexity
+4. The UI shows 5 different status badges with different colors
+5. Reopening logic is confusing (can reopen Closed but Locked needs special permission?)
+
+### Solution
+
+Simplify to **2 statuses**: **Open** and **Closed**
+
+| New Status | Description | Replaces |
+|------------|-------------|----------|
+| **Open** | Period accepts journal entries | Open |
+| **Closed** | Period does not accept entries | Future, SoftClose, Closed, Locked |
+
+### Simplified Workflow
+
+```
+Open ←→ Closed
+```
+
+That's it. A period is either open for entries or it's not.
+
+### Permission Simplification
+
+| Current Permissions | New Permissions |
+|---------------------|-----------------|
+| `fiscal_period:open` | `fiscal_period:manage` |
+| `fiscal_period:soft_close` | (removed) |
+| `fiscal_period:close` | `fiscal_period:manage` |
+| `fiscal_period:lock` | (removed) |
+| `fiscal_period:reopen` | `fiscal_period:manage` |
+
+Single permission `fiscal_period:manage` controls both opening and closing periods.
+
+### Implementation Plan
+
+#### 1. Domain Model (`packages/core/src/fiscal/FiscalPeriodStatus.ts`)
+
+**Before:**
+```typescript
+export const FiscalPeriodStatus = Schema.Literal(
+  "Future",
+  "Open",
+  "SoftClose",
+  "Closed",
+  "Locked"
+)
+```
+
+**After:**
+```typescript
+export const FiscalPeriodStatus = Schema.Literal(
+  "Open",
+  "Closed"
+)
+```
+
+**Update helper functions:**
+```typescript
+export function statusAllowsJournalEntries(status: FiscalPeriodStatus): boolean {
+  return status === "Open"
+}
+
+export function canTransitionTo(
+  currentStatus: FiscalPeriodStatus,
+  newStatus: FiscalPeriodStatus
+): boolean {
+  // Can always toggle between Open and Closed
+  return currentStatus !== newStatus
+}
+```
+
+#### 2. Service Layer (`packages/core/src/fiscal/FiscalPeriodService.ts`)
+
+**Remove methods:**
+- `softClosePeriod`
+- `lockPeriod`
+- `reopenPeriod` (merge into `openPeriod`)
+
+**Keep methods (simplified):**
+- `openPeriod(fiscalYearId, periodId, userId)` - sets status to Open
+- `closePeriod(fiscalYearId, periodId, userId)` - sets status to Closed
+
+#### 3. API Endpoints (`packages/api/src/Definitions/FiscalPeriodApi.ts`)
+
+**Remove endpoints:**
+- `POST .../periods/{periodId}/soft-close`
+- `POST .../periods/{periodId}/lock`
+- `POST .../periods/{periodId}/reopen`
+
+**Keep endpoints:**
+- `POST .../periods/{periodId}/open` - opens the period
+- `POST .../periods/{periodId}/close` - closes the period
+
+Both require `fiscal_period:manage` permission.
+
+#### 4. Database Migration
+
+Create migration to convert existing statuses:
+```sql
+-- Map old statuses to new
+UPDATE fiscal_periods SET status = 'Closed' WHERE status IN ('Future', 'SoftClose', 'Locked');
+-- Only 'Open' and 'Closed' remain
+```
+
+#### 5. Frontend UI (`packages/web/.../fiscal-periods/index.tsx`)
+
+**Simplify status badges:**
+```typescript
+const getStatusBadge = (status: FiscalPeriodStatus) => {
+  if (status === "Open") {
+    return { label: "Open", color: "bg-green-100 text-green-800", icon: CheckCircle }
+  }
+  return { label: "Closed", color: "bg-gray-100 text-gray-800", icon: Lock }
+}
+```
+
+**Simplify action buttons:**
+```typescript
+const getAvailableActions = (period: FiscalPeriod) => {
+  if (period.status === "Open") {
+    return [{ action: "close", label: "Close", icon: Lock }]
+  }
+  return [{ action: "open", label: "Open", icon: Unlock }]
+}
+```
+
+**Remove:**
+- Reopen modal (reason no longer required)
+- SoftClose, Lock action handling
+- Complex status transition logic
+
+#### 6. Permission Matrix (`packages/core/src/authorization/PermissionMatrix.ts`)
+
+**Remove:**
+- `fiscal_period:open`
+- `fiscal_period:soft_close`
+- `fiscal_period:close`
+- `fiscal_period:lock`
+- `fiscal_period:reopen`
+
+**Add:**
+- `fiscal_period:manage` - single permission for all period status changes
+
+**Update role assignments:**
+- Owner, Admin: has `fiscal_period:manage`
+- Controller: has `fiscal_period:manage`
+- Finance Manager: has `fiscal_period:manage`
+- Accountant: NO `fiscal_period:manage` (read-only)
+- Viewer: NO `fiscal_period:manage`
+
+### Files to Modify
+
+| File | Changes |
+|------|---------|
+| `packages/core/src/fiscal/FiscalPeriodStatus.ts` | Reduce to 2 statuses, simplify helpers |
+| `packages/core/src/fiscal/FiscalPeriodService.ts` | Remove soft_close, lock, reopen methods |
+| `packages/persistence/src/Layers/FiscalPeriodServiceLive.ts` | Simplify implementation |
+| `packages/persistence/src/Repositories/FiscalPeriodRepository.ts` | Remove reopen audit table references |
+| `packages/api/src/Definitions/FiscalPeriodApi.ts` | Remove endpoints |
+| `packages/api/src/Layers/FiscalPeriodApiLive.ts` | Remove handlers |
+| `packages/core/src/authorization/Action.ts` | Update actions |
+| `packages/core/src/authorization/PermissionMatrix.ts` | Simplify to single permission |
+| `packages/web/.../fiscal-periods/index.tsx` | Simplify UI |
+| Database migration | Convert existing statuses |
+| Tests | Update all fiscal period tests |
+
+### Testing Checklist
+
+- [x] Open period → status shows "Open", "Close" button available
+- [x] Close period → status shows "Closed", "Open" button available
+- [x] Permission check: users without `fiscal_period:manage` cannot see action buttons
+- [x] Existing data migrated correctly (Future/SoftClose/Locked → Closed)
+- [x] Journal entry creation blocked on Closed periods
+- [x] Journal entry creation allowed on Open periods
+- [x] All tests pass with new 2-status model (3915 tests passing)
 
 ---
 
@@ -261,6 +457,8 @@ This ensures that when a new fiscal year is created and the page refreshes, the 
 
 ## Issue 6: Reopening Locked Period Fails
 
+> **Note:** This issue is superseded by Issue 7 (Simplify Fiscal Period Status). Once Issue 7 is implemented, Locked status will no longer exist.
+
 ### Current Behavior
 When clicking "Reopen" on a locked period and providing a reason, the UI shows "Failed to reopen period" error message.
 
@@ -290,7 +488,7 @@ These are not critical but would improve the overall experience:
 
 2. **Optimistic updates**: Update the UI immediately when an action is clicked, then revert if the API call fails. This makes the UI feel faster.
 
-3. **Confirmation for destructive actions**: "Lock" is irreversible - consider adding a confirmation dialog.
+3. ~~**Confirmation for destructive actions**: "Lock" is irreversible - consider adding a confirmation dialog.~~ *(No longer relevant after Issue 7 - all status changes are reversible)*
 
 4. **Keyboard accessibility**: Ensure all action buttons are keyboard accessible (already should be since they're `<button>` elements).
 

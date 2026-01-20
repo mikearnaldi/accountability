@@ -50,11 +50,7 @@ type Action =
   | "journal_entry:post"
   | "journal_entry:reverse"
   | "fiscal_period:read"
-  | "fiscal_period:open"
-  | "fiscal_period:soft_close"
-  | "fiscal_period:close"
-  | "fiscal_period:lock"
-  | "fiscal_period:reopen"
+  | "fiscal_period:manage"
   | "consolidation_group:create"
   | "consolidation_group:read"
   | "consolidation_group:update"
@@ -88,11 +84,7 @@ const ACTION_MAP: Record<string, Action> = {
   "journal_entry:post": "journal_entry:post",
   "journal_entry:reverse": "journal_entry:reverse",
   "fiscal_period:read": "fiscal_period:read",
-  "fiscal_period:open": "fiscal_period:open",
-  "fiscal_period:soft_close": "fiscal_period:soft_close",
-  "fiscal_period:close": "fiscal_period:close",
-  "fiscal_period:lock": "fiscal_period:lock",
-  "fiscal_period:reopen": "fiscal_period:reopen",
+  "fiscal_period:manage": "fiscal_period:manage",
   "consolidation_group:create": "consolidation_group:create",
   "consolidation_group:read": "consolidation_group:read",
   "consolidation_group:update": "consolidation_group:update",
@@ -172,11 +164,7 @@ const ACTIONS_BY_RESOURCE: Record<string, { value: string; label: string }[]> = 
   ],
   fiscal_period: [
     { value: "fiscal_period:read", label: "Read" },
-    { value: "fiscal_period:open", label: "Open" },
-    { value: "fiscal_period:soft_close", label: "Soft Close" },
-    { value: "fiscal_period:close", label: "Close" },
-    { value: "fiscal_period:lock", label: "Lock" },
-    { value: "fiscal_period:reopen", label: "Reopen" }
+    { value: "fiscal_period:manage", label: "Manage" }
   ],
   consolidation_group: [
     { value: "consolidation_group:create", label: "Create" },

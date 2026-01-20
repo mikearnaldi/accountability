@@ -22,7 +22,6 @@ import {
   Lock,
   Unlock,
   Play,
-  Pause,
   CheckCircle,
   Clock,
   AlertCircle,
@@ -43,7 +42,7 @@ import { usePermissions } from "@/hooks/usePermissions"
 // =============================================================================
 
 type FiscalYearStatus = "Open" | "Closing" | "Closed"
-type FiscalPeriodStatus = "Future" | "Open" | "SoftClose" | "Closed" | "Locked"
+type FiscalPeriodStatus = "Open" | "Closed"
 type FiscalPeriodType = "Regular" | "Adjustment" | "Closing"
 
 interface LocalDate {
@@ -163,19 +162,13 @@ const YEAR_STATUS_STYLES: Record<FiscalYearStatus, { bg: string; text: string; i
 }
 
 const PERIOD_STATUS_STYLES: Record<FiscalPeriodStatus, { bg: string; text: string; icon: typeof Lock }> = {
-  Future: { bg: "bg-blue-100", text: "text-blue-700", icon: Clock },
-  Open: { bg: "bg-green-100", text: "text-green-700", icon: Play },
-  SoftClose: { bg: "bg-yellow-100", text: "text-yellow-700", icon: Pause },
-  Closed: { bg: "bg-orange-100", text: "text-orange-700", icon: CheckCircle },
-  Locked: { bg: "bg-red-100", text: "text-red-700", icon: Lock }
+  Open: { bg: "bg-green-100", text: "text-green-700", icon: CheckCircle },
+  Closed: { bg: "bg-gray-100", text: "text-gray-700", icon: Lock }
 }
 
 const PERIOD_STATUS_LABELS: Record<FiscalPeriodStatus, string> = {
-  Future: "Future",
   Open: "Open",
-  SoftClose: "Soft Close",
-  Closed: "Closed",
-  Locked: "Locked"
+  Closed: "Closed"
 }
 
 // =============================================================================
@@ -437,138 +430,6 @@ function CreateFiscalYearModal({
 }
 
 // =============================================================================
-// Reopen Period Modal
-// =============================================================================
-
-interface ReopenPeriodModalProps {
-  isOpen: boolean
-  onClose: () => void
-  period: FiscalPeriod | null
-  organizationId: string
-  companyId: string
-  fiscalYearId: string
-  onReopened: () => void
-}
-
-function ReopenPeriodModal({
-  isOpen,
-  onClose,
-  period,
-  organizationId,
-  companyId,
-  fiscalYearId,
-  onReopened
-}: ReopenPeriodModalProps) {
-  const [reason, setReason] = useState("")
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  if (!isOpen || !period) return null
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError(null)
-
-    if (!reason.trim()) {
-      setError("Reason is required")
-      return
-    }
-
-    setIsSubmitting(true)
-
-    try {
-      const { error: apiError } = await api.POST(
-        "/api/v1/organizations/{organizationId}/companies/{companyId}/fiscal-years/{fiscalYearId}/periods/{periodId}/reopen",
-        {
-          params: {
-            path: { organizationId, companyId, fiscalYearId, periodId: period.id }
-          },
-          body: { reason: reason.trim() }
-        }
-      )
-
-      if (apiError) {
-        if (typeof apiError === "object" && "message" in apiError && typeof apiError.message === "string") {
-          setError(apiError.message)
-        } else {
-          setError("Failed to reopen period")
-        }
-        setIsSubmitting(false)
-        return
-      }
-
-      setReason("")
-      onReopened()
-      onClose()
-    } catch {
-      setError("An unexpected error occurred")
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" data-testid="reopen-period-modal">
-      <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">Reopen Period</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-500">
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        <div className="mb-4 rounded-md bg-yellow-50 p-3">
-          <div className="flex items-start gap-2">
-            <AlertCircle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-medium text-yellow-800">Warning</p>
-              <p className="text-sm text-yellow-700">
-                Reopening a closed or locked period allows modifications to posted entries.
-                This action will be recorded in the audit log.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <p className="mb-4 text-sm text-gray-600">
-          You are about to reopen <strong>{period.name}</strong> ({formatDate(period.startDate)} - {formatDate(period.endDate)}).
-        </p>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Reason for reopening *</label>
-            <textarea
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              rows={3}
-              required
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-              placeholder="Provide justification for reopening this period..."
-              data-testid="reopen-reason-input"
-            />
-          </div>
-
-          {error && (
-            <div className="rounded-md bg-red-50 p-3 text-sm text-red-600" data-testid="error-message">
-              {error}
-            </div>
-          )}
-
-          <div className="flex justify-end gap-3 pt-2">
-            <Button type="button" variant="secondary" onClick={onClose} disabled={isSubmitting}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSubmitting || !reason.trim()} data-testid="reopen-period-submit">
-              {isSubmitting ? "Reopening..." : "Reopen Period"}
-            </Button>
-          </div>
-        </form>
-      </div>
-    </div>
-  )
-}
-
-// =============================================================================
 // Fiscal Year Card with Periods
 // =============================================================================
 
@@ -585,7 +446,6 @@ function FiscalYearCard({ fiscalYear, organizationId, companyId, onRefresh, canM
   const [periods, setPeriods] = useState<FiscalPeriod[]>([])
   const [isLoadingPeriods, setIsLoadingPeriods] = useState(false)
   const [periodsLoaded, setPeriodsLoaded] = useState(false)
-  const [reopenModalPeriod, setReopenModalPeriod] = useState<FiscalPeriod | null>(null)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
 
@@ -611,6 +471,11 @@ function FiscalYearCard({ fiscalYear, organizationId, companyId, onRefresh, canM
 
       if (!error && data) {
         // Map API response to FiscalPeriod type
+        // Map legacy status values (Future, SoftClose, Locked) to Closed
+        const mapStatus = (status: string): FiscalPeriodStatus => {
+          if (status === "Open") return "Open"
+          return "Closed" // Future, SoftClose, Closed, Locked all map to Closed
+        }
         const mappedPeriods: FiscalPeriod[] = data.periods.map((p) => ({
           id: p.id,
           fiscalYearId: p.fiscalYearId,
@@ -619,7 +484,7 @@ function FiscalYearCard({ fiscalYear, organizationId, companyId, onRefresh, canM
           periodType: p.periodType,
           startDate: p.startDate,
           endDate: p.endDate,
-          status: p.status
+          status: mapStatus(p.status)
         }))
         setPeriods(mappedPeriods)
         setPeriodsLoaded(true)
@@ -647,7 +512,7 @@ function FiscalYearCard({ fiscalYear, organizationId, companyId, onRefresh, canM
   // Period status transitions
   const handlePeriodAction = async (
     period: FiscalPeriod,
-    action: "open" | "soft-close" | "close" | "lock"
+    action: "open" | "close"
   ) => {
     setActionLoading(period.id)
     setActionError(null)
@@ -655,9 +520,7 @@ function FiscalYearCard({ fiscalYear, organizationId, companyId, onRefresh, canM
 
     const actionLabels: Record<string, string> = {
       open: "open",
-      "soft-close": "soft close",
-      close: "close",
-      lock: "lock"
+      close: "close"
     }
 
     try {
@@ -740,26 +603,14 @@ function FiscalYearCard({ fiscalYear, organizationId, companyId, onRefresh, canM
   }
 
   // Get available actions for a period based on its status
+  // Simple 2-state model: Open ←→ Closed
   const getAvailableActions = (period: FiscalPeriod) => {
-    const actions: Array<{ action: "open" | "soft-close" | "close" | "lock" | "reopen"; label: string; icon: typeof Lock }> = []
+    const actions: Array<{ action: "open" | "close"; label: string; icon: typeof Lock }> = []
 
-    switch (period.status) {
-      case "Future":
-        actions.push({ action: "open", label: "Open", icon: Play })
-        break
-      case "Open":
-        actions.push({ action: "soft-close", label: "Soft Close", icon: Pause })
-        break
-      case "SoftClose":
-        actions.push({ action: "close", label: "Close", icon: CheckCircle })
-        break
-      case "Closed":
-        actions.push({ action: "lock", label: "Lock", icon: Lock })
-        actions.push({ action: "reopen", label: "Reopen", icon: Unlock })
-        break
-      case "Locked":
-        actions.push({ action: "reopen", label: "Reopen", icon: Unlock })
-        break
+    if (period.status === "Open") {
+      actions.push({ action: "close", label: "Close", icon: Lock })
+    } else {
+      actions.push({ action: "open", label: "Open", icon: Unlock })
     }
 
     return actions
@@ -903,13 +754,7 @@ function FiscalYearCard({ fiscalYear, organizationId, companyId, onRefresh, canM
                                 variant="ghost"
                                 size="sm"
                                 icon={<ActionIcon className="h-4 w-4" />}
-                                onClick={() => {
-                                  if (action === "reopen") {
-                                    setReopenModalPeriod(period)
-                                  } else {
-                                    handlePeriodAction(period, action)
-                                  }
-                                }}
+                                onClick={() => handlePeriodAction(period, action)}
                                 disabled={actionLoading === period.id}
                                 data-testid={`period-${action}-${period.periodNumber}`}
                               >
@@ -928,16 +773,6 @@ function FiscalYearCard({ fiscalYear, organizationId, companyId, onRefresh, canM
         </div>
       )}
 
-      {/* Reopen Period Modal */}
-      <ReopenPeriodModal
-        isOpen={!!reopenModalPeriod}
-        onClose={() => setReopenModalPeriod(null)}
-        period={reopenModalPeriod}
-        organizationId={organizationId}
-        companyId={companyId}
-        fiscalYearId={fiscalYear.id}
-        onReopened={fetchPeriods}
-      />
     </div>
   )
 }
@@ -965,11 +800,7 @@ function FiscalPeriodsPage() {
 
   // Permission checks
   const { canPerform } = usePermissions()
-  const canManagePeriods = canPerform("fiscal_period:open") ||
-    canPerform("fiscal_period:soft_close") ||
-    canPerform("fiscal_period:close") ||
-    canPerform("fiscal_period:lock") ||
-    canPerform("fiscal_period:reopen")
+  const canManagePeriods = canPerform("fiscal_period:manage")
 
   const companiesForSidebar = useMemo(
     () => allCompanies.map((c) => ({ id: c.id, name: c.name })),
@@ -1023,10 +854,10 @@ function FiscalPeriodsPage() {
           <div className="flex items-start gap-3">
             <Calendar className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-medium text-blue-800">Fiscal Period Workflow</p>
+              <p className="text-sm font-medium text-blue-800">Fiscal Period Management</p>
               <p className="text-sm text-blue-700">
-                Periods progress through statuses: <strong>Future</strong> → <strong>Open</strong> → <strong>Soft Close</strong> → <strong>Closed</strong> → <strong>Locked</strong>.
-                Locked periods require special authorization to reopen.
+                Periods are either <strong>Open</strong> (accepts journal entries) or <strong>Closed</strong> (no entries allowed).
+                Toggle the status as needed with the fiscal_period:manage permission.
               </p>
             </div>
           </div>

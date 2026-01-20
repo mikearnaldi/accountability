@@ -19,7 +19,6 @@ import {
   type FiscalPeriodServiceShape,
   type CreateFiscalYearInput,
   type GeneratePeriodsInput,
-  type ReopenPeriodInput,
   type ListPeriodsFilter
 } from "@accountability/core/fiscal/FiscalPeriodService"
 import {
@@ -31,7 +30,7 @@ import {
   PeriodsNotClosedError
 } from "@accountability/core/fiscal/FiscalPeriodErrors"
 import { FiscalYear, FiscalYearId } from "@accountability/core/fiscal/FiscalYear"
-import { FiscalPeriod, FiscalPeriodId, FiscalPeriodUserId as FiscalPeriodUserIdSchema, PeriodReopenAuditEntry, PeriodReopenAuditEntryId } from "@accountability/core/fiscal/FiscalPeriod"
+import { FiscalPeriod, FiscalPeriodId, FiscalPeriodUserId as FiscalPeriodUserIdSchema } from "@accountability/core/fiscal/FiscalPeriod"
 import type { FiscalPeriodStatus } from "@accountability/core/fiscal/FiscalPeriodStatus"
 import { canTransitionTo } from "@accountability/core/fiscal/FiscalPeriodStatus"
 import { LocalDate } from "@accountability/core/shared/values/LocalDate"
@@ -158,12 +157,12 @@ const make = Effect.gen(function* () {
       const updatedPeriod = FiscalPeriod.make({
         ...period,
         status: targetStatus,
-        closedBy: targetStatus === "Closed" || targetStatus === "Locked"
+        closedBy: targetStatus === "Closed"
           ? Option.some(FiscalPeriodUserIdSchema.make(userId))
-          : period.closedBy,
-        closedAt: targetStatus === "Closed" || targetStatus === "Locked"
+          : Option.none(),
+        closedAt: targetStatus === "Closed"
           ? Option.some(now)
-          : period.closedAt,
+          : Option.none(),
         updatedAt: now
       })
 
@@ -269,11 +268,9 @@ const make = Effect.gen(function* () {
           )
         }
 
-        // Check if all periods are closed or locked
+        // Check if all periods are closed (simplified 2-state model)
         const periods = yield* periodRepo.findPeriodsByFiscalYear(fiscalYearId)
-        const openPeriods = periods.filter(
-          (p) => p.status === "Future" || p.status === "Open" || p.status === "SoftClose"
-        )
+        const openPeriods = periods.filter((p) => p.status === "Open")
 
         if (openPeriods.length > 0) {
           return yield* Effect.fail(
@@ -345,7 +342,7 @@ const make = Effect.gen(function* () {
             periodType: "Regular",
             startDate: currentStart,
             endDate: periodEnd,
-            status: "Future",
+            status: "Closed",
             closedBy: Option.none(),
             closedAt: Option.none(),
             createdAt: now,
@@ -370,7 +367,7 @@ const make = Effect.gen(function* () {
             // Adjustment period covers the same dates as the last regular period
             startDate: endDate,
             endDate,
-            status: "Future",
+            status: "Closed",
             closedBy: Option.none(),
             closedAt: Option.none(),
             createdAt: now,
@@ -424,75 +421,8 @@ const make = Effect.gen(function* () {
     openPeriod: (fiscalYearId, periodId, userId) =>
       transitionPeriodStatus(fiscalYearId, periodId, "Open", userId),
 
-    softClosePeriod: (fiscalYearId, periodId, userId) =>
-      transitionPeriodStatus(fiscalYearId, periodId, "SoftClose", userId),
-
     closePeriod: (fiscalYearId, periodId, userId) =>
       transitionPeriodStatus(fiscalYearId, periodId, "Closed", userId),
-
-    lockPeriod: (fiscalYearId, periodId, userId) =>
-      transitionPeriodStatus(fiscalYearId, periodId, "Locked", userId),
-
-    reopenPeriod: (fiscalYearId, input: ReopenPeriodInput) =>
-      Effect.gen(function* () {
-        const maybePeriod = yield* periodRepo.findPeriodById(fiscalYearId, input.periodId)
-        if (Option.isNone(maybePeriod)) {
-          return yield* Effect.fail(
-            new FiscalPeriodNotFoundError({ fiscalPeriodId: input.periodId })
-          )
-        }
-        const period = maybePeriod.value
-
-        // Validate transition
-        if (!canTransitionTo(period.status, "Open")) {
-          return yield* Effect.fail(
-            new InvalidStatusTransitionError({
-              currentStatus: period.status,
-              targetStatus: "Open",
-              periodId: input.periodId
-            })
-          )
-        }
-
-        const now = Timestamp.now()
-
-        // Create audit entry
-        const auditEntry = PeriodReopenAuditEntry.make({
-          id: PeriodReopenAuditEntryId.make(crypto.randomUUID()),
-          periodId: input.periodId,
-          reason: input.reason,
-          reopenedBy: FiscalPeriodUserIdSchema.make(input.userId),
-          reopenedAt: now,
-          previousStatus: period.status
-        })
-
-        yield* periodRepo.createReopenAuditEntry(auditEntry)
-
-        // Update period status
-        const updatedPeriod = FiscalPeriod.make({
-          ...period,
-          status: "Open",
-          closedBy: Option.none(),
-          closedAt: Option.none(),
-          updatedAt: now
-        })
-
-        const result = yield* periodRepo.updatePeriod(fiscalYearId, updatedPeriod)
-
-        // Log to general audit log as well
-        // Note: organizationId not available at this layer, skipping audit logging
-        yield* logAuditStatusChange(
-          undefined,
-          "FiscalPeriod",
-          input.periodId,
-          period.status,
-          "Open",
-          input.userId,
-          input.reason
-        )
-
-        return result
-      }),
 
     getPeriodReopenHistory: (periodId) =>
       periodRepo.findReopenAuditEntriesByPeriod(periodId),
@@ -515,7 +445,7 @@ const make = Effect.gen(function* () {
         if (Option.isNone(maybePeriod)) {
           return true
         }
-        return maybePeriod.value.status === "Open" || maybePeriod.value.status === "SoftClose"
+        return maybePeriod.value.status === "Open"
       }),
 
     getPeriodStatusForDate: (companyId, date) =>

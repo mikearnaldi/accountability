@@ -49,11 +49,7 @@ const ALL_ACTIONS: readonly Action[] = [
 
   // Fiscal period actions
   "fiscal_period:read",
-  "fiscal_period:open",
-  "fiscal_period:soft_close",
-  "fiscal_period:close",
-  "fiscal_period:lock",
-  "fiscal_period:reopen",
+  "fiscal_period:manage",
 
   // Consolidation actions
   "consolidation_group:create",
@@ -99,7 +95,7 @@ const ADMIN_ACTIONS: readonly Action[] = ALL_ACTIONS.filter(
 
 /**
  * Controller functional role permissions
- * Period lock/unlock, consolidation run/approval, full financial oversight
+ * Period management, consolidation run/approval, full financial oversight
  */
 const CONTROLLER_ACTIONS: readonly Action[] = [
   // Company
@@ -122,11 +118,7 @@ const CONTROLLER_ACTIONS: readonly Action[] = [
 
   // Fiscal period - full control
   "fiscal_period:read",
-  "fiscal_period:open",
-  "fiscal_period:soft_close",
-  "fiscal_period:close",
-  "fiscal_period:lock",
-  "fiscal_period:reopen",
+  "fiscal_period:manage",
 
   // Consolidation - full control
   "consolidation_group:create",
@@ -150,7 +142,7 @@ const CONTROLLER_ACTIONS: readonly Action[] = [
 
 /**
  * Finance manager functional role permissions
- * Period soft close, account management, exchange rates, elimination rules
+ * Account management, exchange rates, elimination rules
  */
 const FINANCE_MANAGER_ACTIONS: readonly Action[] = [
   // Company
@@ -169,9 +161,8 @@ const FINANCE_MANAGER_ACTIONS: readonly Action[] = [
   "journal_entry:update",
   "journal_entry:post",
 
-  // Fiscal period - limited
+  // Fiscal period - read only (no manage permission)
   "fiscal_period:read",
-  "fiscal_period:soft_close",
 
   // Consolidation - read and elimination
   "consolidation_group:read",
@@ -220,7 +211,7 @@ const ACCOUNTANT_ACTIONS: readonly Action[] = [
 
 /**
  * Period admin functional role permissions
- * Open/close periods, create adjustment periods
+ * Open/close periods
  */
 const PERIOD_ADMIN_ACTIONS: readonly Action[] = [
   // Company
@@ -232,10 +223,9 @@ const PERIOD_ADMIN_ACTIONS: readonly Action[] = [
   // Journal entry - read only
   "journal_entry:read",
 
-  // Fiscal period - open/close/soft_close
+  // Fiscal period - full control
   "fiscal_period:read",
-  "fiscal_period:open",
-  "fiscal_period:soft_close",
+  "fiscal_period:manage",
 
   // Consolidation - read only
   "consolidation_group:read",

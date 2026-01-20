@@ -62,11 +62,7 @@ const ACTION_LABELS: Record<string, string> = {
 
   // Fiscal Period
   "fiscal_period:read": "View Periods",
-  "fiscal_period:open": "Open Period",
-  "fiscal_period:soft_close": "Soft Close Period",
-  "fiscal_period:close": "Close Period",
-  "fiscal_period:lock": "Lock Period",
-  "fiscal_period:reopen": "Reopen Period",
+  "fiscal_period:manage": "Manage Periods",
 
   // Consolidation
   "consolidation_group:create": "Create Group",
@@ -140,11 +136,7 @@ const PERMISSION_CATEGORIES: readonly PermissionCategory[] = [
     icon: "📅",
     actions: [
       "fiscal_period:read",
-      "fiscal_period:open",
-      "fiscal_period:soft_close",
-      "fiscal_period:close",
-      "fiscal_period:lock",
-      "fiscal_period:reopen"
+      "fiscal_period:manage"
     ]
   },
   {

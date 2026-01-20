@@ -187,24 +187,10 @@ export class FiscalPeriod extends Schema.Class<FiscalPeriod>("FiscalPeriod")({
   }
 
   /**
-   * Check if the period is soft-closed
-   */
-  get isSoftClosed(): boolean {
-    return this.status === "SoftClose"
-  }
-
-  /**
-   * Check if the period is fully closed
+   * Check if the period is closed
    */
   get isClosed(): boolean {
     return this.status === "Closed"
-  }
-
-  /**
-   * Check if the period is locked
-   */
-  get isLocked(): boolean {
-    return this.status === "Locked"
   }
 
   /**
@@ -215,17 +201,17 @@ export class FiscalPeriod extends Schema.Class<FiscalPeriod>("FiscalPeriod")({
   }
 
   /**
-   * Check if the period allows any modifications (with proper authorization)
+   * Check if the period allows any modifications
    */
   get allowsModifications(): boolean {
-    return this.status === "Open" || this.status === "SoftClose"
+    return this.status === "Open"
   }
 
   /**
-   * Check if the period is protected (closed or locked)
+   * Check if the period is protected (closed)
    */
   get isProtected(): boolean {
-    return this.status === "Closed" || this.status === "Locked"
+    return this.status === "Closed"
   }
 
   /**

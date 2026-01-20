@@ -83,13 +83,16 @@ const FISCAL_YEAR_STATUS_MAP: Record<string, FiscalYearStatus> = {
 
 /**
  * Map fiscal period status string to FiscalPeriodStatus literal
+ * Simplified 2-state model: Open and Closed
+ * Legacy values (Future, SoftClose, Locked) map to Closed
  */
 const FISCAL_PERIOD_STATUS_MAP: Record<string, FiscalPeriodStatus> = {
-  Future: "Future",
   Open: "Open",
-  SoftClose: "SoftClose",
   Closed: "Closed",
-  Locked: "Locked"
+  // Legacy values map to Closed
+  Future: "Closed",
+  SoftClose: "Closed",
+  Locked: "Closed"
 }
 
 /**

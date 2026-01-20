@@ -2054,29 +2054,9 @@ export interface paths {
         put?: never;
         /**
          * Open fiscal period
-         * @description Transition a fiscal period from 'Future' to 'Open' status.
+         * @description Transition a fiscal period from 'Closed' to 'Open' status. Requires fiscal_period:manage permission.
          */
         post: operations["fiscal-periods.openFiscalPeriod"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/organizations/{organizationId}/companies/{companyId}/fiscal-years/{fiscalYearId}/periods/{periodId}/soft-close": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Soft-close fiscal period
-         * @description Transition a fiscal period from 'Open' to 'SoftClose' status. Limited operations still allowed with approval.
-         */
-        post: operations["fiscal-periods.softCloseFiscalPeriod"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2094,49 +2074,9 @@ export interface paths {
         put?: never;
         /**
          * Close fiscal period
-         * @description Transition a fiscal period from 'SoftClose' to 'Closed' status. No modifications allowed after close.
+         * @description Transition a fiscal period from 'Open' to 'Closed' status. No journal entries allowed after close. Requires fiscal_period:manage permission.
          */
         post: operations["fiscal-periods.closeFiscalPeriod"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/organizations/{organizationId}/companies/{companyId}/fiscal-years/{fiscalYearId}/periods/{periodId}/lock": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Lock fiscal period
-         * @description Transition a fiscal period from 'Closed' to 'Locked' status. Requires special authorization to reopen.
-         */
-        post: operations["fiscal-periods.lockFiscalPeriod"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/organizations/{organizationId}/companies/{companyId}/fiscal-years/{fiscalYearId}/periods/{periodId}/reopen": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Reopen fiscal period
-         * @description Reopen a closed or locked fiscal period with audit trail. Requires special authorization (fiscal_period:reopen).
-         */
-        post: operations["fiscal-periods.reopenFiscalPeriod"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2895,14 +2835,6 @@ export interface components {
             ipAddress: string | null;
             userAgent: string | null;
             createdAt: components["schemas"]["DateTimeUtc"];
-        };
-        NotFoundError: {
-            /** @description The type of resource that was not found (e.g., 'Account', 'Company') */
-            resource: string;
-            /** @description The identifier of the resource that was not found */
-            id: string;
-            /** @enum {string} */
-            _tag: "NotFoundError";
         };
         OrganizationListResponse: {
             organizations: components["schemas"]["Organization"][];
@@ -3893,7 +3825,7 @@ export interface components {
          * @description An authorization action that can be performed in the system
          * @enum {string}
          */
-        Action: "organization:manage_settings" | "organization:manage_members" | "organization:delete" | "organization:transfer_ownership" | "company:create" | "company:read" | "company:update" | "company:delete" | "account:create" | "account:read" | "account:update" | "account:deactivate" | "journal_entry:create" | "journal_entry:read" | "journal_entry:update" | "journal_entry:post" | "journal_entry:reverse" | "fiscal_period:read" | "fiscal_period:open" | "fiscal_period:soft_close" | "fiscal_period:close" | "fiscal_period:lock" | "fiscal_period:reopen" | "consolidation_group:create" | "consolidation_group:read" | "consolidation_group:update" | "consolidation_group:delete" | "consolidation_group:run" | "elimination:create" | "report:read" | "report:export" | "exchange_rate:read" | "exchange_rate:manage" | "audit_log:read" | "*";
+        Action: "organization:manage_settings" | "organization:manage_members" | "organization:delete" | "organization:transfer_ownership" | "company:create" | "company:read" | "company:update" | "company:delete" | "account:create" | "account:read" | "account:update" | "account:deactivate" | "journal_entry:create" | "journal_entry:read" | "journal_entry:update" | "journal_entry:post" | "journal_entry:reverse" | "fiscal_period:read" | "fiscal_period:manage" | "consolidation_group:create" | "consolidation_group:read" | "consolidation_group:update" | "consolidation_group:delete" | "consolidation_group:run" | "elimination:create" | "report:read" | "report:export" | "exchange_rate:read" | "exchange_rate:manage" | "audit_log:read" | "*";
         /**
          * Environment Condition
          * @description Contextual conditions based on request environment
@@ -3987,7 +3919,7 @@ export interface components {
              * @description The action to test
              * @enum {string}
              */
-            action: "organization:manage_settings" | "organization:manage_members" | "organization:delete" | "organization:transfer_ownership" | "company:create" | "company:read" | "company:update" | "company:delete" | "account:create" | "account:read" | "account:update" | "account:deactivate" | "journal_entry:create" | "journal_entry:read" | "journal_entry:update" | "journal_entry:post" | "journal_entry:reverse" | "fiscal_period:read" | "fiscal_period:open" | "fiscal_period:soft_close" | "fiscal_period:close" | "fiscal_period:lock" | "fiscal_period:reopen" | "consolidation_group:create" | "consolidation_group:read" | "consolidation_group:update" | "consolidation_group:delete" | "consolidation_group:run" | "elimination:create" | "report:read" | "report:export" | "exchange_rate:read" | "exchange_rate:manage" | "audit_log:read" | "*";
+            action: "organization:manage_settings" | "organization:manage_members" | "organization:delete" | "organization:transfer_ownership" | "company:create" | "company:read" | "company:update" | "company:delete" | "account:create" | "account:read" | "account:update" | "account:deactivate" | "journal_entry:create" | "journal_entry:read" | "journal_entry:update" | "journal_entry:post" | "journal_entry:reverse" | "fiscal_period:read" | "fiscal_period:manage" | "consolidation_group:create" | "consolidation_group:read" | "consolidation_group:update" | "consolidation_group:delete" | "consolidation_group:run" | "elimination:create" | "report:read" | "report:export" | "exchange_rate:read" | "exchange_rate:manage" | "audit_log:read" | "*";
             /** @description The type of resource being accessed */
             resourceType: string;
             /** @description Optional specific resource ID */
@@ -4928,46 +4860,21 @@ export interface components {
             /** @enum {string} */
             _tag: "ByCategory";
         };
-        ValidationError: {
-            /** @description A human-readable description of the validation error */
-            message: string;
-            /** @description The field that failed validation, if applicable */
-            field: string | null;
-            /** @description Detailed validation errors for multiple fields */
-            details: {
-                field: string;
-                message: string;
-            }[] | null;
+        EliminationRuleOperationFailedError: {
+            operation: string;
+            reason: string;
             /** @enum {string} */
-            _tag: "ValidationError";
+            _tag: "EliminationRuleOperationFailedError";
+        };
+        EliminationRuleNotFoundError: {
+            ruleId: string;
+            /** @enum {string} */
+            _tag: "EliminationRuleNotFoundError";
         };
         TriggerConditionInput: {
             description: components["schemas"]["NonEmptyTrimmedString"];
             sourceAccounts: components["schemas"]["AccountSelector"][];
             minimumAmount: components["schemas"]["BigDecimal"] | null;
-        };
-        ConflictError: {
-            /** @description A human-readable description of the conflict */
-            message: string;
-            /** @description The type of resource that has a conflict */
-            resource: string | null;
-            /** @description The field that caused the conflict */
-            conflictingField: string | null;
-            /** @enum {string} */
-            _tag: "ConflictError";
-        };
-        BusinessRuleError: {
-            /** @description A machine-readable error code */
-            code: string;
-            /** @description A human-readable description of the business rule violation */
-            message: string;
-            /**
-             * unknown
-             * @description Additional details about the violation
-             */
-            details: unknown;
-            /** @enum {string} */
-            _tag: "BusinessRuleError";
         };
         BulkCreateEliminationRulesRequest: {
             rules: {
@@ -5199,7 +5106,7 @@ export interface components {
          * @description The status of a fiscal period
          * @enum {string}
          */
-        FiscalPeriodStatus: "Future" | "Open" | "SoftClose" | "Closed" | "Locked";
+        FiscalPeriodStatus: "Open" | "Closed";
         FiscalPeriodNotFoundError: {
             /**
              * Fiscal Period ID
@@ -5216,13 +5123,13 @@ export interface components {
              * @description The current status of the period
              * @enum {string}
              */
-            currentStatus: "Future" | "Open" | "SoftClose" | "Closed" | "Locked";
+            currentStatus: "Open" | "Closed";
             /**
              * Fiscal Period Status
              * @description The attempted target status
              * @enum {string}
              */
-            targetStatus: "Future" | "Open" | "SoftClose" | "Closed" | "Locked";
+            targetStatus: "Open" | "Closed";
             /**
              * Fiscal Period ID
              * Format: uuid
@@ -5231,9 +5138,6 @@ export interface components {
             periodId: string;
             /** @enum {string} */
             _tag: "InvalidStatusTransitionError";
-        };
-        ReopenPeriodRequest: {
-            reason: components["schemas"]["NonEmptyTrimmedString"];
         };
         PeriodReopenHistoryResponse: {
             history: components["schemas"]["PeriodReopenAuditEntry"][];
@@ -6568,13 +6472,13 @@ export interface operations {
                     "application/json": components["schemas"]["ForbiddenError"];
                 };
             };
-            /** @description NotFoundError */
+            /** @description OrganizationNotFoundError */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
+                    "application/json": components["schemas"]["OrganizationNotFoundError"];
                 };
             };
         };
@@ -12271,7 +12175,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HttpApiDecodeError"] | components["schemas"]["ValidationError"];
+                    "application/json": components["schemas"]["HttpApiDecodeError"];
                 };
             };
             /** @description UnauthorizedError */
@@ -12281,6 +12185,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description EliminationRuleOperationFailedError */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EliminationRuleOperationFailedError"];
                 };
             };
         };
@@ -12331,7 +12244,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HttpApiDecodeError"] | components["schemas"]["ValidationError"];
+                    "application/json": components["schemas"]["HttpApiDecodeError"];
                 };
             };
             /** @description UnauthorizedError */
@@ -12343,22 +12256,22 @@ export interface operations {
                     "application/json": components["schemas"]["UnauthorizedError"];
                 };
             };
-            /** @description ConflictError */
-            409: {
+            /** @description ConsolidationGroupNotFoundError */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ConflictError"];
+                    "application/json": components["schemas"]["ConsolidationGroupNotFoundError"];
                 };
             };
-            /** @description BusinessRuleError */
+            /** @description EliminationRuleOperationFailedError */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["BusinessRuleError"];
+                    "application/json": components["schemas"]["EliminationRuleOperationFailedError"];
                 };
             };
         };
@@ -12401,13 +12314,13 @@ export interface operations {
                     "application/json": components["schemas"]["UnauthorizedError"];
                 };
             };
-            /** @description NotFoundError */
+            /** @description EliminationRuleNotFoundError */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["EliminationRuleNotFoundError"];
                 };
             };
         };
@@ -12442,7 +12355,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HttpApiDecodeError"] | components["schemas"]["ValidationError"];
+                    "application/json": components["schemas"]["HttpApiDecodeError"];
                 };
             };
             /** @description UnauthorizedError */
@@ -12454,22 +12367,22 @@ export interface operations {
                     "application/json": components["schemas"]["UnauthorizedError"];
                 };
             };
-            /** @description NotFoundError */
+            /** @description EliminationRuleNotFoundError */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["EliminationRuleNotFoundError"];
                 };
             };
-            /** @description BusinessRuleError */
+            /** @description EliminationRuleOperationFailedError */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["BusinessRuleError"];
+                    "application/json": components["schemas"]["EliminationRuleOperationFailedError"];
                 };
             };
         };
@@ -12510,22 +12423,22 @@ export interface operations {
                     "application/json": components["schemas"]["UnauthorizedError"];
                 };
             };
-            /** @description NotFoundError */
+            /** @description EliminationRuleNotFoundError */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["EliminationRuleNotFoundError"];
                 };
             };
-            /** @description BusinessRuleError */
+            /** @description EliminationRuleOperationFailedError */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["BusinessRuleError"];
+                    "application/json": components["schemas"]["EliminationRuleOperationFailedError"];
                 };
             };
         };
@@ -12558,7 +12471,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HttpApiDecodeError"] | components["schemas"]["ValidationError"];
+                    "application/json": components["schemas"]["HttpApiDecodeError"];
                 };
             };
             /** @description UnauthorizedError */
@@ -12570,13 +12483,22 @@ export interface operations {
                     "application/json": components["schemas"]["UnauthorizedError"];
                 };
             };
-            /** @description BusinessRuleError */
+            /** @description ConsolidationGroupNotFoundError */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsolidationGroupNotFoundError"];
+                };
+            };
+            /** @description EliminationRuleOperationFailedError */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["BusinessRuleError"];
+                    "application/json": components["schemas"]["EliminationRuleOperationFailedError"];
                 };
             };
         };
@@ -12619,22 +12541,22 @@ export interface operations {
                     "application/json": components["schemas"]["UnauthorizedError"];
                 };
             };
-            /** @description NotFoundError */
+            /** @description EliminationRuleNotFoundError */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["EliminationRuleNotFoundError"];
                 };
             };
-            /** @description BusinessRuleError */
+            /** @description EliminationRuleOperationFailedError */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["BusinessRuleError"];
+                    "application/json": components["schemas"]["EliminationRuleOperationFailedError"];
                 };
             };
         };
@@ -12677,22 +12599,22 @@ export interface operations {
                     "application/json": components["schemas"]["UnauthorizedError"];
                 };
             };
-            /** @description NotFoundError */
+            /** @description EliminationRuleNotFoundError */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["EliminationRuleNotFoundError"];
                 };
             };
-            /** @description BusinessRuleError */
+            /** @description EliminationRuleOperationFailedError */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["BusinessRuleError"];
+                    "application/json": components["schemas"]["EliminationRuleOperationFailedError"];
                 };
             };
         };
@@ -12727,7 +12649,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HttpApiDecodeError"] | components["schemas"]["ValidationError"];
+                    "application/json": components["schemas"]["HttpApiDecodeError"];
                 };
             };
             /** @description UnauthorizedError */
@@ -12739,22 +12661,22 @@ export interface operations {
                     "application/json": components["schemas"]["UnauthorizedError"];
                 };
             };
-            /** @description NotFoundError */
+            /** @description EliminationRuleNotFoundError */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotFoundError"];
+                    "application/json": components["schemas"]["EliminationRuleNotFoundError"];
                 };
             };
-            /** @description BusinessRuleError */
+            /** @description EliminationRuleOperationFailedError */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["BusinessRuleError"];
+                    "application/json": components["schemas"]["EliminationRuleOperationFailedError"];
                 };
             };
         };
@@ -12786,7 +12708,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HttpApiDecodeError"] | components["schemas"]["ValidationError"];
+                    "application/json": components["schemas"]["HttpApiDecodeError"];
                 };
             };
             /** @description UnauthorizedError */
@@ -12796,6 +12718,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description EliminationRuleOperationFailedError */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EliminationRuleOperationFailedError"];
                 };
             };
         };
@@ -13305,67 +13236,6 @@ export interface operations {
             };
         };
     };
-    "fiscal-periods.softCloseFiscalPeriod": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                organizationId: string;
-                companyId: string;
-                fiscalYearId: string;
-                periodId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description FiscalPeriod */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FiscalPeriod"];
-                };
-            };
-            /** @description The request did not match the expected schema */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HttpApiDecodeError"] | components["schemas"]["InvalidStatusTransitionError"];
-                };
-            };
-            /** @description UnauthorizedError */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UnauthorizedError"];
-                };
-            };
-            /** @description ForbiddenError */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ForbiddenError"];
-                };
-            };
-            /** @description CompanyNotFoundError */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CompanyNotFoundError"] | components["schemas"]["FiscalPeriodNotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
-                };
-            };
-        };
-    };
     "fiscal-periods.closeFiscalPeriod": {
         parameters: {
             query?: never;
@@ -13379,132 +13249,6 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
-        responses: {
-            /** @description FiscalPeriod */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FiscalPeriod"];
-                };
-            };
-            /** @description The request did not match the expected schema */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HttpApiDecodeError"] | components["schemas"]["InvalidStatusTransitionError"];
-                };
-            };
-            /** @description UnauthorizedError */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UnauthorizedError"];
-                };
-            };
-            /** @description ForbiddenError */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ForbiddenError"];
-                };
-            };
-            /** @description CompanyNotFoundError */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CompanyNotFoundError"] | components["schemas"]["FiscalPeriodNotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
-                };
-            };
-        };
-    };
-    "fiscal-periods.lockFiscalPeriod": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                organizationId: string;
-                companyId: string;
-                fiscalYearId: string;
-                periodId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description FiscalPeriod */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FiscalPeriod"];
-                };
-            };
-            /** @description The request did not match the expected schema */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HttpApiDecodeError"] | components["schemas"]["InvalidStatusTransitionError"];
-                };
-            };
-            /** @description UnauthorizedError */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UnauthorizedError"];
-                };
-            };
-            /** @description ForbiddenError */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ForbiddenError"];
-                };
-            };
-            /** @description CompanyNotFoundError */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CompanyNotFoundError"] | components["schemas"]["FiscalPeriodNotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
-                };
-            };
-        };
-    };
-    "fiscal-periods.reopenFiscalPeriod": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                organizationId: string;
-                companyId: string;
-                fiscalYearId: string;
-                periodId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ReopenPeriodRequest"];
-            };
-        };
         responses: {
             /** @description FiscalPeriod */
             200: {

@@ -1007,3 +1007,7 @@
 **Task**: Fixed reopening locked fiscal period by allowing Locked -> Open transition in canTransitionTo
 **Status**: complete
 ---
+
+## Iteration 1 - 2026-01-20 15:37
+**Task**: Partial work (no explicit completion signal)
+---

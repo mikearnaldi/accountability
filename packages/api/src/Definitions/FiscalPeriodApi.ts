@@ -71,14 +71,6 @@ export class FiscalPeriodListResponse extends Schema.Class<FiscalPeriodListRespo
 }) {}
 
 /**
- * ReopenPeriodRequest - Request body for reopening a closed/locked period
- */
-export class ReopenPeriodRequest extends Schema.Class<ReopenPeriodRequest>("ReopenPeriodRequest")({
-  /** Reason for reopening the period */
-  reason: Schema.NonEmptyTrimmedString
-}) {}
-
-/**
  * PeriodReopenHistoryResponse - Response containing reopen audit history
  */
 export class PeriodReopenHistoryResponse extends Schema.Class<PeriodReopenHistoryResponse>("PeriodReopenHistoryResponse")({
@@ -265,28 +257,7 @@ const openPeriod = HttpApiEndpoint.post("openFiscalPeriod", "/organizations/:org
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "Open fiscal period",
-    description: "Transition a fiscal period from 'Future' to 'Open' status."
-  }))
-
-/**
- * Soft-close a fiscal period
- */
-const softClosePeriod = HttpApiEndpoint.post("softCloseFiscalPeriod", "/organizations/:organizationId/companies/:companyId/fiscal-years/:fiscalYearId/periods/:periodId/soft-close")
-  .setPath(Schema.Struct({
-    organizationId: Schema.String,
-    companyId: Schema.String,
-    fiscalYearId: Schema.String,
-    periodId: Schema.String
-  }))
-  .addSuccess(FiscalPeriod)
-  .addError(CompanyNotFoundError)
-  .addError(FiscalPeriodNotFoundError)
-  .addError(InvalidStatusTransitionError)
-  .addError(OrganizationNotFoundError)
-  .addError(ForbiddenError)
-  .annotateContext(OpenApi.annotations({
-    summary: "Soft-close fiscal period",
-    description: "Transition a fiscal period from 'Open' to 'SoftClose' status. Limited operations still allowed with approval."
+    description: "Transition a fiscal period from 'Closed' to 'Open' status. Requires fiscal_period:manage permission."
   }))
 
 /**
@@ -307,50 +278,7 @@ const closePeriod = HttpApiEndpoint.post("closeFiscalPeriod", "/organizations/:o
   .addError(ForbiddenError)
   .annotateContext(OpenApi.annotations({
     summary: "Close fiscal period",
-    description: "Transition a fiscal period from 'SoftClose' to 'Closed' status. No modifications allowed after close."
-  }))
-
-/**
- * Lock a fiscal period
- */
-const lockPeriod = HttpApiEndpoint.post("lockFiscalPeriod", "/organizations/:organizationId/companies/:companyId/fiscal-years/:fiscalYearId/periods/:periodId/lock")
-  .setPath(Schema.Struct({
-    organizationId: Schema.String,
-    companyId: Schema.String,
-    fiscalYearId: Schema.String,
-    periodId: Schema.String
-  }))
-  .addSuccess(FiscalPeriod)
-  .addError(CompanyNotFoundError)
-  .addError(FiscalPeriodNotFoundError)
-  .addError(InvalidStatusTransitionError)
-  .addError(OrganizationNotFoundError)
-  .addError(ForbiddenError)
-  .annotateContext(OpenApi.annotations({
-    summary: "Lock fiscal period",
-    description: "Transition a fiscal period from 'Closed' to 'Locked' status. Requires special authorization to reopen."
-  }))
-
-/**
- * Reopen a closed/locked fiscal period
- */
-const reopenPeriod = HttpApiEndpoint.post("reopenFiscalPeriod", "/organizations/:organizationId/companies/:companyId/fiscal-years/:fiscalYearId/periods/:periodId/reopen")
-  .setPath(Schema.Struct({
-    organizationId: Schema.String,
-    companyId: Schema.String,
-    fiscalYearId: Schema.String,
-    periodId: Schema.String
-  }))
-  .setPayload(ReopenPeriodRequest)
-  .addSuccess(FiscalPeriod)
-  .addError(CompanyNotFoundError)
-  .addError(FiscalPeriodNotFoundError)
-  .addError(InvalidStatusTransitionError)
-  .addError(OrganizationNotFoundError)
-  .addError(ForbiddenError)
-  .annotateContext(OpenApi.annotations({
-    summary: "Reopen fiscal period",
-    description: "Reopen a closed or locked fiscal period with audit trail. Requires special authorization (fiscal_period:reopen)."
+    description: "Transition a fiscal period from 'Open' to 'Closed' status. No journal entries allowed after close. Requires fiscal_period:manage permission."
   }))
 
 /**
@@ -407,15 +335,12 @@ export class FiscalPeriodApi extends HttpApiGroup.make("fiscal-periods")
   .add(listPeriods)
   .add(getPeriod)
   .add(openPeriod)
-  .add(softClosePeriod)
   .add(closePeriod)
-  .add(lockPeriod)
-  .add(reopenPeriod)
   .add(getPeriodReopenHistory)
   .add(getPeriodStatusForDate)
   .middleware(AuthMiddleware)
   .prefix("/v1")
   .annotateContext(OpenApi.annotations({
     title: "Fiscal Periods",
-    description: "Manage fiscal years and periods for companies. Control period status transitions to enforce the 'Locked Period Protection' authorization policy."
+    description: "Manage fiscal years and periods for companies. Simple 2-state model: periods are either Open (accepts journal entries) or Closed (no entries allowed)."
   })) {}

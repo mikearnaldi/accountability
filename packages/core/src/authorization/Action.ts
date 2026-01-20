@@ -46,11 +46,7 @@ export const Action = Schema.Literal(
 
   // Fiscal period actions
   "fiscal_period:read",
-  "fiscal_period:open",
-  "fiscal_period:soft_close",
-  "fiscal_period:close",
-  "fiscal_period:lock",
-  "fiscal_period:reopen",
+  "fiscal_period:manage",
 
   // Consolidation actions
   "consolidation_group:create",
@@ -120,11 +116,7 @@ export const ActionValues: readonly Action[] = [
 
   // Fiscal period actions
   "fiscal_period:read",
-  "fiscal_period:open",
-  "fiscal_period:soft_close",
-  "fiscal_period:close",
-  "fiscal_period:lock",
-  "fiscal_period:reopen",
+  "fiscal_period:manage",
 
   // Consolidation actions
   "consolidation_group:create",

@@ -27,14 +27,11 @@ import { requireOrganizationContext, requirePermission } from "./OrganizationCon
 
 /**
  * Status lookup for FiscalPeriodStatus
- * Avoids type assertions by using a proper lookup table
+ * Simplified 2-state model: Open and Closed
  */
 const FISCAL_PERIOD_STATUS_MAP: Record<string, FiscalPeriodStatus> = {
-  Future: "Future",
   Open: "Open",
-  SoftClose: "SoftClose",
-  Closed: "Closed",
-  Locked: "Locked"
+  Closed: "Closed"
 }
 
 /**
@@ -101,7 +98,7 @@ export const FiscalPeriodApiLive = HttpApiBuilder.group(AppApi, "fiscal-periods"
       .handle("createFiscalYear", (_) =>
         requireOrganizationContext(_.path.organizationId,
           Effect.gen(function* () {
-            yield* requirePermission("fiscal_period:open") // Creating a fiscal year requires open permission
+            yield* requirePermission("fiscal_period:manage") // Creating a fiscal year requires manage permission
 
             const companyId = CompanyId.make(_.path.companyId)
             const organizationId = OrganizationId.make(_.path.organizationId)
@@ -140,7 +137,7 @@ export const FiscalPeriodApiLive = HttpApiBuilder.group(AppApi, "fiscal-periods"
       .handle("beginYearClose", (_) =>
         requireOrganizationContext(_.path.organizationId,
           Effect.gen(function* () {
-            yield* requirePermission("fiscal_period:close")
+            yield* requirePermission("fiscal_period:manage")
 
             const companyId = CompanyId.make(_.path.companyId)
             const organizationId = OrganizationId.make(_.path.organizationId)
@@ -163,7 +160,7 @@ export const FiscalPeriodApiLive = HttpApiBuilder.group(AppApi, "fiscal-periods"
       .handle("completeYearClose", (_) =>
         requireOrganizationContext(_.path.organizationId,
           Effect.gen(function* () {
-            yield* requirePermission("fiscal_period:close")
+            yield* requirePermission("fiscal_period:manage")
 
             const companyId = CompanyId.make(_.path.companyId)
             const organizationId = OrganizationId.make(_.path.organizationId)
@@ -247,7 +244,7 @@ export const FiscalPeriodApiLive = HttpApiBuilder.group(AppApi, "fiscal-periods"
       .handle("openFiscalPeriod", (_) =>
         requireOrganizationContext(_.path.organizationId,
           Effect.gen(function* () {
-            yield* requirePermission("fiscal_period:open")
+            yield* requirePermission("fiscal_period:manage")
 
             const currentUser = yield* CurrentUser
             const companyId = CompanyId.make(_.path.companyId)
@@ -269,35 +266,10 @@ export const FiscalPeriodApiLive = HttpApiBuilder.group(AppApi, "fiscal-periods"
           })
         )
       )
-      .handle("softCloseFiscalPeriod", (_) =>
-        requireOrganizationContext(_.path.organizationId,
-          Effect.gen(function* () {
-            yield* requirePermission("fiscal_period:soft_close")
-
-            const currentUser = yield* CurrentUser
-            const companyId = CompanyId.make(_.path.companyId)
-            const organizationId = OrganizationId.make(_.path.organizationId)
-            const fiscalYearId = FiscalYearId.make(_.path.fiscalYearId)
-            const periodId = FiscalPeriodId.make(_.path.periodId)
-
-            // Verify company exists and belongs to organization
-            const maybeCompany = yield* companyRepo.findById(organizationId, companyId).pipe(Effect.orDie)
-            if (Option.isNone(maybeCompany)) {
-              return yield* Effect.fail(new CompanyNotFoundError({ companyId: _.path.companyId }))
-            }
-
-            // Domain errors flow through; infrastructure errors die
-            return yield* periodService.softClosePeriod(fiscalYearId, periodId, currentUser.userId).pipe(
-              Effect.catchTag("PersistenceError", (e) => Effect.die(e)),
-              Effect.catchTag("EntityNotFoundError", (e) => Effect.die(e))
-            )
-          })
-        )
-      )
       .handle("closeFiscalPeriod", (_) =>
         requireOrganizationContext(_.path.organizationId,
           Effect.gen(function* () {
-            yield* requirePermission("fiscal_period:close")
+            yield* requirePermission("fiscal_period:manage")
 
             const currentUser = yield* CurrentUser
             const companyId = CompanyId.make(_.path.companyId)
@@ -313,61 +285,6 @@ export const FiscalPeriodApiLive = HttpApiBuilder.group(AppApi, "fiscal-periods"
 
             // Domain errors flow through; infrastructure errors die
             return yield* periodService.closePeriod(fiscalYearId, periodId, currentUser.userId).pipe(
-              Effect.catchTag("PersistenceError", (e) => Effect.die(e)),
-              Effect.catchTag("EntityNotFoundError", (e) => Effect.die(e))
-            )
-          })
-        )
-      )
-      .handle("lockFiscalPeriod", (_) =>
-        requireOrganizationContext(_.path.organizationId,
-          Effect.gen(function* () {
-            yield* requirePermission("fiscal_period:lock")
-
-            const currentUser = yield* CurrentUser
-            const companyId = CompanyId.make(_.path.companyId)
-            const organizationId = OrganizationId.make(_.path.organizationId)
-            const fiscalYearId = FiscalYearId.make(_.path.fiscalYearId)
-            const periodId = FiscalPeriodId.make(_.path.periodId)
-
-            // Verify company exists and belongs to organization
-            const maybeCompany = yield* companyRepo.findById(organizationId, companyId).pipe(Effect.orDie)
-            if (Option.isNone(maybeCompany)) {
-              return yield* Effect.fail(new CompanyNotFoundError({ companyId: _.path.companyId }))
-            }
-
-            // Domain errors flow through; infrastructure errors die
-            return yield* periodService.lockPeriod(fiscalYearId, periodId, currentUser.userId).pipe(
-              Effect.catchTag("PersistenceError", (e) => Effect.die(e)),
-              Effect.catchTag("EntityNotFoundError", (e) => Effect.die(e))
-            )
-          })
-        )
-      )
-      .handle("reopenFiscalPeriod", (_) =>
-        requireOrganizationContext(_.path.organizationId,
-          Effect.gen(function* () {
-            yield* requirePermission("fiscal_period:reopen")
-
-            const currentUser = yield* CurrentUser
-            const companyId = CompanyId.make(_.path.companyId)
-            const organizationId = OrganizationId.make(_.path.organizationId)
-            const fiscalYearId = FiscalYearId.make(_.path.fiscalYearId)
-            const periodId = FiscalPeriodId.make(_.path.periodId)
-            const req = _.payload
-
-            // Verify company exists and belongs to organization
-            const maybeCompany = yield* companyRepo.findById(organizationId, companyId).pipe(Effect.orDie)
-            if (Option.isNone(maybeCompany)) {
-              return yield* Effect.fail(new CompanyNotFoundError({ companyId: _.path.companyId }))
-            }
-
-            // Domain errors flow through; infrastructure errors die
-            return yield* periodService.reopenPeriod(fiscalYearId, {
-              periodId,
-              reason: req.reason,
-              userId: currentUser.userId
-            }).pipe(
               Effect.catchTag("PersistenceError", (e) => Effect.die(e)),
               Effect.catchTag("EntityNotFoundError", (e) => Effect.die(e))
             )
