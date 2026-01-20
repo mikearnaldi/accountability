@@ -334,8 +334,9 @@ function ComputedPeriodDisplay({
 
   return (
     <div className="flex items-center gap-2">
-      <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
-        <Calendar className="h-4 w-4 text-gray-400" />
+      {/* Fixed min-width to prevent layout shift when period changes (e.g., "P1 FY2025" vs "P13 FY2025 (Adjustment Period)") */}
+      <div className="flex min-w-[280px] items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+        <Calendar className="h-4 w-4 flex-shrink-0 text-gray-400" />
         <span className="text-sm font-medium text-gray-900" data-testid="computed-fiscal-period">
           {period.periodName} FY{period.fiscalYear}
         </span>
@@ -883,12 +884,12 @@ export function JournalEntryForm({
 
         {/* Lines Header */}
         <div className="grid grid-cols-12 gap-2 border-b border-gray-200 bg-gray-50 px-2 py-2 text-xs font-medium text-gray-500">
-          <div className="col-span-1 text-center">#</div>
-          <div className="col-span-4">Account</div>
-          <div className="col-span-2">Memo</div>
+          <div className="col-span-1 text-left pl-2">#</div>
+          <div className="col-span-4 text-left">Account</div>
+          <div className="col-span-2 text-left">Memo</div>
           <div className="col-span-2 text-right">Debit</div>
           <div className="col-span-2 text-right">Credit</div>
-          <div className="col-span-1"></div>
+          <div className="col-span-1 w-10"></div>
         </div>
 
         {/* Line Items */}

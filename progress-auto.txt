@@ -1082,3 +1082,8 @@
 **Task**: Fixed account selection alignment in journal entry line editor using items-start grid with top padding
 **Status**: complete
 ---
+
+## Iteration 1 - 2026-01-20 23:49
+**Task**: Fixed journal entry form UI issues - left-aligned Line #/Account/Memo headers, reduced delete column width to w-10, added min-w-[280px] to fiscal period selector
+**Status**: complete
+---

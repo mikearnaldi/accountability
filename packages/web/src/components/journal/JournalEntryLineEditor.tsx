@@ -88,12 +88,12 @@ export function JournalEntryLineEditor({
       className="grid grid-cols-12 items-start gap-2 border-b border-gray-100 px-2 py-2 hover:bg-gray-50"
       data-testid={`journal-entry-line-${lineIndex}`}
     >
-      {/* Line Number - pt-2 aligns with input text baseline */}
-      <div className="col-span-1 pt-2 text-center text-sm font-medium text-gray-500">
+      {/* Line Number - pt-2.5 aligns with input text baseline */}
+      <div className="col-span-1 pt-2.5 pl-2 text-left text-sm font-medium text-gray-500">
         {lineIndex + 1}
       </div>
 
-      {/* Account Selector - fixed width to prevent layout shift */}
+      {/* Account Selector */}
       <div className="col-span-4">
         <Select
           value={line.accountId}
@@ -163,8 +163,8 @@ export function JournalEntryLineEditor({
         />
       </div>
 
-      {/* Delete Button - pt-1.5 aligns with input row */}
-      <div className="col-span-1 pt-1.5 text-center">
+      {/* Delete Button - pt-2 aligns with input row, w-10 for minimal width */}
+      <div className="col-span-1 flex w-10 justify-center pt-2">
         <button
           type="button"
           onClick={() => onDelete(line.id)}
