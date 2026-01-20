@@ -466,25 +466,8 @@ function FiscalYearCard({ fiscalYear, organizationId, companyId, onRefresh, canM
           params: { path: { organizationId, companyId, fiscalYearId: fiscalYear.id } }
         }
       )
-
       if (!error && data) {
-        // Map API response to FiscalPeriod type
-        // Map legacy status values (Future, SoftClose, Locked) to Closed
-        const mapStatus = (status: string): FiscalPeriodStatus => {
-          if (status === "Open") return "Open"
-          return "Closed" // Future, SoftClose, Closed, Locked all map to Closed
-        }
-        const mappedPeriods: FiscalPeriod[] = data.periods.map((p) => ({
-          id: p.id,
-          fiscalYearId: p.fiscalYearId,
-          periodNumber: p.periodNumber,
-          name: p.name,
-          periodType: p.periodType,
-          startDate: p.startDate,
-          endDate: p.endDate,
-          status: mapStatus(p.status)
-        }))
-        setPeriods(mappedPeriods)
+        setPeriods(data.periods)
         setPeriodsLoaded(true)
       }
     } catch {
@@ -836,7 +819,7 @@ function FiscalPeriodsPage() {
               Manage fiscal years and periods for {company.name}
             </p>
           </div>
-          {canManagePeriods && (
+          {canManagePeriods && fiscalYears.length > 0 && (
             <Button
               icon={<Plus className="h-4 w-4" />}
               onClick={() => setShowCreateModal(true)}
@@ -855,7 +838,6 @@ function FiscalPeriodsPage() {
               <p className="text-sm font-medium text-blue-800">Fiscal Period Management</p>
               <p className="text-sm text-blue-700">
                 Periods are either <strong>Open</strong> (accepts journal entries) or <strong>Closed</strong> (no entries allowed).
-                Toggle the status as needed with the fiscal_period:manage permission.
               </p>
             </div>
           </div>
