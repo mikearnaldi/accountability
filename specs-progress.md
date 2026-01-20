@@ -215,23 +215,153 @@ specs-new/
 - [x] Create README.md index
 - [x] Move files to new locations (34 files organized)
 - [x] Delete redundant files (RESEARCH_ERRORS.md intentionally not copied - was just a pointer)
+- [x] **Consolidation Phase**: Create merged guides from related specs
 - [ ] Update CLAUDE.md to reference new structure (optional - depends on adoption decision)
+
+## Consolidation Work (2026-01-20)
+
+The user requested that specs not simply be moved but actively **rewritten, merged, and consolidated**. The following consolidated guides were created in `specs-new/guides/`:
+
+### 1. effect-guide.md
+**Merged from:**
+- EFFECT_BEST_PRACTICES.md
+- EFFECT_LAYERS.md
+- EFFECT_SQL.md
+- EFFECT_TESTING.md (testing portions)
+
+**Contents:**
+- Critical Rules (no `any`, no global Error, no catchAllCause, no silent swallow)
+- Schema Patterns (Schema.Class, branded types, TaggedError)
+- Error Handling (three-layer architecture, catchTag)
+- Service Pattern (Context.Tag + Layer)
+- Layer Memoization & Composition
+- SQL Patterns (@effect/sql)
+- Testing Patterns (@effect/vitest)
+
+### 2. testing-guide.md
+**Merged from:**
+- EFFECT_TESTING.md
+- E2E_TESTING.md
+- E2E_TEST_COVERAGE.md
+
+**Contents:**
+- Overview of test types
+- Unit & Integration tests (@effect/vitest)
+- E2E tests (Playwright)
+- Test data patterns
+- CI integration
+- Running tests commands
+- Current test coverage status
+
+### 3. frontend-guide.md
+**Merged from:**
+- REACT_BEST_PRACTICES.md
+- UI_ARCHITECTURE.md
+- USABILITY_BEST_PRACTICES.md
+- FORM_COMPONENTS_STANDARDIZATION.md
+- DESIGN_SYSTEM.md
+
+**Contents:**
+- Architecture overview (no Effect in frontend)
+- State management patterns
+- Data fetching with loaders
+- Styling with Tailwind
+- Component patterns
+- Page templates
+- Empty, loading, error states
+- Form design
+- Navigation & layout
+- Accessibility
+- Design system reference
+
+### 4. api-guide.md
+**Merged from:**
+- API_BEST_PRACTICES.md
+- HTTP_API_TANSTACK.md
+
+**Contents:**
+- Architecture overview
+- Defining API endpoints (backend)
+- Request/response schemas
+- Implementing handlers
+- Authentication & middleware
+- Generated client (frontend)
+- SSR patterns with TanStack Start
+- Anti-patterns to avoid
+
+## Updated Directory Structure
+
+```
+specs-new/
+├── README.md
+│
+├── guides/                              # NEW: Consolidated how-to guides
+│   ├── effect-guide.md                  # Effect patterns, layers, errors, SQL, testing
+│   ├── testing-guide.md                 # Unit, integration, E2E testing
+│   ├── frontend-guide.md                # React, UI, components, styling
+│   └── api-guide.md                     # HttpApi, endpoints, schemas
+│
+├── architecture/                        # System architecture documentation
+│   ├── ACCOUNTING_RESEARCH.md
+│   ├── DOMAIN_MODEL.md
+│   ├── UI_ARCHITECTURE.md               # Issue tracking, page templates
+│   ├── HTTP_API_TANSTACK.md
+│   ├── AUTHENTICATION.md
+│   ├── AUTHORIZATION.md
+│   ├── ERROR_DESIGN.md
+│   ├── FISCAL_PERIODS.md
+│   └── DESIGN_SYSTEM.md
+│
+├── best-practices/                      # Original individual files (can be removed if guides adopted)
+│   ├── EFFECT_BEST_PRACTICES.md
+│   ├── EFFECT_LAYERS.md
+│   ├── EFFECT_SQL.md
+│   ├── EFFECT_TESTING.md
+│   ├── TYPESCRIPT_CONVENTIONS.md
+│   ├── REACT_BEST_PRACTICES.md
+│   ├── API_BEST_PRACTICES.md
+│   ├── E2E_TESTING.md
+│   └── USABILITY_BEST_PRACTICES.md
+│
+├── pending/                             # Features not yet implemented
+│   ├── EXCHANGE_RATE_SYNC.md
+│   ├── POLICY_UX_IMPROVEMENTS.md
+│   ├── AUTHORIZATION_MISSING.md
+│   └── DUPLICATED_COMPANY_CREATION_PAGE.md
+│
+├── completed/                           # Historical reference
+│   └── [11 completed specs]
+│
+└── reference/
+    └── REFERENCE_REPOS.md
+```
 
 ## Final Counts
 
 | Directory | Files |
 |-----------|-------|
+| guides/ | 4 (NEW consolidated guides) |
 | architecture/ | 9 |
-| best-practices/ | 9 |
+| best-practices/ | 9 (can be removed if guides adopted) |
 | pending/ | 4 |
 | completed/ | 11 |
 | reference/ | 1 |
 | README.md | 1 |
-| **Total** | **35** (34 specs + 1 README)
+| **Total** | **39** (35 original specs + 4 consolidated guides)
 
 ## Migration Status: ✅ COMPLETE
 
-The specs-new/ directory is now fully organized and ready for use. The original specs/ directory remains untouched so both can be compared before final adoption.
+The specs-new/ directory is now fully organized with:
+1. **Original files** organized into logical directories
+2. **New consolidated guides** that merge related content
+
+### Recommended Next Steps
+
+1. **Adopt consolidated guides** - The guides/ directory contains the most useful merged content
+2. **Remove redundant best-practices/ files** - Once guides are adopted, individual files can be removed
+3. **Update CLAUDE.md** - Reference the new guides/ directory instead of individual specs
+4. **Keep architecture/** - These remain valuable as detailed reference documentation
+5. **Keep pending/** - These track work that still needs to be done
 
 ---
 

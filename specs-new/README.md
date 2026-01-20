@@ -6,14 +6,26 @@ This directory contains all project specifications, organized by category.
 
 ```
 specs-new/
+├── guides/             # Consolidated how-to guides (START HERE)
 ├── architecture/       # System architecture documentation
-├── best-practices/     # Coding guidelines and patterns
+├── best-practices/     # Individual coding guideline files
 ├── pending/            # Features not yet implemented
 ├── completed/          # Historical reference (all work done)
 └── reference/          # External references
 ```
 
 ## Quick Links
+
+### Consolidated Guides (Recommended Starting Point)
+
+These guides consolidate related best practices into comprehensive documents:
+
+| Guide | Description | Merged From |
+|-------|-------------|-------------|
+| [effect-guide.md](guides/effect-guide.md) | Effect patterns, layers, errors, SQL, testing | EFFECT_*.md files |
+| [testing-guide.md](guides/testing-guide.md) | Unit, integration, E2E testing | EFFECT_TESTING, E2E_*.md |
+| [frontend-guide.md](guides/frontend-guide.md) | React, UI, components, styling | REACT_*, UI_*, USABILITY_*.md |
+| [api-guide.md](guides/api-guide.md) | HttpApi, endpoints, schemas | API_*, HTTP_API_*.md |
 
 ### Architecture (Start Here for Understanding the System)
 
@@ -79,9 +91,10 @@ These specs document completed work. Kept for historical context and reference.
 ## For New Contributors
 
 1. Start with [ACCOUNTING_RESEARCH.md](architecture/ACCOUNTING_RESEARCH.md) for domain understanding
-2. Read [EFFECT_BEST_PRACTICES.md](best-practices/EFFECT_BEST_PRACTICES.md) before writing backend code
-3. Read [REACT_BEST_PRACTICES.md](best-practices/REACT_BEST_PRACTICES.md) before writing frontend code
-4. Consult [UI_ARCHITECTURE.md](architecture/UI_ARCHITECTURE.md) for page structure patterns
+2. Read [effect-guide.md](guides/effect-guide.md) before writing backend code
+3. Read [frontend-guide.md](guides/frontend-guide.md) before writing frontend code
+4. Read [api-guide.md](guides/api-guide.md) for API development
+5. Read [testing-guide.md](guides/testing-guide.md) before writing tests
 
 ## Maintenance
 
