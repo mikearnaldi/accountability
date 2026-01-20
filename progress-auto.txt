@@ -1087,3 +1087,8 @@
 **Task**: Fixed journal entry form UI issues - left-aligned Line #/Account/Memo headers, reduced delete column width to w-10, added min-w-[280px] to fiscal period selector
 **Status**: complete
 ---
+
+## Iteration 1 - 2026-01-21 00:11
+**Task**: Fixed Combobox lint error and updated E2E tests for journal entry account selection
+**Status**: complete
+---

@@ -883,13 +883,13 @@ export function JournalEntryForm({
         </div>
 
         {/* Lines Header */}
-        <div className="grid grid-cols-12 gap-2 border-b border-gray-200 bg-gray-50 px-2 py-2 text-xs font-medium text-gray-500">
-          <div className="col-span-1 text-left pl-2">#</div>
-          <div className="col-span-4 text-left">Account</div>
-          <div className="col-span-2 text-left">Memo</div>
-          <div className="col-span-2 text-right">Debit</div>
-          <div className="col-span-2 text-right">Credit</div>
-          <div className="col-span-1 w-10"></div>
+        <div className="grid grid-cols-[2.5rem_1fr_1fr_8rem_8rem_2.5rem] gap-2 border-b border-gray-200 bg-gray-50 px-2 py-2 text-xs font-medium text-gray-500">
+          <div className="text-center">#</div>
+          <div className="text-left">Account</div>
+          <div className="text-left">Memo</div>
+          <div className="text-right">Debit</div>
+          <div className="text-right">Credit</div>
+          <div></div>
         </div>
 
         {/* Line Items */}

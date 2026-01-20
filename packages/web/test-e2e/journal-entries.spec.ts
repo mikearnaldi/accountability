@@ -13,7 +13,44 @@
  * - Breadcrumb navigation
  */
 
-import { test, expect, type APIRequestContext } from "@playwright/test"
+import { test, expect, type APIRequestContext, type Page } from "@playwright/test"
+
+/**
+ * Helper to select an option from a Combobox component.
+ * The Combobox is a div-based searchable dropdown, not a native select.
+ *
+ * @param page - Playwright page
+ * @param testId - The data-testid of the combobox
+ * @param searchText - Text to search for (partial match)
+ */
+async function selectComboboxOption(
+  page: Page,
+  testId: string,
+  searchText: string
+): Promise<void> {
+  const combobox = page.locator(`[data-testid="${testId}"]`)
+
+  // Click to open the combobox dropdown
+  await combobox.click()
+
+  // Wait for dropdown to open and input to be visible
+  await page.waitForTimeout(100)
+
+  // Type to filter options
+  const input = combobox.locator("input")
+  await input.fill(searchText)
+
+  // Wait for filtering to complete
+  await page.waitForTimeout(100)
+
+  // Click the first matching option in the dropdown
+  // The dropdown is rendered in a FloatingPortal, so we need to look for it globally
+  const option = page.locator(`li:has-text("${searchText}")`).first()
+  await option.click()
+
+  // Wait for dropdown to close
+  await page.waitForTimeout(100)
+}
 
 /**
  * Helper to create a fiscal year with open periods for testing.
@@ -1136,13 +1173,13 @@ test.describe("Journal Entries List Page", () => {
     await page.locator('[data-testid="journal-entry-reference"]').fill("E2E-TEST-001")
 
     // 8. Fill in first line (Debit to Cash)
-    await page.locator('[data-testid="journal-entry-line-account-0"]').selectOption({ label: "1000 - Cash" })
+    await selectComboboxOption(page, "journal-entry-line-account-0", "1000 - Cash")
     const debitInput0 = page.locator('[data-testid="journal-entry-line-debit-0"]')
     await debitInput0.click()
     await debitInput0.fill("500.00")
 
     // 9. Fill in second line (Credit to Revenue)
-    await page.locator('[data-testid="journal-entry-line-account-1"]').selectOption({ label: "4000 - Revenue" })
+    await selectComboboxOption(page, "journal-entry-line-account-1", "4000 - Revenue")
     const creditInput1 = page.locator('[data-testid="journal-entry-line-credit-1"]')
     await creditInput1.click()
     await creditInput1.fill("500.00")
@@ -1303,7 +1340,7 @@ test.describe("Journal Entries List Page", () => {
     await expect(descriptionInput).toHaveValue("Unbalanced entry test")
 
     // 7. Fill in first line (Debit to Cash)
-    await page.locator('[data-testid="journal-entry-line-account-0"]').selectOption({ label: "1000 - Cash" })
+    await selectComboboxOption(page, "journal-entry-line-account-0", "1000 - Cash")
     const debitInput = page.locator('[data-testid="journal-entry-line-debit-0"]')
     await debitInput.click()
     await debitInput.fill("1000.00")
@@ -1312,7 +1349,7 @@ test.describe("Journal Entries List Page", () => {
     await expect(page.locator('[data-testid="total-debits"]')).toContainText("1000.00", { timeout: 5000 })
 
     // 8. Fill in second line with DIFFERENT amount (Credit to Revenue)
-    await page.locator('[data-testid="journal-entry-line-account-1"]').selectOption({ label: "4000 - Revenue" })
+    await selectComboboxOption(page, "journal-entry-line-account-1", "4000 - Revenue")
     const creditInput = page.locator('[data-testid="journal-entry-line-credit-1"]')
     await creditInput.click()
     await creditInput.fill("500.00")

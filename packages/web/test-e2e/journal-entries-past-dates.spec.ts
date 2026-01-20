@@ -8,7 +8,44 @@
  * - Testing entries far in the past (1900, 2000)
  */
 
-import { test, expect, type APIRequestContext } from "@playwright/test"
+import { test, expect, type APIRequestContext, type Page } from "@playwright/test"
+
+/**
+ * Helper to select an option from a Combobox component.
+ * The Combobox is a div-based searchable dropdown, not a native select.
+ *
+ * @param page - Playwright page
+ * @param testId - The data-testid of the combobox
+ * @param searchText - Text to search for (partial match)
+ */
+async function selectComboboxOption(
+  page: Page,
+  testId: string,
+  searchText: string
+): Promise<void> {
+  const combobox = page.locator(`[data-testid="${testId}"]`)
+
+  // Click to open the combobox dropdown
+  await combobox.click()
+
+  // Wait for dropdown to open and input to be visible
+  await page.waitForTimeout(100)
+
+  // Type to filter options
+  const input = combobox.locator("input")
+  await input.fill(searchText)
+
+  // Wait for filtering to complete
+  await page.waitForTimeout(100)
+
+  // Click the first matching option in the dropdown
+  // The dropdown is rendered in a FloatingPortal, so we need to look for it globally
+  const option = page.locator(`li:has-text("${searchText}")`).first()
+  await option.click()
+
+  // Wait for dropdown to close
+  await page.waitForTimeout(100)
+}
 
 /**
  * Helper to create a fiscal year with a specific period opened for testing.
@@ -224,13 +261,13 @@ test.describe("Journal Entry Past Dates", () => {
     await page.locator('[data-testid="journal-entry-reference"]').fill("HIST-2024-001")
 
     // 12. Fill in first line (Debit to Cash)
-    await page.locator('[data-testid="journal-entry-line-account-0"]').selectOption({ label: "1000 - Cash" })
+    await selectComboboxOption(page, "journal-entry-line-account-0", "1000 - Cash")
     const debitInput0 = page.locator('[data-testid="journal-entry-line-debit-0"]')
     await debitInput0.click()
     await debitInput0.fill("1000.00")
 
     // 13. Fill in second line (Credit to Revenue)
-    await page.locator('[data-testid="journal-entry-line-account-1"]').selectOption({ label: "4000 - Revenue" })
+    await selectComboboxOption(page, "journal-entry-line-account-1", "4000 - Revenue")
     const creditInput1 = page.locator('[data-testid="journal-entry-line-credit-1"]')
     await creditInput1.click()
     await creditInput1.fill("1000.00")
@@ -563,9 +600,9 @@ test.describe("Journal Entry Past Dates", () => {
 
     // 10. Fill in entry
     await page.locator('[data-testid="journal-entry-description"]').fill("Year-end closing entry 2024")
-    await page.locator('[data-testid="journal-entry-line-account-0"]').selectOption({ label: "1000 - Cash" })
+    await selectComboboxOption(page, "journal-entry-line-account-0", "1000 - Cash")
     await page.locator('[data-testid="journal-entry-line-debit-0"]').fill("2000.00")
-    await page.locator('[data-testid="journal-entry-line-account-1"]').selectOption({ label: "4000 - Revenue" })
+    await selectComboboxOption(page, "journal-entry-line-account-1", "4000 - Revenue")
     await page.locator('[data-testid="journal-entry-line-credit-1"]').fill("2000.00")
 
     // 11. Should be balanced
@@ -727,9 +764,9 @@ test.describe("Journal Entry Past Dates", () => {
 
     // 10. Fill in entry
     await page.locator('[data-testid="journal-entry-description"]').fill("Opening entry 2025")
-    await page.locator('[data-testid="journal-entry-line-account-0"]').selectOption({ label: "1000 - Cash" })
+    await selectComboboxOption(page, "journal-entry-line-account-0", "1000 - Cash")
     await page.locator('[data-testid="journal-entry-line-debit-0"]').fill("3000.00")
-    await page.locator('[data-testid="journal-entry-line-account-1"]').selectOption({ label: "4000 - Revenue" })
+    await selectComboboxOption(page, "journal-entry-line-account-1", "4000 - Revenue")
     await page.locator('[data-testid="journal-entry-line-credit-1"]').fill("3000.00")
 
     // 11. Should be balanced

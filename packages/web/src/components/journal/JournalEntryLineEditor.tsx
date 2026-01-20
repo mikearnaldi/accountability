@@ -7,7 +7,7 @@
  */
 
 import { useMemo } from "react"
-import { Select } from "@/components/ui/Select"
+import { Combobox, type ComboboxOption } from "@/components/ui/Combobox"
 import { Input } from "@/components/ui/Input"
 
 // =============================================================================
@@ -62,10 +62,23 @@ export function JournalEntryLineEditor({
     [accounts]
   )
 
-  // Get selected account name for display
+  // Get selected account for display
   const selectedAccount = useMemo(
     () => postableAccounts.find((acc) => acc.id === line.accountId),
     [postableAccounts, line.accountId]
+  )
+
+  // Convert accounts to combobox options
+  const accountOptions: ComboboxOption[] = useMemo(
+    () =>
+      postableAccounts
+        .sort((a, b) => a.accountNumber.localeCompare(b.accountNumber))
+        .map((acc) => ({
+          value: acc.id,
+          label: `${acc.accountNumber} - ${acc.name}`,
+          searchText: `${acc.accountType}` // Also search by account type
+        })),
+    [postableAccounts]
   )
 
   // Handle debit/credit input - clear the other field if entering a value
@@ -85,33 +98,25 @@ export function JournalEntryLineEditor({
 
   return (
     <div
-      className="grid grid-cols-12 items-start gap-2 border-b border-gray-100 px-2 py-2 hover:bg-gray-50"
+      className="grid grid-cols-[2.5rem_1fr_1fr_8rem_8rem_2.5rem] items-start gap-2 border-b border-gray-100 px-2 py-2 hover:bg-gray-50"
       data-testid={`journal-entry-line-${lineIndex}`}
     >
-      {/* Line Number - pt-2.5 aligns with input text baseline */}
-      <div className="col-span-1 pt-2.5 pl-2 text-left text-sm font-medium text-gray-500">
+      {/* Line Number */}
+      <div className="flex h-9 items-center justify-center text-sm font-medium text-gray-500">
         {lineIndex + 1}
       </div>
 
       {/* Account Selector */}
-      <div className="col-span-4">
-        <Select
+      <div>
+        <Combobox
           value={line.accountId}
-          onChange={(e) => onUpdate(line.id, "accountId", e.target.value)}
+          onChange={(value) => onUpdate(line.id, "accountId", value)}
+          options={accountOptions}
           disabled={disabled}
+          placeholder="Search accounts..."
           data-testid={`journal-entry-line-account-${lineIndex}`}
-          placeholder="Select account..."
-          className="w-full py-1.5 text-sm"
-        >
-          <option value="">Select account...</option>
-          {postableAccounts
-            .sort((a, b) => a.accountNumber.localeCompare(b.accountNumber))
-            .map((acc) => (
-              <option key={acc.id} value={acc.id}>
-                {acc.accountNumber} - {acc.name}
-              </option>
-            ))}
-        </Select>
+          className="text-sm"
+        />
         {/* Account type shown below select */}
         {selectedAccount && (
           <span className="mt-0.5 block text-xs text-gray-500">
@@ -121,7 +126,7 @@ export function JournalEntryLineEditor({
       </div>
 
       {/* Memo */}
-      <div className="col-span-2">
+      <div>
         <Input
           type="text"
           value={line.memo}
@@ -134,7 +139,7 @@ export function JournalEntryLineEditor({
       </div>
 
       {/* Debit Amount */}
-      <div className="col-span-2">
+      <div>
         <Input
           type="text"
           inputMode="decimal"
@@ -149,7 +154,7 @@ export function JournalEntryLineEditor({
       </div>
 
       {/* Credit Amount */}
-      <div className="col-span-2">
+      <div>
         <Input
           type="text"
           inputMode="decimal"
@@ -163,14 +168,14 @@ export function JournalEntryLineEditor({
         />
       </div>
 
-      {/* Delete Button - pt-2 aligns with input row, w-10 for minimal width */}
-      <div className="col-span-1 flex w-10 justify-center pt-2">
+      {/* Delete Button */}
+      <div className="flex h-9 items-center justify-center">
         <button
           type="button"
           onClick={() => onDelete(line.id)}
           disabled={!canDelete || disabled}
           data-testid={`journal-entry-line-delete-${lineIndex}`}
-          className="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
           title={canDelete ? "Remove line" : "Minimum 2 lines required"}
         >
           <svg
