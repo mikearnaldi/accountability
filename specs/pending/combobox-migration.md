@@ -10,7 +10,7 @@ Replace all plain browser `<Select>` components with the new searchable `<Combob
 |----------|--------|
 | Combobox component | DONE |
 | Journal Entry Line Editor (accounts) | DONE |
-| Specialized Select Components | TODO |
+| Specialized Select Components | DONE (CurrencySelect, JurisdictionSelect) |
 | Form Components | TODO |
 | Page Filters | TODO |
 
@@ -22,27 +22,25 @@ Replace all plain browser `<Select>` components with the new searchable `<Combob
 
 These are reusable components that wrap Select. Updating these will fix many usages automatically.
 
-#### 1.1 CurrencySelect
+#### 1.1 CurrencySelect ✅ DONE
 **File:** `packages/web/src/components/ui/CurrencySelect.tsx`
 
 Used for selecting currencies (USD, EUR, etc.). ~180 currencies to choose from.
 
-**Current:** Native select with all currencies listed
-**Change:** Convert to use Combobox internally, search by code or name
+**Status:** Converted to use Combobox internally. Searchable by code, name, or symbol.
 
 **Used in:**
 - `CompanyForm.tsx` - functional currency selection
 - `OrganizationForm.tsx` - default currency selection
-- `exchange-rates/new.tsx` - from/to currency
-- `exchange-rates/index.tsx` - currency filter
+- `exchange-rates/new.tsx` - from/to currency (uses inline Select, not CurrencySelect)
+- `exchange-rates/index.tsx` - currency filter (uses inline Select, not CurrencySelect)
 
-#### 1.2 JurisdictionSelect
+#### 1.2 JurisdictionSelect ✅ DONE
 **File:** `packages/web/src/components/ui/JurisdictionSelect.tsx`
 
 Used for selecting countries/jurisdictions. ~250 countries.
 
-**Current:** Native select with all countries listed
-**Change:** Convert to use Combobox internally, search by name or code
+**Status:** Converted to use Combobox internally. Searchable by name, code, or default currency.
 
 **Used in:**
 - `CompanyForm.tsx` - company jurisdiction
@@ -182,8 +180,8 @@ Used for selecting consolidation methods. Only ~5 options.
 ## Implementation Plan
 
 ### Phase 1: Update Specialized Select Components
-1. [ ] Update `CurrencySelect` to use Combobox internally
-2. [ ] Update `JurisdictionSelect` to use Combobox internally
+1. [x] Update `CurrencySelect` to use Combobox internally
+2. [x] Update `JurisdictionSelect` to use Combobox internally
 3. [ ] (Optional) Update `ConsolidationMethodSelect` for consistency
 
 ### Phase 2: Update Form Components
@@ -243,14 +241,14 @@ const options: ComboboxOption[] = [
 - `className`: Additional styling
 - `data-testid`: For E2E testing
 
-### E2E Testing Helper
+### E2E Testing Helper ✅ DONE
 
-Since Combobox is not a native `<select>`, use this helper function in E2E tests:
+Since Combobox is not a native `<select>`, use this helper function in E2E tests. A shared helper is available at `packages/web/test-e2e/helpers/combobox.ts`.
 
 ```typescript
 /**
  * Helper to select an option from a Combobox component.
- * The Combobox is a div-based searchable dropdown, not a native select.
+ * The Combobox is a div-based searchable dropdown using @floating-ui/react.
  */
 async function selectComboboxOption(
   page: Page,
@@ -258,33 +256,45 @@ async function selectComboboxOption(
   searchText: string
 ): Promise<void> {
   const combobox = page.locator(`[data-testid="${testId}"]`)
+  await expect(combobox).toBeVisible({ timeout: 5000 })
 
-  // Click to open the combobox dropdown
-  await combobox.click()
-
-  // Wait for dropdown to open and input to be visible
+  // Click the button inside to trigger the dropdown open
+  const button = combobox.locator("button")
+  await expect(button).toBeVisible({ timeout: 5000 })
+  await button.click()
   await page.waitForTimeout(100)
 
-  // Type to filter options
+  // Wait for dropdown to open - the combobox shows input when open
   const input = combobox.locator("input")
+
+  // If input is not visible yet, try clicking again
+  const inputVisible = await input.isVisible().catch(() => false)
+  if (!inputVisible) {
+    await combobox.click({ force: true })
+    await page.waitForTimeout(100)
+  }
+
+  await expect(input).toBeVisible({ timeout: 5000 })
   await input.fill(searchText)
 
-  // Wait for filtering to complete
-  await page.waitForTimeout(100)
-
-  // Click the first matching option in the dropdown
-  // The dropdown is rendered in a FloatingPortal, so we need to look for it globally
+  // Wait for dropdown list and click matching option
+  await expect(page.locator("li").first()).toBeVisible({ timeout: 5000 })
   const option = page.locator(`li:has-text("${searchText}")`).first()
+  await expect(option).toBeVisible({ timeout: 5000 })
   await option.click()
-
-  // Wait for dropdown to close
-  await page.waitForTimeout(100)
+  await page.waitForTimeout(200)
 }
 ```
 
 **Usage:**
 ```typescript
-// Instead of: await page.locator('[data-testid="account-select"]').selectOption({ label: "1000 - Cash" })
+// Instead of: await page.selectOption("#company-jurisdiction", "GB")
 // Use:
-await selectComboboxOption(page, "account-select", "1000 - Cash")
+await selectComboboxOption(page, "company-jurisdiction-select", "United Kingdom")
 ```
+
+**E2E Test Files Updated:**
+- `test-e2e/create-company.spec.ts` - Updated to use Combobox helper
+- `test-e2e/create-organization.spec.ts` - Updated to use Combobox helper
+- `test-e2e/organizations.spec.ts` - Updated to use Combobox helper
+- `test-e2e/companies-list.spec.ts` - Updated to use Combobox helper

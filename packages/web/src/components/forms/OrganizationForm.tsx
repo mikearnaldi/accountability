@@ -260,14 +260,12 @@ export function OrganizationForm({
       <CurrencySelect
         id="org-currency"
         label="Reporting Currency"
-        required
         currencies={currencies}
         isLoading={isCurrenciesLoading}
         value={reportingCurrency}
-        onChange={(e) => setReportingCurrency(e.target.value)}
-        onBlur={() => handleFieldBlur("reportingCurrency", reportingCurrency)}
+        onChange={setReportingCurrency}
         disabled={isSubmitting}
-        placeholder="Select reporting currency..."
+        placeholder="Search currencies..."
         data-testid="org-currency-select"
         {...(touched.reportingCurrency && fieldErrors.reportingCurrency ? { error: fieldErrors.reportingCurrency } : {})}
       />

@@ -312,7 +312,7 @@ interface SubjectCondition {
 │                                                                             │
 │ [ ] Filter by fiscal period status                                          │
 │     ┌───────────────────────────────────────────────────────────────────┐   │
-│     │ Period Status: [ ] Open  [ ] Soft Close  [ ] Closed  [ ] Locked   │   │
+│     │ Period Status: [ ] Open  [ ] Closed                               │   │
 │     │ [ ] Adjustment periods only                                       │   │
 │     └───────────────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -637,14 +637,195 @@ packages/web/src/
 - `packages/web/src/routes/organizations/$organizationId/settings/policies.tsx` - Policy list page
 - `packages/web/src/routes/organizations/$organizationId/settings/members.tsx` - Members list page
 - `packages/web/src/components/policies/PolicyBuilderModal.tsx` - Current form (to be refactored)
-- `packages/core/src/Auth/PolicyConditions.ts` - Condition schemas
-- `packages/core/src/Auth/AuthorizationPolicy.ts` - Policy entity
+- `packages/core/src/authorization/PolicyConditions.ts` - Condition schemas
+- `packages/core/src/authorization/AuthorizationPolicy.ts` - Policy entity
 - `packages/api/src/Definitions/PolicyApi.ts` - API definitions
 - `packages/api/src/Definitions/MemberApi.ts` - Member API (needs policy endpoints)
 - `packages/persistence/src/Layers/PolicyRepositoryLive.ts` - Repository
 
 ---
 
+## URGENT: System Policy Sync with Simplified Fiscal Period States
+
+### Background
+
+The fiscal period states have been simplified from 5 states to 2 states:
+
+**Before (5 states):**
+- Future - Period hasn't started
+- Open - Period is active
+- SoftClose - Period is soft-closed (controllers can still work)
+- Closed - Period is closed
+- Locked - Period is permanently locked
+
+**After (2 states):**
+- Open - Period is active and accepts journal entries
+- Closed - Period is closed (no entries allowed)
+
+The domain layer (`packages/core/src/fiscal/FiscalPeriodStatus.ts`) has been updated, but the policy system is **out of sync**.
+
+### Current Issues
+
+#### 1. PeriodStatusCondition References Old States
+
+**File:** `packages/core/src/authorization/PolicyConditions.ts` (lines 140-146)
+
+```typescript
+// CURRENT - OUT OF SYNC
+export const PeriodStatusCondition = Schema.Literal(
+  "Future",      // ❌ No longer exists
+  "Open",        // ✓ Valid
+  "SoftClose",   // ❌ No longer exists
+  "Closed",      // ✓ Valid
+  "Locked"       // ❌ No longer exists
+)
+```
+
+#### 2. System Policies Reference Non-Existent States
+
+**File:** `packages/persistence/src/Seeds/SystemPolicies.ts`
+
+Current system policies (8 total) include 5 that reference obsolete states:
+
+| Policy | Status Condition | Issue |
+|--------|------------------|-------|
+| Prevent Modifications to Locked Periods | `["Locked"]` | ❌ State removed |
+| Prevent Modifications to Closed Periods | `["Closed"]` | ✓ Valid |
+| Prevent Entries in Future Periods | `["Future"]` | ❌ State removed |
+| Allow SoftClose Period Access for Controllers | `["SoftClose"]` | ❌ State removed |
+| Restrict SoftClose Period Access | `["SoftClose"]` | ❌ State removed |
+
+#### 3. Obsolete Priority Constants
+
+**File:** `packages/core/src/authorization/AuthorizationPolicy.ts`
+
+```typescript
+// CURRENT - OUT OF SYNC
+export const SYSTEM_POLICY_PRIORITIES = {
+  PLATFORM_ADMIN_OVERRIDE: 1000,
+  LOCKED_PERIOD_PROTECTION: 999,     // ❌ No longer needed
+  CLOSED_PERIOD_PROTECTION: 999,     // ✓ Keep
+  FUTURE_PERIOD_PROTECTION: 999,     // ❌ No longer needed
+  SOFTCLOSE_CONTROLLER_ACCESS: 998,  // ❌ No longer needed
+  SOFTCLOSE_DEFAULT_DENY: 997,       // ❌ No longer needed
+  OWNER_FULL_ACCESS: 900,            // ✓ Keep
+  VIEWER_READ_ONLY: 100              // ✓ Keep
+}
+```
+
+### Required Changes
+
+#### 1. Update PeriodStatusCondition Schema
+
+```typescript
+// packages/core/src/authorization/PolicyConditions.ts
+
+// AFTER - Aligned with domain
+export const PeriodStatusCondition = Schema.Literal(
+  "Open",
+  "Closed"
+)
+```
+
+#### 2. Simplify SYSTEM_POLICY_PRIORITIES
+
+```typescript
+// packages/core/src/authorization/AuthorizationPolicy.ts
+
+export const SYSTEM_POLICY_PRIORITIES = {
+  PLATFORM_ADMIN_OVERRIDE: 1000,
+  CLOSED_PERIOD_PROTECTION: 999,
+  OWNER_FULL_ACCESS: 900,
+  VIEWER_READ_ONLY: 100
+} as const
+```
+
+#### 3. Simplify System Policies (8 → 4)
+
+**Keep these 4 policies:**
+
+1. **Platform Admin Full Access** (priority 1000)
+   - No changes needed
+
+2. **Organization Owner Full Access** (priority 900)
+   - No changes needed
+
+3. **Viewer Read-Only Access** (priority 100)
+   - No changes needed
+
+4. **Prevent Modifications to Closed Periods** (priority 999)
+   - Keeps the same logic, just ensure it only references `["Closed"]`
+   - This single policy now covers all "no modifications after closing" scenarios
+
+**Remove these 4 policies:**
+
+- ~~Prevent Modifications to Locked Periods~~ - Merged into Closed protection
+- ~~Prevent Entries in Future Periods~~ - Future state no longer exists
+- ~~Allow SoftClose Period Access for Controllers~~ - SoftClose no longer exists
+- ~~Restrict SoftClose Period Access~~ - SoftClose no longer exists
+
+#### 4. Update hasSystemPolicies Check
+
+```typescript
+// packages/persistence/src/Seeds/SystemPolicies.ts
+
+export function hasSystemPolicies(
+  policies: ReadonlyArray<{ isSystemPolicy: boolean }>
+): boolean {
+  const systemPolicyCount = policies.filter((p) => p.isSystemPolicy).length
+  return systemPolicyCount >= 4  // Changed from 8 to 4
+}
+```
+
+#### 5. Update JournalEntryService Type
+
+```typescript
+// packages/core/src/journal/JournalEntryService.ts (line 222)
+
+// BEFORE
+export type PeriodStatus = "Future" | "Open" | "SoftClose" | "Closed" | "Locked"
+
+// AFTER - Use the domain type
+import { FiscalPeriodStatus } from "../fiscal/FiscalPeriodStatus.ts"
+```
+
+### Migration Considerations
+
+1. **Existing Organizations**: Existing organizations may have the old 8 system policies seeded. A migration should:
+   - Delete the 4 obsolete policies
+   - Verify the 4 remaining policies are correct
+
+2. **Custom Policies**: User-created policies that reference `periodStatus: ["Locked"]`, `["Future"]`, or `["SoftClose"]` should:
+   - Be migrated to `["Closed"]` or removed
+   - Or the system should gracefully ignore non-existent status values
+
+### Files to Update
+
+| File | Change |
+|------|--------|
+| `packages/core/src/authorization/PolicyConditions.ts` | Update `PeriodStatusCondition` to only `"Open"` and `"Closed"` |
+| `packages/core/src/authorization/AuthorizationPolicy.ts` | Remove obsolete priority constants |
+| `packages/core/src/journal/JournalEntryService.ts` | Use domain `FiscalPeriodStatus` type |
+| `packages/persistence/src/Seeds/SystemPolicies.ts` | Reduce from 8 to 4 policies, update `hasSystemPolicies` |
+| `packages/persistence/test/Seeds/SystemPolicies.test.ts` | Update test expectations for 4 policies |
+| `packages/persistence/test/PolicyEngine.test.ts` | Remove tests using obsolete status values |
+
+### Implementation Phase (Add to Phase 1)
+
+Add to **Phase 1: Multi-Resource Type Support (Backend + Policy Page)**:
+
+1. [ ] Update `PeriodStatusCondition` schema to only `"Open"` and `"Closed"`
+2. [ ] Remove obsolete `SYSTEM_POLICY_PRIORITIES` constants
+3. [ ] Simplify system policies from 8 to 4 in `SystemPolicies.ts`
+4. [ ] Update `hasSystemPolicies` check from 8 to 4
+5. [ ] Create migration to delete obsolete system policies from existing organizations
+6. [ ] Update `JournalEntryService` to use domain `FiscalPeriodStatus` type
+7. [ ] Update all related tests
+
+---
+
 ## Priority
 
 **MEDIUM-HIGH** - The current policy UI works but creates friction for common use cases. These improvements will significantly enhance the admin experience when setting up authorization rules.
+
+**System Policy Sync: HIGH** - The misalignment between domain and policy layer could cause authorization failures or unexpected behavior. Should be addressed before the UX improvements.

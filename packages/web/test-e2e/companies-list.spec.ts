@@ -11,7 +11,65 @@
  * - Link to company details
  */
 
-import { test, expect } from "@playwright/test"
+import { test, expect, type Page } from "@playwright/test"
+
+/**
+ * Helper to select an option from a Combobox component.
+ * The Combobox is a div-based searchable dropdown, not a native select.
+ * Uses @floating-ui/react which handles click on the container div, not the button.
+ *
+ * @param page - Playwright page
+ * @param testId - The data-testid of the combobox
+ * @param searchText - Text to search for (partial match)
+ */
+async function selectComboboxOption(
+  page: Page,
+  testId: string,
+  searchText: string
+): Promise<void> {
+  const combobox = page.locator(`[data-testid="${testId}"]`)
+
+  // Wait for combobox to be ready
+  await expect(combobox).toBeVisible({ timeout: 5000 })
+
+  // Get the button inside (to verify state before/after click)
+  const button = combobox.locator("button")
+  await expect(button).toBeVisible({ timeout: 5000 })
+
+  // Click the button to trigger the dropdown open
+  // The floating-ui useClick hook is on the parent div, but the button click bubbles up
+  await button.click()
+
+  // Wait a moment for React state to update
+  await page.waitForTimeout(100)
+
+  // Wait for dropdown to open - the combobox shows input when open
+  const input = combobox.locator("input")
+
+  // If input is not visible yet, the click might not have triggered - try clicking again
+  const inputVisible = await input.isVisible().catch(() => false)
+  if (!inputVisible) {
+    // Try clicking the container div directly with force
+    await combobox.click({ force: true })
+    await page.waitForTimeout(100)
+  }
+
+  await expect(input).toBeVisible({ timeout: 5000 })
+
+  // Type to filter options
+  await input.fill(searchText)
+
+  // Wait for dropdown list to appear (rendered in FloatingPortal)
+  await expect(page.locator("li").first()).toBeVisible({ timeout: 5000 })
+
+  // Click the first matching option in the dropdown
+  const option = page.locator(`li:has-text("${searchText}")`).first()
+  await expect(option).toBeVisible({ timeout: 5000 })
+  await option.click()
+
+  // Wait for dropdown to close and state to update
+  await page.waitForTimeout(200)
+}
 
 test.describe("Companies List Page", () => {
   test("should redirect to login if not authenticated", async ({ page }) => {
@@ -306,9 +364,10 @@ test.describe("Companies List Page", () => {
     const newCompanyName = `New Test Company ${Date.now()}`
     await page.fill("#company-name", newCompanyName)
     await page.fill("#company-legal-name", `${newCompanyName} LLC`)
-    await page.selectOption("#company-jurisdiction", "GB")
-    await page.selectOption("#company-functional-currency", "GBP")
-    await page.selectOption("#company-reporting-currency", "GBP")
+    // Use Combobox helpers for jurisdiction and currency selects
+    await selectComboboxOption(page, "company-jurisdiction-select", "United Kingdom")
+    await selectComboboxOption(page, "company-functional-currency-select", "GBP")
+    await selectComboboxOption(page, "company-reporting-currency-select", "GBP")
     // Use fiscal year end preset for Mar 31
     await page.getByTestId("company-fiscal-year-end-preset-3-31").click()
 

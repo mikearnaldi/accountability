@@ -426,14 +426,12 @@ export function CompanyForm({
         <JurisdictionSelect
           id="company-jurisdiction"
           label="Jurisdiction"
-          required
           jurisdictions={jurisdictions}
           isLoading={isLoading}
           value={jurisdiction}
-          onChange={(e) => handleJurisdictionChange(e.target.value)}
-          onBlur={() => handleFieldBlur("jurisdiction", jurisdiction)}
+          onChange={handleJurisdictionChange}
           disabled={isSubmitting}
-          placeholder="Select jurisdiction..."
+          placeholder="Search jurisdictions..."
           data-testid="company-jurisdiction-select"
           {...(touched.jurisdiction && fieldErrors.jurisdiction ? { error: fieldErrors.jurisdiction } : {})}
         />
@@ -514,7 +512,7 @@ export function CompanyForm({
             jurisdictions={jurisdictions}
             isLoading={isLoading}
             value={incorporationJurisdiction}
-            onChange={(e) => setIncorporationJurisdiction(e.target.value)}
+            onChange={setIncorporationJurisdiction}
             disabled={isSubmitting}
             placeholder="Same as operating..."
             helperText="If different from operating jurisdiction"
@@ -634,14 +632,12 @@ export function CompanyForm({
           <CurrencySelect
             id="company-functional-currency"
             label="Functional Currency"
-            required
             currencies={currencies}
             isLoading={isLoading}
             value={functionalCurrency}
-            onChange={(e) => setFunctionalCurrency(e.target.value)}
-            onBlur={() => handleFieldBlur("functionalCurrency", functionalCurrency)}
+            onChange={setFunctionalCurrency}
             disabled={isSubmitting}
-            placeholder="Select currency..."
+            placeholder="Search currencies..."
             helperText="Primary operating currency"
             data-testid="company-functional-currency-select"
             {...(touched.functionalCurrency && fieldErrors.functionalCurrency ? { error: fieldErrors.functionalCurrency } : {})}
@@ -651,14 +647,12 @@ export function CompanyForm({
           <CurrencySelect
             id="company-reporting-currency"
             label="Reporting Currency"
-            required
             currencies={currencies}
             isLoading={isLoading}
             value={reportingCurrency}
-            onChange={(e) => setReportingCurrency(e.target.value)}
-            onBlur={() => handleFieldBlur("reportingCurrency", reportingCurrency)}
+            onChange={setReportingCurrency}
             disabled={isSubmitting}
-            placeholder="Select currency..."
+            placeholder="Search currencies..."
             helperText="Financial statement currency"
             data-testid="company-reporting-currency-select"
             {...(touched.reportingCurrency && fieldErrors.reportingCurrency ? { error: fieldErrors.reportingCurrency } : {})}

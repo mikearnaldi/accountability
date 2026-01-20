@@ -10,7 +10,65 @@
  * - Empty state when no organizations
  */
 
-import { test, expect } from "@playwright/test"
+import { test, expect, type Page } from "@playwright/test"
+
+/**
+ * Helper to select an option from a Combobox component.
+ * The Combobox is a div-based searchable dropdown, not a native select.
+ * Uses @floating-ui/react which handles click on the container div, not the button.
+ *
+ * @param page - Playwright page
+ * @param testId - The data-testid of the combobox
+ * @param searchText - Text to search for (partial match)
+ */
+async function selectComboboxOption(
+  page: Page,
+  testId: string,
+  searchText: string
+): Promise<void> {
+  const combobox = page.locator(`[data-testid="${testId}"]`)
+
+  // Wait for combobox to be ready
+  await expect(combobox).toBeVisible({ timeout: 5000 })
+
+  // Get the button inside (to verify state before/after click)
+  const button = combobox.locator("button")
+  await expect(button).toBeVisible({ timeout: 5000 })
+
+  // Click the button to trigger the dropdown open
+  // The floating-ui useClick hook is on the parent div, but the button click bubbles up
+  await button.click()
+
+  // Wait a moment for React state to update
+  await page.waitForTimeout(100)
+
+  // Wait for dropdown to open - the combobox shows input when open
+  const input = combobox.locator("input")
+
+  // If input is not visible yet, the click might not have triggered - try clicking again
+  const inputVisible = await input.isVisible().catch(() => false)
+  if (!inputVisible) {
+    // Try clicking the container div directly with force
+    await combobox.click({ force: true })
+    await page.waitForTimeout(100)
+  }
+
+  await expect(input).toBeVisible({ timeout: 5000 })
+
+  // Type to filter options
+  await input.fill(searchText)
+
+  // Wait for dropdown list to appear (rendered in FloatingPortal)
+  await expect(page.locator("li").first()).toBeVisible({ timeout: 5000 })
+
+  // Click the first matching option in the dropdown
+  const option = page.locator(`li:has-text("${searchText}")`).first()
+  await expect(option).toBeVisible({ timeout: 5000 })
+  await option.click()
+
+  // Wait for dropdown to close and state to update
+  await page.waitForTimeout(200)
+}
 
 test.describe("Organizations Page", () => {
   test("should redirect to login if not authenticated", async ({ page }) => {
@@ -235,8 +293,8 @@ test.describe("Organizations Page", () => {
     const newOrgName = `New Org ${Date.now()}`
     await page.fill("#org-name", newOrgName)
 
-    // 9. Select currency
-    await page.selectOption("#org-currency", "EUR")
+    // 9. Select currency using Combobox helper
+    await selectComboboxOption(page, "org-currency-select", "EUR")
 
     // 10. Submit form
     await page.getByTestId("org-form-submit-button").click()

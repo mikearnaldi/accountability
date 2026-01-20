@@ -9,7 +9,78 @@
  * - Error: Show inline validation errors
  */
 
-import { test, expect } from "@playwright/test"
+import { test, expect, type Page } from "@playwright/test"
+
+/**
+ * Helper to select an option from a Combobox component.
+ * The Combobox is a div-based searchable dropdown, not a native select.
+ * Uses @floating-ui/react which handles click on the container div, not the button.
+ *
+ * @param page - Playwright page
+ * @param testId - The data-testid of the combobox
+ * @param searchText - Text to search for (partial match)
+ */
+async function selectComboboxOption(
+  page: Page,
+  testId: string,
+  searchText: string
+): Promise<void> {
+  const combobox = page.locator(`[data-testid="${testId}"]`)
+
+  // Wait for combobox to be ready
+  await expect(combobox).toBeVisible({ timeout: 5000 })
+
+  // Get the button inside (to verify state before/after click)
+  const button = combobox.locator("button")
+  await expect(button).toBeVisible({ timeout: 5000 })
+
+  // Click the button to trigger the dropdown open
+  // The floating-ui useClick hook is on the parent div, but the button click bubbles up
+  await button.click()
+
+  // Wait a moment for React state to update
+  await page.waitForTimeout(100)
+
+  // Wait for dropdown to open - the combobox shows input when open
+  const input = combobox.locator("input")
+
+  // If input is not visible yet, the click might not have triggered - try clicking again
+  const inputVisible = await input.isVisible().catch(() => false)
+  if (!inputVisible) {
+    // Try clicking the container div directly with force
+    await combobox.click({ force: true })
+    await page.waitForTimeout(100)
+  }
+
+  await expect(input).toBeVisible({ timeout: 5000 })
+
+  // Type to filter options
+  await input.fill(searchText)
+
+  // Wait for dropdown list to appear (rendered in FloatingPortal)
+  await expect(page.locator("li").first()).toBeVisible({ timeout: 5000 })
+
+  // Click the first matching option in the dropdown
+  const option = page.locator(`li:has-text("${searchText}")`).first()
+  await expect(option).toBeVisible({ timeout: 5000 })
+  await option.click()
+
+  // Wait for dropdown to close and state to update
+  await page.waitForTimeout(200)
+}
+
+/**
+ * Helper to check if a Combobox shows a placeholder (no value selected)
+ */
+async function expectComboboxHasPlaceholder(
+  page: Page,
+  testId: string,
+  placeholderText: string
+): Promise<void> {
+  const combobox = page.locator(`[data-testid="${testId}"]`)
+  const displayButton = combobox.locator("button")
+  await expect(displayButton).toContainText(placeholderText)
+}
 
 test.describe("Create Organization Page (/organizations/new)", () => {
   test("should redirect to login if not authenticated", async ({ page }) => {
@@ -78,13 +149,14 @@ test.describe("Create Organization Page (/organizations/new)", () => {
 
     // 7. Verify form fields exist
     await expect(page.locator("#org-name")).toBeVisible()
-    await expect(page.locator("#org-currency")).toBeVisible()
+    // Currency select is now a Combobox - check for its data-testid
+    await expect(page.getByTestId("org-currency-select")).toBeVisible()
 
     // 8. Verify settings toggle exists
     await expect(page.getByTestId("org-settings-toggle")).toBeVisible()
   })
 
-  test("should show currency dropdown with options from API", async ({
+  test("should show currency dropdown with searchable options", async ({
     page,
     request
   }) => {
@@ -129,20 +201,45 @@ test.describe("Create Organization Page (/organizations/new)", () => {
     // 3. Navigate to create organization page
     await page.goto("/organizations/new")
 
-    // 4. Verify currency dropdown has options (from API)
-    const currencySelect = page.locator("#org-currency")
-    await expect(currencySelect).toBeVisible()
+    // 4. Verify currency combobox exists and has placeholder
+    const currencyCombobox = page.getByTestId("org-currency-select")
+    await expect(currencyCombobox).toBeVisible()
 
-    // Should have USD and EUR at minimum (from COMMON_CURRENCIES)
-    const options = await currencySelect.locator("option").all()
-    expect(options.length).toBeGreaterThan(1) // At least placeholder + 1 currency
+    // 5. Wait for page to be fully hydrated
+    await page.waitForTimeout(500)
 
-    // Check for common currencies
-    const optionTexts = await Promise.all(options.map((o) => o.textContent()))
-    const hasUSD = optionTexts.some((t) => t?.includes("USD"))
-    const hasEUR = optionTexts.some((t) => t?.includes("EUR"))
-    expect(hasUSD).toBeTruthy()
-    expect(hasEUR).toBeTruthy()
+    // 6. Click elsewhere first to blur any focused elements
+    await page.getByRole("heading", { name: "Create Organization" }).click()
+    await page.waitForTimeout(100)
+
+    // 7. Click the combobox button to open the dropdown
+    const comboboxButton = currencyCombobox.locator("button")
+    await expect(comboboxButton).toBeVisible()
+    await comboboxButton.click({ force: true })
+
+    // 8. Wait for dropdown to open - the combobox shows input when open
+    await expect(currencyCombobox.locator("input")).toBeVisible({ timeout: 5000 })
+
+    // 9. Should show dropdown with currency options
+    // The dropdown is rendered in a FloatingPortal, so we need to wait for it
+    await expect(page.locator("li").first()).toBeVisible({ timeout: 5000 })
+
+    // 10. Verify specific currencies are present
+    const usdOption = page.locator("li:has-text('USD')").first()
+    const eurOption = page.locator("li:has-text('EUR')").first()
+    await expect(usdOption).toBeVisible({ timeout: 5000 })
+    await expect(eurOption).toBeVisible({ timeout: 5000 })
+
+    // 11. Type to filter
+    const input = currencyCombobox.locator("input")
+    await input.fill("EUR")
+    await page.waitForTimeout(200)
+
+    // 12. Should show filtered results
+    await expect(page.locator("li:has-text('EUR')").first()).toBeVisible({ timeout: 5000 })
+
+    // 13. Click to close by pressing Escape
+    await page.keyboard.press("Escape")
   })
 
   test("should expand settings panel when clicked", async ({ page, request }) => {
@@ -306,9 +403,9 @@ test.describe("Create Organization Page (/organizations/new)", () => {
     await page.getByRole("heading", { name: "Create Organization" }).click()
     await page.waitForTimeout(100)
 
-    // 6. Verify currency is not selected (empty)
-    const currencySelect = page.locator("#org-currency")
-    await expect(currencySelect).toHaveValue("")
+    // 6. Verify currency is not selected (shows placeholder)
+    // The Combobox shows placeholder text when no value is selected
+    await expectComboboxHasPlaceholder(page, "org-currency-select", "Search currencies")
 
     // 7. Submit form without selecting currency
     // The form should prevent submission and show validation error
@@ -320,20 +417,8 @@ test.describe("Create Organization Page (/organizations/new)", () => {
     expect(page.url()).toContain("/organizations/new")
 
     // 9. Form validation should show error for currency
-    // Check for any visible error messages near the currency field
-    const currencyError = page.locator("#org-currency + p, #org-currency ~ p").filter({ hasText: /required|currency/i })
-    const hasError = await currencyError.count() > 0
-
-    // If no error paragraph, check that the form is still showing
-    // (validation prevented submission)
-    if (!hasError) {
-      // The form should still be visible since validation failed
-      await expect(page.getByTestId("organization-form")).toBeVisible()
-      // And we should still have the empty currency select
-      await expect(page.locator("#org-currency")).toHaveValue("")
-    } else {
-      await expect(currencyError.first()).toBeVisible()
-    }
+    // The form should still be visible since validation failed
+    await expect(page.getByTestId("organization-form")).toBeVisible()
   })
 
   test("should create organization and navigate to detail page", async ({
@@ -392,10 +477,8 @@ test.describe("Create Organization Page (/organizations/new)", () => {
     await nameInput.click()
     await nameInput.fill(orgName)
 
-    // Select currency using data-testid
-    const currencySelect = page.getByTestId("org-currency-select")
-    await expect(currencySelect).toBeVisible()
-    await currencySelect.selectOption("EUR")
+    // Select currency using Combobox helper
+    await selectComboboxOption(page, "org-currency-select", "EUR")
 
     // 6. Wait for form to be fully hydrated before submitting
     await page.waitForTimeout(500)
@@ -483,9 +566,8 @@ test.describe("Create Organization Page (/organizations/new)", () => {
     await nameInput.click()
     await nameInput.fill(orgName)
 
-    const currencySelect = page.getByTestId("org-currency-select")
-    await expect(currencySelect).toBeVisible()
-    await currencySelect.selectOption("GBP")
+    // Select currency using Combobox helper
+    await selectComboboxOption(page, "org-currency-select", "GBP")
 
     // 6. Expand settings panel
     const settingsToggle = page.getByTestId("org-settings-toggle")
@@ -493,7 +575,7 @@ test.describe("Create Organization Page (/organizations/new)", () => {
     await settingsToggle.click()
     await page.waitForTimeout(300)
 
-    // 7. Change settings using data-testid
+    // 7. Change settings using data-testid (these are still native selects)
     const localeSelect = page.getByTestId("org-locale-select")
     await expect(localeSelect).toBeVisible()
     await localeSelect.selectOption("en-GB")

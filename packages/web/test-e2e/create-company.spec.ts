@@ -9,7 +9,79 @@
  * - Auto-suggest consolidation method based on ownership
  */
 
-import { test, expect } from "@playwright/test"
+import { test, expect, type Page } from "@playwright/test"
+
+/**
+ * Helper to select an option from a Combobox component.
+ * The Combobox is a div-based searchable dropdown, not a native select.
+ * Uses @floating-ui/react which handles click on the container div, not the button.
+ *
+ * @param page - Playwright page
+ * @param testId - The data-testid of the combobox
+ * @param searchText - Text to search for (partial match)
+ */
+async function selectComboboxOption(
+  page: Page,
+  testId: string,
+  searchText: string
+): Promise<void> {
+  const combobox = page.locator(`[data-testid="${testId}"]`)
+
+  // Wait for combobox to be ready
+  await expect(combobox).toBeVisible({ timeout: 5000 })
+
+  // Get the button inside (to verify state before/after click)
+  const button = combobox.locator("button")
+  await expect(button).toBeVisible({ timeout: 5000 })
+
+  // Click the button to trigger the dropdown open
+  // The floating-ui useClick hook is on the parent div, but the button click bubbles up
+  await button.click()
+
+  // Wait a moment for React state to update
+  await page.waitForTimeout(100)
+
+  // Wait for dropdown to open - the combobox shows input when open
+  const input = combobox.locator("input")
+
+  // If input is not visible yet, the click might not have triggered - try clicking again
+  const inputVisible = await input.isVisible().catch(() => false)
+  if (!inputVisible) {
+    // Try clicking the container div directly with force
+    await combobox.click({ force: true })
+    await page.waitForTimeout(100)
+  }
+
+  await expect(input).toBeVisible({ timeout: 5000 })
+
+  // Type to filter options
+  await input.fill(searchText)
+
+  // Wait for dropdown list to appear (rendered in FloatingPortal)
+  await expect(page.locator("li").first()).toBeVisible({ timeout: 5000 })
+
+  // Click the first matching option in the dropdown
+  const option = page.locator(`li:has-text("${searchText}")`).first()
+  await expect(option).toBeVisible({ timeout: 5000 })
+  await option.click()
+
+  // Wait for dropdown to close and state to update
+  await page.waitForTimeout(200)
+}
+
+/**
+ * Helper to verify a Combobox has a specific value selected.
+ * Since Combobox is not a native select, we check the displayed text.
+ */
+async function expectComboboxContains(
+  page: Page,
+  testId: string,
+  expectedText: string
+): Promise<void> {
+  const combobox = page.locator(`[data-testid="${testId}"]`)
+  const displayButton = combobox.locator("button")
+  await expect(displayButton).toContainText(expectedText)
+}
 
 test.describe("Create Company Form", () => {
   test("should create top-level company with all fields", async ({ page, request }) => {
@@ -88,12 +160,14 @@ test.describe("Create Company Form", () => {
     const newCompanyName = `Acme Corp ${Date.now()}`
     await page.fill("#company-name", newCompanyName)
     await page.fill("#company-legal-name", `${newCompanyName} Inc.`)
-    await page.selectOption("#company-jurisdiction", "US")
+    // Use Combobox helper for JurisdictionSelect
+    await selectComboboxOption(page, "company-jurisdiction-select", "United States")
     await page.fill("#company-tax-id", "12-3456789")
 
     // 9. Fill in Currency section (should already default to org's currency)
-    await expect(page.locator("#company-functional-currency")).toHaveValue("USD")
-    await expect(page.locator("#company-reporting-currency")).toHaveValue("USD")
+    // Use Combobox check for currency values (they display as "USD - US Dollar ($)" etc)
+    await expectComboboxContains(page, "company-functional-currency-select", "USD")
+    await expectComboboxContains(page, "company-reporting-currency-select", "USD")
 
     // 10. Fiscal Year section - use Mar 31 preset
     await page.getByTestId("company-fiscal-year-end-preset-3-31").click()
@@ -217,7 +291,8 @@ test.describe("Create Company Form", () => {
     const subsidiaryName = `Subsidiary GmbH ${Date.now()}`
     await page.fill("#company-name", subsidiaryName)
     await page.fill("#company-legal-name", `${subsidiaryName} Ltd`)
-    await page.selectOption("#company-jurisdiction", "GB")
+    // Use Combobox helper for JurisdictionSelect
+    await selectComboboxOption(page, "company-jurisdiction-select", "United Kingdom")
 
     // 9. Select parent company - should show subsidiary fields
     await page.selectOption("#company-parent", parentData.id)
@@ -346,7 +421,8 @@ test.describe("Create Company Form", () => {
     // 8. Fill in subsidiary company details
     await page.fill("#company-name", "Subsidiary Without Ownership")
     await page.fill("#company-legal-name", "Subsidiary Without Ownership Ltd")
-    await page.selectOption("#company-jurisdiction", "GB")
+    // Use Combobox helper for JurisdictionSelect
+    await selectComboboxOption(page, "company-jurisdiction-select", "United Kingdom")
 
     // 9. Select parent company
     await page.selectOption("#company-parent", parentData.id)
@@ -636,12 +712,13 @@ test.describe("Create Company Form", () => {
     const newCompanyName = `Canadian Corp ${Date.now()}`
     await page.fill("#company-name", newCompanyName)
     await page.fill("#company-legal-name", `${newCompanyName} Inc.`)
-    await page.selectOption("#company-jurisdiction", "CA")
+    // Use Combobox helper for JurisdictionSelect
+    await selectComboboxOption(page, "company-jurisdiction-select", "Canada")
     await page.fill("#company-tax-id", "123456789RC0001")
 
     // 8. Verify functional currency auto-set to CAD
     await page.waitForTimeout(100)
-    await expect(page.locator("#company-functional-currency")).toHaveValue("CAD")
+    await expectComboboxContains(page, "company-functional-currency-select", "CAD")
 
     // 9. Submit form
     await page.click('button[type="submit"]')
@@ -729,7 +806,8 @@ test.describe("Create Company Form", () => {
     const newCompanyName = `Inc Date Corp ${Date.now()}`
     await page.fill("#company-name", newCompanyName)
     await page.fill("#company-legal-name", `${newCompanyName} Inc.`)
-    await page.selectOption("#company-jurisdiction", "US")
+    // Use Combobox helper for JurisdictionSelect
+    await selectComboboxOption(page, "company-jurisdiction-select", "United States")
 
     // 8. Set incorporation date
     await page.fill("#company-incorporation-date", "2020-01-15")
@@ -824,7 +902,8 @@ test.describe("Create Company Form", () => {
     const newCompanyName = `Reg Number Corp ${Date.now()}`
     await page.fill("#company-name", newCompanyName)
     await page.fill("#company-legal-name", `${newCompanyName} Inc.`)
-    await page.selectOption("#company-jurisdiction", "GB")
+    // Use Combobox helper for JurisdictionSelect
+    await selectComboboxOption(page, "company-jurisdiction-select", "United Kingdom")
 
     // 8. Set registration number
     await page.fill("#company-registration-number", "12345678")
@@ -914,16 +993,16 @@ test.describe("Create Company Form", () => {
     await expect(page.getByTestId("create-company-modal")).toBeVisible({ timeout: 10000 })
 
     // 7. Initially should have org's default currency (USD)
-    await expect(page.locator("#company-functional-currency")).toHaveValue("USD")
+    await expectComboboxContains(page, "company-functional-currency-select", "USD")
 
     // 8. Select UK jurisdiction - should auto-set GBP as functional currency
-    await page.selectOption("#company-jurisdiction", "GB")
+    await selectComboboxOption(page, "company-jurisdiction-select", "United Kingdom")
     await page.waitForTimeout(100)
-    await expect(page.locator("#company-functional-currency")).toHaveValue("GBP")
+    await expectComboboxContains(page, "company-functional-currency-select", "GBP")
 
     // 9. Select US jurisdiction - should auto-set USD as functional currency
-    await page.selectOption("#company-jurisdiction", "US")
+    await selectComboboxOption(page, "company-jurisdiction-select", "United States")
     await page.waitForTimeout(100)
-    await expect(page.locator("#company-functional-currency")).toHaveValue("USD")
+    await expectComboboxContains(page, "company-functional-currency-select", "USD")
   })
 })
