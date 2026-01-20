@@ -1024,3 +1024,8 @@
 ## Iteration 2 - 2026-01-20 16:54
 **Task**: Partial work (no explicit completion signal)
 ---
+
+## Iteration 1 - 2026-01-20 16:59
+**Task**: Reorganized specs/ into specs-new/ with 4 consolidated guides and proper categorization
+**Status**: complete
+---
