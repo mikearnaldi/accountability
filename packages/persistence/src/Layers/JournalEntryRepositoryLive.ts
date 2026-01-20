@@ -357,6 +357,7 @@ const make = Effect.gen(function* () {
 
   const create: JournalEntryRepositoryService["create"] = (entry) =>
     Effect.gen(function* () {
+      // Use ISO strings for DATE columns to avoid timezone conversion issues
       yield* sql`
         INSERT INTO journal_entries (
           id, company_id, entry_number, reference_number, description,
@@ -371,9 +372,9 @@ const make = Effect.gen(function* () {
           ${Option.getOrNull(entry.entryNumber)},
           ${Option.getOrNull(entry.referenceNumber)},
           ${entry.description},
-          ${entry.transactionDate.toDate()},
-          ${Option.match(entry.postingDate, { onNone: () => null, onSome: (d) => d.toDate() })},
-          ${Option.match(entry.documentDate, { onNone: () => null, onSome: (d) => d.toDate() })},
+          ${entry.transactionDate.toString()}::date,
+          ${Option.match(entry.postingDate, { onNone: () => null, onSome: (d) => d.toString() })}::date,
+          ${Option.match(entry.documentDate, { onNone: () => null, onSome: (d) => d.toString() })}::date,
           ${entry.fiscalPeriod.year},
           ${entry.fiscalPeriod.period},
           ${entry.entryType},
@@ -396,14 +397,15 @@ const make = Effect.gen(function* () {
 
   const update: JournalEntryRepositoryService["update"] = (organizationId, entry) =>
     Effect.gen(function* () {
+      // Use ISO strings for DATE columns to avoid timezone conversion issues
       const result = yield* sql`
         UPDATE journal_entries je SET
           entry_number = ${Option.getOrNull(entry.entryNumber)},
           reference_number = ${Option.getOrNull(entry.referenceNumber)},
           description = ${entry.description},
-          transaction_date = ${entry.transactionDate.toDate()},
-          posting_date = ${Option.match(entry.postingDate, { onNone: () => null, onSome: (d) => d.toDate() })},
-          document_date = ${Option.match(entry.documentDate, { onNone: () => null, onSome: (d) => d.toDate() })},
+          transaction_date = ${entry.transactionDate.toString()}::date,
+          posting_date = ${Option.match(entry.postingDate, { onNone: () => null, onSome: (d) => d.toString() })}::date,
+          document_date = ${Option.match(entry.documentDate, { onNone: () => null, onSome: (d) => d.toString() })}::date,
           fiscal_year = ${entry.fiscalPeriod.year},
           fiscal_period = ${entry.fiscalPeriod.period},
           entry_type = ${entry.entryType},

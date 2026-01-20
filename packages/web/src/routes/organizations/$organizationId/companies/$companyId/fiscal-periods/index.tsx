@@ -819,7 +819,7 @@ function FiscalPeriodsPage() {
               Manage fiscal years and periods for {company.name}
             </p>
           </div>
-          {canManagePeriods && fiscalYears.length > 0 && (
+          {canManagePeriods && (
             <Button
               icon={<Plus className="h-4 w-4" />}
               onClick={() => setShowCreateModal(true)}

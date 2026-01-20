@@ -369,6 +369,37 @@ export interface FiscalPeriodServiceShape {
     companyId: CompanyId,
     date: LocalDate
   ) => Effect.Effect<Option.Option<FiscalPeriodStatus>, PersistenceError>
+
+  /**
+   * Get a period by fiscal year number and period number
+   *
+   * Used for journal entry validation to check if a period exists and is open.
+   *
+   * @param companyId - The company ID
+   * @param fiscalYear - The fiscal year number (e.g., 2025)
+   * @param periodNumber - The period number (1-13)
+   * @returns Effect containing the period, or None if not found
+   * @errors PersistenceError - Database operation failed
+   */
+  readonly getPeriodByYearAndNumber: (
+    companyId: CompanyId,
+    fiscalYear: number,
+    periodNumber: number
+  ) => Effect.Effect<Option.Option<FiscalPeriod>, PersistenceError>
+
+  /**
+   * Get all periods for a company (for periods summary endpoint)
+   *
+   * Returns all periods across all fiscal years for a company,
+   * used by the frontend to constrain date picker selections.
+   *
+   * @param companyId - The company ID
+   * @returns Effect containing all periods for the company
+   * @errors PersistenceError - Database operation failed
+   */
+  readonly getAllPeriodsForCompany: (
+    companyId: CompanyId
+  ) => Effect.Effect<ReadonlyArray<FiscalPeriod & { fiscalYear: number }>, PersistenceError>
 }
 
 /**

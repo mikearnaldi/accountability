@@ -18,6 +18,7 @@ import { test, expect, type APIRequestContext } from "@playwright/test"
 /**
  * Helper to create a fiscal year with open periods for testing.
  * This is required because journal entry creation now requires fiscal periods to exist.
+ * Note: Periods are created with "Open" status by default, so no need to call /open endpoint.
  */
 async function createFiscalYearWithOpenPeriods(
   request: APIRequestContext,
@@ -47,6 +48,7 @@ async function createFiscalYearWithOpenPeriods(
   const fiscalYearId = fiscalYearData.id
 
   // Get periods to find period 1 (January)
+  // Note: Periods are automatically created with "Open" status, no need to open them
   const listPeriodsRes = await request.get(
     `/api/v1/organizations/${organizationId}/companies/${companyId}/fiscal-years/${fiscalYearId}/periods`,
     {
@@ -60,17 +62,6 @@ async function createFiscalYearWithOpenPeriods(
   const period1 = periodsData.periods.find((p: { periodNumber: number }) => p.periodNumber === 1)
   if (!period1) {
     throw new Error("Period 1 not found")
-  }
-
-  // Open period 1 (January)
-  const openPeriodRes = await request.post(
-    `/api/v1/organizations/${organizationId}/companies/${companyId}/fiscal-years/${fiscalYearId}/periods/${period1.id}/open`,
-    {
-      headers: { Authorization: `Bearer ${sessionToken}` }
-    }
-  )
-  if (!openPeriodRes.ok()) {
-    throw new Error(`Failed to open period: ${await openPeriodRes.text()}`)
   }
 
   return { fiscalYearId, openPeriodId: period1.id }

@@ -114,11 +114,12 @@ const rowToCompany = (row: CompanyRow): Company =>
     legalName: row.legal_name,
     jurisdiction: JurisdictionCode.make(row.jurisdiction),
     taxId: Option.fromNullable(row.tax_id),
+    // Use local date methods because pg driver returns DATE columns as local midnight
     incorporationDate: Option.fromNullable(row.incorporation_date).pipe(
       Option.map((d) => LocalDate.make({
-        year: d.getUTCFullYear(),
-        month: d.getUTCMonth() + 1,
-        day: d.getUTCDate()
+        year: d.getFullYear(),
+        month: d.getMonth() + 1,
+        day: d.getDate()
       }))
     ),
     registrationNumber: Option.fromNullable(row.registration_number),
@@ -225,9 +226,10 @@ const make = Effect.gen(function* () {
 
   const create: CompanyRepositoryService["create"] = (company) =>
     Effect.gen(function* () {
-      // Convert incorporationDate Option<LocalDate> to Date | null for SQL
+      // Convert incorporationDate Option<LocalDate> to ISO string | null for SQL
+      // Use ISO strings to avoid timezone conversion issues with DATE columns
       const incorporationDateValue = Option.getOrNull(
-        Option.map(company.incorporationDate, (ld) => ld.toDate())
+        Option.map(company.incorporationDate, (ld) => ld.toString())
       )
 
       // Extract address fields
@@ -251,7 +253,7 @@ const make = Effect.gen(function* () {
           ${company.legalName},
           ${company.jurisdiction},
           ${Option.getOrNull(company.taxId)},
-          ${incorporationDateValue},
+          ${incorporationDateValue}::date,
           ${Option.getOrNull(company.registrationNumber)},
           ${address ? Option.getOrNull(address.street1) : null},
           ${address ? Option.getOrNull(address.street2) : null},
@@ -286,9 +288,10 @@ const make = Effect.gen(function* () {
         )
       }
 
-      // Convert incorporationDate Option<LocalDate> to Date | null for SQL
+      // Convert incorporationDate Option<LocalDate> to ISO string | null for SQL
+      // Use ISO strings to avoid timezone conversion issues with DATE columns
       const incorporationDateValue = Option.getOrNull(
-        Option.map(company.incorporationDate, (ld) => ld.toDate())
+        Option.map(company.incorporationDate, (ld) => ld.toString())
       )
 
       // Extract address fields
@@ -300,7 +303,7 @@ const make = Effect.gen(function* () {
           legal_name = ${company.legalName},
           jurisdiction = ${company.jurisdiction},
           tax_id = ${Option.getOrNull(company.taxId)},
-          incorporation_date = ${incorporationDateValue},
+          incorporation_date = ${incorporationDateValue}::date,
           registration_number = ${Option.getOrNull(company.registrationNumber)},
           registered_address_street1 = ${address ? Option.getOrNull(address.street1) : null},
           registered_address_street2 = ${address ? Option.getOrNull(address.street2) : null},

@@ -208,6 +208,46 @@ export class FiscalYearOverlapError extends Schema.TaggedError<FiscalYearOverlap
 export const isFiscalYearOverlapError = Schema.is(FiscalYearOverlapError)
 
 // =============================================================================
+// 422 Unprocessable Entity Errors - Validation failures for journal entries
+// =============================================================================
+
+/**
+ * FiscalPeriodClosedError - Period exists but is not open for posting
+ *
+ * Returned when attempting to create a journal entry in a closed period.
+ * The period exists but its status is not "Open".
+ *
+ * HTTP Status: 422 Unprocessable Entity
+ */
+export class FiscalPeriodClosedError extends Schema.TaggedError<FiscalPeriodClosedError>()(
+  "FiscalPeriodClosedError",
+  {
+    companyId: CompanyId.annotations({
+      description: "The company ID"
+    }),
+    fiscalYear: Schema.Number.annotations({
+      description: "The fiscal year"
+    }),
+    periodNumber: Schema.Number.annotations({
+      description: "The period number (1-13)"
+    }),
+    periodStatus: FiscalPeriodStatus.annotations({
+      description: "The current status of the period"
+    })
+  },
+  HttpApiSchema.annotations({ status: 422 })
+) {
+  get message(): string {
+    return `Fiscal period P${this.periodNumber} FY${this.fiscalYear} is ${this.periodStatus}. Open the period to post entries.`
+  }
+}
+
+/**
+ * Type guard for FiscalPeriodClosedError
+ */
+export const isFiscalPeriodClosedError = Schema.is(FiscalPeriodClosedError)
+
+// =============================================================================
 // 409 Conflict Errors - Business rule violations
 // =============================================================================
 
@@ -280,6 +320,7 @@ export type FiscalPeriodError =
   | FiscalYearNotFoundError
   | FiscalPeriodNotFoundError
   | FiscalPeriodNotFoundForDateError
+  | FiscalPeriodClosedError
   | InvalidStatusTransitionError
   | InvalidYearStatusTransitionError
   | FiscalYearOverlapError
@@ -298,6 +339,8 @@ export const FISCAL_PERIOD_ERROR_STATUS_CODES = {
   InvalidYearStatusTransitionError: 400,
   FiscalYearOverlapError: 400,
   FiscalPeriodNotFoundForDateError: 400,
+  // 422 Unprocessable Entity
+  FiscalPeriodClosedError: 422,
   // 409 Conflict
   FiscalYearAlreadyExistsError: 409,
   PeriodsNotClosedError: 409

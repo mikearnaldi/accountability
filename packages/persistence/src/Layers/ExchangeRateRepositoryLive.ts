@@ -249,6 +249,7 @@ const make = Effect.gen(function* () {
 
   const create: ExchangeRateRepositoryService["create"] = (rate) =>
     Effect.gen(function* () {
+      // Use ISO strings for DATE columns to avoid timezone conversion issues
       yield* sql`
         INSERT INTO exchange_rates (
           id, organization_id, from_currency, to_currency, rate, effective_date,
@@ -259,7 +260,7 @@ const make = Effect.gen(function* () {
           ${rate.fromCurrency},
           ${rate.toCurrency},
           ${BigDecimal.format(rate.rate)},
-          ${rate.effectiveDate.toDate()},
+          ${rate.effectiveDate.toString()}::date,
           ${rate.rateType},
           ${rate.source},
           ${rate.createdAt.toDate()}

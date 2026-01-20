@@ -342,7 +342,7 @@ const make = Effect.gen(function* () {
             periodType: "Regular",
             startDate: currentStart,
             endDate: periodEnd,
-            status: "Closed",
+            status: "Open",
             closedBy: Option.none(),
             closedAt: Option.none(),
             createdAt: now,
@@ -370,7 +370,7 @@ const make = Effect.gen(function* () {
           // Adjustment period covers the same dates as the last regular period
           startDate: endDate,
           endDate,
-          status: "Closed",
+          status: "Open",
           closedBy: Option.none(),
           closedAt: Option.none(),
           createdAt: now,
@@ -454,6 +454,35 @@ const make = Effect.gen(function* () {
       Effect.gen(function* () {
         const maybePeriod = yield* periodRepo.findPeriodByDate(companyId, date.toString())
         return Option.map(maybePeriod, (p) => p.status)
+      }),
+
+    getPeriodByYearAndNumber: (companyId, fiscalYear, periodNumber) =>
+      Effect.gen(function* () {
+        // First find the fiscal year by number
+        const maybeFiscalYear = yield* periodRepo.findFiscalYearByNumber(companyId, fiscalYear)
+        if (Option.isNone(maybeFiscalYear)) {
+          return Option.none()
+        }
+        // Then find the period by number within that fiscal year
+        return yield* periodRepo.findPeriodByNumber(maybeFiscalYear.value.id, periodNumber)
+      }),
+
+    getAllPeriodsForCompany: (companyId) =>
+      Effect.gen(function* () {
+        // Get all fiscal years for the company
+        const fiscalYears = yield* periodRepo.findFiscalYearsByCompany(companyId)
+
+        // Get all periods for each fiscal year and annotate with fiscal year number
+        const allPeriods: Array<FiscalPeriod & { fiscalYear: number }> = []
+        for (const fy of fiscalYears) {
+          const periods = yield* periodRepo.findPeriodsByFiscalYear(fy.id)
+          for (const p of periods) {
+            // Use Object.assign to preserve class methods while adding fiscalYear
+            allPeriods.push(Object.assign(p, { fiscalYear: fy.year }))
+          }
+        }
+
+        return allPeriods
       })
   }
 

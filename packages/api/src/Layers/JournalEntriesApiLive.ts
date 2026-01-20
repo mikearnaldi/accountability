@@ -40,7 +40,7 @@ import {
 import type { AuditLogError as CoreAuditLogError, UserLookupError as CoreUserLookupError } from "@accountability/core/audit/AuditLogErrors"
 import { requireOrganizationContext, requirePermission, requirePermissionWithResource } from "./OrganizationContextMiddlewareLive.ts"
 import { FiscalPeriodService } from "@accountability/core/fiscal/FiscalPeriodService"
-import { FiscalPeriodNotFoundForDateError } from "@accountability/core/fiscal/FiscalPeriodErrors"
+import { FiscalPeriodNotFoundForDateError, FiscalPeriodClosedError } from "@accountability/core/fiscal/FiscalPeriodErrors"
 import { CompanyNotFoundError } from "@accountability/core/company/CompanyErrors"
 import {
   JournalEntryNotFoundError,
@@ -374,6 +374,31 @@ export const JournalEntriesApiLive = HttpApiBuilder.group(AppApi, "journal-entri
                     period: computed.periodNumber
                   })
                 })()
+
+            // Validate fiscal period exists and is open
+            const periodService = yield* FiscalPeriodService
+            const maybePeriod = yield* periodService.getPeriodByYearAndNumber(
+              req.companyId,
+              fiscalPeriod.year,
+              fiscalPeriod.period
+            ).pipe(Effect.orDie)
+
+            if (Option.isNone(maybePeriod)) {
+              return yield* Effect.fail(new FiscalPeriodNotFoundForDateError({
+                companyId: req.companyId,
+                date: `FY${fiscalPeriod.year} P${fiscalPeriod.period}`
+              }))
+            }
+
+            const period = maybePeriod.value
+            if (period.status !== "Open") {
+              return yield* Effect.fail(new FiscalPeriodClosedError({
+                companyId: req.companyId,
+                fiscalYear: fiscalPeriod.year,
+                periodNumber: fiscalPeriod.period,
+                periodStatus: period.status
+              }))
+            }
 
             // Generate entry ID and entry number
             const entryId = JournalEntryId.make(crypto.randomUUID())

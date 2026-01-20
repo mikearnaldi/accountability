@@ -106,12 +106,13 @@ const FISCAL_PERIOD_TYPE_MAP: Record<string, FiscalPeriodType> = {
 
 /**
  * Convert Date to LocalDate
+ * Uses local date methods because pg driver returns DATE columns as local midnight
  */
 const dateToLocalDate = (d: Date): LocalDate =>
   LocalDate.make({
-    year: d.getUTCFullYear(),
-    month: d.getUTCMonth() + 1,
-    day: d.getUTCDate()
+    year: d.getFullYear(),
+    month: d.getMonth() + 1,
+    day: d.getDate()
   })
 
 /**
@@ -331,6 +332,8 @@ const make = Effect.gen(function* () {
 
   const createFiscalYear: FiscalPeriodRepositoryService["createFiscalYear"] = (fiscalYear) =>
     Effect.gen(function* () {
+      // Use ISO strings for DATE columns to avoid timezone conversion issues
+      // The pg driver can shift dates by a day when converting Date objects to local time
       yield* sql`
         INSERT INTO fiscal_years (
           id, company_id, name, year, start_date, end_date,
@@ -340,8 +343,8 @@ const make = Effect.gen(function* () {
           ${fiscalYear.companyId},
           ${fiscalYear.name},
           ${fiscalYear.year},
-          ${fiscalYear.startDate.toDate()},
-          ${fiscalYear.endDate.toDate()},
+          ${fiscalYear.startDate.toString()}::date,
+          ${fiscalYear.endDate.toString()}::date,
           ${fiscalYear.status}::fiscal_year_status,
           ${fiscalYear.includesAdjustmentPeriod},
           ${fiscalYear.createdAt.toDate()},
@@ -417,6 +420,7 @@ const make = Effect.gen(function* () {
 
   const createPeriod: FiscalPeriodRepositoryService["createPeriod"] = (period) =>
     Effect.gen(function* () {
+      // Use ISO strings for DATE columns to avoid timezone conversion issues
       yield* sql`
         INSERT INTO fiscal_periods (
           id, fiscal_year_id, period_number, name, period_type,
@@ -428,8 +432,8 @@ const make = Effect.gen(function* () {
           ${period.periodNumber},
           ${period.name},
           ${period.periodType}::fiscal_period_type,
-          ${period.startDate.toDate()},
-          ${period.endDate.toDate()},
+          ${period.startDate.toString()}::date,
+          ${period.endDate.toString()}::date,
           ${period.status}::fiscal_period_status,
           ${Option.getOrNull(period.closedBy)},
           ${Option.getOrNull(Option.map(period.closedAt, (t) => t.toDate()))},

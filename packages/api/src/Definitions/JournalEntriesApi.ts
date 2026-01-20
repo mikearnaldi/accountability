@@ -38,7 +38,7 @@ import {
   JournalEntryAlreadyReversedError,
   UnbalancedJournalEntryError
 } from "@accountability/core/journal/JournalErrors"
-import { FiscalPeriodNotFoundForDateError } from "@accountability/core/fiscal/FiscalPeriodErrors"
+import { FiscalPeriodNotFoundForDateError, FiscalPeriodClosedError } from "@accountability/core/fiscal/FiscalPeriodErrors"
 
 // =============================================================================
 // Request/Response Schemas
@@ -210,6 +210,7 @@ const createJournalEntry = HttpApiEndpoint.post("createJournalEntry", "/")
   .addError(CompanyNotFoundError)
   .addError(UnbalancedJournalEntryError)
   .addError(FiscalPeriodNotFoundForDateError)
+  .addError(FiscalPeriodClosedError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .addError(AuditLogError)
