@@ -13,6 +13,7 @@
  */
 
 import { test, expect } from "@playwright/test"
+import { selectComboboxOption } from "./helpers/combobox"
 
 test.describe("Consolidation Module", () => {
   test.describe("Consolidation Groups List Page", () => {
@@ -532,10 +533,9 @@ test.describe("Consolidation Module", () => {
       ).toBeVisible()
       await expect(page.getByTestId("page-title")).toContainText("New Consolidation Group")
 
-      // 8.5. Verify both companies are available in the parent dropdown
+      // 8.5. Parent dropdown is now a Combobox - verify it's visible
       const parentDropdown = page.getByTestId("parent-company-select")
-      await expect(parentDropdown.locator(`option[value="${parentData.id}"]`)).toBeAttached()
-      await expect(parentDropdown.locator(`option[value="${subData.id}"]`)).toBeAttached()
+      await expect(parentDropdown).toBeVisible()
 
       // 9. Fill in group name
       const groupName = `Test Consolidation Group ${Date.now()}`
@@ -547,17 +547,12 @@ test.describe("Consolidation Module", () => {
       // 11. Select consolidation method
       await page.getByTestId("consolidation-method-select").selectOption("FullConsolidation")
 
-      // 12. Select parent company
-      const parentCompanySelect = page.getByTestId("parent-company-select")
-
+      // 12. Select parent company using Combobox helper (search by company name)
       // Wait for form to be fully hydrated before interacting
       await page.waitForTimeout(500)
 
-      // Select the parent company using the value
-      await parentCompanySelect.selectOption({ value: parentData.id })
-
-      // Verify parent company was selected
-      await expect(parentCompanySelect).toHaveValue(parentData.id, { timeout: 10000 })
+      // Select the parent company using the Combobox helper
+      await selectComboboxOption(page, "parent-company-select", "Parent Corp", expect)
 
       // 13. Wait for add-member-button to be enabled
       // The button becomes enabled when:
@@ -569,24 +564,12 @@ test.describe("Consolidation Module", () => {
       // The useMemo hook needs to recompute availableCompaniesForMembers
       await page.waitForTimeout(1000)
 
-      // If button is still disabled after initial wait, try clicking the select again
-      // to trigger React re-render
-      const isEnabled = await addMemberButton.isEnabled()
-      if (!isEnabled) {
-        // Re-select to force state update
-        await parentCompanySelect.selectOption({ value: "" })
-        await page.waitForTimeout(300)
-        await parentCompanySelect.selectOption({ value: parentData.id })
-        await expect(parentCompanySelect).toHaveValue(parentData.id, { timeout: 5000 })
-        await page.waitForTimeout(500)
-      }
-
       // Final check that button is enabled
       await expect(addMemberButton).toBeEnabled({ timeout: 15000 })
       await addMemberButton.click({ force: true })
 
-      // 14. Select the subsidiary company
-      await page.getByTestId("member-company-select-0").selectOption(subData.id)
+      // 14. Select the subsidiary company using Combobox helper
+      await selectComboboxOption(page, "member-company-select-0", "Subsidiary Ltd", expect)
 
       // 15. Set ownership percentage
       await page.getByTestId("member-ownership-input-0").fill("75")

@@ -17,6 +17,7 @@ import { MinimalRouteError } from "@/components/ui/RouteError"
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
 import { Select } from "@/components/ui/Select"
+import { Combobox, type ComboboxOption } from "@/components/ui/Combobox"
 import { usePermissions } from "@/hooks/usePermissions"
 import { ArrowLeft, Plus, Trash2, ShieldAlert } from "lucide-react"
 
@@ -188,6 +189,49 @@ function CreateConsolidationGroupPage() {
       (c) => c.id !== parentCompanyId && !selectedIds.has(c.id)
     )
   }, [activeCompanies, parentCompanyId, members])
+
+  // Convert active companies to Combobox options for parent company selection
+  const parentCompanyOptions: ComboboxOption[] = useMemo(() => {
+    return activeCompanies.map((company) => ({
+      value: company.id,
+      label: `${company.name} (${company.functionalCurrency})`,
+      searchText: `${company.name} ${company.functionalCurrency}`
+    }))
+  }, [activeCompanies])
+
+  // Convert available companies to Combobox options for member selection
+  const memberCompanyOptions = useMemo((): ComboboxOption[] => {
+    return availableCompaniesForMembers.map((company) => ({
+      value: company.id,
+      label: company.name,
+      searchText: `${company.name} ${company.functionalCurrency}`
+    }))
+  }, [availableCompaniesForMembers])
+
+  // Get options for a specific member row (includes currently selected company)
+  const getMemberCompanyOptions = (memberIndex: number): ComboboxOption[] => {
+    const currentMember = members[memberIndex]
+    const currentCompany = currentMember?.companyId
+      ? activeCompanies.find((c) => c.id === currentMember.companyId)
+      : null
+
+    // Start with available companies
+    const options = [...memberCompanyOptions]
+
+    // If this member has a selected company, add it to the options
+    if (currentCompany) {
+      const alreadyInOptions = options.some((o) => o.value === currentCompany.id)
+      if (!alreadyInOptions) {
+        options.unshift({
+          value: currentCompany.id,
+          label: currentCompany.name,
+          searchText: `${currentCompany.name} ${currentCompany.functionalCurrency}`
+        })
+      }
+    }
+
+    return options
+  }
 
   // Map companies for sidebar
   const companiesForSidebar = companies.map((c) => ({ id: c.id, name: c.name }))
@@ -497,24 +541,18 @@ function CreateConsolidationGroupPage() {
                 <label htmlFor="parentCompanyId" className="block text-sm font-medium text-gray-700">
                   Parent Company <span className="text-red-500">*</span>
                 </label>
-                <Select
-                  id="parentCompanyId"
+                <Combobox
                   value={parentCompanyId}
-                  onChange={(e) => {
-                    setParentCompanyId(e.target.value)
+                  onChange={(value) => {
+                    setParentCompanyId(value)
                     // Remove any members that match the new parent
-                    setMembers(members.filter((m) => m.companyId !== e.target.value))
+                    setMembers(members.filter((m) => m.companyId !== value))
                   }}
+                  options={parentCompanyOptions}
+                  placeholder="Search companies..."
                   className="mt-1"
                   data-testid="parent-company-select"
-                >
-                  <option value="">Select parent company...</option>
-                  {activeCompanies.map((company) => (
-                    <option key={company.id} value={company.id}>
-                      {company.name} ({company.functionalCurrency})
-                    </option>
-                  ))}
-                </Select>
+                />
                 {errors.parentCompanyId && (
                   <p className="mt-1 text-sm text-red-600">{errors.parentCompanyId}</p>
                 )}
@@ -581,26 +619,13 @@ function CreateConsolidationGroupPage() {
                       <label className="sm:hidden text-xs font-medium text-gray-500 mb-1 block">
                         Company
                       </label>
-                      <Select
+                      <Combobox
                         value={member.companyId}
-                        onChange={(e) => handleMemberChange(index, "companyId", e.target.value)}
+                        onChange={(value) => handleMemberChange(index, "companyId", value)}
+                        options={getMemberCompanyOptions(index)}
+                        placeholder="Search companies..."
                         data-testid={`member-company-select-${index}`}
-                      >
-                        <option value="">Select company...</option>
-                        {/* Show currently selected company in the list */}
-                        {member.companyId && (
-                          <option value={member.companyId}>
-                            {activeCompanies.find((c) => c.id === member.companyId)?.name ?? "Selected"}
-                          </option>
-                        )}
-                        {availableCompaniesForMembers
-                          .filter((c) => c.id !== member.companyId)
-                          .map((company) => (
-                            <option key={company.id} value={company.id}>
-                              {company.name}
-                            </option>
-                          ))}
-                      </Select>
+                      />
                     </div>
 
                     {/* Ownership % */}

@@ -17,6 +17,7 @@ import { MinimalRouteError } from "@/components/ui/RouteError"
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
 import { Select } from "@/components/ui/Select"
+import { Combobox, type ComboboxOption } from "@/components/ui/Combobox"
 import { ArrowLeft, ChevronDown, FileText, Loader2 } from "lucide-react"
 
 // =============================================================================
@@ -189,6 +190,26 @@ function CreateIntercompanyTransactionPage() {
     () => companies.filter((c) => c.isActive),
     [companies]
   )
+
+  // Convert active companies to Combobox options for "From Company"
+  const fromCompanyOptions: ComboboxOption[] = useMemo(() => {
+    return activeCompanies.map((company) => ({
+      value: company.id,
+      label: `${company.name} (${company.functionalCurrency})`,
+      searchText: `${company.name} ${company.functionalCurrency}`
+    }))
+  }, [activeCompanies])
+
+  // Convert active companies to Combobox options for "To Company" (excluding the "from" company)
+  const toCompanyOptions: ComboboxOption[] = useMemo(() => {
+    return activeCompanies
+      .filter((c) => c.id !== fromCompanyId)
+      .map((company) => ({
+        value: company.id,
+        label: `${company.name} (${company.functionalCurrency})`,
+        searchText: `${company.name} ${company.functionalCurrency}`
+      }))
+  }, [activeCompanies, fromCompanyId])
 
   // Set default currency based on selected from company
   useMemo(() => {
@@ -451,27 +472,21 @@ function CreateIntercompanyTransactionPage() {
                 <label htmlFor="fromCompanyId" className="block text-sm font-medium text-gray-700">
                   From Company <span className="text-red-500">*</span>
                 </label>
-                <Select
-                  id="fromCompanyId"
+                <Combobox
                   value={fromCompanyId}
-                  onChange={(e) => {
-                    setFromCompanyId(e.target.value)
+                  onChange={(value) => {
+                    setFromCompanyId(value)
                     // Reset currency to the new company's currency
-                    const company = activeCompanies.find((c) => c.id === e.target.value)
+                    const company = activeCompanies.find((c) => c.id === value)
                     if (company) {
                       setCurrency(company.functionalCurrency)
                     }
                   }}
+                  options={fromCompanyOptions}
+                  placeholder="Search companies..."
                   className="mt-1"
                   data-testid="from-company-select"
-                >
-                  <option value="">Select company...</option>
-                  {activeCompanies.map((company) => (
-                    <option key={company.id} value={company.id}>
-                      {company.name} ({company.functionalCurrency})
-                    </option>
-                  ))}
-                </Select>
+                />
                 {errors.fromCompanyId && (
                   <p className="mt-1 text-sm text-red-600">{errors.fromCompanyId}</p>
                 )}
@@ -485,22 +500,14 @@ function CreateIntercompanyTransactionPage() {
                 <label htmlFor="toCompanyId" className="block text-sm font-medium text-gray-700">
                   To Company <span className="text-red-500">*</span>
                 </label>
-                <Select
-                  id="toCompanyId"
+                <Combobox
                   value={toCompanyId}
-                  onChange={(e) => setToCompanyId(e.target.value)}
+                  onChange={setToCompanyId}
+                  options={toCompanyOptions}
+                  placeholder="Search companies..."
                   className="mt-1"
                   data-testid="to-company-select"
-                >
-                  <option value="">Select company...</option>
-                  {activeCompanies
-                    .filter((c) => c.id !== fromCompanyId)
-                    .map((company) => (
-                      <option key={company.id} value={company.id}>
-                        {company.name} ({company.functionalCurrency})
-                      </option>
-                    ))}
-                </Select>
+                />
                 {errors.toCompanyId && (
                   <p className="mt-1 text-sm text-red-600">{errors.toCompanyId}</p>
                 )}

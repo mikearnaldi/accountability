@@ -11,6 +11,7 @@
  */
 
 import { test, expect } from "@playwright/test"
+import { selectComboboxOption } from "./helpers/combobox"
 
 test.describe("Chart of Accounts Page", () => {
   test("should redirect to login if not authenticated", async ({ page }) => {
@@ -1957,8 +1958,8 @@ test.describe("Chart of Accounts Page", () => {
     await page.selectOption("#account-category", "CurrentAsset")
     await page.selectOption("#account-normal-balance", "Debit")
 
-    // 12. Select parent account - use the parent account ID
-    await page.selectOption("#account-parent", parentAccount.id)
+    // 12. Select parent account - use Combobox helper to search by account name
+    await selectComboboxOption(page, "account-parent-select", "Current Assets", expect)
 
     // 13. Mark as postable and cash flow relevant
     await page.check("#account-is-postable")

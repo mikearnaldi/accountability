@@ -10,6 +10,7 @@ import { useRouter } from "@tanstack/react-router"
 import { api } from "@/api/client"
 import { Input } from "@/components/ui/Input"
 import { Select } from "@/components/ui/Select"
+import { Combobox, type ComboboxOption } from "@/components/ui/Combobox"
 import { Button } from "@/components/ui/Button"
 
 // =============================================================================
@@ -356,6 +357,21 @@ export function AccountForm({
     return accounts.filter((acc) => acc.isActive && !descendantIds.has(acc.id))
   }, [accounts, mode, initialData])
 
+  // Convert available parents to Combobox options
+  const parentAccountOptions: ComboboxOption[] = useMemo(() => {
+    const sorted = [...availableParents].sort((a, b) =>
+      a.accountNumber.localeCompare(b.accountNumber)
+    )
+    return [
+      { value: "", label: "None (Top-level account)" },
+      ...sorted.map((acc) => ({
+        value: acc.id,
+        label: `${acc.accountNumber} - ${acc.name}`,
+        searchText: `${acc.accountNumber} ${acc.name} ${acc.description ?? ""}`
+      }))
+    ]
+  }, [availableParents])
+
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -637,23 +653,22 @@ export function AccountForm({
       )}
 
       {/* Parent Account */}
-      <Select
-        id="account-parent"
-        label="Parent Account (optional)"
-        value={parentAccountId}
-        onChange={(e) => setParentAccountId(e.target.value)}
-        disabled={isSubmitting}
-        data-testid="account-parent-select"
-      >
-        <option value="">None (Top-level account)</option>
-        {availableParents
-          .sort((a, b) => a.accountNumber.localeCompare(b.accountNumber))
-          .map((acc) => (
-            <option key={acc.id} value={acc.id}>
-              {acc.accountNumber} - {acc.name}
-            </option>
-          ))}
-      </Select>
+      <div>
+        <label
+          htmlFor="account-parent"
+          className="block text-sm font-medium text-gray-700 mb-1"
+        >
+          Parent Account (optional)
+        </label>
+        <Combobox
+          value={parentAccountId}
+          onChange={setParentAccountId}
+          options={parentAccountOptions}
+          placeholder="Search accounts..."
+          disabled={isSubmitting}
+          data-testid="account-parent-select"
+        />
+      </div>
 
       {/* Checkboxes Row 1 */}
       <div className="grid grid-cols-2 gap-4">

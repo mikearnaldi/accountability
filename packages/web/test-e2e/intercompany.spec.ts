@@ -12,6 +12,7 @@
  */
 
 import { test, expect } from "@playwright/test"
+import { selectComboboxOption } from "./helpers/combobox"
 
 test.describe("Intercompany Transactions Module", () => {
   test.describe("Intercompany List Page", () => {
@@ -748,17 +749,36 @@ test.describe("Intercompany Transactions Module", () => {
       ).toBeVisible()
       await page.waitForTimeout(500) // Wait for hydration
 
-      // 8. Select the same company for both from and to
-      await page.getByTestId("from-company-select").selectOption(company1.id)
+      // 8. Select Company A in "From Company" using Combobox helper
+      await selectComboboxOption(page, "from-company-select", "Company A", expect)
 
       // 9. Check that the "To Company" dropdown doesn't include the selected "From Company"
       // The UI should filter out the selected company
-      const toCompanySelect = page.getByTestId("to-company-select")
-      const toOptions = await toCompanySelect.locator("option").allTextContents()
+      // Open the To Company Combobox and verify Company A is not visible
+      const toCompanyCombobox = page.getByTestId("to-company-select")
+      await expect(toCompanyCombobox).toBeVisible()
 
-      // The "From Company" should not be in the "To Company" dropdown
-      // (only "Select company..." placeholder and Company B should appear)
-      expect(toOptions.length).toBe(2) // placeholder + Company B only
+      // Click to open the dropdown
+      const toCompanyButton = toCompanyCombobox.locator("button")
+      await toCompanyButton.click()
+      await page.waitForTimeout(100)
+
+      // Wait for dropdown options to appear (li elements in the floating portal)
+      await expect(page.locator("li").first()).toBeVisible({ timeout: 5000 })
+
+      // Get all visible options in the dropdown
+      const toOptions = await page.locator("li").allTextContents()
+
+      // Company A should NOT be in the "To Company" options (only Company B should appear)
+      // The options should contain Company B but NOT Company A
+      const hasCompanyA = toOptions.some(opt => opt.includes("Company A"))
+      const hasCompanyB = toOptions.some(opt => opt.includes("Company B"))
+
+      expect(hasCompanyA).toBe(false) // Company A should be filtered out
+      expect(hasCompanyB).toBe(true)  // Company B should still be available
+
+      // Close the dropdown by pressing Escape
+      await page.keyboard.press("Escape")
     })
 
     test("should cancel and return to list", async ({ page, request }) => {
@@ -1231,8 +1251,8 @@ test.describe("Intercompany Transactions Module", () => {
       // 8. Initially, JE linking section should not be visible (no companies selected)
       await expect(page.getByText("Link Journal Entries")).not.toBeVisible()
 
-      // 9. Select from company
-      await page.getByTestId("from-company-select").selectOption(company1.id)
+      // 9. Select from company using Combobox helper
+      await selectComboboxOption(page, "from-company-select", "Company A", expect)
 
       // 10. JE linking section should now be visible
       await expect(page.getByText("Link Journal Entries")).toBeVisible()
@@ -1240,8 +1260,8 @@ test.describe("Intercompany Transactions Module", () => {
       // 11. From JE toggle should be visible
       await expect(page.getByTestId("from-je-toggle")).toBeVisible()
 
-      // 12. Select to company
-      await page.getByTestId("to-company-select").selectOption(company2.id)
+      // 12. Select to company using Combobox helper
+      await selectComboboxOption(page, "to-company-select", "Company B", expect)
 
       // 13. To JE toggle should be visible
       await expect(page.getByTestId("to-je-toggle")).toBeVisible()

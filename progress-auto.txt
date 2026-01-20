@@ -1096,3 +1096,8 @@
 ## Iteration 3 - 2026-01-21 00:39
 **Task**: Partial work (no explicit completion signal)
 ---
+
+## Iteration 5 - 2026-01-21 00:52
+**Task**: Fixed 4 failing E2E tests by updating accounts.spec.ts, consolidation.spec.ts, and intercompany.spec.ts to use selectComboboxOption helper for Combobox-based form fields
+**Status**: complete
+---
