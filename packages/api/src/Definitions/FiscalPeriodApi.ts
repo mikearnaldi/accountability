@@ -11,10 +11,11 @@
 
 import { HttpApiEndpoint, HttpApiGroup, OpenApi } from "@effect/platform"
 import * as Schema from "effect/Schema"
-import { FiscalYear } from "@accountability/core/fiscal/FiscalYear"
-import { FiscalPeriod, PeriodReopenAuditEntry } from "@accountability/core/fiscal/FiscalPeriod"
+import { FiscalYear, FiscalYearId } from "@accountability/core/fiscal/FiscalYear"
+import { FiscalPeriod, FiscalPeriodId, PeriodReopenAuditEntry } from "@accountability/core/fiscal/FiscalPeriod"
 import { FiscalPeriodStatus } from "@accountability/core/fiscal/FiscalPeriodStatus"
-import { LocalDate } from "@accountability/core/shared/values/LocalDate"
+import { FiscalPeriodType } from "@accountability/core/fiscal/FiscalPeriodType"
+import { LocalDate, LocalDateFromString } from "@accountability/core/shared/values/LocalDate"
 import {
   AuditLogError,
   ForbiddenError,
@@ -91,6 +92,50 @@ export class PeriodStatusResponse extends Schema.Class<PeriodStatusResponse>("Pe
   status: Schema.OptionFromNullOr(FiscalPeriodStatus),
   allowsJournalEntries: Schema.Boolean,
   allowsModifications: Schema.Boolean
+}) {}
+
+// =============================================================================
+// Periods Summary Schemas (for journal entry date picker constraints)
+// =============================================================================
+
+/**
+ * PeriodSummaryItem - Single period in the summary response
+ */
+export class PeriodSummaryItem extends Schema.Class<PeriodSummaryItem>("PeriodSummaryItem")({
+  fiscalYearId: FiscalYearId,
+  fiscalYear: Schema.Number,
+  periodId: FiscalPeriodId,
+  periodNumber: Schema.Number,
+  periodName: Schema.String,
+  periodType: FiscalPeriodType,
+  startDate: LocalDateFromString,
+  endDate: LocalDateFromString,
+  status: FiscalPeriodStatus
+}) {}
+
+/**
+ * DateRange - A date range for easier frontend logic
+ */
+export class DateRange extends Schema.Class<DateRange>("DateRange")({
+  startDate: LocalDateFromString,
+  endDate: LocalDateFromString
+}) {}
+
+/**
+ * PeriodsSummaryResponse - Response containing all periods for a company
+ *
+ * Used by the frontend to:
+ * - Enable dates in open periods
+ * - Disable dates in closed periods with tooltip "Period is closed"
+ * - Disable dates with no period with tooltip "No fiscal period defined"
+ */
+export class PeriodsSummaryResponse extends Schema.Class<PeriodsSummaryResponse>("PeriodsSummaryResponse")({
+  /** All periods for the company with their status */
+  periods: Schema.Array(PeriodSummaryItem),
+  /** Date ranges for open regular periods (for easy date picker logic) */
+  openDateRanges: Schema.Array(DateRange),
+  /** Date ranges for closed periods */
+  closedDateRanges: Schema.Array(DateRange)
 }) {}
 
 // =============================================================================
@@ -332,6 +377,26 @@ const getPeriodStatusForDate = HttpApiEndpoint.get("getPeriodStatusForDate", "/o
     description: "Check the fiscal period status for a specific date, including whether journal entries and modifications are allowed."
   }))
 
+/**
+ * Get periods summary for a company
+ *
+ * Returns ALL periods (open and closed) with computed date ranges.
+ * Used by the frontend to:
+ * - Enable dates in open periods
+ * - Disable dates in closed periods with tooltip "Period is closed"
+ * - Disable dates with no period with tooltip "No fiscal period defined"
+ */
+const getPeriodsSummary = HttpApiEndpoint.get("getPeriodsSummary", "/organizations/:organizationId/companies/:companyId/fiscal-periods/summary")
+  .setPath(Schema.Struct({ organizationId: Schema.String, companyId: Schema.String }))
+  .addSuccess(PeriodsSummaryResponse)
+  .addError(CompanyNotFoundError)
+  .addError(OrganizationNotFoundError)
+  .addError(ForbiddenError)
+  .annotateContext(OpenApi.annotations({
+    summary: "Get periods summary for date picker",
+    description: "Returns all fiscal periods for a company with their status and computed date ranges for constraining date picker selections in journal entry forms."
+  }))
+
 // =============================================================================
 // API Group
 // =============================================================================
@@ -354,6 +419,7 @@ export class FiscalPeriodApi extends HttpApiGroup.make("fiscal-periods")
   .add(closePeriod)
   .add(getPeriodReopenHistory)
   .add(getPeriodStatusForDate)
+  .add(getPeriodsSummary)
   .middleware(AuthMiddleware)
   .prefix("/v1")
   .annotateContext(OpenApi.annotations({

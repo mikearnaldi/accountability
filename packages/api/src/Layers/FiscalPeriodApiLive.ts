@@ -581,5 +581,118 @@ export const FiscalPeriodApiLive = HttpApiBuilder.group(AppApi, "fiscal-periods"
           })
         )
       )
+      .handle("getPeriodsSummary", (_) =>
+        requireOrganizationContext(_.path.organizationId,
+          Effect.gen(function* () {
+            yield* requirePermission("fiscal_period:read")
+
+            const companyId = CompanyId.make(_.path.companyId)
+            const organizationId = OrganizationId.make(_.path.organizationId)
+
+            // Verify company exists and belongs to organization
+            const maybeCompany = yield* companyRepo.findById(organizationId, companyId).pipe(Effect.orDie)
+            if (Option.isNone(maybeCompany)) {
+              return yield* Effect.fail(new CompanyNotFoundError({ companyId: _.path.companyId }))
+            }
+
+            // Get all periods for the company with their fiscal year number
+            const periodsWithYear = yield* periodService.getAllPeriodsForCompany(companyId).pipe(Effect.orDie)
+
+            // Map to summary items - keep LocalDate objects, they will be serialized by the schema
+            const periods = periodsWithYear.map((p) => ({
+              fiscalYearId: p.fiscalYearId,
+              fiscalYear: p.fiscalYear,
+              periodId: p.id,
+              periodNumber: p.periodNumber,
+              periodName: p.name,
+              periodType: p.periodType,
+              startDate: p.startDate,
+              endDate: p.endDate,
+              status: p.status
+            }))
+
+            // Compute date ranges for regular periods (exclude adjustment periods from ranges)
+            // Group periods by status and merge adjacent date ranges
+            const regularPeriods = periodsWithYear.filter((p) => p.periodType === "Regular")
+
+            // Build open date ranges from regular open periods
+            const openPeriods = regularPeriods.filter((p) => p.status === "Open")
+            const openDateRanges = mergeAdjacentLocalDateRanges(
+              openPeriods.map((p) => ({
+                startDate: p.startDate,
+                endDate: p.endDate
+              }))
+            )
+
+            // Build closed date ranges from regular closed periods
+            const closedPeriods = regularPeriods.filter((p) => p.status === "Closed")
+            const closedDateRanges = mergeAdjacentLocalDateRanges(
+              closedPeriods.map((p) => ({
+                startDate: p.startDate,
+                endDate: p.endDate
+              }))
+            )
+
+            return {
+              periods,
+              openDateRanges,
+              closedDateRanges
+            }
+          })
+        )
+      )
   })
 )
+
+/**
+ * Helper to merge adjacent date ranges using LocalDate objects
+ *
+ * Takes an array of date ranges and merges any that are adjacent or overlapping
+ * into single continuous ranges.
+ */
+function mergeAdjacentLocalDateRanges(
+  ranges: Array<{ startDate: LocalDate; endDate: LocalDate }>
+): Array<{ startDate: LocalDate; endDate: LocalDate }> {
+  if (ranges.length === 0) return []
+
+  // Sort by start date
+  const sorted = [...ranges].sort((a, b) => {
+    const aStr = a.startDate.toString()
+    const bStr = b.startDate.toString()
+    return aStr.localeCompare(bStr)
+  })
+
+  const merged: Array<{ startDate: LocalDate; endDate: LocalDate }> = []
+  let current = sorted[0]
+
+  for (let i = 1; i < sorted.length; i++) {
+    const next = sorted[i]
+
+    // Check if the next range starts on or before the day after current ends
+    // This handles adjacent ranges (e.g., Jan 31 -> Feb 1)
+    const currentEndStr = current.endDate.toString()
+    const nextStartStr = next.startDate.toString()
+
+    const currentEndDate = new Date(currentEndStr)
+    const nextStartDate = new Date(nextStartStr)
+    const dayAfterCurrentEnd = new Date(currentEndDate)
+    dayAfterCurrentEnd.setDate(dayAfterCurrentEnd.getDate() + 1)
+
+    if (nextStartDate <= dayAfterCurrentEnd) {
+      // Merge: extend current to include next
+      const currentEndStr2 = current.endDate.toString()
+      const nextEndStr = next.endDate.toString()
+      current = {
+        startDate: current.startDate,
+        endDate: currentEndStr2 > nextEndStr ? current.endDate : next.endDate
+      }
+    } else {
+      // No overlap, push current and start new
+      merged.push(current)
+      current = next
+    }
+  }
+
+  merged.push(current)
+  return merged
+}

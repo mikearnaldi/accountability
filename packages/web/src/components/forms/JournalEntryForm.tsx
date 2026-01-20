@@ -22,6 +22,12 @@ import {
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
 import { Select } from "@/components/ui/Select"
+import {
+  PeriodDatePicker,
+  type PeriodsSummary,
+  getAdjustmentPeriodForDate,
+  getFirstOpenDate
+} from "@/components/forms/PeriodDatePicker"
 
 // =============================================================================
 // Types
@@ -81,6 +87,8 @@ interface JournalEntryFormProps {
   readonly accounts: readonly Account[]
   readonly currencies: readonly CurrencyInfo[]
   readonly fiscalYearEnd: FiscalYearEnd
+  /** Fiscal periods summary for date picker constraints (optional for backward compatibility) */
+  readonly periodsSummary?: PeriodsSummary
   readonly onSuccess: () => void
   readonly onCancel: () => void
 }
@@ -358,6 +366,7 @@ export function JournalEntryForm({
   accounts,
   currencies,
   fiscalYearEnd,
+  periodsSummary,
   onSuccess,
   onCancel
 }: JournalEntryFormProps) {
@@ -365,6 +374,12 @@ export function JournalEntryForm({
 
   // Header fields
   const [transactionDate, setTransactionDate] = useState(() => {
+    // If we have periodsSummary, try to default to first open date
+    if (periodsSummary) {
+      const firstOpen = getFirstOpenDate(periodsSummary)
+      if (firstOpen) return firstOpen
+    }
+    // Fall back to today
     const today = new Date()
     return today.toISOString().split("T")[0]
   })
@@ -372,11 +387,40 @@ export function JournalEntryForm({
   const [description, setDescription] = useState("")
   const [entryType, setEntryType] = useState<JournalEntryType>("Standard")
 
+  // Period 13 (Adjustment) selection
+  const [useAdjustmentPeriod, setUseAdjustmentPeriod] = useState(false)
+
+  // Check if P13 is available for the selected date
+  const adjustmentPeriod = useMemo(() => {
+    if (!periodsSummary) return undefined
+    return getAdjustmentPeriodForDate(transactionDate, periodsSummary.periods)
+  }, [transactionDate, periodsSummary])
+
+  const canPostToAdjustmentPeriod = adjustmentPeriod !== undefined
+
+  // Reset P13 selection when date changes to a date without P13 available
+  useMemo(() => {
+    if (!canPostToAdjustmentPeriod) {
+      setUseAdjustmentPeriod(false)
+    }
+  }, [canPostToAdjustmentPeriod])
+
   // Computed fiscal period (derived from transaction date)
-  const computedPeriod = useMemo(
-    () => computeFiscalPeriod(transactionDate, fiscalYearEnd),
-    [transactionDate, fiscalYearEnd]
-  )
+  const computedPeriod = useMemo(() => {
+    const basePeriod = computeFiscalPeriod(transactionDate, fiscalYearEnd)
+
+    // If user selected P13, override the period number
+    if (useAdjustmentPeriod && adjustmentPeriod) {
+      return {
+        ...basePeriod,
+        periodNumber: 13,
+        periodName: "P13",
+        periodDisplayName: "Adjustment Period"
+      }
+    }
+
+    return basePeriod
+  }, [transactionDate, fiscalYearEnd, useAdjustmentPeriod, adjustmentPeriod])
 
   // Multi-currency fields
   const [currency, setCurrency] = useState(functionalCurrency)
@@ -602,19 +646,31 @@ export function JournalEntryForm({
         <h3 className="mb-4 text-sm font-medium text-gray-700">Entry Details</h3>
 
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          {/* Transaction Date */}
+          {/* Transaction Date - use PeriodDatePicker if periodsSummary is available */}
           <div>
-            <Input
-              id="transaction-date"
-              type="date"
-              label="Date *"
-              required
-              value={transactionDate}
-              onChange={(e) => setTransactionDate(e.target.value)}
-              disabled={isSubmitting}
-              data-testid="journal-entry-date"
-              className="text-sm"
-            />
+            {periodsSummary ? (
+              <PeriodDatePicker
+                value={transactionDate}
+                onChange={setTransactionDate}
+                periodsSummary={periodsSummary}
+                disabled={isSubmitting}
+                label="Date"
+                required
+                data-testid="journal-entry-date"
+              />
+            ) : (
+              <Input
+                id="transaction-date"
+                type="date"
+                label="Date *"
+                required
+                value={transactionDate}
+                onChange={(e) => setTransactionDate(e.target.value)}
+                disabled={isSubmitting}
+                data-testid="journal-entry-date"
+                className="text-sm"
+              />
+            )}
           </div>
 
           {/* Reference Number */}
@@ -672,6 +728,48 @@ export function JournalEntryForm({
                 fiscalYearEnd={fiscalYearEnd}
               />
             </div>
+
+            {/* Period 13 checkbox - only shown when date is fiscal year end and P13 is open */}
+            {canPostToAdjustmentPeriod && (
+              <div className="mt-2" data-testid="adjustment-period-section">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={useAdjustmentPeriod}
+                    onChange={(e) => setUseAdjustmentPeriod(e.target.checked)}
+                    disabled={isSubmitting}
+                    data-testid="use-adjustment-period-checkbox"
+                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-gray-700">
+                    Post to adjustment period (P13)
+                  </span>
+                </label>
+                <p className="ml-6 text-xs text-gray-500">
+                  Use for year-end adjustments and audit entries
+                </p>
+              </div>
+            )}
+
+            {/* P13 info when selected */}
+            {useAdjustmentPeriod && (
+              <div
+                className="mt-2 rounded-lg border border-blue-200 bg-blue-50 p-2"
+                data-testid="adjustment-period-info"
+              >
+                <div className="flex items-start gap-2">
+                  <Info className="mt-0.5 h-4 w-4 flex-shrink-0 text-blue-600" />
+                  <div className="text-xs text-blue-700">
+                    <p className="font-medium">Posting to Adjustment Period</p>
+                    <ul className="mt-1 list-disc list-inside">
+                      <li>Year-end audit adjustments</li>
+                      <li>Accrual corrections</li>
+                      <li>Closing entries</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

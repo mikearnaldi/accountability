@@ -16,6 +16,7 @@ import { useMemo } from "react"
 import { Plus, ArrowLeft } from "lucide-react"
 import { createServerApi } from "@/api/server"
 import { JournalEntryForm } from "@/components/forms/JournalEntryForm"
+import type { PeriodsSummary } from "@/components/forms/PeriodDatePicker"
 import { AppLayout } from "@/components/layout/AppLayout"
 import { MinimalRouteError } from "@/components/ui/RouteError"
 import { Button } from "@/components/ui/Button"
@@ -73,6 +74,7 @@ const fetchNewJournalEntryData = createServerFn({ method: "GET" })
         organization: null,
         accounts: [],
         currencies: [],
+        periodsSummary: null,
         error: "unauthorized" as const
       }
     }
@@ -81,9 +83,8 @@ const fetchNewJournalEntryData = createServerFn({ method: "GET" })
       const serverApi = createServerApi()
       const Authorization = `Bearer ${sessionToken}`
 
-      // Fetch company, organization, accounts, and currencies in parallel
-      // No need to fetch fiscal periods - they are computed from company's fiscalYearEnd
-      const [companyResult, orgResult, accountsResult, currenciesResult] = await Promise.all([
+      // Fetch company, organization, accounts, currencies, and periods summary in parallel
+      const [companyResult, orgResult, accountsResult, currenciesResult, periodsResult] = await Promise.all([
         serverApi.GET("/api/v1/organizations/{organizationId}/companies/{id}", {
           params: { path: { organizationId: data.organizationId, id: data.companyId } },
           headers: { Authorization }
@@ -99,6 +100,10 @@ const fetchNewJournalEntryData = createServerFn({ method: "GET" })
         serverApi.GET("/api/v1/currencies", {
           params: { query: { isActive: "true" } },
           headers: { Authorization }
+        }),
+        serverApi.GET("/api/v1/organizations/{organizationId}/companies/{companyId}/fiscal-periods/summary", {
+          params: { path: { organizationId: data.organizationId, companyId: data.companyId } },
+          headers: { Authorization }
         })
       ])
 
@@ -111,6 +116,7 @@ const fetchNewJournalEntryData = createServerFn({ method: "GET" })
             organization: null,
             accounts: [],
             currencies: [],
+            periodsSummary: null,
             error: "not_found" as const
           }
         }
@@ -119,6 +125,7 @@ const fetchNewJournalEntryData = createServerFn({ method: "GET" })
           organization: null,
           accounts: [],
           currencies: [],
+          periodsSummary: null,
           error: "failed" as const
         }
       }
@@ -129,7 +136,41 @@ const fetchNewJournalEntryData = createServerFn({ method: "GET" })
           organization: null,
           accounts: [],
           currencies: [],
+          periodsSummary: null,
           error: "failed" as const
+        }
+      }
+
+      // Map periods summary to the expected format (handle API response typing)
+      // Type-safe lookup for period type conversion
+      const PERIOD_TYPE_MAP: Record<string, "Regular" | "Adjustment" | "Closing"> = {
+        Regular: "Regular",
+        Adjustment: "Adjustment",
+        Closing: "Closing"
+      }
+
+      let periodsSummary: PeriodsSummary | null = null
+      if (periodsResult.data) {
+        periodsSummary = {
+          periods: periodsResult.data.periods.map((p) => ({
+            fiscalYearId: p.fiscalYearId,
+            fiscalYear: p.fiscalYear,
+            periodId: p.periodId,
+            periodNumber: p.periodNumber,
+            periodName: p.periodName,
+            periodType: PERIOD_TYPE_MAP[p.periodType] ?? "Regular",
+            startDate: p.startDate,
+            endDate: p.endDate,
+            status: p.status
+          })),
+          openDateRanges: periodsResult.data.openDateRanges.map((r) => ({
+            startDate: r.startDate,
+            endDate: r.endDate
+          })),
+          closedDateRanges: periodsResult.data.closedDateRanges.map((r) => ({
+            startDate: r.startDate,
+            endDate: r.endDate
+          }))
         }
       }
 
@@ -138,6 +179,7 @@ const fetchNewJournalEntryData = createServerFn({ method: "GET" })
         organization: orgResult.data,
         accounts: accountsResult.data?.accounts ?? [],
         currencies: currenciesResult.data?.currencies ?? [],
+        periodsSummary,
         error: null
       }
     } catch {
@@ -146,6 +188,7 @@ const fetchNewJournalEntryData = createServerFn({ method: "GET" })
         organization: null,
         accounts: [],
         currencies: [],
+        periodsSummary: null,
         error: "failed" as const
       }
     }
@@ -199,6 +242,7 @@ function NewJournalEntryPage() {
   const organization = loaderData.organization as Organization | null
   const accounts = loaderData.accounts as readonly Account[]
   const currencies = loaderData.currencies as readonly CurrencyInfo[]
+  const periodsSummary = loaderData.periodsSummary as PeriodsSummary | null
   /* eslint-enable @typescript-eslint/consistent-type-assertions */
   const params = Route.useParams()
   const navigate = useNavigate()
@@ -208,6 +252,11 @@ function NewJournalEntryPage() {
 
   // Permission check
   const canCreateEntry = canPerform("journal_entry:create")
+
+  // Check fiscal period status
+  const hasPeriods = periodsSummary !== null && periodsSummary.periods.length > 0
+  const hasOpenPeriods = periodsSummary !== null &&
+    periodsSummary.periods.some((p) => p.status === "Open" && p.periodType === "Regular")
 
   // Handle success - navigate back to journal entries list
   const handleSuccess = () => {
@@ -329,8 +378,58 @@ function NewJournalEntryPage() {
           </p>
         </div>
 
+        {/* No Fiscal Periods Warning */}
+        {!hasPeriods && (
+          <div
+            className="mb-6 rounded-lg border border-yellow-200 bg-yellow-50 p-6"
+            data-testid="no-periods-warning"
+          >
+            <h2 className="text-lg font-medium text-yellow-800">
+              Cannot Create Journal Entry
+            </h2>
+            <p className="mt-2 text-yellow-700">
+              No fiscal periods defined for this company. Create a fiscal year first.
+            </p>
+            <Link
+              to="/organizations/$organizationId/companies/$companyId/fiscal-periods"
+              params={{
+                organizationId: params.organizationId,
+                companyId: params.companyId
+              }}
+              className="mt-4 inline-block text-yellow-800 underline hover:text-yellow-900"
+            >
+              Go to Fiscal Periods
+            </Link>
+          </div>
+        )}
+
+        {/* All Periods Closed Warning */}
+        {hasPeriods && !hasOpenPeriods && (
+          <div
+            className="mb-6 rounded-lg border border-yellow-200 bg-yellow-50 p-6"
+            data-testid="no-open-periods-warning"
+          >
+            <h2 className="text-lg font-medium text-yellow-800">
+              Cannot Create Journal Entry
+            </h2>
+            <p className="mt-2 text-yellow-700">
+              All fiscal periods are closed. Open a period to post entries.
+            </p>
+            <Link
+              to="/organizations/$organizationId/companies/$companyId/fiscal-periods"
+              params={{
+                organizationId: params.organizationId,
+                companyId: params.companyId
+              }}
+              className="mt-4 inline-block text-yellow-800 underline hover:text-yellow-900"
+            >
+              Go to Fiscal Periods
+            </Link>
+          </div>
+        )}
+
         {/* No Accounts Warning */}
-        {!hasAccounts && (
+        {hasOpenPeriods && !hasAccounts && (
           <div
             className="mb-6 rounded-lg border border-yellow-200 bg-yellow-50 p-4"
             data-testid="no-accounts-warning"
@@ -371,8 +470,8 @@ function NewJournalEntryPage() {
           </div>
         )}
 
-        {/* Journal Entry Form */}
-        {hasAccounts ? (
+        {/* Journal Entry Form - only show when we have open periods and accounts */}
+        {hasOpenPeriods && hasAccounts ? (
           <JournalEntryForm
             organizationId={params.organizationId}
             companyId={params.companyId}
@@ -380,10 +479,11 @@ function NewJournalEntryPage() {
             accounts={accounts}
             currencies={currencies}
             fiscalYearEnd={company.fiscalYearEnd}
+            periodsSummary={periodsSummary ?? undefined}
             onSuccess={handleSuccess}
             onCancel={handleCancel}
           />
-        ) : (
+        ) : hasOpenPeriods && !hasAccounts ? (
           <div className="rounded-lg border border-gray-200 bg-white p-8 text-center">
             <p className="text-gray-500">
               Create accounts in your Chart of Accounts to start recording journal entries.
@@ -401,7 +501,7 @@ function NewJournalEntryPage() {
               Create Accounts
             </Button>
           </div>
-        )}
+        ) : null}
       </div>
     </AppLayout>
   )

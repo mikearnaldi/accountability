@@ -938,7 +938,24 @@ test.describe("Journal Entries List Page", () => {
     expect(createCompanyRes.ok()).toBeTruthy()
     const companyData = await createCompanyRes.json()
 
-    // 4. Set session cookie
+    // 4. Create fiscal year so the new entry form is shown (not the "no periods" warning)
+    const currentYear = new Date().getFullYear()
+    const createFiscalYearRes = await request.post(
+      `/api/v1/organizations/${orgData.id}/companies/${companyData.id}/fiscal-years`,
+      {
+        headers: { Authorization: `Bearer ${sessionToken}` },
+        data: {
+          year: currentYear,
+          name: `FY ${currentYear}`,
+          startDate: { year: currentYear, month: 1, day: 1 },
+          endDate: { year: currentYear, month: 12, day: 31 },
+          includeAdjustmentPeriod: null
+        }
+      }
+    )
+    expect(createFiscalYearRes.ok()).toBeTruthy()
+
+    // 6. Set session cookie
     await page.context().addCookies([
       {
         name: "accountability_session",
@@ -951,7 +968,7 @@ test.describe("Journal Entries List Page", () => {
       }
     ])
 
-    // 5. Navigate to journal entries page
+    // 7. Navigate to journal entries page
     await page.goto(
       `/organizations/${orgData.id}/companies/${companyData.id}/journal-entries`
     )
@@ -959,20 +976,20 @@ test.describe("Journal Entries List Page", () => {
     // Wait for page hydration
     await page.waitForTimeout(500)
 
-    // 6. Should show empty state with create button (no entries yet)
+    // 8. Should show empty state with create button (no entries yet)
     // When there are no entries, the header button is hidden and the empty state button is shown
     const newEntryButton = page.locator('[data-testid="create-journal-entry-empty-button"]')
     await expect(newEntryButton).toBeVisible({ timeout: 10000 })
 
-    // 7. Click the New Entry button with force to ensure click registers
+    // 9. Click the New Entry button with force to ensure click registers
     await newEntryButton.click({ force: true })
 
-    // 8. Should navigate to new journal entry page
+    // 10. Should navigate to new journal entry page
     await page.waitForURL(/\/journal-entries\/new/, { timeout: 15000 })
     expect(page.url()).toContain(`/organizations/${orgData.id}/companies/${companyData.id}/journal-entries/new`)
 
-    // 9. Should show Create Journal Entry heading
-    await expect(page.getByRole("heading", { name: "Create Journal Entry" })).toBeVisible({ timeout: 10000 })
+    // 11. Should show Create Journal Entry page title (using data-testid to be specific)
+    await expect(page.locator('[data-testid="page-title"]')).toHaveText("Create Journal Entry", { timeout: 10000 })
   })
 
   test("should create a balanced journal entry", async ({ page, request }) => {

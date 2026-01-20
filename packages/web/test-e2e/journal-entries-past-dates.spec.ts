@@ -201,7 +201,8 @@ test.describe("Journal Entry Past Dates", () => {
     await expect(page.locator('[data-testid="journal-entry-form"]')).toBeVisible()
 
     // 9. Set past date (January 15, 2024 - 2 years ago relative to 2026)
-    const dateInput = page.locator('[data-testid="journal-entry-date"]')
+    // Note: PeriodDatePicker wraps the input, so we need to target the -input suffix
+    const dateInput = page.locator('[data-testid="journal-entry-date-input"]')
     await dateInput.click()
     await dateInput.fill("2024-01-15")
     // Blur the input to trigger state update
@@ -546,7 +547,8 @@ test.describe("Journal Entry Past Dates", () => {
     await expect(page.locator('[data-testid="journal-entry-form"]')).toBeVisible()
 
     // 9. Set date to Dec 31, 2024 (last day of fiscal year)
-    const dateInput = page.locator('[data-testid="journal-entry-date"]')
+    // Note: PeriodDatePicker wraps the input, so we need to target the -input suffix
+    const dateInput = page.locator('[data-testid="journal-entry-date-input"]')
     await dateInput.click()
     await dateInput.fill("2024-12-31")
     // Blur the input to trigger state update
@@ -711,7 +713,8 @@ test.describe("Journal Entry Past Dates", () => {
     await expect(page.locator('[data-testid="journal-entry-form"]')).toBeVisible()
 
     // 9. Set date to Jan 1, 2025 (first day of new fiscal year)
-    const dateInput = page.locator('[data-testid="journal-entry-date"]')
+    // Note: PeriodDatePicker wraps the input, so we need to target the -input suffix
+    const dateInput = page.locator('[data-testid="journal-entry-date-input"]')
     await dateInput.click()
     await dateInput.fill("2025-01-01")
     await expect(dateInput).toHaveValue("2025-01-01")
@@ -849,7 +852,45 @@ test.describe("Journal Entry Past Dates", () => {
       }
     })
 
-    // 5. Set session cookie
+    // 5. Create fiscal years for testing (June 30 fiscal year end)
+    // For a June 30 FY end:
+    // - FY2024 spans July 1, 2023 - June 30, 2024
+    // - FY2025 spans July 1, 2024 - June 30, 2025
+    // We need both FY2024 and FY2025 for our test dates
+
+    // Create FY2024 (July 1, 2023 - June 30, 2024)
+    const createFY2024Res = await request.post(
+      `/api/v1/organizations/${orgData.id}/companies/${companyData.id}/fiscal-years`,
+      {
+        headers: { Authorization: `Bearer ${sessionToken}` },
+        data: {
+          year: 2024,
+          name: "FY 2024",
+          startDate: { year: 2023, month: 7, day: 1 },
+          endDate: { year: 2024, month: 6, day: 30 },
+          includeAdjustmentPeriod: null
+        }
+      }
+    )
+    expect(createFY2024Res.ok()).toBeTruthy()
+
+    // Create FY2025 (July 1, 2024 - June 30, 2025)
+    const createFY2025Res = await request.post(
+      `/api/v1/organizations/${orgData.id}/companies/${companyData.id}/fiscal-years`,
+      {
+        headers: { Authorization: `Bearer ${sessionToken}` },
+        data: {
+          year: 2025,
+          name: "FY 2025",
+          startDate: { year: 2024, month: 7, day: 1 },
+          endDate: { year: 2025, month: 6, day: 30 },
+          includeAdjustmentPeriod: null
+        }
+      }
+    )
+    expect(createFY2025Res.ok()).toBeTruthy()
+
+    // 6. Set session cookie
     await page.context().addCookies([
       {
         name: "accountability_session",
@@ -862,13 +903,14 @@ test.describe("Journal Entry Past Dates", () => {
       }
     ])
 
-    // 6. Navigate to new journal entry page
+    // 7. Navigate to new journal entry page
     await page.goto(
       `/organizations/${orgData.id}/companies/${companyData.id}/journal-entries/new`
     )
     await expect(page.locator('[data-testid="journal-entry-form"]')).toBeVisible()
 
-    const dateInput = page.locator('[data-testid="journal-entry-date"]')
+    // Note: PeriodDatePicker wraps the input, so we need to target the -input suffix
+    const dateInput = page.locator('[data-testid="journal-entry-date-input"]')
 
     // Helper function to set date and wait for fiscal period update
     const setDateAndVerify = async (date: string, expectedPeriod: string) => {
