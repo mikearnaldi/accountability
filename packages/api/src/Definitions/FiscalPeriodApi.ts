@@ -15,7 +15,11 @@ import { FiscalYear } from "@accountability/core/fiscal/FiscalYear"
 import { FiscalPeriod, PeriodReopenAuditEntry } from "@accountability/core/fiscal/FiscalPeriod"
 import { FiscalPeriodStatus } from "@accountability/core/fiscal/FiscalPeriodStatus"
 import { LocalDate } from "@accountability/core/shared/values/LocalDate"
-import { ForbiddenError } from "./ApiErrors.ts"
+import {
+  AuditLogError,
+  ForbiddenError,
+  UserLookupError
+} from "./ApiErrors.ts"
 import { AuthMiddleware } from "./AuthMiddleware.ts"
 import { OrganizationNotFoundError } from "@accountability/core/organization/OrganizationErrors"
 import { CompanyNotFoundError } from "@accountability/core/company/CompanyErrors"
@@ -152,6 +156,8 @@ const createFiscalYear = HttpApiEndpoint.post("createFiscalYear", "/organization
   .addError(FiscalYearOverlapError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
+  .addError(AuditLogError)
+  .addError(UserLookupError)
   .annotateContext(OpenApi.annotations({
     summary: "Create fiscal year",
     description: "Create a new fiscal year for a company with auto-generated monthly periods."
@@ -172,6 +178,8 @@ const beginYearClose = HttpApiEndpoint.post("beginYearClose", "/organizations/:o
   .addError(InvalidYearStatusTransitionError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
+  .addError(AuditLogError)
+  .addError(UserLookupError)
   .annotateContext(OpenApi.annotations({
     summary: "Begin year-end close",
     description: "Transition a fiscal year to 'Closing' status to begin year-end close process."
@@ -193,6 +201,8 @@ const completeYearClose = HttpApiEndpoint.post("completeYearClose", "/organizati
   .addError(PeriodsNotClosedError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
+  .addError(AuditLogError)
+  .addError(UserLookupError)
   .annotateContext(OpenApi.annotations({
     summary: "Complete year-end close",
     description: "Transition a fiscal year to 'Closed' status. All periods must be closed first."
@@ -257,6 +267,8 @@ const openPeriod = HttpApiEndpoint.post("openFiscalPeriod", "/organizations/:org
   .addError(InvalidStatusTransitionError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
+  .addError(AuditLogError)
+  .addError(UserLookupError)
   .annotateContext(OpenApi.annotations({
     summary: "Open fiscal period",
     description: "Transition a fiscal period from 'Closed' to 'Open' status. Requires fiscal_period:manage permission."
@@ -278,6 +290,8 @@ const closePeriod = HttpApiEndpoint.post("closeFiscalPeriod", "/organizations/:o
   .addError(InvalidStatusTransitionError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
+  .addError(AuditLogError)
+  .addError(UserLookupError)
   .annotateContext(OpenApi.annotations({
     summary: "Close fiscal period",
     description: "Transition a fiscal period from 'Open' to 'Closed' status. No journal entries allowed after close. Requires fiscal_period:manage permission."
