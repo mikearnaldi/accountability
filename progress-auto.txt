@@ -1039,3 +1039,8 @@
 **Task**: Cleaned up specs-new/ by removing 3 duplicate files and standardizing naming to lowercase-with-hyphens
 **Status**: complete
 ---
+
+## Iteration 1 - 2026-01-20 17:17
+**Task**: Cleaned up specs-new/ - moved authorization-missing.md to completed and clarified README documentation
+**Status**: complete
+---

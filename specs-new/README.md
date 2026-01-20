@@ -34,12 +34,16 @@ These guides consolidate related best practices into comprehensive documents:
 
 | Document | Description |
 |----------|-------------|
-| [accounting-research.md](architecture/accounting-research.md) | Comprehensive domain spec - US GAAP, entities, services, reports |
-| [domain-model.md](architecture/domain-model.md) | Domain model quick reference |
+| [accounting-research.md](architecture/accounting-research.md) | Comprehensive domain spec - US GAAP, regulatory framework, entities, services, reports, consolidation engine |
+| [domain-model.md](architecture/domain-model.md) | Quick reference for domain entities and relationships (subset of accounting-research) |
 | [authentication.md](architecture/authentication.md) | Multi-provider auth system |
 | [authorization.md](architecture/authorization.md) | RBAC/ABAC policies and permissions |
 | [error-design.md](architecture/error-design.md) | One-layer error architecture |
 | [fiscal-periods.md](architecture/fiscal-periods.md) | Fiscal year/period management |
+
+**Note on Domain Documentation:**
+- `accounting-research.md` is the comprehensive research document - read this for full context
+- `domain-model.md` is an extracted quick reference for day-to-day lookup of entity fields and relationships
 
 ### Pending Implementation
 
@@ -47,7 +51,6 @@ These guides consolidate related best practices into comprehensive documents:
 |----------|-------------|------------|
 | [exchange-rate-sync.md](pending/exchange-rate-sync.md) | ECB exchange rate sync via Frankfurter API | 15 phases |
 | [policy-ux-improvements.md](pending/policy-ux-improvements.md) | Multi-resource policy UI improvements | 5 phases |
-| [authorization-missing.md](pending/authorization-missing.md) | Remaining authorization features | Partial |
 | [duplicated-company-creation-page.md](pending/duplicated-company-creation-page.md) | Remove duplicate company creation UI | Small |
 
 ### Completed (Historical Reference)
@@ -57,6 +60,7 @@ These specs document completed work. Kept for historical context and reference.
 | Document | Completed |
 |----------|-----------|
 | [audit-page.md](completed/audit-page.md) | All 3 phases |
+| [authorization-missing.md](completed/authorization-missing.md) | All features implemented |
 | [company-details.md](completed/company-details.md) | All 6 phases |
 | [consolidated-reports.md](completed/consolidated-reports.md) | 2026-01-16 |
 | [consolidation-method-cleanup.md](completed/consolidation-method-cleanup.md) | 2026-01-15 |
@@ -67,6 +71,12 @@ These specs document completed work. Kept for historical context and reference.
 | [form-components-standardization.md](completed/form-components-standardization.md) | All done |
 | [past-date-journal-entries.md](completed/past-date-journal-entries.md) | Verified |
 | [synthetic-data-generator.md](completed/synthetic-data-generator.md) | All 9 phases |
+
+**Note on Consolidation Files:**
+- `consolidated-reports.md` - Spec for generating consolidated financial statements (Balance Sheet, Income Statement, etc.)
+- `consolidation-method-cleanup.md` - Spec for removing consolidationMethod from Company entity (different topic)
+
+These are distinct features, not duplicates.
 
 ### Reference
 
