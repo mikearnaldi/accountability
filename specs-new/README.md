@@ -67,16 +67,11 @@ These specs document completed work. Kept for historical context and reference.
 | [core-code-organisation.md](completed/core-code-organisation.md) | 2026-01-19 |
 | [e2e-test-coverage.md](completed/e2e-test-coverage.md) | 261 tests |
 | [error-tracker.md](completed/error-tracker.md) | 17/17 issues |
-| [fix-fiscal-periods.md](completed/fix-fiscal-periods.md) | All fixed |
 | [form-components-standardization.md](completed/form-components-standardization.md) | All done |
 | [past-date-journal-entries.md](completed/past-date-journal-entries.md) | Verified |
 | [synthetic-data-generator.md](completed/synthetic-data-generator.md) | All 9 phases |
 
-**Note on Consolidation Files:**
-- `consolidated-reports.md` - Spec for generating consolidated financial statements (Balance Sheet, Income Statement, etc.)
-- `consolidation-method-cleanup.md` - Spec for removing consolidationMethod from Company entity (different topic)
-
-These are distinct features, not duplicates.
+**Note:** `consolidated-reports.md` documents consolidated financial statements generation, while `consolidation-method-cleanup.md` documents a domain model refactoring. Despite similar names, these are distinct features.
 
 ### Reference
 

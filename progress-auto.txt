@@ -1044,3 +1044,8 @@
 **Task**: Cleaned up specs-new/ - moved authorization-missing.md to completed and clarified README documentation
 **Status**: complete
 ---
+
+## Iteration 1 - 2026-01-20 17:40
+**Task**: Resolved specs-new/ duplication - merged fix-fiscal-periods.md into architecture/fiscal-periods.md and updated domain-model.md to reflect simplified 2-status model
+**Status**: complete
+---

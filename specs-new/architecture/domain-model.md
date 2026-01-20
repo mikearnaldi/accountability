@@ -36,8 +36,6 @@ Accountability is a multi-company, multi-currency accounting application impleme
 │  ACCOUNT    FISCAL_YEAR           CONSOLIDATION_MEMBER  ELIMINATION_RULE   │
 │     │           │                          │                               │
 │     │           ├──► FISCAL_PERIOD         │                               │
-│     │           │        │                 │                               │
-│     │           │        └──► PERIOD_REOPEN_AUDIT_ENTRY                    │
 │     │           │                          │                               │
 │     │           └──► CLOSING_JOURNAL_ENTRY │                               │
 │     │                                      │                               │
@@ -364,36 +362,19 @@ A period within a fiscal year (typically monthly).
 | closedBy | UUID | No | User who closed |
 | closedAt | Timestamp | No | When closed |
 
-**FiscalPeriodStatus:**
+**FiscalPeriodStatus (Simplified 2-Status Model):**
 ```
-Future → Open → SoftClose → Closed → Locked
-                    ↑           │
-                    └───────────┘ (reopen with reason)
+Open ←→ Closed
 ```
+
+A period is either open for entries or it's not. Requires `fiscal_period:manage` permission to transition.
 
 **Business Rules:**
 - Period 13 (adjustment period) must ALWAYS be created with every fiscal year
 - This ensures compatibility with consolidation runs which support periods 1-13
-- See [specs/FISCAL_PERIODS.md](FISCAL_PERIODS.md) for full specification and implementation tasks
+- See [fiscal-periods.md](fiscal-periods.md) for full specification
 
-### 5.3 PeriodReopenAuditEntry
-
-Audit trail for period reopens (required for compliance).
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| id | UUID | Yes | Primary key |
-| periodId | UUID | Yes | FK to FiscalPeriod |
-| reason | string | Yes | Justification for reopen |
-| reopenedBy | UUID | Yes | User who reopened |
-| reopenedAt | Timestamp | Yes | When reopened |
-| previousStatus | FiscalPeriodStatus | Yes | Status before reopen |
-
-**Business Rules:**
-- Every reopen must have a reason
-- Immutable audit record for SOX compliance
-
-### 5.4 ClosingJournalEntry
+### 5.3 ClosingJournalEntry
 
 Tracks year-end closing entries.
 
@@ -1244,7 +1225,6 @@ UTC datetime as epoch milliseconds
 | IntercompanyTransaction → JournalEntry | SET NULL |
 | AuthIdentity → AuthUser | CASCADE |
 | AuthSession → AuthUser | CASCADE |
-| PeriodReopenAuditEntry → FiscalPeriod | CASCADE |
 | ClosingJournalEntry → FiscalYear | CASCADE |
 | ConsolidationRunEliminationEntry → ConsolidationRun | CASCADE |
 | ConsolidationRunEliminationEntry → JournalEntry | RESTRICT |
