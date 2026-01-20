@@ -237,7 +237,7 @@ interface CreateFiscalYearModalProps {
   organizationId: string
   companyId: string
   fiscalYearEnd: { month: number; day: number }
-  onCreated: () => void
+  onCreated: () => Promise<void>
 }
 
 function CreateFiscalYearModal({
@@ -334,7 +334,7 @@ function CreateFiscalYearModal({
         return
       }
 
-      onCreated()
+      await onCreated()
       onClose()
     } catch {
       setError("An unexpected error occurred")
@@ -587,14 +587,13 @@ function FiscalYearCard({ fiscalYear, organizationId, companyId, onRefresh, canM
   const [periodsLoaded, setPeriodsLoaded] = useState(false)
   const [reopenModalPeriod, setReopenModalPeriod] = useState<FiscalPeriod | null>(null)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
 
   const StatusIcon = YEAR_STATUS_STYLES[fiscalYear.status].icon
 
-  // Load periods when expanded
-  const loadPeriods = async () => {
-    if (periodsLoaded) return
+  // Fetch periods from API (always fetches fresh data)
+  const fetchPeriods = async () => {
     setIsLoadingPeriods(true)
-
     try {
       const { data, error } = await api.GET(
         "/api/v1/organizations/{organizationId}/companies/{companyId}/fiscal-years/{fiscalYearId}/periods",
@@ -619,10 +618,16 @@ function FiscalYearCard({ fiscalYear, organizationId, companyId, onRefresh, canM
         setPeriodsLoaded(true)
       }
     } catch {
-      // Handle error silently
+      // Fetch error handled below
     } finally {
       setIsLoadingPeriods(false)
     }
+  }
+
+  // Load periods when expanded (only on first expand)
+  const loadPeriods = async () => {
+    if (periodsLoaded) return
+    await fetchPeriods()
   }
 
   const handleToggle = () => {
@@ -638,7 +643,15 @@ function FiscalYearCard({ fiscalYear, organizationId, companyId, onRefresh, canM
     action: "open" | "soft-close" | "close" | "lock"
   ) => {
     setActionLoading(period.id)
+    setActionError(null)
     const endpoint = `/api/v1/organizations/{organizationId}/companies/{companyId}/fiscal-years/{fiscalYearId}/periods/{periodId}/${action}` as const
+
+    const actionLabels: Record<string, string> = {
+      open: "open",
+      "soft-close": "soft close",
+      close: "close",
+      lock: "lock"
+    }
 
     try {
       const { error } = await api.POST(endpoint, {
@@ -652,13 +665,17 @@ function FiscalYearCard({ fiscalYear, organizationId, companyId, onRefresh, canM
         }
       })
 
-      if (!error) {
-        // Reload periods after action
-        setPeriodsLoaded(false)
-        await loadPeriods()
+      if (error) {
+        const errorMessage = typeof error === "object" && "message" in error && typeof error.message === "string"
+          ? error.message
+          : `Failed to ${actionLabels[action]} period`
+        setActionError(errorMessage)
+      } else {
+        // Force reload periods after successful action
+        await fetchPeriods()
       }
     } catch {
-      // Handle error silently
+      setActionError(`Failed to ${actionLabels[action]} period. Please try again.`)
     } finally {
       setActionLoading(null)
     }
@@ -667,6 +684,7 @@ function FiscalYearCard({ fiscalYear, organizationId, companyId, onRefresh, canM
   // Year-level actions
   const handleBeginYearClose = async () => {
     setActionLoading("year-close")
+    setActionError(null)
     try {
       const { error } = await api.POST(
         "/api/v1/organizations/{organizationId}/companies/{companyId}/fiscal-years/{fiscalYearId}/begin-close",
@@ -674,11 +692,16 @@ function FiscalYearCard({ fiscalYear, organizationId, companyId, onRefresh, canM
           params: { path: { organizationId, companyId, fiscalYearId: fiscalYear.id } }
         }
       )
-      if (!error) {
+      if (error) {
+        const errorMessage = typeof error === "object" && "message" in error && typeof error.message === "string"
+          ? error.message
+          : "Failed to begin year-end close"
+        setActionError(errorMessage)
+      } else {
         onRefresh()
       }
     } catch {
-      // Handle error silently
+      setActionError("Failed to begin year-end close. Please try again.")
     } finally {
       setActionLoading(null)
     }
@@ -686,6 +709,7 @@ function FiscalYearCard({ fiscalYear, organizationId, companyId, onRefresh, canM
 
   const handleCompleteYearClose = async () => {
     setActionLoading("year-complete")
+    setActionError(null)
     try {
       const { error } = await api.POST(
         "/api/v1/organizations/{organizationId}/companies/{companyId}/fiscal-years/{fiscalYearId}/complete-close",
@@ -693,11 +717,16 @@ function FiscalYearCard({ fiscalYear, organizationId, companyId, onRefresh, canM
           params: { path: { organizationId, companyId, fiscalYearId: fiscalYear.id } }
         }
       )
-      if (!error) {
+      if (error) {
+        const errorMessage = typeof error === "object" && "message" in error && typeof error.message === "string"
+          ? error.message
+          : "Failed to complete year-end close"
+        setActionError(errorMessage)
+      } else {
         onRefresh()
       }
     } catch {
-      // Handle error silently
+      setActionError("Failed to complete year-end close. Please try again.")
     } finally {
       setActionLoading(null)
     }
@@ -795,6 +824,22 @@ function FiscalYearCard({ fiscalYear, organizationId, companyId, onRefresh, canM
       {/* Periods List */}
       {isExpanded && (
         <div className="border-t border-gray-200">
+          {/* Error banner */}
+          {actionError && (
+            <div className="m-4 rounded-md bg-red-50 p-3" data-testid="action-error">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 text-red-600 flex-shrink-0" />
+                <p className="text-sm text-red-600">{actionError}</p>
+                <button
+                  onClick={() => setActionError(null)}
+                  className="ml-auto text-red-600 hover:text-red-800"
+                  aria-label="Dismiss error"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          )}
           {isLoadingPeriods ? (
             <div className="p-4 text-center text-sm text-gray-500">
               <RefreshCw className="mx-auto h-5 w-5 animate-spin" />
@@ -850,6 +895,7 @@ function FiscalYearCard({ fiscalYear, organizationId, companyId, onRefresh, canM
                                 key={action}
                                 variant="ghost"
                                 size="sm"
+                                icon={<ActionIcon className="h-4 w-4" />}
                                 onClick={() => {
                                   if (action === "reopen") {
                                     setReopenModalPeriod(period)
@@ -860,7 +906,6 @@ function FiscalYearCard({ fiscalYear, organizationId, companyId, onRefresh, canM
                                 disabled={actionLoading === period.id}
                                 data-testid={`period-${action}-${period.periodNumber}`}
                               >
-                                <ActionIcon className="mr-1 h-4 w-4" />
                                 {label}
                               </Button>
                             ))}
@@ -884,10 +929,7 @@ function FiscalYearCard({ fiscalYear, organizationId, companyId, onRefresh, canM
         organizationId={organizationId}
         companyId={companyId}
         fiscalYearId={fiscalYear.id}
-        onReopened={async () => {
-          setPeriodsLoaded(false)
-          await loadPeriods()
-        }}
+        onReopened={fetchPeriods}
       />
     </div>
   )
@@ -937,8 +979,8 @@ function FiscalPeriodsPage() {
     { label: "Fiscal Periods", href: `/organizations/${params.organizationId}/companies/${params.companyId}/fiscal-periods` }
   ]
 
-  const handleRefresh = () => {
-    router.invalidate()
+  const handleRefresh = async () => {
+    await router.invalidate()
   }
 
   return (
