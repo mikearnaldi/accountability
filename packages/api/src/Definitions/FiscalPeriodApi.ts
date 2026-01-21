@@ -31,9 +31,19 @@ import {
   FiscalYearAlreadyExistsError,
   FiscalYearOverlapError,
   InvalidStatusTransitionError,
-  InvalidYearStatusTransitionError,
-  PeriodsNotClosedError
+  InvalidYearStatusTransitionError
 } from "@accountability/core/fiscal/FiscalPeriodErrors"
+import {
+  YearEndClosePreview,
+  YearEndCloseResult,
+  ReopenYearResult,
+  RetainedEarningsNotConfiguredError,
+  InvalidRetainedEarningsAccountError,
+  TrialBalanceNotBalancedForCloseError,
+  YearAlreadyClosedError,
+  YearNotClosedError,
+  NoClosingEntriesToReverseError
+} from "@accountability/core/fiscal/YearEndCloseService"
 
 // =============================================================================
 // Fiscal Year Request/Response Schemas
@@ -209,48 +219,96 @@ const createFiscalYear = HttpApiEndpoint.post("createFiscalYear", "/organization
   }))
 
 /**
- * Begin year-end close process
+ * Close a fiscal year (Year-End Close)
+ *
+ * Executes the year-end closing workflow:
+ * 1. Generates closing journal entries to transfer income statement balances to retained earnings
+ * 2. Closes all open periods
+ * 3. Sets fiscal year status to Closed
+ *
+ * Prerequisites:
+ * - Retained earnings account must be configured in Company Settings
+ * - Trial balance must be balanced
+ * - Fiscal year must be Open
  */
-const beginYearClose = HttpApiEndpoint.post("beginYearClose", "/organizations/:organizationId/companies/:companyId/fiscal-years/:fiscalYearId/begin-close")
+const closeFiscalYear = HttpApiEndpoint.post("closeFiscalYear", "/organizations/:organizationId/companies/:companyId/fiscal-years/:fiscalYearId/close")
   .setPath(Schema.Struct({
     organizationId: Schema.String,
     companyId: Schema.String,
     fiscalYearId: Schema.String
   }))
-  .addSuccess(FiscalYear)
+  .addSuccess(YearEndCloseResult)
   .addError(CompanyNotFoundError)
   .addError(FiscalYearNotFoundError)
+  .addError(RetainedEarningsNotConfiguredError)
+  .addError(InvalidRetainedEarningsAccountError)
+  .addError(TrialBalanceNotBalancedForCloseError)
+  .addError(YearAlreadyClosedError)
   .addError(InvalidYearStatusTransitionError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .addError(AuditLogError)
   .addError(UserLookupError)
   .annotateContext(OpenApi.annotations({
-    summary: "Begin year-end close",
-    description: "Transition a fiscal year to 'Closing' status to begin year-end close process."
+    summary: "Close fiscal year (Year-End Close)",
+    description: "Execute year-end close: generates closing entries to transfer revenue/expense balances to retained earnings, closes all periods, and marks the fiscal year as Closed."
   }))
 
 /**
- * Complete year-end close
+ * Reopen a fiscal year
+ *
+ * Reverses the year-end closing workflow:
+ * 1. Creates reversal entries for all closing journal entries
+ * 2. Reopens all periods
+ * 3. Sets fiscal year status back to Open
+ *
+ * Use with caution - this is typically for correction scenarios.
  */
-const completeYearClose = HttpApiEndpoint.post("completeYearClose", "/organizations/:organizationId/companies/:companyId/fiscal-years/:fiscalYearId/complete-close")
+const reopenFiscalYear = HttpApiEndpoint.post("reopenFiscalYear", "/organizations/:organizationId/companies/:companyId/fiscal-years/:fiscalYearId/reopen")
   .setPath(Schema.Struct({
     organizationId: Schema.String,
     companyId: Schema.String,
     fiscalYearId: Schema.String
   }))
-  .addSuccess(FiscalYear)
+  .addSuccess(ReopenYearResult)
   .addError(CompanyNotFoundError)
   .addError(FiscalYearNotFoundError)
+  .addError(YearNotClosedError)
+  .addError(NoClosingEntriesToReverseError)
   .addError(InvalidYearStatusTransitionError)
-  .addError(PeriodsNotClosedError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .addError(AuditLogError)
   .addError(UserLookupError)
   .annotateContext(OpenApi.annotations({
-    summary: "Complete year-end close",
-    description: "Transition a fiscal year to 'Closed' status. All periods must be closed first."
+    summary: "Reopen fiscal year",
+    description: "Reverse year-end close: creates reversal entries to undo the closing journal entries, reopens all periods, and marks the fiscal year as Open. Use with caution for correction scenarios."
+  }))
+
+/**
+ * Preview year-end close
+ *
+ * Returns a preview of what year-end close will do, including:
+ * - Net income calculation (revenue - expenses)
+ * - Retained earnings account that will receive net income
+ * - Any blockers preventing the close (e.g., missing retained earnings account)
+ *
+ * This endpoint does NOT make any changes - it's read-only.
+ */
+const previewYearEndClose = HttpApiEndpoint.get("previewYearEndClose", "/organizations/:organizationId/companies/:companyId/fiscal-years/:fiscalYearId/close/preview")
+  .setPath(Schema.Struct({
+    organizationId: Schema.String,
+    companyId: Schema.String,
+    fiscalYearId: Schema.String
+  }))
+  .addSuccess(YearEndClosePreview)
+  .addError(CompanyNotFoundError)
+  .addError(FiscalYearNotFoundError)
+  .addError(OrganizationNotFoundError)
+  .addError(ForbiddenError)
+  .annotateContext(OpenApi.annotations({
+    summary: "Preview year-end close",
+    description: "Get a preview of the year-end close operation including net income calculation and any blockers. This endpoint does not make any changes."
   }))
 
 // =============================================================================
@@ -411,8 +469,9 @@ export class FiscalPeriodApi extends HttpApiGroup.make("fiscal-periods")
   .add(listFiscalYears)
   .add(getFiscalYear)
   .add(createFiscalYear)
-  .add(beginYearClose)
-  .add(completeYearClose)
+  .add(closeFiscalYear)
+  .add(reopenFiscalYear)
+  .add(previewYearEndClose)
   .add(listPeriods)
   .add(getPeriod)
   .add(openPeriod)

@@ -91,7 +91,13 @@ export class TemplateAccountDefinition extends Schema.Class<TemplateAccountDefin
   /**
    * Flag indicating this is an intercompany account
    */
-  isIntercompany: Schema.Boolean
+  isIntercompany: Schema.Boolean,
+
+  /**
+   * Flag indicating this is the retained earnings account for year-end close
+   * Used to automatically set company.retainedEarningsAccountId when applying template
+   */
+  isRetainedEarnings: Schema.optionalWith(Schema.Boolean, { default: () => false })
 }) {
   /**
    * Get the effective normal balance (specified or derived from account type)
@@ -197,6 +203,7 @@ const makeAccountDef = (params: {
   isCashFlowRelevant?: boolean
   cashFlowCategory?: CashFlowCategory
   isIntercompany?: boolean
+  isRetainedEarnings?: boolean
 }): TemplateAccountDefinition => {
   return TemplateAccountDefinition.make({
     accountNumber: AccountNumber.make(params.accountNumber),
@@ -211,7 +218,8 @@ const makeAccountDef = (params: {
     isPostable: params.isPostable ?? true,
     isCashFlowRelevant: params.isCashFlowRelevant ?? false,
     cashFlowCategory: params.cashFlowCategory !== undefined ? Option.some(params.cashFlowCategory) : Option.none(),
-    isIntercompany: params.isIntercompany ?? false
+    isIntercompany: params.isIntercompany ?? false,
+    isRetainedEarnings: params.isRetainedEarnings ?? false
   })
 }
 
@@ -634,7 +642,8 @@ const generalBusinessAccounts: TemplateAccountDefinition[] = [
     name: "Retained Earnings",
     description: "Accumulated profits not distributed to shareholders",
     accountType: "Equity",
-    accountCategory: "RetainedEarnings"
+    accountCategory: "RetainedEarnings",
+    isRetainedEarnings: true
   }),
   makeAccountDef({
     accountNumber: "3400",
@@ -1521,7 +1530,8 @@ const serviceBusinessAccounts: TemplateAccountDefinition[] = [
     name: "Retained Earnings",
     description: "Accumulated profits not distributed",
     accountType: "Equity",
-    accountCategory: "RetainedEarnings"
+    accountCategory: "RetainedEarnings",
+    isRetainedEarnings: true
   }),
   makeAccountDef({
     accountNumber: "3400",
@@ -2245,7 +2255,8 @@ const holdingCompanyAccounts: TemplateAccountDefinition[] = [
     name: "Retained Earnings",
     description: "Accumulated profits not distributed",
     accountType: "Equity",
-    accountCategory: "RetainedEarnings"
+    accountCategory: "RetainedEarnings",
+    isRetainedEarnings: true
   }),
   makeAccountDef({
     accountNumber: "3400",
@@ -2662,6 +2673,7 @@ export const instantiateTemplate = (
       isCashFlowRelevant: def.isCashFlowRelevant,
       cashFlowCategory: def.cashFlowCategory,
       isIntercompany: def.isIntercompany,
+      isRetainedEarnings: def.isRetainedEarnings ?? false,
       intercompanyPartnerId: Option.none(), // Partner must be set separately
       currencyRestriction: Option.none(), // Currency restriction must be set separately
       isActive: true,
@@ -2726,6 +2738,7 @@ export const instantiateTemplateEffect = <E, R>(
         isCashFlowRelevant: def.isCashFlowRelevant,
         cashFlowCategory: def.cashFlowCategory,
         isIntercompany: def.isIntercompany,
+        isRetainedEarnings: def.isRetainedEarnings ?? false,
         intercompanyPartnerId: Option.none(),
         currencyRestriction: Option.none(),
         isActive: true,

@@ -9,6 +9,7 @@
 import { HttpApiEndpoint, HttpApiGroup, HttpApiSchema, OpenApi } from "@effect/platform"
 import * as Schema from "effect/Schema"
 import { Address } from "@accountability/core/shared/values/Address"
+import { AccountId } from "@accountability/core/accounting/Account"
 import {
   Company,
   CompanyId,
@@ -114,6 +115,7 @@ export class UpdateCompanyRequest extends Schema.Class<UpdateCompanyRequest>("Up
   incorporationJurisdiction: Schema.OptionFromNullOr(JurisdictionCode),
   reportingCurrency: Schema.OptionFromNullOr(CurrencyCode),
   fiscalYearEnd: Schema.OptionFromNullOr(FiscalYearEnd),
+  retainedEarningsAccountId: Schema.OptionFromNullOr(AccountId),
   parentCompanyId: Schema.OptionFromNullOr(CompanyId),
   ownershipPercentage: Schema.OptionFromNullOr(Percentage),
   isActive: Schema.OptionFromNullOr(Schema.Boolean)

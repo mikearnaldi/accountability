@@ -23,7 +23,6 @@ import {
   Unlock,
   Play,
   CheckCircle,
-  Clock,
   AlertCircle,
   RefreshCw,
   X
@@ -41,7 +40,7 @@ import { usePermissions } from "@/hooks/usePermissions"
 // Types
 // =============================================================================
 
-type FiscalYearStatus = "Open" | "Closing" | "Closed"
+type FiscalYearStatus = "Open" | "Closed"
 type FiscalPeriodStatus = "Open" | "Closed"
 type FiscalPeriodType = "Regular" | "Adjustment" | "Closing"
 
@@ -157,7 +156,6 @@ const fetchFiscalData = createServerFn({ method: "GET" })
 
 const YEAR_STATUS_STYLES: Record<FiscalYearStatus, { bg: string; text: string; icon: typeof Lock }> = {
   Open: { bg: "bg-green-100", text: "text-green-700", icon: Play },
-  Closing: { bg: "bg-yellow-100", text: "text-yellow-700", icon: Clock },
   Closed: { bg: "bg-gray-100", text: "text-gray-700", icon: Lock }
 }
 
@@ -439,6 +437,18 @@ interface FiscalYearCardProps {
   canManage: boolean
 }
 
+// Preview response type from API schema
+interface YearEndClosePreviewResponse {
+  readonly fiscalYearId: string
+  readonly fiscalYearName: string
+  readonly totalRevenue: { readonly amount: string; readonly currency: string }
+  readonly totalExpenses: { readonly amount: string; readonly currency: string }
+  readonly netIncome: { readonly amount: string; readonly currency: string }
+  readonly retainedEarningsAccount: { readonly id: string; readonly number: string; readonly name: string } | null
+  readonly canProceed: boolean
+  readonly blockers: readonly string[]
+}
+
 function FiscalYearCard({ fiscalYear, organizationId, companyId, onRefresh, canManage }: FiscalYearCardProps) {
   const [isExpanded, setIsExpanded] = useState(fiscalYear.status === "Open")
   const [periods, setPeriods] = useState<FiscalPeriod[]>([])
@@ -446,6 +456,10 @@ function FiscalYearCard({ fiscalYear, organizationId, companyId, onRefresh, canM
   const [periodsLoaded, setPeriodsLoaded] = useState(false)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
+  // Year-end close confirmation state
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false)
+  const [closePreview, setClosePreview] = useState<YearEndClosePreviewResponse | null>(null)
+  const [previewLoading, setPreviewLoading] = useState(false)
 
   const StatusIcon = YEAR_STATUS_STYLES[fiscalYear.status].icon
 
@@ -532,13 +546,13 @@ function FiscalYearCard({ fiscalYear, organizationId, companyId, onRefresh, canM
     }
   }
 
-  // Year-level actions
-  const handleBeginYearClose = async () => {
-    setActionLoading("year-close")
+  // Year-level actions - fetch preview first
+  const handleCloseYearClick = async () => {
+    setPreviewLoading(true)
     setActionError(null)
     try {
-      const { error } = await api.POST(
-        "/api/v1/organizations/{organizationId}/companies/{companyId}/fiscal-years/{fiscalYearId}/begin-close",
+      const { data, error } = await api.GET(
+        "/api/v1/organizations/{organizationId}/companies/{companyId}/fiscal-years/{fiscalYearId}/close/preview",
         {
           params: { path: { organizationId, companyId, fiscalYearId: fiscalYear.id } }
         }
@@ -546,24 +560,70 @@ function FiscalYearCard({ fiscalYear, organizationId, companyId, onRefresh, canM
       if (error) {
         const errorMessage = typeof error === "object" && "message" in error && typeof error.message === "string"
           ? error.message
-          : "Failed to begin year-end close"
+          : "Failed to fetch year-end close preview"
         setActionError(errorMessage)
+      } else if (data) {
+        // Map API response to our local interface shape
+        const preview: YearEndClosePreviewResponse = {
+          fiscalYearId: data.fiscalYearId,
+          fiscalYearName: data.fiscalYearName,
+          totalRevenue: data.totalRevenue,
+          totalExpenses: data.totalExpenses,
+          netIncome: data.netIncome,
+          retainedEarningsAccount: data.retainedEarningsAccount ?? null,
+          canProceed: data.canProceed,
+          blockers: data.blockers
+        }
+        setClosePreview(preview)
+        setShowCloseConfirm(true)
+      }
+    } catch {
+      setActionError("Failed to fetch year-end close preview. Please try again.")
+    } finally {
+      setPreviewLoading(false)
+    }
+  }
+
+  // Execute the actual close after confirmation
+  const handleConfirmCloseYear = async () => {
+    setActionLoading("year-close")
+    setActionError(null)
+    try {
+      const { error } = await api.POST(
+        "/api/v1/organizations/{organizationId}/companies/{companyId}/fiscal-years/{fiscalYearId}/close",
+        {
+          params: { path: { organizationId, companyId, fiscalYearId: fiscalYear.id } }
+        }
+      )
+      if (error) {
+        const errorMessage = typeof error === "object" && "message" in error && typeof error.message === "string"
+          ? error.message
+          : "Failed to close fiscal year"
+        setActionError(errorMessage)
+        setShowCloseConfirm(false)
       } else {
+        setShowCloseConfirm(false)
+        setClosePreview(null)
         onRefresh()
       }
     } catch {
-      setActionError("Failed to begin year-end close. Please try again.")
+      setActionError("Failed to close fiscal year. Please try again.")
     } finally {
       setActionLoading(null)
     }
   }
 
-  const handleCompleteYearClose = async () => {
-    setActionLoading("year-complete")
+  const handleCancelCloseYear = () => {
+    setShowCloseConfirm(false)
+    setClosePreview(null)
+  }
+
+  const handleReopenYear = async () => {
+    setActionLoading("year-reopen")
     setActionError(null)
     try {
       const { error } = await api.POST(
-        "/api/v1/organizations/{organizationId}/companies/{companyId}/fiscal-years/{fiscalYearId}/complete-close",
+        "/api/v1/organizations/{organizationId}/companies/{companyId}/fiscal-years/{fiscalYearId}/reopen",
         {
           params: { path: { organizationId, companyId, fiscalYearId: fiscalYear.id } }
         }
@@ -571,13 +631,13 @@ function FiscalYearCard({ fiscalYear, organizationId, companyId, onRefresh, canM
       if (error) {
         const errorMessage = typeof error === "object" && "message" in error && typeof error.message === "string"
           ? error.message
-          : "Failed to complete year-end close"
+          : "Failed to reopen fiscal year"
         setActionError(errorMessage)
       } else {
         onRefresh()
       }
     } catch {
-      setActionError("Failed to complete year-end close. Please try again.")
+      setActionError("Failed to reopen fiscal year. Please try again.")
     } finally {
       setActionLoading(null)
     }
@@ -632,28 +692,28 @@ function FiscalYearCard({ fiscalYear, organizationId, companyId, onRefresh, canM
           </div>
         </div>
 
-        {canManage && fiscalYear.status !== "Closed" && (
+        {canManage && (
           <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
             {fiscalYear.status === "Open" && (
               <Button
                 variant="secondary"
                 size="sm"
-                onClick={handleBeginYearClose}
-                disabled={actionLoading === "year-close"}
-                data-testid={`begin-close-${fiscalYear.year}`}
+                onClick={handleCloseYearClick}
+                disabled={actionLoading === "year-close" || previewLoading}
+                data-testid={`close-year-${fiscalYear.year}`}
               >
-                Begin Year-End Close
+                {previewLoading ? "Loading..." : "Close Year"}
               </Button>
             )}
-            {fiscalYear.status === "Closing" && (
+            {fiscalYear.status === "Closed" && (
               <Button
-                variant="secondary"
+                variant="ghost"
                 size="sm"
-                onClick={handleCompleteYearClose}
-                disabled={actionLoading === "year-complete"}
-                data-testid={`complete-close-${fiscalYear.year}`}
+                onClick={handleReopenYear}
+                disabled={actionLoading === "year-reopen"}
+                data-testid={`reopen-year-${fiscalYear.year}`}
               >
-                Complete Close
+                Reopen
               </Button>
             )}
           </div>
@@ -754,6 +814,83 @@ function FiscalYearCard({ fiscalYear, organizationId, companyId, onRefresh, canM
         </div>
       )}
 
+      {/* Year-End Close Confirmation Dialog */}
+      {showCloseConfirm && closePreview && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" data-testid="close-year-confirm-modal">
+          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900">
+                {closePreview.canProceed ? "Close Fiscal Year?" : "Cannot Close Year"}
+              </h2>
+              <button onClick={handleCancelCloseYear} className="text-gray-400 hover:text-gray-500" data-testid="close-confirm-cancel-x">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {closePreview.canProceed ? (
+              <>
+                <div className="space-y-4">
+                  {/* Net income summary */}
+                  <div className="rounded-md bg-blue-50 p-4">
+                    <p className="text-sm text-blue-700">
+                      Net income of <strong className="font-semibold">{closePreview.netIncome.currency} {parseFloat(closePreview.netIncome.amount).toLocaleString()}</strong> will be posted to{" "}
+                      {closePreview.retainedEarningsAccount ? (
+                        <strong className="font-semibold">{closePreview.retainedEarningsAccount.name} ({closePreview.retainedEarningsAccount.number})</strong>
+                      ) : (
+                        <span className="text-red-600">No account configured</span>
+                      )}.
+                    </p>
+                  </div>
+
+                  {/* What will happen */}
+                  <div>
+                    <p className="mb-2 text-sm font-medium text-gray-700">This will:</p>
+                    <ul className="list-inside list-disc space-y-1 text-sm text-gray-600">
+                      <li>Close all revenue accounts</li>
+                      <li>Close all expense accounts</li>
+                      <li>Close all open periods</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div className="mt-6 flex justify-end gap-3">
+                  <Button variant="secondary" onClick={handleCancelCloseYear} disabled={actionLoading === "year-close"}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleConfirmCloseYear} disabled={actionLoading === "year-close"} data-testid="confirm-close-year-btn">
+                    {actionLoading === "year-close" ? "Closing..." : "Close Year"}
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Blockers list */}
+                <div className="space-y-4">
+                  <div className="rounded-md bg-red-50 p-4">
+                    <div className="flex items-start gap-2">
+                      <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-red-600" />
+                      <div>
+                        <p className="text-sm font-medium text-red-800">The following issues must be resolved:</p>
+                        <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-red-700">
+                          {closePreview.blockers.map((blocker: string, idx: number) => (
+                            <li key={idx}>{blocker}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-6 flex justify-end">
+                  <Button variant="secondary" onClick={handleCancelCloseYear}>
+                    Close
+                  </Button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

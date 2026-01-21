@@ -12,6 +12,7 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
+import { AccountId } from "@accountability/core/accounting/Account"
 import { Address } from "@accountability/core/shared/values/Address"
 import { Company, CompanyId, FiscalYearEnd } from "@accountability/core/company/Company"
 import type { CompanyType } from "@accountability/core/company/CompanyType"
@@ -50,6 +51,7 @@ const CompanyRow = Schema.Struct({
   reporting_currency: Schema.String,
   fiscal_year_end_month: Schema.Number,
   fiscal_year_end_day: Schema.Number,
+  retained_earnings_account_id: Schema.NullOr(Schema.String),
   parent_company_id: Schema.NullOr(Schema.String),
   ownership_percentage: Schema.NullOr(Schema.String),
   is_active: Schema.Boolean,
@@ -137,6 +139,9 @@ const rowToCompany = (row: CompanyRow): Company =>
       month: row.fiscal_year_end_month,
       day: row.fiscal_year_end_day
     }),
+    retainedEarningsAccountId: Option.fromNullable(row.retained_earnings_account_id).pipe(
+      Option.map(AccountId.make)
+    ),
     parentCompanyId: Option.fromNullable(row.parent_company_id).pipe(
       Option.map(CompanyId.make)
     ),
@@ -245,6 +250,7 @@ const make = Effect.gen(function* () {
           industry_code, company_type, incorporation_jurisdiction,
           functional_currency, reporting_currency,
           fiscal_year_end_month, fiscal_year_end_day,
+          retained_earnings_account_id,
           parent_company_id, ownership_percentage, is_active, created_at
         ) VALUES (
           ${company.id},
@@ -268,6 +274,7 @@ const make = Effect.gen(function* () {
           ${company.reportingCurrency},
           ${company.fiscalYearEnd.month},
           ${company.fiscalYearEnd.day},
+          ${Option.getOrNull(company.retainedEarningsAccountId)},
           ${Option.getOrNull(company.parentCompanyId)},
           ${Option.getOrNull(company.ownershipPercentage)},
           ${company.isActive},
@@ -318,6 +325,7 @@ const make = Effect.gen(function* () {
           reporting_currency = ${company.reportingCurrency},
           fiscal_year_end_month = ${company.fiscalYearEnd.month},
           fiscal_year_end_day = ${company.fiscalYearEnd.day},
+          retained_earnings_account_id = ${Option.getOrNull(company.retainedEarningsAccountId)},
           parent_company_id = ${Option.getOrNull(company.parentCompanyId)},
           ownership_percentage = ${Option.getOrNull(company.ownershipPercentage)},
           is_active = ${company.isActive}

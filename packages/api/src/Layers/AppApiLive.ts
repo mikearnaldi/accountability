@@ -15,6 +15,7 @@ import { ConsolidatedReportServiceLive } from "@accountability/core/reporting/Co
 import { AuthorizationConfigLive } from "@accountability/core/authorization/AuthorizationConfig"
 import { AuthorizationServiceLive } from "@accountability/persistence/Layers/AuthorizationServiceLive"
 import { PolicyEngineLive } from "@accountability/persistence/Layers/PolicyEngineLive"
+import { YearEndCloseServiceLive } from "@accountability/persistence/Layers/YearEndCloseServiceLive"
 import { AppApi, HealthCheckResponse } from "../Definitions/AppApi.ts"
 import { AuthMiddlewareLive } from "./AuthMiddlewareLive.ts"
 import { AccountsApiLive } from "./AccountsApiLive.ts"
@@ -133,12 +134,22 @@ const MasterDataApiGroup = Layer.mergeAll(
 )
 
 /**
+ * FiscalPeriodApiWithDependencies - FiscalPeriodApiLive with its required services
+ *
+ * FiscalPeriodApiLive requires YearEndCloseService for year-end close preview.
+ */
+const FiscalPeriodApiWithDependencies = Layer.provide(
+  FiscalPeriodApiLive,
+  YearEndCloseServiceLive
+)
+
+/**
  * AdvancedApiGroup - Advanced feature API implementations
  */
 const AdvancedApiGroup = Layer.mergeAll(
   IntercompanyTransactionsApiLive,
   EliminationRulesApiLive,
-  FiscalPeriodApiLive
+  FiscalPeriodApiWithDependencies
 )
 
 // =============================================================================

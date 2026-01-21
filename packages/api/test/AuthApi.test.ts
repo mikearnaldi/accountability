@@ -50,6 +50,7 @@ import { UserOrganizationsApiLive } from "@accountability/api/Layers/UserOrganiz
 import { AuthorizationAuditApiLive } from "@accountability/api/Layers/AuthorizationAuditApiLive"
 import { AuthorizationServiceLive } from "@accountability/persistence/Layers/AuthorizationServiceLive"
 import { PolicyEngineLive } from "@accountability/persistence/Layers/PolicyEngineLive"
+import { YearEndCloseServiceLive } from "@accountability/persistence/Layers/YearEndCloseServiceLive"
 import { AuthorizationConfigGracePeriod } from "@accountability/core/authorization/AuthorizationConfig"
 
 /**
@@ -123,6 +124,7 @@ const AppApiLiveWithSessionAuth = HttpApiBuilder.api(AppApi)
   .pipe(Layer.provide(ConsolidatedReportServiceLive))
   .pipe(Layer.provide(EliminationRulesApiLive))
   .pipe(Layer.provide(FiscalPeriodApiLive))
+  .pipe(Layer.provide(YearEndCloseServiceLive))
   .pipe(Layer.provide(UserOrganizationsApiLive))
   .pipe(Layer.provide(AuthorizationServiceWithDependencies))
   .pipe(Layer.provide(AuthMiddlewareWithSessionValidation))

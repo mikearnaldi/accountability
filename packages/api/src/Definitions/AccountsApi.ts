@@ -59,7 +59,8 @@ export class CreateAccountRequest extends Schema.Class<CreateAccountRequest>("Cr
   cashFlowCategory: Schema.OptionFromNullOr(CashFlowCategory),
   isIntercompany: Schema.Boolean,
   intercompanyPartnerId: Schema.OptionFromNullOr(CompanyId),
-  currencyRestriction: Schema.OptionFromNullOr(CurrencyCode)
+  currencyRestriction: Schema.OptionFromNullOr(CurrencyCode),
+  isRetainedEarnings: Schema.optionalWith(Schema.Boolean, { default: () => false })
 }) {}
 
 /**
@@ -77,7 +78,8 @@ export class UpdateAccountRequest extends Schema.Class<UpdateAccountRequest>("Up
   isIntercompany: Schema.OptionFromNullOr(Schema.Boolean),
   intercompanyPartnerId: Schema.OptionFromNullOr(CompanyId),
   currencyRestriction: Schema.OptionFromNullOr(CurrencyCode),
-  isActive: Schema.OptionFromNullOr(Schema.Boolean)
+  isActive: Schema.OptionFromNullOr(Schema.Boolean),
+  isRetainedEarnings: Schema.OptionFromNullOr(Schema.Boolean)
 }) {}
 
 /**

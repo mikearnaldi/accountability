@@ -68,6 +68,7 @@ const createTestCompany = (overrides: Partial<{
     functionalCurrency: CurrencyCode.make(functionalCurrency),
     reportingCurrency: CurrencyCode.make("USD"),
     fiscalYearEnd: FiscalYearEnd.make({ month: 12, day: 31 }),
+    retainedEarningsAccountId: Option.none(),
     parentCompanyId: Option.none(),
     ownershipPercentage: Option.none(),
     isActive: true,

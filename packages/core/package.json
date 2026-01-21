@@ -32,6 +32,7 @@
     "./company/CompanyErrors": "./src/company/CompanyErrors.ts",
 
     "./accounting/Account": "./src/accounting/Account.ts",
+    "./accounting/AccountId": "./src/accounting/AccountId.ts",
     "./accounting/AccountNumber": "./src/accounting/AccountNumber.ts",
     "./accounting/AccountHierarchy": "./src/accounting/AccountHierarchy.ts",
     "./accounting/AccountTemplate": "./src/accounting/AccountTemplate.ts",
@@ -57,6 +58,7 @@
     "./fiscal/ComputedFiscalPeriod": "./src/fiscal/ComputedFiscalPeriod.ts",
     "./fiscal/FiscalPeriodService": "./src/fiscal/FiscalPeriodService.ts",
     "./fiscal/FiscalPeriodErrors": "./src/fiscal/FiscalPeriodErrors.ts",
+    "./fiscal/YearEndCloseService": "./src/fiscal/YearEndCloseService.ts",
 
     "./currency/CurrencyCode": "./src/currency/CurrencyCode.ts",
     "./currency/Currency": "./src/currency/Currency.ts",

@@ -17,7 +17,7 @@ import {
   instantiateTemplate
 } from "@accountability/core/accounting/AccountTemplate"
 import { type Account, AccountId } from "@accountability/core/accounting/Account"
-import { CompanyId } from "@accountability/core/company/Company"
+import { Company, CompanyId } from "@accountability/core/company/Company"
 import { OrganizationId } from "@accountability/core/organization/Organization"
 import { AccountRepository } from "@accountability/persistence/Services/AccountRepository"
 import { CompanyRepository } from "@accountability/persistence/Services/CompanyRepository"
@@ -169,6 +169,7 @@ export const AccountTemplatesApiLive = HttpApiBuilder.group(AppApi, "accountTemp
 
             // Create all accounts in the database and log each to audit trail
             let createdCount = 0
+            let retainedEarningsAccountId: AccountId | null = null
             for (const account of accounts) {
               const createdAccount = yield* accountRepo.create(account).pipe(
                 Effect.orDie
@@ -176,6 +177,21 @@ export const AccountTemplatesApiLive = HttpApiBuilder.group(AppApi, "accountTemp
               // Log each account creation to audit trail
               yield* logAccountCreate(orgIdString, createdAccount)
               createdCount++
+
+              // Track the retained earnings account for company auto-configuration
+              if (createdAccount.isRetainedEarnings) {
+                retainedEarningsAccountId = createdAccount.id
+              }
+            }
+
+            // Auto-set company's retained earnings account if one was found
+            if (retainedEarningsAccountId) {
+              const existingCompany = maybeCompany.value
+              const updatedCompany = Company.make({
+                ...existingCompany,
+                retainedEarningsAccountId: Option.some(retainedEarningsAccountId)
+              })
+              yield* companyRepo.update(organizationId, updatedCompany).pipe(Effect.orDie)
             }
 
             return {

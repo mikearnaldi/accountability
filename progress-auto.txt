@@ -1101,3 +1101,8 @@
 **Task**: Fixed 4 failing E2E tests by updating accounts.spec.ts, consolidation.spec.ts, and intercompany.spec.ts to use selectComboboxOption helper for Combobox-based form fields
 **Status**: complete
 ---
+
+## Iteration 2 - 2026-01-21 23:57
+**Task**: Added 7 E2E tests for year-end closing workflow and fixed reopening years with no closing entries
+**Status**: complete
+---

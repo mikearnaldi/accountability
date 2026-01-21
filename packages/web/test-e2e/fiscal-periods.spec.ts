@@ -394,4 +394,281 @@ test.describe("Fiscal Period Management", () => {
       await expect(page.getByTestId("breadcrumb-2")).toBeVisible()
     })
   })
+
+  test.describe("Year-End Closing", () => {
+    // Helper to setup a company with chart of accounts (for retained earnings)
+    async function setupCompanyWithAccounts(
+      request: APIRequestContext,
+      page: Page,
+      testId: string
+    ) {
+      const { sessionToken, organizationId, companyId } = await setupTestContext(
+        request,
+        page,
+        testId
+      )
+
+      // Apply account template to set up retained earnings account
+      await request.post(`/api/v1/account-templates/GeneralBusiness/apply`, {
+        headers: { Authorization: `Bearer ${sessionToken}` },
+        data: { organizationId, companyId }
+      })
+
+      return { sessionToken, organizationId, companyId }
+    }
+
+    test("should show Close Year button for Open fiscal year", async ({
+      page,
+      request
+    }) => {
+      const { organizationId, companyId } = await setupCompanyWithAccounts(
+        request,
+        page,
+        "close-year-btn"
+      )
+
+      await page.goto(
+        `/organizations/${organizationId}/companies/${companyId}/fiscal-periods`
+      )
+      await page.waitForLoadState("networkidle")
+
+      const currentYear = new Date().getFullYear()
+      await createFiscalYearViaUI(page, currentYear)
+
+      // Verify Close Year button is visible for Open fiscal year
+      await expect(
+        page.getByTestId(`close-year-${currentYear}`)
+      ).toBeVisible()
+    })
+
+    test("should open year-end close preview dialog when clicking Close Year", async ({
+      page,
+      request
+    }) => {
+      const { organizationId, companyId } = await setupCompanyWithAccounts(
+        request,
+        page,
+        "close-year-dialog"
+      )
+
+      await page.goto(
+        `/organizations/${organizationId}/companies/${companyId}/fiscal-periods`
+      )
+      await page.waitForLoadState("networkidle")
+
+      const currentYear = new Date().getFullYear()
+      await createFiscalYearViaUI(page, currentYear)
+
+      // Click Close Year button
+      await page.waitForTimeout(500)
+      await page.getByTestId(`close-year-${currentYear}`).click({ force: true })
+
+      // Verify preview/confirmation dialog appears
+      await expect(page.getByTestId("close-year-confirm-modal")).toBeVisible({
+        timeout: 10000
+      })
+
+      // Should show either the preview with net income or blockers
+      // Since we have no journal entries, it should show zero net income
+      await expect(
+        page.getByText(/net income|Cannot Close Year/i)
+      ).toBeVisible()
+    })
+
+    test("should show net income preview in close year dialog", async ({
+      page,
+      request
+    }) => {
+      const { organizationId, companyId } = await setupCompanyWithAccounts(
+        request,
+        page,
+        "close-preview"
+      )
+
+      await page.goto(
+        `/organizations/${organizationId}/companies/${companyId}/fiscal-periods`
+      )
+      await page.waitForLoadState("networkidle")
+
+      const currentYear = new Date().getFullYear()
+      await createFiscalYearViaUI(page, currentYear)
+
+      // Click Close Year button
+      await page.waitForTimeout(500)
+      await page.getByTestId(`close-year-${currentYear}`).click({ force: true })
+
+      // Verify preview dialog shows
+      await expect(page.getByTestId("close-year-confirm-modal")).toBeVisible({
+        timeout: 10000
+      })
+
+      // Should show "This will:" list with closing actions
+      await expect(page.getByText(/Close all revenue accounts/i)).toBeVisible()
+      await expect(page.getByText(/Close all expense accounts/i)).toBeVisible()
+      await expect(page.getByText(/Close all open periods/i)).toBeVisible()
+    })
+
+    test("should close fiscal year successfully", async ({ page, request }) => {
+      const { organizationId, companyId } = await setupCompanyWithAccounts(
+        request,
+        page,
+        "close-year-success"
+      )
+
+      await page.goto(
+        `/organizations/${organizationId}/companies/${companyId}/fiscal-periods`
+      )
+      await page.waitForLoadState("networkidle")
+
+      const currentYear = new Date().getFullYear()
+      await createFiscalYearViaUI(page, currentYear)
+
+      // Click Close Year button
+      await page.waitForTimeout(500)
+      await page.getByTestId(`close-year-${currentYear}`).click({ force: true })
+
+      // Wait for preview dialog
+      await expect(page.getByTestId("close-year-confirm-modal")).toBeVisible({
+        timeout: 10000
+      })
+
+      // Confirm close
+      await page.getByTestId("confirm-close-year-btn").click({ force: true })
+
+      // Wait for dialog to close and page to refresh
+      await expect(page.getByTestId("close-year-confirm-modal")).not.toBeVisible({
+        timeout: 10000
+      })
+
+      // Verify fiscal year is now Closed
+      await expect(
+        page.getByTestId(`fiscal-year-status-${currentYear}`)
+      ).toContainText("Closed")
+    })
+
+    test("should show Reopen button for Closed fiscal year", async ({
+      page,
+      request
+    }) => {
+      const { organizationId, companyId } = await setupCompanyWithAccounts(
+        request,
+        page,
+        "reopen-btn"
+      )
+
+      await page.goto(
+        `/organizations/${organizationId}/companies/${companyId}/fiscal-periods`
+      )
+      await page.waitForLoadState("networkidle")
+
+      const currentYear = new Date().getFullYear()
+      await createFiscalYearViaUI(page, currentYear)
+
+      // Close the fiscal year
+      await page.waitForTimeout(500)
+      await page.getByTestId(`close-year-${currentYear}`).click({ force: true })
+      await expect(page.getByTestId("close-year-confirm-modal")).toBeVisible({
+        timeout: 10000
+      })
+      await page.getByTestId("confirm-close-year-btn").click({ force: true })
+      await expect(page.getByTestId("close-year-confirm-modal")).not.toBeVisible({
+        timeout: 10000
+      })
+
+      // Verify Reopen button is visible
+      await expect(
+        page.getByTestId(`reopen-year-${currentYear}`)
+      ).toBeVisible()
+    })
+
+    test("should reopen closed fiscal year", async ({ page, request }) => {
+      const { organizationId, companyId } = await setupCompanyWithAccounts(
+        request,
+        page,
+        "reopen-year"
+      )
+
+      await page.goto(
+        `/organizations/${organizationId}/companies/${companyId}/fiscal-periods`
+      )
+      await page.waitForLoadState("networkidle")
+
+      const currentYear = new Date().getFullYear()
+      await createFiscalYearViaUI(page, currentYear)
+
+      // Close the fiscal year
+      await page.waitForTimeout(500)
+      await page.getByTestId(`close-year-${currentYear}`).click({ force: true })
+      await expect(page.getByTestId("close-year-confirm-modal")).toBeVisible({
+        timeout: 10000
+      })
+      await page.getByTestId("confirm-close-year-btn").click({ force: true })
+      await expect(page.getByTestId("close-year-confirm-modal")).not.toBeVisible({
+        timeout: 10000
+      })
+
+      // Wait for status to change to Closed
+      await expect(
+        page.getByTestId(`fiscal-year-status-${currentYear}`)
+      ).toContainText("Closed", { timeout: 10000 })
+
+      // Verify Reopen button is now visible
+      await expect(
+        page.getByTestId(`reopen-year-${currentYear}`)
+      ).toBeVisible({ timeout: 5000 })
+
+      // Reopen the fiscal year
+      await page.waitForTimeout(500)
+      await page.getByTestId(`reopen-year-${currentYear}`).click({ force: true })
+
+      // Wait for status to change back to Open (with longer timeout for API response)
+      await expect(
+        page.getByTestId(`fiscal-year-status-${currentYear}`)
+      ).toContainText("Open", { timeout: 15000 })
+
+      // Verify Close Year button is visible again
+      await expect(
+        page.getByTestId(`close-year-${currentYear}`)
+      ).toBeVisible({ timeout: 5000 })
+    })
+
+    test("should cancel close year dialog without closing", async ({
+      page,
+      request
+    }) => {
+      const { organizationId, companyId } = await setupCompanyWithAccounts(
+        request,
+        page,
+        "cancel-close"
+      )
+
+      await page.goto(
+        `/organizations/${organizationId}/companies/${companyId}/fiscal-periods`
+      )
+      await page.waitForLoadState("networkidle")
+
+      const currentYear = new Date().getFullYear()
+      await createFiscalYearViaUI(page, currentYear)
+
+      // Click Close Year button
+      await page.waitForTimeout(500)
+      await page.getByTestId(`close-year-${currentYear}`).click({ force: true })
+
+      // Wait for preview dialog
+      await expect(page.getByTestId("close-year-confirm-modal")).toBeVisible({
+        timeout: 10000
+      })
+
+      // Click X button to cancel
+      await page.getByTestId("close-confirm-cancel-x").click({ force: true })
+
+      // Verify dialog is closed
+      await expect(page.getByTestId("close-year-confirm-modal")).not.toBeVisible()
+
+      // Verify fiscal year is still Open
+      await expect(
+        page.getByTestId(`fiscal-year-status-${currentYear}`)
+      ).toContainText("Open")
+    })
+  })
 })

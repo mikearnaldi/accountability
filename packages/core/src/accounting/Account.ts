@@ -26,29 +26,9 @@ import { CompanyId } from "../company/Company.ts"
 import { CurrencyCode } from "../currency/CurrencyCode.ts"
 import { Timestamp } from "../shared/values/Timestamp.ts"
 
-/**
- * AccountId - Branded UUID string for account identification
- *
- * Uses Effect's built-in UUID schema with additional branding for type safety.
- */
-export const AccountId = Schema.UUID.pipe(
-  Schema.brand("AccountId"),
-  Schema.annotations({
-    identifier: "AccountId",
-    title: "Account ID",
-    description: "A unique identifier for an account (UUID format)"
-  })
-)
-
-/**
- * The branded AccountId type
- */
-export type AccountId = typeof AccountId.Type
-
-/**
- * Type guard for AccountId using Schema.is
- */
-export const isAccountId = Schema.is(AccountId)
+// Re-export AccountId from separate module to break circular dependency
+export { AccountId, isAccountId, type AccountId as AccountIdType } from "./AccountId.ts"
+import { AccountId } from "./AccountId.ts"
 
 /**
  * AccountType - The five main account classifications per US GAAP
@@ -393,6 +373,16 @@ export class Account extends Schema.Class<Account>("Account")({
   isActive: Schema.Boolean.annotations({
     title: "Is Active",
     description: "Whether the account is currently active"
+  }),
+
+  /**
+   * Whether this is the retained earnings account for year-end closing
+   * Only one account per company should have this flag set to true.
+   * Used for auto-configuration when applying Chart of Accounts templates.
+   */
+  isRetainedEarnings: Schema.optionalWith(Schema.Boolean, { default: () => false }).annotations({
+    title: "Is Retained Earnings",
+    description: "Whether this is the retained earnings account for year-end closing"
   }),
 
   /**

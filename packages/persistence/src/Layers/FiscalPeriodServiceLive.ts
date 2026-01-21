@@ -26,8 +26,7 @@ import {
   FiscalPeriodNotFoundError,
   InvalidStatusTransitionError,
   InvalidYearStatusTransitionError,
-  FiscalYearAlreadyExistsError,
-  PeriodsNotClosedError
+  FiscalYearAlreadyExistsError
 } from "@accountability/core/fiscal/FiscalPeriodErrors"
 import { FiscalYear, FiscalYearId } from "@accountability/core/fiscal/FiscalYear"
 import { FiscalPeriod, FiscalPeriodId, FiscalPeriodUserId as FiscalPeriodUserIdSchema } from "@accountability/core/fiscal/FiscalPeriod"
@@ -232,34 +231,11 @@ const make = Effect.gen(function* () {
     listFiscalYears: (companyId) =>
       periodRepo.findFiscalYearsByCompany(companyId),
 
-    beginYearClose: (companyId, fiscalYearId) =>
+    closeFiscalYear: (companyId, fiscalYearId) =>
       Effect.gen(function* () {
         const fiscalYear = yield* service.getFiscalYear(companyId, fiscalYearId)
 
         if (fiscalYear.status !== "Open") {
-          return yield* Effect.fail(
-            new InvalidYearStatusTransitionError({
-              currentStatus: fiscalYear.status,
-              targetStatus: "Closing",
-              fiscalYearId
-            })
-          )
-        }
-
-        const updatedYear = FiscalYear.make({
-          ...fiscalYear,
-          status: "Closing",
-          updatedAt: Timestamp.now()
-        })
-
-        return yield* periodRepo.updateFiscalYear(companyId, updatedYear)
-      }),
-
-    completeYearClose: (companyId, fiscalYearId) =>
-      Effect.gen(function* () {
-        const fiscalYear = yield* service.getFiscalYear(companyId, fiscalYearId)
-
-        if (fiscalYear.status !== "Closing") {
           return yield* Effect.fail(
             new InvalidYearStatusTransitionError({
               currentStatus: fiscalYear.status,
@@ -269,22 +245,48 @@ const make = Effect.gen(function* () {
           )
         }
 
-        // Check if all periods are closed (simplified 2-state model)
+        // Auto-close all open periods
         const periods = yield* periodRepo.findPeriodsByFiscalYear(fiscalYearId)
-        const openPeriods = periods.filter((p) => p.status === "Open")
+        const now = Timestamp.now()
 
-        if (openPeriods.length > 0) {
+        for (const period of periods) {
+          if (period.status === "Open") {
+            const closedPeriod = FiscalPeriod.make({
+              ...period,
+              status: "Closed",
+              closedAt: Option.some(now),
+              updatedAt: now
+            })
+            yield* periodRepo.updatePeriod(fiscalYearId, closedPeriod)
+          }
+        }
+
+        const updatedYear = FiscalYear.make({
+          ...fiscalYear,
+          status: "Closed",
+          updatedAt: now
+        })
+
+        return yield* periodRepo.updateFiscalYear(companyId, updatedYear)
+      }),
+
+    reopenFiscalYear: (companyId, fiscalYearId) =>
+      Effect.gen(function* () {
+        const fiscalYear = yield* service.getFiscalYear(companyId, fiscalYearId)
+
+        if (fiscalYear.status !== "Closed") {
           return yield* Effect.fail(
-            new PeriodsNotClosedError({
-              fiscalYearId,
-              openPeriodCount: openPeriods.length
+            new InvalidYearStatusTransitionError({
+              currentStatus: fiscalYear.status,
+              targetStatus: "Open",
+              fiscalYearId
             })
           )
         }
 
         const updatedYear = FiscalYear.make({
           ...fiscalYear,
-          status: "Closed",
+          status: "Open",
           updatedAt: Timestamp.now()
         })
 

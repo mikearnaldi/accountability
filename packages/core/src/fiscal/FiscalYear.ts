@@ -38,7 +38,7 @@ export const isFiscalYearId = Schema.is(FiscalYearId)
 /**
  * FiscalYear - Represents a fiscal year for a company
  *
- * Tracks the status of a fiscal year (Open/Closing/Closed) and contains
+ * Tracks the status of a fiscal year (Open/Closed) and contains
  * the date boundaries for the year. Fiscal periods are linked to fiscal years.
  */
 export class FiscalYear extends Schema.Class<FiscalYear>("FiscalYear")({
@@ -118,13 +118,6 @@ export class FiscalYear extends Schema.Class<FiscalYear>("FiscalYear")({
    */
   get isClosed(): boolean {
     return this.status === "Closed"
-  }
-
-  /**
-   * Check if year-end close is in progress
-   */
-  get isClosing(): boolean {
-    return this.status === "Closing"
   }
 
   /**

@@ -451,7 +451,8 @@ export function AccountForm({
             isIntercompany,
             intercompanyPartnerId: null,
             currencyRestriction: null,
-            isActive: null
+            isActive: null,
+            isRetainedEarnings: null
           }
         })
 

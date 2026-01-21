@@ -472,6 +472,7 @@ export const CompaniesApiLive = HttpApiBuilder.group(AppApi, "companies", (handl
               functionalCurrency: req.functionalCurrency,
               reportingCurrency: req.reportingCurrency,
               fiscalYearEnd: req.fiscalYearEnd,
+              retainedEarningsAccountId: Option.none(),
               parentCompanyId: req.parentCompanyId,
               ownershipPercentage: req.ownershipPercentage,
               isActive: true,
@@ -584,6 +585,9 @@ export const CompaniesApiLive = HttpApiBuilder.group(AppApi, "companies", (handl
                 ? req.reportingCurrency.value
                 : existing.reportingCurrency,
               fiscalYearEnd: newFiscalYearEnd,
+              retainedEarningsAccountId: Option.isSome(req.retainedEarningsAccountId)
+                ? req.retainedEarningsAccountId
+                : existing.retainedEarningsAccountId,
               parentCompanyId: newParentCompanyId,
               ownershipPercentage: Option.isSome(req.ownershipPercentage)
                 ? req.ownershipPercentage

@@ -12,6 +12,7 @@ import * as Effect from "effect/Effect"
 import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
 import { FiscalPeriodService } from "@accountability/core/fiscal/FiscalPeriodService"
+import { YearEndCloseService } from "@accountability/core/fiscal/YearEndCloseService"
 import { type FiscalYear, FiscalYearId } from "@accountability/core/fiscal/FiscalYear"
 import { type FiscalPeriod, FiscalPeriodId } from "@accountability/core/fiscal/FiscalPeriod"
 import type { FiscalPeriodStatus } from "@accountability/core/fiscal/FiscalPeriodStatus"
@@ -205,6 +206,7 @@ const logFiscalPeriodStatusChange = (
 export const FiscalPeriodApiLive = HttpApiBuilder.group(AppApi, "fiscal-periods", (handlers) =>
   Effect.gen(function* () {
     const periodService = yield* FiscalPeriodService
+    const yearEndCloseService = yield* YearEndCloseService
     const companyRepo = yield* CompanyRepository
 
     return handlers
@@ -302,7 +304,7 @@ export const FiscalPeriodApiLive = HttpApiBuilder.group(AppApi, "fiscal-periods"
           })
         )
       )
-      .handle("beginYearClose", (_) =>
+      .handle("closeFiscalYear", (_) =>
         requireOrganizationContext(_.path.organizationId,
           Effect.gen(function* () {
             yield* requirePermission("fiscal_period:manage")
@@ -323,25 +325,30 @@ export const FiscalPeriodApiLive = HttpApiBuilder.group(AppApi, "fiscal-periods"
             )
             const previousStatus = fiscalYearBefore.status
 
-            // Domain errors flow through; infrastructure errors die
-            const fiscalYear = yield* periodService.beginYearClose(companyId, fiscalYearId).pipe(
+            // Execute year-end close using YearEndCloseService
+            // This generates closing journal entries and then closes the fiscal year
+            const result = yield* yearEndCloseService.executeYearEndClose(organizationId, companyId, fiscalYearId).pipe(
               Effect.catchTag("PersistenceError", (e) => Effect.die(e)),
               Effect.catchTag("EntityNotFoundError", (e) => Effect.die(e))
             )
 
             // Audit log the status change
+            // Get updated fiscal year for audit log
+            const fiscalYearAfter = yield* periodService.getFiscalYear(companyId, fiscalYearId).pipe(
+              Effect.catchTag("PersistenceError", (e) => Effect.die(e))
+            )
             yield* logFiscalYearStatusChange(
               _.path.organizationId,
-              fiscalYear,
+              fiscalYearAfter,
               previousStatus,
-              "Year-end close initiated"
+              `Year-end close completed. Net income: ${result.netIncome.format()}. Created ${result.closingEntryIds.length} closing entries.`
             )
 
-            return fiscalYear
+            return result
           })
         )
       )
-      .handle("completeYearClose", (_) =>
+      .handle("reopenFiscalYear", (_) =>
         requireOrganizationContext(_.path.organizationId,
           Effect.gen(function* () {
             yield* requirePermission("fiscal_period:manage")
@@ -362,21 +369,51 @@ export const FiscalPeriodApiLive = HttpApiBuilder.group(AppApi, "fiscal-periods"
             )
             const previousStatus = fiscalYearBefore.status
 
-            // Domain errors flow through; infrastructure errors die
-            const fiscalYear = yield* periodService.completeYearClose(companyId, fiscalYearId).pipe(
+            // Reopen fiscal year using YearEndCloseService
+            // This creates reversal entries for the closing journal entries and reopens the year
+            const result = yield* yearEndCloseService.reopenFiscalYear(organizationId, companyId, fiscalYearId, "User requested reopen").pipe(
               Effect.catchTag("PersistenceError", (e) => Effect.die(e)),
               Effect.catchTag("EntityNotFoundError", (e) => Effect.die(e))
             )
 
             // Audit log the status change
+            // Get updated fiscal year for audit log
+            const fiscalYearAfter = yield* periodService.getFiscalYear(companyId, fiscalYearId).pipe(
+              Effect.catchTag("PersistenceError", (e) => Effect.die(e))
+            )
             yield* logFiscalYearStatusChange(
               _.path.organizationId,
-              fiscalYear,
+              fiscalYearAfter,
               previousStatus,
-              "Year-end close completed"
+              `Fiscal year reopened. Created ${result.reversedEntryIds.length} reversal entries.`
             )
 
-            return fiscalYear
+            return result
+          })
+        )
+      )
+      .handle("previewYearEndClose", (_) =>
+        requireOrganizationContext(_.path.organizationId,
+          Effect.gen(function* () {
+            yield* requirePermission("fiscal_period:read")
+
+            const companyId = CompanyId.make(_.path.companyId)
+            const organizationId = OrganizationId.make(_.path.organizationId)
+            const fiscalYearId = FiscalYearId.make(_.path.fiscalYearId)
+
+            // Verify company exists and belongs to organization
+            const maybeCompany = yield* companyRepo.findById(organizationId, companyId).pipe(Effect.orDie)
+            if (Option.isNone(maybeCompany)) {
+              return yield* Effect.fail(new CompanyNotFoundError({ companyId: _.path.companyId }))
+            }
+
+            // Get preview from YearEndCloseService
+            // This calculates net income and validates prerequisites
+            const preview = yield* yearEndCloseService.previewYearEndClose(organizationId, companyId, fiscalYearId).pipe(
+              Effect.catchTag("PersistenceError", (e) => Effect.die(e))
+            )
+
+            return preview
           })
         )
       )

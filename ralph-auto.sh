@@ -650,9 +650,15 @@ run_iteration() {
     fi
 
     # Now check if we should exit the loop
+    # ONLY exit if NOTHING_LEFT_TO_DO AND no CI errors pending
     if [ "$has_nothing_left" = true ]; then
-        log "SUCCESS" "Agent signaled NOTHING_LEFT_TO_DO"
-        return 0
+        if [ -f "$OUTPUT_DIR/ci_errors.txt" ]; then
+            log "WARN" "Agent signaled NOTHING_LEFT_TO_DO but CI errors exist - continuing to fix errors"
+            return 1
+        else
+            log "SUCCESS" "Agent signaled NOTHING_LEFT_TO_DO"
+            return 0
+        fi
     fi
 
     return 1

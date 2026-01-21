@@ -90,6 +90,7 @@ const createTestCompany = (): Company => {
     functionalCurrency: testCurrency,
     reportingCurrency: testCurrency,
     fiscalYearEnd: FiscalYearEnd.make({ month: 12, day: 31 }),
+    retainedEarningsAccountId: Option.none(),
     parentCompanyId: Option.none(),
     ownershipPercentage: Option.none(),
     isActive: true,

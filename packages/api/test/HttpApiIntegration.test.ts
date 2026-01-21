@@ -347,7 +347,8 @@ layer(HttpLive, { timeout: "120 seconds" })("HTTP API Integration Tests", (it) =
               isIntercompany: null,
               intercompanyPartnerId: null,
               currencyRestriction: null,
-              isActive: null
+              isActive: null,
+              isRetainedEarnings: null
             }),
             httpClient.execute,
             Effect.scoped

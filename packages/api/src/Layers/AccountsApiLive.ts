@@ -319,6 +319,7 @@ export const AccountsApiLive = HttpApiBuilder.group(AppApi, "accounts", (handler
               intercompanyPartnerId: req.intercompanyPartnerId,
               currencyRestriction: req.currencyRestriction,
               isActive: true,
+              isRetainedEarnings: req.isRetainedEarnings,
               createdAt: timestampNow(),
               deactivatedAt: Option.none()
             })
@@ -416,6 +417,9 @@ export const AccountsApiLive = HttpApiBuilder.group(AppApi, "accounts", (handler
                 ? req.currencyRestriction
                 : existing.currencyRestriction,
               isActive: Option.isSome(req.isActive) ? req.isActive.value : existing.isActive,
+              isRetainedEarnings: Option.isSome(req.isRetainedEarnings)
+                ? req.isRetainedEarnings.value
+                : existing.isRetainedEarnings,
               deactivatedAt: Option.isSome(req.isActive) && !req.isActive.value && existing.isActive
                 ? Option.some(timestampNow())
                 : existing.deactivatedAt

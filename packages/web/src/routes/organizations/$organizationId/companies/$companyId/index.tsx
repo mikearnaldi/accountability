@@ -38,15 +38,15 @@ const fetchCompanyData = createServerFn({ method: "GET" })
     const sessionToken = getCookie("accountability_session")
 
     if (!sessionToken) {
-      return { company: null, organization: null, subsidiaries: [], parentCompany: null, allCompanies: [], error: "unauthorized" as const }
+      return { company: null, organization: null, subsidiaries: [], parentCompany: null, allCompanies: [], accounts: [], error: "unauthorized" as const }
     }
 
     try {
       // Create server API client with dynamic base URL from request context
       const serverApi = createServerApi()
       const Authorization = `Bearer ${sessionToken}`
-      // Fetch company, organization, and all companies in parallel
-      const [companyResult, orgResult, allCompaniesResult] = await Promise.all([
+      // Fetch company, organization, all companies, and accounts in parallel
+      const [companyResult, orgResult, allCompaniesResult, accountsResult] = await Promise.all([
         serverApi.GET("/api/v1/organizations/{organizationId}/companies/{id}", {
           params: { path: { organizationId: data.organizationId, id: data.companyId } },
           headers: { Authorization }
@@ -58,6 +58,10 @@ const fetchCompanyData = createServerFn({ method: "GET" })
         serverApi.GET("/api/v1/companies", {
           params: { query: { organizationId: data.organizationId } },
           headers: { Authorization }
+        }),
+        serverApi.GET("/api/v1/accounts", {
+          params: { query: { organizationId: data.organizationId, companyId: data.companyId } },
+          headers: { Authorization }
         })
       ])
 
@@ -65,13 +69,13 @@ const fetchCompanyData = createServerFn({ method: "GET" })
         // Check for domain-specific NotFoundError using _tag (from Effect Schema TaggedError)
         if (typeof companyResult.error === "object" && "_tag" in companyResult.error &&
             companyResult.error._tag === "CompanyNotFoundError") {
-          return { company: null, organization: null, subsidiaries: [], parentCompany: null, allCompanies: [], error: "not_found" as const }
+          return { company: null, organization: null, subsidiaries: [], parentCompany: null, allCompanies: [], accounts: [], error: "not_found" as const }
         }
-        return { company: null, organization: null, subsidiaries: [], parentCompany: null, allCompanies: [], error: "failed" as const }
+        return { company: null, organization: null, subsidiaries: [], parentCompany: null, allCompanies: [], accounts: [], error: "failed" as const }
       }
 
       if (orgResult.error) {
-        return { company: null, organization: null, subsidiaries: [], parentCompany: null, allCompanies: [], error: "failed" as const }
+        return { company: null, organization: null, subsidiaries: [], parentCompany: null, allCompanies: [], accounts: [], error: "failed" as const }
       }
 
       // Fetch subsidiaries (companies with this company as parent)
@@ -104,10 +108,11 @@ const fetchCompanyData = createServerFn({ method: "GET" })
         subsidiaries: subsidiariesResult.data?.companies ?? [],
         parentCompany,
         allCompanies: allCompaniesResult.data?.companies ?? [],
+        accounts: accountsResult.data?.accounts ?? [],
         error: null
       }
     } catch {
-      return { company: null, organization: null, subsidiaries: [], parentCompany: null, allCompanies: [], error: "failed" as const }
+      return { company: null, organization: null, subsidiaries: [], parentCompany: null, allCompanies: [], accounts: [], error: "failed" as const }
     }
   })
 
@@ -144,7 +149,8 @@ export const Route = createFileRoute("/organizations/$organizationId/companies/$
       organization: result.organization,
       subsidiaries: result.subsidiaries,
       parentCompany: result.parentCompany,
-      allCompanies: result.allCompanies
+      allCompanies: result.allCompanies,
+      accounts: result.accounts
     }
   },
   errorComponent: ({ error }) => <MinimalRouteError error={error} />,
@@ -187,12 +193,21 @@ interface Company {
     readonly month: number
     readonly day: number
   }
+  readonly retainedEarningsAccountId: string | null
   readonly parentCompanyId: string | null
   readonly ownershipPercentage: number | null
   readonly isActive: boolean
   readonly createdAt: {
     readonly epochMillis: number
   }
+}
+
+interface Account {
+  readonly id: string
+  readonly number: string
+  readonly name: string
+  readonly category: string
+  readonly isActive: boolean
 }
 
 // =============================================================================
@@ -212,6 +227,7 @@ function CompanyDetailsPage() {
   const subsidiaries = loaderData.subsidiaries as readonly Company[]
   const parentCompany = loaderData.parentCompany as Company | null
   const allCompanies = loaderData.allCompanies as readonly Company[]
+  const accounts = loaderData.accounts as readonly Account[]
   /* eslint-enable @typescript-eslint/consistent-type-assertions */
   const params = Route.useParams()
   const router = useRouter()
@@ -306,7 +322,8 @@ function CompanyDetailsPage() {
             reportingCurrency: null,
             fiscalYearEnd: null,
             parentCompanyId: null,
-            ownershipPercentage: null
+            ownershipPercentage: null,
+            retainedEarningsAccountId: null
           }
         })
 
@@ -571,6 +588,7 @@ function CompanyDetailsPage() {
             <EditCompanyModal
               company={company}
               organizationId={params.organizationId}
+              accounts={accounts}
               onClose={() => setIsEditing(false)}
             />
           )}
@@ -761,10 +779,12 @@ function NavigationCard({
 function EditCompanyModal({
   company,
   organizationId,
+  accounts,
   onClose
 }: {
   readonly company: Company
   readonly organizationId: string
+  readonly accounts: readonly Account[]
   readonly onClose: () => void
 }) {
   const router = useRouter()
@@ -784,8 +804,15 @@ function EditCompanyModal({
   const [reportingCurrency, setReportingCurrency] = useState(company.reportingCurrency)
   const [fiscalYearEndMonth, setFiscalYearEndMonth] = useState(company.fiscalYearEnd.month)
   const [fiscalYearEndDay, setFiscalYearEndDay] = useState(company.fiscalYearEnd.day)
+  const [retainedEarningsAccountId, setRetainedEarningsAccountId] = useState(company.retainedEarningsAccountId ?? "")
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Filter accounts to only show Equity accounts for retained earnings selector
+  const equityAccounts = useMemo(() =>
+    accounts.filter((a) => a.category === "Equity" && a.isActive),
+    [accounts]
+  )
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -845,6 +872,7 @@ function EditCompanyModal({
             month: fiscalYearEndMonth,
             day: fiscalYearEndDay
           },
+          retainedEarningsAccountId: retainedEarningsAccountId || null,
           parentCompanyId: null,
           ownershipPercentage: null,
           isActive: null
@@ -1105,6 +1133,34 @@ function EditCompanyModal({
                 </option>
               ))}
             </Select>
+          </div>
+
+          {/* Retained Earnings Account - for year-end closing */}
+          <div className="space-y-2 rounded-lg border border-gray-200 p-4">
+            <h3 className="text-sm font-medium text-gray-700">Year-End Closing</h3>
+            <Select
+              id="edit-company-retained-earnings"
+              label="Retained Earnings Account"
+              value={retainedEarningsAccountId}
+              onChange={(e) => setRetainedEarningsAccountId(e.target.value)}
+              disabled={isSubmitting}
+              data-testid="edit-company-retained-earnings-select"
+            >
+              <option value="">Select account...</option>
+              {equityAccounts.map((account) => (
+                <option key={account.id} value={account.id}>
+                  {account.number} - {account.name}
+                </option>
+              ))}
+            </Select>
+            <p className="text-xs text-gray-500">
+              Net income will be posted to this account during year-end close.
+              {equityAccounts.length === 0 && (
+                <span className="block mt-1 text-amber-600">
+                  No equity accounts found. Create an equity account or apply a Chart of Accounts template first.
+                </span>
+              )}
+            </p>
           </div>
 
           {/* Form Actions */}

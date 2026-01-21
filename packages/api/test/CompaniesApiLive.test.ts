@@ -95,6 +95,7 @@ const createTestCompany = (overrides: Partial<{
     functionalCurrency: CurrencyCode.make(functionalCurrency),
     reportingCurrency: CurrencyCode.make(reportingCurrency),
     fiscalYearEnd: FiscalYearEnd.make(fiscalYearEnd),
+    retainedEarningsAccountId: Option.none(),
     parentCompanyId,
     ownershipPercentage: Option.isSome(ownershipPercentage)
       ? Option.some(Percentage.make(ownershipPercentage.value))

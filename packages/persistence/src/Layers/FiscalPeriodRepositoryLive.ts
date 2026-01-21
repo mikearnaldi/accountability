@@ -74,11 +74,14 @@ type ReopenAuditRow = typeof ReopenAuditRow.Type
 
 /**
  * Map fiscal year status string to FiscalYearStatus literal
+ * Simplified 2-state model: Open and Closed
+ * Legacy "Closing" value maps to "Open" (year needs to be re-closed)
  */
 const FISCAL_YEAR_STATUS_MAP: Record<string, FiscalYearStatus> = {
   Open: "Open",
-  Closing: "Closing",
-  Closed: "Closed"
+  Closed: "Closed",
+  // Legacy value maps to Open (year was in intermediate state)
+  Closing: "Open"
 }
 
 /**

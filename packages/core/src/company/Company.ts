@@ -17,6 +17,7 @@ import { Timestamp } from "../shared/values/Timestamp.ts"
 import { Percentage } from "../shared/values/Percentage.ts"
 import { OrganizationId } from "../organization/Organization.ts"
 import { LocalDate } from "../shared/values/LocalDate.ts"
+import { AccountId } from "../accounting/AccountId.ts"
 
 /**
  * CompanyId - Branded UUID string for company identification
@@ -249,6 +250,17 @@ export class Company extends Schema.Class<Company>("Company")({
   fiscalYearEnd: FiscalYearEnd,
 
   /**
+   * Retained earnings account for year-end closing (optional)
+   * Net income will be posted to this account during year-end close.
+   * Should be an Equity account with category "RetainedEarnings".
+   * Can be auto-set when applying a Chart of Accounts template.
+   */
+  retainedEarningsAccountId: Schema.OptionFromNullOr(AccountId).annotations({
+    title: "Retained Earnings Account ID",
+    description: "Account for posting net income during year-end close"
+  }),
+
+  /**
    * Parent company reference (null if top-level)
    */
   parentCompanyId: Schema.OptionFromNullOr(CompanyId).annotations({
@@ -305,6 +317,13 @@ export class Company extends Schema.Class<Company>("Company")({
    */
   get nonControllingInterestPercentage(): Option.Option<number> {
     return Option.map(this.ownershipPercentage, (pct) => 100 - pct)
+  }
+
+  /**
+   * Check if retained earnings account is configured for year-end closing
+   */
+  get hasRetainedEarningsAccount(): boolean {
+    return Option.isSome(this.retainedEarningsAccountId)
   }
 }
 

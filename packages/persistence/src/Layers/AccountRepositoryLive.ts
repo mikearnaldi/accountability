@@ -49,6 +49,7 @@ const AccountRow = Schema.Struct({
   intercompany_partner_id: Schema.NullOr(Schema.String),
   currency_restriction: Schema.NullOr(Schema.String),
   is_active: Schema.Boolean,
+  is_retained_earnings: Schema.Boolean,
   created_at: Schema.DateFromSelf,
   deactivated_at: Schema.NullOr(Schema.DateFromSelf)
 })
@@ -91,6 +92,7 @@ const rowToAccount = (row: AccountRow): Account =>
       Option.map(CurrencyCode.make)
     ),
     isActive: row.is_active,
+    isRetainedEarnings: row.is_retained_earnings,
     createdAt: Timestamp.make({ epochMillis: row.created_at.getTime() }),
     deactivatedAt: Option.fromNullable(row.deactivated_at).pipe(
       Option.map((d) => Timestamp.make({ epochMillis: d.getTime() }))
@@ -227,7 +229,7 @@ const make = Effect.gen(function* () {
           parent_account_id, hierarchy_level, is_postable,
           is_cash_flow_relevant, cash_flow_category,
           is_intercompany, intercompany_partner_id, currency_restriction,
-          is_active, created_at, deactivated_at
+          is_active, is_retained_earnings, created_at, deactivated_at
         ) VALUES (
           ${account.id},
           ${account.companyId},
@@ -246,6 +248,7 @@ const make = Effect.gen(function* () {
           ${Option.getOrNull(account.intercompanyPartnerId)},
           ${Option.getOrNull(account.currencyRestriction)},
           ${account.isActive},
+          ${account.isRetainedEarnings},
           ${account.createdAt.toDate()},
           ${Option.match(account.deactivatedAt, { onNone: () => null, onSome: (t) => t.toDate() })}
         )
@@ -273,6 +276,7 @@ const make = Effect.gen(function* () {
           intercompany_partner_id = ${Option.getOrNull(account.intercompanyPartnerId)},
           currency_restriction = ${Option.getOrNull(account.currencyRestriction)},
           is_active = ${account.isActive},
+          is_retained_earnings = ${account.isRetainedEarnings},
           deactivated_at = ${Option.match(account.deactivatedAt, { onNone: () => null, onSome: (t) => t.toDate() })}
         FROM companies c
         WHERE a.id = ${account.id}

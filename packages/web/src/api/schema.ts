@@ -1963,7 +1963,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/organizations/{organizationId}/companies/{companyId}/fiscal-years/{fiscalYearId}/begin-close": {
+    "/api/v1/organizations/{organizationId}/companies/{companyId}/fiscal-years/{fiscalYearId}/close": {
         parameters: {
             query?: never;
             header?: never;
@@ -1973,17 +1973,17 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Begin year-end close
-         * @description Transition a fiscal year to 'Closing' status to begin year-end close process.
+         * Close fiscal year (Year-End Close)
+         * @description Execute year-end close: generates closing entries to transfer revenue/expense balances to retained earnings, closes all periods, and marks the fiscal year as Closed.
          */
-        post: operations["fiscal-periods.beginYearClose"];
+        post: operations["fiscal-periods.closeFiscalYear"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/organizations/{organizationId}/companies/{companyId}/fiscal-years/{fiscalYearId}/complete-close": {
+    "/api/v1/organizations/{organizationId}/companies/{companyId}/fiscal-years/{fiscalYearId}/reopen": {
         parameters: {
             query?: never;
             header?: never;
@@ -1993,10 +1993,30 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Complete year-end close
-         * @description Transition a fiscal year to 'Closed' status. All periods must be closed first.
+         * Reopen fiscal year
+         * @description Reverse year-end close: creates reversal entries to undo the closing journal entries, reopens all periods, and marks the fiscal year as Open. Use with caution for correction scenarios.
          */
-        post: operations["fiscal-periods.completeYearClose"];
+        post: operations["fiscal-periods.reopenFiscalYear"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{organizationId}/companies/{companyId}/fiscal-years/{fiscalYearId}/close/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Preview year-end close
+         * @description Get a preview of the year-end close operation including net income calculation and any blockers. This endpoint does not make any changes.
+         */
+        get: operations["fiscal-periods.previewYearEndClose"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2494,7 +2514,80 @@ export interface components {
          */
         BooleanFromString: "true" | "false";
         AccountListResponse: {
-            accounts: components["schemas"]["Account"][];
+            accounts: {
+                id: components["schemas"]["AccountId"];
+                companyId: components["schemas"]["CompanyId"];
+                accountNumber: components["schemas"]["AccountNumber"];
+                /**
+                 * Account Name
+                 * @description The display name of the account
+                 */
+                name: components["schemas"]["Trimmed"];
+                /**
+                 * Description
+                 * @description Optional detailed description of the account's purpose
+                 */
+                description: string | null;
+                accountType: components["schemas"]["AccountType"];
+                accountCategory: components["schemas"]["AccountCategory"];
+                normalBalance: components["schemas"]["NormalBalance"];
+                /**
+                 * Parent Account ID
+                 * @description Reference to parent account for hierarchy (null if top-level)
+                 */
+                parentAccountId: components["schemas"]["AccountId"] | null;
+                /**
+                 * Hierarchy Level
+                 * @description Level in account hierarchy (1 = top level)
+                 */
+                hierarchyLevel: number;
+                /**
+                 * Is Postable
+                 * @description Whether journal entries can be posted directly to this account
+                 */
+                isPostable: boolean;
+                /**
+                 * Is Cash Flow Relevant
+                 * @description Whether the account affects the cash flow statement
+                 */
+                isCashFlowRelevant: boolean;
+                /**
+                 * Cash Flow Category
+                 * @description Classification for cash flow statement (Operating, Investing, Financing, NonCash)
+                 */
+                cashFlowCategory: components["schemas"]["CashFlowCategory"] | null;
+                /**
+                 * Is Intercompany
+                 * @description Whether this is an intercompany account for related party transactions
+                 */
+                isIntercompany: boolean;
+                /**
+                 * Intercompany Partner ID
+                 * @description Reference to the partner company for intercompany transactions
+                 */
+                intercompanyPartnerId: components["schemas"]["CompanyId"] | null;
+                /**
+                 * Currency Restriction
+                 * @description Optional restriction to a specific currency (null allows any)
+                 */
+                currencyRestriction: components["schemas"]["CurrencyCode"] | null;
+                /**
+                 * Is Active
+                 * @description Whether the account is currently active
+                 */
+                isActive: boolean;
+                /**
+                 * Is Retained Earnings
+                 * @description Whether this is the retained earnings account for year-end closing
+                 */
+                isRetainedEarnings?: boolean;
+                createdAt: components["schemas"]["Timestamp"];
+                /**
+                 * Deactivated At
+                 * @description Timestamp when the account was deactivated (if applicable)
+                 */
+                deactivatedAt: components["schemas"]["Timestamp"] | null;
+            }[];
             /**
              * greaterThanOrEqualTo(0)
              * @description a non-negative number
@@ -2510,75 +2603,6 @@ export interface components {
              * @description a non-negative number
              */
             offset: number;
-        };
-        Account: {
-            id: components["schemas"]["AccountId"];
-            companyId: components["schemas"]["CompanyId"];
-            accountNumber: components["schemas"]["AccountNumber"];
-            /**
-             * Account Name
-             * @description The display name of the account
-             */
-            name: components["schemas"]["Trimmed"];
-            /**
-             * Description
-             * @description Optional detailed description of the account's purpose
-             */
-            description: string | null;
-            accountType: components["schemas"]["AccountType"];
-            accountCategory: components["schemas"]["AccountCategory"];
-            normalBalance: components["schemas"]["NormalBalance"];
-            /**
-             * Parent Account ID
-             * @description Reference to parent account for hierarchy (null if top-level)
-             */
-            parentAccountId: components["schemas"]["AccountId"] | null;
-            /**
-             * Hierarchy Level
-             * @description Level in account hierarchy (1 = top level)
-             */
-            hierarchyLevel: number;
-            /**
-             * Is Postable
-             * @description Whether journal entries can be posted directly to this account
-             */
-            isPostable: boolean;
-            /**
-             * Is Cash Flow Relevant
-             * @description Whether the account affects the cash flow statement
-             */
-            isCashFlowRelevant: boolean;
-            /**
-             * Cash Flow Category
-             * @description Classification for cash flow statement (Operating, Investing, Financing, NonCash)
-             */
-            cashFlowCategory: components["schemas"]["CashFlowCategory"] | null;
-            /**
-             * Is Intercompany
-             * @description Whether this is an intercompany account for related party transactions
-             */
-            isIntercompany: boolean;
-            /**
-             * Intercompany Partner ID
-             * @description Reference to the partner company for intercompany transactions
-             */
-            intercompanyPartnerId: components["schemas"]["CompanyId"] | null;
-            /**
-             * Currency Restriction
-             * @description Optional restriction to a specific currency (null allows any)
-             */
-            currencyRestriction: components["schemas"]["CurrencyCode"] | null;
-            /**
-             * Is Active
-             * @description Whether the account is currently active
-             */
-            isActive: boolean;
-            createdAt: components["schemas"]["Timestamp"];
-            /**
-             * Deactivated At
-             * @description Timestamp when the account was deactivated (if applicable)
-             */
-            deactivatedAt: components["schemas"]["Timestamp"] | null;
         };
         /**
          * Account ID
@@ -2638,23 +2662,6 @@ export interface components {
             /** @enum {string} */
             _tag: "AccountNotFoundError";
         };
-        CreateAccountRequest: {
-            organizationId: components["schemas"]["OrganizationId"];
-            companyId: components["schemas"]["CompanyId"];
-            accountNumber: components["schemas"]["AccountNumber"];
-            name: components["schemas"]["NonEmptyTrimmedString"];
-            description: string | null;
-            accountType: components["schemas"]["AccountType"];
-            accountCategory: components["schemas"]["AccountCategory"];
-            normalBalance: components["schemas"]["NormalBalance"];
-            parentAccountId: components["schemas"]["AccountId"] | null;
-            isPostable: boolean;
-            isCashFlowRelevant: boolean;
-            cashFlowCategory: components["schemas"]["CashFlowCategory"] | null;
-            isIntercompany: boolean;
-            intercompanyPartnerId: components["schemas"]["CompanyId"] | null;
-            currencyRestriction: components["schemas"]["CurrencyCode"] | null;
-        };
         /**
          * Organization ID
          * Format: uuid
@@ -2711,6 +2718,7 @@ export interface components {
             intercompanyPartnerId: components["schemas"]["CompanyId"] | null;
             currencyRestriction: components["schemas"]["CurrencyCode"] | null;
             isActive: boolean | null;
+            isRetainedEarnings: boolean | null;
         };
         CircularAccountReferenceError: {
             accountId: string;
@@ -2991,6 +2999,11 @@ export interface components {
             reportingCurrency: components["schemas"]["CurrencyCode"];
             fiscalYearEnd: components["schemas"]["FiscalYearEnd"];
             /**
+             * Retained Earnings Account ID
+             * @description Account for posting net income during year-end close
+             */
+            retainedEarningsAccountId: components["schemas"]["AccountId"] | null;
+            /**
              * Parent Company ID
              * @description Reference to parent company for consolidation hierarchy
              */
@@ -3129,6 +3142,7 @@ export interface components {
             incorporationJurisdiction: components["schemas"]["JurisdictionCode"] | null;
             reportingCurrency: components["schemas"]["CurrencyCode"] | null;
             fiscalYearEnd: components["schemas"]["FiscalYearEnd"] | null;
+            retainedEarningsAccountId: components["schemas"]["AccountId"] | null;
             parentCompanyId: components["schemas"]["CompanyId"] | null;
             ownershipPercentage: components["schemas"]["Percentage"] | null;
             isActive: boolean | null;
@@ -5005,7 +5019,7 @@ export interface components {
          * @description The status of a fiscal year
          * @enum {string}
          */
-        FiscalYearStatus: "Open" | "Closing" | "Closed";
+        FiscalYearStatus: "Open" | "Closed";
         FiscalYearNotFoundError: {
             /**
              * Fiscal Year ID
@@ -5056,19 +5070,49 @@ export interface components {
             /** @enum {string} */
             _tag: "FiscalYearAlreadyExistsError";
         };
+        YearEndCloseResult: {
+            /**
+             * Format: uuid
+             * @description a Universally Unique Identifier
+             */
+            fiscalYearId: string;
+            closingEntryIds: components["schemas"]["JournalEntryId"][];
+            netIncome: components["schemas"]["MonetaryAmount"];
+            periodsClosed: number;
+        };
+        RetainedEarningsNotConfiguredError: {
+            /**
+             * Format: uuid
+             * @description The company ID missing retained earnings configuration
+             */
+            companyId: string;
+            /** @enum {string} */
+            _tag: "RetainedEarningsNotConfiguredError";
+        };
+        InvalidRetainedEarningsAccountError: {
+            /**
+             * Format: uuid
+             * @description The invalid account ID
+             */
+            accountId: string;
+            /** @description The actual account type (should be Equity) */
+            accountType: string;
+            /** @enum {string} */
+            _tag: "InvalidRetainedEarningsAccountError";
+        };
         InvalidYearStatusTransitionError: {
             /**
              * Fiscal Year Status
              * @description The current status of the fiscal year
              * @enum {string}
              */
-            currentStatus: "Open" | "Closing" | "Closed";
+            currentStatus: "Open" | "Closed";
             /**
              * Fiscal Year Status
              * @description The attempted target status
              * @enum {string}
              */
-            targetStatus: "Open" | "Closing" | "Closed";
+            targetStatus: "Open" | "Closed";
             /**
              * Fiscal Year ID
              * Format: uuid
@@ -5078,17 +5122,80 @@ export interface components {
             /** @enum {string} */
             _tag: "InvalidYearStatusTransitionError";
         };
-        PeriodsNotClosedError: {
+        TrialBalanceNotBalancedForCloseError: {
             /**
-             * Fiscal Year ID
+             * Format: uuid
+             * @description The company ID
+             */
+            companyId: string;
+            outOfBalanceAmount: components["schemas"]["MonetaryAmount"];
+            /** @enum {string} */
+            _tag: "TrialBalanceNotBalancedForCloseError";
+        };
+        YearAlreadyClosedError: {
+            /**
+             * Format: uuid
+             * @description The fiscal year ID that is already closed
+             */
+            fiscalYearId: string;
+            /** @description The fiscal year number */
+            year: number;
+            /** @enum {string} */
+            _tag: "YearAlreadyClosedError";
+        };
+        ReopenYearResult: {
+            /**
+             * Format: uuid
+             * @description a Universally Unique Identifier
+             */
+            fiscalYearId: string;
+            reversedEntryIds: components["schemas"]["JournalEntryId"][];
+            periodsReopened: number;
+        };
+        YearNotClosedError: {
+            /**
+             * Format: uuid
+             * @description The fiscal year ID that is not closed
+             */
+            fiscalYearId: string;
+            /** @description The fiscal year number */
+            year: number;
+            /** @description The current status of the fiscal year */
+            currentStatus: string;
+            /** @enum {string} */
+            _tag: "YearNotClosedError";
+        };
+        NoClosingEntriesToReverseError: {
+            /**
              * Format: uuid
              * @description The fiscal year ID
              */
             fiscalYearId: string;
-            /** @description The number of periods that are not closed */
-            openPeriodCount: number;
             /** @enum {string} */
-            _tag: "PeriodsNotClosedError";
+            _tag: "NoClosingEntriesToReverseError";
+        };
+        YearEndClosePreview: {
+            /**
+             * Format: uuid
+             * @description a Universally Unique Identifier
+             */
+            fiscalYearId: string;
+            fiscalYearName: string;
+            totalRevenue: components["schemas"]["MonetaryAmount"];
+            totalExpenses: components["schemas"]["MonetaryAmount"];
+            netIncome: components["schemas"]["MonetaryAmount"];
+            retainedEarningsAccount: components["schemas"]["AccountSummary"] | null;
+            canProceed: boolean;
+            blockers: string[];
+        };
+        AccountSummary: {
+            /**
+             * Format: uuid
+             * @description a Universally Unique Identifier
+             */
+            id: string;
+            number: components["schemas"]["NonEmptyTrimmedString"];
+            name: components["schemas"]["NonEmptyTrimmedString"];
         };
         FiscalPeriodListResponse: {
             periods: components["schemas"]["FiscalPeriod"][];
@@ -5969,7 +6076,24 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CreateAccountRequest"];
+                "application/json": {
+                    organizationId: components["schemas"]["OrganizationId"];
+                    companyId: components["schemas"]["CompanyId"];
+                    accountNumber: components["schemas"]["AccountNumber"];
+                    name: components["schemas"]["NonEmptyTrimmedString"];
+                    description: string | null;
+                    accountType: components["schemas"]["AccountType"];
+                    accountCategory: components["schemas"]["AccountCategory"];
+                    normalBalance: components["schemas"]["NormalBalance"];
+                    parentAccountId: components["schemas"]["AccountId"] | null;
+                    isPostable: boolean;
+                    isCashFlowRelevant: boolean;
+                    cashFlowCategory: components["schemas"]["CashFlowCategory"] | null;
+                    isIntercompany: boolean;
+                    intercompanyPartnerId: components["schemas"]["CompanyId"] | null;
+                    currencyRestriction: components["schemas"]["CurrencyCode"] | null;
+                    isRetainedEarnings?: boolean;
+                };
             };
         };
         responses: {
@@ -5979,7 +6103,80 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Account"];
+                    "application/json": {
+                        id: components["schemas"]["AccountId"];
+                        companyId: components["schemas"]["CompanyId"];
+                        accountNumber: components["schemas"]["AccountNumber"];
+                        /**
+                         * Account Name
+                         * @description The display name of the account
+                         */
+                        name: components["schemas"]["Trimmed"];
+                        /**
+                         * Description
+                         * @description Optional detailed description of the account's purpose
+                         */
+                        description: string | null;
+                        accountType: components["schemas"]["AccountType"];
+                        accountCategory: components["schemas"]["AccountCategory"];
+                        normalBalance: components["schemas"]["NormalBalance"];
+                        /**
+                         * Parent Account ID
+                         * @description Reference to parent account for hierarchy (null if top-level)
+                         */
+                        parentAccountId: components["schemas"]["AccountId"] | null;
+                        /**
+                         * Hierarchy Level
+                         * @description Level in account hierarchy (1 = top level)
+                         */
+                        hierarchyLevel: number;
+                        /**
+                         * Is Postable
+                         * @description Whether journal entries can be posted directly to this account
+                         */
+                        isPostable: boolean;
+                        /**
+                         * Is Cash Flow Relevant
+                         * @description Whether the account affects the cash flow statement
+                         */
+                        isCashFlowRelevant: boolean;
+                        /**
+                         * Cash Flow Category
+                         * @description Classification for cash flow statement (Operating, Investing, Financing, NonCash)
+                         */
+                        cashFlowCategory: components["schemas"]["CashFlowCategory"] | null;
+                        /**
+                         * Is Intercompany
+                         * @description Whether this is an intercompany account for related party transactions
+                         */
+                        isIntercompany: boolean;
+                        /**
+                         * Intercompany Partner ID
+                         * @description Reference to the partner company for intercompany transactions
+                         */
+                        intercompanyPartnerId: components["schemas"]["CompanyId"] | null;
+                        /**
+                         * Currency Restriction
+                         * @description Optional restriction to a specific currency (null allows any)
+                         */
+                        currencyRestriction: components["schemas"]["CurrencyCode"] | null;
+                        /**
+                         * Is Active
+                         * @description Whether the account is currently active
+                         */
+                        isActive: boolean;
+                        /**
+                         * Is Retained Earnings
+                         * @description Whether this is the retained earnings account for year-end closing
+                         */
+                        isRetainedEarnings?: boolean;
+                        createdAt: components["schemas"]["Timestamp"];
+                        /**
+                         * Deactivated At
+                         * @description Timestamp when the account was deactivated (if applicable)
+                         */
+                        deactivatedAt: components["schemas"]["Timestamp"] | null;
+                    };
                 };
             };
             /** @description The request did not match the expected schema */
@@ -6056,7 +6253,80 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Account"];
+                    "application/json": {
+                        id: components["schemas"]["AccountId"];
+                        companyId: components["schemas"]["CompanyId"];
+                        accountNumber: components["schemas"]["AccountNumber"];
+                        /**
+                         * Account Name
+                         * @description The display name of the account
+                         */
+                        name: components["schemas"]["Trimmed"];
+                        /**
+                         * Description
+                         * @description Optional detailed description of the account's purpose
+                         */
+                        description: string | null;
+                        accountType: components["schemas"]["AccountType"];
+                        accountCategory: components["schemas"]["AccountCategory"];
+                        normalBalance: components["schemas"]["NormalBalance"];
+                        /**
+                         * Parent Account ID
+                         * @description Reference to parent account for hierarchy (null if top-level)
+                         */
+                        parentAccountId: components["schemas"]["AccountId"] | null;
+                        /**
+                         * Hierarchy Level
+                         * @description Level in account hierarchy (1 = top level)
+                         */
+                        hierarchyLevel: number;
+                        /**
+                         * Is Postable
+                         * @description Whether journal entries can be posted directly to this account
+                         */
+                        isPostable: boolean;
+                        /**
+                         * Is Cash Flow Relevant
+                         * @description Whether the account affects the cash flow statement
+                         */
+                        isCashFlowRelevant: boolean;
+                        /**
+                         * Cash Flow Category
+                         * @description Classification for cash flow statement (Operating, Investing, Financing, NonCash)
+                         */
+                        cashFlowCategory: components["schemas"]["CashFlowCategory"] | null;
+                        /**
+                         * Is Intercompany
+                         * @description Whether this is an intercompany account for related party transactions
+                         */
+                        isIntercompany: boolean;
+                        /**
+                         * Intercompany Partner ID
+                         * @description Reference to the partner company for intercompany transactions
+                         */
+                        intercompanyPartnerId: components["schemas"]["CompanyId"] | null;
+                        /**
+                         * Currency Restriction
+                         * @description Optional restriction to a specific currency (null allows any)
+                         */
+                        currencyRestriction: components["schemas"]["CurrencyCode"] | null;
+                        /**
+                         * Is Active
+                         * @description Whether the account is currently active
+                         */
+                        isActive: boolean;
+                        /**
+                         * Is Retained Earnings
+                         * @description Whether this is the retained earnings account for year-end closing
+                         */
+                        isRetainedEarnings?: boolean;
+                        createdAt: components["schemas"]["Timestamp"];
+                        /**
+                         * Deactivated At
+                         * @description Timestamp when the account was deactivated (if applicable)
+                         */
+                        deactivatedAt: components["schemas"]["Timestamp"] | null;
+                    };
                 };
             };
             /** @description The request did not match the expected schema */
@@ -6119,7 +6389,80 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Account"];
+                    "application/json": {
+                        id: components["schemas"]["AccountId"];
+                        companyId: components["schemas"]["CompanyId"];
+                        accountNumber: components["schemas"]["AccountNumber"];
+                        /**
+                         * Account Name
+                         * @description The display name of the account
+                         */
+                        name: components["schemas"]["Trimmed"];
+                        /**
+                         * Description
+                         * @description Optional detailed description of the account's purpose
+                         */
+                        description: string | null;
+                        accountType: components["schemas"]["AccountType"];
+                        accountCategory: components["schemas"]["AccountCategory"];
+                        normalBalance: components["schemas"]["NormalBalance"];
+                        /**
+                         * Parent Account ID
+                         * @description Reference to parent account for hierarchy (null if top-level)
+                         */
+                        parentAccountId: components["schemas"]["AccountId"] | null;
+                        /**
+                         * Hierarchy Level
+                         * @description Level in account hierarchy (1 = top level)
+                         */
+                        hierarchyLevel: number;
+                        /**
+                         * Is Postable
+                         * @description Whether journal entries can be posted directly to this account
+                         */
+                        isPostable: boolean;
+                        /**
+                         * Is Cash Flow Relevant
+                         * @description Whether the account affects the cash flow statement
+                         */
+                        isCashFlowRelevant: boolean;
+                        /**
+                         * Cash Flow Category
+                         * @description Classification for cash flow statement (Operating, Investing, Financing, NonCash)
+                         */
+                        cashFlowCategory: components["schemas"]["CashFlowCategory"] | null;
+                        /**
+                         * Is Intercompany
+                         * @description Whether this is an intercompany account for related party transactions
+                         */
+                        isIntercompany: boolean;
+                        /**
+                         * Intercompany Partner ID
+                         * @description Reference to the partner company for intercompany transactions
+                         */
+                        intercompanyPartnerId: components["schemas"]["CompanyId"] | null;
+                        /**
+                         * Currency Restriction
+                         * @description Optional restriction to a specific currency (null allows any)
+                         */
+                        currencyRestriction: components["schemas"]["CurrencyCode"] | null;
+                        /**
+                         * Is Active
+                         * @description Whether the account is currently active
+                         */
+                        isActive: boolean;
+                        /**
+                         * Is Retained Earnings
+                         * @description Whether this is the retained earnings account for year-end closing
+                         */
+                        isRetainedEarnings?: boolean;
+                        createdAt: components["schemas"]["Timestamp"];
+                        /**
+                         * Deactivated At
+                         * @description Timestamp when the account was deactivated (if applicable)
+                         */
+                        deactivatedAt: components["schemas"]["Timestamp"] | null;
+                    };
                 };
             };
             /** @description The request did not match the expected schema */
@@ -12999,7 +13342,7 @@ export interface operations {
             };
         };
     };
-    "fiscal-periods.beginYearClose": {
+    "fiscal-periods.closeFiscalYear": {
         parameters: {
             query?: never;
             header?: never;
@@ -13012,13 +13355,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description FiscalYear */
+            /** @description YearEndCloseResult */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["FiscalYear"];
+                    "application/json": components["schemas"]["YearEndCloseResult"];
                 };
             };
             /** @description The request did not match the expected schema */
@@ -13027,7 +13370,94 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HttpApiDecodeError"] | components["schemas"]["InvalidYearStatusTransitionError"];
+                    "application/json": components["schemas"]["HttpApiDecodeError"] | components["schemas"]["RetainedEarningsNotConfiguredError"] | components["schemas"]["InvalidRetainedEarningsAccountError"] | components["schemas"]["InvalidYearStatusTransitionError"];
+                };
+            };
+            /** @description UnauthorizedError */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description ForbiddenError */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
+            /** @description CompanyNotFoundError */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompanyNotFoundError"] | components["schemas"]["FiscalYearNotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
+                };
+            };
+            /** @description YearAlreadyClosedError */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["YearAlreadyClosedError"];
+                };
+            };
+            /** @description TrialBalanceNotBalancedForCloseError */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrialBalanceNotBalancedForCloseError"];
+                };
+            };
+            /** @description AuditLogError */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditLogError"] | components["schemas"]["UserLookupError"];
+                };
+            };
+        };
+    };
+    "fiscal-periods.reopenFiscalYear": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationId: string;
+                companyId: string;
+                fiscalYearId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ReopenYearResult */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReopenYearResult"];
+                };
+            };
+            /** @description The request did not match the expected schema */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HttpApiDecodeError"] | components["schemas"]["YearNotClosedError"] | components["schemas"]["NoClosingEntriesToReverseError"] | components["schemas"]["InvalidYearStatusTransitionError"];
                 };
             };
             /** @description UnauthorizedError */
@@ -13068,7 +13498,7 @@ export interface operations {
             };
         };
     };
-    "fiscal-periods.completeYearClose": {
+    "fiscal-periods.previewYearEndClose": {
         parameters: {
             query?: never;
             header?: never;
@@ -13081,13 +13511,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description FiscalYear */
+            /** @description YearEndClosePreview */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["FiscalYear"];
+                    "application/json": components["schemas"]["YearEndClosePreview"];
                 };
             };
             /** @description The request did not match the expected schema */
@@ -13096,7 +13526,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HttpApiDecodeError"] | components["schemas"]["InvalidYearStatusTransitionError"];
+                    "application/json": components["schemas"]["HttpApiDecodeError"];
                 };
             };
             /** @description UnauthorizedError */
@@ -13124,24 +13554,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CompanyNotFoundError"] | components["schemas"]["FiscalYearNotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
-                };
-            };
-            /** @description PeriodsNotClosedError */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PeriodsNotClosedError"];
-                };
-            };
-            /** @description AuditLogError */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AuditLogError"] | components["schemas"]["UserLookupError"];
                 };
             };
         };

@@ -28,8 +28,7 @@ import type {
   InvalidStatusTransitionError,
   InvalidYearStatusTransitionError,
   FiscalYearAlreadyExistsError,
-  FiscalYearOverlapError,
-  PeriodsNotClosedError
+  FiscalYearOverlapError
 } from "./FiscalPeriodErrors.ts"
 import type { PersistenceError, EntityNotFoundError } from "../shared/errors/RepositoryError.ts"
 
@@ -163,9 +162,14 @@ export interface FiscalPeriodServiceShape {
   ) => Effect.Effect<ReadonlyArray<FiscalYear>, PersistenceError>
 
   /**
-   * Begin year-end close process
+   * Close a fiscal year
    *
-   * Transitions the fiscal year status to "Closing"
+   * Transitions the fiscal year status from "Open" to "Closed".
+   * This is a single atomic operation - no intermediate "Closing" state.
+   * All periods will be automatically closed.
+   *
+   * Note: For the full year-end close workflow with closing entries,
+   * use YearEndCloseService which includes preview and closing entry generation.
    *
    * @param companyId - The company ID for authorization
    * @param fiscalYearId - The fiscal year to close
@@ -174,7 +178,7 @@ export interface FiscalPeriodServiceShape {
    * @errors InvalidYearStatusTransitionError - Year is not in Open status
    * @errors PersistenceError - Database operation failed
    */
-  readonly beginYearClose: (
+  readonly closeFiscalYear: (
     companyId: CompanyId,
     fiscalYearId: FiscalYearId
   ) => Effect.Effect<
@@ -183,25 +187,24 @@ export interface FiscalPeriodServiceShape {
   >
 
   /**
-   * Complete year-end close
+   * Reopen a closed fiscal year
    *
-   * Transitions the fiscal year status to "Closed"
-   * All periods must be closed first.
+   * Transitions a fiscal year from "Closed" back to "Open".
+   * Use with caution - this is typically for correction scenarios.
    *
    * @param companyId - The company ID for authorization
-   * @param fiscalYearId - The fiscal year to close
+   * @param fiscalYearId - The fiscal year to reopen
    * @returns Effect containing the updated fiscal year
    * @errors FiscalYearNotFoundError - Fiscal year doesn't exist
-   * @errors InvalidYearStatusTransitionError - Year is not in Closing status
-   * @errors PeriodsNotClosedError - Not all periods are closed
+   * @errors InvalidYearStatusTransitionError - Year is not in Closed status
    * @errors PersistenceError - Database operation failed
    */
-  readonly completeYearClose: (
+  readonly reopenFiscalYear: (
     companyId: CompanyId,
     fiscalYearId: FiscalYearId
   ) => Effect.Effect<
     FiscalYear,
-    FiscalYearNotFoundError | InvalidYearStatusTransitionError | PeriodsNotClosedError | PersistenceError | EntityNotFoundError
+    FiscalYearNotFoundError | InvalidYearStatusTransitionError | PersistenceError | EntityNotFoundError
   >
 
   // ==================== Fiscal Period Operations ====================

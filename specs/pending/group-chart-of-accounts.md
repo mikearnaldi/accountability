@@ -58,7 +58,7 @@ An account in the Group Chart of Accounts.
 |-------|------|----------|-------------|
 | id | GroupAccountId | Yes | Primary key |
 | groupChartOfAccountsId | GroupChartOfAccountsId | Yes | FK to GroupChartOfAccounts |
-| accountNumber | NonEmptyTrimmedString | Yes | Group account number (e.g., "100000") |
+| accountNumber | NonEmptyTrimmedString | Yes | Group account number (e.g., "1010") |
 | name | NonEmptyTrimmedString | Yes | Account name (e.g., "Cash and Cash Equivalents") |
 | description | Option[String] | No | Detailed description |
 | accountType | AccountType | Yes | Asset, Liability, Equity, Revenue, Expense |
@@ -95,9 +95,9 @@ Maps a local (company) account to a group account.
 **MappingType:**
 | Type | Description | Example |
 |------|-------------|---------|
-| Direct | One-to-one mapping | Local `1010` → Group `100000` |
-| Range | Range of accounts to one | Local `1000-1099` → Group `100000` |
-| Pattern | Regex pattern to one | Local `5*` → Group `500000` |
+| Direct | One-to-one mapping | Local `1010` → Group `1000` |
+| Range | Range of accounts to one | Local `1010-1030` → Group `1000` |
+| Pattern | Regex pattern to one | Local `5*` → Group `5000` |
 
 **Constraints:**
 - Combination of `(consolidationGroupId, companyId, localAccountNumber)` must be unique for Direct mappings
@@ -237,7 +237,11 @@ CREATE INDEX idx_account_mappings_lookup ON account_mappings(consolidation_group
 | POST | `/group-charts-of-accounts/{coaId}/accounts` | Create Group Account |
 | PUT | `/group-charts-of-accounts/{coaId}/accounts/{id}` | Update Group Account |
 | DELETE | `/group-charts-of-accounts/{coaId}/accounts/{id}` | Delete Group Account |
-| POST | `/group-charts-of-accounts/{coaId}/accounts/import` | Import from template |
+| POST | `/group-charts-of-accounts/{coaId}/apply-template` | Apply template to Group COA |
+
+### Account Templates (for Group COA)
+
+Reuses the existing `/api/v1/account-templates` endpoint to list available templates. The apply endpoint is specific to Group COA.
 
 ### Account Mappings
 
@@ -343,7 +347,7 @@ To reduce manual mapping effort, implement an auto-suggest algorithm:
 1. **Exact Name Match** - Local "Cash" → Group "Cash" (high confidence)
 2. **Fuzzy Name Match** - Local "Cash and Equivalents" → Group "Cash" (medium confidence)
 3. **Account Type + Category Match** - Same type/category suggests mapping
-4. **Number Pattern Match** - Local `1xxx` accounts → Group `1xxxxx` (low confidence)
+4. **Account Number Match** - Same or similar account numbers (medium confidence)
 
 ### Suggestion Response
 
@@ -362,19 +366,164 @@ interface MappingSuggestion {
 
 ## UI Design
 
-### Group Chart of Accounts Management
+The Group COA UI should mirror the existing Company Chart of Accounts UI (`/organizations/$organizationId/companies/$companyId/accounts`) for consistency.
 
-**Location:** Organization Settings → Group Charts of Accounts
+### Component Reuse Strategy
 
-**List View:**
-- Name, Description, Account Count, Used By (consolidation groups)
-- Actions: View, Edit, Delete
+**IMPORTANT:** Reuse existing components wherever possible instead of creating duplicates. Extract shared components if needed.
 
-**Detail View:**
-- Hierarchical tree view of group accounts
-- Drag-and-drop reordering
-- Inline editing
-- Import from template button
+| Existing Component | Reuse For | Action |
+|--------------------|-----------|--------|
+| `AccountFormModal.tsx` | Group Account create/edit | Extract shared `AccountFormFields` component, or make modal generic with props |
+| `ApplyTemplateModal.tsx` | Group COA template application | Make generic with `targetType: "company" \| "groupCoa"` prop and `onApply` callback |
+| Account tree view in `accounts/index.tsx` | Group accounts tree | Extract `AccountTreeView` component to `components/accounts/` |
+| `buildAccountTree()` helper | Building group account hierarchy | Extract to shared utility |
+| `getAccountTypeColor()` helper | Styling account type badges | Already reusable, import it |
+| Filter/search toolbar | Group accounts toolbar | Extract `AccountsToolbar` component |
+
+**Approach:**
+1. Before creating a new component, check if an existing one can be parameterized
+2. If 80%+ similar, refactor existing component to be generic
+3. Use props like `entityType`, `onSave`, `apiEndpoint` to differentiate behavior
+4. Keep styling and UX identical between company and group COA views
+
+### Group Charts of Accounts List Page
+
+**Location:** `/organizations/$organizationId/settings/group-charts-of-accounts`
+
+**Layout:**
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ Group Charts of Accounts                      [+ New Group COA] │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│ ┌─────────────────────────────────────────────────────────────┐ │
+│ │ Corporate Group COA                                         │ │
+│ │ Standard chart for all subsidiaries                         │ │
+│ │ 85 accounts · USD · Used by 3 consolidation groups          │ │
+│ └─────────────────────────────────────────────────────────────┘ │
+│                                                                 │
+│ ┌─────────────────────────────────────────────────────────────┐ │
+│ │ European Subsidiaries COA                                   │ │
+│ │ Adapted for EU statutory requirements                       │ │
+│ │ 92 accounts · EUR · Used by 1 consolidation group           │ │
+│ └─────────────────────────────────────────────────────────────┘ │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Empty State:**
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         📋                                      │
+│               No group charts of accounts yet                   │
+│                                                                 │
+│   Create a group chart of accounts to enable consolidation      │
+│   across subsidiaries with different local charts.              │
+│                                                                 │
+│              [+ Create Group Chart of Accounts]                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Group COA Detail Page (Accounts Tree)
+
+**Location:** `/organizations/$organizationId/settings/group-charts-of-accounts/$chartId`
+
+This page mirrors the Company Chart of Accounts page exactly:
+
+**Page Header:**
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ Group Chart of Accounts                          [+ New Account]│
+│ Corporate Group COA - USD                                       │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Toolbar (mirrors company accounts):**
+- Search input (search by account number or name)
+- Filter by Type dropdown (All Types, Assets, Liabilities, Equity, Revenue, Expenses)
+- Filter by Status dropdown (All, Active, Inactive)
+- Postable only checkbox
+- Expand All / Collapse All buttons
+- Account count: "45 of 85 accounts"
+
+**Empty State (no accounts yet):**
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         📋                                      │
+│                    No accounts yet                              │
+│                                                                 │
+│   Get started by applying a template or creating your first     │
+│   account manually.                                             │
+│                                                                 │
+│       [Apply Template]    [Create Account]                      │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Account Tree View (mirrors company accounts):**
+
+| Account | Type | Category | Normal | Postable | Status | Actions |
+|---------|------|----------|--------|----------|--------|---------|
+| ▼ 1000 Cash and Cash Equivalents | Asset | Current Asset | Dr | — | Active | ✏️ |
+| &nbsp;&nbsp;&nbsp;1010 Cash - Operating | Asset | Current Asset | Dr | ✓ | Active | ✏️ |
+| &nbsp;&nbsp;&nbsp;1020 Cash - Payroll | Asset | Current Asset | Dr | ✓ | Active | ✏️ |
+| ▶ 1100 Accounts Receivable | Asset | Current Asset | Dr | — | Active | ✏️ |
+| ▼ 3000 Equity | Equity | Contributed Capital | Cr | — | Active | ✏️ |
+| &nbsp;&nbsp;&nbsp;3000 Common Stock | Equity | Contributed Capital | Cr | ✓ | Active | ✏️ |
+| &nbsp;&nbsp;&nbsp;3200 Additional Paid-In Capital | Equity | Contributed Capital | Cr | ✓ | Active | ✏️ |
+
+### Apply Template Modal
+
+**Identical to company Apply Template modal** (`ApplyTemplateModal.tsx`):
+
+1. **Template Selection Step:**
+   - Shows all available templates (GeneralBusiness, Manufacturing, ServiceBusiness, HoldingCompany)
+   - Each template card shows: icon, name, description, account count
+   - Click to select
+
+2. **Confirmation Step:**
+   - Warning: "This action will create X accounts in your group chart of accounts. This cannot be easily undone."
+   - Shows selected template details
+   - [Back] [Apply Template] buttons
+
+3. **Success State:**
+   - "Successfully created X accounts from the [Template Name] template."
+   - Auto-closes after 1.5 seconds
+
+**API Endpoint:**
+```
+POST /api/v1/group-charts-of-accounts/{chartId}/apply-template
+{
+  "templateType": "ServiceBusiness"
+}
+
+Response:
+{
+  "createdCount": 85
+}
+```
+
+### Create/Edit Group Account Modal
+
+**Identical to company Account Form modal** (`AccountFormModal.tsx`):
+
+**Fields:**
+- Account Number (required)
+- Account Name (required)
+- Description (optional)
+- Account Type (required): Asset, Liability, Equity, Revenue, Expense
+- Account Category (required): depends on type
+- Normal Balance (required): Debit, Credit
+- Parent Account (optional): dropdown of non-postable accounts
+- Is Postable (checkbox)
+- Is Active (checkbox)
+
+### Create/Edit Group COA Modal
+
+**Fields:**
+- Name (required): e.g., "Corporate Group COA"
+- Description (optional)
+- Base Currency (required): currency dropdown
 
 ### Account Mapping UI
 
@@ -392,9 +541,9 @@ interface MappingSuggestion {
 │                                                                 │
 │  LOCAL ACCOUNT              →    GROUP ACCOUNT                  │
 │  ─────────────────────────────────────────────────────────────  │
-│  1010 Cash - Operating      →    100000 Cash and Equivalents ✓  │
-│  1020 Cash - Payroll        →    100000 Cash and Equivalents ✓  │
-│  1100 Accounts Receivable   →    110000 Trade Receivables    ✓  │
+│  1010 Cash - Operating      →    1000 Cash and Equivalents   ✓  │
+│  1020 Cash - Payroll        →    1000 Cash and Equivalents   ✓  │
+│  1100 Accounts Receivable   →    1100 Trade Receivables      ✓  │
 │  1200 Inventory             →    [Select group account...]   ⚠  │
 │  ...                                                            │
 │                                                                 │
@@ -477,7 +626,14 @@ interface MappingSuggestion {
 - `packages/core/src/consolidation/AccountMappingService.ts`
 
 **Tasks:**
-- [ ] **3.1** Create `GroupChartOfAccountsService` with CRUD operations
+- [ ] **3.1** Create `GroupChartOfAccountsService` with:
+  - CRUD operations for Group COA
+  - CRUD operations for Group Accounts
+  - `applyTemplate(chartId, templateType)` - copies accounts from template to Group COA
+    - Reuse `getTemplateByType()` from `AccountTemplate.ts`
+    - Create GroupAccount for each TemplateAccountDefinition
+    - Preserve hierarchy (parentAccountNumber → parentAccountId)
+    - Return created count
 - [ ] **3.2** Create `AccountMappingService` with:
   - Mapping CRUD
   - `validateMappings` - check all accounts have mappings
@@ -502,13 +658,23 @@ interface MappingSuggestion {
 - `packages/api/src/Layers/AccountMappingApiLive.ts`
 
 **Tasks:**
-- [ ] **4.1** Define `GroupChartOfAccountsApi` HttpApiGroup
+- [ ] **4.1** Define `GroupChartOfAccountsApi` HttpApiGroup with endpoints:
+  - `GET /organizations/{orgId}/group-charts-of-accounts` - list
+  - `POST /organizations/{orgId}/group-charts-of-accounts` - create
+  - `GET /organizations/{orgId}/group-charts-of-accounts/{id}` - get
+  - `PUT /organizations/{orgId}/group-charts-of-accounts/{id}` - update
+  - `DELETE /organizations/{orgId}/group-charts-of-accounts/{id}` - delete
+  - `GET /group-charts-of-accounts/{coaId}/accounts` - list accounts
+  - `POST /group-charts-of-accounts/{coaId}/accounts` - create account
+  - `PUT /group-charts-of-accounts/{coaId}/accounts/{id}` - update account
+  - `DELETE /group-charts-of-accounts/{coaId}/accounts/{id}` - delete account
+  - `POST /group-charts-of-accounts/{coaId}/apply-template` - apply template
 - [ ] **4.2** Implement `GroupChartOfAccountsApiLive`
 - [ ] **4.3** Define `AccountMappingApi` HttpApiGroup
 - [ ] **4.4** Implement `AccountMappingApiLive`
 - [ ] **4.5** Register in main API
 - [ ] **4.6** Run `pnpm generate:api` to regenerate client
-- [ ] **4.7** Write API tests
+- [ ] **4.7** Write API tests (including apply-template)
 - [ ] **4.8** Run `pnpm test` to verify
 
 **Verification**: All tests pass, API client regenerated
@@ -517,23 +683,58 @@ interface MappingSuggestion {
 
 ### Phase 5: Frontend - Group COA Management
 
-**Goal**: Build UI for managing Group Charts of Accounts.
+**Goal**: Build UI for managing Group Charts of Accounts, reusing existing components where possible.
 
-**Files to create:**
-- `packages/web/src/routes/organizations/$organizationId/settings/group-charts-of-accounts/index.tsx`
-- `packages/web/src/routes/organizations/$organizationId/settings/group-charts-of-accounts/$chartId/index.tsx`
-- `packages/web/src/components/consolidation/GroupAccountTree.tsx`
+**Files to create/modify:**
+
+*New routes:*
+- `packages/web/src/routes/organizations/$organizationId/settings/group-charts-of-accounts/index.tsx` (list page)
+- `packages/web/src/routes/organizations/$organizationId/settings/group-charts-of-accounts/$chartId/index.tsx` (detail page)
+
+*New components:*
+- `packages/web/src/components/consolidation/GroupChartOfAccountsForm.tsx` (create/edit COA modal - unique to Group COA)
+
+*Refactored shared components:*
+- `packages/web/src/components/accounts/AccountTreeView.tsx` (extract from `accounts/index.tsx`)
+- `packages/web/src/components/accounts/AccountsToolbar.tsx` (extract from `accounts/index.tsx`)
+- `packages/web/src/components/accounts/AccountsEmptyState.tsx` (extract from `accounts/index.tsx`)
+- `packages/web/src/components/accounts/accountUtils.ts` (extract `buildAccountTree`, `getAccountTypeColor`)
+
+*Modified existing components:*
+- `packages/web/src/components/forms/AccountForm.tsx` - add `mode` prop to support Group Account
+- `packages/web/src/components/accounts/ApplyTemplateModal.tsx` - add `targetType` and `targetId` props
 
 **Tasks:**
-- [ ] **5.1** Create Group COA list page
-- [ ] **5.2** Create Group COA detail page with account tree
-- [ ] **5.3** Implement create/edit modal for Group COA
-- [ ] **5.4** Implement create/edit modal for Group Account
-- [ ] **5.5** Implement import from template feature
-- [ ] **5.6** Run `pnpm generate-routes`
-- [ ] **5.7** Write E2E tests
+- [ ] **5.1** Extract shared components from `accounts/index.tsx`:
+  - `AccountTreeView` - the table/tree rendering
+  - `AccountTreeRow` - individual row component
+  - `AccountsToolbar` - search, filters, expand/collapse
+  - `AccountsEmptyState` - empty state with CTAs
+  - `accountUtils.ts` - `buildAccountTree()`, `getAccountTypeColor()`
+- [ ] **5.2** Update company `accounts/index.tsx` to use extracted components (verify no regression)
+- [ ] **5.3** Refactor `AccountFormModal` to accept optional `groupChartOfAccountsId` prop
+  - When set, creates/edits Group Account via group COA API
+  - When unset, creates/edits Company Account (current behavior)
+- [ ] **5.4** Refactor `ApplyTemplateModal` to be generic:
+  - Add props: `targetType: "company" | "groupCoa"`, `targetId: string`
+  - Adjust API call based on target type
+- [ ] **5.5** Create Group COA list page with empty state
+- [ ] **5.6** Create Group COA detail page using shared components:
+  - Use `AccountTreeView` for account display
+  - Use `AccountsToolbar` for filtering
+  - Use `AccountsEmptyState` for empty state
+  - Use refactored `AccountFormModal` for create/edit
+  - Use refactored `ApplyTemplateModal` for template application
+- [ ] **5.7** Create `GroupChartOfAccountsForm` modal (unique - no company equivalent)
+- [ ] **5.8** Run `pnpm generate-routes`
+- [ ] **5.9** Write E2E tests for:
+  - Create Group COA
+  - Apply template to Group COA
+  - Create/edit/delete group accounts
+  - Filter and search accounts
+  - Verify company accounts page still works (regression test)
 
-**Verification**: E2E tests pass
+**Verification**: E2E tests pass, no regression in company accounts
 
 ---
 

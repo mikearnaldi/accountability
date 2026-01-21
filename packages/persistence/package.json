@@ -60,6 +60,7 @@
     "./Layers/AuthorizationServiceLive": "./src/Layers/AuthorizationServiceLive.ts",
     "./Layers/PolicyEngineLive": "./src/Layers/PolicyEngineLive.ts",
     "./Layers/FiscalPeriodServiceLive": "./src/Layers/FiscalPeriodServiceLive.ts",
+    "./Layers/YearEndCloseServiceLive": "./src/Layers/YearEndCloseServiceLive.ts",
     "./Layers/AuditLogServiceLive": "./src/Layers/AuditLogServiceLive.ts",
     "./Seeds/SystemPolicies": "./src/Seeds/SystemPolicies.ts",
     "./Migrations/Migration0001_CreateOrganizations": "./src/Migrations/Migration0001_CreateOrganizations.ts",
