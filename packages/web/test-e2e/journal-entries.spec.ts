@@ -1434,11 +1434,12 @@ test.describe("Journal Entries List Page", () => {
     // 5. Navigate to company details page
     await page.goto(`/organizations/${orgData.id}/companies/${companyData.id}`)
 
-    // 6. Should see "View Entries" link
-    await expect(page.getByText("View Entries")).toBeVisible()
+    // 6. Should see Journal Entries quick action link (scoped to quick-actions-card)
+    const quickActionsCard = page.getByTestId("quick-actions-card")
+    await expect(quickActionsCard.getByTestId("nav-journal-entries")).toBeVisible()
 
-    // 7. Click on the Journal Entries card
-    await page.getByText("View Entries").click()
+    // 7. Click on the Journal Entries link
+    await quickActionsCard.getByTestId("nav-journal-entries").click()
 
     // 8. Should be on journal entries page
     await page.waitForURL(/\/journal-entries/)

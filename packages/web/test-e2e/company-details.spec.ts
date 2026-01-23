@@ -122,14 +122,14 @@ test.describe("Company Details Page", () => {
     // 9. Should show legal name
     await expect(page.getByText(`${companyName} Inc.`)).toBeVisible()
 
-    // 10. Should show functional currency
-    await expect(page.getByText("USD")).toBeVisible()
+    // 10. Should show functional currency (use stat card to be specific)
+    await expect(page.getByTestId("stat-currency").getByText("USD")).toBeVisible()
 
-    // 11. Should show reporting currency
-    await expect(page.getByText("EUR")).toBeVisible()
+    // 11. Should show reporting currency (in financial settings)
+    await expect(page.getByTestId("financial-settings-card").getByText("EUR")).toBeVisible()
 
-    // 12. Should show fiscal year end
-    await expect(page.getByText("December 31")).toBeVisible()
+    // 12. Should show fiscal year end (use stat card to be specific)
+    await expect(page.getByTestId("stat-fiscal-year").getByText("December 31")).toBeVisible()
 
     // 13. Should show jurisdiction
     await expect(page.getByText("United States")).toBeVisible()
@@ -143,7 +143,8 @@ test.describe("Company Details Page", () => {
     // 16. Should show creation date
     await expect(page.getByText(/Created/)).toBeVisible()
 
-    // 17. Should show company ID
+    // 17. Should show company ID (in Technical Details section - expand it first)
+    await page.getByTestId("technical-details-toggle").click()
     await expect(page.getByText(companyData.id)).toBeVisible()
 
     // 18. Should have Edit button
@@ -234,20 +235,21 @@ test.describe("Company Details Page", () => {
     // 7. Should show "Company Data" section heading
     await expect(page.getByRole("heading", { name: "Company Data" })).toBeVisible()
 
-    // 8. Should show Chart of Accounts navigation card
-    await expect(page.getByRole("heading", { name: "Chart of Accounts" })).toBeVisible()
-    await expect(page.getByText("Manage accounts and account hierarchy")).toBeVisible()
-    await expect(page.getByText("View Accounts")).toBeVisible()
+    // 8. Should show Chart of Accounts navigation link (scoped to quick actions card)
+    const quickActionsCard = page.getByTestId("quick-actions-card")
+    await expect(quickActionsCard.getByTestId("nav-accounts")).toBeVisible()
+    await expect(quickActionsCard.getByTestId("nav-accounts").getByText("Chart of Accounts")).toBeVisible()
+    await expect(quickActionsCard.getByTestId("nav-accounts").getByText(/\d+ accounts/)).toBeVisible()
 
-    // 9. Should show Journal Entries navigation card
-    await expect(page.getByRole("heading", { name: "Journal Entries" })).toBeVisible()
-    await expect(page.getByText("Create and manage journal entries")).toBeVisible()
-    await expect(page.getByText("View Entries")).toBeVisible()
+    // 9. Should show Journal Entries navigation link
+    await expect(quickActionsCard.getByTestId("nav-journal-entries")).toBeVisible()
+    await expect(quickActionsCard.getByTestId("nav-journal-entries").getByText("Journal Entries")).toBeVisible()
+    await expect(quickActionsCard.getByTestId("nav-journal-entries").getByText(/\d+ entries/)).toBeVisible()
 
-    // 10. Should show Reports navigation card
-    await expect(page.getByRole("heading", { name: "Reports" })).toBeVisible()
-    await expect(page.getByText("Financial statements and reports")).toBeVisible()
-    await expect(page.getByText("View Reports")).toBeVisible()
+    // 10. Should show Reports navigation link
+    await expect(quickActionsCard.getByTestId("nav-reports")).toBeVisible()
+    await expect(quickActionsCard.getByTestId("nav-reports").getByText("Reports")).toBeVisible()
+    await expect(quickActionsCard.getByTestId("nav-reports").getByText("Financial statements")).toBeVisible()
   })
 
   test("should edit company via form", async ({ page, request }) => {
@@ -348,32 +350,35 @@ test.describe("Company Details Page", () => {
     // 11. Update legal name
     await page.fill("#edit-company-legal-name", `${newCompanyName} LLC`)
 
-    // 12. Add tax ID
+    // 12. Add tax ID (on Basic Info tab)
     await page.fill("#edit-company-tax-id", "98-7654321")
 
-    // 13. Change reporting currency
+    // 13. Switch to Financial tab to change reporting currency and fiscal year end
+    await page.getByTestId("edit-tab-financial").click()
+
+    // 14. Change reporting currency
     await page.selectOption("#edit-company-currency", "GBP")
 
-    // 14. Change fiscal year end
+    // 15. Change fiscal year end
     await page.selectOption("#edit-company-fy-month", "3")
     await page.selectOption("#edit-company-fy-day", "31")
 
-    // 15. Submit form
+    // 16. Submit form
     await page.click('button[type="submit"]')
 
-    // 16. Should show updated company name - target main content h1
+    // 17. Should show updated company name - target main content h1
     await expect(page.getByRole("main").getByRole("heading", { name: newCompanyName })).toBeVisible({ timeout: 10000 })
 
-    // 17. Should show updated legal name
+    // 18. Should show updated legal name
     await expect(page.getByText(`${newCompanyName} LLC`)).toBeVisible()
 
-    // 18. Should show updated reporting currency
+    // 19. Should show updated reporting currency
     await expect(page.getByText("GBP")).toBeVisible()
 
-    // 19. Should show updated fiscal year end
-    await expect(page.getByText("March 31")).toBeVisible()
+    // 20. Should show updated fiscal year end (use stat card to be specific)
+    await expect(page.getByTestId("stat-fiscal-year").getByText("March 31")).toBeVisible()
 
-    // 20. Should show tax ID
+    // 21. Should show tax ID
     await expect(page.getByText("98-7654321")).toBeVisible()
   })
 
@@ -563,16 +568,19 @@ test.describe("Company Details Page", () => {
     // 6. Navigate to company details page
     await page.goto(`/organizations/${orgData.id}/companies/${companyData.id}`)
 
-    // 7. Click Edit button
-    await page.getByTestId("edit-company-button").click()
+    // 7. Wait for hydration
+    await page.waitForTimeout(500)
 
-    // 8. Modal should be visible
-    await expect(page.getByRole("heading", { name: "Edit Company" })).toBeVisible()
+    // 8. Click Edit button
+    await page.getByTestId("edit-company-button").click({ force: true })
 
-    // 9. Click cancel
+    // 9. Modal should be visible
+    await expect(page.getByRole("heading", { name: "Edit Company" })).toBeVisible({ timeout: 10000 })
+
+    // 10. Click cancel
     await page.getByTestId("company-form-cancel-button").click()
 
-    // 10. Modal should be hidden
+    // 11. Modal should be hidden
     await expect(page.getByRole("heading", { name: "Edit Company" })).not.toBeVisible()
   })
 
@@ -921,13 +929,16 @@ test.describe("Company Details Page", () => {
     // 9. Should show edit form modal
     await expect(page.getByTestId("edit-company-modal")).toBeVisible({ timeout: 10000 })
 
-    // 10. Functional currency should be displayed but disabled
+    // 10. Switch to Financial tab
+    await page.getByTestId("edit-tab-financial").click()
+
+    // 11. Functional currency should be displayed but disabled
     const functionalCurrencyInput = page.getByTestId("edit-company-functional-currency-input")
     await expect(functionalCurrencyInput).toBeVisible()
     await expect(functionalCurrencyInput).toBeDisabled()
     await expect(functionalCurrencyInput).toHaveValue("EUR")
 
-    // 11. Should show ASC 830 note (helper text with Input component)
+    // 12. Should show ASC 830 note (helper text with Input component)
     await expect(page.getByTestId("edit-company-functional-currency-helper")).toBeVisible()
     await expect(page.getByTestId("edit-company-functional-currency-helper")).toContainText("ASC 830")
   })

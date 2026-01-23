@@ -1191,11 +1191,12 @@ test.describe("Chart of Accounts Page", () => {
     // 5. Navigate to company details page
     await page.goto(`/organizations/${orgData.id}/companies/${companyData.id}`)
 
-    // 6. Should see "View Accounts" link
-    await expect(page.getByText("View Accounts")).toBeVisible()
+    // 6. Should see Chart of Accounts quick action link (scoped to quick-actions-card)
+    const quickActionsCard = page.getByTestId("quick-actions-card")
+    await expect(quickActionsCard.getByTestId("nav-accounts")).toBeVisible()
 
-    // 7. Click on the Chart of Accounts card
-    await page.getByText("View Accounts").click()
+    // 7. Click on the Chart of Accounts link
+    await quickActionsCard.getByTestId("nav-accounts").click()
 
     // 8. Should be on accounts page
     await page.waitForURL(/\/accounts/)

@@ -2,6 +2,15 @@ import { createFileRoute, redirect, useRouter, Link } from "@tanstack/react-rout
 import { createServerFn } from "@tanstack/react-start"
 import { getCookie } from "@tanstack/react-start/server"
 import { useState, useMemo } from "react"
+import {
+  CreditCard,
+  FileText,
+  DollarSign,
+  Calendar,
+  BarChart3,
+  ChevronDown,
+  ChevronUp
+} from "lucide-react"
 import { api } from "@/api/client"
 import type { paths } from "@/api/schema"
 import { createServerApi } from "@/api/server"
@@ -11,6 +20,9 @@ import { Input } from "@/components/ui/Input"
 import { Select } from "@/components/ui/Select"
 import { Button } from "@/components/ui/Button"
 import { usePermissions } from "@/hooks/usePermissions"
+import { StatCard } from "@/components/company/StatCard"
+import { CompanyInfoCard, InfoRow } from "@/components/company/CompanyInfoCard"
+import { QuickActionLink } from "@/components/company/QuickActionLink"
 
 // Type for CompanyType from the API schema
 type CompanyType = NonNullable<paths["/api/v1/organizations/{organizationId}/companies/{id}"]["put"]["requestBody"]["content"]["application/json"]["companyType"]>
@@ -27,6 +39,18 @@ const VALID_COMPANY_TYPES: Record<string, CompanyType> = {
   Other: "Other"
 }
 
+// Company type display names
+const COMPANY_TYPE_LABELS: Record<string, string> = {
+  Corporation: "Corporation",
+  LLC: "Limited Liability Company (LLC)",
+  Partnership: "Partnership",
+  SoleProprietorship: "Sole Proprietorship",
+  NonProfit: "Non-Profit Organization",
+  Cooperative: "Cooperative",
+  Branch: "Branch Office",
+  Other: "Other"
+}
+
 // =============================================================================
 // Server Functions: Fetch company from API with cookie auth
 // =============================================================================
@@ -38,15 +62,15 @@ const fetchCompanyData = createServerFn({ method: "GET" })
     const sessionToken = getCookie("accountability_session")
 
     if (!sessionToken) {
-      return { company: null, organization: null, allCompanies: [], accounts: [], error: "unauthorized" as const }
+      return { company: null, organization: null, allCompanies: [], accounts: [], journalEntryCount: 0, error: "unauthorized" as const }
     }
 
     try {
       // Create server API client with dynamic base URL from request context
       const serverApi = createServerApi()
       const Authorization = `Bearer ${sessionToken}`
-      // Fetch company, organization, all companies, and accounts in parallel
-      const [companyResult, orgResult, allCompaniesResult, accountsResult] = await Promise.all([
+      // Fetch company, organization, all companies, accounts, and journal entries count in parallel
+      const [companyResult, orgResult, allCompaniesResult, accountsResult, journalEntriesResult] = await Promise.all([
         serverApi.GET("/api/v1/organizations/{organizationId}/companies/{id}", {
           params: { path: { organizationId: data.organizationId, id: data.companyId } },
           headers: { Authorization }
@@ -62,6 +86,17 @@ const fetchCompanyData = createServerFn({ method: "GET" })
         serverApi.GET("/api/v1/accounts", {
           params: { query: { organizationId: data.organizationId, companyId: data.companyId } },
           headers: { Authorization }
+        }),
+        serverApi.GET("/api/v1/journal-entries", {
+          params: {
+            query: {
+              organizationId: data.organizationId,
+              companyId: data.companyId,
+              limit: "1",
+              offset: "0"
+            }
+          },
+          headers: { Authorization }
         })
       ])
 
@@ -69,13 +104,13 @@ const fetchCompanyData = createServerFn({ method: "GET" })
         // Check for domain-specific NotFoundError using _tag (from Effect Schema TaggedError)
         if (typeof companyResult.error === "object" && "_tag" in companyResult.error &&
             companyResult.error._tag === "CompanyNotFoundError") {
-          return { company: null, organization: null, allCompanies: [], accounts: [], error: "not_found" as const }
+          return { company: null, organization: null, allCompanies: [], accounts: [], journalEntryCount: 0, error: "not_found" as const }
         }
-        return { company: null, organization: null, allCompanies: [], accounts: [], error: "failed" as const }
+        return { company: null, organization: null, allCompanies: [], accounts: [], journalEntryCount: 0, error: "failed" as const }
       }
 
       if (orgResult.error) {
-        return { company: null, organization: null, allCompanies: [], accounts: [], error: "failed" as const }
+        return { company: null, organization: null, allCompanies: [], accounts: [], journalEntryCount: 0, error: "failed" as const }
       }
 
       return {
@@ -83,10 +118,11 @@ const fetchCompanyData = createServerFn({ method: "GET" })
         organization: orgResult.data,
         allCompanies: allCompaniesResult.data?.companies ?? [],
         accounts: accountsResult.data?.accounts ?? [],
+        journalEntryCount: journalEntriesResult.data?.total ?? 0,
         error: null
       }
     } catch {
-      return { company: null, organization: null, allCompanies: [], accounts: [], error: "failed" as const }
+      return { company: null, organization: null, allCompanies: [], accounts: [], journalEntryCount: 0, error: "failed" as const }
     }
   })
 
@@ -122,7 +158,8 @@ export const Route = createFileRoute("/organizations/$organizationId/companies/$
       company: result.company,
       organization: result.organization,
       allCompanies: result.allCompanies,
-      accounts: result.accounts
+      accounts: result.accounts,
+      journalEntryCount: result.journalEntryCount
     }
   },
   errorComponent: ({ error }) => <MinimalRouteError error={error} />,
@@ -196,6 +233,7 @@ function CompanyDetailsPage() {
   } | null
   const allCompanies = loaderData.allCompanies as readonly Company[]
   const accounts = loaderData.accounts as readonly Account[]
+  const journalEntryCount = loaderData.journalEntryCount as number
   /* eslint-enable @typescript-eslint/consistent-type-assertions */
   const params = Route.useParams()
   const router = useRouter()
@@ -204,6 +242,7 @@ function CompanyDetailsPage() {
   const organizations = context.organizations ?? []
   const [isEditing, setIsEditing] = useState(false)
   const [isToggling, setIsToggling] = useState(false)
+  const [showTechnicalDetails, setShowTechnicalDetails] = useState(false)
 
   // Permission checks for UI element visibility
   const { canPerform } = usePermissions()
@@ -214,6 +253,15 @@ function CompanyDetailsPage() {
   const companiesForSidebar = useMemo(
     () => allCompanies.map((c) => ({ id: c.id, name: c.name })),
     [allCompanies]
+  )
+
+  // Account count
+  const accountCount = accounts.length
+
+  // Find the retained earnings account for display
+  const retainedEarningsAccount = useMemo(
+    () => accounts.find((a) => a.id === company?.retainedEarningsAccountId),
+    [accounts, company?.retainedEarningsAccountId]
   )
 
   if (!company || !organization) {
@@ -234,6 +282,18 @@ function CompanyDetailsPage() {
     return `${months[date.month - 1]} ${date.day}, ${date.year}`
   }
   const incorporationDateFormatted = formatIncorporationDate(company.incorporationDate)
+
+  // Check if address has any data
+  const hasAddressData = (addr: AddressData | null): boolean => {
+    if (!addr) return false
+    return Boolean(addr.street1 || addr.street2 || addr.city || addr.state || addr.postalCode || addr.country)
+  }
+
+  // Format company type for display
+  const formatCompanyType = (type: string | null): string | null => {
+    if (!type) return null
+    return COMPANY_TYPE_LABELS[type] ?? type
+  }
 
   // Breadcrumb items
   const breadcrumbItems = [
@@ -317,308 +377,233 @@ function CompanyDetailsPage() {
       companies={companiesForSidebar}
     >
       <div className="space-y-6" data-testid="company-details-page">
-          {/* Company Header Card with Name, Status Badge, and Jurisdiction */}
-          <div className="rounded-lg border border-gray-200 bg-white p-6" data-testid="company-header-card">
-            <div className="flex items-start justify-between">
-              <div>
-                <div className="flex items-center gap-3">
-                  <h1 className="text-2xl font-bold text-gray-900" data-testid="company-name">{company.name}</h1>
-                  <span
-                    data-testid="company-status-badge"
-                    className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-medium ${
-                      company.isActive
-                        ? "bg-green-100 text-green-800"
-                        : "bg-gray-100 text-gray-600"
-                    }`}
-                  >
-                    {company.isActive ? "Active" : "Inactive"}
-                  </span>
-                  <span
-                    data-testid="company-jurisdiction-badge"
-                    className="inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-800"
-                  >
-                    {formatJurisdiction(company.jurisdiction)}
-                  </span>
-                </div>
-                <p className="mt-1 text-gray-500" data-testid="company-legal-name">{company.legalName}</p>
-                <p className="mt-1 text-sm text-gray-500">Created {createdDate}</p>
-              </div>
+        {/* Company Header Card with Name, Status Badge, Jurisdiction, and Company Type */}
+        <div className="rounded-lg border border-gray-200 bg-white p-6" data-testid="company-header-card">
+          <div className="flex items-start justify-between">
+            <div>
               <div className="flex items-center gap-3">
-                {canUpdateCompany && (
-                  <button
-                    onClick={() => setIsEditing(true)}
-                    data-testid="edit-company-button"
-                    className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                  >
-                    Edit
-                  </button>
-                )}
-                {canDeleteCompany && (
-                  <button
-                    onClick={handleToggleActive}
-                    disabled={isToggling}
-                    data-testid="toggle-active-button"
-                    className={`rounded-lg px-4 py-2 text-sm font-medium ${
-                      company.isActive
-                        ? "border border-red-300 bg-white text-red-700 hover:bg-red-50"
-                        : "border border-green-300 bg-white text-green-700 hover:bg-green-50"
-                    } disabled:cursor-not-allowed disabled:opacity-50`}
-                  >
-                    {isToggling ? "..." : company.isActive ? "Deactivate" : "Activate"}
-                  </button>
-                )}
+                <h1 className="text-2xl font-bold text-gray-900" data-testid="company-name">{company.name}</h1>
+                <span
+                  data-testid="company-status-badge"
+                  className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-medium ${
+                    company.isActive
+                      ? "bg-green-100 text-green-800"
+                      : "bg-gray-100 text-gray-600"
+                  }`}
+                >
+                  {company.isActive ? "Active" : "Inactive"}
+                </span>
+                <span
+                  data-testid="company-jurisdiction-badge"
+                  className="inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-800"
+                >
+                  {formatJurisdiction(company.jurisdiction)}
+                </span>
               </div>
-            </div>
-          </div>
-
-          {/* Info Cards Grid */}
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {/* Currencies Card */}
-            <div className="rounded-lg border border-gray-200 bg-white p-4" data-testid="currencies-card">
-              <h3 className="text-sm font-medium text-gray-500">Currencies</h3>
-              <div className="mt-2 space-y-2">
-                <div>
-                  <span className="text-xs text-gray-400">Functional</span>
-                  <p className="text-lg font-semibold text-gray-900" data-testid="functional-currency">
-                    {company.functionalCurrency}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-xs text-gray-400">Reporting</span>
-                  <p className="text-lg font-semibold text-gray-900" data-testid="reporting-currency">
-                    {company.reportingCurrency}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Fiscal Year Card */}
-            <div className="rounded-lg border border-gray-200 bg-white p-4" data-testid="fiscal-year-card">
-              <h3 className="text-sm font-medium text-gray-500">Fiscal Year End</h3>
-              <p className="mt-2 text-lg font-semibold text-gray-900" data-testid="fiscal-year-end">
-                {fiscalYearEndDate}
-              </p>
-              {company.taxId && (
-                <div className="mt-2">
-                  <span className="text-xs text-gray-400">Tax ID</span>
-                  <p className="font-mono text-sm text-gray-600" data-testid="company-tax-id">{company.taxId}</p>
-                </div>
-              )}
-              {incorporationDateFormatted && (
-                <div className="mt-2">
-                  <span className="text-xs text-gray-400">Incorporated</span>
-                  <p className="text-sm text-gray-600" data-testid="company-incorporation-date">{incorporationDateFormatted}</p>
-                </div>
-              )}
-              {company.registrationNumber && (
-                <div className="mt-2">
-                  <span className="text-xs text-gray-400">Registration Number</span>
-                  <p className="font-mono text-sm text-gray-600" data-testid="company-registration-number">{company.registrationNumber}</p>
-                </div>
-              )}
-            </div>
-
-            {/* Company ID Card */}
-            <div className="rounded-lg border border-gray-200 bg-white p-4" data-testid="company-id-card">
-              <h3 className="text-sm font-medium text-gray-500">Company ID</h3>
-              <p className="mt-2 font-mono text-xs text-gray-600 break-all" data-testid="company-id">
-                {company.id}
+              <p className="mt-1 text-gray-600" data-testid="company-legal-name">{company.legalName}</p>
+              <p className="mt-1 text-sm text-gray-500">
+                Created {createdDate}
+                {company.companyType && (
+                  <> &middot; {formatCompanyType(company.companyType)}</>
+                )}
               </p>
             </div>
-          </div>
-
-          {/* Edit Company Modal */}
-          {isEditing && (
-            <EditCompanyModal
-              company={company}
-              organizationId={params.organizationId}
-              accounts={accounts}
-              onClose={() => setIsEditing(false)}
-            />
-          )}
-
-          {/* Quick Links Section */}
-          <div className="rounded-lg border border-gray-200 bg-white p-6" data-testid="quick-links-section">
-            <h2 className="mb-4 text-lg font-semibold text-gray-900">Company Data</h2>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {/* Chart of Accounts */}
-              <NavigationCard
-                to="/organizations/$organizationId/companies/$companyId/accounts"
-                params={{
-                  organizationId: params.organizationId,
-                  companyId: params.companyId
-                }}
-                title="Chart of Accounts"
-                description="Manage accounts and account hierarchy"
-                testId="nav-accounts"
-                icon={
-                  <svg
-                    className="h-6 w-6"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-                    />
-                  </svg>
-                }
-                linkText="View Accounts"
-              />
-
-              {/* Journal Entries */}
-              <NavigationCard
-                to="/organizations/$organizationId/companies/$companyId/journal-entries"
-                params={{
-                  organizationId: params.organizationId,
-                  companyId: params.companyId
-                }}
-                title="Journal Entries"
-                description="Create and manage journal entries"
-                testId="nav-journal-entries"
-                icon={
-                  <svg
-                    className="h-6 w-6"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                    />
-                  </svg>
-                }
-                linkText="View Entries"
-              />
-
-              {/* Reports */}
-              <NavigationCard
-                to="/organizations/$organizationId/companies/$companyId/reports"
-                params={{
-                  organizationId: params.organizationId,
-                  companyId: params.companyId
-                }}
-                title="Reports"
-                description="Financial statements and reports"
-                testId="nav-reports"
-                icon={
-                  <svg
-                    className="h-6 w-6"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                    />
-                  </svg>
-                }
-                linkText="View Reports"
-              />
-
-              {/* Fiscal Periods */}
-              <NavigationCard
-                to="/organizations/$organizationId/companies/$companyId/fiscal-periods"
-                params={{
-                  organizationId: params.organizationId,
-                  companyId: params.companyId
-                }}
-                title="Fiscal Periods"
-                description="Manage fiscal years and periods"
-                testId="nav-fiscal-periods"
-                icon={
-                  <svg
-                    className="h-6 w-6"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                    />
-                  </svg>
-                }
-                linkText="Manage Periods"
-              />
+            <div className="flex items-center gap-3">
+              {canUpdateCompany && (
+                <Button
+                  variant="secondary"
+                  onClick={() => setIsEditing(true)}
+                  data-testid="edit-company-button"
+                >
+                  Edit
+                </Button>
+              )}
+              {canDeleteCompany && (
+                <Button
+                  variant={company.isActive ? "danger" : "secondary"}
+                  onClick={handleToggleActive}
+                  disabled={isToggling}
+                  data-testid="toggle-active-button"
+                >
+                  {isToggling ? "..." : company.isActive ? "Deactivate" : "Activate"}
+                </Button>
+              )}
             </div>
           </div>
         </div>
+
+        {/* Stats Row - 4 balanced cards */}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard
+            label="Accounts"
+            value={accountCount}
+            icon={<CreditCard className="h-5 w-5" />}
+            testId="stat-accounts"
+          />
+          <StatCard
+            label="Journal Entries"
+            value={journalEntryCount}
+            icon={<FileText className="h-5 w-5" />}
+            testId="stat-journal-entries"
+          />
+          <StatCard
+            label="Functional Currency"
+            value={company.functionalCurrency}
+            icon={<DollarSign className="h-5 w-5" />}
+            testId="stat-currency"
+          />
+          <StatCard
+            label="Fiscal Year End"
+            value={fiscalYearEndDate}
+            icon={<Calendar className="h-5 w-5" />}
+            testId="stat-fiscal-year"
+          />
+        </div>
+
+        {/* Main Content - Two Columns */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* Left Column - Company Information */}
+          <div className="space-y-4">
+            {/* Legal & Tax Information */}
+            <CompanyInfoCard title="Legal & Tax Information" testId="legal-tax-card">
+              <InfoRow label="Tax ID" value={company.taxId} mono testId="company-tax-id" />
+              <InfoRow label="Registration Number" value={company.registrationNumber} mono testId="company-registration-number" />
+              <InfoRow label="Incorporation Date" value={incorporationDateFormatted} testId="company-incorporation-date" />
+              <InfoRow label="Industry Code" value={company.industryCode} mono testId="company-industry-code" />
+              <InfoRow label="Company Type" value={formatCompanyType(company.companyType)} testId="company-type" />
+              {!company.taxId && !company.registrationNumber && !company.incorporationDate && !company.industryCode && !company.companyType && (
+                <p className="text-sm text-gray-400 italic">No legal information provided</p>
+              )}
+            </CompanyInfoCard>
+
+            {/* Financial Settings */}
+            <CompanyInfoCard title="Financial Settings" testId="financial-settings-card">
+              <InfoRow label="Functional Currency" value={company.functionalCurrency} />
+              <InfoRow label="Reporting Currency" value={company.reportingCurrency} />
+              <InfoRow label="Fiscal Year End" value={fiscalYearEndDate} />
+              <InfoRow
+                label="Retained Earnings Account"
+                value={retainedEarningsAccount ? `${retainedEarningsAccount.number} - ${retainedEarningsAccount.name}` : "Not configured"}
+              />
+            </CompanyInfoCard>
+
+            {/* Registered Address */}
+            {hasAddressData(company.registeredAddress) && (
+              <CompanyInfoCard title="Registered Address" testId="address-card">
+                <div className="text-sm text-gray-900">
+                  {company.registeredAddress?.street1 && <p>{company.registeredAddress.street1}</p>}
+                  {company.registeredAddress?.street2 && <p>{company.registeredAddress.street2}</p>}
+                  <p>
+                    {[
+                      company.registeredAddress?.city,
+                      company.registeredAddress?.state,
+                      company.registeredAddress?.postalCode
+                    ].filter(Boolean).join(", ")}
+                  </p>
+                  {company.registeredAddress?.country && <p>{company.registeredAddress.country}</p>}
+                </div>
+              </CompanyInfoCard>
+            )}
+          </div>
+
+          {/* Right Column - Actions & Relationships */}
+          <div className="space-y-4">
+            {/* Quick Actions */}
+            <CompanyInfoCard title="Company Data" testId="quick-actions-card">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <QuickActionLink
+                  to="/organizations/$organizationId/companies/$companyId/accounts"
+                  params={params}
+                  icon={<CreditCard className="h-5 w-5" />}
+                  title="Chart of Accounts"
+                  subtitle={`${accountCount} accounts`}
+                  testId="nav-accounts"
+                />
+                <QuickActionLink
+                  to="/organizations/$organizationId/companies/$companyId/journal-entries"
+                  params={params}
+                  icon={<FileText className="h-5 w-5" />}
+                  title="Journal Entries"
+                  subtitle={`${journalEntryCount} entries`}
+                  testId="nav-journal-entries"
+                />
+                <QuickActionLink
+                  to="/organizations/$organizationId/companies/$companyId/reports"
+                  params={params}
+                  icon={<BarChart3 className="h-5 w-5" />}
+                  title="Reports"
+                  subtitle="Financial statements"
+                  testId="nav-reports"
+                />
+                <QuickActionLink
+                  to="/organizations/$organizationId/companies/$companyId/fiscal-periods"
+                  params={params}
+                  icon={<Calendar className="h-5 w-5" />}
+                  title="Fiscal Periods"
+                  subtitle="Year-end closing"
+                  testId="nav-fiscal-periods"
+                />
+              </div>
+            </CompanyInfoCard>
+
+            {/* Consolidation Groups - Placeholder for future */}
+            <CompanyInfoCard title="Consolidation Groups" testId="consolidation-groups-card">
+              <p className="text-sm text-gray-400 italic">
+                View this company's consolidation group memberships in the{" "}
+                <Link
+                  to="/organizations/$organizationId/consolidation"
+                  params={{ organizationId: params.organizationId }}
+                  className="text-blue-600 hover:underline"
+                >
+                  Consolidation
+                </Link>{" "}
+                section.
+              </p>
+            </CompanyInfoCard>
+          </div>
+        </div>
+
+        {/* Technical Details - Collapsible */}
+        <div className="rounded-lg border border-gray-200 bg-white">
+          <button
+            onClick={() => setShowTechnicalDetails(!showTechnicalDetails)}
+            className="flex w-full items-center justify-between px-4 py-3 text-sm text-gray-500 hover:bg-gray-50"
+            data-testid="technical-details-toggle"
+          >
+            <span>Technical Details</span>
+            {showTechnicalDetails ? (
+              <ChevronUp className="h-4 w-4" />
+            ) : (
+              <ChevronDown className="h-4 w-4" />
+            )}
+          </button>
+          {showTechnicalDetails && (
+            <div className="border-t border-gray-200 px-4 py-3">
+              <InfoRow label="Company ID" value={company.id} mono />
+              <InfoRow label="Organization ID" value={company.organizationId} mono />
+            </div>
+          )}
+        </div>
+
+        {/* Edit Company Modal */}
+        {isEditing && (
+          <EditCompanyModal
+            company={company}
+            organizationId={params.organizationId}
+            accounts={accounts}
+            onClose={() => setIsEditing(false)}
+          />
+        )}
+      </div>
     </AppLayout>
   )
 }
 
 // =============================================================================
-// Navigation Card Component
+// Edit Company Modal Component with Tabs
 // =============================================================================
 
-function NavigationCard({
-  to,
-  params,
-  title,
-  description,
-  icon,
-  linkText,
-  testId
-}: {
-  readonly to?: string
-  readonly params?: { readonly organizationId: string; readonly companyId: string }
-  readonly title: string
-  readonly description: string
-  readonly icon: React.ReactNode
-  readonly linkText: string
-  readonly testId?: string
-}) {
-  const content = (
-    <>
-      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-blue-600">
-        {icon}
-      </div>
-      <h3 className="font-medium text-gray-900">{title}</h3>
-      <p className="mt-1 text-sm text-gray-500">{description}</p>
-      <p className="mt-3 text-sm font-medium text-blue-600 hover:text-blue-700">
-        {linkText} &rarr;
-      </p>
-    </>
-  )
-
-  if (to && params) {
-    return (
-      <Link
-        to={to}
-        params={params}
-        className="block rounded-lg border border-gray-200 p-4 transition-shadow hover:shadow-md"
-        data-testid={testId}
-      >
-        {content}
-      </Link>
-    )
-  }
-
-  return (
-    <div
-      className="rounded-lg border border-gray-200 p-4 transition-shadow hover:shadow-md"
-      data-testid={testId}
-    >
-      {content}
-    </div>
-  )
-}
-
-// =============================================================================
-// Edit Company Modal Component
-// =============================================================================
+type EditTab = "basic" | "financial" | "address"
 
 function EditCompanyModal({
   company,
@@ -633,6 +618,7 @@ function EditCompanyModal({
 }) {
   const router = useRouter()
 
+  const [activeTab, setActiveTab] = useState<EditTab>("basic")
   const [name, setName] = useState(company.name)
   const [legalName, setLegalName] = useState(company.legalName)
   const [taxId, setTaxId] = useState(company.taxId ?? "")
@@ -672,10 +658,12 @@ function EditCompanyModal({
 
     if (!trimmedName) {
       setError("Company name is required")
+      setActiveTab("basic")
       return
     }
     if (!trimmedLegalName) {
       setError("Legal name is required")
+      setActiveTab("basic")
       return
     }
 
@@ -742,277 +730,312 @@ function EditCompanyModal({
     }
   }
 
+  const tabs: Array<{ id: EditTab; label: string }> = [
+    { id: "basic", label: "Basic Info" },
+    { id: "financial", label: "Financial" },
+    { id: "address", label: "Address" }
+  ]
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" data-testid="edit-company-modal">
-      <div className="mx-4 max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg bg-white p-6 shadow-xl">
-        <h2 className="mb-4 text-lg font-semibold text-gray-900">Edit Company</h2>
+      <div className="mx-4 max-h-[90vh] w-full max-w-2xl overflow-hidden rounded-lg bg-white shadow-xl">
+        {/* Modal Header */}
+        <div className="border-b border-gray-200 px-6 py-4">
+          <h2 className="text-lg font-semibold text-gray-900">Edit Company</h2>
+        </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Error Message */}
-          {error && (
-            <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3" data-testid="edit-company-error">
-              <p className="text-sm text-red-700">{error}</p>
-            </div>
-          )}
+        {/* Tabs */}
+        <div className="flex border-b border-gray-200">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+                activeTab === tab.id
+                  ? "border-b-2 border-blue-600 text-blue-600"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+              data-testid={`edit-tab-${tab.id}`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
 
-          {/* Name Field */}
-          <Input
-            id="edit-company-name"
-            label="Company Name"
-            type="text"
-            autoFocus
-            required
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            disabled={isSubmitting}
-            data-testid="edit-company-name-input"
-          />
+        {/* Form */}
+        <form onSubmit={handleSubmit}>
+          {/* Tab Content */}
+          <div className="max-h-[60vh] overflow-y-auto p-6">
+            {/* Error Message */}
+            {error && (
+              <div role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3" data-testid="edit-company-error">
+                <p className="text-sm text-red-700">{error}</p>
+              </div>
+            )}
 
-          {/* Legal Name Field */}
-          <Input
-            id="edit-company-legal-name"
-            label="Legal Name"
-            type="text"
-            required
-            value={legalName}
-            onChange={(e) => setLegalName(e.target.value)}
-            disabled={isSubmitting}
-            data-testid="edit-company-legal-name-input"
-          />
+            {/* Basic Info Tab */}
+            {activeTab === "basic" && (
+              <div className="space-y-4">
+                <Input
+                  id="edit-company-name"
+                  label="Company Name"
+                  type="text"
+                  autoFocus
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  disabled={isSubmitting}
+                  data-testid="edit-company-name-input"
+                />
 
-          {/* Tax ID Field */}
-          <Input
-            id="edit-company-tax-id"
-            label="Tax ID (optional)"
-            type="text"
-            value={taxId}
-            onChange={(e) => setTaxId(e.target.value)}
-            disabled={isSubmitting}
-            placeholder="EIN, VAT number, etc."
-            data-testid="edit-company-tax-id-input"
-          />
+                <Input
+                  id="edit-company-legal-name"
+                  label="Legal Name"
+                  type="text"
+                  required
+                  value={legalName}
+                  onChange={(e) => setLegalName(e.target.value)}
+                  disabled={isSubmitting}
+                  data-testid="edit-company-legal-name-input"
+                />
 
-          {/* Registration Number Field */}
-          <Input
-            id="edit-company-registration-number"
-            label="Registration Number (optional)"
-            type="text"
-            value={registrationNumber}
-            onChange={(e) => setRegistrationNumber(e.target.value)}
-            disabled={isSubmitting}
-            placeholder="Company registration number"
-            data-testid="edit-company-registration-number-input"
-          />
+                <Input
+                  id="edit-company-tax-id"
+                  label="Tax ID (optional)"
+                  type="text"
+                  value={taxId}
+                  onChange={(e) => setTaxId(e.target.value)}
+                  disabled={isSubmitting}
+                  placeholder="EIN, VAT number, etc."
+                  data-testid="edit-company-tax-id-input"
+                />
 
-          {/* Company Type Field */}
-          <Select
-            id="edit-company-type"
-            label="Company Type (optional)"
-            value={companyType}
-            onChange={(e) => setCompanyType(e.target.value)}
-            disabled={isSubmitting}
-            data-testid="edit-company-type-select"
-          >
-            <option value="">Select type...</option>
-            <option value="Corporation">Corporation</option>
-            <option value="LLC">Limited Liability Company (LLC)</option>
-            <option value="Partnership">Partnership</option>
-            <option value="SoleProprietorship">Sole Proprietorship</option>
-            <option value="NonProfit">Non-Profit Organization</option>
-            <option value="Cooperative">Cooperative</option>
-            <option value="Branch">Branch Office</option>
-            <option value="Other">Other</option>
-          </Select>
+                <Input
+                  id="edit-company-registration-number"
+                  label="Registration Number (optional)"
+                  type="text"
+                  value={registrationNumber}
+                  onChange={(e) => setRegistrationNumber(e.target.value)}
+                  disabled={isSubmitting}
+                  placeholder="Company registration number"
+                  data-testid="edit-company-registration-number-input"
+                />
 
-          {/* Industry Code Field */}
-          <Input
-            id="edit-company-industry-code"
-            label="Industry Code (optional)"
-            type="text"
-            value={industryCode}
-            onChange={(e) => setIndustryCode(e.target.value)}
-            disabled={isSubmitting}
-            placeholder="e.g. 541512 (NAICS)"
-            data-testid="edit-company-industry-code-input"
-          />
+                <Select
+                  id="edit-company-type"
+                  label="Company Type (optional)"
+                  value={companyType}
+                  onChange={(e) => setCompanyType(e.target.value)}
+                  disabled={isSubmitting}
+                  data-testid="edit-company-type-select"
+                >
+                  <option value="">Select type...</option>
+                  <option value="Corporation">Corporation</option>
+                  <option value="LLC">Limited Liability Company (LLC)</option>
+                  <option value="Partnership">Partnership</option>
+                  <option value="SoleProprietorship">Sole Proprietorship</option>
+                  <option value="NonProfit">Non-Profit Organization</option>
+                  <option value="Cooperative">Cooperative</option>
+                  <option value="Branch">Branch Office</option>
+                  <option value="Other">Other</option>
+                </Select>
 
-          {/* Registered Address Section */}
-          <div className="space-y-3 rounded-lg border border-gray-200 p-4">
-            <h3 className="text-sm font-medium text-gray-700">Registered Address (optional)</h3>
+                <Input
+                  id="edit-company-industry-code"
+                  label="Industry Code (optional)"
+                  type="text"
+                  value={industryCode}
+                  onChange={(e) => setIndustryCode(e.target.value)}
+                  disabled={isSubmitting}
+                  placeholder="e.g. 541512 (NAICS)"
+                  data-testid="edit-company-industry-code-input"
+                />
+              </div>
+            )}
 
-            <Input
-              id="edit-address-street1"
-              label="Street Address"
-              type="text"
-              value={addressStreet1}
-              onChange={(e) => setAddressStreet1(e.target.value)}
-              disabled={isSubmitting}
-              placeholder="e.g. 123 Main Street"
-              data-testid="edit-address-street1-input"
-            />
+            {/* Financial Tab */}
+            {activeTab === "financial" && (
+              <div className="space-y-4">
+                <Input
+                  id="edit-company-functional-currency"
+                  label="Functional Currency"
+                  type="text"
+                  value={company.functionalCurrency}
+                  disabled
+                  helperText="Functional currency cannot be changed after creation (ASC 830)"
+                  data-testid="edit-company-functional-currency-input"
+                />
 
-            <Input
-              id="edit-address-street2"
-              label="Address Line 2"
-              type="text"
-              value={addressStreet2}
-              onChange={(e) => setAddressStreet2(e.target.value)}
-              disabled={isSubmitting}
-              placeholder="e.g. Suite 100"
-              data-testid="edit-address-street2-input"
-            />
+                <Select
+                  id="edit-company-currency"
+                  label="Reporting Currency"
+                  value={reportingCurrency}
+                  onChange={(e) => setReportingCurrency(e.target.value)}
+                  disabled={isSubmitting}
+                  data-testid="edit-company-currency-select"
+                >
+                  <option value="USD">USD - US Dollar</option>
+                  <option value="EUR">EUR - Euro</option>
+                  <option value="GBP">GBP - British Pound</option>
+                  <option value="JPY">JPY - Japanese Yen</option>
+                  <option value="CHF">CHF - Swiss Franc</option>
+                  <option value="CAD">CAD - Canadian Dollar</option>
+                  <option value="AUD">AUD - Australian Dollar</option>
+                </Select>
 
-            <div className="grid grid-cols-2 gap-3">
-              <Input
-                id="edit-address-city"
-                label="City"
-                type="text"
-                value={addressCity}
-                onChange={(e) => setAddressCity(e.target.value)}
-                disabled={isSubmitting}
-                placeholder="e.g. San Francisco"
-                data-testid="edit-address-city-input"
-              />
+                <div className="grid grid-cols-2 gap-4">
+                  <Select
+                    id="edit-company-fy-month"
+                    label="Fiscal Year End Month"
+                    value={fiscalYearEndMonth}
+                    onChange={(e) => setFiscalYearEndMonth(Number(e.target.value))}
+                    disabled={isSubmitting}
+                  >
+                    <option value={1}>January</option>
+                    <option value={2}>February</option>
+                    <option value={3}>March</option>
+                    <option value={4}>April</option>
+                    <option value={5}>May</option>
+                    <option value={6}>June</option>
+                    <option value={7}>July</option>
+                    <option value={8}>August</option>
+                    <option value={9}>September</option>
+                    <option value={10}>October</option>
+                    <option value={11}>November</option>
+                    <option value={12}>December</option>
+                  </Select>
+                  <Select
+                    id="edit-company-fy-day"
+                    label="Fiscal Year End Day"
+                    value={fiscalYearEndDay}
+                    onChange={(e) => setFiscalYearEndDay(Number(e.target.value))}
+                    disabled={isSubmitting}
+                  >
+                    {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                      <option key={day} value={day}>
+                        {day}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
 
-              <Input
-                id="edit-address-state"
-                label="State/Province"
-                type="text"
-                value={addressState}
-                onChange={(e) => setAddressState(e.target.value)}
-                disabled={isSubmitting}
-                placeholder="e.g. California"
-                data-testid="edit-address-state-input"
-              />
-            </div>
+                <div className="space-y-2 rounded-lg border border-gray-200 p-4">
+                  <h3 className="text-sm font-medium text-gray-700">Year-End Closing</h3>
+                  <Select
+                    id="edit-company-retained-earnings"
+                    label="Retained Earnings Account"
+                    value={retainedEarningsAccountId}
+                    onChange={(e) => setRetainedEarningsAccountId(e.target.value)}
+                    disabled={isSubmitting}
+                    data-testid="edit-company-retained-earnings-select"
+                  >
+                    <option value="">Select account...</option>
+                    {equityAccounts.map((account) => (
+                      <option key={account.id} value={account.id}>
+                        {account.number} - {account.name}
+                      </option>
+                    ))}
+                  </Select>
+                  <p className="text-xs text-gray-500">
+                    Net income will be posted to this account during year-end close.
+                    {equityAccounts.length === 0 && (
+                      <span className="block mt-1 text-amber-600">
+                        No equity accounts found. Create an equity account or apply a Chart of Accounts template first.
+                      </span>
+                    )}
+                  </p>
+                </div>
+              </div>
+            )}
 
-            <div className="grid grid-cols-2 gap-3">
-              <Input
-                id="edit-address-postal"
-                label="Postal Code"
-                type="text"
-                value={addressPostalCode}
-                onChange={(e) => setAddressPostalCode(e.target.value)}
-                disabled={isSubmitting}
-                placeholder="e.g. 94102"
-                data-testid="edit-address-postal-input"
-              />
+            {/* Address Tab */}
+            {activeTab === "address" && (
+              <div className="space-y-4">
+                <p className="text-sm text-gray-500">
+                  Enter the company's registered address for legal and compliance purposes.
+                </p>
 
-              <Input
-                id="edit-address-country"
-                label="Country"
-                type="text"
-                value={addressCountry}
-                onChange={(e) => setAddressCountry(e.target.value)}
-                disabled={isSubmitting}
-                placeholder="e.g. United States"
-                data-testid="edit-address-country-input"
-              />
-            </div>
+                <Input
+                  id="edit-address-street1"
+                  label="Street Address"
+                  type="text"
+                  value={addressStreet1}
+                  onChange={(e) => setAddressStreet1(e.target.value)}
+                  disabled={isSubmitting}
+                  placeholder="e.g. 123 Main Street"
+                  data-testid="edit-address-street1-input"
+                />
+
+                <Input
+                  id="edit-address-street2"
+                  label="Address Line 2"
+                  type="text"
+                  value={addressStreet2}
+                  onChange={(e) => setAddressStreet2(e.target.value)}
+                  disabled={isSubmitting}
+                  placeholder="e.g. Suite 100"
+                  data-testid="edit-address-street2-input"
+                />
+
+                <div className="grid grid-cols-2 gap-3">
+                  <Input
+                    id="edit-address-city"
+                    label="City"
+                    type="text"
+                    value={addressCity}
+                    onChange={(e) => setAddressCity(e.target.value)}
+                    disabled={isSubmitting}
+                    placeholder="e.g. San Francisco"
+                    data-testid="edit-address-city-input"
+                  />
+
+                  <Input
+                    id="edit-address-state"
+                    label="State/Province"
+                    type="text"
+                    value={addressState}
+                    onChange={(e) => setAddressState(e.target.value)}
+                    disabled={isSubmitting}
+                    placeholder="e.g. California"
+                    data-testid="edit-address-state-input"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <Input
+                    id="edit-address-postal"
+                    label="Postal Code"
+                    type="text"
+                    value={addressPostalCode}
+                    onChange={(e) => setAddressPostalCode(e.target.value)}
+                    disabled={isSubmitting}
+                    placeholder="e.g. 94102"
+                    data-testid="edit-address-postal-input"
+                  />
+
+                  <Input
+                    id="edit-address-country"
+                    label="Country"
+                    type="text"
+                    value={addressCountry}
+                    onChange={(e) => setAddressCountry(e.target.value)}
+                    disabled={isSubmitting}
+                    placeholder="e.g. United States"
+                    data-testid="edit-address-country-input"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Functional Currency Field (Read-only - ASC 830) */}
-          <Input
-            id="edit-company-functional-currency"
-            label="Functional Currency"
-            type="text"
-            value={company.functionalCurrency}
-            disabled
-            helperText="Functional currency cannot be changed after creation (ASC 830)"
-            data-testid="edit-company-functional-currency-input"
-          />
-
-          {/* Reporting Currency Field */}
-          <Select
-            id="edit-company-currency"
-            label="Reporting Currency"
-            value={reportingCurrency}
-            onChange={(e) => setReportingCurrency(e.target.value)}
-            disabled={isSubmitting}
-            data-testid="edit-company-currency-select"
-          >
-            <option value="USD">USD - US Dollar</option>
-            <option value="EUR">EUR - Euro</option>
-            <option value="GBP">GBP - British Pound</option>
-            <option value="JPY">JPY - Japanese Yen</option>
-            <option value="CHF">CHF - Swiss Franc</option>
-            <option value="CAD">CAD - Canadian Dollar</option>
-            <option value="AUD">AUD - Australian Dollar</option>
-          </Select>
-
-          {/* Fiscal Year End */}
-          <div className="grid grid-cols-2 gap-4">
-            <Select
-              id="edit-company-fy-month"
-              label="Fiscal Year End Month"
-              value={fiscalYearEndMonth}
-              onChange={(e) => setFiscalYearEndMonth(Number(e.target.value))}
-              disabled={isSubmitting}
-            >
-              <option value={1}>January</option>
-              <option value={2}>February</option>
-              <option value={3}>March</option>
-              <option value={4}>April</option>
-              <option value={5}>May</option>
-              <option value={6}>June</option>
-              <option value={7}>July</option>
-              <option value={8}>August</option>
-              <option value={9}>September</option>
-              <option value={10}>October</option>
-              <option value={11}>November</option>
-              <option value={12}>December</option>
-            </Select>
-            <Select
-              id="edit-company-fy-day"
-              label="Fiscal Year End Day"
-              value={fiscalYearEndDay}
-              onChange={(e) => setFiscalYearEndDay(Number(e.target.value))}
-              disabled={isSubmitting}
-            >
-              {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
-                <option key={day} value={day}>
-                  {day}
-                </option>
-              ))}
-            </Select>
-          </div>
-
-          {/* Retained Earnings Account - for year-end closing */}
-          <div className="space-y-2 rounded-lg border border-gray-200 p-4">
-            <h3 className="text-sm font-medium text-gray-700">Year-End Closing</h3>
-            <Select
-              id="edit-company-retained-earnings"
-              label="Retained Earnings Account"
-              value={retainedEarningsAccountId}
-              onChange={(e) => setRetainedEarningsAccountId(e.target.value)}
-              disabled={isSubmitting}
-              data-testid="edit-company-retained-earnings-select"
-            >
-              <option value="">Select account...</option>
-              {equityAccounts.map((account) => (
-                <option key={account.id} value={account.id}>
-                  {account.number} - {account.name}
-                </option>
-              ))}
-            </Select>
-            <p className="text-xs text-gray-500">
-              Net income will be posted to this account during year-end close.
-              {equityAccounts.length === 0 && (
-                <span className="block mt-1 text-amber-600">
-                  No equity accounts found. Create an equity account or apply a Chart of Accounts template first.
-                </span>
-              )}
-            </p>
-          </div>
-
-          {/* Form Actions */}
-          <div className="flex gap-3 pt-2">
+          {/* Footer */}
+          <div className="flex justify-end gap-3 border-t border-gray-200 p-4">
             <Button
               type="button"
               variant="secondary"
               onClick={onClose}
               disabled={isSubmitting}
-              className="flex-1"
               data-testid="company-form-cancel-button"
             >
               Cancel
@@ -1022,7 +1045,6 @@ function EditCompanyModal({
               variant="primary"
               loading={isSubmitting}
               disabled={isSubmitting}
-              className="flex-1"
             >
               Save Changes
             </Button>
@@ -1053,7 +1075,11 @@ const jurisdictionNames: Record<string, string> = {
   JP: "Japan",
   CA: "Canada",
   AU: "Australia",
-  CH: "Switzerland"
+  CH: "Switzerland",
+  SG: "Singapore",
+  HK: "Hong Kong",
+  NL: "Netherlands",
+  IE: "Ireland"
 }
 
 function formatJurisdiction(code: string): string {
