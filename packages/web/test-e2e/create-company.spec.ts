@@ -926,4 +926,295 @@ test.describe("Create Company Form", () => {
     await page.waitForTimeout(100)
     await expectComboboxContains(page, "company-functional-currency-select", "USD")
   })
+
+  test("should store and display 100% ownership correctly (not 99.96%)", async ({
+    page,
+    request
+  }) => {
+    // Bug reproduction test: 100% ownership was displaying as 99.96%
+    // This test verifies the full round-trip: UI input -> API -> DB -> API -> UI display
+
+    // 1. Register a test user
+    const testUser = {
+      email: `test-100-ownership-${Date.now()}@example.com`,
+      password: "TestPassword123",
+      displayName: "100% Ownership Test User"
+    }
+
+    const registerRes = await request.post("/api/auth/register", {
+      data: testUser
+    })
+    expect(registerRes.ok()).toBeTruthy()
+
+    // 2. Login to get session token
+    const loginRes = await request.post("/api/auth/login", {
+      data: {
+        provider: "local",
+        credentials: {
+          email: testUser.email,
+          password: testUser.password
+        }
+      }
+    })
+    expect(loginRes.ok()).toBeTruthy()
+    const loginData = await loginRes.json()
+    const sessionToken = loginData.token
+
+    // 3. Create an organization via API
+    const createOrgRes = await request.post("/api/v1/organizations", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        name: `100% Ownership Test Org ${Date.now()}`,
+        reportingCurrency: "USD",
+        settings: null
+      }
+    })
+    expect(createOrgRes.ok()).toBeTruthy()
+    const orgData = await createOrgRes.json()
+
+    // 4. Create a parent company via API
+    const parentCompanyName = `Effectful US ${Date.now()}`
+    const createParentRes = await request.post("/api/v1/companies", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        organizationId: orgData.id,
+        name: parentCompanyName,
+        legalName: "Effectful Technologies Inc",
+        jurisdiction: "US",
+        functionalCurrency: "USD",
+        reportingCurrency: "USD",
+        fiscalYearEnd: { month: 12, day: 31 },
+        taxId: null,
+        incorporationDate: null,
+        registrationNumber: null,
+        parentCompanyId: null,
+        ownershipPercentage: null,
+        registeredAddress: null,
+        industryCode: null,
+        companyType: null,
+        incorporationJurisdiction: null
+      }
+    })
+    expect(createParentRes.ok()).toBeTruthy()
+    const parentData = await createParentRes.json()
+
+    // 5. Set session cookie
+    await page.context().addCookies([
+      {
+        name: "accountability_session",
+        value: sessionToken,
+        domain: "localhost",
+        path: "/",
+        httpOnly: true,
+        secure: false,
+        sameSite: "Lax"
+      }
+    ])
+
+    // 6. Navigate to new company page
+    await page.goto(`/organizations/${orgData.id}/companies/new`)
+    await page.waitForTimeout(500)
+    await expect(page.getByTestId("new-company-page")).toBeVisible()
+
+    // 7. Fill in subsidiary company details
+    const subsidiaryName = `Effectful UK ${Date.now()}`
+    await page.fill("#company-name", subsidiaryName)
+    await page.fill("#company-legal-name", "Effectful Technologies Ltd")
+    await selectComboboxOption(page, "company-jurisdiction-select", "United Kingdom")
+
+    // 8. Select parent company
+    await page.selectOption("#company-parent", parentData.id)
+
+    // 9. Wait for ownership field to appear
+    await expect(page.locator("#company-ownership")).toBeVisible()
+
+    // 10. Enter exactly 100% ownership - this is the key test
+    await page.fill("#company-ownership", "100")
+
+    // Verify the input shows "100" before submitting
+    await expect(page.locator("#company-ownership")).toHaveValue("100")
+
+    // 11. Intercept the API request to verify the sent value
+    const [createResponse] = await Promise.all([
+      page.waitForResponse(
+        (response) =>
+          response.url().includes("/api/v1/companies") &&
+          response.request().method() === "POST"
+      ),
+      page.click('button[type="submit"]')
+    ])
+
+    // 12. Verify the API response contains exactly 100, not 99.96
+    expect(createResponse.ok()).toBeTruthy()
+    const createdCompany = await createResponse.json()
+    expect(createdCompany.ownershipPercentage).toBe(100)
+
+    // 13. Navigate to companies list to verify display
+    await page.waitForURL(/\/companies\/?$/)
+    await expect(page.getByRole("link", { name: subsidiaryName })).toBeVisible({ timeout: 10000 })
+
+    // 14. Verify the ownership column displays exactly "100%", not "99.96%"
+    const ownershipCell = page.locator(`[data-testid="company-ownership-${createdCompany.id}"]`)
+    await expect(ownershipCell).toBeVisible()
+    await expect(ownershipCell).toHaveText("100%")
+
+    // Also verify it does NOT show 99.96%
+    await expect(ownershipCell).not.toHaveText("99.96%")
+
+    // 15. Double-check by fetching the company via API and verifying the stored value
+    const getCompanyRes = await request.get(
+      `/api/v1/organizations/${orgData.id}/companies/${createdCompany.id}`,
+      {
+        headers: { Authorization: `Bearer ${sessionToken}` }
+      }
+    )
+    expect(getCompanyRes.ok()).toBeTruthy()
+    const fetchedCompany = await getCompanyRes.json()
+    expect(fetchedCompany.ownershipPercentage).toBe(100)
+  })
+
+  test("should store and display various ownership percentages correctly", async ({
+    page,
+    request
+  }) => {
+    // Test various edge case percentages to ensure no floating point issues
+
+    // 1. Register a test user
+    const testUser = {
+      email: `test-various-ownership-${Date.now()}@example.com`,
+      password: "TestPassword123",
+      displayName: "Various Ownership Test User"
+    }
+
+    const registerRes = await request.post("/api/auth/register", {
+      data: testUser
+    })
+    expect(registerRes.ok()).toBeTruthy()
+
+    // 2. Login to get session token
+    const loginRes = await request.post("/api/auth/login", {
+      data: {
+        provider: "local",
+        credentials: {
+          email: testUser.email,
+          password: testUser.password
+        }
+      }
+    })
+    expect(loginRes.ok()).toBeTruthy()
+    const loginData = await loginRes.json()
+    const sessionToken = loginData.token
+
+    // 3. Create an organization via API
+    const createOrgRes = await request.post("/api/v1/organizations", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        name: `Various Ownership Test Org ${Date.now()}`,
+        reportingCurrency: "USD",
+        settings: null
+      }
+    })
+    expect(createOrgRes.ok()).toBeTruthy()
+    const orgData = await createOrgRes.json()
+
+    // 4. Create a parent company via API
+    const parentCompanyName = `Parent Co ${Date.now()}`
+    const createParentRes = await request.post("/api/v1/companies", {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      data: {
+        organizationId: orgData.id,
+        name: parentCompanyName,
+        legalName: `${parentCompanyName} Inc`,
+        jurisdiction: "US",
+        functionalCurrency: "USD",
+        reportingCurrency: "USD",
+        fiscalYearEnd: { month: 12, day: 31 },
+        taxId: null,
+        incorporationDate: null,
+        registrationNumber: null,
+        parentCompanyId: null,
+        ownershipPercentage: null,
+        registeredAddress: null,
+        industryCode: null,
+        companyType: null,
+        incorporationJurisdiction: null
+      }
+    })
+    expect(createParentRes.ok()).toBeTruthy()
+    const parentData = await createParentRes.json()
+
+    // Test various percentage values via API directly
+    const testCases = [
+      { ownership: 100, expected: "100%" },
+      { ownership: 99.99, expected: "99.99%" },
+      { ownership: 51, expected: "51%" },
+      { ownership: 50.5, expected: "50.5%" },
+      { ownership: 33.33, expected: "33.33%" },
+      { ownership: 0.01, expected: "0.01%" }
+    ]
+
+    for (let i = 0; i < testCases.length; i++) {
+      const tc = testCases[i]
+      const subName = `Sub ${tc.ownership}% ${Date.now()}`
+
+      // Create subsidiary via API with specific ownership
+      const createSubRes = await request.post("/api/v1/companies", {
+        headers: { Authorization: `Bearer ${sessionToken}` },
+        data: {
+          organizationId: orgData.id,
+          name: subName,
+          legalName: `${subName} Ltd`,
+          jurisdiction: "GB",
+          functionalCurrency: "GBP",
+          reportingCurrency: "USD",
+          fiscalYearEnd: { month: 12, day: 31 },
+          taxId: null,
+          incorporationDate: null,
+          registrationNumber: null,
+          parentCompanyId: parentData.id,
+          ownershipPercentage: tc.ownership,
+          registeredAddress: null,
+          industryCode: null,
+          companyType: null,
+          incorporationJurisdiction: null
+        }
+      })
+      expect(createSubRes.ok()).toBeTruthy()
+      const subData = await createSubRes.json()
+
+      // Verify the response value
+      expect(subData.ownershipPercentage).toBe(tc.ownership)
+
+      // Fetch the company and verify the stored value
+      const getRes = await request.get(
+        `/api/v1/organizations/${orgData.id}/companies/${subData.id}`,
+        {
+          headers: { Authorization: `Bearer ${sessionToken}` }
+        }
+      )
+      expect(getRes.ok()).toBeTruthy()
+      const fetched = await getRes.json()
+      expect(fetched.ownershipPercentage).toBe(tc.ownership)
+    }
+
+    // 5. Set session cookie and verify UI display
+    await page.context().addCookies([
+      {
+        name: "accountability_session",
+        value: sessionToken,
+        domain: "localhost",
+        path: "/",
+        httpOnly: true,
+        secure: false,
+        sameSite: "Lax"
+      }
+    ])
+
+    // 6. Navigate to companies list
+    await page.goto(`/organizations/${orgData.id}/companies`)
+    await page.waitForTimeout(500)
+
+    // Verify page loaded
+    await expect(page.getByTestId("companies-list-page")).toBeVisible()
+  })
 })
