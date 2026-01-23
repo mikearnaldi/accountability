@@ -277,11 +277,11 @@ test.describe("Companies List Page", () => {
     // 7. Should show empty state
     await expect(page.getByText(/No companies/i)).toBeVisible()
 
-    // 8. Should show create company button
-    await expect(page.getByRole("button", { name: /Create Company/i })).toBeVisible()
+    // 8. Should show create company link (styled as button)
+    await expect(page.getByRole("link", { name: /Create Company/i })).toBeVisible()
   })
 
-  test("should create company via form", async ({ page, request }) => {
+  test("should create company via dedicated page", async ({ page, request }) => {
     // 1. Register a test user
     const testUser = {
       email: `test-create-company-${Date.now()}@example.com`,
@@ -353,12 +353,13 @@ test.describe("Companies List Page", () => {
     // Wait for full hydration before clicking
     await page.waitForTimeout(500)
 
-    // 7. Click "Create Company" button with force
+    // 7. Click "Create Company" button - navigates to dedicated page
     await createCompanyButton.click({ force: true })
 
-    // 8. Should show create company form modal
-    await expect(page.getByTestId("create-company-modal")).toBeVisible({ timeout: 15000 })
-    await expect(page.getByRole("heading", { name: "Create Company" })).toBeVisible({ timeout: 10000 })
+    // 8. Should navigate to new company page
+    await page.waitForURL(/\/companies\/new$/)
+    await expect(page.getByTestId("new-company-page")).toBeVisible({ timeout: 15000 })
+    await expect(page.getByRole("heading", { name: "Create New Company" })).toBeVisible({ timeout: 10000 })
 
     // 9. Fill in company details
     const newCompanyName = `New Test Company ${Date.now()}`
@@ -374,7 +375,8 @@ test.describe("Companies List Page", () => {
     // 10. Submit form
     await page.click('button[type="submit"]')
 
-    // 11. Should show new company in list (after invalidation) - use link role for company name in tree view
+    // 11. Should navigate back to companies list and show new company
+    await page.waitForURL(/\/companies\/?$/)
     await expect(page.getByRole("link", { name: newCompanyName })).toBeVisible({ timeout: 10000 })
 
     // 12. Should show updated company count
@@ -439,43 +441,29 @@ test.describe("Companies List Page", () => {
       }
     ])
 
-    // 5. Navigate to companies list page
-    await page.goto(`/organizations/${orgData.id}/companies`)
+    // 5. Navigate directly to new company page
+    await page.goto(`/organizations/${orgData.id}/companies/new`)
 
     // Wait for page to fully load (React hydration)
-    await expect(page.getByTestId("companies-list-page")).toBeVisible()
-
-    // Wait for "Create Company" button in empty state (no companies exist yet)
-    const createCompanyButton = page.getByTestId("create-company-empty-button")
-    await expect(createCompanyButton).toBeVisible()
-    await expect(createCompanyButton).toBeEnabled()
-
-    // Wait for full hydration before clicking
-    await page.waitForTimeout(500)
-
-    // 6. Click "Create Company" button with force to ensure click registers
-    await createCompanyButton.click({ force: true })
-
-    // Wait for the modal to appear first
-    await expect(page.getByTestId("create-company-modal")).toBeVisible({ timeout: 15000 })
+    await expect(page.getByTestId("new-company-page")).toBeVisible()
 
     // Wait for the form input to be visible
     await expect(page.locator("#company-name")).toBeVisible({ timeout: 10000 })
 
-    // 7. Fill legal name and set company name to whitespace only (bypasses HTML5 required validation)
+    // 6. Fill legal name and set company name to whitespace only (bypasses HTML5 required validation)
     await page.fill("#company-name", "   ")
     await page.fill("#company-legal-name", "Some Legal Name LLC")
 
-    // 8. Submit form
+    // 7. Submit form
     await page.click('button[type="submit"]')
 
-    // 9. Should show validation error (our custom validation catches whitespace-only input)
+    // 8. Should show validation error (our custom validation catches whitespace-only input)
     // The validation error appears as a field-level error, not a role="alert"
     await expect(page.getByTestId("company-name-error")).toBeVisible()
     await expect(page.getByText(/Company name is required/i)).toBeVisible()
   })
 
-  test("should cancel create company form and close modal", async ({
+  test("should cancel create company form and navigate back", async ({
     page,
     request
   }) => {
@@ -530,33 +518,23 @@ test.describe("Companies List Page", () => {
       }
     ])
 
-    // 5. Navigate to companies list page
-    await page.goto(`/organizations/${orgData.id}/companies`)
+    // 5. Navigate to new company page
+    await page.goto(`/organizations/${orgData.id}/companies/new`)
 
     // Wait for page to fully load (React hydration)
-    await expect(page.getByTestId("companies-list-page")).toBeVisible()
+    await expect(page.getByTestId("new-company-page")).toBeVisible()
 
-    // Wait for "Create Company" button in empty state (no companies exist yet)
-    const createCompanyButton = page.getByTestId("create-company-empty-button")
-    await expect(createCompanyButton).toBeVisible()
-    await expect(createCompanyButton).toBeEnabled()
-
-    // Wait for full hydration before clicking
-    await page.waitForTimeout(500)
-
-    // 6. Click "Create Company" button with force
-    await createCompanyButton.click({ force: true })
-
-    // 7. Modal should be visible
+    // 6. Form should be visible
     await expect(
-      page.getByRole("heading", { name: "Create Company" })
+      page.getByRole("heading", { name: "Create New Company" })
     ).toBeVisible({ timeout: 10000 })
 
-    // 8. Click cancel
+    // 7. Click cancel
     await page.getByTestId("company-form-cancel-button").click()
 
-    // 9. Modal should be hidden
-    await expect(page.getByRole("heading", { name: "Create Company" })).not.toBeVisible()
+    // 8. Should navigate back to companies list
+    await page.waitForURL(/\/companies\/?$/)
+    await expect(page.getByTestId("companies-list-page")).toBeVisible()
   })
 
   test("should navigate to company details when clicking a company card", async ({

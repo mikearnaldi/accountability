@@ -1111,3 +1111,8 @@
 **Task**: Verified all year-end closing tests pass - 7 E2E tests and all unit tests green
 **Status**: complete
 ---
+
+## Iteration 1 - 2026-01-23 12:30
+**Task**: Removed duplicate company creation modal from companies list page, standardized on dedicated /companies/new page
+**Status**: complete
+---

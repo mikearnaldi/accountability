@@ -1,15 +1,11 @@
-import { createFileRoute, redirect, useRouter } from "@tanstack/react-router"
+import { createFileRoute, Link, redirect } from "@tanstack/react-router"
 import { createServerFn } from "@tanstack/react-start"
 import { getCookie } from "@tanstack/react-start/server"
 import { useState, useMemo } from "react"
 import { Plus } from "lucide-react"
-import { api } from "@/api/client"
 import { createServerApi } from "@/api/server"
 import { CompanyHierarchyTree, type Company } from "@/components/company/CompanyHierarchyTree"
-import { CompanyForm, type CompanyFormData, type CurrencyOption } from "@/components/forms/CompanyForm"
-import type { JurisdictionOption } from "@/components/ui/JurisdictionSelect"
 import { NoCompaniesEmptyState } from "@/components/ui/EmptyState"
-import { Button } from "@/components/ui/Button"
 import { AppLayout } from "@/components/layout/AppLayout"
 import { MinimalRouteError } from "@/components/ui/RouteError"
 import { usePermissions } from "@/hooks/usePermissions"
@@ -83,51 +79,6 @@ const fetchCompanies = createServerFn({ method: "GET" })
     }
   })
 
-const fetchCurrencies = createServerFn({ method: "GET" }).handler(async () => {
-  const sessionToken = getCookie("accountability_session")
-
-  if (!sessionToken) {
-    return { currencies: [], error: "unauthorized" as const }
-  }
-
-  try {
-    const serverApi = createServerApi()
-    const { data, error } = await serverApi.GET("/api/v1/currencies", {
-      headers: { Authorization: `Bearer ${sessionToken}` }
-    })
-
-    if (error || !data) {
-      return { currencies: [], error: "failed" as const }
-    }
-
-    return { currencies: data.currencies, error: null }
-  } catch {
-    return { currencies: [], error: "failed" as const }
-  }
-})
-
-const fetchJurisdictions = createServerFn({ method: "GET" }).handler(async () => {
-  const sessionToken = getCookie("accountability_session")
-
-  if (!sessionToken) {
-    return { jurisdictions: [], error: "unauthorized" as const }
-  }
-
-  try {
-    const serverApi = createServerApi()
-    const { data, error } = await serverApi.GET("/api/v1/jurisdictions", {
-      headers: { Authorization: `Bearer ${sessionToken}` }
-    })
-
-    if (error || !data) {
-      return { jurisdictions: [], error: "failed" as const }
-    }
-
-    return { jurisdictions: data.jurisdictions, error: null }
-  } catch {
-    return { jurisdictions: [], error: "failed" as const }
-  }
-})
 
 // =============================================================================
 // Companies List Route
@@ -146,12 +97,10 @@ export const Route = createFileRoute("/organizations/$organizationId/companies/"
     }
   },
   loader: async ({ params }) => {
-    // Fetch organization, companies, currencies, and jurisdictions in parallel
-    const [orgResult, companiesResult, currenciesResult, jurisdictionsResult] = await Promise.all([
+    // Fetch organization and companies in parallel
+    const [orgResult, companiesResult] = await Promise.all([
       fetchOrganization({ data: params.organizationId }),
-      fetchCompanies({ data: params.organizationId }),
-      fetchCurrencies(),
-      fetchJurisdictions()
+      fetchCompanies({ data: params.organizationId })
     ])
 
     if (orgResult.error === "not_found") {
@@ -161,9 +110,7 @@ export const Route = createFileRoute("/organizations/$organizationId/companies/"
     return {
       organization: orgResult.organization,
       companies: companiesResult.companies,
-      companiesTotal: companiesResult.total,
-      currencies: currenciesResult.currencies,
-      jurisdictions: jurisdictionsResult.jurisdictions
+      companiesTotal: companiesResult.total
     }
   },
   errorComponent: ({ error }) => (
@@ -193,18 +140,12 @@ function CompaniesListPage() {
   } | null
   const companies = loaderData.companies as readonly Company[]
   const companiesTotal = loaderData.companiesTotal as number
-  const currencies = loaderData.currencies as readonly CurrencyOption[]
-  const jurisdictions = loaderData.jurisdictions as readonly JurisdictionOption[]
   /* eslint-enable @typescript-eslint/consistent-type-assertions */
   const params = Route.useParams()
-  const router = useRouter()
   const user = context.user
   // Organizations come from the parent layout route's beforeLoad
   const organizations = context.organizations ?? []
-  const [showCreateForm, setShowCreateForm] = useState(false)
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all")
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [apiError, setApiError] = useState<string | null>(null)
 
   // Permission checks for UI element visibility
   const { canPerform } = usePermissions()
@@ -224,78 +165,6 @@ function CompaniesListPage() {
     [companies]
   )
   const inactiveCount = companies.length - activeCount
-
-  // Map companies to parent options (only active companies, name and id)
-  const existingCompaniesForParent = useMemo(
-    () =>
-      companies
-        .filter((c) => c.isActive)
-        .map((c) => ({ id: c.id, name: c.name })),
-    [companies]
-  )
-
-  // Handle company form submission
-  const handleCreateCompany = async (formData: CompanyFormData) => {
-    setIsSubmitting(true)
-    setApiError(null)
-
-    // Convert ISO date string to LocalDate object for API
-    let incorporationDate: { year: number; month: number; day: number } | null = null
-    if (formData.incorporationDate) {
-      const [year, month, day] = formData.incorporationDate.split("-").map(Number)
-      incorporationDate = { year, month, day }
-    }
-
-    try {
-      const { error } = await api.POST("/api/v1/companies", {
-        body: {
-          organizationId: params.organizationId,
-          name: formData.name,
-          legalName: formData.legalName,
-          jurisdiction: formData.jurisdiction,
-          taxId: formData.taxId,
-          incorporationDate,
-          registrationNumber: formData.registrationNumber,
-          registeredAddress: null,
-          industryCode: null,
-          companyType: null,
-          incorporationJurisdiction: null,
-          functionalCurrency: formData.functionalCurrency,
-          reportingCurrency: formData.reportingCurrency,
-          fiscalYearEnd: formData.fiscalYearEnd,
-          parentCompanyId: formData.parentCompanyId,
-          ownershipPercentage: formData.ownershipPercentage
-        }
-      })
-
-      if (error) {
-        let errorMessage = "Failed to create company"
-        if (typeof error === "object" && error !== null) {
-          if ("message" in error && typeof error.message === "string") {
-            errorMessage = error.message
-          }
-        }
-        setApiError(errorMessage)
-        setIsSubmitting(false)
-        return
-      }
-
-      // Revalidate to show new company in list
-      await router.invalidate()
-
-      // Close form after successful creation
-      setShowCreateForm(false)
-      setIsSubmitting(false)
-    } catch {
-      setApiError("An unexpected error occurred. Please try again.")
-      setIsSubmitting(false)
-    }
-  }
-
-  const handleCancelForm = () => {
-    setShowCreateForm(false)
-    setApiError(null)
-  }
 
   if (!organization) {
     return null
@@ -336,14 +205,16 @@ function CompaniesListPage() {
               </p>
             </div>
 
-            {canCreateCompany && companies.length > 0 && (
-              <Button
-                onClick={() => setShowCreateForm(true)}
-                icon={<Plus className="h-4 w-4" />}
+            {canCreateCompany && (
+              <Link
+                to="/organizations/$organizationId/companies/new"
+                params={{ organizationId: params.organizationId }}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                 data-testid="create-company-button"
               >
-                New Company
-              </Button>
+                <Plus className="h-4 w-4" />
+                <span>New Company</span>
+              </Link>
             )}
           </div>
 
@@ -375,42 +246,20 @@ function CompaniesListPage() {
           )}
         </div>
 
-        {/* Create Company Modal */}
-        {showCreateForm && (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-            data-testid="create-company-modal"
-          >
-            <div className="mx-4 max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-white p-6 shadow-xl">
-              <h2 className="mb-4 text-lg font-semibold text-gray-900">
-                Create Company
-              </h2>
-              <CompanyForm
-                currencies={currencies}
-                jurisdictions={jurisdictions}
-                existingCompanies={existingCompaniesForParent}
-                defaultCurrency={organization.reportingCurrency}
-                onSubmit={handleCreateCompany}
-                onCancel={handleCancelForm}
-                apiError={apiError}
-                isSubmitting={isSubmitting}
-              />
-            </div>
-          </div>
-        )}
-
         {/* Companies List - Hierarchy Tree View */}
         {companies.length === 0 ? (
           <NoCompaniesEmptyState
             action={
               canCreateCompany ? (
-                <Button
-                  onClick={() => setShowCreateForm(true)}
-                  icon={<Plus className="h-5 w-5" />}
+                <Link
+                  to="/organizations/$organizationId/companies/new"
+                  params={{ organizationId: params.organizationId }}
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                   data-testid="create-company-empty-button"
                 >
-                  Create Company
-                </Button>
+                  <Plus className="h-5 w-5" />
+                  <span>Create Company</span>
+                </Link>
               ) : undefined
             }
           />

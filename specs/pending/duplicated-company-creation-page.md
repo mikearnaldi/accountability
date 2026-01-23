@@ -95,10 +95,26 @@ Update any E2E tests that interact with the modal to instead navigate to the ded
 
 ## Testing Checklist
 
-- [ ] "New Company" button navigates to `/companies/new`
-- [ ] Empty state "Create Company" button navigates to `/companies/new`
-- [ ] Company creation flow works end-to-end via page
-- [ ] Browser back button returns to companies list from new company page
-- [ ] Canceling on new company page returns to companies list
-- [ ] No references to `showCreateForm` state remain
-- [ ] No modal-related code remains in companies list page
+- [x] "New Company" button navigates to `/companies/new`
+- [x] Empty state "Create Company" button navigates to `/companies/new`
+- [x] Company creation flow works end-to-end via page
+- [x] Browser back button returns to companies list from new company page
+- [x] Canceling on new company page returns to companies list
+- [x] No references to `showCreateForm` state remain
+- [x] No modal-related code remains in companies list page
+
+## Implementation Complete
+
+**Completed: 2026-01-23**
+
+Changes made:
+1. Removed modal state (`showCreateForm`, `isSubmitting`, `apiError`) from companies list page
+2. Removed `handleCreateCompany` and `handleCancelForm` functions
+3. Removed modal JSX from companies list page
+4. Updated "New Company" button to use `<Link>` navigation to `/companies/new`
+5. Updated empty state "Create Company" button to use `<Link>` navigation
+6. Removed unused imports (`CompanyForm`, `CompanyFormData`, `api`, `Button`, `useRouter`)
+7. Removed unused server functions (`fetchCurrencies`, `fetchJurisdictions`)
+8. Updated E2E tests in `companies-list.spec.ts` and `create-company.spec.ts` to test the page-based flow
+
+All 24 company-related E2E tests pass.
