@@ -708,8 +708,6 @@ test.describe("Organization Settings Page", () => {
         taxId: null,
         incorporationDate: null,
         registrationNumber: null,
-        parentCompanyId: null,
-        ownershipPercentage: null,
         registeredAddress: null,
         industryCode: null,
         companyType: null,

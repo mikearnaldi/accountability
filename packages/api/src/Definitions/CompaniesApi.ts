@@ -12,7 +12,6 @@ import { Address } from "@accountability/core/shared/values/Address"
 import { AccountId } from "@accountability/core/accounting/Account"
 import {
   Company,
-  CompanyId,
   FiscalYearEnd
 } from "@accountability/core/company/Company"
 import { CompanyType } from "@accountability/core/company/CompanyType"
@@ -20,7 +19,6 @@ import { LocalDate } from "@accountability/core/shared/values/LocalDate"
 import { Organization, OrganizationId, OrganizationSettings } from "@accountability/core/organization/Organization"
 import { CurrencyCode } from "@accountability/core/currency/CurrencyCode"
 import { JurisdictionCode } from "@accountability/core/jurisdiction/JurisdictionCode"
-import { Percentage } from "@accountability/core/shared/values/Percentage"
 import {
   AuditLogError,
   ForbiddenError,
@@ -37,10 +35,6 @@ import {
 } from "@accountability/core/organization/OrganizationErrors"
 import {
   CompanyNotFoundError,
-  ParentCompanyNotFoundError,
-  OwnershipPercentageRequiredError,
-  CircularCompanyReferenceError,
-  HasActiveSubsidiariesError,
   CompanyNameAlreadyExistsError
 } from "@accountability/core/company/CompanyErrors"
 
@@ -95,9 +89,7 @@ export class CreateCompanyRequest extends Schema.Class<CreateCompanyRequest>("Cr
   incorporationJurisdiction: Schema.OptionFromNullOr(JurisdictionCode),
   functionalCurrency: CurrencyCode,
   reportingCurrency: CurrencyCode,
-  fiscalYearEnd: FiscalYearEnd,
-  parentCompanyId: Schema.OptionFromNullOr(CompanyId),
-  ownershipPercentage: Schema.OptionFromNullOr(Percentage)
+  fiscalYearEnd: FiscalYearEnd
 }) {}
 
 /**
@@ -116,8 +108,6 @@ export class UpdateCompanyRequest extends Schema.Class<UpdateCompanyRequest>("Up
   reportingCurrency: Schema.OptionFromNullOr(CurrencyCode),
   fiscalYearEnd: Schema.OptionFromNullOr(FiscalYearEnd),
   retainedEarningsAccountId: Schema.OptionFromNullOr(AccountId),
-  parentCompanyId: Schema.OptionFromNullOr(CompanyId),
-  ownershipPercentage: Schema.OptionFromNullOr(Percentage),
   isActive: Schema.OptionFromNullOr(Schema.Boolean)
 }) {}
 
@@ -138,7 +128,6 @@ export class CompanyListResponse extends Schema.Class<CompanyListResponse>("Comp
 export const CompanyListParams = Schema.Struct({
   organizationId: Schema.String,
   isActive: Schema.optional(Schema.BooleanFromString),
-  parentCompanyId: Schema.optional(Schema.String),
   jurisdiction: Schema.optional(Schema.String),
   limit: Schema.optional(Schema.NumberFromString.pipe(Schema.int(), Schema.greaterThan(0))),
   offset: Schema.optional(Schema.NumberFromString.pipe(Schema.int(), Schema.greaterThanOrEqualTo(0)))
@@ -254,15 +243,13 @@ const createCompany = HttpApiEndpoint.post("createCompany", "/companies")
   .setPayload(CreateCompanyRequest)
   .addSuccess(Company, { status: 201 })
   .addError(OrganizationNotFoundError)
-  .addError(ParentCompanyNotFoundError)
-  .addError(OwnershipPercentageRequiredError)
   .addError(CompanyNameAlreadyExistsError)
   .addError(ForbiddenError)
   .addError(AuditLogError)
   .addError(UserLookupError)
   .annotateContext(OpenApi.annotations({
     summary: "Create company",
-    description: "Create a new company within an organization. Companies can have parent-child relationships for consolidation purposes."
+    description: "Create a new company within an organization. Parent-subsidiary relationships are defined in Consolidation Groups, not on individual companies."
   }))
 
 /**
@@ -273,8 +260,6 @@ const updateCompany = HttpApiEndpoint.put("updateCompany", "/organizations/:orga
   .setPayload(UpdateCompanyRequest)
   .addSuccess(Company)
   .addError(CompanyNotFoundError)
-  .addError(ParentCompanyNotFoundError)
-  .addError(CircularCompanyReferenceError)
   .addError(CompanyNameAlreadyExistsError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
@@ -292,14 +277,13 @@ const deactivateCompany = HttpApiEndpoint.del("deactivateCompany", "/organizatio
   .setPath(Schema.Struct({ organizationId: Schema.String, id: Schema.String }))
   .addSuccess(HttpApiSchema.NoContent)
   .addError(CompanyNotFoundError)
-  .addError(HasActiveSubsidiariesError)
   .addError(OrganizationNotFoundError)
   .addError(ForbiddenError)
   .addError(AuditLogError)
   .addError(UserLookupError)
   .annotateContext(OpenApi.annotations({
     summary: "Deactivate company",
-    description: "Deactivate a company within an organization (soft delete). Companies with active subsidiaries or unposted entries cannot be deactivated."
+    description: "Deactivate a company within an organization (soft delete). Companies with unposted entries cannot be deactivated."
   }))
 
 // =============================================================================

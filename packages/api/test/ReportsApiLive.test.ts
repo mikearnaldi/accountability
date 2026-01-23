@@ -91,8 +91,6 @@ const createTestCompany = (): Company => {
     reportingCurrency: testCurrency,
     fiscalYearEnd: FiscalYearEnd.make({ month: 12, day: 31 }),
     retainedEarningsAccountId: Option.none(),
-    parentCompanyId: Option.none(),
-    ownershipPercentage: Option.none(),
     isActive: true,
     createdAt: timestampNow()
   })
@@ -414,7 +412,6 @@ const createMockCompanyRepository = (companies: ReadonlyArray<Company> = [create
         }),
       findByOrganization: (_orgId) => Effect.succeed([]),
       findActiveByOrganization: (_orgId) => Effect.succeed([]),
-      findSubsidiaries: (_organizationId, _parentId) => Effect.succeed([]),
       create: (company) =>
         Effect.gen(function* () {
           yield* Ref.update(companiesRef, (cs) => [...cs, company])

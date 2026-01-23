@@ -69,8 +69,6 @@ const createTestCompany = (overrides: Partial<{
     reportingCurrency: CurrencyCode.make("USD"),
     fiscalYearEnd: FiscalYearEnd.make({ month: 12, day: 31 }),
     retainedEarningsAccountId: Option.none(),
-    parentCompanyId: Option.none(),
-    ownershipPercentage: Option.none(),
     isActive: true,
     createdAt: timestampNow()
   })
@@ -363,9 +361,6 @@ const createMockCompanyRepository = (
         Effect.succeed([]),
 
       findActiveByOrganization: (_orgId) =>
-        Effect.succeed([]),
-
-      findSubsidiaries: (_organizationId, _parentId) =>
         Effect.succeed([]),
 
       create: (company) =>

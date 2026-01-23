@@ -21,7 +21,6 @@ import {
   OrganizationId,
   OrganizationSettings
 } from "@accountability/core/organization/Organization"
-import { Percentage } from "@accountability/core/shared/values/Percentage"
 import { now as timestampNow } from "@accountability/core/shared/values/Timestamp"
 import { CompanyRepository, type CompanyRepositoryService } from "@accountability/persistence/Services/CompanyRepository"
 import { OrganizationRepository, type OrganizationRepositoryService } from "@accountability/persistence/Services/OrganizationRepository"
@@ -33,8 +32,6 @@ import { EntityNotFoundError } from "@accountability/persistence/Errors/Reposito
 
 const testOrganizationId = OrganizationId.make("550e8400-e29b-41d4-a716-446655440000")
 const testCompanyId = CompanyId.make("550e8400-e29b-41d4-a716-446655440001")
-const testParentCompanyId = CompanyId.make("550e8400-e29b-41d4-a716-446655440002")
-const testSubsidiaryId = CompanyId.make("550e8400-e29b-41d4-a716-446655440003")
 
 const createTestOrganization = (overrides: Partial<{
   id: typeof testOrganizationId
@@ -63,8 +60,6 @@ const createTestCompany = (overrides: Partial<{
   functionalCurrency: string
   reportingCurrency: string
   fiscalYearEnd: { month: number; day: number }
-  parentCompanyId: Option.Option<typeof testCompanyId>
-  ownershipPercentage: Option.Option<number>
   isActive: boolean
 }> = {}): Company => {
   const id = overrides.id ?? testCompanyId
@@ -75,8 +70,6 @@ const createTestCompany = (overrides: Partial<{
   const functionalCurrency = overrides.functionalCurrency ?? "USD"
   const reportingCurrency = overrides.reportingCurrency ?? "USD"
   const fiscalYearEnd = overrides.fiscalYearEnd ?? { month: 12, day: 31 }
-  const parentCompanyId = overrides.parentCompanyId ?? Option.none()
-  const ownershipPercentage = overrides.ownershipPercentage ?? Option.none()
   const isActive = overrides.isActive ?? true
 
   return Company.make({
@@ -96,10 +89,6 @@ const createTestCompany = (overrides: Partial<{
     reportingCurrency: CurrencyCode.make(reportingCurrency),
     fiscalYearEnd: FiscalYearEnd.make(fiscalYearEnd),
     retainedEarningsAccountId: Option.none(),
-    parentCompanyId,
-    ownershipPercentage: Option.isSome(ownershipPercentage)
-      ? Option.some(Percentage.make(ownershipPercentage.value))
-      : Option.none(),
     isActive,
     createdAt: timestampNow()
   })
@@ -200,14 +189,6 @@ const createMockCompanyRepository = (
         Effect.gen(function* () {
           const companies = yield* Ref.get(companiesRef)
           return companies.filter((c) => c.organizationId === orgId && c.isActive)
-        }),
-      findSubsidiaries: (organizationId, parentId) =>
-        Effect.gen(function* () {
-          const companies = yield* Ref.get(companiesRef)
-          return companies.filter((c) =>
-            c.organizationId === organizationId &&
-            Option.isSome(c.parentCompanyId) && c.parentCompanyId.value === parentId
-          )
         }),
       create: (company) =>
         Effect.gen(function* () {
@@ -446,29 +427,6 @@ describe("CompaniesApiLive", () => {
         expect(active[0].isActive).toBe(true)
       })
     )
-
-    it.effect("should find subsidiary companies", () =>
-      Effect.gen(function* () {
-        const org = createTestOrganization()
-        const parent = createTestCompany({
-          id: testParentCompanyId,
-          name: "Parent Company"
-        })
-        const subsidiary = createTestCompany({
-          id: testSubsidiaryId,
-          name: "Subsidiary",
-          parentCompanyId: Option.some(testParentCompanyId),
-          ownershipPercentage: Option.some(80)
-        })
-        const testLayer = createTestLayer([org], [parent, subsidiary])
-
-        const companyRepo = yield* CompanyRepository.pipe(Effect.provide(testLayer))
-        const subsidiaries = yield* companyRepo.findSubsidiaries(testOrganizationId, testParentCompanyId)
-
-        expect(subsidiaries.length).toBe(1)
-        expect(subsidiaries[0].name).toBe("Subsidiary")
-      })
-    )
   })
 
   describe("getCompany", () => {
@@ -519,29 +477,6 @@ describe("CompaniesApiLive", () => {
 
         const found = yield* companyRepo.findById(testOrganizationId, testCompanyId)
         expect(Option.isSome(found)).toBe(true)
-      })
-    )
-
-    it.effect("should create subsidiary with consolidation info", () =>
-      Effect.gen(function* () {
-        const org = createTestOrganization()
-        const parent = createTestCompany({ id: testParentCompanyId })
-        const testLayer = createTestLayer([org], [parent])
-
-        const companyRepo = yield* CompanyRepository.pipe(Effect.provide(testLayer))
-        const subsidiary = createTestCompany({
-          id: testSubsidiaryId,
-          name: "Subsidiary",
-          parentCompanyId: Option.some(testParentCompanyId),
-          ownershipPercentage: Option.some(75)
-        })
-        const created = yield* companyRepo.create(subsidiary)
-
-        expect(created.isSubsidiary).toBe(true)
-        expect(Option.isSome(created.ownershipPercentage)).toBe(true)
-        if (Option.isSome(created.ownershipPercentage)) {
-          expect(created.ownershipPercentage.value).toBe(75)
-        }
       })
     )
 
@@ -617,42 +552,6 @@ describe("CompaniesApiLive", () => {
         expect(result._tag).toBe("Left")
       })
     )
-
-    it.effect("should update parent company (hierarchy change)", () =>
-      Effect.gen(function* () {
-        const org = createTestOrganization()
-        const parent1 = createTestCompany({
-          id: testParentCompanyId,
-          name: "Parent 1"
-        })
-        const parent2 = createTestCompany({
-          id: CompanyId.make("550e8400-e29b-41d4-a716-446655440005"),
-          name: "Parent 2"
-        })
-        const subsidiary = createTestCompany({
-          id: testSubsidiaryId,
-          name: "Subsidiary",
-          parentCompanyId: Option.some(testParentCompanyId),
-          ownershipPercentage: Option.some(80)
-        })
-        const testLayer = createTestLayer([org], [parent1, parent2, subsidiary])
-
-        const companyRepo = yield* CompanyRepository.pipe(Effect.provide(testLayer))
-
-        // Update to new parent
-        const updated = Company.make({
-          ...subsidiary,
-          parentCompanyId: Option.some(parent2.id)
-        })
-        yield* companyRepo.update(testOrganizationId, updated)
-
-        const found = yield* companyRepo.findById(testOrganizationId, testSubsidiaryId)
-        expect(Option.isSome(found)).toBe(true)
-        if (Option.isSome(found) && Option.isSome(found.value.parentCompanyId)) {
-          expect(found.value.parentCompanyId.value).toBe(parent2.id)
-        }
-      })
-    )
   })
 
   describe("deactivateCompany", () => {
@@ -674,54 +573,6 @@ describe("CompaniesApiLive", () => {
         if (Option.isSome(found)) {
           expect(found.value.isActive).toBe(false)
         }
-      })
-    )
-
-    it.effect("should detect active subsidiaries", () =>
-      Effect.gen(function* () {
-        const org = createTestOrganization()
-        const parent = createTestCompany({
-          id: testParentCompanyId,
-          name: "Parent"
-        })
-        const subsidiary = createTestCompany({
-          id: testSubsidiaryId,
-          name: "Subsidiary",
-          parentCompanyId: Option.some(testParentCompanyId),
-          ownershipPercentage: Option.some(100),
-          isActive: true
-        })
-        const testLayer = createTestLayer([org], [parent, subsidiary])
-
-        const companyRepo = yield* CompanyRepository.pipe(Effect.provide(testLayer))
-        const subsidiaries = yield* companyRepo.findSubsidiaries(testOrganizationId, testParentCompanyId)
-        const activeSubsidiaries = subsidiaries.filter((c) => c.isActive)
-
-        expect(activeSubsidiaries.length).toBe(1)
-      })
-    )
-
-    it.effect("should allow deactivation when no active subsidiaries", () =>
-      Effect.gen(function* () {
-        const org = createTestOrganization()
-        const parent = createTestCompany({
-          id: testParentCompanyId,
-          name: "Parent"
-        })
-        const inactiveSubsidiary = createTestCompany({
-          id: testSubsidiaryId,
-          name: "Inactive Subsidiary",
-          parentCompanyId: Option.some(testParentCompanyId),
-          ownershipPercentage: Option.some(100),
-          isActive: false
-        })
-        const testLayer = createTestLayer([org], [parent, inactiveSubsidiary])
-
-        const companyRepo = yield* CompanyRepository.pipe(Effect.provide(testLayer))
-        const subsidiaries = yield* companyRepo.findSubsidiaries(testOrganizationId, testParentCompanyId)
-        const activeSubsidiaries = subsidiaries.filter((c) => c.isActive)
-
-        expect(activeSubsidiaries.length).toBe(0)
       })
     )
   })
@@ -782,31 +633,6 @@ describe("CompaniesApiLive", () => {
         expect(Option.isSome(found)).toBe(true)
         if (Option.isSome(found)) {
           expect(found.value.hasSameFunctionalAndReportingCurrency).toBe(false)
-        }
-      })
-    )
-
-    it.effect("should calculate non-controlling interest percentage", () =>
-      Effect.gen(function* () {
-        const org = createTestOrganization()
-        const parent = createTestCompany({ id: testParentCompanyId })
-        const subsidiary = createTestCompany({
-          id: testSubsidiaryId,
-          parentCompanyId: Option.some(testParentCompanyId),
-          ownershipPercentage: Option.some(75)
-        })
-        const testLayer = createTestLayer([org], [parent, subsidiary])
-
-        const companyRepo = yield* CompanyRepository.pipe(Effect.provide(testLayer))
-        const found = yield* companyRepo.findById(testOrganizationId, testSubsidiaryId)
-
-        expect(Option.isSome(found)).toBe(true)
-        if (Option.isSome(found)) {
-          const nci = found.value.nonControllingInterestPercentage
-          expect(Option.isSome(nci)).toBe(true)
-          if (Option.isSome(nci)) {
-            expect(nci.value).toBe(25)
-          }
         }
       })
     )

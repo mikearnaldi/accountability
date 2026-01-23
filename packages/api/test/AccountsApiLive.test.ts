@@ -100,8 +100,6 @@ const createTestCompany = (): Company => {
     reportingCurrency: CurrencyCode.make("USD"),
     fiscalYearEnd: FiscalYearEnd.make({ month: 12, day: 31 }),
     retainedEarningsAccountId: Option.none(),
-    parentCompanyId: Option.none(),
-    ownershipPercentage: Option.none(),
     isActive: true,
     createdAt: timestampNow()
   })
@@ -221,14 +219,6 @@ const createMockCompanyRepository = (
         Effect.gen(function* () {
           const allCompanies = yield* Ref.get(companiesRef)
           return allCompanies.filter((c) => c.organizationId === orgId && c.isActive)
-        }),
-      findSubsidiaries: (organizationId, parentId) =>
-        Effect.gen(function* () {
-          const allCompanies = yield* Ref.get(companiesRef)
-          return allCompanies.filter((c) =>
-            c.organizationId === organizationId &&
-            Option.isSome(c.parentCompanyId) && c.parentCompanyId.value === parentId
-          )
         }),
       create: (company) =>
         Effect.gen(function* () {

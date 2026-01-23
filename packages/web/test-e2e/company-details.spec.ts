@@ -8,7 +8,10 @@
  * - Edit company: form calls api.PUT, then router.invalidate()
  * - Functional currency is read-only (ASC 830)
  * - Deactivate/Activate company functionality
- * - Parent/subsidiary hierarchy display
+ *
+ * Note: Parent-subsidiary relationships are now managed through ConsolidationGroups,
+ * not through Company entities. parentCompanyId and ownershipPercentage fields
+ * have been removed from the Company domain entity.
  */
 
 import { test, expect } from "@playwright/test"
@@ -85,8 +88,6 @@ test.describe("Company Details Page", () => {
         taxId: "12-3456789",
         incorporationDate: null,
         registrationNumber: null,
-        parentCompanyId: null,
-        ownershipPercentage: null,
         registeredAddress: null,
         industryCode: null,
         companyType: null,
@@ -205,8 +206,6 @@ test.describe("Company Details Page", () => {
         taxId: null,
         incorporationDate: null,
         registrationNumber: null,
-        parentCompanyId: null,
-        ownershipPercentage: null,
         registeredAddress: null,
         industryCode: null,
         companyType: null,
@@ -305,8 +304,6 @@ test.describe("Company Details Page", () => {
         taxId: null,
         incorporationDate: null,
         registrationNumber: null,
-        parentCompanyId: null,
-        ownershipPercentage: null,
         registeredAddress: null,
         industryCode: null,
         companyType: null,
@@ -436,8 +433,6 @@ test.describe("Company Details Page", () => {
         taxId: null,
         incorporationDate: null,
         registrationNumber: null,
-        parentCompanyId: null,
-        ownershipPercentage: null,
         registeredAddress: null,
         industryCode: null,
         companyType: null,
@@ -543,8 +538,6 @@ test.describe("Company Details Page", () => {
         taxId: null,
         incorporationDate: null,
         registrationNumber: null,
-        parentCompanyId: null,
-        ownershipPercentage: null,
         registeredAddress: null,
         industryCode: null,
         companyType: null,
@@ -638,8 +631,6 @@ test.describe("Company Details Page", () => {
         taxId: null,
         incorporationDate: null,
         registrationNumber: null,
-        parentCompanyId: null,
-        ownershipPercentage: null,
         registeredAddress: null,
         industryCode: null,
         companyType: null,
@@ -804,8 +795,6 @@ test.describe("Company Details Page", () => {
         taxId: null,
         incorporationDate: null,
         registrationNumber: null,
-        parentCompanyId: null,
-        ownershipPercentage: null,
         registeredAddress: null,
         industryCode: null,
         companyType: null,
@@ -895,8 +884,6 @@ test.describe("Company Details Page", () => {
         taxId: null,
         incorporationDate: null,
         registrationNumber: null,
-        parentCompanyId: null,
-        ownershipPercentage: null,
         registeredAddress: null,
         industryCode: null,
         companyType: null,
@@ -998,8 +985,6 @@ test.describe("Company Details Page", () => {
         taxId: null,
         incorporationDate: null,
         registrationNumber: null,
-        parentCompanyId: null,
-        ownershipPercentage: null,
         registeredAddress: null,
         industryCode: null,
         companyType: null,
@@ -1044,276 +1029,8 @@ test.describe("Company Details Page", () => {
     await expect(page.getByTestId("toggle-active-button")).toHaveText("Deactivate")
   })
 
-  test("should display parent company section for subsidiaries", async ({ page, request }) => {
-    // 1. Register a test user
-    const testUser = {
-      email: `test-subsidiary-${Date.now()}@example.com`,
-      password: "TestPassword123",
-      displayName: "Subsidiary Test User"
-    }
-
-    const registerRes = await request.post("/api/auth/register", {
-      data: testUser
-    })
-    expect(registerRes.ok()).toBeTruthy()
-
-    // 2. Login to get session token
-    const loginRes = await request.post("/api/auth/login", {
-      data: {
-        provider: "local",
-        credentials: {
-          email: testUser.email,
-          password: testUser.password
-        }
-      }
-    })
-    expect(loginRes.ok()).toBeTruthy()
-    const loginData = await loginRes.json()
-    const sessionToken = loginData.token
-
-    // 3. Create an organization via API
-    const createOrgRes = await request.post("/api/v1/organizations", {
-      headers: { Authorization: `Bearer ${sessionToken}` },
-      data: {
-        name: `Subsidiary Test Org ${Date.now()}`,
-        reportingCurrency: "USD",
-        settings: null
-      }
-    })
-    expect(createOrgRes.ok()).toBeTruthy()
-    const orgData = await createOrgRes.json()
-
-    // 4. Create a parent company via API
-    const parentName = `Parent Company ${Date.now()}`
-    const createParentRes = await request.post("/api/v1/companies", {
-      headers: { Authorization: `Bearer ${sessionToken}` },
-      data: {
-        organizationId: orgData.id,
-        name: parentName,
-        legalName: `${parentName} Inc.`,
-        jurisdiction: "US",
-        functionalCurrency: "USD",
-        reportingCurrency: "USD",
-        fiscalYearEnd: { month: 12, day: 31 },
-        taxId: null,
-        incorporationDate: null,
-        registrationNumber: null,
-        parentCompanyId: null,
-        ownershipPercentage: null,
-        registeredAddress: null,
-        industryCode: null,
-        companyType: null,
-        incorporationJurisdiction: null
-      }
-    })
-    expect(createParentRes.ok()).toBeTruthy()
-    const parentData = await createParentRes.json()
-
-    // 5. Create a subsidiary company via API
-    const subsidiaryName = `Subsidiary Company ${Date.now()}`
-    const createSubsidiaryRes = await request.post("/api/v1/companies", {
-      headers: { Authorization: `Bearer ${sessionToken}` },
-      data: {
-        organizationId: orgData.id,
-        name: subsidiaryName,
-        legalName: `${subsidiaryName} Inc.`,
-        jurisdiction: "US",
-        functionalCurrency: "USD",
-        reportingCurrency: "USD",
-        fiscalYearEnd: { month: 12, day: 31 },
-        taxId: null,
-        incorporationDate: null,
-        registrationNumber: null,
-        parentCompanyId: parentData.id,
-        ownershipPercentage: 80,
-        registeredAddress: null,
-        industryCode: null,
-        companyType: null,
-        incorporationJurisdiction: null
-      }
-    })
-    expect(createSubsidiaryRes.ok()).toBeTruthy()
-    const subsidiaryData = await createSubsidiaryRes.json()
-
-    // 6. Set session cookie
-    await page.context().addCookies([
-      {
-        name: "accountability_session",
-        value: sessionToken,
-        domain: "localhost",
-        path: "/",
-        httpOnly: true,
-        secure: false,
-        sameSite: "Lax"
-      }
-    ])
-
-    // 7. Navigate to subsidiary company details page
-    await page.goto(`/organizations/${orgData.id}/companies/${subsidiaryData.id}`)
-
-    // 8. Should show Parent Company section
-    await expect(page.getByTestId("parent-company-section")).toBeVisible()
-    await expect(page.getByRole("heading", { name: "Parent Company" })).toBeVisible()
-
-    // 9. Should show parent company link with ownership percentage
-    await expect(page.getByTestId("parent-company-link")).toBeVisible()
-    await expect(page.getByTestId("parent-company-link")).toContainText(parentName)
-    await expect(page.getByTestId("parent-ownership")).toContainText("80%")
-
-    // 10. Hierarchy card should show Subsidiary badge
-    await expect(page.getByTestId("hierarchy-card")).toBeVisible()
-    // Use more specific selector to avoid matching company names
-    await expect(page.getByTestId("hierarchy-card").getByText("Subsidiary")).toBeVisible()
-    await expect(page.getByTestId("ownership-percentage")).toHaveText("80% owned")
-  })
-
-  test("should display subsidiaries section for parent companies", async ({ page, request }) => {
-    // 1. Register a test user
-    const testUser = {
-      email: `test-parent-${Date.now()}@example.com`,
-      password: "TestPassword123",
-      displayName: "Parent Test User"
-    }
-
-    const registerRes = await request.post("/api/auth/register", {
-      data: testUser
-    })
-    expect(registerRes.ok()).toBeTruthy()
-
-    // 2. Login to get session token
-    const loginRes = await request.post("/api/auth/login", {
-      data: {
-        provider: "local",
-        credentials: {
-          email: testUser.email,
-          password: testUser.password
-        }
-      }
-    })
-    expect(loginRes.ok()).toBeTruthy()
-    const loginData = await loginRes.json()
-    const sessionToken = loginData.token
-
-    // 3. Create an organization via API
-    const createOrgRes = await request.post("/api/v1/organizations", {
-      headers: { Authorization: `Bearer ${sessionToken}` },
-      data: {
-        name: `Parent Test Org ${Date.now()}`,
-        reportingCurrency: "USD",
-        settings: null
-      }
-    })
-    expect(createOrgRes.ok()).toBeTruthy()
-    const orgData = await createOrgRes.json()
-
-    // 4. Create a parent company via API
-    const parentName = `Holding Company ${Date.now()}`
-    const createParentRes = await request.post("/api/v1/companies", {
-      headers: { Authorization: `Bearer ${sessionToken}` },
-      data: {
-        organizationId: orgData.id,
-        name: parentName,
-        legalName: `${parentName} Inc.`,
-        jurisdiction: "US",
-        functionalCurrency: "USD",
-        reportingCurrency: "USD",
-        fiscalYearEnd: { month: 12, day: 31 },
-        taxId: null,
-        incorporationDate: null,
-        registrationNumber: null,
-        parentCompanyId: null,
-        ownershipPercentage: null,
-        registeredAddress: null,
-        industryCode: null,
-        companyType: null,
-        incorporationJurisdiction: null
-      }
-    })
-    expect(createParentRes.ok()).toBeTruthy()
-    const parentData = await createParentRes.json()
-
-    // 5. Create first subsidiary company via API
-    const subsidiary1Name = `Sub One ${Date.now()}`
-    const sub1Res = await request.post("/api/v1/companies", {
-      headers: { Authorization: `Bearer ${sessionToken}` },
-      data: {
-        organizationId: orgData.id,
-        name: subsidiary1Name,
-        legalName: `${subsidiary1Name} Inc.`,
-        jurisdiction: "US",
-        functionalCurrency: "USD",
-        reportingCurrency: "USD",
-        fiscalYearEnd: { month: 12, day: 31 },
-        taxId: null,
-        incorporationDate: null,
-        registrationNumber: null,
-        parentCompanyId: parentData.id,
-        ownershipPercentage: 100,
-        registeredAddress: null,
-        industryCode: null,
-        companyType: null,
-        incorporationJurisdiction: null
-      }
-    })
-    expect(sub1Res.ok()).toBeTruthy()
-
-    // 6. Create second subsidiary company via API
-    const subsidiary2Name = `Sub Two ${Date.now()}`
-    const sub2Res = await request.post("/api/v1/companies", {
-      headers: { Authorization: `Bearer ${sessionToken}` },
-      data: {
-        organizationId: orgData.id,
-        name: subsidiary2Name,
-        legalName: `${subsidiary2Name} Inc.`,
-        jurisdiction: "GB",
-        functionalCurrency: "GBP",
-        reportingCurrency: "USD",
-        fiscalYearEnd: { month: 3, day: 31 },
-        taxId: null,
-        incorporationDate: null,
-        registrationNumber: null,
-        parentCompanyId: parentData.id,
-        ownershipPercentage: 60,
-        registeredAddress: null,
-        industryCode: null,
-        companyType: null,
-        incorporationJurisdiction: null
-      }
-    })
-    expect(sub2Res.ok()).toBeTruthy()
-
-    // 7. Set session cookie
-    await page.context().addCookies([
-      {
-        name: "accountability_session",
-        value: sessionToken,
-        domain: "localhost",
-        path: "/",
-        httpOnly: true,
-        secure: false,
-        sameSite: "Lax"
-      }
-    ])
-
-    // 8. Navigate to parent company details page
-    await page.goto(`/organizations/${orgData.id}/companies/${parentData.id}`)
-
-    // 9. Should show Subsidiaries section with count
-    await expect(page.getByTestId("subsidiaries-section")).toBeVisible()
-    await expect(page.getByRole("heading", { name: "Subsidiaries (2)" })).toBeVisible()
-
-    // 10. Should list both subsidiaries with ownership percentages
-    // Scope to subsidiaries section to avoid matching sidebar navigation items
-    const subsidiariesSection = page.getByTestId("subsidiaries-section")
-    await expect(subsidiariesSection.getByText(subsidiary1Name)).toBeVisible()
-    await expect(subsidiariesSection.getByText(subsidiary2Name)).toBeVisible()
-    await expect(subsidiariesSection.getByText("100%")).toBeVisible()
-    await expect(subsidiariesSection.getByText("60%")).toBeVisible()
-
-    // 11. Hierarchy card should show Parent badge with subsidiary count
-    await expect(page.getByTestId("hierarchy-card")).toBeVisible()
-    // Use more specific selector to avoid matching organization name
-    await expect(page.getByTestId("hierarchy-card").getByText("Parent")).toBeVisible()
-    await expect(page.getByTestId("subsidiaries-count")).toHaveText("2 subsidiaries")
-  })
+  // Note: Parent company section and subsidiaries section tests removed -
+  // Parent-subsidiary relationships are now managed through ConsolidationGroups,
+  // not through Company entities. parentCompanyId and ownershipPercentage fields
+  // have been removed from the Company domain entity.
 })

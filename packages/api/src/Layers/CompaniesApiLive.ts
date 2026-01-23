@@ -45,10 +45,6 @@ import {
 } from "@accountability/core/organization/OrganizationErrors"
 import {
   CompanyNotFoundError,
-  ParentCompanyNotFoundError,
-  OwnershipPercentageRequiredError,
-  CircularCompanyReferenceError,
-  HasActiveSubsidiariesError,
   CompanyNameAlreadyExistsError
 } from "@accountability/core/company/CompanyErrors"
 import {
@@ -353,7 +349,7 @@ export const CompaniesApiLive = HttpApiBuilder.group(AppApi, "companies", (handl
 
             // listCompanies declares OrganizationNotFoundError, ForbiddenError
             // Organization context is already validated by requireOrganizationContext
-            const { organizationId, isActive, parentCompanyId, jurisdiction } = _.urlParams
+            const { organizationId, isActive, jurisdiction } = _.urlParams
             const orgId = OrganizationId.make(organizationId)
 
             // Get companies based on filters
@@ -368,14 +364,6 @@ export const CompaniesApiLive = HttpApiBuilder.group(AppApi, "companies", (handl
               }
             } else {
               companies = yield* companyRepo.findByOrganization(orgId).pipe(Effect.orDie)
-            }
-
-            // Apply parent company filter if provided
-            if (parentCompanyId !== undefined) {
-              const parentId = CompanyId.make(parentCompanyId)
-              companies = companies.filter((c) =>
-                Option.isSome(c.parentCompanyId) && c.parentCompanyId.value === parentId
-              )
             }
 
             // Apply jurisdiction filter if provided
@@ -421,8 +409,8 @@ export const CompaniesApiLive = HttpApiBuilder.group(AppApi, "companies", (handl
           Effect.gen(function* () {
             yield* requirePermission("company:create")
 
-            // createCompany declares OrganizationNotFoundError, ParentCompanyNotFoundError,
-            // OwnershipPercentageRequiredError, ConflictError, ForbiddenError, AuditLogError, UserLookupError
+            // createCompany declares OrganizationNotFoundError, CompanyNameAlreadyExistsError,
+            // ForbiddenError, AuditLogError, UserLookupError
             const req = _.payload
 
             // Validate organization exists (requireOrganizationContext validates access,
@@ -432,27 +420,6 @@ export const CompaniesApiLive = HttpApiBuilder.group(AppApi, "companies", (handl
               return yield* Effect.fail(new OrganizationNotFoundError({
                 organizationId: req.organizationId
               }))
-            }
-
-            // Validate parent company if specified
-            if (Option.isSome(req.parentCompanyId)) {
-              // Parent company lookup uses same org ID (already validated org exists above)
-              const parentCompany = yield* companyRepo.findById(req.organizationId, req.parentCompanyId.value).pipe(Effect.orDie)
-              if (Option.isNone(parentCompany)) {
-                return yield* Effect.fail(new ParentCompanyNotFoundError({
-                  parentCompanyId: req.parentCompanyId.value
-                }))
-              }
-              // No need to check parentCompany.value.organizationId !== req.organizationId anymore
-              // since findById already filters by organization
-            }
-
-            // Validate ownership percentage for subsidiaries
-            if (Option.isSome(req.parentCompanyId)) {
-              // Subsidiaries must have ownership percentage
-              if (Option.isNone(req.ownershipPercentage)) {
-                return yield* Effect.fail(new OwnershipPercentageRequiredError({}))
-              }
             }
 
             // Create the company
@@ -473,8 +440,6 @@ export const CompaniesApiLive = HttpApiBuilder.group(AppApi, "companies", (handl
               reportingCurrency: req.reportingCurrency,
               fiscalYearEnd: req.fiscalYearEnd,
               retainedEarningsAccountId: Option.none(),
-              parentCompanyId: req.parentCompanyId,
-              ownershipPercentage: req.ownershipPercentage,
               isActive: true,
               createdAt: timestampNow()
             })
@@ -498,9 +463,8 @@ export const CompaniesApiLive = HttpApiBuilder.group(AppApi, "companies", (handl
           Effect.gen(function* () {
             yield* requirePermission("company:update")
 
-            // updateCompany declares CompanyNotFoundError, ParentCompanyNotFoundError,
-            // CircularCompanyReferenceError, ConflictError, OrganizationNotFoundError, ForbiddenError,
-            // AuditLogError, UserLookupError
+            // updateCompany declares CompanyNotFoundError, CompanyNameAlreadyExistsError,
+            // OrganizationNotFoundError, ForbiddenError, AuditLogError, UserLookupError
             const req = _.payload
             const companyId = CompanyId.make(_.path.id)
             const organizationId = OrganizationId.make(_.path.organizationId)
@@ -511,46 +475,6 @@ export const CompaniesApiLive = HttpApiBuilder.group(AppApi, "companies", (handl
               return yield* Effect.fail(new CompanyNotFoundError({ companyId: _.path.id }))
             }
             const existing = maybeExisting.value
-
-            // Validate parent company if changing
-            const newParentCompanyId = Option.isSome(req.parentCompanyId)
-              ? req.parentCompanyId
-              : existing.parentCompanyId
-
-            if (Option.isSome(req.parentCompanyId)) {
-              if (req.parentCompanyId.value === companyId) {
-                return yield* Effect.fail(new CircularCompanyReferenceError({
-                  companyId: _.path.id,
-                  parentCompanyId: _.path.id
-                }))
-              }
-
-              // Parent company lookup uses same org for security
-              const parentCompany = yield* companyRepo.findById(organizationId, req.parentCompanyId.value).pipe(Effect.orDie)
-              if (Option.isNone(parentCompany)) {
-                return yield* Effect.fail(new ParentCompanyNotFoundError({
-                  parentCompanyId: req.parentCompanyId.value
-                }))
-              }
-              // No need to check parentCompany.value.organizationId !== existing.organizationId
-              // since findById already filters by organization
-
-              // Check for circular reference in hierarchy
-              let currentParent = parentCompany.value
-              while (Option.isSome(currentParent.parentCompanyId)) {
-                if (currentParent.parentCompanyId.value === companyId) {
-                  return yield* Effect.fail(new CircularCompanyReferenceError({
-                    companyId: _.path.id,
-                    parentCompanyId: req.parentCompanyId.value
-                  }))
-                }
-                const nextParent = yield* companyRepo.findById(organizationId, currentParent.parentCompanyId.value).pipe(Effect.orDie)
-                if (Option.isNone(nextParent)) {
-                  break
-                }
-                currentParent = nextParent.value
-              }
-            }
 
             // Build updated fiscal year end if provided
             const newFiscalYearEnd = Option.isSome(req.fiscalYearEnd)
@@ -588,10 +512,6 @@ export const CompaniesApiLive = HttpApiBuilder.group(AppApi, "companies", (handl
               retainedEarningsAccountId: Option.isSome(req.retainedEarningsAccountId)
                 ? req.retainedEarningsAccountId
                 : existing.retainedEarningsAccountId,
-              parentCompanyId: newParentCompanyId,
-              ownershipPercentage: Option.isSome(req.ownershipPercentage)
-                ? req.ownershipPercentage
-                : existing.ownershipPercentage,
               isActive: Option.isSome(req.isActive) ? req.isActive.value : existing.isActive
             })
 
@@ -614,8 +534,8 @@ export const CompaniesApiLive = HttpApiBuilder.group(AppApi, "companies", (handl
           Effect.gen(function* () {
             yield* requirePermission("company:delete")
 
-            // deactivateCompany declares CompanyNotFoundError, HasActiveSubsidiariesError,
-            // OrganizationNotFoundError, ForbiddenError, AuditLogError, UserLookupError
+            // deactivateCompany declares CompanyNotFoundError, OrganizationNotFoundError,
+            // ForbiddenError, AuditLogError, UserLookupError
             const companyId = CompanyId.make(_.path.id)
             const organizationId = OrganizationId.make(_.path.organizationId)
 
@@ -625,16 +545,6 @@ export const CompaniesApiLive = HttpApiBuilder.group(AppApi, "companies", (handl
               return yield* Effect.fail(new CompanyNotFoundError({ companyId: _.path.id }))
             }
             const existing = maybeExisting.value
-
-            // Check for subsidiary companies (filtered by org)
-            const subsidiaries = yield* companyRepo.findSubsidiaries(organizationId, companyId).pipe(Effect.orDie)
-            const activeSubsidiaries = subsidiaries.filter((c) => c.isActive)
-            if (activeSubsidiaries.length > 0) {
-              return yield* Effect.fail(new HasActiveSubsidiariesError({
-                companyId: _.path.id,
-                subsidiaryCount: activeSubsidiaries.length
-              }))
-            }
 
             // Deactivate the company
             const deactivatedCompany = Company.make({

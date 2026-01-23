@@ -1,24 +1,19 @@
 /**
  * CompanyForm component
  *
- * Form to create a company with all API-supported fields including parent/subsidiary setup.
+ * Form to create a company with all API-supported fields.
  *
  * Form sections:
  * - Basic: Name, Legal Name, Jurisdiction (dropdown), Tax ID
  * - Currency: Functional Currency, Reporting Currency
  * - Fiscal Year: Month/Day pickers with presets (Dec 31, Mar 31)
- * - Hierarchy (optional):
- *   - Parent Company dropdown
- *   - Ownership % (required if parent selected)
  *
- * Note: Consolidation method is configured in Consolidation Groups, not on companies.
- *
- * Validation:
- * - Ownership requires parent
- * - Cannot set company as own parent
+ * Note: Parent-subsidiary relationships are defined in Consolidation Groups,
+ * not on individual companies. This allows a company to be part of multiple
+ * consolidation scenarios with different ownership percentages and methods.
  */
 
-import { useState, useMemo } from "react"
+import { useState } from "react"
 import { Input } from "@/components/ui/Input"
 import { Select } from "@/components/ui/Select"
 import { CurrencySelect } from "@/components/ui/CurrencySelect"
@@ -38,10 +33,6 @@ export interface CurrencyOption {
   readonly isActive: boolean
 }
 
-export interface ParentCompanyOption {
-  readonly id: string
-  readonly name: string
-}
 
 export interface AddressFormData {
   readonly street1: string | null
@@ -69,8 +60,6 @@ export interface CompanyFormData {
     readonly month: number
     readonly day: number
   }
-  readonly parentCompanyId: string | null
-  readonly ownershipPercentage: number | null
 }
 
 interface FieldErrors {
@@ -79,7 +68,6 @@ interface FieldErrors {
   jurisdiction?: string
   functionalCurrency?: string
   reportingCurrency?: string
-  ownershipPercentage?: string
 }
 
 interface CompanyFormProps {
@@ -87,8 +75,6 @@ interface CompanyFormProps {
   readonly currencies: readonly CurrencyOption[]
   /** Jurisdictions loaded from API */
   readonly jurisdictions: readonly JurisdictionOption[]
-  /** Existing companies available as parent options */
-  readonly existingCompanies: readonly ParentCompanyOption[]
   /** Whether data is loading */
   readonly isLoading?: boolean
   /** Callback when form is submitted successfully */
@@ -101,8 +87,6 @@ interface CompanyFormProps {
   readonly isSubmitting?: boolean
   /** Default currency (from organization) */
   readonly defaultCurrency?: string
-  /** Current company ID (for edit mode - cannot be its own parent) */
-  readonly currentCompanyId?: string
 }
 
 // =============================================================================
@@ -112,14 +96,12 @@ interface CompanyFormProps {
 export function CompanyForm({
   currencies,
   jurisdictions,
-  existingCompanies,
   isLoading = false,
   onSubmit,
   onCancel,
   apiError,
   isSubmitting = false,
-  defaultCurrency = "USD",
-  currentCompanyId
+  defaultCurrency = "USD"
 }: CompanyFormProps) {
   // ==========================================================================
   // Form State
@@ -152,32 +134,9 @@ export function CompanyForm({
   const [fiscalYearEndMonth, setFiscalYearEndMonth] = useState(12)
   const [fiscalYearEndDay, setFiscalYearEndDay] = useState(31)
 
-  // Hierarchy section
-  const [parentCompanyId, setParentCompanyId] = useState<string | null>(null)
-  const [ownershipPercentage, setOwnershipPercentage] = useState<number | null>(null)
-
   // Validation state
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [touched, setTouched] = useState<Record<string, boolean>>({})
-
-  // ==========================================================================
-  // Computed Values
-  // ==========================================================================
-
-  // Filter existing companies for parent selection (exclude current company)
-  const availableParents = useMemo(() => {
-    if (currentCompanyId) {
-      return existingCompanies.filter((c) => c.id !== currentCompanyId)
-    }
-    return existingCompanies
-  }, [existingCompanies, currentCompanyId])
-
-  // Always show hierarchy section (even if no parent companies exist yet)
-  // This makes the form structure consistent and allows E2E tests to verify the field exists
-  const showHierarchySection = true
-
-  // Whether subsidiary fields should be shown (when parent is selected)
-  const showSubsidiaryFields = parentCompanyId !== null
 
   // ==========================================================================
   // Validation
@@ -227,17 +186,6 @@ export function CompanyForm({
         }
         return undefined
 
-      case "ownershipPercentage":
-        if (parentCompanyId !== null) {
-          if (value === null || (typeof value === "number" && isNaN(value))) {
-            return "Ownership percentage is required for subsidiaries"
-          }
-          if (typeof value === "number" && (value <= 0 || value > 100)) {
-            return "Ownership must be between 1% and 100%"
-          }
-        }
-        return undefined
-
       default:
         return undefined
     }
@@ -261,9 +209,6 @@ export function CompanyForm({
     const reportingCurrencyError = validateField("reportingCurrency", reportingCurrency)
     if (reportingCurrencyError) errors.reportingCurrency = reportingCurrencyError
 
-    const ownershipError = validateField("ownershipPercentage", ownershipPercentage)
-    if (ownershipError) errors.ownershipPercentage = ownershipError
-
     setFieldErrors(errors)
     return Object.keys(errors).length === 0
   }
@@ -277,23 +222,6 @@ export function CompanyForm({
   // ==========================================================================
   // Event Handlers
   // ==========================================================================
-
-  const handleOwnershipChange = (value: number | null) => {
-    setOwnershipPercentage(value)
-  }
-
-  const handleParentChange = (value: string | null) => {
-    setParentCompanyId(value)
-    if (value === null) {
-      // Clear subsidiary fields when parent is unselected
-      setOwnershipPercentage(null)
-      // Clear related errors
-      setFieldErrors((prev) => {
-        const { ownershipPercentage: _, ...rest } = prev
-        return rest
-      })
-    }
-  }
 
   const handleJurisdictionChange = (code: string) => {
     setJurisdiction(code)
@@ -313,8 +241,7 @@ export function CompanyForm({
       legalName: true,
       jurisdiction: true,
       functionalCurrency: true,
-      reportingCurrency: true,
-      ownershipPercentage: true
+      reportingCurrency: true
     })
 
     if (!validateForm()) {
@@ -353,9 +280,7 @@ export function CompanyForm({
       fiscalYearEnd: {
         month: fiscalYearEndMonth,
         day: fiscalYearEndDay
-      },
-      parentCompanyId,
-      ownershipPercentage
+      }
     }
 
     await onSubmit(formData)
@@ -678,74 +603,6 @@ export function CompanyForm({
           helperText="End date of the company's fiscal year"
         />
       </fieldset>
-
-      {/* ====================================================================
-        Hierarchy Section (Optional)
-      ==================================================================== */}
-      {showHierarchySection && (
-        <fieldset className="space-y-4 border-t border-gray-200 pt-4">
-          <legend className="text-sm font-medium text-gray-900 mb-3">
-            Parent Company (Optional)
-          </legend>
-
-          {/* Parent Company Select */}
-          <Select
-            id="company-parent"
-            label="Parent Company"
-            value={parentCompanyId ?? ""}
-            onChange={(e) => handleParentChange(e.target.value === "" ? null : e.target.value)}
-            disabled={isSubmitting}
-            helperText="Leave empty for a top-level company, or select a parent for a subsidiary"
-            data-testid="company-parent-select"
-          >
-            <option value="">None (Top-level company)</option>
-            {availableParents.map((parent) => (
-              <option key={parent.id} value={parent.id}>
-                {parent.name}
-              </option>
-            ))}
-          </Select>
-
-          {/* Subsidiary Fields (shown when parent is selected) */}
-          {showSubsidiaryFields && (
-            <div className="space-y-4 rounded-lg border border-blue-100 bg-blue-50/50 p-4">
-              <p className="text-sm font-medium text-blue-800">
-                Subsidiary Configuration
-              </p>
-
-              {/* Ownership Percentage */}
-              <Input
-                id="company-ownership"
-                label="Ownership %"
-                type="number"
-                min={0.01}
-                max={100}
-                step={0.01}
-                required
-                value={ownershipPercentage ?? ""}
-                onChange={(e) => {
-                  const value = e.target.value
-                  handleOwnershipChange(value === "" ? null : Number(value))
-                }}
-                onBlur={() => handleFieldBlur("ownershipPercentage", ownershipPercentage)}
-                disabled={isSubmitting}
-                placeholder="e.g. 100"
-                data-testid="company-ownership-input"
-                {...(touched.ownershipPercentage && fieldErrors.ownershipPercentage ? { error: fieldErrors.ownershipPercentage } : {})}
-              />
-
-              {/* Consolidation Settings Notice */}
-              <div className="rounded-md border border-blue-200 bg-blue-50 p-3">
-                <p className="text-sm text-blue-700">
-                  <span className="font-medium">Note:</span> Acquisition date and consolidation method are configured in{" "}
-                  <span className="font-medium">Consolidation Groups</span>, not on the company itself. This allows
-                  a company to be part of multiple consolidation scenarios with different settings.
-                </p>
-              </div>
-            </div>
-          )}
-        </fieldset>
-      )}
 
       {/* ====================================================================
         Form Actions

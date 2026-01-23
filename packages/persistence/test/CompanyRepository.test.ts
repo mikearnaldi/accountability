@@ -13,7 +13,6 @@ import { Company, CompanyId, FiscalYearEnd } from "@accountability/core/company/
 import { CurrencyCode } from "@accountability/core/currency/CurrencyCode"
 import { JurisdictionCode } from "@accountability/core/jurisdiction/JurisdictionCode"
 import { Organization, OrganizationId, OrganizationSettings } from "@accountability/core/organization/Organization"
-import { Percentage } from "@accountability/core/shared/values/Percentage"
 import { Timestamp } from "@accountability/core/shared/values/Timestamp"
 import { CompanyRepository } from "../src/Services/CompanyRepository.ts"
 import { OrganizationRepository } from "../src/Services/OrganizationRepository.ts"
@@ -34,7 +33,6 @@ const testOrgId = OrganizationId.make("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
 const testCompanyId = CompanyId.make("cccccccc-cccc-cccc-cccc-cccccccccccc")
 const testCompanyId2 = CompanyId.make("cccccccc-cccc-cccc-cccc-cccccccccccd")
 const testCompanyId3 = CompanyId.make("cccccccc-cccc-cccc-cccc-ccccccccccce")
-const testSubsidiaryId = CompanyId.make("cccccccc-cccc-cccc-cccc-cccccccccccf")
 const nonExistentId = "cccccccc-cccc-cccc-cccc-ffffffffffff"
 
 describe("CompanyRepository", () => {
@@ -80,8 +78,6 @@ describe("CompanyRepository", () => {
           reportingCurrency: CurrencyCode.make("USD"),
           fiscalYearEnd: FiscalYearEnd.make({ month: 12, day: 31 }),
           retainedEarningsAccountId: Option.none(),
-          parentCompanyId: Option.none(),
-          ownershipPercentage: Option.none(),
           isActive: true,
           createdAt: Timestamp.make({ epochMillis: Date.now() })
         })
@@ -102,8 +98,8 @@ describe("CompanyRepository", () => {
         const company = Company.make({
           id: testCompanyId2,
           organizationId: testOrgId,
-          name: "European Subsidiary",
-          legalName: "European Subsidiary GmbH",
+          name: "European Company",
+          legalName: "European Company GmbH",
           jurisdiction: JurisdictionCode.make("DE"),
           taxId: Option.some("DE123456789"),
           incorporationDate: Option.none(),
@@ -116,13 +112,11 @@ describe("CompanyRepository", () => {
           reportingCurrency: CurrencyCode.make("EUR"),
           fiscalYearEnd: FiscalYearEnd.make({ month: 12, day: 31 }),
           retainedEarningsAccountId: Option.none(),
-          parentCompanyId: Option.none(),
-          ownershipPercentage: Option.none(),
           isActive: true,
           createdAt: Timestamp.make({ epochMillis: Date.now() })
         })
         const created = yield* repo.create(company)
-        expect(created.name).toBe("European Subsidiary")
+        expect(created.name).toBe("European Company")
         expect(created.functionalCurrency).toBe("EUR")
         expect(created.jurisdiction).toBe("DE")
         expect(Option.isSome(created.taxId)).toBe(true)
@@ -149,8 +143,6 @@ describe("CompanyRepository", () => {
           reportingCurrency: CurrencyCode.make("JPY"),
           fiscalYearEnd: FiscalYearEnd.make({ month: 3, day: 31 }),
           retainedEarningsAccountId: Option.none(),
-          parentCompanyId: Option.none(),
-          ownershipPercentage: Option.none(),
           isActive: true,
           createdAt: Timestamp.make({ epochMillis: Date.now() })
         })
@@ -158,40 +150,6 @@ describe("CompanyRepository", () => {
         expect(created.fiscalYearEnd.month).toBe(3)
         expect(created.fiscalYearEnd.day).toBe(31)
         expect(created.fiscalYearEnd.isCalendarYearEnd).toBe(false)
-      })
-    )
-
-    it.effect("create: creates subsidiary company with ownership info", () =>
-      Effect.gen(function* () {
-        const repo = yield* CompanyRepository
-        const company = Company.make({
-          id: testSubsidiaryId,
-          organizationId: testOrgId,
-          name: "Subsidiary Corp",
-          legalName: "Subsidiary Corporation Ltd.",
-          jurisdiction: JurisdictionCode.make("GB"),
-          taxId: Option.none(),
-          incorporationDate: Option.none(),
-          registrationNumber: Option.none(),
-          registeredAddress: Option.none(),
-          industryCode: Option.none(),
-          companyType: Option.none(),
-          incorporationJurisdiction: Option.none(),
-          functionalCurrency: CurrencyCode.make("GBP"),
-          reportingCurrency: CurrencyCode.make("GBP"),
-          fiscalYearEnd: FiscalYearEnd.make({ month: 12, day: 31 }),
-          retainedEarningsAccountId: Option.none(),
-          parentCompanyId: Option.some(testCompanyId),
-          ownershipPercentage: Option.some(Percentage.make(80)),
-          isActive: true,
-          createdAt: Timestamp.make({ epochMillis: Date.now() })
-        })
-        const created = yield* repo.create(company)
-        expect(created.isSubsidiary).toBe(true)
-        expect(Option.isSome(created.parentCompanyId)).toBe(true)
-        if (Option.isSome(created.ownershipPercentage)) {
-          expect(created.ownershipPercentage.value).toBe(80)
-        }
       })
     )
 
@@ -247,8 +205,8 @@ describe("CompanyRepository", () => {
       Effect.gen(function* () {
         const repo = yield* CompanyRepository
         const companies = yield* repo.findByOrganization(testOrgId)
-        // Should have at least 4 companies we created
-        expect(companies.length).toBeGreaterThanOrEqual(4)
+        // Should have at least 3 companies we created
+        expect(companies.length).toBeGreaterThanOrEqual(3)
       })
     )
 
@@ -271,30 +229,6 @@ describe("CompanyRepository", () => {
         for (const company of companies) {
           expect(company.isActive).toBe(true)
         }
-      })
-    )
-
-    // =========================================================================
-    // FindSubsidiaries
-    // =========================================================================
-    it.effect("findSubsidiaries: returns subsidiaries of parent company", () =>
-      Effect.gen(function* () {
-        const repo = yield* CompanyRepository
-        const subsidiaries = yield* repo.findSubsidiaries(testOrgId, testCompanyId)
-        expect(subsidiaries.length).toBeGreaterThanOrEqual(1)
-        const subsidiary = subsidiaries.find(c => c.id === testSubsidiaryId)
-        expect(subsidiary).toBeDefined()
-        if (subsidiary) {
-          expect(subsidiary.name).toBe("Subsidiary Corp")
-        }
-      })
-    )
-
-    it.effect("findSubsidiaries: returns empty array for company with no subsidiaries", () =>
-      Effect.gen(function* () {
-        const repo = yield* CompanyRepository
-        const subsidiaries = yield* repo.findSubsidiaries(testOrgId, testSubsidiaryId)
-        expect(subsidiaries.length).toBe(0)
       })
     )
 
@@ -397,8 +331,6 @@ describe("CompanyRepository", () => {
           reportingCurrency: CurrencyCode.make("USD"),
           fiscalYearEnd: FiscalYearEnd.make({ month: 12, day: 31 }),
           retainedEarningsAccountId: Option.none(),
-          parentCompanyId: Option.none(),
-          ownershipPercentage: Option.none(),
           isActive: true,
           createdAt: Timestamp.make({ epochMillis: Date.now() })
         })
@@ -426,36 +358,6 @@ describe("CompanyRepository", () => {
         const jpCompany = yield* repo.getById(testOrgId, testCompanyId3)
         expect(jpCompany.fiscalYearEnd.isCalendarYearEnd).toBe(false)
         expect(jpCompany.fiscalYearEnd.toDisplayString()).toBe("March 31")
-      })
-    )
-
-    it.effect("business: non-controlling interest calculation", () =>
-      Effect.gen(function* () {
-        const repo = yield* CompanyRepository
-        const subsidiary = yield* repo.getById(testOrgId, testSubsidiaryId)
-
-        // Subsidiary has 80% ownership, so NCI is 20%
-        const nci = subsidiary.nonControllingInterestPercentage
-        expect(Option.isSome(nci)).toBe(true)
-        if (Option.isSome(nci)) {
-          expect(nci.value).toBe(20)
-        }
-      })
-    )
-
-    it.effect("business: top-level vs subsidiary detection", () =>
-      Effect.gen(function* () {
-        const repo = yield* CompanyRepository
-
-        // Top-level company
-        const topLevel = yield* repo.getById(testOrgId, testCompanyId)
-        expect(topLevel.isTopLevel).toBe(true)
-        expect(topLevel.isSubsidiary).toBe(false)
-
-        // Subsidiary
-        const subsidiary = yield* repo.getById(testOrgId, testSubsidiaryId)
-        expect(subsidiary.isTopLevel).toBe(false)
-        expect(subsidiary.isSubsidiary).toBe(true)
       })
     )
 

@@ -4,13 +4,17 @@
  * Tests that the synthetic data generator creates all expected data:
  * - User account and login
  * - Organization
- * - Parent and subsidiary companies
+ * - Multiple companies (parent-subsidiary relationships now managed via ConsolidationGroups)
  * - Chart of accounts for both companies
  * - Journal entries for 2 years
  * - Company reports (Trial Balance, Balance Sheet)
- * - Consolidation group
+ * - Consolidation group (where ownership/consolidation relationships are defined)
  * - Consolidation runs (2024, 2025)
  * - Consolidated reports
+ *
+ * NOTE: These tests are SKIPPED - parent-subsidiary relationships have been refactored.
+ * The Company entity no longer has parentCompanyId or ownershipPercentage fields.
+ * These relationships are now managed through ConsolidationGroups.
  *
  * This test is tagged as @slow and @synthetic-data for selective CI execution.
  */

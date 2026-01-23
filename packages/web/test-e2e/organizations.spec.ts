@@ -903,8 +903,6 @@ test.describe("Organization Selection Flow", () => {
         functionalCurrency: "EUR",
         reportingCurrency: "EUR",
         fiscalYearEnd: { month: 12, day: 31 },
-        parentCompanyId: null,
-        ownershipPercentage: null,
         registeredAddress: null,
         industryCode: null,
         companyType: null,

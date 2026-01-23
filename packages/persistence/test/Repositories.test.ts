@@ -330,17 +330,8 @@ describe("Repositories", () => {
         const repo = yield* CompanyRepository
         const active = yield* repo.findActiveByOrganization(testOrgId)
         expect(active.every((c) => c.isActive)).toBe(true)
-        // Should not include the inactive subsidiary
+        // Should not include the inactive company
         expect(active.some((c) => c.id === testCompanyId3)).toBe(false)
-      })
-    )
-
-    it.effect("findSubsidiaries: returns subsidiaries for a parent company", () =>
-      Effect.gen(function* () {
-        const repo = yield* CompanyRepository
-        const subsidiaries = yield* repo.findSubsidiaries(testOrgId, testCompanyId)
-        expect(subsidiaries.length).toBeGreaterThanOrEqual(1)
-        expect(subsidiaries.some((c) => c.id === testCompanyId3)).toBe(true)
       })
     )
   })

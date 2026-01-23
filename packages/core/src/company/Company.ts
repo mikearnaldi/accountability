@@ -14,7 +14,6 @@ import { CompanyType } from "./CompanyType.ts"
 import { CurrencyCode } from "../currency/CurrencyCode.ts"
 import { JurisdictionCode } from "../jurisdiction/JurisdictionCode.ts"
 import { Timestamp } from "../shared/values/Timestamp.ts"
-import { Percentage } from "../shared/values/Percentage.ts"
 import { OrganizationId } from "../organization/Organization.ts"
 import { LocalDate } from "../shared/values/LocalDate.ts"
 import { AccountId } from "../accounting/AccountId.ts"
@@ -261,23 +260,6 @@ export class Company extends Schema.Class<Company>("Company")({
   }),
 
   /**
-   * Parent company reference (null if top-level)
-   */
-  parentCompanyId: Schema.OptionFromNullOr(CompanyId).annotations({
-    title: "Parent Company ID",
-    description: "Reference to parent company for consolidation hierarchy"
-  }),
-
-  /**
-   * Ownership percentage (0-100%, null if top-level)
-   * Represents the percentage of this company owned by the parent company
-   */
-  ownershipPercentage: Schema.OptionFromNullOr(Percentage).annotations({
-    title: "Ownership Percentage",
-    description: "Percentage owned by parent company (0-100)"
-  }),
-
-  /**
    * Whether the company is active
    */
   isActive: Schema.Boolean.annotations({
@@ -291,32 +273,10 @@ export class Company extends Schema.Class<Company>("Company")({
   createdAt: Timestamp
 }) {
   /**
-   * Check if this is a top-level company (no parent)
-   */
-  get isTopLevel(): boolean {
-    return Option.isNone(this.parentCompanyId)
-  }
-
-  /**
-   * Check if this is a subsidiary (has a parent)
-   */
-  get isSubsidiary(): boolean {
-    return Option.isSome(this.parentCompanyId)
-  }
-
-  /**
    * Check if functional and reporting currencies match
    */
   get hasSameFunctionalAndReportingCurrency(): boolean {
     return this.functionalCurrency === this.reportingCurrency
-  }
-
-  /**
-   * Get the non-controlling interest percentage (100 - ownership)
-   * Returns None for top-level companies
-   */
-  get nonControllingInterestPercentage(): Option.Option<number> {
-    return Option.map(this.ownershipPercentage, (pct) => 100 - pct)
   }
 
   /**

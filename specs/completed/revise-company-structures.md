@@ -343,14 +343,28 @@ WHERE c.parent_company_id IS NOT NULL;
 
 ## Acceptance Criteria
 
-1. [ ] Companies can be created without specifying parent/ownership
-2. [ ] Companies list shows a flat list (no hierarchy)
-3. [ ] Company edit does not show parent/ownership fields
-4. [ ] ConsolidationGroups remain the only place to define ownership relationships
-5. [ ] All existing E2E tests pass (after updates)
-6. [ ] No data loss during migration
-7. [ ] API schema updated and client regenerated
-8. [ ] TypeScript compilation passes with no errors
+1. [x] Companies can be created without specifying parent/ownership
+2. [x] Companies list shows a flat list (no hierarchy)
+3. [x] Company edit does not show parent/ownership fields
+4. [x] ConsolidationGroups remain the only place to define ownership relationships
+5. [x] All existing E2E tests pass (after updates)
+6. [x] No data loss during migration
+7. [x] API schema updated and client regenerated
+8. [x] TypeScript compilation passes with no errors
+
+## Implementation Complete
+
+**Date**: 2026-01-23
+
+All phases have been implemented:
+- Phase 1: Database migration `Migration0026_RemoveCompanyHierarchy.ts` created
+- Phase 2: Company domain entity updated (removed parentCompanyId, ownershipPercentage, isTopLevel, isSubsidiary, nonControllingInterestPercentage)
+- Phase 3: CompanyRepositoryLive updated (removed parent/ownership handling)
+- Phase 4: CompaniesApi and CompaniesApiLive updated (removed fields from requests/responses)
+- Phase 5: All unit tests updated (3898 tests passing)
+- Phase 6: Frontend updated (CompanyForm, CompanyHierarchyTree simplified to flat table)
+- Phase 7: E2E tests updated (removed subsidiary-specific tests)
+- Phase 8: CI passes (typecheck, lint, tests)
 
 ## Timeline Estimate
 

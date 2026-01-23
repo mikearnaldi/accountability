@@ -93,18 +93,6 @@ export interface CompanyRepositoryService {
   ) => Effect.Effect<ReadonlyArray<Company>, PersistenceError>
 
   /**
-   * Find all subsidiary companies of a parent company within an organization
-   *
-   * @param organizationId - The organization ID for authorization
-   * @param parentCompanyId - The parent company ID
-   * @returns Effect containing array of subsidiary companies
-   */
-  readonly findSubsidiaries: (
-    organizationId: OrganizationId,
-    parentCompanyId: CompanyId
-  ) => Effect.Effect<ReadonlyArray<Company>, PersistenceError>
-
-  /**
    * Check if a company exists within an organization
    *
    * @param organizationId - The organization ID for authorization

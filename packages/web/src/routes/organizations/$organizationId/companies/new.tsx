@@ -178,12 +178,6 @@ function NewCompanyPage() {
   const { canPerform } = usePermissions()
   const canCreateCompany = canPerform("company:create")
 
-  // Map companies for parent selection (only active companies)
-  const existingCompaniesForParent = useMemo(
-    () => companies.map((c) => ({ id: c.id, name: c.name })),
-    [companies]
-  )
-
   // Map companies for sidebar quick actions
   const companiesForSidebar = useMemo(
     () => companies.map((c) => ({ id: c.id, name: c.name })),
@@ -265,9 +259,7 @@ function NewCompanyPage() {
           incorporationJurisdiction: null,
           functionalCurrency: formData.functionalCurrency,
           reportingCurrency: formData.reportingCurrency,
-          fiscalYearEnd: formData.fiscalYearEnd,
-          parentCompanyId: formData.parentCompanyId,
-          ownershipPercentage: formData.ownershipPercentage
+          fiscalYearEnd: formData.fiscalYearEnd
         }
       })
 
@@ -332,7 +324,6 @@ function NewCompanyPage() {
           <CompanyForm
             currencies={currencies}
             jurisdictions={jurisdictions}
-            existingCompanies={existingCompaniesForParent}
             defaultCurrency={organization.reportingCurrency}
             onSubmit={handleSubmit}
             onCancel={handleCancel}

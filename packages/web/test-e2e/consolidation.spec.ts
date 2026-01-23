@@ -154,8 +154,6 @@ test.describe("Consolidation Module", () => {
           taxId: null,
         incorporationDate: null,
         registrationNumber: null,
-          parentCompanyId: null,
-          ownershipPercentage: null,
         registeredAddress: null,
         industryCode: null,
         companyType: null,
@@ -165,7 +163,7 @@ test.describe("Consolidation Module", () => {
       expect(createParentRes.ok()).toBeTruthy()
       const parentData = await createParentRes.json()
 
-      // 5. Create subsidiary company
+      // 5. Create subsidiary company (ownership is defined in consolidation group, not company)
       const createSubRes = await request.post("/api/v1/companies", {
         headers: { Authorization: `Bearer ${sessionToken}` },
         data: {
@@ -179,8 +177,6 @@ test.describe("Consolidation Module", () => {
           taxId: null,
           incorporationDate: null,
           registrationNumber: null,
-          parentCompanyId: parentData.id,
-          ownershipPercentage: 80,
           registeredAddress: null,
           industryCode: null,
           companyType: null,
@@ -307,8 +303,6 @@ test.describe("Consolidation Module", () => {
           taxId: null,
         incorporationDate: null,
         registrationNumber: null,
-          parentCompanyId: null,
-          ownershipPercentage: null,
         registeredAddress: null,
         industryCode: null,
         companyType: null,
@@ -469,8 +463,6 @@ test.describe("Consolidation Module", () => {
           taxId: null,
         incorporationDate: null,
         registrationNumber: null,
-          parentCompanyId: null,
-          ownershipPercentage: null,
         registeredAddress: null,
         industryCode: null,
         companyType: null,
@@ -480,7 +472,7 @@ test.describe("Consolidation Module", () => {
       expect(createParentRes.ok()).toBeTruthy()
       const parentData = await createParentRes.json()
 
-      // 5. Create subsidiary company
+      // 5. Create subsidiary company (ownership is defined when adding to consolidation group)
       const subCompanyName = `Subsidiary Ltd ${Date.now()}`
       const createSubRes = await request.post("/api/v1/companies", {
         headers: { Authorization: `Bearer ${sessionToken}` },
@@ -495,8 +487,6 @@ test.describe("Consolidation Module", () => {
           taxId: null,
           incorporationDate: null,
           registrationNumber: null,
-          parentCompanyId: parentData.id,
-          ownershipPercentage: 75,
           registeredAddress: null,
           industryCode: null,
           companyType: null,
@@ -744,8 +734,6 @@ test.describe("Consolidation Module", () => {
           taxId: null,
         incorporationDate: null,
         registrationNumber: null,
-          parentCompanyId: null,
-          ownershipPercentage: null,
         registeredAddress: null,
         industryCode: null,
         companyType: null,
@@ -755,7 +743,7 @@ test.describe("Consolidation Module", () => {
       expect(createParentRes.ok()).toBeTruthy()
       const parentData = await createParentRes.json()
 
-      // 5. Create subsidiary company
+      // 5. Create subsidiary company (ownership is defined in consolidation group)
       const subCompanyName = `Subsidiary Ltd ${Date.now()}`
       const createSubRes = await request.post("/api/v1/companies", {
         headers: { Authorization: `Bearer ${sessionToken}` },
@@ -770,8 +758,6 @@ test.describe("Consolidation Module", () => {
           taxId: null,
           incorporationDate: null,
           registrationNumber: null,
-          parentCompanyId: parentData.id,
-          ownershipPercentage: 60,
           registeredAddress: null,
           industryCode: null,
           companyType: null,
@@ -906,8 +892,6 @@ test.describe("Consolidation Module", () => {
           taxId: null,
         incorporationDate: null,
         registrationNumber: null,
-          parentCompanyId: null,
-          ownershipPercentage: null,
         registeredAddress: null,
         industryCode: null,
         companyType: null,
@@ -1038,8 +1022,6 @@ test.describe("Consolidation Module", () => {
           taxId: null,
         incorporationDate: null,
         registrationNumber: null,
-          parentCompanyId: null,
-          ownershipPercentage: null,
         registeredAddress: null,
         industryCode: null,
         companyType: null,
@@ -1154,8 +1136,6 @@ test.describe("Consolidation Module", () => {
           taxId: null,
         incorporationDate: null,
         registrationNumber: null,
-          parentCompanyId: null,
-          ownershipPercentage: null,
         registeredAddress: null,
         industryCode: null,
         companyType: null,
@@ -1258,8 +1238,6 @@ test.describe("Consolidation Module", () => {
           taxId: null,
         incorporationDate: null,
         registrationNumber: null,
-          parentCompanyId: null,
-          ownershipPercentage: null,
         registeredAddress: null,
         industryCode: null,
         companyType: null,
@@ -1390,8 +1368,6 @@ test.describe("Consolidation Module", () => {
           taxId: null,
         incorporationDate: null,
         registrationNumber: null,
-          parentCompanyId: null,
-          ownershipPercentage: null,
         registeredAddress: null,
         industryCode: null,
         companyType: null,

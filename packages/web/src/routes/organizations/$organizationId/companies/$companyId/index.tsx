@@ -38,7 +38,7 @@ const fetchCompanyData = createServerFn({ method: "GET" })
     const sessionToken = getCookie("accountability_session")
 
     if (!sessionToken) {
-      return { company: null, organization: null, subsidiaries: [], parentCompany: null, allCompanies: [], accounts: [], error: "unauthorized" as const }
+      return { company: null, organization: null, allCompanies: [], accounts: [], error: "unauthorized" as const }
     }
 
     try {
@@ -69,50 +69,24 @@ const fetchCompanyData = createServerFn({ method: "GET" })
         // Check for domain-specific NotFoundError using _tag (from Effect Schema TaggedError)
         if (typeof companyResult.error === "object" && "_tag" in companyResult.error &&
             companyResult.error._tag === "CompanyNotFoundError") {
-          return { company: null, organization: null, subsidiaries: [], parentCompany: null, allCompanies: [], accounts: [], error: "not_found" as const }
+          return { company: null, organization: null, allCompanies: [], accounts: [], error: "not_found" as const }
         }
-        return { company: null, organization: null, subsidiaries: [], parentCompany: null, allCompanies: [], accounts: [], error: "failed" as const }
+        return { company: null, organization: null, allCompanies: [], accounts: [], error: "failed" as const }
       }
 
       if (orgResult.error) {
-        return { company: null, organization: null, subsidiaries: [], parentCompany: null, allCompanies: [], accounts: [], error: "failed" as const }
-      }
-
-      // Fetch subsidiaries (companies with this company as parent)
-      const subsidiariesResult = await serverApi.GET("/api/v1/companies", {
-        params: {
-          query: {
-            organizationId: data.organizationId,
-            parentCompanyId: data.companyId
-          }
-        },
-        headers: { Authorization }
-      })
-
-      // Fetch parent company if this company has a parent
-      let parentCompany = null
-      const company = companyResult.data
-      if (company?.parentCompanyId) {
-        const parentResult = await serverApi.GET("/api/v1/organizations/{organizationId}/companies/{id}", {
-          params: { path: { organizationId: data.organizationId, id: company.parentCompanyId } },
-          headers: { Authorization }
-        })
-        if (!parentResult.error) {
-          parentCompany = parentResult.data
-        }
+        return { company: null, organization: null, allCompanies: [], accounts: [], error: "failed" as const }
       }
 
       return {
         company: companyResult.data,
         organization: orgResult.data,
-        subsidiaries: subsidiariesResult.data?.companies ?? [],
-        parentCompany,
         allCompanies: allCompaniesResult.data?.companies ?? [],
         accounts: accountsResult.data?.accounts ?? [],
         error: null
       }
     } catch {
-      return { company: null, organization: null, subsidiaries: [], parentCompany: null, allCompanies: [], accounts: [], error: "failed" as const }
+      return { company: null, organization: null, allCompanies: [], accounts: [], error: "failed" as const }
     }
   })
 
@@ -147,8 +121,6 @@ export const Route = createFileRoute("/organizations/$organizationId/companies/$
     return {
       company: result.company,
       organization: result.organization,
-      subsidiaries: result.subsidiaries,
-      parentCompany: result.parentCompany,
       allCompanies: result.allCompanies,
       accounts: result.accounts
     }
@@ -194,8 +166,6 @@ interface Company {
     readonly day: number
   }
   readonly retainedEarningsAccountId: string | null
-  readonly parentCompanyId: string | null
-  readonly ownershipPercentage: number | null
   readonly isActive: boolean
   readonly createdAt: {
     readonly epochMillis: number
@@ -224,8 +194,6 @@ function CompanyDetailsPage() {
     readonly name: string
     readonly reportingCurrency: string
   } | null
-  const subsidiaries = loaderData.subsidiaries as readonly Company[]
-  const parentCompany = loaderData.parentCompany as Company | null
   const allCompanies = loaderData.allCompanies as readonly Company[]
   const accounts = loaderData.accounts as readonly Account[]
   /* eslint-enable @typescript-eslint/consistent-type-assertions */
@@ -266,10 +234,6 @@ function CompanyDetailsPage() {
     return `${months[date.month - 1]} ${date.day}, ${date.year}`
   }
   const incorporationDateFormatted = formatIncorporationDate(company.incorporationDate)
-
-  // Determine hierarchy position
-  const isParentCompany = subsidiaries.length > 0
-  const isSubsidiary = !!company.parentCompanyId
 
   // Breadcrumb items
   const breadcrumbItems = [
@@ -321,8 +285,6 @@ function CompanyDetailsPage() {
             incorporationJurisdiction: null,
             reportingCurrency: null,
             fiscalYearEnd: null,
-            parentCompanyId: null,
-            ownershipPercentage: null,
             retainedEarningsAccountId: null
           }
         })
@@ -456,38 +418,6 @@ function CompanyDetailsPage() {
               )}
             </div>
 
-            {/* Hierarchy Position Card */}
-            <div className="rounded-lg border border-gray-200 bg-white p-4" data-testid="hierarchy-card">
-              <h3 className="text-sm font-medium text-gray-500">Hierarchy Position</h3>
-              <div className="mt-2">
-                {isParentCompany && (
-                  <div className="flex items-center gap-2">
-                    <span className="inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-800">
-                      Parent
-                    </span>
-                    <span className="text-sm text-gray-600" data-testid="subsidiaries-count">
-                      {subsidiaries.length} subsidiar{subsidiaries.length !== 1 ? "ies" : "y"}
-                    </span>
-                  </div>
-                )}
-                {isSubsidiary && (
-                  <div className="flex items-center gap-2">
-                    <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800">
-                      Subsidiary
-                    </span>
-                    {company.ownershipPercentage !== null && (
-                      <span className="text-sm text-gray-600" data-testid="ownership-percentage">
-                        {company.ownershipPercentage}% owned
-                      </span>
-                    )}
-                  </div>
-                )}
-                {!isParentCompany && !isSubsidiary && (
-                  <p className="text-sm text-gray-600">Standalone company</p>
-                )}
-              </div>
-            </div>
-
             {/* Company ID Card */}
             <div className="rounded-lg border border-gray-200 bg-white p-4" data-testid="company-id-card">
               <h3 className="text-sm font-medium text-gray-500">Company ID</h3>
@@ -496,92 +426,6 @@ function CompanyDetailsPage() {
               </p>
             </div>
           </div>
-
-          {/* Parent Company Section - shown if subsidiary */}
-          {isSubsidiary && parentCompany && (
-            <div className="rounded-lg border border-gray-200 bg-white p-6" data-testid="parent-company-section">
-              <h2 className="mb-4 text-lg font-semibold text-gray-900">Parent Company</h2>
-              <Link
-                to="/organizations/$organizationId/companies/$companyId"
-                params={{
-                  organizationId: params.organizationId,
-                  companyId: parentCompany.id
-                }}
-                className="flex items-center justify-between rounded-lg border border-gray-200 p-4 hover:bg-gray-50"
-                data-testid="parent-company-link"
-              >
-                <div>
-                  <p className="font-medium text-gray-900">{parentCompany.name}</p>
-                  <p className="text-sm text-gray-500">{parentCompany.legalName}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-medium text-gray-900" data-testid="parent-ownership">
-                    {company.ownershipPercentage}% ownership
-                  </p>
-                </div>
-              </Link>
-
-              {/* Consolidation Settings Notice */}
-              <div className="mt-4 rounded-md border border-blue-200 bg-blue-50 p-3" data-testid="consolidation-notice">
-                <p className="text-sm text-blue-700">
-                  <span className="font-medium">Note:</span> Acquisition date and consolidation method are configured in{" "}
-                  <Link
-                    to="/organizations/$organizationId/consolidation"
-                    params={{ organizationId: params.organizationId }}
-                    className="font-medium underline hover:text-blue-800"
-                    data-testid="consolidation-link"
-                  >
-                    Consolidation Groups
-                  </Link>
-                  , not on the company itself.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Subsidiaries Section - shown if parent company */}
-          {isParentCompany && (
-            <div className="rounded-lg border border-gray-200 bg-white p-6" data-testid="subsidiaries-section">
-              <h2 className="mb-4 text-lg font-semibold text-gray-900">
-                Subsidiaries ({subsidiaries.length})
-              </h2>
-              <div className="space-y-3">
-                {subsidiaries.map((subsidiary) => (
-                  <Link
-                    key={subsidiary.id}
-                    to="/organizations/$organizationId/companies/$companyId"
-                    params={{
-                      organizationId: params.organizationId,
-                      companyId: subsidiary.id
-                    }}
-                    className="flex items-center justify-between rounded-lg border border-gray-200 p-4 hover:bg-gray-50"
-                    data-testid={`subsidiary-${subsidiary.id}`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <p className="font-medium text-gray-900">{subsidiary.name}</p>
-                        <p className="text-sm text-gray-500">{formatJurisdiction(subsidiary.jurisdiction)}</p>
-                      </div>
-                      <span
-                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                          subsidiary.isActive
-                            ? "bg-green-100 text-green-800"
-                            : "bg-gray-100 text-gray-600"
-                        }`}
-                      >
-                        {subsidiary.isActive ? "Active" : "Inactive"}
-                      </span>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-medium text-gray-900">
-                        {subsidiary.ownershipPercentage}%
-                      </p>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Edit Company Modal */}
           {isEditing && (
@@ -873,8 +717,6 @@ function EditCompanyModal({
             day: fiscalYearEndDay
           },
           retainedEarningsAccountId: retainedEarningsAccountId || null,
-          parentCompanyId: null,
-          ownershipPercentage: null,
           isActive: null
         }
       })

@@ -20,7 +20,6 @@ import { CurrencyCode } from "@accountability/core/currency/CurrencyCode"
 import { JurisdictionCode } from "@accountability/core/jurisdiction/JurisdictionCode"
 import { LocalDate } from "@accountability/core/shared/values/LocalDate"
 import { OrganizationId } from "@accountability/core/organization/Organization"
-import { Percentage } from "@accountability/core/shared/values/Percentage"
 import { Timestamp } from "@accountability/core/shared/values/Timestamp"
 import { CompanyRepository, type CompanyRepositoryService } from "../Services/CompanyRepository.ts"
 import { EntityNotFoundError, wrapSqlError } from "../Errors/RepositoryError.ts"
@@ -52,8 +51,6 @@ const CompanyRow = Schema.Struct({
   fiscal_year_end_month: Schema.Number,
   fiscal_year_end_day: Schema.Number,
   retained_earnings_account_id: Schema.NullOr(Schema.String),
-  parent_company_id: Schema.NullOr(Schema.String),
-  ownership_percentage: Schema.NullOr(Schema.String),
   is_active: Schema.Boolean,
   created_at: Schema.DateFromSelf
 })
@@ -142,12 +139,6 @@ const rowToCompany = (row: CompanyRow): Company =>
     retainedEarningsAccountId: Option.fromNullable(row.retained_earnings_account_id).pipe(
       Option.map(AccountId.make)
     ),
-    parentCompanyId: Option.fromNullable(row.parent_company_id).pipe(
-      Option.map(CompanyId.make)
-    ),
-    ownershipPercentage: Option.fromNullable(row.ownership_percentage).pipe(
-      Option.map((s) => Percentage.make(parseFloat(s)))
-    ),
     isActive: row.is_active,
     createdAt: Timestamp.make({ epochMillis: row.created_at.getTime() })
   })
@@ -185,22 +176,6 @@ const make = Effect.gen(function* () {
     execute: (organizationId) => sql`
       SELECT * FROM companies
       WHERE organization_id = ${organizationId} AND is_active = true
-      ORDER BY name
-    `
-  })
-
-  // Schema for find subsidiaries by org and parent request
-  const FindSubsidiariesRequest = Schema.Struct({
-    organizationId: Schema.String,
-    parentCompanyId: Schema.String
-  })
-
-  const findSubsidiariesByOrgAndParent = SqlSchema.findAll({
-    Request: FindSubsidiariesRequest,
-    Result: CompanyRow,
-    execute: ({ organizationId, parentCompanyId }) => sql`
-      SELECT * FROM companies
-      WHERE parent_company_id = ${parentCompanyId} AND organization_id = ${organizationId}
       ORDER BY name
     `
   })
@@ -251,7 +226,7 @@ const make = Effect.gen(function* () {
           functional_currency, reporting_currency,
           fiscal_year_end_month, fiscal_year_end_day,
           retained_earnings_account_id,
-          parent_company_id, ownership_percentage, is_active, created_at
+          is_active, created_at
         ) VALUES (
           ${company.id},
           ${company.organizationId},
@@ -275,8 +250,6 @@ const make = Effect.gen(function* () {
           ${company.fiscalYearEnd.month},
           ${company.fiscalYearEnd.day},
           ${Option.getOrNull(company.retainedEarningsAccountId)},
-          ${Option.getOrNull(company.parentCompanyId)},
-          ${Option.getOrNull(company.ownershipPercentage)},
           ${company.isActive},
           ${company.createdAt.toDate()}
         )
@@ -326,8 +299,6 @@ const make = Effect.gen(function* () {
           fiscal_year_end_month = ${company.fiscalYearEnd.month},
           fiscal_year_end_day = ${company.fiscalYearEnd.day},
           retained_earnings_account_id = ${Option.getOrNull(company.retainedEarningsAccountId)},
-          parent_company_id = ${Option.getOrNull(company.parentCompanyId)},
-          ownership_percentage = ${Option.getOrNull(company.ownershipPercentage)},
           is_active = ${company.isActive}
         WHERE id = ${company.id} AND organization_id = ${organizationId}
       `.pipe(wrapSqlError("update"))
@@ -350,12 +321,6 @@ const make = Effect.gen(function* () {
       wrapSqlError("findActiveByOrganization")
     )
 
-  const findSubsidiaries: CompanyRepositoryService["findSubsidiaries"] = (organizationId, parentCompanyId) =>
-    findSubsidiariesByOrgAndParent({ organizationId, parentCompanyId }).pipe(
-      Effect.map((rows) => rows.map(rowToCompany)),
-      wrapSqlError("findSubsidiaries")
-    )
-
   const exists: CompanyRepositoryService["exists"] = (organizationId, id) =>
     countByOrgAndId({ organizationId, id }).pipe(
       Effect.map((row) => parseInt(row.count, 10) > 0),
@@ -369,7 +334,6 @@ const make = Effect.gen(function* () {
     update,
     getById,
     findActiveByOrganization,
-    findSubsidiaries,
     exists
   } satisfies CompanyRepositoryService
 })

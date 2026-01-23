@@ -18,7 +18,6 @@ import {
 import { OrganizationId } from "../../src/organization/Organization.ts"
 import { USD, EUR, GBP } from "../../src/currency/CurrencyCode.ts"
 import { US, GB } from "../../src/jurisdiction/JurisdictionCode.ts"
-import { Percentage } from "../../src/shared/values/Percentage.ts"
 import { Timestamp } from "../../src/shared/values/Timestamp.ts"
 
 describe("CompanyId", () => {
@@ -317,9 +316,8 @@ describe("FiscalYearEnd", () => {
 describe("Company", () => {
   const companyUUID = "550e8400-e29b-41d4-a716-446655440000"
   const orgUUID = "6ba7b810-9dad-11d1-80b4-00c04fd430c8"
-  const parentCompanyUUID = "7ba7b810-9dad-11d1-80b4-00c04fd430c8"
 
-  const createTopLevelCompany = () => {
+  const createCompany = () => {
     return Company.make({
       id: CompanyId.make(companyUUID),
       organizationId: OrganizationId.make(orgUUID),
@@ -337,14 +335,12 @@ describe("Company", () => {
       reportingCurrency: USD,
       fiscalYearEnd: CALENDAR_YEAR_END,
       retainedEarningsAccountId: Option.none(),
-      parentCompanyId: Option.none(),
-      ownershipPercentage: Option.none(),
       isActive: true,
       createdAt: Timestamp.make({ epochMillis: 1718409600000 })
     })
   }
 
-  const createSubsidiaryCompany = () => {
+  const createCompanyWithDifferentCurrencies = () => {
     return Company.make({
       id: CompanyId.make(companyUUID),
       organizationId: OrganizationId.make(orgUUID),
@@ -362,17 +358,15 @@ describe("Company", () => {
       reportingCurrency: USD,
       fiscalYearEnd: FISCAL_YEAR_END_MARCH,
       retainedEarningsAccountId: Option.none(),
-      parentCompanyId: Option.some(CompanyId.make(parentCompanyUUID)),
-      ownershipPercentage: Option.some(Percentage.make(80)),
       isActive: true,
       createdAt: Timestamp.make({ epochMillis: 1718409600000 })
     })
   }
 
   describe("validation", () => {
-    it.effect("accepts valid top-level company data", () =>
+    it.effect("accepts valid company data", () =>
       Effect.gen(function* () {
-        const company = createTopLevelCompany()
+        const company = createCompany()
         expect(company.id).toBe(companyUUID)
         expect(company.name).toBe("Acme Corporation")
         expect(company.legalName).toBe("Acme Corporation Inc.")
@@ -382,22 +376,18 @@ describe("Company", () => {
         expect(company.reportingCurrency).toBe(USD)
         expect(company.fiscalYearEnd.month).toBe(12)
         expect(company.fiscalYearEnd.day).toBe(31)
-        expect(Option.isNone(company.parentCompanyId)).toBe(true)
-        expect(Option.isNone(company.ownershipPercentage)).toBe(true)
         expect(company.isActive).toBe(true)
       })
     )
 
-    it.effect("accepts valid subsidiary company data", () =>
+    it.effect("accepts valid company data with different currencies", () =>
       Effect.gen(function* () {
-        const company = createSubsidiaryCompany()
+        const company = createCompanyWithDifferentCurrencies()
         expect(company.name).toBe("Acme UK Ltd")
         expect(company.legalName).toBe("Acme UK Limited")
         expect(company.jurisdiction).toBe(GB)
         expect(company.functionalCurrency).toBe(GBP)
         expect(company.reportingCurrency).toBe(USD)
-        expect(Option.getOrNull(company.parentCompanyId)).toBe(parentCompanyUUID)
-        expect(Option.getOrNull(company.ownershipPercentage)).toBe(80)
       })
     )
 
@@ -420,9 +410,7 @@ describe("Company", () => {
           reportingCurrency: USD,
           fiscalYearEnd: CALENDAR_YEAR_END,
           retainedEarningsAccountId: Option.none(),
-          parentCompanyId: Option.none(),
-          ownershipPercentage: Option.none(),
-              isActive: true,
+          isActive: true,
           createdAt: Timestamp.make({ epochMillis: 1718409600000 })
         })
         expect(Option.isNone(company.taxId)).toBe(true)
@@ -448,9 +436,7 @@ describe("Company", () => {
           reportingCurrency: USD,
           fiscalYearEnd: CALENDAR_YEAR_END,
           retainedEarningsAccountId: Option.none(),
-          parentCompanyId: Option.none(),
-          ownershipPercentage: Option.none(),
-              isActive: true,
+          isActive: true,
           createdAt: Timestamp.make({ epochMillis: 1718409600000 })
         })
         expect(company.functionalCurrency).toBe(EUR)
@@ -477,9 +463,7 @@ describe("Company", () => {
           reportingCurrency: USD,
           fiscalYearEnd: CALENDAR_YEAR_END,
           retainedEarningsAccountId: Option.none(),
-          parentCompanyId: Option.none(),
-          ownershipPercentage: Option.none(),
-              isActive: false,
+          isActive: false,
           createdAt: Timestamp.make({ epochMillis: 1718409600000 })
         })
         expect(company.isActive).toBe(false)
@@ -569,8 +553,6 @@ describe("Company", () => {
           reportingCurrency: "USD",
           fiscalYearEnd: { month: 12, day: 31 },
           retainedEarningsAccountId: null,
-          parentCompanyId: null,
-          ownershipPercentage: null,
           isActive: true,
           createdAt: { epochMillis: 1718409600000 }
         }))
@@ -592,30 +574,6 @@ describe("Company", () => {
           reportingCurrency: "INVALID",
           fiscalYearEnd: { month: 12, day: 31 },
           retainedEarningsAccountId: null,
-          parentCompanyId: null,
-          ownershipPercentage: null,
-          isActive: true,
-          createdAt: { epochMillis: 1718409600000 }
-        }))
-        expect(Exit.isFailure(result)).toBe(true)
-      })
-    )
-
-    it.effect("rejects invalid ownership percentage", () =>
-      Effect.gen(function* () {
-        const decode = Schema.decodeUnknown(Company)
-        const result = yield* Effect.exit(decode({
-          id: companyUUID,
-          organizationId: orgUUID,
-          name: "Company Name",
-          legalName: "Legal Name",
-          jurisdiction: "US",
-          taxId: null,
-          functionalCurrency: "USD",
-          reportingCurrency: "USD",
-          fiscalYearEnd: { month: 12, day: 31 },
-          parentCompanyId: parentCompanyUUID,
-          ownershipPercentage: 150, // Invalid - > 100
           isActive: true,
           createdAt: { epochMillis: 1718409600000 }
         }))
@@ -637,8 +595,6 @@ describe("Company", () => {
           reportingCurrency: "USD",
           fiscalYearEnd: { month: 12, day: 31 },
           retainedEarningsAccountId: null,
-          parentCompanyId: null,
-          ownershipPercentage: null,
           isActive: true,
           createdAt: { epochMillis: 1718409600000 }
         }))
@@ -660,8 +616,6 @@ describe("Company", () => {
           reportingCurrency: "USD",
           fiscalYearEnd: { month: 12, day: 31 },
           retainedEarningsAccountId: null,
-          parentCompanyId: null,
-          ownershipPercentage: null,
           isActive: true,
           createdAt: { epochMillis: 1718409600000 }
         }))
@@ -671,80 +625,20 @@ describe("Company", () => {
   })
 
   describe("computed properties", () => {
-    it("isTopLevel returns true for company without parent", () => {
-      const company = createTopLevelCompany()
-      expect(company.isTopLevel).toBe(true)
-    })
-
-    it("isTopLevel returns false for subsidiary", () => {
-      const company = createSubsidiaryCompany()
-      expect(company.isTopLevel).toBe(false)
-    })
-
-    it("isSubsidiary returns false for company without parent", () => {
-      const company = createTopLevelCompany()
-      expect(company.isSubsidiary).toBe(false)
-    })
-
-    it("isSubsidiary returns true for subsidiary", () => {
-      const company = createSubsidiaryCompany()
-      expect(company.isSubsidiary).toBe(true)
-    })
-
     it("hasSameFunctionalAndReportingCurrency returns true when currencies match", () => {
-      const company = createTopLevelCompany()
+      const company = createCompany()
       expect(company.hasSameFunctionalAndReportingCurrency).toBe(true)
     })
 
     it("hasSameFunctionalAndReportingCurrency returns false when currencies differ", () => {
-      const company = createSubsidiaryCompany()
+      const company = createCompanyWithDifferentCurrencies()
       expect(company.hasSameFunctionalAndReportingCurrency).toBe(false)
-    })
-
-    it("nonControllingInterestPercentage is None for top-level company", () => {
-      const company = createTopLevelCompany()
-      expect(Option.isNone(company.nonControllingInterestPercentage)).toBe(true)
-    })
-
-    it("nonControllingInterestPercentage is calculated correctly for subsidiary", () => {
-      const company = createSubsidiaryCompany()
-      const nci = company.nonControllingInterestPercentage
-      expect(Option.isSome(nci)).toBe(true)
-      expect(Option.getOrNull(nci)).toBe(20) // 100 - 80 = 20%
-    })
-
-    it("nonControllingInterestPercentage is 0 for 100% owned subsidiary", () => {
-      const company = Company.make({
-        id: CompanyId.make(companyUUID),
-        organizationId: OrganizationId.make(orgUUID),
-        name: "Wholly Owned Sub",
-        legalName: "Wholly Owned Subsidiary Inc.",
-        jurisdiction: US,
-        taxId: Option.none(),
-        incorporationDate: Option.none(),
-        registrationNumber: Option.none(),
-        registeredAddress: Option.none(),
-        industryCode: Option.none(),
-        companyType: Option.none(),
-        incorporationJurisdiction: Option.none(),
-        functionalCurrency: USD,
-        reportingCurrency: USD,
-        fiscalYearEnd: CALENDAR_YEAR_END,
-        retainedEarningsAccountId: Option.none(),
-        parentCompanyId: Option.some(CompanyId.make(parentCompanyUUID)),
-        ownershipPercentage: Option.some(Percentage.make(100)),
-          isActive: true,
-        createdAt: Timestamp.make({ epochMillis: 1718409600000 })
-      })
-      const nci = company.nonControllingInterestPercentage
-      expect(Option.isSome(nci)).toBe(true)
-      expect(Option.getOrNull(nci)).toBe(0)
     })
   })
 
   describe("type guard", () => {
     it("isCompany returns true for Company instances", () => {
-      const company = createTopLevelCompany()
+      const company = createCompany()
       expect(isCompany(company)).toBe(true)
     })
 
@@ -760,8 +654,6 @@ describe("Company", () => {
         reportingCurrency: "USD",
         fiscalYearEnd: { month: 12, day: 31 },
         retainedEarningsAccountId: null,
-        parentCompanyId: null,
-        ownershipPercentage: null,
         isActive: true,
         createdAt: { epochMillis: 1718409600000 }
       })).toBe(false)
@@ -776,7 +668,7 @@ describe("Company", () => {
 
   describe("equality", () => {
     it("Equal.equals works for Company", () => {
-      const company1 = createTopLevelCompany()
+      const company1 = createCompany()
       const company2 = Company.make({
         id: CompanyId.make(companyUUID),
         organizationId: OrganizationId.make(orgUUID),
@@ -794,19 +686,17 @@ describe("Company", () => {
         reportingCurrency: USD,
         fiscalYearEnd: CALENDAR_YEAR_END,
         retainedEarningsAccountId: Option.none(),
-        parentCompanyId: Option.none(),
-        ownershipPercentage: Option.none(),
-          isActive: true,
+        isActive: true,
         createdAt: Timestamp.make({ epochMillis: 1718409600000 })
       })
-      const company3 = createSubsidiaryCompany()
+      const company3 = createCompanyWithDifferentCurrencies()
 
       expect(Equal.equals(company1, company2)).toBe(true)
       expect(Equal.equals(company1, company3)).toBe(false)
     })
 
     it("Equal.equals is false for different timestamps", () => {
-      const company1 = createTopLevelCompany()
+      const company1 = createCompany()
       const company2 = Company.make({
         id: CompanyId.make(companyUUID),
         organizationId: OrganizationId.make(orgUUID),
@@ -824,9 +714,7 @@ describe("Company", () => {
         reportingCurrency: USD,
         fiscalYearEnd: CALENDAR_YEAR_END,
         retainedEarningsAccountId: Option.none(),
-        parentCompanyId: Option.none(),
-        ownershipPercentage: Option.none(),
-          isActive: true,
+        isActive: true,
         createdAt: Timestamp.make({ epochMillis: 1718409600001 })
       })
 
@@ -834,7 +722,7 @@ describe("Company", () => {
     })
 
     it("Equal.equals is false for different fiscal year end", () => {
-      const company1 = createTopLevelCompany()
+      const company1 = createCompany()
       const company2 = Company.make({
         id: CompanyId.make(companyUUID),
         organizationId: OrganizationId.make(orgUUID),
@@ -852,9 +740,7 @@ describe("Company", () => {
         reportingCurrency: USD,
         fiscalYearEnd: FISCAL_YEAR_END_MARCH,
         retainedEarningsAccountId: Option.none(),
-        parentCompanyId: Option.none(),
-        ownershipPercentage: Option.none(),
-          isActive: true,
+        isActive: true,
         createdAt: Timestamp.make({ epochMillis: 1718409600000 })
       })
 
@@ -863,9 +749,9 @@ describe("Company", () => {
   })
 
   describe("encoding", () => {
-    it.effect("encodes and decodes top-level Company", () =>
+    it.effect("encodes and decodes Company", () =>
       Effect.gen(function* () {
-        const original = createTopLevelCompany()
+        const original = createCompany()
         const encoded = yield* Schema.encode(Company)(original)
         const decoded = yield* Schema.decodeUnknown(Company)(encoded)
 
@@ -873,9 +759,9 @@ describe("Company", () => {
       })
     )
 
-    it.effect("encodes and decodes subsidiary Company", () =>
+    it.effect("encodes and decodes Company with different currencies", () =>
       Effect.gen(function* () {
-        const original = createSubsidiaryCompany()
+        const original = createCompanyWithDifferentCurrencies()
         const encoded = yield* Schema.encode(Company)(original)
         const decoded = yield* Schema.decodeUnknown(Company)(encoded)
 
@@ -883,9 +769,9 @@ describe("Company", () => {
       })
     )
 
-    it.effect("encodes to expected JSON structure for top-level company", () =>
+    it.effect("encodes to expected JSON structure for company", () =>
       Effect.gen(function* () {
-        const company = createTopLevelCompany()
+        const company = createCompany()
         const encoded = yield* Schema.encode(Company)(company)
 
         expect(encoded).toHaveProperty("id", companyUUID)
@@ -897,27 +783,15 @@ describe("Company", () => {
         expect(encoded).toHaveProperty("functionalCurrency", "USD")
         expect(encoded).toHaveProperty("reportingCurrency", "USD")
         expect(encoded).toHaveProperty("fiscalYearEnd")
-        expect(encoded).toHaveProperty("parentCompanyId", null)
-        expect(encoded).toHaveProperty("ownershipPercentage", null)
         expect(encoded).toHaveProperty("isActive", true)
         expect(encoded).toHaveProperty("createdAt")
-      })
-    )
-
-    it.effect("encodes to expected JSON structure for subsidiary", () =>
-      Effect.gen(function* () {
-        const company = createSubsidiaryCompany()
-        const encoded = yield* Schema.encode(Company)(company)
-
-        expect(encoded).toHaveProperty("parentCompanyId", parentCompanyUUID)
-        expect(encoded).toHaveProperty("ownershipPercentage", 80)
       })
     )
   })
 
   describe("immutability", () => {
     it("Company properties are readonly at compile time", () => {
-      const company = createTopLevelCompany()
+      const company = createCompany()
       expect(company.name).toBe("Acme Corporation")
     })
   })

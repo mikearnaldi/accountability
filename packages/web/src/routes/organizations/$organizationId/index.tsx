@@ -149,8 +149,6 @@ interface Company {
     readonly month: number
     readonly day: number
   }
-  readonly parentCompanyId: string | null
-  readonly ownershipPercentage: number | null
   readonly isActive: boolean
   readonly createdAt: {
     readonly epochMillis: number

@@ -482,7 +482,7 @@ export interface paths {
         put?: never;
         /**
          * Create company
-         * @description Create a new company within an organization. Companies can have parent-child relationships for consolidation purposes.
+         * @description Create a new company within an organization. Parent-subsidiary relationships are defined in Consolidation Groups, not on individual companies.
          */
         post: operations["companies.createCompany"];
         delete?: never;
@@ -511,7 +511,7 @@ export interface paths {
         post?: never;
         /**
          * Deactivate company
-         * @description Deactivate a company within an organization (soft delete). Companies with active subsidiaries or unposted entries cannot be deactivated.
+         * @description Deactivate a company within an organization (soft delete). Companies with unposted entries cannot be deactivated.
          */
         delete: operations["companies.deactivateCompany"];
         options?: never;
@@ -3004,16 +3004,6 @@ export interface components {
              */
             retainedEarningsAccountId: components["schemas"]["AccountId"] | null;
             /**
-             * Parent Company ID
-             * @description Reference to parent company for consolidation hierarchy
-             */
-            parentCompanyId: components["schemas"]["CompanyId"] | null;
-            /**
-             * Ownership Percentage
-             * @description Percentage owned by parent company (0-100)
-             */
-            ownershipPercentage: components["schemas"]["Percentage"] | null;
-            /**
              * Is Active
              * @description Whether the company is currently active
              */
@@ -3092,11 +3082,6 @@ export interface components {
              */
             day: number;
         };
-        /**
-         * Percentage
-         * @description A percentage value between 0 and 100 (inclusive)
-         */
-        Percentage: number;
         CreateCompanyRequest: {
             organizationId: components["schemas"]["OrganizationId"];
             name: components["schemas"]["NonEmptyTrimmedString"];
@@ -3112,17 +3097,6 @@ export interface components {
             functionalCurrency: components["schemas"]["CurrencyCode"];
             reportingCurrency: components["schemas"]["CurrencyCode"];
             fiscalYearEnd: components["schemas"]["FiscalYearEnd"];
-            parentCompanyId: components["schemas"]["CompanyId"] | null;
-            ownershipPercentage: components["schemas"]["Percentage"] | null;
-        };
-        OwnershipPercentageRequiredError: {
-            /** @enum {string} */
-            _tag: "OwnershipPercentageRequiredError";
-        };
-        ParentCompanyNotFoundError: {
-            parentCompanyId: string;
-            /** @enum {string} */
-            _tag: "ParentCompanyNotFoundError";
         };
         CompanyNameAlreadyExistsError: {
             companyName: string;
@@ -3143,21 +3117,7 @@ export interface components {
             reportingCurrency: components["schemas"]["CurrencyCode"] | null;
             fiscalYearEnd: components["schemas"]["FiscalYearEnd"] | null;
             retainedEarningsAccountId: components["schemas"]["AccountId"] | null;
-            parentCompanyId: components["schemas"]["CompanyId"] | null;
-            ownershipPercentage: components["schemas"]["Percentage"] | null;
             isActive: boolean | null;
-        };
-        CircularCompanyReferenceError: {
-            companyId: string;
-            parentCompanyId: string;
-            /** @enum {string} */
-            _tag: "CircularCompanyReferenceError";
-        };
-        HasActiveSubsidiariesError: {
-            companyId: string;
-            subsidiaryCount: number;
-            /** @enum {string} */
-            _tag: "HasActiveSubsidiariesError";
         };
         UserInvitationsResponse: {
             invitations: components["schemas"]["PendingInvitationInfo"][];
@@ -4495,6 +4455,11 @@ export interface components {
              */
             vieDetermination: components["schemas"]["VIEDetermination"] | null;
         };
+        /**
+         * Percentage
+         * @description A percentage value between 0 and 100 (inclusive)
+         */
+        Percentage: number;
         VIEDetermination: {
             /**
              * Is Primary Beneficiary
@@ -7146,7 +7111,6 @@ export interface operations {
             query: {
                 organizationId: string;
                 isActive?: components["schemas"]["BooleanFromString"];
-                parentCompanyId?: string;
                 jurisdiction?: string;
                 /** @description a string to be decoded into a number */
                 limit?: string;
@@ -7234,7 +7198,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HttpApiDecodeError"] | components["schemas"]["OwnershipPercentageRequiredError"];
+                    "application/json": components["schemas"]["HttpApiDecodeError"];
                 };
             };
             /** @description UnauthorizedError */
@@ -7261,7 +7225,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["OrganizationNotFoundError"] | components["schemas"]["ParentCompanyNotFoundError"];
+                    "application/json": components["schemas"]["OrganizationNotFoundError"];
                 };
             };
             /** @description CompanyNameAlreadyExistsError */
@@ -7401,16 +7365,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CompanyNotFoundError"] | components["schemas"]["ParentCompanyNotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
+                    "application/json": components["schemas"]["CompanyNotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
                 };
             };
-            /** @description CircularCompanyReferenceError */
+            /** @description CompanyNameAlreadyExistsError */
             409: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CircularCompanyReferenceError"] | components["schemas"]["CompanyNameAlreadyExistsError"];
+                    "application/json": components["schemas"]["CompanyNameAlreadyExistsError"];
                 };
             };
             /** @description AuditLogError */
@@ -7477,15 +7441,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CompanyNotFoundError"] | components["schemas"]["OrganizationNotFoundError"];
-                };
-            };
-            /** @description HasActiveSubsidiariesError */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HasActiveSubsidiariesError"];
                 };
             };
             /** @description AuditLogError */
