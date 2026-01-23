@@ -122,14 +122,14 @@ test.describe("Company Details Page", () => {
     // 9. Should show legal name
     await expect(page.getByText(`${companyName} Inc.`)).toBeVisible()
 
-    // 10. Should show functional currency (use stat card to be specific)
-    await expect(page.getByTestId("stat-currency").getByText("USD")).toBeVisible()
+    // 10. Should show functional currency (in company info card)
+    await expect(page.getByTestId("company-info-card").getByText("USD")).toBeVisible()
 
-    // 11. Should show reporting currency (in financial settings)
-    await expect(page.getByTestId("financial-settings-card").getByText("EUR")).toBeVisible()
+    // 11. Should show reporting currency (in company info card)
+    await expect(page.getByTestId("company-info-card").getByText("EUR")).toBeVisible()
 
-    // 12. Should show fiscal year end (use stat card to be specific)
-    await expect(page.getByTestId("stat-fiscal-year").getByText("December 31")).toBeVisible()
+    // 12. Should show fiscal year end (in company info card)
+    await expect(page.getByTestId("company-info-card").getByText("December 31")).toBeVisible()
 
     // 13. Should show jurisdiction
     await expect(page.getByText("United States")).toBeVisible()
@@ -232,24 +232,27 @@ test.describe("Company Details Page", () => {
     // 6. Navigate to company details page
     await page.goto(`/organizations/${orgData.id}/companies/${companyData.id}`)
 
-    // 7. Should show "Company Data" section heading
-    await expect(page.getByRole("heading", { name: "Company Data" })).toBeVisible()
+    // Scope to company details page to avoid conflicts with sidebar navigation
+    const detailsPage = page.getByTestId("company-details-page")
 
-    // 8. Should show Chart of Accounts navigation link (scoped to quick actions card)
-    const quickActionsCard = page.getByTestId("quick-actions-card")
-    await expect(quickActionsCard.getByTestId("nav-accounts")).toBeVisible()
-    await expect(quickActionsCard.getByTestId("nav-accounts").getByText("Chart of Accounts")).toBeVisible()
-    await expect(quickActionsCard.getByTestId("nav-accounts").getByText(/\d+ accounts/)).toBeVisible()
+    // 7. Should show Chart of Accounts navigation link (in quick actions row)
+    await expect(detailsPage.getByTestId("nav-accounts")).toBeVisible()
+    await expect(detailsPage.getByTestId("nav-accounts").getByText("Chart of Accounts")).toBeVisible()
+    await expect(detailsPage.getByTestId("nav-accounts").getByText(/\d+ accounts/)).toBeVisible()
 
-    // 9. Should show Journal Entries navigation link
-    await expect(quickActionsCard.getByTestId("nav-journal-entries")).toBeVisible()
-    await expect(quickActionsCard.getByTestId("nav-journal-entries").getByText("Journal Entries")).toBeVisible()
-    await expect(quickActionsCard.getByTestId("nav-journal-entries").getByText(/\d+ entries/)).toBeVisible()
+    // 8. Should show Journal Entries navigation link
+    await expect(detailsPage.getByTestId("nav-journal-entries")).toBeVisible()
+    await expect(detailsPage.getByTestId("nav-journal-entries").getByText("Journal Entries")).toBeVisible()
+    await expect(detailsPage.getByTestId("nav-journal-entries").getByText(/\d+ entries/)).toBeVisible()
 
-    // 10. Should show Reports navigation link
-    await expect(quickActionsCard.getByTestId("nav-reports")).toBeVisible()
-    await expect(quickActionsCard.getByTestId("nav-reports").getByText("Reports")).toBeVisible()
-    await expect(quickActionsCard.getByTestId("nav-reports").getByText("Financial statements")).toBeVisible()
+    // 9. Should show Reports navigation link
+    await expect(detailsPage.getByTestId("nav-reports")).toBeVisible()
+    await expect(detailsPage.getByTestId("nav-reports").getByText("Reports")).toBeVisible()
+    await expect(detailsPage.getByTestId("nav-reports").getByText("Financial statements")).toBeVisible()
+
+    // 10. Should show Fiscal Periods navigation link
+    await expect(detailsPage.getByTestId("nav-fiscal-periods")).toBeVisible()
+    await expect(detailsPage.getByTestId("nav-fiscal-periods").getByText("Fiscal Periods")).toBeVisible()
   })
 
   test("should edit company via form", async ({ page, request }) => {
@@ -375,8 +378,8 @@ test.describe("Company Details Page", () => {
     // 19. Should show updated reporting currency
     await expect(page.getByText("GBP")).toBeVisible()
 
-    // 20. Should show updated fiscal year end (use stat card to be specific)
-    await expect(page.getByTestId("stat-fiscal-year").getByText("March 31")).toBeVisible()
+    // 20. Should show updated fiscal year end (in company info card)
+    await expect(page.getByTestId("company-info-card").getByText("March 31")).toBeVisible()
 
     // 21. Should show tax ID
     await expect(page.getByText("98-7654321")).toBeVisible()

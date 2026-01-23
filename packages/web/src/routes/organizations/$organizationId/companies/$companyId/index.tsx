@@ -1,11 +1,10 @@
-import { createFileRoute, redirect, useRouter, Link } from "@tanstack/react-router"
+import { createFileRoute, redirect, useRouter } from "@tanstack/react-router"
 import { createServerFn } from "@tanstack/react-start"
 import { getCookie } from "@tanstack/react-start/server"
 import { useState, useMemo } from "react"
 import {
   CreditCard,
   FileText,
-  DollarSign,
   Calendar,
   BarChart3,
   ChevronDown,
@@ -20,8 +19,7 @@ import { Input } from "@/components/ui/Input"
 import { Select } from "@/components/ui/Select"
 import { Button } from "@/components/ui/Button"
 import { usePermissions } from "@/hooks/usePermissions"
-import { StatCard } from "@/components/company/StatCard"
-import { CompanyInfoCard, InfoRow } from "@/components/company/CompanyInfoCard"
+import { InfoRow } from "@/components/company/CompanyInfoCard"
 import { QuickActionLink } from "@/components/company/QuickActionLink"
 
 // Type for CompanyType from the API schema
@@ -213,7 +211,8 @@ interface Account {
   readonly id: string
   readonly number: string
   readonly name: string
-  readonly category: string
+  readonly accountType: string
+  readonly accountCategory: string
   readonly isActive: boolean
 }
 
@@ -432,134 +431,104 @@ function CompanyDetailsPage() {
           </div>
         </div>
 
-        {/* Stats Row - 4 balanced cards */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard
-            label="Accounts"
-            value={accountCount}
+        {/* Quick Actions - Horizontal row */}
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <QuickActionLink
+            to="/organizations/$organizationId/companies/$companyId/accounts"
+            params={params}
             icon={<CreditCard className="h-5 w-5" />}
-            testId="stat-accounts"
+            title="Chart of Accounts"
+            subtitle={`${accountCount} accounts`}
+            testId="nav-accounts"
           />
-          <StatCard
-            label="Journal Entries"
-            value={journalEntryCount}
+          <QuickActionLink
+            to="/organizations/$organizationId/companies/$companyId/journal-entries"
+            params={params}
             icon={<FileText className="h-5 w-5" />}
-            testId="stat-journal-entries"
+            title="Journal Entries"
+            subtitle={`${journalEntryCount} entries`}
+            testId="nav-journal-entries"
           />
-          <StatCard
-            label="Functional Currency"
-            value={company.functionalCurrency}
-            icon={<DollarSign className="h-5 w-5" />}
-            testId="stat-currency"
+          <QuickActionLink
+            to="/organizations/$organizationId/companies/$companyId/reports"
+            params={params}
+            icon={<BarChart3 className="h-5 w-5" />}
+            title="Reports"
+            subtitle="Financial statements"
+            testId="nav-reports"
           />
-          <StatCard
-            label="Fiscal Year End"
-            value={fiscalYearEndDate}
+          <QuickActionLink
+            to="/organizations/$organizationId/companies/$companyId/fiscal-periods"
+            params={params}
             icon={<Calendar className="h-5 w-5" />}
-            testId="stat-fiscal-year"
+            title="Fiscal Periods"
+            subtitle="Year-end closing"
+            testId="nav-fiscal-periods"
           />
         </div>
 
-        {/* Main Content - Two Columns */}
-        <div className="grid gap-6 lg:grid-cols-2">
-          {/* Left Column - Company Information */}
-          <div className="space-y-4">
-            {/* Legal & Tax Information */}
-            <CompanyInfoCard title="Legal & Tax Information" testId="legal-tax-card">
-              <InfoRow label="Tax ID" value={company.taxId} mono testId="company-tax-id" />
-              <InfoRow label="Registration Number" value={company.registrationNumber} mono testId="company-registration-number" />
-              <InfoRow label="Incorporation Date" value={incorporationDateFormatted} testId="company-incorporation-date" />
-              <InfoRow label="Industry Code" value={company.industryCode} mono testId="company-industry-code" />
-              <InfoRow label="Company Type" value={formatCompanyType(company.companyType)} testId="company-type" />
-              {!company.taxId && !company.registrationNumber && !company.incorporationDate && !company.industryCode && !company.companyType && (
-                <p className="text-sm text-gray-400 italic">No legal information provided</p>
-              )}
-            </CompanyInfoCard>
+        {/* Company Information - Single organized card */}
+        <div className="rounded-lg border border-gray-200 bg-white" data-testid="company-info-card">
+          {/* Three-column grid for information sections */}
+          <div className="grid divide-y divide-gray-100 lg:grid-cols-3 lg:divide-x lg:divide-y-0">
+            {/* Legal & Tax Section */}
+            <div className="p-5">
+              <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-gray-500">
+                Legal & Tax
+              </h3>
+              <dl className="space-y-3">
+                <DescriptionItem label="Tax ID" value={company.taxId} mono testId="company-tax-id" />
+                <DescriptionItem label="Registration" value={company.registrationNumber} mono testId="company-registration-number" />
+                <DescriptionItem label="Incorporated" value={incorporationDateFormatted} testId="company-incorporation-date" />
+                <DescriptionItem label="Company Type" value={formatCompanyType(company.companyType)} testId="company-type" />
+                <DescriptionItem label="Industry Code" value={company.industryCode} mono testId="company-industry-code" />
+                {!company.taxId && !company.registrationNumber && !company.incorporationDate && !company.companyType && !company.industryCode && (
+                  <p className="text-sm text-gray-400 italic">Not provided</p>
+                )}
+              </dl>
+            </div>
 
-            {/* Financial Settings */}
-            <CompanyInfoCard title="Financial Settings" testId="financial-settings-card">
-              <InfoRow label="Functional Currency" value={company.functionalCurrency} />
-              <InfoRow label="Reporting Currency" value={company.reportingCurrency} />
-              <InfoRow label="Fiscal Year End" value={fiscalYearEndDate} />
-              <InfoRow
-                label="Retained Earnings Account"
-                value={retainedEarningsAccount ? `${retainedEarningsAccount.number} - ${retainedEarningsAccount.name}` : "Not configured"}
-              />
-            </CompanyInfoCard>
+            {/* Financial Section */}
+            <div className="p-5">
+              <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-gray-500">
+                Financial
+              </h3>
+              <dl className="space-y-3">
+                <DescriptionItem label="Functional Currency" value={company.functionalCurrency} />
+                <DescriptionItem label="Reporting Currency" value={company.reportingCurrency} />
+                <DescriptionItem label="Fiscal Year End" value={fiscalYearEndDate} />
+                <DescriptionItem
+                  label="Retained Earnings"
+                  value={retainedEarningsAccount ? `${retainedEarningsAccount.number} - ${retainedEarningsAccount.name}` : null}
+                  placeholder="Not configured"
+                />
+              </dl>
+            </div>
 
-            {/* Registered Address */}
-            {hasAddressData(company.registeredAddress) && (
-              <CompanyInfoCard title="Registered Address" testId="address-card">
-                <div className="text-sm text-gray-900">
+            {/* Address Section */}
+            <div className="p-5">
+              <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-gray-500">
+                Registered Address
+              </h3>
+              {hasAddressData(company.registeredAddress) ? (
+                <address className="not-italic text-sm text-gray-900" data-testid="company-address">
                   {company.registeredAddress?.street1 && <p>{company.registeredAddress.street1}</p>}
                   {company.registeredAddress?.street2 && <p>{company.registeredAddress.street2}</p>}
-                  <p>
-                    {[
-                      company.registeredAddress?.city,
-                      company.registeredAddress?.state,
-                      company.registeredAddress?.postalCode
-                    ].filter(Boolean).join(", ")}
-                  </p>
+                  {(company.registeredAddress?.city || company.registeredAddress?.state || company.registeredAddress?.postalCode) && (
+                    <p>
+                      {[
+                        company.registeredAddress?.city,
+                        company.registeredAddress?.state,
+                        company.registeredAddress?.postalCode
+                      ].filter(Boolean).join(", ")}
+                    </p>
+                  )}
                   {company.registeredAddress?.country && <p>{company.registeredAddress.country}</p>}
-                </div>
-              </CompanyInfoCard>
-            )}
-          </div>
-
-          {/* Right Column - Actions & Relationships */}
-          <div className="space-y-4">
-            {/* Quick Actions */}
-            <CompanyInfoCard title="Company Data" testId="quick-actions-card">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <QuickActionLink
-                  to="/organizations/$organizationId/companies/$companyId/accounts"
-                  params={params}
-                  icon={<CreditCard className="h-5 w-5" />}
-                  title="Chart of Accounts"
-                  subtitle={`${accountCount} accounts`}
-                  testId="nav-accounts"
-                />
-                <QuickActionLink
-                  to="/organizations/$organizationId/companies/$companyId/journal-entries"
-                  params={params}
-                  icon={<FileText className="h-5 w-5" />}
-                  title="Journal Entries"
-                  subtitle={`${journalEntryCount} entries`}
-                  testId="nav-journal-entries"
-                />
-                <QuickActionLink
-                  to="/organizations/$organizationId/companies/$companyId/reports"
-                  params={params}
-                  icon={<BarChart3 className="h-5 w-5" />}
-                  title="Reports"
-                  subtitle="Financial statements"
-                  testId="nav-reports"
-                />
-                <QuickActionLink
-                  to="/organizations/$organizationId/companies/$companyId/fiscal-periods"
-                  params={params}
-                  icon={<Calendar className="h-5 w-5" />}
-                  title="Fiscal Periods"
-                  subtitle="Year-end closing"
-                  testId="nav-fiscal-periods"
-                />
-              </div>
-            </CompanyInfoCard>
-
-            {/* Consolidation Groups - Placeholder for future */}
-            <CompanyInfoCard title="Consolidation Groups" testId="consolidation-groups-card">
-              <p className="text-sm text-gray-400 italic">
-                View this company's consolidation group memberships in the{" "}
-                <Link
-                  to="/organizations/$organizationId/consolidation"
-                  params={{ organizationId: params.organizationId }}
-                  className="text-blue-600 hover:underline"
-                >
-                  Consolidation
-                </Link>{" "}
-                section.
-              </p>
-            </CompanyInfoCard>
+                </address>
+              ) : (
+                <p className="text-sm text-gray-400 italic">Not provided</p>
+              )}
+            </div>
           </div>
         </div>
 
@@ -640,7 +609,7 @@ function EditCompanyModal({
 
   // Filter accounts to only show Equity accounts for retained earnings selector
   const equityAccounts = useMemo(() =>
-    accounts.filter((a) => a.category === "Equity" && a.isActive),
+    accounts.filter((a) => a.accountType === "Equity" && a.isActive),
     [accounts]
   )
 
@@ -1051,6 +1020,36 @@ function EditCompanyModal({
           </div>
         </form>
       </div>
+    </div>
+  )
+}
+
+// =============================================================================
+// Description Item Component
+// =============================================================================
+
+function DescriptionItem({
+  label,
+  value,
+  mono,
+  placeholder,
+  testId
+}: {
+  readonly label: string
+  readonly value: string | null | undefined
+  readonly mono?: boolean
+  readonly placeholder?: string
+  readonly testId?: string
+}) {
+  const displayValue = value ?? placeholder
+  const isEmpty = !value
+
+  return (
+    <div className="flex flex-col" data-testid={testId}>
+      <dt className="text-xs text-gray-500">{label}</dt>
+      <dd className={`text-sm ${isEmpty ? "text-gray-400 italic" : "text-gray-900"} ${mono && !isEmpty ? "font-mono" : ""}`}>
+        {displayValue ?? "—"}
+      </dd>
     </div>
   )
 }
